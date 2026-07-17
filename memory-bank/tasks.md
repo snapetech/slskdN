@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse pooled hash input storage for proof-of-storage responses.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `ProofOfStorage.GenerateResponseAsync` now rents one buffer for the UTF-8 nonce and requested file chunk, reads the chunk directly after the encoded nonce, hashes through a fixed digest span in a synchronous helper, formats lowercase hexadecimal directly, clears the used bytes, and returns the buffer. This removes separate nonce, chunk, concatenation, digest, uppercase-hex, and lowercase string intermediates. Across 1,000 4 KiB responses, allocation falls from 9,795,368 to 1,258,336 bytes (87.2%) and median elapsed ticks fall from 12,738,111 to 10,635,940 (16.5%). Exact nonce-plus-offset-chunk SHA-256 input, Unicode encoding, lowercase output, file bounds, and cancellation remain unchanged. Validation passed: complete proof-of-storage (`7/7`), Common Security (`372/372`), and backend (`5232/5232`: `69` application, `4883` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Extended the C# 12 async-span gotcha `0z720` in standalone commit `d4649d8b9`.
+
 - [x] Remove identifier and comparison arrays from proof-of-storage challenges.
   - Status: completed (2026-07-17)
   - Priority: P1

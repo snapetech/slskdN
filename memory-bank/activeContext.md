@@ -1,3 +1,17 @@
+## Update 2026-07-17 14:10:43Z
+
+- Current task: performance and efficiency improvements in progress; pooled proof-of-storage response generation complete locally.
+- Last activity:
+  - Replaced separate nonce, file-chunk, concatenation, digest, and uppercase/lowercase hexadecimal buffers with one cleared pooled input plus a synchronous fixed-span hash helper.
+  - Across 1,000 4 KiB responses, allocation falls from 9,795,368 to 1,258,336 bytes (87.2%) and median elapsed ticks fall from 12,738,111 to 10,635,940 (16.5%).
+- Validation:
+  - Passed complete proof-of-storage (`7/7`), Common Security (`372/372`), and backend validation (`5232/5232`: `69` application, `4883` unit, `280` integration), plus repository lint.
+  - Exact offset/chunk/Unicode/hash/output/bounds/cancellation behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Extended C# 12 async-span gotcha `0z720` in standalone commit `d4649d8b9`. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the proof-of-storage response optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 13:57:30Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded proof-of-storage challenge creation and verification complete locally.

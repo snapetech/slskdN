@@ -5,11 +5,58 @@ namespace slskd.Tests.Unit.Common.Security;
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
 using slskd.Common.Security;
 using Xunit;
 
+[Collection(AllocationTestCollection.Name)]
 public class ProofOfStorageTests
 {
+    [Fact]
+    public async Task GenerateResponseAsync_ReadsRequestedChunkAndBoundsAllocation()
+    {
+        var filePath = Path.GetTempFileName();
+        try
+        {
+            var fileBytes = new byte[8192];
+            for (var index = 0; index < fileBytes.Length; index++)
+            {
+                fileBytes[index] = (byte)index;
+            }
+
+            await File.WriteAllBytesAsync(filePath, fileBytes);
+            using var challenges = new ProofOfStorage();
+            var nonce = new string('\u00e9', 16);
+            var nonceBytes = Encoding.UTF8.GetBytes(nonce);
+            var expectedInput = new byte[nonceBytes.Length + 4096];
+            Buffer.BlockCopy(nonceBytes, 0, expectedInput, 0, nonceBytes.Length);
+            Buffer.BlockCopy(fileBytes, 1024, expectedInput, nonceBytes.Length, 4096);
+            var expected = Convert.ToHexStringLower(SHA256.HashData(expectedInput));
+            _ = await challenges.GenerateResponseAsync(filePath, 1024, 4096, nonce);
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            var before = GC.GetTotalAllocatedBytes(precise: true);
+            for (var index = 0; index < 1000; index++)
+            {
+                var response = await challenges.GenerateResponseAsync(filePath, 1024, 4096, nonce);
+                Assert.Equal(expected, response);
+            }
+
+            var allocated = GC.GetTotalAllocatedBytes(precise: true) - before;
+            Assert.InRange(allocated, 0, 2_000_000);
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
     [Fact]
     public void CreateChallenge_ReturnsBoundedLowercaseIdentifiers()
     {

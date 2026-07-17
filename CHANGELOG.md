@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Proof-of-storage response generation now reads challenged file chunks directly
+  into cleared pooled hash input storage instead of allocating separate nonce,
+  chunk, concatenation, digest, and uppercase/lowercase hexadecimal buffers.
 - Proof-of-storage challenge creation now formats random nonce and abbreviated
   GUID identifiers without uppercase/lowercase or full-GUID string copies, and
   verification reuses bounded span/pool storage for constant-time comparison.

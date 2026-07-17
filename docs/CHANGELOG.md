@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Proof-of-storage response generation now UTF-8 encodes the challenge nonce
+  and reads the requested file chunk directly into one pooled hash input buffer,
+  hashes through a fixed digest span in a synchronous helper, formats lowercase
+  hexadecimal directly, and clears the used pooled bytes before returning them.
+  Across 1,000 4 KiB responses, allocation falls from 9,795,368 to 1,258,336
+  bytes (87.2%) and median elapsed ticks fall from 12,738,111 to 10,635,940
+  (16.5%). Exact SHA-256 nonce-plus-chunk construction, offsets, chunk lengths,
+  Unicode nonce encoding, lowercase output, file bounds, and cancellation remain
+  unchanged.
 - Proof-of-storage challenge creation now fills nonce bytes and formats their
   lowercase hexadecimal representation directly, formats abbreviated GUIDs
   through a fixed character span, and captures one creation timestamp.

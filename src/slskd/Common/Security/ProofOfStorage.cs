@@ -146,17 +146,32 @@ public sealed class ProofOfStorage : IDisposable
 
         stream.Seek(offset, SeekOrigin.Begin);
 
-        var buffer = new byte[length];
-        await stream.ReadExactlyAsync(buffer, cancellationToken);
-
         // Hash: SHA256(nonce || chunk_data)
-        var nonceBytes = Encoding.UTF8.GetBytes(nonce);
-        var combined = new byte[nonceBytes.Length + buffer.Length];
-        Buffer.BlockCopy(nonceBytes, 0, combined, 0, nonceBytes.Length);
-        Buffer.BlockCopy(buffer, 0, combined, nonceBytes.Length, buffer.Length);
+        var nonceByteCount = Encoding.UTF8.GetByteCount(nonce);
+        var combinedByteCount = checked(nonceByteCount + length);
+        var combinedBytes = ArrayPool<byte>.Shared.Rent(combinedByteCount);
 
-        var hash = SHA256.HashData(combined);
-        return Convert.ToHexString(hash).ToLowerInvariant();
+        try
+        {
+            _ = Encoding.UTF8.GetBytes(nonce, combinedBytes);
+            await stream.ReadExactlyAsync(
+                combinedBytes.AsMemory(nonceByteCount, length),
+                cancellationToken);
+
+            return ComputeSha256LowerHex(combinedBytes, combinedByteCount);
+        }
+        finally
+        {
+            Array.Clear(combinedBytes, 0, combinedByteCount);
+            ArrayPool<byte>.Shared.Return(combinedBytes);
+        }
+    }
+
+    private static string ComputeSha256LowerHex(byte[] bytes, int length)
+    {
+        Span<byte> hash = stackalloc byte[32];
+        SHA256.HashData(bytes.AsSpan(0, length), hash);
+        return Convert.ToHexStringLower(hash);
     }
 
     public void Dispose()
