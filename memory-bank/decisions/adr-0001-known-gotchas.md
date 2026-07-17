@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z737. Test Classes Do Not Inherit Production Constants
+
+**The Bug**: A peer-reputation allocation regression referenced `BaseScore`
+without qualifying it through `PeerReputation`. The test class does not inherit
+the production service, so the bare identifier failed to compile even though
+the constant was central to the fixture.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Security/PeerReputationTests.cs`
+
+**Prevention**: Qualify production constants with their declaring type in test
+fixtures unless the test explicitly declares a local alias. Compile the exact
+test immediately after adding performance fixtures so namespace and symbol
+errors are caught before implementation work continues.
+
 ### 0z736. Bloom Filter ItemCount Is Not Exact Input Cardinality
 
 **The Bug**: A wide Library Bloom snapshot regression asserted that adding
