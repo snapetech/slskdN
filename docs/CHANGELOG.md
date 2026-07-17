@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SongID transcript synthetic-cue counting now executes its existing
+  case-insensitive word-boundary regex through `Regex.Count` instead of
+  materializing a `MatchCollection` and one `Match` per cue. For a transcript
+  containing 40,000 recognized cues, warmed allocation falls from 10,968,992
+  bytes to zero measured bytes. Case-insensitive matching, word boundaries,
+  underscore behavior, composite `cover by ai` and `ai-made` alternatives,
+  left-to-right alternative selection, empty input, and null runtime input
+  remain unchanged.
 - SongID lyrics/speech token counting now reuses the direct ASCII-letter and
   apostrophe run scanner instead of materializing a regex `Match` for every
   token. The counter still scans the original transcript independently from

@@ -1,3 +1,12 @@
+## Update 2026-07-17 01:13:11Z
+
+- Completed allocation-free SongID synthetic transcript cue counting.
+- Replaced `Regex.Matches(...).Count` with count-only `Regex.Count` while retaining the exact pattern and options.
+- Reduced warmed allocation for 40,000 recognized cues from 10,968,992 bytes to zero measured bytes.
+- Preserved case-insensitive word boundaries, underscore behavior, composite alternatives, alternative ordering, empty input, and null runtime input.
+- Added focused semantic and match-heavy allocation regressions; passed focused cue-count (`9/9`), complete scoring (`48/48`), broader SongID (`88/88`), and full backend (`5073/5073`: `69` application, `4724` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 01:01:43Z
 
 - Completed allocation-free SongID transcript token counting.

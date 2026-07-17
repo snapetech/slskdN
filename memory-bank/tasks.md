@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Eliminate match materialization from SongID synthetic-cue counts.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SongIdScoring.CountSyntheticMentions` now invokes `Regex.Count` with the unchanged case-insensitive word-boundary pattern instead of constructing a `MatchCollection` and every individual `Match`. For a transcript containing 40,000 recognized `ai`, `generated`, `suno`, and `udio` cues, warmed allocation falls from 10,968,992 bytes to zero measured bytes. Exact case handling, word boundaries, underscore non-boundaries, `cover by ai` and `ai-made` alternatives, left-to-right regex alternative behavior, unrelated `fake artist` handling, empty strings, and null runtime input remain unchanged. Added focused semantic and match-heavy allocation regressions. Validation passed: focused cue-count (`9/9`), complete scoring (`48/48`), broader SongID (`88/88`), full backend suites (`5073/5073`: `69` application, `4724` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove regex allocations from SongID transcript token counts.
   - Status: completed (2026-07-17)
   - Priority: P1

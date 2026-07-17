@@ -1198,9 +1198,9 @@ internal static class SongIdScoring
         }
     }
 
-    private static int CountSyntheticMentions(string text)
+    internal static int CountSyntheticMentions(string text)
     {
-        return Regex.Matches(text ?? string.Empty, @"\b(ai|generated|suno|udio|cover by ai|ai-made)\b", RegexOptions.IgnoreCase).Count;
+        return Regex.Count(text ?? string.Empty, @"\b(ai|generated|suno|udio|cover by ai|ai-made)\b", RegexOptions.IgnoreCase);
     }
 
     private static bool LooksSyntheticComment(string text)

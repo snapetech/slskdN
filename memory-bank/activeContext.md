@@ -1,3 +1,17 @@
+## Update 2026-07-17 01:13:11Z
+
+- Current task: performance and efficiency improvements in progress; allocation-free SongID synthetic-cue counting complete locally.
+- Last activity:
+  - Replaced match-result materialization with count-only execution of the unchanged case-insensitive word-boundary regex.
+  - A 40,000-match transcript falls from 10,968,992 warmed allocated bytes to zero measured bytes.
+- Validation:
+  - Passed focused cue-count (`9/9`), complete scoring (`48/48`), broader SongID (`88/88`), and full backend suites (`5073/5073`: `69` application, `4724` unit, `280` integration) tests.
+  - Exact case/boundary/underscore/composite/alternative/null/empty behavior, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the SongID synthetic-cue count slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 01:01:43Z
 
 - Current task: performance and efficiency improvements in progress; allocation-free SongID transcript token counting complete locally.

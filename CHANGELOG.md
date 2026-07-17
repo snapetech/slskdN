@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- SongID synthetic transcript cue counts now use count-only regex execution
+  instead of materializing every match result.
 - SongID transcript token counts now scan ASCII letter/apostrophe runs directly
   instead of materializing a regex match object for every token.
 - SongID transcript trigram repetition now streams token ranges and aggregates
