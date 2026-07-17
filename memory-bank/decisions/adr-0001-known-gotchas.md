@@ -25636,3 +25636,177 @@ failed to compile before it could exercise the lifecycle behavior.
 lifecycle attributes in tests. Compile the smallest focused test slice
 immediately after adding metadata assertions so namespace and fixture failures
 surface before broader validation.
+
+### 0z598. Live Listener Rebinds Must Update Obfuscation State Atomically
+
+**The Bug**: Regular Soulseek listener address/port edits were marked as
+requiring a reconnect even though the runtime rebinds them live. At the same
+time, the reconfiguration path omitted the updated peer-obfuscation options, so
+the regular socket and advertised endpoint could change while the obfuscated
+socket and metadata retained their old port until restart.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `vendor/slskNet.Runtime/src/SoulseekClient.cs`
+- listener lifecycle tests
+
+**Prevention**: Treat all sockets and metadata derived from a listener patch as
+one reconfiguration unit. Only report reconnect state when the runtime returns
+that it cannot apply the patch live, and probe both regular and obfuscated
+listeners in regression coverage.
+
+### 0z599. Options-Framework Registrations Must Be Injected Through IOptions
+
+**The Bug**: Adversarial security settings were registered with the Microsoft
+options framework, but `SecurityController` requested the raw value object.
+Dependency injection therefore used the constructor's optional null default and
+the configured endpoint returned not found.
+
+**Files Affected**:
+- `src/slskd/Common/Security/API/SecurityController.cs`
+- `tests/slskd.Tests.Unit/Common/Security/SecurityControllerTests.cs`
+
+**Prevention**: Match controller dependencies to their service registration.
+Use `IOptions<T>`, `IOptionsSnapshot<T>`, or `IOptionsMonitor<T>` for
+`Configure<T>` registrations and include a service-provider resolution test,
+not only direct constructor tests.
+
+### 0z600. Reject Unsupported Obfuscation Combinations During Validation
+
+**The Bug**: Options validation accepted enabled obfuscation with regular-port
+advertisement disabled even though the vendored runtime rejects that legacy-
+incompatible combination during dependency construction. Startup failed later
+with an argument exception instead of a configuration error.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `tests/slskd.Tests.Unit/SoulseekOptionsValidationTests.cs`
+
+**Prevention**: Mirror constructor invariants in public configuration
+validation and test invalid combinations through both object validation and the
+startup configuration path.
+
+### 0z601. Fatal Startup Catch Paths Must Set A Failure Exit Code
+
+**The Bug**: The outer Web application startup catch logged an unexpected
+fatal exception and returned without invoking the injected failure exit action.
+An occupied HTTP port could therefore terminate the process with status zero,
+misleading service managers and deployment probes.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/StartupWebApplicationRunner.cs`
+- `tests/slskd.Tests.Unit/Bootstrap/StartupWebApplicationRunnerTests.cs`
+
+**Prevention**: Every fatal startup boundary must both log the exception and
+set a non-zero process result. Exercise the handler directly and retain an
+occupied-port process smoke test.
+
+### 0z602. Invalid Reloads Must Not Evict The Last Valid Options
+
+**The Bug**: The default options monitor evicted its cached value before
+constructing a replacement after a configuration change. When validation of
+the replacement failed, background consumers could resolve the same invalid
+configuration and terminate the host instead of continuing with the last valid
+settings.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs`
+- `src/slskd/Common/Configuration/RetainingOptionsMonitor.cs`
+- retaining-monitor integration tests
+
+**Prevention**: Create and validate a replacement before publishing it, retain
+the previous named value on failure, notify subscribers only after a successful
+swap, and verify that a later valid reload still applies.
+
+### 0z603. RangeAttribute Operand Types Must Match Fractional Properties
+
+**The Bug**: A `double` auto-retry tolerance used integer `RangeAttribute`
+operands. Validation converted nearby fractional values through the integer
+range contract, allowing values such as `-0.1` and `100.1` across documented
+boundaries.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `tests/slskd.Tests.Unit/Core/API/OptionsControllerTests.cs`
+
+**Prevention**: Use double operands or the explicit invariant string/type
+constructor for fractional ranges. Test just-inside, exact-boundary, and
+just-outside decimal values through the public YAML validator.
+
+### 0z604. Regex Case Mode Belongs In Both Compilation And Cache Identity
+
+**The Bug**: Blacklist username patterns always compiled with ignore-case and
+their cache signature contained only pattern text. Enabling case-sensitive
+regular expressions neither changed matching behavior nor invalidated cached
+decisions.
+
+**Files Affected**:
+- `src/slskd/Users/RegexUsernameMatcher.cs`
+- `tests/slskd.Tests.Unit/Users/RegexUsernameMatcherTests.cs`
+
+**Prevention**: Derive regex flags from the complete current option set and
+include every behavior-affecting flag in cache identity. Test a live mode change
+with unchanged pattern text and an already-cached username.
+
+### 0z605. YAML Validation Must Reuse Runtime Compatibility Mapping
+
+**The Bug**: The runtime configuration provider accepts the documented
+`transfers.groups` placement through compatibility aliases, but the API YAML
+validator deserialized directly into `Options`. The validator rejected the
+shipped example configuration even though startup accepted it.
+
+**Files Affected**:
+- `src/slskd/Core/API/Controllers/OptionsController.cs`
+- `src/slskd/Common/Configuration/YamlConfigurationSource.cs`
+- YAML validation tests
+
+**Prevention**: Keep compatibility normalization in one reusable path shared by
+startup binding and validation. Test canonical and compatibility placements
+together, including precedence and invalid nested regex values.
+
+### 0z606. Reloaded Search Filters Must Preserve Regex Case Mode
+
+**The Bug**: Startup search-filter compilation respected
+`flags.case_sensitive_reg_ex`, but the options-change handler recompiled changed
+filters with `RegexOptions.Compiled` alone. A reload silently changed matching
+semantics without changing the configured case mode.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+- `tests/slskd.Tests.Unit/Core/ApplicationLifecycleTests.cs`
+
+**Prevention**: Centralize filter compilation and use the same helper for
+startup and reload. Regression-test both case modes through a reload rather
+than testing the helper alone.
+
+### 0z607. Rate Limiting Needs The Authenticated Principal Before Partitioning
+
+**The Bug**: Authentication middleware ran before rate limiting, but JWT was
+the default authenticate scheme. API-key authentication did not run until the
+later authorization stage, so valid API-key callers entered the anonymous
+per-address rate-limit bucket and received 429 responses.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+- `tests/slskd.Tests/RateLimitingTestHostFactory.cs`
+- rate-limiting tests
+
+**Prevention**: Use a policy scheme that selects API-key authentication when
+its header is present and JWT otherwise, so `UseAuthentication` establishes the
+principal before the limiter executes. Verify multiple authenticated requests
+past the anonymous quota in an HTTP test.
+
+### 0z608. Request-Body Limit Failures Are 413, Not Generic 500
+
+**The Bug**: Kestrel reports request-body limit violations as
+`BadHttpRequestException` with status 413, but the global exception formatter
+mapped every non-feature exception to a generic 500. Oversized client requests
+therefore received the wrong status and hid a correctable input problem.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebApplicationPipelineExtensions.cs`
+- `tests/slskd.Tests/ExceptionHandlerTests.cs`
+
+**Prevention**: Preserve safe status semantics for known framework request
+exceptions while keeping internal details redacted. Drive regression coverage
+with an actually oversized request in addition to formatter-level tests.
