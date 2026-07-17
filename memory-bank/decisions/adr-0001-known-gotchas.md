@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z744. Stackalloc Bitsets Must Be Cleared Before OR-Based Population
+
+**The Bug**: A stack-allocated two-word filename-character bitset was populated
+with `|=` without first clearing its storage. `stackalloc` memory is not
+guaranteed to be zero-initialized, so stale stack bits could report characters
+that were never present and change filename similarity decisions.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/MultiSourceDownloadService.cs`
+
+**Prevention**: Call `Clear()` on stack-allocated spans before treating them as
+zeroed bitsets, counters, flags, or lookup tables. Assignment-only algorithms
+may initialize every element explicitly; any algorithm that reads, ORs, adds,
+or increments existing stack storage must establish its initial state first.
+
 ### 0z743. Zero-Copy Normalized Hashing Can Lose To Runtime String Hashing
 
 **The Bug**: Replacing cross-provider search aggregation's allocated ASCII
