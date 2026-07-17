@@ -605,11 +605,17 @@ ref-struct locals in async methods require the C# 13 feature.
 
 **Files Affected**:
 - `src/slskd/VirtualSoulfind/v2/Planning/MultiSourcePlanner.cs`
+- `src/slskd/Common/Security/ProofOfStorage.cs`
 
 **Prevention**: Keep span creation and inspection inside synchronous helper or
 comparer methods when the caller is async. Pass the owning string plus integer
 offset/length through the async method, and never rely on lexical placement
 before an await to make a span local valid under C# 12.
+
+**2026-07-17 recurrence:** A proof-of-storage response optimization declared a
+`stackalloc` digest after the method's final `await`. C# 12 still rejected the
+method with CS9202. The restriction applies to ref-struct locals anywhere in an
+async method, not only locals whose lexical lifetime appears to cross an await.
 
 ### 0z719. Local Initializer Indentation Depends On Signature Layout
 
