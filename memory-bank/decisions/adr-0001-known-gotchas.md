@@ -762,13 +762,17 @@ the complete culture-specific sign.
 **Files Affected**:
 - `src/slskd/MediaCore/ContentDescriptorPublisher.cs`
 - `tests/slskd.Tests.Unit/MediaCore/ContentDescriptorPublisherModerationTests.cs`
+- `src/slskd/VirtualSoulfind/Bridge/BridgeHelpers.cs`
+- `tests/slskd.Tests.Unit/VirtualSoulfind/Bridge/BridgeHelpersTests.cs`
 
 **Prevention**: When replacing interpolation or `ToString` with bounded
 `TryFormat`, prove the buffer covers every supported provider or preserve a
 correct fallback for formatting expansion. Never ignore the boolean return.
 Include a custom `NumberFormatInfo` whose sign or separator exceeds the fast
 buffer so compatibility tests exercise the fallback rather than only standard
-cultures.
+cultures. When exact-sizing an output buffer, derive the sign contribution from
+the active provider instead of assuming the invariant one-character minus sign,
+and keep the same provider used by the legacy interpolation.
 
 ### 0z711. Allocation Warm-Ups Must Not Mutate The Measured Instance
 
