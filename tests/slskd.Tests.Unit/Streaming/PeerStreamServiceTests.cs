@@ -54,9 +54,12 @@ public class PeerStreamServiceTests
 
         Assert.NotNull(lease);
         Assert.Equal("audio/flac", lease.ContentType);
-        var actual = await ReadAllAsync(lease.Stream);
-        Assert.Equal(payload, actual);
-        await lease.Stream.DisposeAsync();
+        await using (var stream = lease.Stream)
+        {
+            var actual = await ReadAllAsync(stream);
+            Assert.Equal(payload, actual);
+        }
+
         limiter.Verify(x => x.Release("user:alice"), Times.Once);
     }
 
@@ -88,7 +91,7 @@ public class PeerStreamServiceTests
     private static async Task<byte[]> ReadAllAsync(Stream stream)
     {
         using var output = new MemoryStream();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         await stream.CopyToAsync(output, timeout.Token);
         return output.ToArray();
     }

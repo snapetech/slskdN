@@ -20,7 +20,7 @@ run_step() {
     echo "+ $*"
 
     set +e
-    timeout --preserve-status --kill-after=60s "$timeout_seconds" "$@"
+    timeout --kill-after=60s "$timeout_seconds" "$@"
     local status=$?
     set -e
 

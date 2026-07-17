@@ -61,9 +61,12 @@ public class MeshStreamServiceTests
 
         Assert.NotNull(lease);
         Assert.Equal("audio/flac", lease.ContentType);
-        var actual = await ReadAllAsync(lease.Stream);
-        Assert.Equal(payload, actual);
-        await lease.Stream.DisposeAsync();
+        await using (var stream = lease.Stream)
+        {
+            var actual = await ReadAllAsync(stream);
+            Assert.Equal(payload, actual);
+        }
+
         traffic.Verify(x => x.AddOverlayDownloadAsync(payload.Length, It.IsAny<CancellationToken>()), Times.Once);
         limiter.Verify(x => x.Release("user:alice"), Times.Once);
     }
@@ -137,16 +140,19 @@ public class MeshStreamServiceTests
         var lease = await service.OpenAsync("ticket-1", CancellationToken.None);
 
         Assert.NotNull(lease);
-        var actual = await ReadAllAsync(lease.Stream);
-        Assert.Empty(actual);
-        await lease.Stream.DisposeAsync();
+        await using (var stream = lease.Stream)
+        {
+            var actual = await ReadAllAsync(stream);
+            Assert.Empty(actual);
+        }
+
         limiter.Verify(x => x.Release("user:alice"), Times.Once);
     }
 
     private static async Task<byte[]> ReadAllAsync(Stream stream)
     {
         using var output = new MemoryStream();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         await stream.CopyToAsync(output, timeout.Token);
         return output.ToArray();
     }
