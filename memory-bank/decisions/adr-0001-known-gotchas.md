@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z723. Unique Token Fixtures Must Vary Inside The Matched Alphabet
+
+**The Bug**: A wide-unique repeated-n-gram allocation fixture generated
+`token0` through `token9999`, but the production tokenizer intentionally uses
+`[a-zA-Z']+`. Every numeric suffix was therefore excluded and all 10,000
+inputs became the same `token`, correctly producing a fully repeated ratio
+instead of the expected zero.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/SongID/SongIdScoringTests.cs`
+
+**Prevention**: Derive uniqueness fixtures from the tokenizer's accepted
+alphabet, not from the human-readable source strings. When a regex or scanner
+excludes digits or punctuation, encode fixture indexes entirely with accepted
+characters and assert a small known tokenization vector before relying on the
+fixture's cardinality or allocation result.
+
 ### 0z722. Do Not Join Stack And Heap Spans In One Branch Local
 
 **The Bug**: A synchronous recommendation-key fast path assigned either a
