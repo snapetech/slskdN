@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound remaining security recent-event query allocation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: Honeypot events, fingerprint-reconnaissance events, and paranoid-mode anomalies now use one concrete `ConcurrentQueue<T>` reader that lazily retains only the requested newest page in a circular array and rotates it in place. This replaces LINQ `Reverse().Take().ToList()` and changes selection storage from O(retained history) to O(page size). Warmed 50-result pages over full retention fall from 80,656 to 496 allocated bytes for honeypot events (99.4%), from 40,656 to 496 for reconnaissance events (98.8%), and from 8,656 to 496 for anomalies (94.3%). Empty/partial histories, newest-first identity, retention caps, non-positive counts, and concurrent queue snapshot semantics remain unchanged. Validation passed: focused (`4/4`), broader Common Security (`333/333`), and backend (`5156/5156`: `69` application, `4807` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Bound peer-reputation ranking and statistics allocation.
   - Status: completed (2026-07-17)
   - Priority: P1

@@ -188,7 +188,7 @@ public sealed class Honeypot : IDisposable
     /// </summary>
     public IReadOnlyList<HoneypotEvent> GetRecentEvents(int count = 100)
     {
-        return _events.Reverse().Take(count).ToList();
+        return RecentQueueReader.ReadNewest(_events, count, MaxEvents);
     }
 
     /// <summary>

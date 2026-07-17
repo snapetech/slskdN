@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Honeypot events, fingerprint-reconnaissance events, and paranoid-mode
+  anomalies now share a concrete concurrent-queue reader that scans each queue
+  into a lazily allocated ring capped at the requested page, then rotates the
+  ring in place for newest-first output. Returning 50 items from full retained
+  histories falls from 80,656 to 496 allocated bytes for honeypot events
+  (99.4%), from 40,656 to 496 for reconnaissance events (98.8%), and from 8,656
+  to 496 for anomalies (94.3%). Selection storage is O(page size) instead of
+  O(retained history). Empty and partial histories, newest-first identity,
+  retention caps, non-positive counts, and concurrent snapshot enumeration
+  remain unchanged.
 - Peer reputation suspicious/trusted listings now scan profiles directly into a
   stable worst-first priority queue capped at the requested limit instead of
   snapshotting and fully sorting every matching profile. A warmed 50-row

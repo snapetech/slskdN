@@ -1,3 +1,17 @@
+## Update 2026-07-17 08:43:20Z
+
+- Current task: performance and efficiency improvements in progress; remaining reverse-buffered security event pages complete locally.
+- Last activity:
+  - Added one concrete concurrent-queue reader that retains only the requested newest page and migrated honeypot, fingerprint-reconnaissance, and paranoid-mode event queries to it.
+  - Warmed 50-result full-retention pages fall from 80,656/40,656/8,656 to 496 allocated bytes each (99.4%/98.8%/94.3%).
+- Validation:
+  - Passed focused recent-event (`4/4`), broader Common Security (`333/333`), and backend validation (`5156/5156`: `69` application, `4807` unit, `280` integration).
+  - Exact empty/partial/newest/count/retention/concurrent-snapshot semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the page-bounded security recent-event family.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 08:29:57Z
 
 - Current task: performance and efficiency improvements in progress; bounded peer-reputation rankings and snapshot-free statistics complete locally.

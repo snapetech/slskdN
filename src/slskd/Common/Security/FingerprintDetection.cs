@@ -350,7 +350,7 @@ public sealed class FingerprintDetection : IDisposable
     /// </summary>
     public IReadOnlyList<ReconnaissanceEvent> GetRecentEvents(int count = 100)
     {
-        return _events.Reverse().Take(count).ToList();
+        return RecentQueueReader.ReadNewest(_events, count, MaxEvents);
     }
 
     /// <summary>

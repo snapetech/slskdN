@@ -223,10 +223,7 @@ public sealed class ParanoidMode
     /// <returns>Recent anomalies.</returns>
     public IReadOnlyList<ServerAnomaly> GetRecentAnomalies(int count = 100)
     {
-        return _anomalies
-            .Reverse()
-            .Take(count)
-            .ToList();
+        return RecentQueueReader.ReadNewest(_anomalies, count, MaxAnomalies);
     }
 
     /// <summary>

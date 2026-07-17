@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Honeypot, reconnaissance, and paranoid-mode recent-event queries now retain
+  only the requested newest page instead of reverse-buffering full histories.
 - Peer reputation rankings now retain only the requested best-scored peers, and
   reputation statistics scan the concurrent profile map without value snapshots.
 - Security event queries now retain only the requested newest matching page
