@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- SongID loose-text normalization now fuses case folding, feature aliases, and
+  ASCII token cleanup into a direct exact-size scan instead of chained string
+  replacements, regex replacement, and trimming.
 - SongID run-quality consensus now prepares canonical track artist labels once
   and aggregates album/artist support directly without per-candidate lists or
   repeated track normalization.

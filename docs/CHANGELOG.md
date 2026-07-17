@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SongID loose-text normalization now expands ampersands once, returns already
+  normalized lowercase ASCII labels directly, and otherwise performs invariant
+  character folding, the existing `feat.`/`feat`/`ft.`/`ft` substitutions, and
+  ASCII alphanumeric separator collapse in two exact-size scans. It replaces
+  whole-string lowercase, four feature-alias replacements, regex replacement,
+  and trimming. Across 10,000 representative non-equal comparisons, warmed
+  allocation falls from 9,760,248 to 7,200,000 bytes (26.2%). Two normalized
+  5,000-token inputs with 2,500 shared tokens fall from 907,208 to 580,216 bytes
+  (36.0%). A fixed plus 2,000-input deterministic adversarial sweep verifies
+  exact output equivalence for ampersand-created alias boundaries, literal-space
+  alias requirements, punctuation and whitespace collapse, invariant Unicode
+  case mapping, empty inputs, and ASCII filtering.
 - SongID run-quality consensus now filters positive canonical tracks once,
   normalizes their artist labels once, and directly aggregates support count
   and maximum canonical score for each album and artist candidate. It replaces

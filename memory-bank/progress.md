@@ -1,3 +1,12 @@
+## Update 2026-07-17 02:02:08Z
+
+- Completed fused, exact-size SongID loose-text normalization.
+- Replaced whole-string lowercase, chained feature-alias replacement, regex cleanup, and trimming with ampersand expansion plus direct invariant-case/alias/ASCII-separator scans; already-normalized labels return directly.
+- Reduced warmed allocation across 10,000 representative comparisons from 9,760,248 to 7,200,000 bytes (26.2%); normalized 5,000-token inputs fall from 907,208 to 580,216 bytes (36.0%).
+- Verified exact output against the legacy pipeline for 13 fixed and 2,000 deterministic adversarial inputs, including alias-boundary, punctuation, whitespace, Unicode-case, and empty cases.
+- Passed complete scoring (`68/68`), broader SongID (`112/112`), and full backend (`5093/5093`: `69` application, `4744` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 01:48:22Z
 
 - Completed canonical-track label precomputation and direct support aggregation for SongID run-quality consensus.

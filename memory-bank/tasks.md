@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Fuse SongID loose-text normalization passes.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SongIdScoring.NormalizeLooseText` now performs the unchanged normalization contract through a direct scanner. It expands ampersands once, returns already-normalized lowercase ASCII labels without copying, and otherwise computes and writes the exact output while invariant-lowercasing characters, applying the four literal-space feature aliases before punctuation cleanup, collapsing non-ASCII/non-alphanumeric runs, and omitting leading/trailing separators. This replaces whole-string lowercase, four chained feature replacements, regex replacement, and trim passes. The representative 10,000-comparison fixture falls from 9,760,248 to 7,200,000 warmed allocated bytes (26.2%); two normalized 5,000-token inputs with 2,500 shared tokens fall from 907,208 to 580,216 bytes (36.0%). Added five boundary-focused similarity cases and exact output comparison against the legacy pipeline over 13 fixed plus 2,000 deterministic adversarial inputs. Validation passed: complete scoring (`68/68`), broader SongID (`112/112`), full backend suites (`5093/5093`: `69` application, `4744` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Precompute SongID canonical-track quality consensus labels.
   - Status: completed (2026-07-17)
   - Priority: P1

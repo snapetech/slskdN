@@ -619,6 +619,11 @@ public sealed class SongIdScoringTests
     [InlineData("Alpha---Beta", "alpha beta", 1.0)]
     [InlineData("ÄPFEL", "pfel", 1.0)]
     [InlineData("alpha\tbeta", "alpha beta", 1.0)]
+    [InlineData("Artist&feat Guest", "Artist featuring Guest", 0.75)]
+    [InlineData("Artist feat&Guest", "Artist featuring Guest", 0.75)]
+    [InlineData("Artist-feat Guest", "Artist feat", 2.0 / 3.0)]
+    [InlineData("Artist\tfeat Guest", "Artist feat", 2.0 / 3.0)]
+    [InlineData("feat. Artist", "feat Artist", 1.0)]
     [InlineData("alpha", "alpha beta", 0.5)]
     [InlineData("alpha alpha", "alpha", 1.0)]
     [InlineData("alpha", null, 0.0)]
@@ -626,6 +631,45 @@ public sealed class SongIdScoringTests
     public void CompareLooseText_PreservesNormalizedTokenSetSemantics(string left, string? right, double expected)
     {
         Assert.Equal(expected, SongIdScoring.CompareLooseText(left, right), precision: 10);
+    }
+
+    [Fact]
+    public void NormalizeLooseText_MatchesLegacyPipelineAcrossAdversarialInputs()
+    {
+        var inputs = new List<string?>
+        {
+            null,
+            string.Empty,
+            "   \t\r\n",
+            "Artist&feat Guest",
+            "Artist feat&Guest",
+            "Artist-feat Guest",
+            "Artist\tfeat Guest",
+            " feat. ",
+            " ft. ",
+            "x-feat-y",
+            "ÄPFEL Kelvin İSTANBUL ſong",
+            "alpha😀beta",
+            "&& feat. && ft &&",
+        };
+        const string alphabet = "abcxyzFEATft01239 &.-_\t\r\nÄÖKſİ";
+        var random = new Random(0x5eed);
+        for (var inputIndex = 0; inputIndex < 2_000; inputIndex++)
+        {
+            var length = random.Next(0, 80);
+            var characters = new char[length];
+            for (var characterIndex = 0; characterIndex < length; characterIndex++)
+            {
+                characters[characterIndex] = alphabet[random.Next(alphabet.Length)];
+            }
+
+            inputs.Add(new string(characters));
+        }
+
+        foreach (var input in inputs)
+        {
+            Assert.Equal(NormalizeLooseTextLegacy(input), SongIdScoring.NormalizeLooseText(input));
+        }
     }
 
     [Fact]
@@ -642,8 +686,8 @@ public sealed class SongIdScoringTests
 
         Assert.Equal(1.0 / 3.0, score, precision: 10);
         Assert.True(
-            allocatedBytes < 1_000_000,
-            $"Expected loose-text token comparison below 1 MB allocated, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 700_000,
+            $"Expected loose-text token comparison below 700 KB allocated, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]
@@ -664,8 +708,8 @@ public sealed class SongIdScoringTests
         var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
         Assert.Equal(2.0 / 3.0, score / iterations, precision: 10);
         Assert.True(
-            allocatedBytes < 10_000_000,
-            $"Expected repeated loose-text comparisons below 10 MB allocated, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 8_500_000,
+            $"Expected repeated loose-text comparisons below 8.5 MB allocated, got {allocatedBytes:N0} bytes.");
     }
 
     [Theory]
@@ -856,5 +900,21 @@ public sealed class SongIdScoringTests
         Assert.True(
             allocatedBytes < 2_400_000,
             $"Expected unique repeated-line scoring below 2.4 MB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    private static string NormalizeLooseTextLegacy(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = value.ToLowerInvariant()
+            .Replace("&", " and ", StringComparison.Ordinal)
+            .Replace(" feat. ", " featuring ", StringComparison.Ordinal)
+            .Replace(" feat ", " featuring ", StringComparison.Ordinal)
+            .Replace(" ft. ", " featuring ", StringComparison.Ordinal)
+            .Replace(" ft ", " featuring ", StringComparison.Ordinal);
+        return System.Text.RegularExpressions.Regex.Replace(normalized, @"[^a-z0-9]+", " ").Trim();
     }
 }

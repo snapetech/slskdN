@@ -541,20 +541,139 @@ internal static class SongIdScoring
         }
     }
 
-    private static string NormalizeLooseText(string? value)
+    internal static string NormalizeLooseText(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             return string.Empty;
         }
 
-        var normalized = value.ToLowerInvariant()
-            .Replace("&", " and ", StringComparison.Ordinal)
-            .Replace(" feat. ", " featuring ", StringComparison.Ordinal)
-            .Replace(" feat ", " featuring ", StringComparison.Ordinal)
-            .Replace(" ft. ", " featuring ", StringComparison.Ordinal)
-            .Replace(" ft ", " featuring ", StringComparison.Ordinal);
-        return Regex.Replace(normalized, @"[^a-z0-9]+", " ").Trim();
+        var expanded = value.Replace("&", " and ", StringComparison.Ordinal);
+        if (IsNormalizedLooseText(expanded))
+        {
+            return expanded;
+        }
+
+        var normalizedLength = WriteNormalizedLooseText(expanded, Span<char>.Empty);
+        return normalizedLength == 0
+            ? string.Empty
+            : string.Create(
+                normalizedLength,
+                expanded,
+                static (destination, source) => WriteNormalizedLooseText(source, destination));
+    }
+
+    private static bool IsNormalizedLooseText(string value)
+    {
+        if (value.Length == 0 || value[0] == ' ' || value[^1] == ' ')
+        {
+            return false;
+        }
+
+        var previousWasSpace = false;
+        for (var index = 0; index < value.Length; index++)
+        {
+            var current = value[index];
+            if (IsAsciiLowerLetterOrDigit(current))
+            {
+                previousWasSpace = false;
+                continue;
+            }
+
+            if (current != ' ' || previousWasSpace || GetFeaturingAliasLength(value, index) > 0)
+            {
+                return false;
+            }
+
+            previousWasSpace = true;
+        }
+
+        return true;
+    }
+
+    private static int WriteNormalizedLooseText(string source, Span<char> destination)
+    {
+        const string featuring = " featuring ";
+        var written = 0;
+        var separatorPending = false;
+        var index = 0;
+        while (index < source.Length)
+        {
+            var aliasLength = GetFeaturingAliasLength(source, index);
+            if (aliasLength > 0)
+            {
+                foreach (var current in featuring)
+                {
+                    AppendNormalizedLooseTextCharacter(current, destination, ref written, ref separatorPending);
+                }
+
+                index += aliasLength;
+                continue;
+            }
+
+            AppendNormalizedLooseTextCharacter(source[index], destination, ref written, ref separatorPending);
+            index++;
+        }
+
+        return written;
+    }
+
+    private static void AppendNormalizedLooseTextCharacter(
+        char current,
+        Span<char> destination,
+        ref int written,
+        ref bool separatorPending)
+    {
+        current = char.ToLowerInvariant(current);
+        if (!IsAsciiLowerLetterOrDigit(current))
+        {
+            separatorPending = written > 0;
+            return;
+        }
+
+        if (separatorPending)
+        {
+            if (!destination.IsEmpty)
+            {
+                destination[written] = ' ';
+            }
+
+            written++;
+            separatorPending = false;
+        }
+
+        if (!destination.IsEmpty)
+        {
+            destination[written] = current;
+        }
+
+        written++;
+    }
+
+    private static int GetFeaturingAliasLength(string source, int index)
+    {
+        var remaining = source.AsSpan(index);
+        if (remaining.StartsWith(" feat. ", StringComparison.OrdinalIgnoreCase))
+        {
+            return 7;
+        }
+
+        if (remaining.StartsWith(" feat ", StringComparison.OrdinalIgnoreCase))
+        {
+            return 6;
+        }
+
+        if (remaining.StartsWith(" ft. ", StringComparison.OrdinalIgnoreCase))
+        {
+            return 5;
+        }
+
+        return remaining.StartsWith(" ft ", StringComparison.OrdinalIgnoreCase) ? 4 : 0;
+    }
+
+    private static bool IsAsciiLowerLetterOrDigit(char value)
+    {
+        return (value >= 'a' && value <= 'z') || (value >= '0' && value <= '9');
     }
 
     private readonly struct TextRange

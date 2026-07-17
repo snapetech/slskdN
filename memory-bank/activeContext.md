@@ -1,3 +1,17 @@
+## Update 2026-07-17 02:02:08Z
+
+- Current task: performance and efficiency improvements in progress; fused SongID loose-text normalization complete locally.
+- Last activity:
+  - Replaced chained lowercase/feature-replacement/regex/trim passes with an exact-size scanner that preserves ampersand expansion, literal-space alias timing, invariant casing, and ASCII filtering; already-normalized labels are returned directly.
+  - The 10,000-comparison fixture falls from 9,760,248 to 7,200,000 warmed allocated bytes (26.2%); normalized 5,000-token inputs fall from 907,208 to 580,216 bytes (36.0%).
+- Validation:
+  - Passed exact legacy-pipeline comparison over 2,013 fixed/adversarial inputs, complete scoring (`68/68`), broader SongID (`112/112`), and full backend suites (`5093/5093`: `69` application, `4744` unit, `280` integration) tests.
+  - Alias-boundary/punctuation/whitespace/Unicode/empty/ASCII behavior, typical and wide allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the SongID loose-text normalizer slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 01:48:22Z
 
 - Current task: performance and efficiency improvements in progress; precomputed SongID run-quality consensus complete locally.
