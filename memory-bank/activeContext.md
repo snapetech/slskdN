@@ -1,3 +1,17 @@
+## Update 2026-07-17 09:54:17Z
+
+- Current task: performance and efficiency improvements in progress; full-capacity security challenge/session eviction optimization complete locally.
+- Last activity:
+  - Replaced copied-value ordered eviction with direct oldest-item scans for the 1,000-entry storage challenge, consensus, and probabilistic-verification caches.
+  - Overflow allocation falls by 92.4%, 94.6%, and 91.7%; 1,000-overflow elapsed time falls by 54.0%, 53.5%, and 40.6%, respectively.
+- Validation:
+  - Passed focused (`6/6`), Common Security (`336/336`), and backend validation (`5165/5165`: `69` application, `4816` unit, `280` integration), plus repository lint.
+  - Capacity and oldest-entry semantics, remediation through the expected divergent-branch release-sync stop, and diff checks passed. The 10,000-entry commitment scan was reverted after a repeatable CPU regression and documented as gotcha `0z741` (`5632adb49`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the three proven security eviction paths and their regression coverage.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 09:36:51Z
 
 - Current task: performance and efficiency improvements in progress; snapshot-free commitment and storage-challenge statistics complete locally.

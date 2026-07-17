@@ -76,9 +76,15 @@ public sealed class ByzantineConsensus : IDisposable
         // Enforce max size
         if (_sessions.Count >= MaxSessions)
         {
-            var oldest = _sessions.Values
-                .OrderBy(s => s.CreatedAt)
-                .FirstOrDefault();
+            ConsensusSession? oldest = null;
+            foreach (var pair in _sessions)
+            {
+                if (oldest == null || pair.Value.CreatedAt < oldest.CreatedAt)
+                {
+                    oldest = pair.Value;
+                }
+            }
+
             if (oldest != null)
             {
                 _sessions.TryRemove(oldest.Id, out _);

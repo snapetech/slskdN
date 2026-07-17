@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove full security session and challenge eviction snapshots where CPU also improves.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: Full 1,000-entry `ProofOfStorage`, `ByzantineConsensus`, and `ProbabilisticVerification` caches now find the oldest retained object through one direct map scan instead of allocating and ordering a complete `Values` snapshot to remove one item. Warmed overflow allocation falls from 8,768 to 664 bytes (92.4%), from 8,568 to 464 bytes (94.6%), and from 8,840 to 736 bytes (91.7%); 1,000-overflow timing falls from 89 to 41 ms (54.0%), 86 to 40 ms (53.5%), and 69 to 41 ms (40.6%). Capacity, oldest-item selection, and first-enumerated equal-time ties remain unchanged. The 10,000-entry commitment path was reverted after direct traversal repeatedly regressed CPU and is documented as gotcha `0z741` (`5632adb49`). Validation passed: focused (`6/6`), Common Security (`336/336`), and backend (`5165/5165`: `69` application, `4816` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove security commitment and storage-challenge statistics snapshots.
   - Status: completed (2026-07-17)
   - Priority: P1

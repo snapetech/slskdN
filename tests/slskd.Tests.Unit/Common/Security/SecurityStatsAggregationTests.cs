@@ -177,9 +177,16 @@ public class SecurityStatsAggregationTests
     public void ProofOfStorage_GetStats_WidePopulationBoundsAllocation()
     {
         using var challenges = new ProofOfStorage();
+        string? oldestChallengeId = null;
         for (var index = 0; index < ProofOfStorage.MaxPendingChallenges; index++)
         {
             var result = challenges.CreateChallenge($"track-{index:D4}.flac", 10_000, "peer");
+            if (index == 0)
+            {
+                oldestChallengeId = result.ChallengeId;
+                System.Threading.Thread.Sleep(1);
+            }
+
             challenges.GetChallenge(result.ChallengeId)!.State = (ChallengeState)(index % 5);
         }
 
@@ -198,6 +205,62 @@ public class SecurityStatsAggregationTests
         Assert.Equal(200, stats.FailedChallenges);
         Assert.Equal(200, stats.ExpiredChallenges);
         Assert.True(allocatedBytes < 1_024, $"Allocated {allocatedBytes:N0} bytes.");
+
+        _ = challenges.CreateChallenge("overflow.flac", 10_000, "peer");
+        Assert.Null(challenges.GetChallenge(oldestChallengeId!));
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = challenges.CreateChallenge($"warm-{iteration}.flac", 10_000, "peer");
+        }
+
+        allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        _ = challenges.CreateChallenge("measured.flac", 10_000, "peer");
+        allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Assert.True(allocatedBytes < 2_048, $"Overflow allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void SecuritySessions_FullCapacityOverflowBoundsAllocation()
+    {
+        using var consensus = new ByzantineConsensus(NullLogger<ByzantineConsensus>.Instance);
+        var oldestConsensusId = consensus.StartSession("oldest.flac");
+        System.Threading.Thread.Sleep(1);
+        for (var index = 1; index < ByzantineConsensus.MaxSessions; index++)
+        {
+            _ = consensus.StartSession($"consensus-{index:D4}.flac");
+        }
+
+        _ = consensus.StartSession("overflow.flac");
+        Assert.Null(consensus.GetSession(oldestConsensusId));
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = consensus.StartSession($"warm-{iteration}.flac");
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        _ = consensus.StartSession("measured.flac");
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Assert.True(allocatedBytes < 1_536, $"Consensus overflow allocated {allocatedBytes:N0} bytes.");
+
+        using var verification = new ProbabilisticVerification(NullLogger<ProbabilisticVerification>.Instance);
+        var oldestVerificationId = verification.StartSession("oldest.flac", 1, 1).Id;
+        System.Threading.Thread.Sleep(1);
+        for (var index = 1; index < ProbabilisticVerification.MaxSessions; index++)
+        {
+            _ = verification.StartSession($"verification-{index:D4}.flac", 1, 1);
+        }
+
+        _ = verification.StartSession("overflow.flac", 1, 1);
+        Assert.Null(verification.GetSession(oldestVerificationId));
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = verification.StartSession($"warm-{iteration}.flac", 1, 1);
+        }
+
+        allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        _ = verification.StartSession("measured.flac", 1, 1);
+        allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Assert.True(allocatedBytes < 2_048, $"Verification overflow allocated {allocatedBytes:N0} bytes.");
     }
 
     private static SecurityEvent CreateEvent(

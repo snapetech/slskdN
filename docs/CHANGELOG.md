@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Full 1,000-entry proof-of-storage, Byzantine-consensus, and probabilistic-
+  verification caches now select the oldest entry in one direct scan instead
+  of copying and ordering every retained value to evict one item. Warmed
+  overflow allocation falls from 8,768 to 664 bytes (92.4%), 8,568 to 464 bytes
+  (94.6%), and 8,840 to 736 bytes (91.7%), respectively. In 1,000-overflow
+  benchmarks, elapsed time falls from 89 to 41 ms, 86 to 40 ms, and 69 to 41 ms.
+  Capacity, oldest-entry eviction, and first-enumerated equal-time ties remain
+  unchanged. The 10,000-entry commitment eviction keeps its faster snapshot
+  path after direct traversal measured slower there.
 - Proof-of-storage and cryptographic-commitment statistics now enumerate their
   concurrent state maps once instead of copying every tracked object and then
   counting each state in separate passes. A warmed full-capacity commitment

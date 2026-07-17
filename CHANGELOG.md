@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Full security challenge and verification caches now find their oldest entry
+  without allocating and ordering concurrent-value snapshots during eviction.
 - Proof-of-storage and cryptographic-commitment statistics now aggregate their
   concurrent state maps directly without value snapshots or repeated passes.
 - In-memory intent scheduling now retains only the requested best pending batch,

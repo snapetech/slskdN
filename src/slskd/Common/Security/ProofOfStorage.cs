@@ -88,9 +88,15 @@ public sealed class ProofOfStorage : IDisposable
         // Enforce max size
         if (_pendingChallenges.Count >= MaxPendingChallenges)
         {
-            var oldest = _pendingChallenges.Values
-                .OrderBy(c => c.CreatedAt)
-                .FirstOrDefault();
+            Challenge? oldest = null;
+            foreach (var pair in _pendingChallenges)
+            {
+                if (oldest == null || pair.Value.CreatedAt < oldest.CreatedAt)
+                {
+                    oldest = pair.Value;
+                }
+            }
+
             if (oldest != null)
             {
                 _pendingChallenges.TryRemove(oldest.Id, out _);
