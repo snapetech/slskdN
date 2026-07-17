@@ -250,6 +250,58 @@ namespace slskd.Tests.Unit.Audio
         }
 
         [Fact]
+        public void BuildCanonicalStatsPage_PreservesRecordingAndFirstProfileOrder()
+        {
+            var recordingIds = new List<string> { "recording-b", "recording-a" };
+            var variants = new List<AudioVariant>
+            {
+                CreateVariant("recording-a", "MP3", 44_100, null),
+                CreateVariant("recording-b", "FLAC", 48_000, 24),
+                CreateVariant("recording-b", "FLAC", 44_100, 16),
+                CreateVariant("recording-a", "FLAC", 44_100, 16),
+                CreateVariant("unrequested", "FLAC", 96_000, 24),
+            };
+
+            var stats = CanonicalStatsService.BuildCanonicalStatsPage(recordingIds, variants);
+
+            Assert.Collection(
+                stats,
+                item => Assert.Equal("recording-b:FLAC-24bit-48000Hz-2ch", item.Id),
+                item => Assert.Equal("recording-b:FLAC-16bit-44100Hz-2ch", item.Id),
+                item => Assert.Equal("recording-a:MP3-lossy-44100Hz-2ch", item.Id),
+                item => Assert.Equal("recording-a:FLAC-16bit-44100Hz-2ch", item.Id));
+        }
+
+        [Fact]
+        public void BuildCanonicalStatsPage_FullPageHasBoundedAllocation()
+        {
+            const int recordingCount = 500;
+            var recordingIds = Enumerable.Range(0, recordingCount)
+                .Select(index => $"recording-{index:D4}")
+                .ToList();
+            var variants = recordingIds
+                .SelectMany(recordingId => new[]
+                {
+                    CreateVariant(recordingId, "FLAC", 44_100, 16),
+                    CreateVariant(recordingId, "FLAC", 48_000, 24),
+                    CreateVariant(recordingId, "MP3", 44_100, null),
+                })
+                .ToList();
+            _ = CanonicalStatsService.BuildCanonicalStatsPage(recordingIds.Take(10).ToList(), variants.Take(30).ToList());
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var stats = CanonicalStatsService.BuildCanonicalStatsPage(recordingIds, variants);
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(recordingCount * 3, stats.Count);
+            Assert.Equal("recording-0000:FLAC-16bit-44100Hz-2ch", stats[0].Id);
+            Assert.Equal("recording-0499:MP3-lossy-44100Hz-2ch", stats[^1].Id);
+            Assert.True(
+                allocatedBytes < 2_500_000,
+                $"Expected canonical-stat page construction below 2.5 MB allocated, got {allocatedBytes:N0} bytes.");
+        }
+
+        [Fact]
         public void DeduplicateStreams_PreservesGroupOrderAndWinnerPrecedence()
         {
             var firstA = CreateDedupVariant("a-first", "stream-a", quality: 0.80, seenCount: 5);

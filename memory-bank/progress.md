@@ -1,3 +1,12 @@
+## Update 2026-07-17 02:47:21Z
+
+- Completed streaming paged canonical statistics recomputation and singleton-profile fast paths.
+- Replaced recording lookup, nested profile grouping, repeated profile objects/keys, and copied group lists with requested-recording indexes, first-seen profile lists, and one page-local key cache.
+- Reduced warmed allocation for a 500-recording/1,500-profile page from 2,960,568 to 2,036,200 bytes (31.2%).
+- Preserved requested recording order, first profile order, unrequested filtering, formatted-key collision behavior, aggregate contents, page/upsert batches, and database/cancellation flow.
+- Added order/filter and allocation regressions; passed canonical-stats service (`12/12`) and full backend (`5101/5101`: `69` application, `4752` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 02:35:30Z
 
 - Completed cached-profile canonical audio candidate selection.

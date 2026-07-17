@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Canonical statistics recomputation now scans each fetched page once into
+  requested-recording indexes whose profile lists retain first-seen order. A
+  shared page-local codec-profile key cache replaces the recording `ToLookup`,
+  nested per-recording `GroupBy` buffers, repeated profile objects/keys, and
+  `group.ToList()` copies. Single-variant profiles also bypass stream-key and
+  dedup-index construction. For the configured 500-recording page with three
+  profiles per recording, warmed transformation allocation falls from
+  2,960,568 to 2,036,200 bytes (31.2%). Requested recording order, first profile
+  order, unrequested filtering, duplicate handling, stat contents, page size,
+  persistence batches, and cancellation/database-call behavior remain intact.
 - Canonical audio candidate selection now caches each distinct codec/sample
   rate/bit-depth/channel profile key for the full selection run, builds variant
   and persisted-stat indexes directly, and carries the cached key beside each

@@ -1,3 +1,17 @@
+## Update 2026-07-17 02:47:21Z
+
+- Current task: performance and efficiency improvements in progress; streamed canonical statistics page recomputation complete locally.
+- Last activity:
+  - Replaced recording lookup/nested profile groups/copied lists with one requested-recording scan, insertion-ordered profile indexes, and a page-local key cache; singleton profiles skip dedup state.
+  - A configured-size 500-recording/1,500-profile page falls from 2,960,568 to 2,036,200 warmed allocated bytes (31.2%).
+- Validation:
+  - Passed complete canonical-stats service (`12/12`) and full backend suites (`5101/5101`: `69` application, `4752` unit, `280` integration) tests.
+  - Exact recording/profile order, unrequested filtering, profile collision/aggregate/page/upsert/database/cancellation behavior, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the canonical statistics page-recomputation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 02:35:30Z
 
 - Current task: performance and efficiency improvements in progress; cached-profile canonical candidate selection complete locally.

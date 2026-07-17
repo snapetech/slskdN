@@ -151,14 +151,7 @@ namespace slskd.Audio
                 var variants = await hashDb
                     .GetVariantsByRecordingsAsync(recordingIds, ct)
                     .ConfigureAwait(false);
-                var variantsByRecording = variants.ToLookup(
-                    variant => variant.MusicBrainzRecordingId,
-                    StringComparer.Ordinal);
-                var stats = recordingIds
-                    .SelectMany(recordingId => variantsByRecording[recordingId]
-                        .GroupBy(variant => CodecProfile.FromVariant(variant).ToKey(), StringComparer.Ordinal)
-                        .Select(group => BuildCanonicalStats(recordingId, group.Key, group.ToList())))
-                    .ToList();
+                var stats = BuildCanonicalStatsPage(recordingIds, variants);
                 if (stats.Count > 0)
                 {
                     await hashDb.UpsertCanonicalStatsAsync(stats, ct).ConfigureAwait(false);
@@ -168,13 +161,71 @@ namespace slskd.Audio
             }
         }
 
+        internal static List<CanonicalStats> BuildCanonicalStatsPage(
+            List<string> recordingIds,
+            List<AudioVariant> variants)
+        {
+            var requestedRecordingIds = new HashSet<string>(recordingIds, StringComparer.Ordinal);
+            var profileKeyCache = new Dictionary<CodecProfileIdentity, string>();
+            var profilesByRecording = new Dictionary<string, RecordingProfileIndex>(StringComparer.Ordinal);
+            foreach (var variant in variants)
+            {
+                var recordingId = variant.MusicBrainzRecordingId;
+                if (recordingId == null || !requestedRecordingIds.Contains(recordingId))
+                {
+                    continue;
+                }
+
+                if (!profilesByRecording.TryGetValue(recordingId, out var recordingProfiles))
+                {
+                    recordingProfiles = new RecordingProfileIndex();
+                    profilesByRecording.Add(recordingId, recordingProfiles);
+                }
+
+                var profileKey = GetCodecProfileKey(variant, profileKeyCache);
+                if (!recordingProfiles.ProfileIndexByKey.TryGetValue(profileKey, out var profileIndex))
+                {
+                    profileIndex = recordingProfiles.Profiles.Count;
+                    recordingProfiles.ProfileIndexByKey.Add(profileKey, profileIndex);
+                    recordingProfiles.Profiles.Add(new ProfileVariants(profileKey, new List<AudioVariant>()));
+                }
+
+                recordingProfiles.Profiles[profileIndex].Variants.Add(variant);
+            }
+
+            var stats = new List<CanonicalStats>();
+            foreach (var recordingId in recordingIds)
+            {
+                if (!profilesByRecording.TryGetValue(recordingId, out var recordingProfiles))
+                {
+                    continue;
+                }
+
+                foreach (var profile in recordingProfiles.Profiles)
+                {
+                    stats.Add(BuildCanonicalStats(recordingId, profile.ProfileKey, profile.Variants));
+                }
+            }
+
+            return stats;
+        }
+
+        private sealed class RecordingProfileIndex
+        {
+            public Dictionary<string, int> ProfileIndexByKey { get; } = new(StringComparer.Ordinal);
+
+            public List<ProfileVariants> Profiles { get; } = new();
+        }
+
+        private sealed record ProfileVariants(string ProfileKey, List<AudioVariant> Variants);
+
         internal static CanonicalStats BuildCanonicalStats(
             string recordingId,
             string codecProfileKey,
             List<AudioVariant> variants)
         {
             // Deduplicate identical streams within the profile using codec-specific hashes.
-            var distinctVariants = DeduplicateStreams(variants);
+            var distinctVariants = variants.Count == 1 ? variants : DeduplicateStreams(variants);
             var codecDistribution = new Dictionary<string, int>();
             var bitrateDistribution = new Dictionary<int, int>();
             var sampleRateDistribution = new Dictionary<int, int>();

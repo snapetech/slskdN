@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream paged canonical statistics recomputation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CanonicalStatsService.RecomputeAllStatsAsync` now transforms each fetched page through one requested-recording scan into insertion-ordered per-recording profile indexes, sharing one codec-profile key cache across the page. This replaces `ToLookup`, nested `GroupBy`, repeated `CodecProfile` objects/keys, and copied group lists. `BuildCanonicalStats` also returns the sole variant directly for one-variant profiles instead of constructing a deduplication key, dictionary, and list. For the configured 500-recording page with three singleton profiles per recording, warmed transformation allocation falls from 2,960,568 to 2,036,200 bytes (31.2%). Exact requested-recording order, first-seen profile order, exclusion of unrequested variants, profile formatting/collisions, aggregate contents, page/persistence batch sizes, and database/cancellation flow remain unchanged. Added order/filter and full-page allocation regressions. Validation passed: complete canonical-stats service (`12/12`), full backend suites (`5101/5101`: `69` application, `4752` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Cache canonical candidate codec-profile keys.
   - Status: completed (2026-07-17)
   - Priority: P1

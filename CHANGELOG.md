@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Canonical statistics recomputation now indexes requested recording/profile
+  variants in one pass and bypasses deduplication state for singleton profiles.
 - Canonical audio candidate selection now caches codec-profile keys and builds
   profile/stat indexes directly instead of repeatedly allocating profile
   objects, keys, and LINQ grouping buffers.
