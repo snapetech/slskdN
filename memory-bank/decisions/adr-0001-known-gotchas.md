@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z769. Fragment-Only Anchors Resolve Against The Document Base
+
+**The Bug**: MediaCore workflow cards used fragment-only DOM anchor targets
+such as `href="#podcore-dht-publishing"`. Because the application declares a
+document-wide `<base href="/">`, browsers resolved those links to
+`/#podcore-dht-publishing` instead of preserving `/system/mediacore`, so clicking
+a workflow card left the MediaCore page.
+
+**Files Affected**:
+- `src/web/src/components/System/MediaCore/index.jsx`
+- `src/web/src/components/System/MediaCore/index.test.jsx`
+
+**Prevention**: Do not rely on a native fragment-only `href` in this SPA. Build
+the anchor from the current route pathname plus the fragment, or use a router
+link whose location explicitly preserves the pathname. Browser-audit resolved
+anchor URLs, not just source strings, because unit tests can otherwise lock in
+the broken fragment-only value.
+
 ### 0z768. Security-Fixed Transitive Dependencies Need An Explicit Floor
 
 **The Bug**: `dotNetRDF` allowed NuGet to resolve a vulnerable AngleSharp
