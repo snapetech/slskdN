@@ -18,6 +18,104 @@ using Xunit;
 public class BridgeHelpersTests
 {
     [Fact]
+    public void RoomSceneMapper_RepeatedForwardMappingBoundsAllocation()
+    {
+        var mapper = new RoomSceneMapper(NullLogger<RoomSceneMapper>.Instance);
+        _ = mapper.MapRoomToScene("Warp Records");
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        string? result = null;
+        for (var index = 0; index < 100_000; index++)
+        {
+            result = mapper.MapRoomToScene("Warp Records");
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal("scene:label:warp-records", result);
+        Assert.InRange(allocated, 0, 8_000_000);
+    }
+
+    [Fact]
+    public void RoomSceneMapper_RepeatedReverseMappingBoundsAllocation()
+    {
+        var mapper = new RoomSceneMapper(NullLogger<RoomSceneMapper>.Instance);
+        _ = mapper.MapSceneToRoom("scene:label:warp-records");
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        string? result = null;
+        for (var index = 0; index < 100_000; index++)
+        {
+            result = mapper.MapSceneToRoom("scene:label:warp-records");
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal("warp records", result);
+        Assert.InRange(allocated, 0, 5_500_000);
+    }
+
+    [Fact]
+    public void RoomSceneMapper_ForwardMappingPreservesKeywordsAndSpaces()
+    {
+        var mapper = new RoomSceneMapper(NullLogger<RoomSceneMapper>.Instance);
+        var cases = new[]
+        {
+            (Room: "Warp Records", Scene: "scene:label:warp-records"),
+            (Room: "MUSIC Hall", Scene: "scene:label:music-hall"),
+            (Room: "Indie LABEL", Scene: "scene:label:indie-label"),
+            (Room: "Studio Recordings", Scene: "scene:label:studio-recordings"),
+            (Room: " Dark  Techno ", Scene: "scene:genre:-dark--techno-"),
+            (Room: string.Empty, Scene: "scene:genre:"),
+        };
+
+        foreach (var testCase in cases)
+        {
+            Assert.Equal(testCase.Scene, mapper.MapRoomToScene(testCase.Room));
+        }
+    }
+
+    [Fact]
+    public void RoomSceneMapper_LongUnicodeForwardMappingPreservesLegacyNormalization()
+    {
+        var roomName = new string('Ä', 600) + " Music Room";
+        var expected = $"scene:label:{roomName.ToLowerInvariant().Replace(" ", "-")}";
+        var mapper = new RoomSceneMapper(NullLogger<RoomSceneMapper>.Instance);
+
+        var result = mapper.MapRoomToScene(roomName);
+
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void RoomSceneMapper_ReverseMappingPreservesSegmentsAndMalformedIdentity()
+    {
+        var mapper = new RoomSceneMapper(NullLogger<RoomSceneMapper>.Instance);
+        var cases = new[]
+        {
+            (Scene: "scene:label:warp-records", Room: "warp records"),
+            (Scene: "scene:genre:dark--techno:ignored", Room: "dark  techno"),
+            (Scene: "a::tail", Room: "tail"),
+            (Scene: "scene:genre:", Room: string.Empty),
+            (Scene: "::🎵-room", Room: "🎵 room"),
+        };
+
+        foreach (var testCase in cases)
+        {
+            Assert.Equal(testCase.Room, mapper.MapSceneToRoom(testCase.Scene));
+        }
+
+        const string malformed = "scene:label";
+        Assert.Same(malformed, mapper.MapSceneToRoom(malformed));
+    }
+
+    [Fact]
     public void FilenameGenerator_RepeatedCommonFilenameBoundsAllocation()
     {
         var generator = new FilenameGenerator(NullLogger<FilenameGenerator>.Instance);

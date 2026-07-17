@@ -259,38 +259,86 @@ public class RoomSceneMapper : IRoomSceneMapper
 
     public string MapRoomToScene(string roomName)
     {
-        // "warp" → "scene:label:warp-records"
-        // "techno" → "scene:genre:techno"
-        var normalized = roomName.ToLowerInvariant().Replace(" ", "-");
+        const int ScenePrefixLength = 12;
+        var sceneIdLength = ScenePrefixLength + roomName.Length;
+        char[]? rentedCharacters = null;
+        Span<char> characters = sceneIdLength <= 512
+            ? stackalloc char[sceneIdLength]
+            : (rentedCharacters = ArrayPool<char>.Shared.Rent(sceneIdLength));
 
-        // Heuristic: if it looks like a label, treat as label scene
-        if (IsLabelRoom(roomName))
+        try
         {
-            return $"scene:label:{normalized}";
-        }
+            var normalizedLength = roomName.AsSpan().ToLowerInvariant(characters[ScenePrefixLength..]);
+            if (normalizedLength < 0)
+            {
+                return MapRoomToSceneWithExpandedLowercase(roomName);
+            }
 
-        // Otherwise treat as genre scene
-        return $"scene:genre:{normalized}";
+            var normalizedRoom = characters.Slice(ScenePrefixLength, normalizedLength);
+            var prefix = IsLabelRoom(normalizedRoom) ? "scene:label:" : "scene:genre:";
+            prefix.AsSpan().CopyTo(characters);
+
+            for (var index = 0; index < normalizedRoom.Length; index++)
+            {
+                if (normalizedRoom[index] == ' ')
+                {
+                    normalizedRoom[index] = '-';
+                }
+            }
+
+            return new string(characters[..(ScenePrefixLength + normalizedLength)]);
+        }
+        finally
+        {
+            if (rentedCharacters != null)
+            {
+                ArrayPool<char>.Shared.Return(rentedCharacters, clearArray: true);
+            }
+        }
     }
 
     public string MapSceneToRoom(string sceneId)
     {
-        // "scene:label:warp-records" → "warp"
-        // "scene:genre:techno" → "techno"
-        var parts = sceneId.Split(':');
-        if (parts.Length >= 3)
+        var firstSeparatorIndex = sceneId.IndexOf(':');
+        if (firstSeparatorIndex < 0)
         {
-            return parts[2].Replace("-", " ");
+            return sceneId;
         }
 
-        return sceneId;
+        var roomStart = sceneId.IndexOf(':', firstSeparatorIndex + 1) + 1;
+        if (roomStart == 0)
+        {
+            return sceneId;
+        }
+
+        var nextSeparatorIndex = sceneId.IndexOf(':', roomStart);
+        var roomLength = (nextSeparatorIndex < 0 ? sceneId.Length : nextSeparatorIndex) - roomStart;
+        return string.Create(
+            roomLength,
+            (SceneId: sceneId, RoomStart: roomStart),
+            static (roomName, state) =>
+            {
+                state.SceneId.AsSpan(state.RoomStart, roomName.Length).CopyTo(roomName);
+                for (var index = 0; index < roomName.Length; index++)
+                {
+                    if (roomName[index] == '-')
+                    {
+                        roomName[index] = ' ';
+                    }
+                }
+            });
     }
 
-    private bool IsLabelRoom(string roomName)
+    private static string MapRoomToSceneWithExpandedLowercase(string roomName)
     {
-        // Heuristic: common label keywords
-        var labelKeywords = new[] { "records", "music", "label", "recordings" };
-        var lower = roomName.ToLowerInvariant();
-        return labelKeywords.Any(keyword => lower.Contains(keyword));
+        var normalized = roomName.ToLowerInvariant().Replace(" ", "-");
+        var prefix = IsLabelRoom(normalized) ? "scene:label:" : "scene:genre:";
+        return $"{prefix}{normalized}";
     }
+
+    private static bool IsLabelRoom(ReadOnlySpan<char> normalizedRoom)
+        => normalizedRoom.IndexOf("records", StringComparison.Ordinal) >= 0
+            || normalizedRoom.IndexOf("music", StringComparison.Ordinal) >= 0
+            || normalizedRoom.IndexOf("label", StringComparison.Ordinal) >= 0
+            || normalizedRoom.IndexOf("recordings", StringComparison.Ordinal) >= 0;
 }

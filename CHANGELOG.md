@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Legacy bridge room/scene mapping now normalizes and classifies room names
+  through bounded span/pool storage, constructs scene IDs without intermediate
+  strings or LINQ, and extracts room segments without splitting whole IDs.
 - Legacy bridge filename generation now formats artist, title, codec, bitrate,
   and lowercase extension through bounded span/pool storage, avoids filesystem
   sanitization allocations when no invalid characters are present, and skips

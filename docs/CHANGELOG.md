@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Legacy bridge room-to-scene mapping now invariant-lowercases directly into
+  bounded stack or cleared pooled output storage, classifies the normalized span
+  without a keyword array or LINQ, replaces spaces in place, and creates only
+  the final scene ID. Reverse mapping locates the legacy third segment directly
+  and writes its hyphen-to-space result through `string.Create` instead of
+  splitting the complete ID. Across 100,000 mappings, forward allocation falls
+  from 36,000,608 to 7,200,608 bytes (80.0%) and elapsed time falls from 11 to
+  8 ms (27.3%); reverse allocation falls from 20,800,608 to 4,800,040 bytes
+  (76.9%) and elapsed time falls from 9 to 5 ms (44.4%). Keyword classification,
+  invariant case, repeated spaces/hyphens, malformed identity, extra segments,
+  Unicode, and long inputs remain unchanged.
 - Legacy bridge filename generation now formats the exact artist, title, codec,
   bitrate, and lowercase extension through bounded stack or cleared pooled
   character storage, caches the platform invalid-character set, and returns the

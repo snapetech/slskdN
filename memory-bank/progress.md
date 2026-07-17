@@ -1,3 +1,12 @@
+## Update 2026-07-17 16:25:52Z
+
+- Completed allocation-bounded legacy bridge room/scene mapping.
+- Forward mapping now invariant-lowercases into bounded stack/pool output storage, classifies keyword spans directly, and replaces spaces in place; reverse mapping finds the legacy third segment directly and fills the final room string without a split array or intermediate substrings.
+- Across 100,000 calls, forward allocation falls from 36,000,608 to 7,200,608 bytes (80.0%) and elapsed time falls from 11 to 8 ms (27.3%); reverse allocation falls from 20,800,608 to 4,800,040 bytes (76.9%) and elapsed time falls from 9 to 5 ms (44.4%).
+- Preserved exact label keywords, invariant case, repeated spaces and hyphens, empty and malformed identity, extra segments, Unicode, and pooled long-input behavior.
+- Added semantic and allocation regressions; passed focused bridge helpers (`14/14`), Virtual Soulfind (`434/434`), and backend validation (`5267/5267`: `69` application, `4918` unit, `280` integration).
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. One unrelated Taste Recommendation allocation test missed its bound during the first unit run; its exact (`1/1`) and complete-unit (`4918/4918`) reruns passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 16:04:06Z
 
 - Completed allocation-bounded legacy bridge filename generation and sanitization.

@@ -1,3 +1,17 @@
+## Update 2026-07-17 16:25:52Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded legacy bridge room/scene mapping complete locally.
+- Last activity:
+  - Replaced duplicate lowercase strings, replacement/interpolation intermediates, keyword arrays/LINQ, complete split arrays, and segment substrings with bounded span/pool normalization, direct keyword/separator scans, and exact final-string construction.
+  - Across 100,000 calls, forward allocation falls from 36,000,608 to 7,200,608 bytes (80.0%) and elapsed time falls from 11 to 8 ms (27.3%); reverse allocation falls from 20,800,608 to 4,800,040 bytes (76.9%) and elapsed time falls from 9 to 5 ms (44.4%).
+- Validation:
+  - Passed focused bridge helpers (`14/14`), Virtual Soulfind (`434/434`), and backend validation (`5267/5267`: `69` application, `4918` unit, `280` integration), plus repository lint.
+  - Exact keyword/case/space/hyphen/empty/malformed/extra-segment/Unicode/long-input behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. One unrelated Taste Recommendation allocation test passed exact and complete-unit reruns. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bridge room/scene mapper optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 16:04:06Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded legacy bridge filename generation complete locally.

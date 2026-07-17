@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound legacy bridge room/scene mapping allocations.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `RoomSceneMapper.MapRoomToScene` now invariant-lowercases directly into bounded stack storage or cleared pooled storage, classifies the normalized span with direct keyword searches, replaces spaces in place, and creates only the final scene ID. `MapSceneToRoom` locates the second and optional third separators directly and fills the extracted room through `string.Create`, removing the complete split array, segment substrings, and replacement copy. Across 100,000 calls, forward allocation falls from 36,000,608 to 7,200,608 bytes (80.0%) and elapsed time falls from 11 to 8 ms (27.3%); reverse allocation falls from 20,800,608 to 4,800,040 bytes (76.9%) and elapsed time falls from 9 to 5 ms (44.4%). Exact keyword, case, space/hyphen, empty, malformed, extra-segment, Unicode, and pooled long-input behavior remain unchanged. Validation passed: focused bridge helpers (`14/14`), Virtual Soulfind (`434/434`), and backend (`5267/5267`: `69` application, `4918` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. One unrelated `TasteRecommendationServiceTests` allocation bound missed during the first full unit run; its exact (`1/1`) and complete-unit (`4918/4918`) reruns passed.
+
 - [x] Bound legacy bridge filename formatting and sanitization allocations.
   - Status: completed (2026-07-17)
   - Priority: P1
