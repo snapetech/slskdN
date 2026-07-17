@@ -1,3 +1,12 @@
+## Update 2026-07-17 06:13:42Z
+
+- Completed bounded concurrent MediaCore fuzzy descriptor discovery.
+- Replaced up to 50 serial descriptor awaits with a fixed ten-worker pool and index-aligned results, then retained sequential scoring in original candidate order.
+- A delayed 50-candidate fixture raises observed descriptor-read concurrency from one to ten while worker/task count remains ten and the existing request cap remains 50.
+- Coalesced exact normalized descriptor keys before retrieval to prevent parallel cache stampedes while retaining duplicate output variants, original IDs/order, similarity thresholds, missing-result handling, stable ties, and empty candidates; cancellation retains completed descriptors and stops unstarted reads.
+- Added bounded-concurrency/order, duplicate-key, and cancellation regressions; passed service (`6/6`), broader MultiSource/MediaCore (`396/396`), and backend (`5140/5140`: `69` application, `4791` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. The unrelated flaky `MeshStreamServiceTests.OpenAsync_HashMismatch_EmitsNoBytes` cancellation recurred under the parallel full run; its exact rerun (`1/1`) and the complete serial unit rerun (`4791/4791`) passed. Documented gotchas `0z733` (`fdf4f5a75`) and `0z734` (`1bce158fd`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 06:01:37Z
 
 - Completed one-pass MediaCore content discovery for verified swarm grouping.

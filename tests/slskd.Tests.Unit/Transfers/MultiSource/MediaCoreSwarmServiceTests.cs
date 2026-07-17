@@ -17,6 +17,177 @@ using Xunit;
 public sealed class MediaCoreSwarmServiceTests
 {
     [Fact]
+    public async Task DiscoverContentVariantsAsync_CancellationRetainsCompletedDescriptors()
+    {
+        var contentIds = Enumerable.Range(0, 11)
+            .Select(index => $"content:audio:track:{index:D2}")
+            .ToArray();
+        var contentRegistry = new Mock<IContentIdRegistry>();
+        contentRegistry
+            .Setup(registry => registry.FindByDomainAsync("audio", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(contentIds);
+        contentRegistry
+            .Setup(registry => registry.FindByDomainAsync("video", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+        using var cancellation = new CancellationTokenSource();
+        var descriptorRetriever = new Mock<IDescriptorRetriever>();
+        descriptorRetriever
+            .Setup(retriever => retriever.RetrieveAsync(
+                It.IsAny<string>(),
+                false,
+                It.IsAny<CancellationToken>()))
+            .Returns((string contentId, bool _, CancellationToken _) =>
+            {
+                cancellation.Cancel();
+                return Task.FromResult(new DescriptorRetrievalResult(
+                    Found: true,
+                    Descriptor: new ContentDescriptor { ContentId = contentId, Codec = "flac" },
+                    RetrievedAt: DateTimeOffset.UtcNow,
+                    RetrievalDuration: TimeSpan.Zero,
+                    FromCache: false,
+                    Verification: null));
+            });
+        var fuzzyMatcher = new Mock<IFuzzyMatcher>();
+        fuzzyMatcher
+            .Setup(matcher => matcher.Score(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(0.9);
+        var service = new MediaCoreSwarmService(
+            NullLogger<MediaCoreSwarmService>.Instance,
+            contentRegistry.Object,
+            fuzzyMatcher.Object,
+            descriptorRetriever.Object,
+            Mock.Of<IMediaCoreSwarmIntelligence>());
+
+        var result = await service.DiscoverContentVariantsAsync("target.flac", 123, cancellation.Token);
+
+        Assert.Equal(contentIds[0], Assert.Single(result.Variants).ContentId);
+        descriptorRetriever.Verify(
+            retriever => retriever.RetrieveAsync(
+                It.IsAny<string>(),
+                false,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DiscoverContentVariantsAsync_CoalescesTrimmedReadsWithoutCollapsingVariants()
+    {
+        const string contentId = "content:audio:track:duplicate";
+        var candidateIds = new[] { $" {contentId} ", contentId };
+        var contentRegistry = new Mock<IContentIdRegistry>();
+        contentRegistry
+            .Setup(registry => registry.FindByDomainAsync("audio", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(candidateIds);
+        contentRegistry
+            .Setup(registry => registry.FindByDomainAsync("video", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+        var descriptorRetriever = new Mock<IDescriptorRetriever>();
+        descriptorRetriever
+            .Setup(retriever => retriever.RetrieveAsync(contentId, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DescriptorRetrievalResult(
+                Found: true,
+                Descriptor: new ContentDescriptor { ContentId = contentId, Codec = "flac" },
+                RetrievedAt: DateTimeOffset.UtcNow,
+                RetrievalDuration: TimeSpan.Zero,
+                FromCache: false,
+                Verification: null));
+        var fuzzyMatcher = new Mock<IFuzzyMatcher>();
+        fuzzyMatcher
+            .Setup(matcher => matcher.Score(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(0.9);
+        var service = new MediaCoreSwarmService(
+            NullLogger<MediaCoreSwarmService>.Instance,
+            contentRegistry.Object,
+            fuzzyMatcher.Object,
+            descriptorRetriever.Object,
+            Mock.Of<IMediaCoreSwarmIntelligence>());
+
+        var result = await service.DiscoverContentVariantsAsync("target.flac", 123);
+
+        Assert.Equal(candidateIds, result.Variants.Select(variant => variant.ContentId));
+        descriptorRetriever.Verify(
+            retriever => retriever.RetrieveAsync(contentId, false, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DiscoverContentVariantsAsync_UsesBoundedConcurrentReadsInCandidateOrder()
+    {
+        const int candidateCount = 50;
+        var contentIds = Enumerable.Range(0, candidateCount)
+            .Select(index => $"content:audio:track:{index:D2}")
+            .ToArray();
+        var candidateIndexes = contentIds
+            .Select((contentId, index) => (contentId, index))
+            .ToDictionary(item => item.contentId, item => item.index);
+        var contentRegistry = new Mock<IContentIdRegistry>();
+        contentRegistry
+            .Setup(registry => registry.FindByDomainAsync("audio", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(contentIds);
+        contentRegistry
+            .Setup(registry => registry.FindByDomainAsync("video", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+        var active = 0;
+        var maximumActive = 0;
+        var descriptorRetriever = new Mock<IDescriptorRetriever>();
+        descriptorRetriever
+            .Setup(retriever => retriever.RetrieveAsync(
+                It.IsAny<string>(),
+                false,
+                It.IsAny<CancellationToken>()))
+            .Returns(async (string contentId, bool _, CancellationToken cancellationToken) =>
+            {
+                var currentActive = Interlocked.Increment(ref active);
+                var observedMaximum = Volatile.Read(ref maximumActive);
+                while (currentActive > observedMaximum)
+                {
+                    var priorMaximum = Interlocked.CompareExchange(
+                        ref maximumActive,
+                        currentActive,
+                        observedMaximum);
+                    if (priorMaximum == observedMaximum)
+                    {
+                        break;
+                    }
+
+                    observedMaximum = priorMaximum;
+                }
+
+                await Task.Delay((candidateCount - candidateIndexes[contentId]) % 7 + 1, cancellationToken);
+                Interlocked.Decrement(ref active);
+                return new DescriptorRetrievalResult(
+                    Found: true,
+                    Descriptor: new ContentDescriptor { ContentId = contentId, Codec = "flac" },
+                    RetrievedAt: DateTimeOffset.UtcNow,
+                    RetrievalDuration: TimeSpan.Zero,
+                    FromCache: false,
+                    Verification: null);
+            });
+        var fuzzyMatcher = new Mock<IFuzzyMatcher>();
+        fuzzyMatcher
+            .Setup(matcher => matcher.Score(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(0.9);
+        var service = new MediaCoreSwarmService(
+            NullLogger<MediaCoreSwarmService>.Instance,
+            contentRegistry.Object,
+            fuzzyMatcher.Object,
+            descriptorRetriever.Object,
+            Mock.Of<IMediaCoreSwarmIntelligence>());
+
+        var result = await service.DiscoverContentVariantsAsync("target.flac", 123);
+
+        Assert.Equal(contentIds, result.Variants.Select(variant => variant.ContentId));
+        Assert.Equal(10, maximumActive);
+        Assert.Equal(0, active);
+        descriptorRetriever.Verify(
+            retriever => retriever.RetrieveAsync(
+                It.IsAny<string>(),
+                false,
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(candidateCount));
+    }
+
+    [Fact]
     public async Task GroupSourcesByContentIdAsync_EmptyGroupsSkipDiscovery()
     {
         var contentRegistry = new Mock<IContentIdRegistry>();

@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MediaCore fuzzy descriptor discovery now uses a bounded worker pool and
+  coalesces normalized cache keys while preserving candidate result order.
 - MediaCore swarm grouping now discovers content variants once per target instead
   of repeating registry and descriptor reads for every verified hash group.
 - Source ranking and batch-history reads now query existing peer counters through

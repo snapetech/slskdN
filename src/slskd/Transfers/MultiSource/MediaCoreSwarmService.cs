@@ -16,6 +16,8 @@ using slskd.MediaCore;
 /// </summary>
 public class MediaCoreSwarmService : IMediaCoreSwarmService
 {
+    private const int MaxDescriptorDiscoveryConcurrency = 10;
+
     private readonly ILogger<MediaCoreSwarmService> _logger;
     private readonly IContentIdRegistry _contentRegistry;
     private readonly IFuzzyMatcher _fuzzyMatcher;
@@ -294,13 +296,44 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
             var audioContent = await _contentRegistry.FindByDomainAsync("audio", cancellationToken);
             var videoContent = await _contentRegistry.FindByDomainAsync("video", cancellationToken);
 
-            var candidateContentIds = audioContent.Concat(videoContent).Take(50); // Limit for performance
-
-            foreach (var candidateId in candidateContentIds)
+            var candidateContentIds = audioContent.Concat(videoContent).Take(50).ToArray(); // Limit for performance
+            var retrievalContentIds = new List<string>(candidateContentIds.Length);
+            var retrievalIndexes = new int[candidateContentIds.Length];
+            var retrievalIndexByContentId = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (var index = 0; index < candidateContentIds.Length; index++)
             {
-                // Get descriptor for similarity comparison
-                var descriptor = await _descriptorRetriever.RetrieveAsync(candidateId, cancellationToken: cancellationToken);
-                if (!descriptor.Found || descriptor.Descriptor == null)
+                var normalizedContentId = candidateContentIds[index].Trim();
+                if (!retrievalIndexByContentId.TryGetValue(normalizedContentId, out var retrievalIndex))
+                {
+                    retrievalIndex = retrievalContentIds.Count;
+                    retrievalIndexByContentId[normalizedContentId] = retrievalIndex;
+                    retrievalContentIds.Add(normalizedContentId);
+                }
+
+                retrievalIndexes[index] = retrievalIndex;
+            }
+
+            var descriptorResults = new DescriptorRetrievalResult?[retrievalContentIds.Count];
+            var nextIndex = -1;
+            var workers = new Task[Math.Min(MaxDescriptorDiscoveryConcurrency, retrievalContentIds.Count)];
+            for (var workerIndex = 0; workerIndex < workers.Length; workerIndex++)
+            {
+                workers[workerIndex] = RetrieveDescriptorsAsync();
+            }
+
+            try
+            {
+                await Task.WhenAll(workers);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Preserve descriptors completed before cancellation, as the serial path did.
+            }
+
+            for (var index = 0; index < candidateContentIds.Length; index++)
+            {
+                var descriptor = descriptorResults[retrievalIndexes[index]];
+                if (descriptor == null || !descriptor.Found || descriptor.Descriptor == null)
                     continue;
 
                 // Calculate similarity (simplified - in practice would use perceptual hashes)
@@ -308,11 +341,28 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
                 if (similarity > 0.6)
                 {
                     variants.Add(new ContentVariant(
-                        ContentId: candidateId,
+                        ContentId: candidateContentIds[index],
                         Filename: GenerateFilenameFromDescriptor(descriptor.Descriptor),
                         SimilarityScore: similarity,
                         Descriptor: descriptor.Descriptor,
                         IsCanonical: false));
+                }
+            }
+
+            async Task RetrieveDescriptorsAsync()
+            {
+                while (true)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var index = Interlocked.Increment(ref nextIndex);
+                    if (index >= retrievalContentIds.Count)
+                    {
+                        return;
+                    }
+
+                    descriptorResults[index] = await _descriptorRetriever.RetrieveAsync(
+                        retrievalContentIds[index],
+                        cancellationToken: cancellationToken);
                 }
             }
         }

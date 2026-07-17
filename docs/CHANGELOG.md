@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MediaCore fuzzy variant discovery now retrieves descriptors through a fixed
+  pool of at most ten workers instead of awaiting up to 50 candidates serially.
+  A 50-candidate delayed-read fixture raises observed concurrency from one to
+  ten while retaining the existing 50-request cap and creating only ten worker
+  tasks. Exact normalized descriptor cache keys are coalesced before retrieval,
+  preventing concurrent duplicate misses without collapsing duplicate output
+  variants. Original candidate order, IDs, similarity threshold, missing-result
+  handling, stable ties, and empty candidates remain unchanged. Cancellation
+  retains completed descriptors while preventing unstarted reads.
 - MediaCore swarm grouping now performs invariant content discovery once per
   filename/size target before iterating verified hash groups. A 100-hash-group
   request drops from 100 audio plus 100 video registry scans to one of each

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Parallelize MediaCore fuzzy descriptor discovery with bounded work.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `MediaCoreSwarmService.FindFuzzyVariantsAsync` now retrieves up to 50 candidate descriptors through a fixed ten-worker pool, stores results by candidate position, and scores them in original registry order. A delayed 50-candidate fixture raises observed retrieval concurrency from one to ten without creating one task per candidate. Exact ordinal IDs are normalized with the retriever's trim rule and coalesced before reads, preventing duplicate concurrent cache misses while retaining duplicate output variants and their original IDs/order. Similarity thresholds, missing descriptors, stable ties, the request cap, and empty candidates remain unchanged; cancellation retains completed descriptors and stops unstarted reads. Validation passed: service (`6/6`), broader MultiSource/MediaCore (`396/396`), and backend (`5140/5140`: `69` application, `4791` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented parallel cache-read gotcha `0z733` (`fdf4f5a75`) and completed-result cancellation gotcha `0z734` (`1bce158fd`).
+
 - [x] Share MediaCore content discovery across verified hash groups.
   - Status: completed (2026-07-17)
   - Priority: P1

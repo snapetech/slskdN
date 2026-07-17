@@ -1,3 +1,17 @@
+## Update 2026-07-17 06:13:42Z
+
+- Current task: performance and efficiency improvements in progress; bounded concurrent MediaCore descriptor discovery complete locally.
+- Last activity:
+  - Replaced up to 50 serial descriptor reads with a fixed ten-worker pool and index-aligned results, retaining original registry order for scoring and output.
+  - Coalesced exact trimmed descriptor keys before reads so parallel cache misses do not duplicate retrieval while duplicate variants retain their original IDs and positions.
+- Validation:
+  - Passed service (`6/6`), broader MultiSource/MediaCore (`396/396`), and backend validation (`5140/5140`: `69` application, `4791` unit, `280` integration).
+  - Exact request cap, order, duplicate output, similarity, missing-result, stable-tie, empty, and completed-result cancellation semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. The known unrelated MeshStream cancellation flake passed exact (`1/1`) and complete serial unit (`4791/4791`) reruns. Documented gotchas `0z733` (`fdf4f5a75`) and `0z734` (`1bce158fd`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bounded MediaCore descriptor-discovery slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 06:01:37Z
 
 - Current task: performance and efficiency improvements in progress; one-pass MediaCore swarm discovery complete locally.
