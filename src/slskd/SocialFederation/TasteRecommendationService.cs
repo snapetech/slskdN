@@ -15,6 +15,7 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
 {
     private const int MaxInboxActivities = 250;
     private const int MaxRecommendationLimit = 100;
+    private const int TextWorkKeyBufferLength = 1024;
 
     private readonly IActivityPubInboxStore _inboxStore;
     private readonly IActivityPubRelationshipStore _relationshipStore;
@@ -309,8 +310,9 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
         bool includeSourceActors)
     {
         var externalIdGroups = new Dictionary<string, RecommendationGroup>(StringComparer.OrdinalIgnoreCase);
-        var textGroups = new Dictionary<string, RecommendationGroup>(StringComparer.OrdinalIgnoreCase);
+        var textGroups = new Dictionary<int, TextRecommendationGroupEntry>();
         var groups = new List<RecommendationGroup>();
+        Span<char> textWorkKeyBuffer = stackalloc char[TextWorkKeyBufferLength];
 
         foreach (var observation in observations)
         {
@@ -321,28 +323,40 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
                 continue;
             }
 
-            Dictionary<string, RecommendationGroup> groupMap;
-            string workKey;
             if (TryGetMusicBrainzWorkKey(observation.WorkRef, out var musicBrainzId))
             {
-                groupMap = externalIdGroups;
-                workKey = musicBrainzId;
-            }
-            else
-            {
-                groupMap = textGroups;
-                workKey = BuildTextWorkKey(observation.WorkRef);
+                if (!externalIdGroups.TryGetValue(musicBrainzId, out var externalIdGroup))
+                {
+                    externalIdGroup = new RecommendationGroup(observation, groups.Count);
+                    externalIdGroups.Add(musicBrainzId, externalIdGroup);
+                    groups.Add(externalIdGroup);
+                }
+                else
+                {
+                    externalIdGroup.Add(observation);
+                }
+
+                continue;
             }
 
-            if (!groupMap.TryGetValue(workKey, out var group))
+            if (TryWriteTextWorkKey(observation.WorkRef, textWorkKeyBuffer, out var textWorkKeyLength))
             {
-                group = new RecommendationGroup(observation, groups.Count);
-                groupMap.Add(workKey, group);
-                groups.Add(group);
+                AddTextObservation(
+                    observation,
+                    textWorkKeyBuffer[..textWorkKeyLength],
+                    allocatedWorkKey: null,
+                    textGroups,
+                    groups);
             }
             else
             {
-                group.Add(observation);
+                var allocatedWorkKey = BuildTextWorkKey(observation.WorkRef);
+                AddTextObservation(
+                    observation,
+                    allocatedWorkKey,
+                    allocatedWorkKey,
+                    textGroups,
+                    groups);
             }
         }
 
@@ -385,6 +399,37 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
             CandidateCount = groups.Count,
             Recommendations = recommendations,
         };
+    }
+
+    private static void AddTextObservation(
+        FederatedWorkRefObservation observation,
+        scoped ReadOnlySpan<char> workKey,
+        string? allocatedWorkKey,
+        Dictionary<int, TextRecommendationGroupEntry> textGroups,
+        List<RecommendationGroup> groups)
+    {
+        var workKeyHash = string.GetHashCode(workKey, StringComparison.OrdinalIgnoreCase);
+        textGroups.TryGetValue(workKeyHash, out var entry);
+        var matchingEntry = entry;
+        while (matchingEntry is not null &&
+            !workKey.Equals(matchingEntry.WorkKey, StringComparison.OrdinalIgnoreCase))
+        {
+            matchingEntry = matchingEntry.Next;
+        }
+
+        if (matchingEntry is not null)
+        {
+            matchingEntry.Group.Add(observation);
+            return;
+        }
+
+        var group = new RecommendationGroup(observation, groups.Count);
+        var retainedWorkKey = allocatedWorkKey ?? workKey.ToString();
+        textGroups[workKeyHash] = new TextRecommendationGroupEntry(
+            retainedWorkKey,
+            group,
+            entry);
+        groups.Add(group);
     }
 
     private static void RetainBestGroup(
@@ -546,6 +591,98 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
         return $"text:{creator}:{title}:{year}";
     }
 
+    private static bool TryWriteTextWorkKey(
+        WorkRef workRef,
+        scoped Span<char> destination,
+        out int charsWritten)
+    {
+        charsWritten = 0;
+        const string prefix = "text:";
+        if (destination.Length < prefix.Length)
+        {
+            return false;
+        }
+
+        prefix.CopyTo(destination);
+        charsWritten = prefix.Length;
+
+        if (!TryWriteNormalizedKeyPart(
+            workRef.Creator,
+            destination[charsWritten..],
+            out var creatorLength))
+        {
+            return false;
+        }
+
+        charsWritten += creatorLength;
+        if (charsWritten == destination.Length)
+        {
+            return false;
+        }
+
+        destination[charsWritten++] = ':';
+        if (!TryWriteNormalizedKeyPart(
+            workRef.Title,
+            destination[charsWritten..],
+            out var titleLength))
+        {
+            return false;
+        }
+
+        charsWritten += titleLength;
+        if (charsWritten == destination.Length)
+        {
+            return false;
+        }
+
+        destination[charsWritten++] = ':';
+        if (workRef.Year.HasValue)
+        {
+            if (!workRef.Year.Value.TryFormat(
+                destination[charsWritten..],
+                out var yearLength,
+                default,
+                System.Globalization.CultureInfo.CurrentCulture))
+            {
+                return false;
+            }
+
+            charsWritten += yearLength;
+        }
+
+        return true;
+    }
+
+    private static bool TryWriteNormalizedKeyPart(
+        string? value,
+        scoped Span<char> destination,
+        out int charsWritten)
+    {
+        var source = (value ?? string.Empty).AsSpan().Trim();
+        var loweredLength = source.ToLowerInvariant(destination);
+        if (loweredLength < 0)
+        {
+            charsWritten = 0;
+            return false;
+        }
+
+        charsWritten = 0;
+        var previousWasSpace = false;
+        for (var index = 0; index < loweredLength; index++)
+        {
+            var current = destination[index];
+            if (current == ' ' && previousWasSpace)
+            {
+                continue;
+            }
+
+            destination[charsWritten++] = current;
+            previousWasSpace = current == ' ';
+        }
+
+        return true;
+    }
+
     private static string NormalizeKeyPart(string? value)
     {
         return string.Join(' ', (value ?? string.Empty)
@@ -646,6 +783,25 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
             sourceActors.Sort(StringComparer.OrdinalIgnoreCase);
             return sourceActors;
         }
+    }
+
+    private sealed class TextRecommendationGroupEntry
+    {
+        public TextRecommendationGroupEntry(
+            string workKey,
+            RecommendationGroup group,
+            TextRecommendationGroupEntry? next)
+        {
+            WorkKey = workKey;
+            Group = group;
+            Next = next;
+        }
+
+        public string WorkKey { get; }
+
+        public RecommendationGroup Group { get; }
+
+        public TextRecommendationGroupEntry? Next { get; }
     }
 
     private async Task AddGraphEvidenceAsync(

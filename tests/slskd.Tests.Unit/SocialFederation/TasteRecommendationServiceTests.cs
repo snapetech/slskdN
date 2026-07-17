@@ -240,6 +240,167 @@ public sealed class TasteRecommendationServiceTests
     }
 
     [Fact]
+    public void BuildRecommendations_FallbackTextKeysPreserveLegacyNormalization()
+    {
+        var observedAt = DateTimeOffset.UtcNow.AddHours(-1);
+        var unicodeFirst = CreateWorkRef("\u00A0ÄLBUM   ΣONG\u00A0", "\tÄRTIST\t", recordingId: null);
+        unicodeFirst.Year = 2024;
+        var unicodeNewest = CreateWorkRef("älbum σong", "ärtist", recordingId: null);
+        unicodeNewest.Year = 2024;
+        var colonFirst = CreateWorkRef("c", "a:b", recordingId: null);
+        colonFirst.Year = 2024;
+        var colonNewest = CreateWorkRef("b:c", "a", recordingId: null);
+        colonNewest.Year = 2024;
+        var tabSeparated = CreateWorkRef("song\tname", "artist", recordingId: null);
+        var spaceSeparated = CreateWorkRef("song name", "artist", recordingId: null);
+        var observations = new[]
+        {
+            Observation(unicodeFirst, "unicode-a", observedAt.AddMinutes(-1)),
+            Observation(unicodeNewest, "unicode-b", observedAt),
+            Observation(colonFirst, "colon-a", observedAt.AddMinutes(-1)),
+            Observation(colonNewest, "colon-b", observedAt),
+            Observation(tabSeparated, "tab-a", observedAt),
+            Observation(spaceSeparated, "space-a", observedAt),
+        };
+
+        var result = TasteRecommendationService.BuildRecommendations(
+            observations,
+            trustedActorCount: 6,
+            minimumTrustedSources: 2,
+            limit: 10,
+            includeSourceActors: true);
+
+        Assert.Equal(4, result.CandidateCount);
+        Assert.Equal(2, result.Recommendations.Count);
+        Assert.Contains(result.Recommendations, recommendation => ReferenceEquals(recommendation.WorkRef, unicodeNewest));
+        Assert.Contains(result.Recommendations, recommendation => ReferenceEquals(recommendation.WorkRef, colonNewest));
+        Assert.DoesNotContain(result.Recommendations, recommendation => ReferenceEquals(recommendation.WorkRef, tabSeparated));
+        Assert.DoesNotContain(result.Recommendations, recommendation => ReferenceEquals(recommendation.WorkRef, spaceSeparated));
+    }
+
+    [Fact]
+    public void BuildRecommendations_FallbackDuplicateHeavyInput_HasBoundedAllocation()
+    {
+        var warmupWorkRef = CreateWorkRef("Warmup Song", "Warmup Artist", recordingId: null);
+        var warmup = new[]
+        {
+            Observation(warmupWorkRef, "warmup-a", DateTimeOffset.UtcNow),
+            Observation(warmupWorkRef, "warmup-b", DateTimeOffset.UtcNow),
+        };
+        TasteRecommendationService.BuildRecommendations(warmup, 2, 2, 1, includeSourceActors: false);
+
+        const int observationCount = 100_000;
+        var workRef = CreateWorkRef("Measured   Song", "Measured Artist", recordingId: null);
+        workRef.Year = 2024;
+        var observedAt = DateTimeOffset.UtcNow.AddHours(-1);
+        var observations = new FederatedWorkRefObservation[observationCount];
+        for (var i = 0; i < observations.Length; i++)
+        {
+            observations[i] = Observation(workRef, (i & 1) == 0 ? "peer-a" : "peer-b", observedAt);
+        }
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var result = TasteRecommendationService.BuildRecommendations(
+            observations,
+            trustedActorCount: 2,
+            minimumTrustedSources: 2,
+            limit: 1,
+            includeSourceActors: false);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        var recommendation = Assert.Single(result.Recommendations);
+        Assert.Same(workRef, recommendation.WorkRef);
+        Assert.Equal(2, recommendation.TrustedSourceCount);
+        Assert.True(allocated < 4_096, $"Expected less than 4,096 allocated bytes, but allocated {allocated:N0} bytes.");
+    }
+
+    [Fact]
+    public void BuildRecommendations_FallbackTextKeysHandleOversizedAndExpandedCultureValues()
+    {
+        var originalCulture = System.Globalization.CultureInfo.CurrentCulture;
+        var expandedCulture = (System.Globalization.CultureInfo)System.Globalization.CultureInfo.InvariantCulture.Clone();
+        expandedCulture.NumberFormat.NegativeSign = new string('~', 1_100);
+
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = expandedCulture;
+            var observedAt = DateTimeOffset.UtcNow.AddHours(-1);
+            var oversizedFirst = CreateWorkRef(
+                $" {new string('Z', 1_100)}   SONG ",
+                "Oversized Artist",
+                recordingId: null);
+            var oversizedNewest = CreateWorkRef(
+                $"{new string('z', 1_100)} song",
+                "oversized artist",
+                recordingId: null);
+            var yearFirst = CreateWorkRef("Year Song", "Year Artist", recordingId: null);
+            yearFirst.Year = -7;
+            var yearNewest = CreateWorkRef("year song", "year artist", recordingId: null);
+            yearNewest.Year = -7;
+            var observations = new[]
+            {
+                Observation(oversizedFirst, "oversized-a", observedAt.AddMinutes(-1)),
+                Observation(oversizedNewest, "oversized-b", observedAt),
+                Observation(yearFirst, "year-a", observedAt.AddMinutes(-1)),
+                Observation(yearNewest, "year-b", observedAt),
+            };
+
+            var result = TasteRecommendationService.BuildRecommendations(
+                observations,
+                trustedActorCount: 4,
+                minimumTrustedSources: 2,
+                limit: 10,
+                includeSourceActors: false);
+
+            Assert.Equal(2, result.CandidateCount);
+            Assert.Equal(2, result.Recommendations.Count);
+            Assert.Contains(result.Recommendations, recommendation => ReferenceEquals(recommendation.WorkRef, oversizedNewest));
+            Assert.Contains(result.Recommendations, recommendation => ReferenceEquals(recommendation.WorkRef, yearNewest));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
+    [Fact]
+    public void BuildRecommendations_FallbackThresholdRejectedInput_HasBoundedAllocation()
+    {
+        var warmupWorkRef = CreateWorkRef("Warmup Song", "Warmup Artist", recordingId: null);
+        TasteRecommendationService.BuildRecommendations(
+            new[] { Observation(warmupWorkRef, "warmup", DateTimeOffset.UtcNow) },
+            1,
+            2,
+            20,
+            includeSourceActors: false);
+
+        const int observationCount = 10_000;
+        var observedAt = DateTimeOffset.UtcNow.AddHours(-1);
+        var observations = new FederatedWorkRefObservation[observationCount];
+        for (var i = 0; i < observations.Length; i++)
+        {
+            var workRef = CreateWorkRef($"Fallback Song {i}", "Measured Artist", recordingId: null);
+            workRef.Year = 2024;
+            observations[i] = Observation(workRef, "peer-a", observedAt);
+        }
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var result = TasteRecommendationService.BuildRecommendations(
+            observations,
+            trustedActorCount: 1,
+            minimumTrustedSources: 2,
+            limit: 20,
+            includeSourceActors: false);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(observationCount, result.CandidateCount);
+        Assert.Empty(result.Recommendations);
+        Assert.True(
+            allocated < 3_700_000,
+            $"Expected less than 3,700,000 allocated bytes, but allocated {allocated:N0} bytes.");
+    }
+
+    [Fact]
     public void BuildRecommendations_ThresholdRejectedInput_HasBoundedAllocation()
     {
         var warmupWorkRef = CreateWorkRef("Warmup Song", "Warmup Artist", recordingId: "warmup-id");

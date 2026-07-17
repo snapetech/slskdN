@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Allocation-bound fallback taste-recommendation work keys.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: Text-only `TasteRecommendationService.BuildRecommendations` observations now write the exact legacy `text:creator:title:year` canonical key into one reusable 1,024-character stack buffer, hash and compare the resulting span directly, and allocate a canonical string only when retaining a distinct work group. Integer-hash buckets chain and recheck exact ordinal-ignore-case keys, so hash collisions cannot merge works. Titles/creators or culture-specific year formats that exceed the buffer use the unchanged allocating `BuildTextWorkKey` fallback. For 100,000 observations of one two-source fallback work, warmed allocation falls from 64,001,712 to 1,840 bytes (>99.997%). A 10,000-distinct fallback fixture remains below 3.7 MB while retaining all required keys and group state. Exact invariant Unicode lowercasing, Unicode whitespace trimming, ASCII-space collapse, internal-tab distinction, component-boundary colon collision behavior, current-culture year formatting including an expanded negative sign, group counts, representative identity, and ordering remain unchanged. Added common/Unicode/oversized/culture and duplicate/unique allocation regressions. Validation passed: focused service tests (`15/15`), broader SocialFederation tests (`86/86`), full backend suites (`5033/5033`: `69` application, `4684` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented C# 12 branch-joined span lifetime gotcha `0z722` (`695be04c2`).
+
 - [x] Stream and bound taste-recommendation aggregation.
   - Status: completed (2026-07-16)
   - Priority: P1

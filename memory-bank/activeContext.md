@@ -1,3 +1,17 @@
+## Update 2026-07-17 00:09:17Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded fallback taste-recommendation keys complete locally.
+- Last activity:
+  - Replaced per-observation fallback trim/lower/split/join/interpolation objects with one reusable canonical-key stack buffer, span hashing/comparison, exact collision chains, and allocation only for retained distinct keys; oversized and culture-expanded values preserve the legacy fallback.
+  - A 100,000-observation/two-source fallback fixture falls from 64,001,712 to 1,840 warmed allocated bytes (>99.997%). A 10,000-distinct fallback fixture remains below 3.7 MB with all required retained state.
+- Validation:
+  - Passed focused recommendation service (`15/15`), broader SocialFederation (`86/86`), and full backend suites (`5033/5033`: `69` application, `4684` unit, `280` integration) tests.
+  - Exact Unicode/whitespace/case/colon/year/culture/oversized/group/representative/allocation behavior, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented C# 12 branch-joined span lifetime gotcha `0z722` (`695be04c2`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the fallback recommendation-key slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 23:50:21Z
 
 - Current task: performance and efficiency improvements in progress; single-pass bounded taste-recommendation aggregation complete locally.

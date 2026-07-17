@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Taste recommendations without MusicBrainz IDs now write the exact legacy
+  `text:creator:title:year` canonical form into one reusable 1,024-character
+  stack buffer. Lookups hash and compare that span directly; only a newly
+  retained work allocates its canonical key string. Hash buckets retain exact
+  ordinal-ignore-case collision chains, and oversized or culture-expanded keys
+  fall back to the original allocating builder. For 100,000 observations of one
+  two-source text-only work, warmed allocation falls from 64,001,712 to 1,840
+  bytes (>99.997%). A 10,000-distinct-work fixture stays below 3.7 MB while
+  retaining the required key/group state. Invariant Unicode lowercasing,
+  Unicode edge trimming, ASCII-space collapse, internal-tab distinction,
+  component-boundary colon collisions, culture-sensitive year formatting,
+  candidate identity, and newest representative selection remain unchanged.
 - Taste-recommendation building now aggregates observations directly into
   per-work state, creates a case-insensitive actor set only after a second
   distinct source appears, and maintains a stable best-first list bounded by
