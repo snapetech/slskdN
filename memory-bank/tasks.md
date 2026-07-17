@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove pseudonymization hash, slice, and formatting intermediates.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `UsernamePseudonymizer.ComputePeerId` now invariant-normalizes once, UTF-8 encodes the username and fixed pseudonymization salt into bounded stack storage or cleared pooled storage, hashes into a fixed SHA-256 digest span, and fills the exact `peer:vsf:` plus 40-character lowercase prefix in one character span. This removes input/salted/digest/prefix arrays, the disposable SHA object, uppercase/lowercase hex strings, and final interpolation. Across 10,000 uncached unique usernames, allocation falls from 12,123,064 to 5,882,840 bytes (51.5%) and elapsed time falls from 14 to 10 ms (28.6%). Exact salted identity, case normalization, cache and first reverse mapping, invalid input, Unicode fallback, and format remain unchanged. Validation passed: focused (`5/5`), Virtual Soulfind (`416/416`), and backend (`5249/5249`: `69` application, `4900` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented concrete optional-argument gotcha `0z753` in standalone commit `8ec1ec58f`.
+
 - [x] Remove combined string and input-array allocations from DHT key derivation.
   - Status: completed (2026-07-17)
   - Priority: P1

@@ -4,6 +4,7 @@
 namespace slskd.VirtualSoulfind.Capture;
 
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
@@ -81,20 +82,33 @@ public class UsernamePseudonymizer : IUsernamePseudonymizer
     private static string ComputePeerId(string username)
     {
         // Use SHA256 to create deterministic but non-reversible peer ID
-        using var sha256 = SHA256.Create();
-        var inputBytes = Encoding.UTF8.GetBytes(username.ToLowerInvariant());
-        var saltedInput = new byte[inputBytes.Length + PseudonymizationSalt.Length];
-        Buffer.BlockCopy(inputBytes, 0, saltedInput, 0, inputBytes.Length);
-        Buffer.BlockCopy(PseudonymizationSalt, 0, saltedInput, inputBytes.Length, PseudonymizationSalt.Length);
+        var normalizedUsername = username.ToLowerInvariant();
+        var byteCount = Encoding.UTF8.GetByteCount(normalizedUsername) + PseudonymizationSalt.Length;
+        byte[]? rentedBytes = null;
+        Span<byte> bytes = byteCount <= 512
+            ? stackalloc byte[byteCount]
+            : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
 
-        var hash = sha256.ComputeHash(saltedInput);
+        try
+        {
+            var bytesWritten = Encoding.UTF8.GetBytes(normalizedUsername, bytes);
+            PseudonymizationSalt.CopyTo(bytes[bytesWritten..]);
 
-        // Take first 20 bytes (160 bits) and encode as base32
-        var peerIdBytes = new byte[20];
-        Buffer.BlockCopy(hash, 0, peerIdBytes, 0, 20);
+            Span<byte> hash = stackalloc byte[32];
+            SHA256.HashData(bytes[..byteCount], hash);
 
-        // Encode as hex for simplicity (could use base32 for shorter IDs)
-        var peerId = Convert.ToHexString(peerIdBytes).ToLowerInvariant();
-        return $"peer:vsf:{peerId}";
+            // Take first 20 bytes (160 bits) and encode as hex
+            Span<char> peerId = stackalloc char[49];
+            "peer:vsf:".AsSpan().CopyTo(peerId);
+            _ = Convert.TryToHexStringLower(hash[..20], peerId[9..], out _);
+            return new string(peerId);
+        }
+        finally
+        {
+            if (rentedBytes != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+            }
+        }
     }
 }

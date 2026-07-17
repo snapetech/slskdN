@@ -1,3 +1,17 @@
+## Update 2026-07-17 15:18:40Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded Virtual Soulfind username pseudonymization complete locally.
+- Last activity:
+  - Replaced username/salted/digest/prefix arrays, disposable SHA, uppercase/lowercase hex copies, and interpolation with bounded stack/pool encoding, a fixed digest span, and exact final character-span formatting.
+  - Across 10,000 uncached usernames, allocation falls from 12,123,064 to 5,882,840 bytes (51.5%) and elapsed time falls from 14 to 10 ms (28.6%).
+- Validation:
+  - Passed focused pseudonymizer (`5/5`), Virtual Soulfind (`416/416`), and backend validation (`5249/5249`: `69` application, `4900` unit, `280` integration), plus repository lint.
+  - Exact salt/hash/case/cache/reverse/validation/Unicode/format behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotcha `0z753` in standalone commit `8ec1ec58f`. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the pseudonymization optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 15:08:25Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded Virtual Soulfind DHT key derivation complete locally.

@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind username pseudonymization now UTF-8 encodes the normalized
+  username and fixed salt directly into bounded stack or cleared pooled storage,
+  hashes into a fixed digest span, and writes the exact `peer:vsf:` plus
+  40-character lowercase prefix through one character span. Across 10,000
+  uncached unique usernames, allocation falls from 12,123,064 to 5,882,840 bytes
+  (51.5%) and elapsed time falls from 14 to 10 ms (28.6%). Salted SHA-256
+  identity, invariant case normalization, cache/reverse mapping, validation,
+  long Unicode inputs, and output format remain unchanged.
 - Virtual Soulfind DHT key derivation now UTF-8 encodes each frozen namespace,
   separator, and identifier directly into bounded stack or cleared pooled
   storage before SHA-1 instead of allocating an interpolated combined string and

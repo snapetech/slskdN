@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Virtual Soulfind username pseudonymization now hashes normalized usernames
+  and its fixed salt through bounded span/pool storage and formats the exact
+  peer ID without concatenation, digest-slice, or upper/lower hex copies.
 - Virtual Soulfind DHT key derivation now hashes namespace and identifier parts
   through bounded span/pool UTF-8 storage instead of interpolated strings and
   byte arrays, and lower-hex formatting no longer creates an uppercase copy.
