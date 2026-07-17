@@ -1,3 +1,17 @@
+## Update 2026-07-17 05:34:14Z
+
+- Current task: performance and efficiency improvements in progress; database-filtered profile-specific HashDb variants complete locally.
+- Last activity:
+  - Grouped raw codec profiles in SQLite, invoked the exact managed matcher once per distinct profile, joined only matching profiles back to source rows, and ranked structural identities before hydration.
+  - A 10,000-row/1,000-winner recording falls from 41,819,208 to 4,198,280 warmed allocated bytes (90.0%) and hydrates 90.0% fewer rows.
+- Validation:
+  - Passed focused (`13/13`), HashDb service (`106/106`), broader HashDb/Audio/caller (`176/176`), and backend validation (`5131/5131`: `69` application, `4782` unit, `280` integration).
+  - Exact filter-before-dedupe, culture/ordinal profile key, quality/recency/identity/whitespace/winner/order semantics, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Extended gotcha `0z729` (`c63e938d0`) and documented gotcha `0z731` (`7afbebc6f`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the database-filtered profile-specific HashDb variant slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 05:13:20Z
 
 - Current task: performance and efficiency improvements in progress; database-ranked scalar HashDb variants complete locally.

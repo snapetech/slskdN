@@ -3293,30 +3293,70 @@ namespace slskd.HashDb
         {
             var list = new List<AudioVariant>();
             using var conn = GetConnection();
+            conn.CreateFunction<string, int, int?, int, string, bool>(
+                "matches_codec_profile",
+                CodecProfile.MatchesKey);
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = @"
+            cmd.CommandText = $"""
+                WITH matching_profiles AS (
+                    SELECT codec, sample_rate_hz, bit_depth, channels
+                    FROM HashDb
+                    WHERE musicbrainz_id = @recordingId
+                    GROUP BY codec, sample_rate_hz, bit_depth, channels
+                    HAVING matches_codec_profile(
+                        COALESCE(codec, ''),
+                        COALESCE(sample_rate_hz, 0),
+                        bit_depth,
+                        COALESCE(channels, 2),
+                        @codecProfileKey)
+                ),
+                source AS (
+                    SELECT
+                        HashDb.*,
+                        CASE
+                            WHEN variant_id IS NULL OR TRIM(
+                                variant_id,
+                                {SqlDotNetWhitespaceCharacterSet}) = ''
+                                THEN flac_key
+                            ELSE variant_id
+                        END AS variant_identity,
+                        ROW_NUMBER() OVER (
+                            ORDER BY quality_score DESC, last_updated_at DESC) AS source_sequence
+                    FROM HashDb
+                    INNER JOIN matching_profiles
+                        ON matching_profiles.codec IS HashDb.codec
+                       AND matching_profiles.sample_rate_hz IS HashDb.sample_rate_hz
+                       AND matching_profiles.bit_depth IS HashDb.bit_depth
+                       AND matching_profiles.channels IS HashDb.channels
+                    WHERE musicbrainz_id = @recordingId
+                ),
+                ranked AS (
+                    SELECT
+                        source.*,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY variant_identity
+                            ORDER BY source_sequence) AS variant_rank
+                    FROM source
+                )
                 SELECT *
-                FROM HashDb
-                WHERE musicbrainz_id = @recordingId
-                ORDER BY quality_score DESC, last_updated_at DESC";
+                FROM ranked
+                WHERE variant_rank = 1
+                ORDER BY source_sequence
+                """;
             cmd.Parameters.AddWithValue("@recordingId", recordingId);
+            cmd.Parameters.AddWithValue("@codecProfileKey", codecProfileKey);
 
             using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
-                var entry = ReadHashEntry(reader);
-                var variant = MapEntryToVariant(entry);
-                if (variant != null && CodecProfile.MatchesKey(variant, codecProfileKey))
+                var variant = MapEntryToVariant(ReadHashEntry(reader));
+                if (variant != null)
                 {
                     list.Add(variant);
                 }
             }
 
-            return list
-                .Where(variant => !string.IsNullOrWhiteSpace(variant.VariantId) || !string.IsNullOrWhiteSpace(variant.FlacKey))
-                .GroupBy(variant => string.IsNullOrWhiteSpace(variant.VariantId) ? variant.FlacKey : variant.VariantId, StringComparer.Ordinal)
-                .Select(group => group.First())
-                .ToList();
+            return list;
         }
 
         /// <inheritdoc/>

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Filter and rank profile-specific HashDb variants before hydration.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `HashDbService.GetVariantsByRecordingAndProfileAsync` now groups raw codec fields for the requested recording, invokes its exact current-culture matcher once per distinct profile through a connection-scoped SQLite function, joins only matching profiles back to source rows, and ranks structural variant identities before materialization. A 1,000-identity/ten-profile-row fixture falls from 10,000 to 1,000 hydrated rows (90.0%) and from 41,819,208 to 4,198,280 warmed allocated bytes (90.0%). This removes application-side profile checks, grouping buffers, and 9,000 discarded variants. Profile filtering before deduplication, exact ordinal/culture-sensitive keys, quality/recency winners, winner order, and .NET whitespace fallback remain unchanged. Validation passed: focused (`13/13`), HashDb service (`106/106`), broader HashDb/Audio/caller (`176/176`), and backend (`5131/5131`: `69` application, `4782` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Extended repeated-anchor gotcha `0z729` (`c63e938d0`) and documented extracted key-formatting gotcha `0z731` (`7afbebc6f`).
+
 - [x] Rank scalar HashDb variant duplicates before hydration.
   - Status: completed (2026-07-17)
   - Priority: P1

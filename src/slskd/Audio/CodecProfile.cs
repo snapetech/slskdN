@@ -92,13 +92,38 @@ namespace slskd.Audio
                 throw new ArgumentNullException(nameof(variant));
             }
 
+            return MatchesKey(
+                variant.Codec,
+                variant.SampleRateHz,
+                variant.BitDepth,
+                variant.Channels,
+                key);
+        }
+
+        internal static bool MatchesKey(
+            string codec,
+            int sampleRateHz,
+            int? bitDepth,
+            int channels,
+            string key)
+        {
             Span<char> buffer = stackalloc char[256];
-            var formatted = IsLosslessCodec(variant.Codec) && variant.BitDepth.HasValue
-                ? buffer.TryWrite($"{variant.Codec}-{variant.BitDepth.Value}bit-{variant.SampleRateHz}Hz-{variant.Channels}ch", out var charsWritten)
-                : buffer.TryWrite($"{variant.Codec}-lossy-{variant.SampleRateHz}Hz-{variant.Channels}ch", out charsWritten);
+            var formatted = IsLosslessCodec(codec) && bitDepth.HasValue
+                ? buffer.TryWrite($"{codec}-{bitDepth.Value}bit-{sampleRateHz}Hz-{channels}ch", out var charsWritten)
+                : buffer.TryWrite($"{codec}-lossy-{sampleRateHz}Hz-{channels}ch", out charsWritten);
             return formatted
                 ? buffer[..charsWritten].SequenceEqual(key)
-                : string.Equals(BuildKey(variant), key, StringComparison.Ordinal);
+                : string.Equals(BuildKey(codec, sampleRateHz, bitDepth, channels), key, StringComparison.Ordinal);
+        }
+
+        private static string BuildKey(string codec, int sampleRateHz, int? bitDepth, int channels)
+        {
+            if (IsLosslessCodec(codec) && bitDepth.HasValue)
+            {
+                return $"{codec}-{bitDepth.Value}bit-{sampleRateHz}Hz-{channels}ch";
+            }
+
+            return $"{codec}-lossy-{sampleRateHz}Hz-{channels}ch";
         }
 
         private static string GetCodecName(Properties props, string extension)

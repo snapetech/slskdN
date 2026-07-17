@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Profile-filtered HashDb variant reads now match distinct codec profiles and
+  rank duplicate identities in SQLite before hydrating only matching winners.
 - Single-recording HashDb variant reads now rank duplicate identities in SQLite
   and hydrate only their SQL-ordered winners.
 - Batched HashDb variant reads now rank structured recording/variant identities

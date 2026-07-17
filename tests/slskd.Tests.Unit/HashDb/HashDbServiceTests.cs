@@ -1336,6 +1336,58 @@ public class HashDbServiceTests : IDisposable
         await command.ExecuteNonQueryAsync();
     }
 
+    private async Task InsertProfileHeavyVariantsAsync(
+        int variantsPerProfile,
+        int profilesPerVariant)
+    {
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"""
+            WITH RECURSIVE sequence(value) AS (
+                SELECT 1
+                UNION ALL
+                SELECT value + 1
+                FROM sequence
+                WHERE value < {variantsPerProfile * profilesPerVariant}
+            )
+            INSERT INTO HashDb (
+                flac_key,
+                byte_hash,
+                size,
+                first_seen_at,
+                last_updated_at,
+                seq_id,
+                use_count,
+                musicbrainz_id,
+                variant_id,
+                codec,
+                sample_rate_hz,
+                bit_depth,
+                channels,
+                quality_score,
+                seen_count)
+            SELECT
+                printf('profile-wide-key-%05d', value),
+                printf('profile-wide-hash-%05d', value),
+                123,
+                1,
+                value,
+                value,
+                1,
+                'recording-profile-heavy',
+                printf('profile-variant-%04d', (value - 1) / {profilesPerVariant}),
+                CASE WHEN value % {profilesPerVariant} = 0 THEN 'FLAC' ELSE 'MP3' END,
+                44100,
+                CASE WHEN value % {profilesPerVariant} = 0 THEN 16 ELSE NULL END,
+                2,
+                value / 10000.0,
+                value
+            FROM sequence
+            """;
+        await command.ExecuteNonQueryAsync();
+    }
+
     private static HashDbEntry CreateVariantEntry(
         string flacKey,
         string recordingId,
@@ -1911,10 +1963,12 @@ public class HashDbServiceTests : IDisposable
     [Fact]
     public async Task GetVariantsByRecordingAndProfileAsync_FiltersExactProfileKey()
     {
-        foreach (var (flacKey, variantId, sampleRate, bitDepth) in new[]
+        foreach (var (flacKey, variantId, codec, sampleRate, bitDepth, qualityScore) in new[]
         {
-            ("profile-key-16", "variant-16", 44_100, (int?)16),
-            ("profile-key-24", "variant-24", 48_000, (int?)24),
+            ("profile-key-16", "variant-16", "FLAC", 44_100, (int?)16, 0.8),
+            ("profile-key-16-old", "variant-16", "FLAC", 44_100, (int?)16, 0.7),
+            ("profile-key-24", "variant-24", "FLAC", 48_000, (int?)24, 0.8),
+            ("profile-key-mp3", "variant-16", "MP3", 44_100, (int?)null, 0.95),
         })
         {
             await service.StoreHashAsync(new HashDbEntry
@@ -1932,11 +1986,11 @@ public class HashDbServiceTests : IDisposable
             {
                 VariantId = variantId,
                 MusicBrainzRecordingId = "recording-profile",
-                Codec = "FLAC",
+                Codec = codec,
                 SampleRateHz = sampleRate,
                 BitDepth = bitDepth,
                 Channels = 2,
-                QualityScore = 0.8,
+                QualityScore = qualityScore,
             });
         }
 
@@ -1946,6 +2000,73 @@ public class HashDbServiceTests : IDisposable
 
         var variant = Assert.Single(variants);
         Assert.Equal("variant-16", variant.VariantId);
+        Assert.Equal("profile-key-16", variant.FlacKey);
+    }
+
+    [Fact]
+    public async Task GetVariantsByRecordingAndProfileAsync_PreservesCurrentCultureProfileKey()
+    {
+        const string flacKey = "profile-culture-key";
+        await service.StoreHashAsync(new HashDbEntry
+        {
+            FlacKey = flacKey,
+            ByteHash = "profile-culture-hash",
+            Size = 321,
+            FirstSeenAt = 1,
+            LastUpdatedAt = 1,
+            SeqId = 1,
+            UseCount = 1,
+        });
+        await service.UpdateHashRecordingIdAsync(flacKey, "recording-profile-culture");
+        await service.UpdateVariantMetadataAsync(flacKey, new AudioVariant
+        {
+            VariantId = "variant-culture",
+            MusicBrainzRecordingId = "recording-profile-culture",
+            Codec = "FLAC",
+            SampleRateHz = -96_000,
+            BitDepth = -24,
+            Channels = -2,
+            QualityScore = 0.8,
+        });
+
+        var originalCulture = System.Globalization.CultureInfo.CurrentCulture;
+        var culture = (System.Globalization.CultureInfo)System.Globalization.CultureInfo.InvariantCulture.Clone();
+        culture.NumberFormat.NegativeSign = "minus";
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+            var variants = await service.GetVariantsByRecordingAndProfileAsync(
+                "recording-profile-culture",
+                "FLAC-minus24bit-minus96000Hz-minus2ch");
+
+            Assert.Equal("variant-culture", Assert.Single(variants).VariantId);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
+    [Fact]
+    public async Task GetVariantsByRecordingAndProfileAsync_ProfileHeavyRecordingHasBoundedAllocation()
+    {
+        const int variantsPerProfile = 1_000;
+        const int profilesPerVariant = 10;
+        await InsertProfileHeavyVariantsAsync(variantsPerProfile, profilesPerVariant);
+        _ = await service.GetVariantsByRecordingAndProfileAsync(
+            "recording-profile-heavy",
+            "FLAC-16bit-44100Hz-2ch");
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var variants = await service.GetVariantsByRecordingAndProfileAsync(
+            "recording-profile-heavy",
+            "FLAC-16bit-44100Hz-2ch");
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(variantsPerProfile, variants.Count);
+        Assert.True(
+            allocatedBytes < 4_800_000,
+            $"Profile-heavy recording allocated {allocatedBytes:N0} bytes.");
     }
 
     [Fact]

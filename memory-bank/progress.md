@@ -1,3 +1,12 @@
+## Update 2026-07-17 05:34:14Z
+
+- Completed database-filtered and ranked profile-specific HashDb variant retrieval.
+- Grouped raw codec profiles inside SQLite, applied the exact culture-sensitive managed matcher once per distinct profile, joined matching profiles to source rows, and ranked structural identities before hydrating winners.
+- Reduced a warmed 10,000-row/1,000-winner fixture from 41,819,208 to 4,198,280 allocated bytes (90.0%) and from 10,000 to 1,000 hydrated rows (90.0%).
+- Preserved filter-before-dedupe behavior, exact ordinal and current-culture keys, quality/recency winner selection, returned order, and .NET whitespace fallback.
+- Added semantic, custom-culture, and allocation regressions; passed focused (`13/13`), HashDb service (`106/106`), broader HashDb/Audio/caller (`176/176`), and backend (`5131/5131`: `69` application, `4782` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Extended repeated-anchor gotcha `0z729` (`c63e938d0`) and documented extracted key-formatting gotcha `0z731` (`7afbebc6f`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 05:13:20Z
 
 - Completed database-ranked scalar HashDb variant deduplication.

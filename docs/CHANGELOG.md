@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Profile-filtered HashDb variant reads now group raw codec fields first, run
+  the exact culture-sensitive profile matcher once per distinct profile, join
+  matching profiles back to the recording, and rank structural variant
+  identities before hydration. For 1,000 identities with ten profile rows
+  each, hydrated rows fall from 10,000 to 1,000 (90.0%) and warmed allocation
+  falls from 41,819,208 to 4,198,280 bytes (90.0%). The full mapped-row list,
+  application profile checks, `GroupBy` buffers, and 9,000 discarded variants
+  are gone. Profile filtering still precedes identity deduplication; exact
+  ordinal keys, current-culture number formatting, quality/recency winners,
+  returned winner order, and .NET whitespace identity fallback remain intact.
 - Single-recording HashDb variant reads now source-sequence the existing raw
   SQLite quality/recency order, rank each structural variant identity, and
   hydrate only the first row per identity. For 1,000 identities with ten copies
