@@ -1,3 +1,11 @@
+## Update 2026-07-17 18:20:49Z
+
+- Completed the finite performance-improvement publication and deployment goal.
+- Committed and pushed the complete worktree, preserved the three remote-main commits through a non-destructive merge, and published corrected stable release `2026071717-slskdn.279` from `822ba1697` after retaining failed immutable tag `.278` as history.
+- Verified published checksums and all required archives, the VPN helper payload, bundled Web marker, and Linux version output. Core build, archives, release, AUR, PPA, Nix, Homebrew, Docker, and announcement jobs passed; COPR and Chocolatey external channel uploads failed independently.
+- Replaced the prior live validation container with immutable GHCR digest `sha256:526888828663239c2ccbfa63a75766ea06b64700db45c8432bea0e70c7f28458` while preserving the prior service unit and image for rollback.
+- Verified application/image version `2026071717-slskdn.279`, active systemd service, healthy container and HTTP endpoint, zero restarts, VPN forwarding readiness, Soulseek login readiness, and 15 consecutive monitoring samples with zero error, fatal, OOM, database-lock, or unobserved-task indicators.
+
 ## Update 2026-07-17 17:44:00Z
 
 - The first stable release attempt, `2026071717-slskdn.278`, passed the complete local release gate but failed the clean hosted checkout because council backlog validation reused an ignored local report and scanned non-repository paths.

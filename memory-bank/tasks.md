@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Publish and deploy the finite performance-improvement release.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: Committed and pushed the complete worktree and the three preserved remote-main commits. The first immutable tag, `2026071717-slskdn.278`, exposed a clean-checkout release-report defect; documented and fixed it without moving the failed tag. Published `2026071717-slskdn.279` from `822ba1697`, verified all release archives/checksums, required payloads, Web marker, and Linux version, then deployed immutable GHCR digest `sha256:526888828663239c2ccbfa63a75766ea06b64700db45c8432bea0e70c7f28458` to the live validation host with the prior unit/image retained for rollback. Application/image version alignment, systemd/container health, HTTP health, VPN forwarding, Soulseek readiness, and 15 monitoring samples passed with zero restarts and zero error/fatal/OOM/database-lock/unobserved indicators. Core build, archives, release, AUR, PPA, Nix, Homebrew, Docker, and announcement jobs passed; COPR and Chocolatey external publishing failed independently of the verified release.
+
 - [x] Make release council backlog validation deterministic across clean and developer checkouts.
   - Status: completed (2026-07-17)
   - Priority: P1

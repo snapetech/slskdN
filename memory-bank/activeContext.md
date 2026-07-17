@@ -1,3 +1,17 @@
+## Update 2026-07-17 18:20:49Z
+
+- Current task: finite performance-improvement goal complete; stable release `2026071717-slskdn.279` is published and running on the live validation host.
+- Last activity:
+  - Verified release artifacts/checksums and deployed immutable GHCR digest `sha256:526888828663239c2ccbfa63a75766ea06b64700db45c8432bea0e70c7f28458` with the prior unit/image retained for rollback.
+  - Confirmed application/image version alignment, active service, healthy container and HTTP endpoint, VPN forwarding, Soulseek readiness, and 15 stable monitoring samples with zero restarts or severe log indicators.
+- Release status:
+  - Core build, platform archives, GitHub release, AUR, PPA, Nix, Homebrew, Docker, and announcement jobs passed.
+  - COPR and Chocolatey external publishing failed independently of the verified release and deployment.
+- Next steps:
+  1. Exercise the newly deployed mesh, Pod, shadow-index, and gateway paths during normal validation.
+  2. Track external COPR/Chocolatey channel remediation separately if those packages are required.
+  3. Do not open another optimization or release slice unless explicitly requested.
+
 ## Update 2026-07-17 17:44:00Z
 
 - Current task: correct the clean-checkout release gate, publish the next stable release, deploy it to the live validation host, and monitor the replacement.
