@@ -196,10 +196,16 @@ lazy work on the measuring thread raised one of the two results to 5,064–7,200
 bytes, while every exact rerun and subsequent complete-unit rerun passed. An
 initial correction to an 8 KiB ceiling then failed at 8,592 bytes in the next
 loaded run. The tests therefore produced recurring false failures without
-evidence of a production allocation regression.
+evidence of a production allocation regression. The same missed pattern later
+blocked a release when a duplicate-heavy Shadow Index descriptor test observed
+9,104 bytes against its 8 KiB ceiling.
 
 **Files Affected**:
 - `tests/slskd.Tests.Unit/SocialFederation/TasteRecommendationServiceTests.cs`
+- `tests/slskd.Tests.Unit/MediaCore/ShadowIndexDescriptorSourceTests.cs`
+- `tests/slskd.Tests.Unit/MediaCore/HashDbMediaVariantStoreTests.cs`
+- `tests/slskd.Tests.Unit/MediaCore/MetadataPortabilityTests.cs`
+- `tests/slskd.Tests.Unit/SongID/DiscoveryGraphServiceTests.cs`
 
 **Prevention**: Warm the exact public path, serialize current-thread allocation
 tests, and give sub-10-KiB ceilings enough headroom for the highest observed
