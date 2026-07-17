@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -92,6 +93,12 @@ public class ExceptionHandlerTestHostFactory : WebApplicationFactory<ProgramStub
                                     status = 501;
                                     title = "Not Implemented";
                                     detail = fe.Message;
+                                }
+                                else if (ex is BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge })
+                                {
+                                    status = StatusCodes.Status413PayloadTooLarge;
+                                    title = "Payload Too Large";
+                                    detail = "Request body too large.";
                                 }
                                 else
                                 {

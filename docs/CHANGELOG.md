@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Oversized HTTP request bodies now return a bounded 413 Problem Details
+  response instead of being reported as an internal server error.
 - Release council backlog validation now regenerates its derived report on
   every run and scans only Git-tracked repository roots. Local ignored reports,
   dependency trees, build outputs, and optional directories can no longer make

@@ -77,4 +77,25 @@ public class ExceptionHandlerTests
         Assert.Equal("Not Implemented", root.GetProperty("title").GetString());
         Assert.Contains("not implemented", root.GetProperty("detail").GetString() ?? "", StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task Exception_handler_body_limit_exception_returns_413_without_leaking_limit()
+    {
+        using var factory = new ExceptionHandlerTestHostFactory();
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync("/api/v0/throw/payload-too-large");
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        Assert.Equal(413, root.GetProperty("status").GetInt32());
+        Assert.Equal("Payload Too Large", root.GetProperty("title").GetString());
+        Assert.Equal("Request body too large.", root.GetProperty("detail").GetString());
+        Assert.True(root.TryGetProperty("traceId", out var traceId));
+        Assert.False(string.IsNullOrWhiteSpace(traceId.GetString()));
+        Assert.DoesNotContain("1024", json);
+    }
 }

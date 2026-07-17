@@ -65,6 +65,12 @@ public static class WebApplicationPipelineExtensions
                         title = "Not Implemented";
                         detail = fe.Message;
                     }
+                    else if (ex is BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge })
+                    {
+                        status = StatusCodes.Status413PayloadTooLarge;
+                        title = "Payload Too Large";
+                        detail = "Request body too large.";
+                    }
                     else
                     {
                         var env = context.RequestServices.GetService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();

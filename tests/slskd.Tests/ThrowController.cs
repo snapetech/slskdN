@@ -4,6 +4,7 @@
 namespace slskd.Tests;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using slskd;
 
@@ -31,5 +32,16 @@ public class ThrowController : ControllerBase
     public IActionResult GetNotImplemented()
     {
         throw new FeatureNotImplementedException("Test feature is not implemented.");
+    }
+
+    /// <summary>
+    /// GET /api/v0/throw/payload-too-large — reproduces Kestrel's body-limit exception.
+    /// </summary>
+    [HttpGet("payload-too-large")]
+    public IActionResult GetPayloadTooLarge()
+    {
+        throw new BadHttpRequestException(
+            "Request body too large. The max request body size is 1024 bytes.",
+            StatusCodes.Status413PayloadTooLarge);
     }
 }
