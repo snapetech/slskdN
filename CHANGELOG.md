@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Probabilistic file spot checks now reuse one cleared pooled chunk buffer and
+  fixed digest span across the existing bounded sample instead of allocating
+  chunk and hash buffers for every selected index.
 - Commitment revealed-hash and verified-content checks now reuse normalized
   values and bounded span/pool UTF-8 storage instead of allocating two byte
   arrays for each constant-time comparison.

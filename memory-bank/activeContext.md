@@ -1,3 +1,17 @@
+## Update 2026-07-17 14:27:46Z
+
+- Current task: performance and efficiency improvements in progress; pooled probabilistic file spot-check hashing complete locally.
+- Last activity:
+  - Replaced per-selected-chunk file, digest, and uppercase/lowercase hexadecimal buffers with one lazily rented, reused, cleared chunk buffer plus a synchronous fixed-span hash helper.
+  - A maximum 50-chunk sample at 4 KiB falls from 276,144 to 65,056 allocated bytes (76.4%) while remaining at 9 ms.
+- Validation:
+  - Passed focused probabilistic verification (`1/1`), Common Security (`374/374`), and backend validation (`5234/5234`: `69` application, `4885` unit, `280` integration), plus repository lint.
+  - Exact sample/offset/hash/result/cancellation/network behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the probabilistic spot-check optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 14:18:54Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded cryptographic commitment revealed/content comparisons complete locally.

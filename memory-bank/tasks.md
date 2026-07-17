@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse one chunk buffer across probabilistic file spot checks.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `ProbabilisticVerification.SpotCheckFileAsync` now lazily rents one chunk buffer, reuses it across the existing bounded random sample, reads each selected range directly into it, hashes through a synchronous fixed digest span, formats lowercase hexadecimal directly, and clears the largest used range before returning storage. This removes one chunk array, digest array, uppercase hexadecimal string, and lowercase copy per selected chunk without adding file reads or peer activity. A maximum 50-chunk sample at 4 KiB falls from 276,144 to 65,056 allocated bytes (76.4%) while remaining at 9 ms. Exact random selection, minimum/maximum limits, offsets, hash comparison, result accounting, and cancellation remain unchanged. Validation passed: focused (`1/1`), Common Security (`374/374`), and backend (`5234/5234`: `69` application, `4885` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove revealed/content hash comparison arrays from commitments.
   - Status: completed (2026-07-17)
   - Priority: P1

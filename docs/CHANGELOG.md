@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Probabilistic file spot checks now rent one chunk buffer lazily, reuse it
+  across the existing maximum 50 selected chunks, hash each populated range
+  through a fixed digest span, format lowercase hexadecimal directly, and clear
+  the used range before returning the buffer. A maximum 50-chunk sample over a
+  4 KiB chunk size falls from 276,144 to 65,056 allocated bytes (76.4%) while
+  remaining at 9 ms. Random selection, sample limits, file offsets, expected-
+  hash checks, result accounting, and network activity remain unchanged.
 - Cryptographic commitment revealed-hash and verified-content checks now use a
   shared constant-time UTF-8 comparison over bounded stack or cleared pooled
   storage, and commitment verification normalizes each revealed hash once.

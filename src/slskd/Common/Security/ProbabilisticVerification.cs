@@ -4,6 +4,7 @@
 namespace slskd.Common.Security;
 
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -268,28 +269,42 @@ public sealed class ProbabilisticVerification : IDisposable
         var session = StartSession(filePath, totalChunks, sampleRate);
 
         await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        byte[]? buffer = null;
+        var bytesToClear = 0;
 
-        foreach (var chunkIndex in session.SelectedChunks)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!expectedHashes.TryGetValue(chunkIndex, out var expectedHash))
+            foreach (var chunkIndex in session.SelectedChunks)
             {
-                continue;
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (!expectedHashes.TryGetValue(chunkIndex, out var expectedHash))
+                {
+                    continue;
+                }
+
+                // Read chunk
+                var offset = (long)chunkIndex * chunkSize;
+                stream.Seek(offset, SeekOrigin.Begin);
+
+                var actualSize = (int)Math.Min(chunkSize, stream.Length - offset);
+                buffer ??= ArrayPool<byte>.Shared.Rent(chunkSize);
+                bytesToClear = Math.Max(bytesToClear, actualSize);
+                await stream.ReadExactlyAsync(buffer.AsMemory(0, actualSize), cancellationToken);
+
+                // Hash chunk
+                var actualHash = ComputeSha256LowerHex(buffer, actualSize);
+
+                RecordResult(session.Id, chunkIndex, expectedHash, actualHash);
             }
-
-            // Read chunk
-            var offset = (long)chunkIndex * chunkSize;
-            stream.Seek(offset, SeekOrigin.Begin);
-
-            var actualSize = (int)Math.Min(chunkSize, stream.Length - offset);
-            var buffer = new byte[actualSize];
-            await stream.ReadExactlyAsync(buffer, cancellationToken);
-
-            // Hash chunk
-            var actualHash = Convert.ToHexString(SHA256.HashData(buffer)).ToLowerInvariant();
-
-            RecordResult(session.Id, chunkIndex, expectedHash, actualHash);
+        }
+        finally
+        {
+            if (buffer != null)
+            {
+                Array.Clear(buffer, 0, bytesToClear);
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         var result = FinalizeSession(session.Id);
@@ -305,6 +320,13 @@ public sealed class ProbabilisticVerification : IDisposable
             Confidence = result.Confidence,
             FailedIndices = result.FailedIndices,
         };
+    }
+
+    private static string ComputeSha256LowerHex(byte[] bytes, int length)
+    {
+        Span<byte> hash = stackalloc byte[32];
+        SHA256.HashData(bytes.AsSpan(0, length), hash);
+        return Convert.ToHexStringLower(hash);
     }
 
     /// <summary>
