@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z730. Delimiter-Joined Group Keys Can Merge Distinct Field Tuples
+
+**The Bug**: Batched HashDb variant deduplication grouped rows by an
+interpolated `"{recordingId}\u001f{variantIdentity}"` string. A recording ID or
+variant identity containing the separator could produce the same formatted key
+as a different two-field tuple, merging unrelated variants and selecting only
+one winner.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+- `tests/slskd.Tests.Unit/HashDb/HashDbServiceTests.cs`
+
+**Prevention**: Represent multi-field identity structurally—with SQL
+`PARTITION BY` columns, a value tuple/record key, or a comparer over the
+individual fields. Do not join unrestricted values with a supposedly rare
+delimiter for grouping or deduplication; escaping rules are easy to omit and a
+delimiter that is uncommon is not impossible.
+
 ### 0z729. Repeated Batch Loops Need Method-Signature Patch Anchors
 
 **The Bug**: A HashDb optimization patch matched the first generic
