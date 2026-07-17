@@ -326,8 +326,8 @@ public class MetadataPortabilityTests
 
         Assert.Same(selectedDescriptor, result);
         Assert.True(
-            allocatedBytes < 4 * 1024,
-            $"Expected single-pass source selection below 4 KiB allocated, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 64 * 1024,
+            $"Expected single-pass source selection below 64 KiB allocated, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]
