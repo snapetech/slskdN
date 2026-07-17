@@ -52,6 +52,88 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z759. Mesh Service Implementations Are Inert Until Registered With The Router
+
+**The Bug**: Pod, shadow-index, private-gateway, and introspection mesh service
+implementations were available from DI but were never registered with the live
+`MeshServiceRouter`, so remote calls returned service-unavailable even though
+the handlers and their unit tests existed.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+- `src/slskd/Bootstrap/ExperimentalMeshServiceCollectionExtensions.cs`
+
+**Prevention**: Treat DI construction and router registration as separate
+production wiring requirements. Every new `IMeshService` needs both a concrete
+DI registration and an application-startup `RegisterService` call, plus a
+startup or integration test that resolves the real router path.
+
+### 0z758. Durable Pod Send Success Must Not Be Reversed By Best-Effort Routing
+
+**The Bug**: `SqlitePodMessaging.SendAsync` persisted a message successfully but
+returned `false` when its immediate routing attempt failed. Callers could retry
+the send and create duplicate durable messages even though the original payload
+was already stored for later delivery.
+
+**Files Affected**:
+- `src/slskd/PodCore/SqlitePodMessaging.cs`
+
+**Prevention**: Define send success at the durable persistence boundary. Log a
+best-effort routing failure and let later delivery recover it, but return
+failure only when the message was not accepted into durable storage.
+
+### 0z757. Tunnel Connections Must Dial The Address That Passed DNS Policy
+
+**The Bug**: Private-gateway tunnel validation resolved and approved a hostname,
+then `TcpClient.ConnectAsync(host, ...)` resolved the hostname again. DNS could
+change between those operations, leaving a time-of-check/time-of-use rebinding
+gap despite the earlier allowlist check.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/Services/ITunnelConnectivity.cs`
+- `src/slskd/Mesh/ServiceFabric/Services/PrivateGatewayMeshService.cs`
+
+**Prevention**: Iterate the exact parsed IP addresses returned by the policy
+resolver, connect directly to one of those addresses, and compare the connected
+endpoint to that approved set with normalized IPv4/IPv6 semantics. Never pass
+the hostname back to the transport after validation.
+
+### 0z756. DHT Signers Cannot Be Equated With Overlay Usernames
+
+**The Bug**: Signed DHT STORE verification required the Ed25519-derived peer ID
+to equal the service-fabric transport's remote peer string. Cross-runtime and
+Soulseek-backed overlays can authenticate the transport under a different
+username, so legitimate self-certifying DHT writes were rejected.
+
+**Files Affected**:
+- `src/slskd/Mesh/Dht/KademliaRpcClient.cs`
+- `src/slskd/Mesh/ServiceFabric/Services/DhtMeshService.cs`
+
+**Prevention**: Bind `RequesterId` to the fixed digest of the signing public key,
+verify the canonical signed payload, and use the derived signing peer ID for DHT
+admission and routing state. Treat the overlay remote identity as transport
+context unless the protocol explicitly proves it uses the same identity scheme.
+
+### 0z755. Kademlia Keys And Node IDs Must Use One Frozen 160-Bit Contract
+
+**The Bug**: `MeshDhtClient` derived 32-byte SHA-256 keys while the Kademlia
+routing and RPC layer requires 20-byte identifiers, and its string API queried
+only the local store. Publishers and remote readers therefore used incompatible
+key widths and distributed misses never performed a network lookup.
+
+**Files Affected**:
+- `src/slskd/Mesh/Dht/MeshDhtClient.cs`
+- `src/slskd/Mesh/Dht/KademliaRpcClient.cs`
+- `src/slskd/Bootstrap/ExperimentalMeshServiceCollectionExtensions.cs`
+- `src/slskd/VirtualSoulfind/ShadowIndex/ShardPublisher.cs`
+- `src/slskd/VirtualSoulfind/ShadowIndex/ShadowIndexQueryImpl.cs`
+
+**Prevention**: Freeze public string keys to the shared 20-byte SHA-1 wire
+contract, derive node IDs from the first 20 bytes of the self-certifying
+SHA-256 public-key digest, reject other key widths at RPC boundaries, and route
+local misses through the iterative distributed lookup. Keep exact cross-runtime
+key, signing-payload, and serialized-shard vectors in tests.
+
 ### 0z754. Tiny Allocation Bounds Need Loaded-Suite Headroom
 
 **The Bug**: The duplicate-heavy Taste Recommendation allocation regressions
