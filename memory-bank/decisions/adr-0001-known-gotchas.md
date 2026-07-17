@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z729. Repeated Batch Loops Need Method-Signature Patch Anchors
+
+**The Bug**: A HashDb optimization patch matched the first generic
+`foreach (var batch in normalized.Chunk(500))` block and inserted variant
+ranking SQL into `LookupHashesByRecordingIdsAsync`, while a separate return-tail
+hunk removed deduplication from the intended `GetVariantsByRecordingsAsync`.
+The split edit changed two methods and caused the variant reader to return all
+10,000 duplicate rows.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+- `tests/slskd.Tests.Unit/HashDb/HashDbServiceTests.cs`
+
+**Prevention**: When a file repeats batching/query scaffolding, include the full
+method signature and a method-specific local or return shape in every patch
+hunk. Immediately inspect the complete diff with method context before running
+tests; a compiling patch is not evidence that SQL landed in the intended
+method. For edits that replace both a query body and its post-processing tail,
+verify that both hunks appear under the same signature.
+
 ### 0z728. Interface-Typed List Enumeration Boxes Once Per Loop
 
 **The Bug**: A shared reputation-score helper accepted
