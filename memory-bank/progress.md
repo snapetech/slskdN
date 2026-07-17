@@ -1,3 +1,12 @@
+## Update 2026-07-17 16:38:09Z
+
+- Completed allocation-bounded shared SHA-1/SHA-256 string hashing.
+- Replaced disposable algorithms, UTF-8/digest arrays, dashed hexadecimal strings, and replacement strings with bounded stack/cleared-pool encoding, static span hashing, and direct uppercase hexadecimal formatting.
+- Across 100,000 calls, SHA-1 allocation falls from 52,800,488 to 10,400,040 bytes (80.3%) and elapsed time falls from 86 to 42 ms (51.2%); SHA-256 allocation falls from 68,001,056 to 15,200,608 bytes (77.6%) and elapsed time falls from 108 to 49 ms (54.6%).
+- Preserved exact known vectors, UTF-8 digest bytes, uppercase output, empty inputs, Unicode, malformed surrogates, and pooled long-input behavior.
+- Added semantic and allocation regressions; passed complete `Compute` (`11/11`), broader Common (`623/623`), and backend validation (`5271/5271`: `69` application, `4922` unit, `280` integration).
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. One unrelated fallback Taste Recommendation allocation test missed its bound during the first unit run; its exact (`1/1`) and complete-unit (`4922/4922`) reruns passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 16:25:52Z
 
 - Completed allocation-bounded legacy bridge room/scene mapping.

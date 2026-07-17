@@ -21,6 +21,7 @@
 namespace slskd
 {
     using System;
+    using System.Buffers;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -47,15 +48,39 @@ namespace slskd
         }
 
         public static string Sha1Hash(string str)
-        {
-            using var sha1 = SHA1.Create();
-            return BitConverter.ToString(sha1.ComputeHash(Encoding.UTF8.GetBytes(str))).Replace("-", string.Empty);
-        }
+            => HashUtf8(str, useSha256: false);
 
         public static string Sha256Hash(string str)
+            => HashUtf8(str, useSha256: true);
+
+        private static string HashUtf8(string value, bool useSha256)
         {
-            using var sha256 = SHA256.Create();
-            return BitConverter.ToString(sha256.ComputeHash(Encoding.UTF8.GetBytes(str))).Replace("-", string.Empty);
+            var byteCount = Encoding.UTF8.GetByteCount(value);
+            byte[]? rentedBytes = null;
+            Span<byte> bytes = byteCount <= 512
+                ? stackalloc byte[byteCount]
+                : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
+
+            try
+            {
+                _ = Encoding.UTF8.GetBytes(value, bytes);
+                Span<byte> hash = stackalloc byte[32];
+                if (useSha256)
+                {
+                    SHA256.HashData(bytes[..byteCount], hash);
+                    return Convert.ToHexString(hash);
+                }
+
+                SHA1.HashData(bytes[..byteCount], hash[..20]);
+                return Convert.ToHexString(hash[..20]);
+            }
+            finally
+            {
+                if (rentedBytes != null)
+                {
+                    ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+                }
+            }
         }
     }
 }

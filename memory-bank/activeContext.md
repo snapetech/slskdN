@@ -1,3 +1,17 @@
+## Update 2026-07-17 16:38:09Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded shared SHA string hashing complete locally.
+- Last activity:
+  - Replaced disposable SHA algorithms, UTF-8/digest arrays, dashed hex strings, and replacement strings with bounded stack/cleared-pool encoding, static span hashing, and direct uppercase hexadecimal output.
+  - Across 100,000 calls, SHA-1 allocation falls from 52,800,488 to 10,400,040 bytes (80.3%) and elapsed time falls from 86 to 42 ms (51.2%); SHA-256 allocation falls from 68,001,056 to 15,200,608 bytes (77.6%) and elapsed time falls from 108 to 49 ms (54.6%).
+- Validation:
+  - Passed complete `Compute` (`11/11`), broader Common (`623/623`), and backend validation (`5271/5271`: `69` application, `4922` unit, `280` integration), plus repository lint.
+  - Exact vector/UTF-8/case/empty/Unicode/malformed-surrogate/long-input behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. One unrelated Taste Recommendation allocation test passed exact and complete-unit reruns. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the shared-hash optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 16:25:52Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded legacy bridge room/scene mapping complete locally.

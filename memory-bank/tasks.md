@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove shared SHA string-hashing intermediates.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `Compute.Sha1Hash` and `Compute.Sha256Hash` now share bounded UTF-8 encoding into stack storage for common values or cleared pooled storage for oversized values, hash through static span APIs into a fixed digest, and format uppercase hexadecimal directly. This removes a disposable hash algorithm, input array, digest array, dashed hex string, and replacement string per call across transfer/share IDs, startup mutexes, option-change detection, content locators, and fallback IDs. Across 100,000 calls, SHA-1 allocation falls from 52,800,488 to 10,400,040 bytes (80.3%) and elapsed time falls from 86 to 42 ms (51.2%); SHA-256 allocation falls from 68,001,056 to 15,200,608 bytes (77.6%) and elapsed time falls from 108 to 49 ms (54.6%). Exact known vectors, UTF-8 bytes, uppercase case, empty values, Unicode, malformed surrogates, and pooled long-input behavior remain unchanged. Validation passed: complete `Compute` (`11/11`), broader Common (`623/623`), and backend (`5271/5271`: `69` application, `4922` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. One unrelated fallback Taste Recommendation allocation bound missed during the first full unit run; its exact (`1/1`) and complete-unit (`4922/4922`) reruns passed.
+
 - [x] Bound legacy bridge room/scene mapping allocations.
   - Status: completed (2026-07-17)
   - Priority: P1

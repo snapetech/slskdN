@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Shared SHA-1 and SHA-256 string hashing now uses bounded UTF-8 stack/pool
+  storage, static span hashing, and direct uppercase hexadecimal formatting
+  without disposable algorithms or intermediate arrays and strings.
 - Legacy bridge room/scene mapping now normalizes and classifies room names
   through bounded span/pool storage, constructs scene IDs without intermediate
   strings or LINQ, and extracts room segments without splitting whole IDs.

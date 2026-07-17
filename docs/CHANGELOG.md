@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Shared `Compute.Sha1Hash` and `Compute.Sha256Hash` now UTF-8 encode common
+  inputs into stack storage and oversized inputs into cleared pooled storage,
+  hash through static span APIs, and format uppercase hexadecimal directly.
+  This removes the disposable algorithm, input array, digest array, dashed hex
+  string, and replacement string from transfer/share IDs, startup mutexes,
+  option-change detection, content locators, and fallback content IDs. Across
+  100,000 calls, SHA-1 allocation falls from 52,800,488 to 10,400,040 bytes
+  (80.3%) and elapsed time falls from 86 to 42 ms (51.2%); SHA-256 allocation
+  falls from 68,001,056 to 15,200,608 bytes (77.6%) and elapsed time falls from
+  108 to 49 ms (54.6%). Exact UTF-8 digest bytes, uppercase output, empty input,
+  Unicode, malformed surrogates, and long inputs remain unchanged.
 - Legacy bridge room-to-scene mapping now invariant-lowercases directly into
   bounded stack or cleared pooled output storage, classifies the normalized span
   without a keyword array or LINQ, replaces spaces in place, and creates only
