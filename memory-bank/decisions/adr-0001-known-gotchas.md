@@ -52,6 +52,54 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z767. COPR GSSAPI Must Target The Fedora Copr Service Host
+
+**The Bug**: The password-and-OTP COPR path acquired a valid Fedora Kerberos
+ticket but configured `copr-cli` against `copr.fedoraproject.org`. The client
+then requested an HTTP service principal that does not exist and every upload
+attempt ended in 401, even though the Fedora Copr service is published at
+`copr.fedorainfracloud.org`.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+
+**Prevention**: Keep all COPR authentication modes on Fedora's documented
+`copr.fedorainfracloud.org` service endpoint. A successful `kinit` proves only
+that user credentials are valid; retain a `copr-cli get` check that also proves
+the ticket is accepted by the configured HTTP service before building an SRPM.
+
+### 0z766. Scroll Content Bounds Are Not Scroll Viewport Bounds
+
+**The Bug**: The live UI audit checked whether an active system tab was visible
+by comparing it with the menu element's bounding rectangle. For an overflowing
+horizontal menu, that rectangle covered the full scrollable content width, not
+the visible `clientWidth`, so correctly scrolled active tabs were reported as
+hidden.
+
+**Files Affected**:
+- `scripts/live-ui-audit.mjs`
+
+**Prevention**: Measure visibility in the scroll container's coordinate system:
+compare the item's offset range with `scrollLeft` through
+`scrollLeft + clientWidth`. Confirm the result against a route near both the
+start and end of the overflowing tab strip.
+
+### 0z765. Popup Tooltips Do Not Supply Accessible Button Names
+
+**The Bug**: Wishlist table/card icon buttons were wrapped in Semantic UI
+`Popup` components with helpful tooltip content, but the underlying buttons had
+no text, `aria-label`, or title. They looked correct and met the mouse-tooltip
+rule while remaining unnamed to assistive technology and browser audits.
+
+**Files Affected**:
+- `src/web/src/components/Wishlist/Wishlist.jsx`
+- `scripts/live-ui-audit.mjs`
+
+**Prevention**: Every icon-only button needs its own stable `aria-label` in
+addition to a `Popup` explanation. Keep the live audit's unnamed-button check
+and cover icon-only view toggles with role/name component assertions.
+
 ### 0z764. COPR Recovery Must Retry Transient API Responses With The Exact SRPM Path
 
 **The Bug**: A stable release authenticated to Fedora Kerberos and built its
