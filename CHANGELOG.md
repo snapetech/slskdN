@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MusicBrainz release/recording UUID-v5 mapping now uses big-endian Guid and
+  span SHA-1 APIs over bounded stack/pool storage instead of namespace, name,
+  combined-input, digest, and UUID byte arrays.
 - Virtual Soulfind username pseudonymization now hashes normalized usernames
   and its fixed salt through bounded span/pool storage and formats the exact
   peer ID without concatenation, digest-slice, or upper/lower hex copies.

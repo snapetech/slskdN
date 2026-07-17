@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MusicBrainz release and recording UUID-v5 mapping now writes namespace UUIDs
+  directly in network byte order, UTF-8 encodes normalized names into bounded
+  stack or cleared pooled storage, hashes into a fixed SHA-1 span, and constructs
+  the final Guid from a fixed network-order span. Across 100,000 typical release
+  mappings, allocation falls from 45,600,264 to 40 bytes and elapsed time falls
+  from 80 to 45 ms (43.8%). Frozen namespace vectors, lowercase normalization,
+  accepted Guid text forms, version/variant bits, oversized whitespace input,
+  validation, and work/item namespace separation remain unchanged.
 - Virtual Soulfind username pseudonymization now UTF-8 encodes the normalized
   username and fixed salt directly into bounded stack or cleared pooled storage,
   hashes into a fixed digest span, and writes the exact `peer:vsf:` plus

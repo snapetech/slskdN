@@ -266,6 +266,65 @@ public class MusicItemTests
 public class MusicDomainMappingTests
 {
     [Fact]
+    public void ReleaseAndRecordingMappings_PreserveFrozenUuidV5Vectors()
+    {
+        const string mbid = "12345678-1234-1234-1234-123456789abc";
+
+        var workId = MusicDomainMapping.ReleaseIdToContentWorkId(mbid);
+        var itemId = MusicDomainMapping.RecordingIdToContentItemId(mbid);
+
+        Assert.Equal(Guid.Parse("a168ae63-7bbb-5cbc-86f0-21be9e734fa8"), workId.Value);
+        Assert.Equal(Guid.Parse("2b048989-e4b9-5253-b84d-60d687a23583"), itemId.Value);
+        Assert.Equal(5, workId.Value.Version);
+        Assert.Equal(5, itemId.Value.Version);
+        Assert.Equal(8, workId.Value.ToByteArray()[8] >> 4);
+        Assert.Equal(11, itemId.Value.ToByteArray()[8] >> 4);
+    }
+
+    [Fact]
+    public void ReleaseIdToContentWorkId_NormalizesCase()
+    {
+        const string lowercase = "abcdefab-cdef-abcd-efab-cdefabcdefab";
+
+        var expected = MusicDomainMapping.ReleaseIdToContentWorkId(lowercase);
+        var actual = MusicDomainMapping.ReleaseIdToContentWorkId(lowercase.ToUpperInvariant());
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void ReleaseIdToContentWorkId_OversizedWhitespacePreservesHashInput()
+    {
+        var releaseId = $"{new string(' ', 600)}12345678-1234-1234-1234-123456789abc{new string(' ', 600)}";
+
+        var result = MusicDomainMapping.ReleaseIdToContentWorkId(releaseId);
+
+        Assert.Equal(Guid.Parse("ccba7757-5664-56d1-89c9-a45d4643d936"), result.Value);
+    }
+
+    [Fact]
+    public void ReleaseIdToContentWorkId_RepeatedTypicalIdBoundsAllocation()
+    {
+        const string releaseId = "12345678-1234-1234-1234-123456789abc";
+        var expected = MusicDomainMapping.ReleaseIdToContentWorkId(releaseId);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        ContentWorkId result = default;
+        for (var index = 0; index < 100_000; index++)
+        {
+            result = MusicDomainMapping.ReleaseIdToContentWorkId(releaseId);
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(expected, result);
+        Assert.InRange(allocated, 0, 1024);
+    }
+
+    [Fact]
     public void ReleaseIdToContentWorkId_IsDeterministic()
     {
         // Arrange

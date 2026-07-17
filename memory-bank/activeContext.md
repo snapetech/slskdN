@@ -1,3 +1,17 @@
+## Update 2026-07-17 15:42:40Z
+
+- Current task: performance and efficiency improvements in progress; allocation-free typical MusicBrainz UUID-v5 mapping complete locally.
+- Last activity:
+  - Replaced namespace/name/combined/digest/UUID arrays, disposable SHA, and byte-order reversal passes with network-order Guid spans, bounded stack/pool UTF-8 input, fixed SHA-1/UUID spans, and the big-endian Guid constructor.
+  - Across 100,000 typical release mappings, allocation falls from 45,600,264 to 40 bytes and elapsed time falls from 80 to 45 ms (43.8%).
+- Validation:
+  - Passed complete mapping (`15/15`), Virtual Soulfind (`420/420`), and backend validation (`5253/5253`: `69` application, `4904` unit, `280` integration), plus repository lint.
+  - Exact vectors/case/RFC bits/text forms/whitespace/validation/namespaces, remediation through the expected divergent-branch release-sync stop, and diff checks passed. The known mesh-stream timeout (`0z557`) passed exact and complete-unit reruns. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the UUID-v5 mapping optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 15:18:40Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded Virtual Soulfind username pseudonymization complete locally.

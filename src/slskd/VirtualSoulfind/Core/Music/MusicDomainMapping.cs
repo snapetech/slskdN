@@ -4,6 +4,7 @@
 namespace slskd.VirtualSoulfind.Core.Music
 {
     using System;
+    using System.Buffers;
     using System.Security.Cryptography;
     using System.Text;
     using slskd.VirtualSoulfind.Core;
@@ -92,54 +93,37 @@ namespace slskd.VirtualSoulfind.Core.Music
         /// </remarks>
         private static Guid GenerateUuidV5(Guid namespaceId, string name)
         {
-            // Convert namespace to bytes (big-endian)
-            var namespaceBytes = namespaceId.ToByteArray();
-            SwapByteOrder(namespaceBytes);
+            var normalizedName = name.ToLowerInvariant();
+            var byteCount = 16 + Encoding.UTF8.GetByteCount(normalizedName);
+            byte[]? rentedBytes = null;
+            Span<byte> bytes = byteCount <= 512
+                ? stackalloc byte[byteCount]
+                : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
 
-            // Convert name to UTF-8 bytes
-            var nameBytes = Encoding.UTF8.GetBytes(name.ToLowerInvariant());
-
-            // Concatenate namespace + name
-            var combined = new byte[namespaceBytes.Length + nameBytes.Length];
-            Buffer.BlockCopy(namespaceBytes, 0, combined, 0, namespaceBytes.Length);
-            Buffer.BlockCopy(nameBytes, 0, combined, namespaceBytes.Length, nameBytes.Length);
-
-            // Hash with SHA-1
-            byte[] hash;
-            using (var sha1 = SHA1.Create())
+            try
             {
-                hash = sha1.ComputeHash(combined);
+                _ = namespaceId.TryWriteBytes(bytes[..16], bigEndian: true, out _);
+                _ = Encoding.UTF8.GetBytes(normalizedName, bytes[16..]);
+
+                Span<byte> hash = stackalloc byte[20];
+                SHA1.HashData(bytes[..byteCount], hash);
+
+                Span<byte> uuidBytes = stackalloc byte[16];
+                hash[..16].CopyTo(uuidBytes);
+
+                // Set version (v5 = 0101) and variant (10xx) bits per RFC 4122
+                uuidBytes[6] = (byte)((uuidBytes[6] & 0x0F) | 0x50); // Version 5
+                uuidBytes[8] = (byte)((uuidBytes[8] & 0x3F) | 0x80); // Variant 10xx
+
+                return new Guid(uuidBytes, bigEndian: true);
             }
-
-            // Take first 16 bytes for UUID
-            var uuidBytes = new byte[16];
-            Array.Copy(hash, 0, uuidBytes, 0, 16);
-
-            // Set version (v5 = 0101) and variant (10xx) bits per RFC 4122
-            uuidBytes[6] = (byte)((uuidBytes[6] & 0x0F) | 0x50); // Version 5
-            uuidBytes[8] = (byte)((uuidBytes[8] & 0x3F) | 0x80); // Variant 10xx
-
-            // Convert back to big-endian for Guid constructor
-            SwapByteOrder(uuidBytes);
-
-            return new Guid(uuidBytes);
-        }
-
-        /// <summary>
-        ///     Swaps byte order for Guid conversion (handles big-endian/little-endian).
-        /// </summary>
-        private static void SwapByteOrder(byte[] bytes)
-        {
-            // Swap bytes for Data1 (first 4 bytes)
-            Array.Reverse(bytes, 0, 4);
-
-            // Swap bytes for Data2 (next 2 bytes)
-            Array.Reverse(bytes, 4, 2);
-
-            // Swap bytes for Data3 (next 2 bytes)
-            Array.Reverse(bytes, 6, 2);
-
-            // Data4 (last 8 bytes) stay in network byte order
+            finally
+            {
+                if (rentedBytes != null)
+                {
+                    ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+                }
+            }
         }
     }
 }

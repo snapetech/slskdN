@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make MusicBrainz UUID-v5 mapping allocation-free for typical IDs.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `MusicDomainMapping.GenerateUuidV5` now writes the namespace Guid directly into network-order span storage, UTF-8 encodes the invariant-lowercase source text after it, hashes through static SHA-1 into a fixed digest span, copies only the 16 UUID bytes, sets RFC version/variant bits, and constructs the Guid in big-endian mode. Typical inputs stay entirely on the stack; oversized valid whitespace uses cleared pooled storage. This removes namespace/name/combined/digest/UUID arrays, byte-order reversal passes, and a disposable SHA object. Across 100,000 typical release mappings, allocation falls from 45,600,264 to 40 bytes and elapsed time falls from 80 to 45 ms (43.8%). Exact frozen release/recording vectors, input case normalization, valid text forms, RFC bits, validation, and namespace separation remain unchanged. Validation passed: complete mapping (`15/15`), Virtual Soulfind (`420/420`), and backend (`5253/5253`: `69` application, `4904` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. The known mesh-stream timeout (`0z557`) passed its exact (`1/1`) and complete-unit (`4904/4904`) reruns.
+
 - [x] Remove pseudonymization hash, slice, and formatting intermediates.
   - Status: completed (2026-07-17)
   - Priority: P1
