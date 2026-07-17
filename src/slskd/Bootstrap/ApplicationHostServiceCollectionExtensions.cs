@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Serilog;
 using slskd.Authentication;
+using slskd.Common.Configuration;
 using slskd.Core.Features;
 using slskd.Player;
 using slskd.Core.API;
@@ -54,6 +55,7 @@ public static class ApplicationHostServiceCollectionExtensions
 
                 return true;
             });
+        services.AddSingleton<IOptionsMonitor<slskd.Options>, RetainingOptionsMonitor<slskd.Options>>();
 
         services.AddSingleton<IFeatureGate, FeatureGate>();
 
