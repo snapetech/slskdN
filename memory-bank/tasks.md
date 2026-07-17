@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Rank batched HashDb variant duplicates before hydration.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `HashDbService.GetVariantsByRecordingsAsync` now uses a source-sequenced SQLite window query inside each existing 500-recording batch to partition structural `(musicbrainz_id, variant identity)` pairs and hydrate only the quality-then-recency winner. The query explicitly preserves first-group and exact-tie sequence, maps `NULL` quality to the model's zero, and recognizes the complete .NET whitespace set before falling back from `variant_id` to `flac_key`. In a 100-recording fixture with ten identities and ten copies each, hydrated rows fall from 10,000 to 1,000 (90.0%) and warmed allocation from 42,441,808 to 4,135,016 bytes (90.3%). This removes formatted separator keys, grouping buffers, per-group sorts, and 9,000 discarded variant objects; distinct delimiter-bearing field tuples no longer collide. Input normalization/deduplication, 500-ID chunking, ordinal identity, winner order, stable ties, group order, and raw hash lookup behavior remain unchanged. Validation passed: focused (`5/5`), HashDb service (`103/103`), broader HashDb/Audio (`160/160`), and backend (`5128/5128`: `69` application, `4779` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented repeated-loop patch gotcha `0z729` (`dc82f6e42`) and delimiter-key gotcha `0z730` (`79195967b`).
+
 - [x] Aggregate peer-reputation statistics in one pass.
   - Status: completed (2026-07-17)
   - Priority: P1

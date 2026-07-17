@@ -20,6 +20,7 @@ using slskd.LibraryHealth;
 using slskd.Transfers.MultiSource.Metrics;
 using Xunit;
 
+[Collection(AllocationTestCollection.Name)]
 public class HashDbServiceTests : IDisposable
 {
     private readonly string testDir;
@@ -1027,6 +1028,149 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal(2, variants.Count);
         Assert.Contains(variants, variant => variant.VariantId == "variant-1" && variant.MusicBrainzRecordingId == "recording-1");
         Assert.Contains(variants, variant => variant.VariantId == "variant-2" && variant.MusicBrainzRecordingId == "recording-2");
+    }
+
+    [Fact]
+    public async Task GetVariantsByRecordingsAsync_DuplicateHeavyPageHasBoundedAllocation()
+    {
+        const int recordingCount = 100;
+        const int variantsPerRecording = 10;
+        const int copiesPerVariant = 10;
+        await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"""
+                WITH RECURSIVE sequence(value) AS (
+                    SELECT 1
+                    UNION ALL
+                    SELECT value + 1
+                    FROM sequence
+                    WHERE value < {recordingCount * variantsPerRecording * copiesPerVariant}
+                )
+                INSERT INTO HashDb (
+                    flac_key,
+                    byte_hash,
+                    size,
+                    first_seen_at,
+                    last_updated_at,
+                    seq_id,
+                    use_count,
+                    musicbrainz_id,
+                    variant_id,
+                    quality_score,
+                    seen_count)
+                SELECT
+                    printf('wide-key-%05d', value),
+                    printf('wide-hash-%05d', value),
+                    123,
+                    1,
+                    ((value - 1) % {copiesPerVariant}) + 1,
+                    value,
+                    1,
+                    printf('recording-%03d', ((value - 1) / {variantsPerRecording * copiesPerVariant}) + 1),
+                    printf('variant-%02d', ((value - 1) / {copiesPerVariant}) % {variantsPerRecording}),
+                    (((value - 1) % {copiesPerVariant}) + 1) / 10.0,
+                    value
+                FROM sequence
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var recordingIds = Enumerable.Range(1, recordingCount)
+            .Select(index => $"recording-{index:D3}")
+            .ToArray();
+        _ = await service.GetVariantsByRecordingsAsync(recordingIds);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var variants = await service.GetVariantsByRecordingsAsync(recordingIds);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(recordingCount * variantsPerRecording, variants.Count);
+        Assert.All(variants, variant => Assert.Equal(1.0, variant.QualityScore));
+        Assert.True(
+            allocatedBytes < 4_750_000,
+            $"Duplicate-heavy variant page allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task GetVariantsByRecordingsAsync_PreservesWinnerAndGroupOrderSemantics()
+    {
+        await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO HashDb (
+                    flac_key,
+                    byte_hash,
+                    size,
+                    first_seen_at,
+                    last_updated_at,
+                    seq_id,
+                    use_count,
+                    musicbrainz_id,
+                    variant_id,
+                    quality_score,
+                    seen_count)
+                VALUES
+                    ('a-first', 'hash-a-first', 1, 1, 10, 1, 1, 'recording-semantics', 'variant-a', 0.5, 1),
+                    ('b-null', 'hash-b-null', 1, 1, 20, 2, 1, 'recording-semantics', 'variant-b', NULL, 1),
+                    ('a-old-winner', 'hash-a-old', 1, 1, 5, 3, 1, 'recording-semantics', 'variant-a', 0.9, 1),
+                    ('a-winner', 'hash-a-winner', 1, 1, 8, 4, 1, 'recording-semantics', 'variant-a', 0.9, 1),
+                    ('a-later-tie', 'hash-a-tie', 1, 1, 8, 5, 1, 'recording-semantics', 'variant-a', 0.9, 1),
+                    ('b-negative', 'hash-b-negative', 1, 1, 30, 6, 1, 'recording-semantics', 'variant-b', -0.1, 1),
+                    ('whitespace-1', 'hash-space-1', 1, 1, 1, 7, 1, 'recording-semantics', char(32) || char(9), 0.1, 1),
+                    ('whitespace-2', 'hash-space-2', 1, 1, 1, 8, 1, 'recording-semantics', char(160) || char(8199), 0.1, 1)
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var variants = await service.GetVariantsByRecordingsAsync(new[] { "recording-semantics" });
+
+        Assert.Equal(
+            new[] { "a-winner", "b-null", "whitespace-1", "whitespace-2" },
+            variants.Select(variant => variant.FlacKey));
+        Assert.Equal(0, variants[1].QualityScore);
+    }
+
+    [Fact]
+    public async Task GetVariantsByRecordingsAsync_KeepsDelimiterContainingIdentityTuplesDistinct()
+    {
+        await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO HashDb (
+                    flac_key,
+                    byte_hash,
+                    size,
+                    first_seen_at,
+                    last_updated_at,
+                    seq_id,
+                    use_count,
+                    musicbrainz_id,
+                    variant_id,
+                    quality_score)
+                VALUES
+                    ('delimiter-first', 'hash-first', 1, 1, 1, 1, 1,
+                     'recording', 'part' || char(31) || 'variant', 0.8),
+                    ('delimiter-second', 'hash-second', 1, 1, 1, 2, 1,
+                     'recording' || char(31) || 'part', 'variant', 0.9)
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var variants = await service.GetVariantsByRecordingsAsync(new[]
+        {
+            "recording",
+            "recording\u001fpart",
+        });
+
+        Assert.Equal(2, variants.Count);
+        Assert.Contains(variants, variant => variant.FlacKey == "delimiter-first");
+        Assert.Contains(variants, variant => variant.FlacKey == "delimiter-second");
     }
 
     [Fact]

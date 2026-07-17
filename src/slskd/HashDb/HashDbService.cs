@@ -3059,9 +3059,42 @@ namespace slskd.HashDb
                 using var cmd = conn.CreateCommand();
                 var parameters = batch.Select((_, index) => $"@recording{index}").ToArray();
                 cmd.CommandText = $"""
+                    WITH source AS (
+                        SELECT
+                            HashDb.*,
+                            CASE
+                                WHEN variant_id IS NULL OR TRIM(
+                                    variant_id,
+                                    char(9) || char(10) || char(11) || char(12) || char(13) ||
+                                    char(32) || char(133) || char(160) || char(5760) ||
+                                    char(8192) || char(8193) || char(8194) || char(8195) ||
+                                    char(8196) || char(8197) || char(8198) || char(8199) ||
+                                    char(8200) || char(8201) || char(8202) || char(8232) ||
+                                    char(8233) || char(8239) || char(8287) || char(12288)) = ''
+                                    THEN flac_key
+                                ELSE variant_id
+                            END AS variant_identity,
+                            ROW_NUMBER() OVER () AS source_sequence
+                        FROM HashDb
+                        WHERE musicbrainz_id IN ({string.Join(", ", parameters)})
+                    ),
+                    ranked AS (
+                        SELECT
+                            source.*,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY musicbrainz_id, variant_identity
+                                ORDER BY
+                                    COALESCE(quality_score, 0) DESC,
+                                    last_updated_at DESC,
+                                    source_sequence) AS variant_rank,
+                            MIN(source_sequence) OVER (
+                                PARTITION BY musicbrainz_id, variant_identity) AS group_sequence
+                        FROM source
+                    )
                     SELECT *
-                    FROM HashDb
-                    WHERE musicbrainz_id IN ({string.Join(", ", parameters)})
+                    FROM ranked
+                    WHERE variant_rank = 1
+                    ORDER BY group_sequence
                     """;
 
                 for (var index = 0; index < batch.Length; index++)
@@ -3080,16 +3113,7 @@ namespace slskd.HashDb
                 }
             }
 
-            return variants
-                .Where(variant => !string.IsNullOrWhiteSpace(variant.VariantId) || !string.IsNullOrWhiteSpace(variant.FlacKey))
-                .GroupBy(
-                    variant => $"{variant.MusicBrainzRecordingId}\u001f{(string.IsNullOrWhiteSpace(variant.VariantId) ? variant.FlacKey : variant.VariantId)}",
-                    StringComparer.Ordinal)
-                .Select(group => group
-                    .OrderByDescending(variant => variant.QualityScore)
-                    .ThenByDescending(variant => variant.LastSeenAt)
-                    .First())
-                .ToList();
+            return variants;
         }
 
         /// <inheritdoc/>

@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Batched HashDb variant reads now rank each structural recording/variant
+  identity inside the existing 500-recording SQLite batches and hydrate only
+  its quality-then-recency winner. Source sequence preserves first-group and
+  exact-tie order, `NULL` quality retains its mapped zero value, and the SQL
+  whitespace set matches .NET `IsNullOrWhiteSpace` identity fallback. For 100
+  recordings with ten variant identities and ten copies per identity, hydrated
+  rows fall from 10,000 to 1,000 (90.0%) and warmed allocation falls from
+  42,441,808 to 4,135,016 bytes (90.3%). The old interpolated separator key,
+  `GroupBy` buffers, per-group sorts, and discarded variant objects are gone;
+  delimiter-bearing recording and variant IDs can no longer collide. Input
+  trimming/deduplication, 500-ID chunking, ordinal identity, quality/recency
+  winners, stable ties, group order, and cancellation remain intact.
 - Peer-reputation statistics now compute event totals, type counts, decayed
   scores, ban counts, and the average score in one locked pass over each peer's
   events using one captured timestamp. This removes the complete event-copy

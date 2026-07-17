@@ -1,3 +1,17 @@
+## Update 2026-07-17 05:02:26Z
+
+- Current task: performance and efficiency improvements in progress; database-ranked batched HashDb variants complete locally.
+- Last activity:
+  - Moved structural recording/variant deduplication and quality/recency ranking into existing 500-ID SQLite batches so only winners are hydrated, preserving source sequence for group/tie order.
+  - A 10,000-row/1,000-winner fixture falls from 42,441,808 to 4,135,016 warmed allocated bytes (90.3%) and hydrates 90.0% fewer rows.
+- Validation:
+  - Passed focused (`5/5`), HashDb service (`103/103`), broader HashDb/Audio (`160/160`), and backend validation (`5128/5128`: `69` application, `4779` unit, `280` integration).
+  - Exact normalization/chunking/identity/quality/recency/whitespace/order/tie/collision/raw-lookup semantics, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotchas `0z729` (`dc82f6e42`) and `0z730` (`79195967b`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the database-ranked batched HashDb variant slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 04:46:36Z
 
 - Current task: performance and efficiency improvements in progress; one-pass peer-reputation statistics complete locally.

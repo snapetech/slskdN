@@ -1,3 +1,12 @@
+## Update 2026-07-17 05:02:26Z
+
+- Completed database-ranked batched HashDb variant deduplication.
+- Moved structural recording/variant identity partitioning and quality/recency winner selection into each existing 500-recording SQLite batch, carrying source sequence for first-group and stable exact-tie order.
+- In a 100-recording/10-identity/10-copy fixture, reduced hydrated rows from 10,000 to 1,000 (90.0%) and warmed allocation from 42,441,808 to 4,135,016 bytes (90.3%).
+- Preserved input normalization/chunking, ordinal identity, null-quality-as-zero, complete .NET whitespace fallback, winner/group order, stable ties, cancellation, and raw hash lookup behavior; structural SQL identity fixes delimiter-key collisions.
+- Added exact wide allocation, winner/order/whitespace, and delimiter-collision coverage; passed focused (`5/5`), HashDb service (`103/103`), broader HashDb/Audio (`160/160`), and backend (`5128/5128`: `69` application, `4779` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Documented repeated-loop patch gotcha `0z729` (`dc82f6e42`) and delimiter-key gotcha `0z730` (`79195967b`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 04:46:36Z
 
 - Completed one-pass peer-reputation statistics aggregation.
