@@ -256,6 +256,66 @@ namespace slskd.Tests.Unit.Audio
                 $"Expected canonical stream deduplication below 1.2 MB allocated, got {allocatedBytes:N0} bytes.");
         }
 
+        [Fact]
+        public void BuildCanonicalStats_PreservesDedupedAggregatesDistributionsAndBestVariant()
+        {
+            var duplicateA = CreateDedupVariant("a-old", "stream-a", quality: 0.80, seenCount: 20);
+            duplicateA.BitrateKbps = 900;
+            duplicateA.SampleRateHz = 44_100;
+            var bestA = CreateDedupVariant("a-best", "stream-a", quality: 0.90, seenCount: 5);
+            bestA.BitrateKbps = 900;
+            bestA.SampleRateHz = 44_100;
+            var bestB = CreateDedupVariant("b-best", "stream-b", quality: 0.90, seenCount: 10);
+            bestB.BitrateKbps = 900;
+            bestB.SampleRateHz = 44_100;
+            var mp3 = CreateDedupVariant("mp3", "stream-c", quality: 0.70, seenCount: -2);
+            mp3.Codec = "MP3";
+            mp3.FlacPcmMd5 = null;
+            mp3.Mp3StreamHash = "stream-c";
+            mp3.BitrateKbps = 319;
+            mp3.SampleRateHz = 48_000;
+            mp3.TranscodeSuspect = true;
+
+            var stats = CanonicalStatsService.BuildCanonicalStats(
+                "recording",
+                "profile",
+                new List<AudioVariant> { duplicateA, bestA, bestB, mp3 });
+
+            Assert.Equal(3, stats.VariantCount);
+            Assert.Equal(16, stats.TotalSeenCount);
+            Assert.Equal(2.5 / 3.0, stats.AvgQualityScore, precision: 10);
+            Assert.Equal(0.90, stats.MaxQualityScore);
+            Assert.Equal(100.0 / 3.0, stats.PercentTranscodeSuspect, precision: 10);
+            Assert.Equal(new Dictionary<string, int> { ["FLAC"] = 2, ["MP3"] = 1 }, stats.CodecDistribution);
+            Assert.Equal(new Dictionary<int, int> { [896] = 2, [320] = 1 }, stats.BitrateDistribution);
+            Assert.Equal(new Dictionary<int, int> { [44_100] = 2, [48_000] = 1 }, stats.SampleRateDistribution);
+            Assert.Equal("b-best", stats.BestVariantId);
+        }
+
+        [Fact]
+        public void BuildCanonicalStats_WideProfileHasBoundedAllocation()
+        {
+            const int variantCount = 10_000;
+            var variants = Enumerable.Range(0, variantCount)
+                .Select(index => CreateDedupVariant(
+                    $"variant-{index}",
+                    $"stream-{index}",
+                    quality: index / (double)variantCount,
+                    seenCount: index + 1))
+                .ToList();
+            _ = CanonicalStatsService.BuildCanonicalStats("warm", "profile", variants.Take(10).ToList());
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var stats = CanonicalStatsService.BuildCanonicalStats("recording", "profile", variants);
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(variantCount, stats.VariantCount);
+            Assert.Equal($"variant-{variantCount - 1}", stats.BestVariantId);
+            Assert.True(
+                allocatedBytes < 2_600_000,
+                $"Expected canonical-stat aggregation below 2.6 MB allocated, got {allocatedBytes:N0} bytes.");
+        }
+
         private static AudioVariant CreateDedupVariant(
             string variantId,
             string streamHash,

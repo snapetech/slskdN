@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Canonical audio statistics now aggregate normalized seen totals, sequential
+  quality sums, transcode-suspect counts, codec/bitrate/sample-rate
+  distributions, and the quality-then-seen best variant in one pass over the
+  deduplicated profile. It replaces four scalar LINQ scans, three `GroupBy`
+  element buffers, and a full ordered sequence. For a 10,000-variant profile,
+  end-to-end warmed allocation including stream deduplication falls from
+  2,954,296 to 2,165,488 bytes (26.7%). Checked seen-count summation, average and
+  maximum quality, bitrate rounding, distribution keys/counts, stable best ties,
+  canonical scoring inputs, and persisted statistics remain unchanged.
 - Canonical audio stream deduplication now indexes each formatted deduplication
   key to its first result slot and replaces that slot only when a later variant
   has higher quality or, on equal quality, a higher seen count. It replaces

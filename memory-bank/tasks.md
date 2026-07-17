@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Aggregate canonical audio statistics in one pass.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CanonicalStatsService.BuildCanonicalStats` now scans the deduplicated variants once to compute checked normalized seen totals, sequential quality totals, transcode-suspect counts, codec/rounded-bitrate/sample-rate distributions, and stable quality-then-seen best selection. This replaces separate `Sum`, `Average`, `Max`, and `Count` scans, three `GroupBy` element buffers, and a complete `OrderByDescending` sequence. For a 10,000-variant profile, end-to-end warmed allocation including deduplication falls from 2,954,296 to 2,165,488 bytes (26.7%). Exact deduplication, non-positive seen normalization, average/max quality, transcode percentage, first-seen distribution ordering, bitrate buckets, best tie stability, selected ID, and canonicality inputs remain unchanged. Added full aggregate/distribution/best semantics and wide-profile allocation regressions. Validation passed: complete canonical-stats service (`9/9`), full backend suites (`5098/5098`: `69` application, `4749` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Stream canonical audio variant deduplication.
   - Status: completed (2026-07-17)
   - Priority: P1

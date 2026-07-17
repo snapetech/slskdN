@@ -121,43 +121,74 @@ namespace slskd.Audio
             }
         }
 
-        private static CanonicalStats BuildCanonicalStats(
+        internal static CanonicalStats BuildCanonicalStats(
             string recordingId,
             string codecProfileKey,
             List<AudioVariant> variants)
         {
             // Deduplicate identical streams within the profile using codec-specific hashes.
             var distinctVariants = DeduplicateStreams(variants);
+            var codecDistribution = new Dictionary<string, int>();
+            var bitrateDistribution = new Dictionary<int, int>();
+            var sampleRateDistribution = new Dictionary<int, int>();
+            var totalSeenCount = 0;
+            var totalQualityScore = 0.0;
+            var transcodeSuspectCount = 0;
+            AudioVariant? bestVariant = null;
+            foreach (var variant in distinctVariants)
+            {
+                totalSeenCount = checked(totalSeenCount + (variant.SeenCount <= 0 ? 1 : variant.SeenCount));
+                totalQualityScore += variant.QualityScore;
+                if (variant.TranscodeSuspect)
+                {
+                    transcodeSuspectCount++;
+                }
+
+                IncrementDistribution(codecDistribution, variant.Codec ?? "unknown");
+                IncrementDistribution(bitrateDistribution, RoundToNearestBitrate(variant.BitrateKbps));
+                IncrementDistribution(sampleRateDistribution, variant.SampleRateHz);
+
+                if (bestVariant == null)
+                {
+                    bestVariant = variant;
+                    continue;
+                }
+
+                var qualityComparison = Comparer<double>.Default.Compare(variant.QualityScore, bestVariant.QualityScore);
+                if (qualityComparison > 0 ||
+                    (qualityComparison == 0 && variant.SeenCount > bestVariant.SeenCount))
+                {
+                    bestVariant = variant;
+                }
+            }
+
+            var selectedBestVariant = bestVariant!;
             var stats = new CanonicalStats
             {
                 Id = $"{recordingId}:{codecProfileKey}",
                 MusicBrainzRecordingId = recordingId,
                 CodecProfileKey = codecProfileKey,
                 VariantCount = distinctVariants.Count,
-                TotalSeenCount = distinctVariants.Sum(variant => variant.SeenCount <= 0 ? 1 : variant.SeenCount),
-                AvgQualityScore = distinctVariants.Average(variant => variant.QualityScore),
-                MaxQualityScore = distinctVariants.Max(variant => variant.QualityScore),
-                PercentTranscodeSuspect = (distinctVariants.Count(variant => variant.TranscodeSuspect) / (double)distinctVariants.Count) * 100.0,
+                TotalSeenCount = totalSeenCount,
+                AvgQualityScore = totalQualityScore / distinctVariants.Count,
+                MaxQualityScore = selectedBestVariant.QualityScore,
+                PercentTranscodeSuspect = (transcodeSuspectCount / (double)distinctVariants.Count) * 100.0,
+                CodecDistribution = codecDistribution,
+                BitrateDistribution = bitrateDistribution,
+                SampleRateDistribution = sampleRateDistribution,
                 LastUpdated = DateTimeOffset.UtcNow,
             };
 
-            stats.CodecDistribution = distinctVariants
-                .GroupBy(variant => variant.Codec ?? "unknown")
-                .ToDictionary(group => group.Key, group => group.Count());
-            stats.BitrateDistribution = distinctVariants
-                .GroupBy(variant => RoundToNearestBitrate(variant.BitrateKbps))
-                .ToDictionary(group => group.Key, group => group.Count());
-            stats.SampleRateDistribution = distinctVariants
-                .GroupBy(variant => variant.SampleRateHz)
-                .ToDictionary(group => group.Key, group => group.Count());
-
-            var bestVariant = distinctVariants
-                .OrderByDescending(variant => variant.QualityScore)
-                .ThenByDescending(variant => variant.SeenCount)
-                .First();
-            stats.BestVariantId = bestVariant.VariantId ?? bestVariant.FlacKey;
-            stats.CanonicalityScore = ComputeCanonicalityScore(bestVariant, stats);
+            stats.BestVariantId = selectedBestVariant.VariantId ?? selectedBestVariant.FlacKey;
+            stats.CanonicalityScore = ComputeCanonicalityScore(selectedBestVariant, stats);
             return stats;
+        }
+
+        private static void IncrementDistribution<TKey>(Dictionary<TKey, int> distribution, TKey key)
+            where TKey : notnull
+        {
+            distribution.TryGetValue(key, out var count);
+            distribution[key] = checked(count + 1);
         }
 
         private static int RoundToNearestBitrate(int bitrate)

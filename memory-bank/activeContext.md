@@ -1,3 +1,17 @@
+## Update 2026-07-17 02:24:28Z
+
+- Current task: performance and efficiency improvements in progress; single-pass canonical audio statistics aggregation complete locally.
+- Last activity:
+  - Replaced separate scalar scans, distribution groupings, and best-variant sorting with one checked aggregate pass over deduplicated variants.
+  - A 10,000-variant wide-profile fixture falls from 2,954,296 to 2,165,488 warmed allocated bytes (26.7%), including deduplication.
+- Validation:
+  - Passed complete canonical-stats service (`9/9`) and full backend suites (`5098/5098`: `69` application, `4749` unit, `280` integration) tests.
+  - Exact seen/quality/transcode/distribution/rounding/best-selection/canonicality behavior, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the canonical statistics aggregation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 02:13:06Z
 
 - Current task: performance and efficiency improvements in progress; single-pass canonical audio stream deduplication complete locally.

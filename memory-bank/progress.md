@@ -1,3 +1,12 @@
+## Update 2026-07-17 02:24:28Z
+
+- Completed single-pass canonical audio statistics aggregation.
+- Replaced four scalar LINQ scans, three distribution groupings, and full best-variant sorting with one checked pass over deduplicated variants.
+- Reduced end-to-end warmed allocation for a 10,000-variant profile from 2,954,296 to 2,165,488 bytes (26.7%), including stream deduplication.
+- Preserved normalized seen totals, sequential average/max quality, transcode percentage, distribution keys/order/counts, bitrate rounding, quality/seen/tie best selection, and canonicality inputs.
+- Added complete semantic and allocation regressions; passed canonical-stats service (`9/9`) and full backend (`5098/5098`: `69` application, `4749` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 02:13:06Z
 
 - Completed single-pass, insertion-ordered canonical audio stream deduplication.
