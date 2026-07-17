@@ -14,15 +14,15 @@
   - Priority: P1
   - Notes: Corrected loaded-suite allocation ceilings exposed by `.280` and `.281`, then fixed `.282` release timeout masking and streaming-test cleanup before publishing `.283`. The hosted release gate passed (`890` Web with `4` skips, `4949` unit, `74` smoke, `99` focused, `40` integration), all six archives and embedded assets/version passed release verification, and both main and omnibus multi-architecture GHCR images were published. Replaced the prior live validation image with `.283`; the service is healthy with zero restarts, zero OOM events, active VPN forwarding, Soulseek activity, and successful downloads. Startup migration/privacy/Kademlia warnings were reviewed: the migration completed successfully, no error or fatal logs occurred, and a later `9.5`-minute window contained no warnings. Authenticated Chromium visited `43` routes with zero browser/network observations and the live core-page suite passed. Fixed the audit's horizontal-tab visibility calculation and two unnamed Wishlist view buttons on `main`; those source fixes await the next explicitly authorized release. COPR recovery now prefers configured API-token credentials; build `10739201` succeeded for Fedora 43 and Rawhide. Chocolatey package creation passed, but both the tag job and standalone recovery received five consecutive external 504 responses.
 
-- [ ] Ship the post-`.283` source corrections in the next authorized release.
-  - Status: waiting for explicit release authorization (2026-07-17)
+- [x] Ship the post-`.283` source corrections in the next authorized release.
+  - Status: completed in stable release `2026071723-slskdn.284` (2026-07-17)
   - Priority: P2
-  - Notes: `main` names both icon-only Wishlist view-mode buttons, pins the AngleSharp runtime inherited through dotNetRDF to patched version `1.5.0`, and keeps MediaCore workflow fragment links on `/system/mediacore` instead of resolving them against the document base. Focused Wishlist (`10/10`), Solid unit/integration (`2/2`, `7/7`), MediaCore (`9/9`), Web build, full .NET (`5303/5303`), repository lint, and NuGet vulnerability scanning pass. Do not create another tag solely for these follow-ups without explicit authorization.
+  - Notes: Stable release `.284` contains the two Wishlist accessibility labels, explicit AngleSharp `1.5.0` security floor, and MediaCore workflow-anchor correction. The local and hosted release gates passed, all six platform archives passed published-checksum, payload, Web-marker, and embedded-version verification, and the amd64/arm64 main plus amd64 omnibus GHCR images were published. AUR, COPR, PPA, Homebrew, Nix, and release announcements passed. The Chocolatey package built successfully, but its external push endpoint returned HTTP 504 on all five bounded attempts.
 
 - [ ] Retry stable Chocolatey publication after its push service recovers.
   - Status: blocked on external service availability (2026-07-17)
   - Priority: P2
-  - Notes: The `.283` package builds successfully, but `https://push.chocolatey.org/` returned 504 on all five bounded attempts in both the release job and standalone recovery workflow. The existing manual workflow can safely retry the same version without a new release.
+  - Notes: The `.284` package builds successfully, but `https://push.chocolatey.org/` returned 504 on all five bounded release attempts, continuing the external failure already observed for `.283`. The existing manual workflow can safely retry `.284` without a new release.
 
 - [x] Complete every defect represented by open PRs #266–#276.
   - Status: completed (2026-07-17)

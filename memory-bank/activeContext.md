@@ -1,3 +1,17 @@
+## Update 2026-07-17 23:34:00Z
+
+- Current task: stable release `2026071723-slskdn.284` publication and verification are complete; no deployment was requested or performed.
+- Last activity:
+  - Refreshed the deterministic release-council backlog counts, committed and pushed the baseline, and created `.284` through the guarded release helper.
+  - Passed the complete local and hosted release gates. All six platform archives and ancillary assets passed published SHA-256 checks, required-payload checks, the bundled Web marker, and embedded version verification.
+  - Published the amd64/arm64 main GHCR image at digest `sha256:91b4694900c90ccb14a0ba89e5278f88cab58f7661a3cd707714dccbdfa1010e` and amd64 omnibus image at digest `sha256:cc0974d38d10dc1149ade1ab681612176195b462b840ea309b1064ba54a458a9`; AUR, COPR, PPA, Homebrew, Nix, and announcements passed.
+- External package status:
+  - Chocolatey package creation succeeded, but `push.chocolatey.org` returned HTTP 504 on all five bounded attempts. This is the same external-service failure already tracked for `.283`; no repository defect was found.
+- Next steps:
+  1. Retry Chocolatey through the existing manual workflow only after the external service recovers.
+  2. Deploy `.284` to the live validation host only if explicitly requested.
+  3. Do not create another release or tag without explicit authorization.
+
 ## Update 2026-07-17 22:55:00Z
 
 - Current task: post-release live monitoring and authenticated browser validation are complete; one MediaCore navigation defect is fixed on `main` only.
