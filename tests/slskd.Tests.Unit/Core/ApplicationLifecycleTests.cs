@@ -74,6 +74,18 @@ public class ApplicationLifecycleTests
         Assert.Null(patch.ListenPort);
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void CompileSearchRequestFilters_PreservesConfiguredCaseMode(
+        bool caseSensitive,
+        bool expectedMatch)
+    {
+        var filters = Application.CompileSearchRequestFilters(["^secret$"], caseSensitive);
+
+        Assert.Equal(expectedMatch, filters[0].IsMatch("SECRET"));
+    }
+
     [Fact]
     public void FormatCompletedTransferProgress_ClampsNegativeAverageSpeed()
     {
