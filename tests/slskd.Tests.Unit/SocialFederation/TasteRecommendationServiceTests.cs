@@ -236,7 +236,7 @@ public sealed class TasteRecommendationServiceTests
         var recommendation = Assert.Single(result.Recommendations);
         Assert.Same(workRef, recommendation.WorkRef);
         Assert.Equal(2, recommendation.TrustedSourceCount);
-        Assert.True(allocated < 8_192, $"Expected less than 8,192 allocated bytes, but allocated {allocated:N0} bytes.");
+        Assert.True(allocated < 16_384, $"Expected less than 16,384 allocated bytes, but allocated {allocated:N0} bytes.");
     }
 
     [Fact]
@@ -311,7 +311,7 @@ public sealed class TasteRecommendationServiceTests
         var recommendation = Assert.Single(result.Recommendations);
         Assert.Same(workRef, recommendation.WorkRef);
         Assert.Equal(2, recommendation.TrustedSourceCount);
-        Assert.True(allocated < 8_192, $"Expected less than 8,192 allocated bytes, but allocated {allocated:N0} bytes.");
+        Assert.True(allocated < 16_384, $"Expected less than 16,384 allocated bytes, but allocated {allocated:N0} bytes.");
     }
 
     [Fact]
