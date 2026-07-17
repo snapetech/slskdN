@@ -28,6 +28,20 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Live Soulseek listener changes now apply updated type-1 obfuscation options
   before rebinding, keeping the obfuscated socket and advertised metadata on
   the configured port instead of the previous one.
+- Adversarial security settings now resolve from their registered options
+  wrapper, invalid obfuscation advertisement combinations fail during options
+  validation, and unexpected fatal Web startup errors exit unsuccessfully.
+- Watched root options now retain a validated value when a replacement fails
+  validation or binding, including an invalid first reload, and still notify
+  subscribers after a later valid replacement.
+- Fractional download auto-retry tolerance values are validated against their
+  exact double range; blacklist and search-filter regex compilation consistently
+  honor the configured case mode across cache entries and reloads.
+- API YAML validation now applies the documented `transfers.groups`
+  compatibility layout with top-level precedence and full nested validation.
+- API-key authentication now runs before global rate-limit partitioning, so
+  authenticated callers bypass anonymous API quotas as intended. Kestrel
+  request-body limit failures now return redacted 413 Problem Details.
 - Runtime CORS edits now set application `pendingRestart` state because the
   policy is constructed from startup options; strict startup validation still
   rejects credentialed wildcard CORS when `web.enforce_security` is enabled.

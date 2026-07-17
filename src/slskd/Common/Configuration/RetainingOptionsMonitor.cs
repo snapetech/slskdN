@@ -18,12 +18,12 @@ using Serilog;
 public sealed class RetainingOptionsMonitor<TOptions> : IOptionsMonitor<TOptions>, IDisposable
     where TOptions : class
 {
-    private readonly IOptionsFactory<TOptions> factory;
-    private readonly object sync = new();
-    private readonly Dictionary<string, TOptions> values = new(StringComparer.Ordinal);
-    private readonly List<IDisposable> changeTokenRegistrations = new();
-    private Action<TOptions, string?>? listeners;
-    private bool disposed;
+    private readonly IOptionsFactory<TOptions> _factory;
+    private readonly object _sync = new();
+    private readonly Dictionary<string, TOptions> _values = new(StringComparer.Ordinal);
+    private readonly List<IDisposable> _changeTokenRegistrations = new();
+    private Action<TOptions, string?>? _listeners;
+    private bool _disposed;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="RetainingOptionsMonitor{TOptions}"/> class.
@@ -34,11 +34,12 @@ public sealed class RetainingOptionsMonitor<TOptions> : IOptionsMonitor<TOptions
         IOptionsFactory<TOptions> factory,
         IEnumerable<IOptionsChangeTokenSource<TOptions>> sources)
     {
-        this.factory = factory;
+        _factory = factory;
+        _values.Add(Options.DefaultName, _factory.Create(Options.DefaultName));
 
         foreach (var source in sources)
         {
-            changeTokenRegistrations.Add(ChangeToken.OnChange(
+            _changeTokenRegistrations.Add(ChangeToken.OnChange(
                 source.GetChangeToken,
                 InvokeChanged,
                 source.Name));
@@ -53,28 +54,28 @@ public sealed class RetainingOptionsMonitor<TOptions> : IOptionsMonitor<TOptions
     {
         name ??= Options.DefaultName;
 
-        lock (sync)
+        lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
-            if (values.TryGetValue(name, out var value))
+            if (_values.TryGetValue(name, out var value))
             {
                 return value;
             }
         }
 
-        var created = factory.Create(name);
+        var created = _factory.Create(name);
 
-        lock (sync)
+        lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
-            if (values.TryGetValue(name, out var value))
+            if (_values.TryGetValue(name, out var value))
             {
                 return value;
             }
 
-            values.Add(name, created);
+            _values.Add(name, created);
             return created;
         }
     }
@@ -84,10 +85,10 @@ public sealed class RetainingOptionsMonitor<TOptions> : IOptionsMonitor<TOptions
     {
         ArgumentNullException.ThrowIfNull(listener);
 
-        lock (sync)
+        lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
-            listeners += listener;
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _listeners += listener;
         }
 
         return new Subscription(this, listener);
@@ -98,18 +99,18 @@ public sealed class RetainingOptionsMonitor<TOptions> : IOptionsMonitor<TOptions
     {
         List<IDisposable> registrations;
 
-        lock (sync)
+        lock (_sync)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            disposed = true;
-            listeners = null;
-            registrations = new List<IDisposable>(changeTokenRegistrations);
-            changeTokenRegistrations.Clear();
-            values.Clear();
+            _disposed = true;
+            _listeners = null;
+            registrations = new List<IDisposable>(_changeTokenRegistrations);
+            _changeTokenRegistrations.Clear();
+            _values.Clear();
         }
 
         foreach (var registration in registrations)
@@ -125,24 +126,24 @@ public sealed class RetainingOptionsMonitor<TOptions> : IOptionsMonitor<TOptions
         TOptions created;
         try
         {
-            created = factory.Create(name);
+            created = _factory.Create(name);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is OptionsValidationException or InvalidOperationException or FormatException or OverflowException)
         {
             Log.Warning(ex, "Options reload rejected; retaining the last valid configuration");
             return;
         }
 
         Action<TOptions, string?>? callbacks;
-        lock (sync)
+        lock (_sync)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            values[name] = created;
-            callbacks = listeners;
+            _values[name] = created;
+            callbacks = _listeners;
         }
 
         callbacks?.Invoke(created, name);
@@ -150,27 +151,27 @@ public sealed class RetainingOptionsMonitor<TOptions> : IOptionsMonitor<TOptions
 
     private void Unsubscribe(Action<TOptions, string?> listener)
     {
-        lock (sync)
+        lock (_sync)
         {
-            listeners -= listener;
+            _listeners -= listener;
         }
     }
 
     private sealed class Subscription : IDisposable
     {
-        private RetainingOptionsMonitor<TOptions>? monitor;
-        private Action<TOptions, string?>? listener;
+        private RetainingOptionsMonitor<TOptions>? _monitor;
+        private Action<TOptions, string?>? _listener;
 
         public Subscription(RetainingOptionsMonitor<TOptions> monitor, Action<TOptions, string?> listener)
         {
-            this.monitor = monitor;
-            this.listener = listener;
+            _monitor = monitor;
+            _listener = listener;
         }
 
         public void Dispose()
         {
-            var currentMonitor = Interlocked.Exchange(ref monitor, null);
-            var currentListener = Interlocked.Exchange(ref listener, null);
+            var currentMonitor = Interlocked.Exchange(ref _monitor, null);
+            var currentListener = Interlocked.Exchange(ref _listener, null);
 
             if (currentMonitor is not null && currentListener is not null)
             {

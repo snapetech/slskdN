@@ -10,6 +10,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Reconfigured regular and type-1 obfuscated Soulseek listeners as one live
+  update, including advertised metadata, without leaving a stale reconnect
+  warning after the runtime successfully rebinds them.
+- Resolved adversarial security settings through the options framework so the
+  configured settings endpoint no longer falls back to an injected null.
+- Rejected unsupported obfuscation-without-regular-advertisement settings
+  during validation, and made unexpected fatal Web startup failures exit with
+  a non-zero status.
+- Retained the last validated root options across invalid watched reloads,
+  including a failure before the first consumer read, while allowing later
+  valid reloads to apply and unrelated factory failures to surface.
+- Enforced fractional auto-retry tolerance boundaries without integer
+  conversion accepting near-boundary out-of-range values.
+- Honored configured regex case sensitivity in blacklist matching and after
+  search-filter reloads, including cache identity for live blacklist changes.
+- Made API YAML validation accept the documented `transfers.groups`
+  compatibility placement with canonical top-level precedence and nested
+  pattern validation.
+- Authenticated API-key callers before rate-limit partition selection so they
+  no longer consume anonymous quotas, and returned redacted 413 Problem Details
+  for request-body limit failures instead of a generic 500.
 - Marked every startup-bound CORS option as restart-required so live
   configuration edits set `pendingRestart` instead of implying that the
   unchanged startup middleware policy has already taken effect.
