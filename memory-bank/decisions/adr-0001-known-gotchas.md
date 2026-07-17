@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z736. Bloom Filter ItemCount Is Not Exact Input Cardinality
+
+**The Bug**: A wide Library Bloom snapshot regression asserted that adding
+10,000 distinct items must produce `ItemCount == 10_000`. The filter checks
+probabilistic membership before incrementing, so false positives can classify a
+new item as already present; the valid fixture reported 9,986 while its exact
+namespace count remained 10,000.
+
+**Files Affected**:
+- `src/slskd/PodCore/BloomFilter.cs`
+- `tests/slskd.Tests.Unit/Integrations/MusicBrainz/LibraryBloomDiffServiceTests.cs`
+
+**Prevention**: Use authoritative pre-filter collection counts when exact
+cardinality matters. Treat Bloom `ItemCount` as the number of additions that
+were not probabilistic membership hits, and assert it only within valid bounds.
+Do not use it to prove exact distinct input size; verify exact namespace or
+source counts separately.
+
 ### 0z735. Allocation-Free Token Matching Must Not Rescan Per Query Token
 
 **The Bug**: A filename-similarity optimization removed split arrays and an
