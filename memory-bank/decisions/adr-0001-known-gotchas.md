@@ -25564,3 +25564,23 @@ icon-only controls an explicit accessible name. For disabled controls, attach
 the popup trigger to a non-disabled wrapper so hover help remains available.
 Browser tests must inspect the rendered button name and hover each icon-only
 control; an icon glyph or `data-testid` is not an accessible label.
+
+### 0z594. Focused UI Regressions Need Focused Async Fixtures
+
+**The Bug**: Initial regressions for the live button fixes asserted Lidarr
+pagination before its independently loaded albums and wishlist panels settled,
+rendered the virtualized transfer table in jsdom without its browser-provided
+`ResizeObserver`, and enabled a broad stale skipped integration scenario to
+check one provider label. The product changes were valid, but the test harness
+failed for unrelated timing, environment, and legacy-expectation reasons.
+
+**Files Affected**:
+- `src/web/src/components/Lidarr/Lidarr.test.jsx`
+- `src/web/src/components/Transfers/TransferTable.test.jsx`
+- `src/web/src/components/System/Integrations/MediaServerPanel.test.jsx`
+
+**Prevention**: Await the specific independently loaded content that enables a
+control before querying it, stub browser APIs explicitly when rendering their
+consumer in jsdom, and add the smallest component-level regression for a
+focused contract bug. Do not reactivate an unrelated skipped workflow merely
+to cover one child component.
