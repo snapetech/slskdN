@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Swarm efficiency reporting now keeps one point-in-time active-download value
+  snapshot and aggregates eligible downloads, worker redundancy, reassignment
+  rates, active peers, and positive throughput durations directly instead of
+  copying that snapshot, building two filtered lists, and traversing each list
+  repeatedly. Across 100 dashboard reads with 10,000 active downloads and
+  3,000 recent peer samples, allocation falls from 26,947,344 to 8,103,768
+  bytes (69.9%) and elapsed time from 797 to 400 ms (49.8%). Chunk and peer
+  utilization, zero-worker fallback, timeout-rate averaging, positive-duration
+  filtering, and empty-input behavior remain unchanged.
 - Adaptive chunk assignment now computes each selected peer's recent
   performance score in one completion-queue scan with one captured cutoff
   instead of building filtered completion and successful-duration lists and

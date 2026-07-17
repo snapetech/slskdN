@@ -196,33 +196,64 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
     private SwarmEfficiencyMetrics CreateEfficiencyMetrics(IReadOnlyList<PeerPerformanceMetrics> rankedPeers)
     {
         var metrics = new SwarmEfficiencyMetrics();
-        var activeDownloads = _downloadService.ActiveDownloads.Values.ToList();
+        var activeDownloads = _downloadService.ActiveDownloads.Values;
         var totalDownloads = (long)SwarmDownloadsTotal.WithLabels("started").Value;
         if (totalDownloads > 0)
         {
             metrics.ChunkUtilization = Math.Min(1.0, (double)activeDownloads.Count / totalDownloads);
         }
 
-        var activePeers = rankedPeers.Count(p => p.ChunksCompleted > 0 || p.ChunksFailed > 0);
+        var downloadsWithChunks = 0;
+        long activeWorkerTotal = 0;
+        var reassignmentRateTotal = 0.0;
+        foreach (var download in activeDownloads)
+        {
+            if (download.TotalChunks <= 0)
+            {
+                continue;
+            }
+
+            downloadsWithChunks++;
+            activeWorkerTotal += download.ActiveWorkers > 0 ? download.ActiveWorkers : 1;
+            reassignmentRateTotal += download.PeerTimeouts.Count / (double)download.TotalChunks;
+        }
+
+        if (downloadsWithChunks > 0)
+        {
+            metrics.RedundancyFactor = (double)activeWorkerTotal / downloadsWithChunks;
+            metrics.AverageReassignmentRate = reassignmentRateTotal / downloadsWithChunks;
+        }
+
+        var activePeers = 0;
+        var recentThroughputSamples = 0;
+        var recentThroughputDurationMs = 0.0;
+        foreach (var peer in rankedPeers)
+        {
+            if (peer.ChunksCompleted > 0 || peer.ChunksFailed > 0)
+            {
+                activePeers++;
+            }
+
+            foreach (var sample in peer.RecentThroughputSamples)
+            {
+                if (sample.Duration <= TimeSpan.Zero)
+                {
+                    continue;
+                }
+
+                recentThroughputSamples++;
+                recentThroughputDurationMs += sample.Duration.TotalMilliseconds;
+            }
+        }
+
         if (rankedPeers.Count > 0)
         {
             metrics.PeerUtilization = (double)activePeers / rankedPeers.Count;
         }
 
-        var downloadsWithChunks = activeDownloads.Where(d => d.TotalChunks > 0).ToList();
-        if (downloadsWithChunks.Count > 0)
+        if (recentThroughputSamples > 0)
         {
-            metrics.RedundancyFactor = downloadsWithChunks.Average(d => d.ActiveWorkers > 0 ? d.ActiveWorkers : 1);
-            metrics.AverageReassignmentRate = downloadsWithChunks.Average(d => d.PeerTimeouts.Count / (double)d.TotalChunks);
-        }
-
-        var peersWithRecentThroughput = rankedPeers
-            .SelectMany(p => p.RecentThroughputSamples)
-            .Where(s => s.Duration > TimeSpan.Zero)
-            .ToList();
-        if (peersWithRecentThroughput.Count > 0)
-        {
-            metrics.AverageTimeToFirstByteMs = peersWithRecentThroughput.Average(s => s.Duration.TotalMilliseconds);
+            metrics.AverageTimeToFirstByteMs = recentThroughputDurationMs / recentThroughputSamples;
         }
 
         return metrics;

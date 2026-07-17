@@ -1,3 +1,17 @@
+## Update 2026-07-17 11:18:02Z
+
+- Current task: performance and efficiency improvements in progress; one-pass swarm efficiency aggregation complete locally.
+- Last activity:
+  - Retained the point-in-time active-download value snapshot while replacing its copied/filtered lists and repeated download/peer/sample scans with direct accumulators.
+  - Across 100 reads with 10,000 active downloads and 3,000 recent samples, allocation falls from 26,947,344 to 8,103,768 bytes (69.9%) and elapsed time from 797 to 400 ms (49.8%).
+- Validation:
+  - Passed complete swarm analytics (`19/19`) and backend validation (`5177/5177`: `69` application, `4828` unit, `280` integration), plus repository lint.
+  - Exact eligibility, zero-worker fallback, averaging, utilization, positive-duration filtering, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Rejected a lower-allocation but slower direct concurrent-map scan per gotcha `0z741`. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the swarm efficiency aggregation, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 11:05:44Z
 
 - Current task: performance and efficiency improvements in progress; one-pass adaptive recent-peer scoring complete locally.

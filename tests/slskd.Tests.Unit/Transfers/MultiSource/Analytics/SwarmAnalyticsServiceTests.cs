@@ -445,4 +445,53 @@ public class SwarmAnalyticsServiceTests
         // Service should return valid metrics even on error
         Assert.True(result.TotalDownloads >= 0);
     }
+
+    [Fact]
+    public async Task GetEfficiencyMetricsAsync_AggregatesEligibleDownloadsAndThroughputSamples()
+    {
+        var downloads = new ConcurrentDictionary<Guid, MultiSourceDownloadStatus>();
+        downloads[Guid.NewGuid()] = new MultiSourceDownloadStatus { TotalChunks = 0, ActiveWorkers = 100 };
+        var firstDownload = new MultiSourceDownloadStatus { TotalChunks = 10, ActiveWorkers = 0 };
+        firstDownload.PeerTimeouts["first"] = DateTime.UtcNow;
+        firstDownload.PeerTimeouts["second"] = DateTime.UtcNow;
+        downloads[Guid.NewGuid()] = firstDownload;
+        var secondDownload = new MultiSourceDownloadStatus { TotalChunks = 20, ActiveWorkers = 4 };
+        secondDownload.PeerTimeouts["third"] = DateTime.UtcNow;
+        downloads[Guid.NewGuid()] = secondDownload;
+        var peers = new List<PeerPerformanceMetrics>
+        {
+            new()
+            {
+                PeerId = "active-completed",
+                ChunksCompleted = 1,
+                RecentThroughputSamples = new Queue<ThroughputSample>(new[]
+                {
+                    new ThroughputSample { Duration = TimeSpan.FromMilliseconds(100) },
+                    new ThroughputSample { Duration = TimeSpan.Zero },
+                }),
+            },
+            new()
+            {
+                PeerId = "active-failed",
+                ChunksFailed = 1,
+                RecentThroughputSamples = new Queue<ThroughputSample>(new[]
+                {
+                    new ThroughputSample { Duration = TimeSpan.FromMilliseconds(300) },
+                    new ThroughputSample { Duration = TimeSpan.FromMilliseconds(-1) },
+                }),
+            },
+            new() { PeerId = "inactive" },
+        };
+        _downloadServiceMock.SetupGet(service => service.ActiveDownloads).Returns(downloads);
+        _peerMetricsMock
+            .Setup(service => service.GetRankedPeersAsync(100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(peers);
+
+        var result = await _service.GetEfficiencyMetricsAsync();
+
+        Assert.Equal(2.5, result.RedundancyFactor, 10);
+        Assert.Equal(0.125, result.AverageReassignmentRate, 10);
+        Assert.Equal(2.0 / 3.0, result.PeerUtilization, 10);
+        Assert.Equal(200, result.AverageTimeToFirstByteMs, 10);
+    }
 }

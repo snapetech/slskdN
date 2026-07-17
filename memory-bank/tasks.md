@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove copied and filtered lists from swarm efficiency aggregation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SwarmAnalyticsService.CreateEfficiencyMetrics` now retains the concurrent dictionary's optimized point-in-time `Values` snapshot but scans it once for active download count, eligible download count, redundancy, and reassignment rate. It also scans ranked peers and their recent samples once for utilization and average positive duration. This removes the copied active-download list, filtered download list, flattened throughput list, and repeated LINQ passes. Across 100 dashboard reads with 10,000 active downloads and 3,000 recent samples, allocation falls from 26,947,344 to 8,103,768 bytes (69.9%) and elapsed time from 797 to 400 ms (49.8%). Exact eligibility, zero-worker fallback, averaging, utilization, positive-duration, and empty-input behavior remain unchanged. Validation passed: complete analytics tests (`19/19`) and backend (`5177/5177`: `69` application, `4828` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. A direct concurrent-map scan reduced allocation further but was rejected after slowing the optimized path from 400 to 578 ms, consistent with gotcha `0z741`.
+
 - [x] Stream adaptive recent-peer scoring without filtered completion lists.
   - Status: completed (2026-07-17)
   - Priority: P1
