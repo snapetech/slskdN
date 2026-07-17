@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z741. Direct Concurrent Map Min Scans Can Lose To Dense Snapshots
+
+**The Bug**: Replacing full-capacity commitment eviction's
+`Values.OrderBy(...).FirstOrDefault()` with a direct `ConcurrentDictionary`
+scan reduced one 10,000-item overflow from 81,696 to 1,592 allocated bytes, but
+made 50 warmed overflows take 17-31 ms instead of 9 ms.
+
+**Files Affected**:
+- `src/slskd/Common/Security/CryptographicCommitment.cs`
+
+**Prevention**: Measure CPU and allocation when replacing an ordered minimum
+over `ConcurrentDictionary.Values`. The copied values provide dense traversal,
+and current LINQ can select the first ordered item without fully sorting; direct
+node traversal can cost more CPU even when it eliminates the snapshot. Retain
+the snapshot form when the measured mutation path is faster, or change the
+owned data structure so eviction order is maintained incrementally rather than
+rescanning the concurrent map.
+
 ### 0z740. Bounded String Heaps Can Lose Badly To LINQ's Partial Sort
 
 **The Bug**: Replacing mesh search's `OrderBy(...).Take(51)` with a stable
