@@ -80,10 +80,12 @@ hidden.
 **Files Affected**:
 - `scripts/live-ui-audit.mjs`
 
-**Prevention**: Measure visibility in the scroll container's coordinate system:
-compare the item's offset range with `scrollLeft` through
-`scrollLeft + clientWidth`. Confirm the result against a route near both the
-start and end of the overflowing tab strip.
+**Prevention**: Measure both sides in one coordinate system. Comparing
+`offsetLeft` with `scrollLeft` is also wrong when the item's offset includes a
+layout origin or border that the scroll offset does not. Use rendered rectangles
+for the item and the container's visible left edge through `clientWidth`, or
+normalize every offset to the same scroll-content origin. Confirm the result
+against routes near both the start and end of the overflowing tab strip.
 
 ### 0z765. Popup Tooltips Do Not Supply Accessible Button Names
 
