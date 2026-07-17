@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z761. Allocation Ceilings Must Allow Loaded-Suite Runtime Overhead
+
+**The Bug**: A metadata source-selection regression used a 4 KiB allocation
+ceiling after warming the exact method. Both strategies passed focused Release
+runs, but the hosted full Release suite observed 33,448 bytes for one strategy
+and blocked an otherwise healthy release. The implementation still selected in
+one pass; the threshold was too tight for one-time runtime and test-host work
+that can occur only in a loaded process.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/MetadataPortabilityTests.cs`
+
+**Prevention**: Size allocation ceilings against both focused and full Release
+suites. Keep enough headroom for loaded-process runtime initialization while
+remaining far below the allocation shape of the prohibited implementation. For
+large-source selection tests, a tens-of-KiB ceiling still detects sorting or
+materializing 100,000 sources without treating test-host noise as a product
+regression.
+
 ### 0z760. Release Gates Must Regenerate Reports From Repository-Owned Paths
 
 **The Bug**: The active-backlog gate reused an existing ignored `.council`
