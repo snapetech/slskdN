@@ -4,6 +4,7 @@
 namespace slskd.Common.Security;
 
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Security.Cryptography;
@@ -59,12 +60,13 @@ public sealed class CryptographicCommitment : IDisposable
     public CommitmentResult CreateCommitment(string fileHash, string username, string filename)
     {
         // Generate random nonce
-        var nonceBytes = RandomNumberGenerator.GetBytes(32);
-        var nonce = Convert.ToHexString(nonceBytes).ToLowerInvariant();
+        Span<byte> nonceBytes = stackalloc byte[32];
+        RandomNumberGenerator.Fill(nonceBytes);
+        var nonce = Convert.ToHexStringLower(nonceBytes);
 
         // Create commitment: H(hash || nonce)
-        var dataToHash = fileHash.ToLowerInvariant() + nonce;
-        var commitmentHash = ComputeSha256(dataToHash);
+        var normalizedFileHash = fileHash.ToLowerInvariant();
+        var commitmentHash = ComputeSha256(normalizedFileHash, nonce);
 
         // Generate commitment ID
         var commitmentId = Guid.NewGuid().ToString("N")[..16];
@@ -73,7 +75,7 @@ public sealed class CryptographicCommitment : IDisposable
         {
             Id = commitmentId,
             CommitmentHash = commitmentHash,
-            ActualHash = fileHash.ToLowerInvariant(),
+            ActualHash = normalizedFileHash,
             Nonce = nonce,
             Username = username,
             Filename = filename,
@@ -134,8 +136,7 @@ public sealed class CryptographicCommitment : IDisposable
             }
 
             // Recompute commitment hash
-            var dataToHash = revealedHash.ToLowerInvariant() + nonce;
-            var computedCommitment = ComputeSha256(dataToHash);
+            var computedCommitment = ComputeSha256(revealedHash.ToLowerInvariant(), nonce);
 
             if (!CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(computedCommitment),
@@ -260,11 +261,29 @@ public sealed class CryptographicCommitment : IDisposable
         }
     }
 
-    private static string ComputeSha256(string input)
+    private static string ComputeSha256(string first, string second)
     {
-        var bytes = Encoding.UTF8.GetBytes(input);
-        var hash = SHA256.HashData(bytes);
-        return Convert.ToHexString(hash).ToLowerInvariant();
+        var byteCount = Encoding.UTF8.GetByteCount(first) + Encoding.UTF8.GetByteCount(second);
+        byte[]? rentedBytes = null;
+        Span<byte> bytes = byteCount <= 512
+            ? stackalloc byte[byteCount]
+            : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
+
+        try
+        {
+            var bytesWritten = Encoding.UTF8.GetBytes(first, bytes);
+            _ = Encoding.UTF8.GetBytes(second, bytes[bytesWritten..]);
+            Span<byte> hash = stackalloc byte[32];
+            SHA256.HashData(bytes[..byteCount], hash);
+            return Convert.ToHexStringLower(hash);
+        }
+        finally
+        {
+            if (rentedBytes != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+            }
+        }
     }
 
 }

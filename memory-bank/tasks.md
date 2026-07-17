@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove duplicate normalization and hash intermediates from cryptographic commitments.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CryptographicCommitment.CreateCommitment` now normalizes the supplied hash once, fills a fixed nonce span, formats lowercase nonce/SHA-256 strings directly, and hashes the normalized hash plus nonce without concatenating them. The shared helper encodes common inputs into a bounded stack span and large Unicode inputs into cleared `ArrayPool<byte>` storage, then hashes into a fixed digest span; verification shares the same path. Across 10,000 retained commitments, allocation falls from 19,563,808 to 9,545,760 bytes (51.2%) and median elapsed time from 148 to 139 ms (6.1%). Exact known commitment digest construction, GUID-prefix IDs, normalization, verification/state transitions, Unicode inputs, expiry, capacity, and fixed-time comparison remain unchanged. Validation passed: focused commitment creation/verification (`4/4`), broader Common Security (`363/363`), and backend (`5223/5223`: `69` application, `4874` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. The known mesh-stream timeout (`0z557`) passed its exact rerun (`1/1`) and complete unit rerun (`4874/4874`). Documented stale-binary benchmark gotcha `0z751` (`38ef8c96c`) and verification-result contract gotcha `0z752` (`e959a3840`).
+
 - [x] Remove sorting and hexadecimal intermediates from pod ID generation.
   - Status: completed (2026-07-17)
   - Priority: P1

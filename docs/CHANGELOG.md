@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Cryptographic commitment creation now normalizes the file hash once,
+  generates nonce bytes into a fixed span, formats lowercase digests directly,
+  and UTF-8 encodes the hash/nonce pair into bounded stack or cleared pooled
+  storage without concatenating strings. Across 10,000 retained commitments,
+  allocation falls from 19,563,808 to 9,545,760 bytes (51.2%) and median elapsed
+  time from 148 to 139 ms (6.1%). Exact commitment hashes, lowercase nonce and
+  stored-hash formats, 16-character GUID prefixes, verification behavior,
+  Unicode inputs, expiry, capacity, and constant-time comparison remain
+  unchanged.
 - Pod ID generation now hashes through static/span SHA-256 APIs, compares two
   conversation peers directly in ordinal order, and writes the final prefixed
   lowercase identifier without a sorting array, disposable hash object, full

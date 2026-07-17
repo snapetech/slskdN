@@ -1,3 +1,17 @@
+## Update 2026-07-17 13:34:50Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded cryptographic commitment creation complete locally.
+- Last activity:
+  - Reused one normalized file hash, replaced nonce/hash binary and uppercase/lowercase copies with fixed spans, and encoded the hash/nonce pair through bounded stack or cleared pooled storage without concatenation.
+  - Across 10,000 retained commitments, allocation falls from 19,563,808 to 9,545,760 bytes (51.2%) and median elapsed time from 148 to 139 ms (6.1%).
+- Validation:
+  - Passed focused commitment (`4/4`), Common Security (`363/363`), and backend validation (`5223/5223`: `69` application, `4874` unit, `280` integration), plus repository lint.
+  - Exact digest/normalization/verification/Unicode/format behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. The known mesh-stream timeout passed its exact and complete-unit reruns. Documented gotchas `0z751` (`38ef8c96c`) and `0z752` (`e959a3840`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the commitment optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 13:17:58Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded pod ID generation complete locally.

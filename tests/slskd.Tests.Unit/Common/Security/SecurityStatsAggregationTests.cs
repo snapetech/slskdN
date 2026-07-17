@@ -13,6 +13,27 @@ using Xunit;
 public class SecurityStatsAggregationTests
 {
     [Fact]
+    public void CryptographicCommitment_CreateCommitment_WidePopulationBoundsAllocation()
+    {
+        using var commitments = new CryptographicCommitment();
+        var fileHash = new string('A', 64);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var index = 0; index < CryptographicCommitment.MaxCommitments; index++)
+        {
+            _ = commitments.CreateCommitment(fileHash, "peer", "track.flac");
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(CryptographicCommitment.MaxCommitments, commitments.GetStats().TotalCommitments);
+        Assert.InRange(allocated, 0, 12_000_000);
+    }
+
+    [Fact]
     public void SecurityEventsAndCanaries_GetStats_ReturnExactAggregates()
     {
         using var events = new SecurityEventAggregator(NullLogger<SecurityEventAggregator>.Instance);
