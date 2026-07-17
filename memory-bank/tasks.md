@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Prepare advanced filename queries and scan candidate tokens without per-match sets.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `AdvancedDiscoveryService` now prepares the invariant request base name, split word count, and distinct query words once for peer discovery or lazily for variant discovery. Candidate comparisons lowercase only the candidate base name and scan its token ranges directly, removing repeated request normalization plus both split arrays, token substrings, and the LINQ intersection set from each match. A warmed 10,000-peer call falls from 14,665,056 to 2,025,808 allocated bytes (86.2%). Exact lower-invariant filename-without-extension matching, space/hyphen/underscore tokenization, distinct common query words, duplicate-inclusive word-count denominator, size weighting, thresholds, match types, peer order, variant similarity, and empty-input laziness remain unchanged. Validation passed: complete discovery service (`15/15`), MultiSource (`128/128`), and backend (`5144/5144`: `69` application, `4795` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented repeated-scan gotcha `0z735` (`5dd34b861`).
+
 - [x] Aggregate advanced content variants without per-group LINQ state.
   - Status: completed (2026-07-17)
   - Priority: P1

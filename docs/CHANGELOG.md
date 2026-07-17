@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Advanced discovery filename matching now lowercases, splits, and deduplicates
+  the invariant request name once per peer or variant-discovery operation. Each
+  candidate retains only its required lowercase base name and scans token ranges
+  directly, eliminating two split arrays, token substrings, and the `Intersect`
+  set from every comparison. A warmed 10,000-peer call falls from 14,665,056 to
+  2,025,808 allocated bytes (86.2%). Filename-without-extension and invariant
+  case handling, exact-name matches, space/hyphen/underscore tokenization,
+  distinct common-query-word counting, duplicate-inclusive denominator, size
+  weighting, thresholds, match classification, peer order, and empty-source
+  behavior remain unchanged.
 - Advanced content-variant discovery now indexes exact filename/recording-ID
   groups in one source pass, tracks singleton peer counts without a per-group
   set, filters groups before result projection, and sorts the retained group

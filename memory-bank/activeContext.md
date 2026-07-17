@@ -1,3 +1,17 @@
+## Update 2026-07-17 06:45:59Z
+
+- Current task: performance and efficiency improvements in progress; prepared advanced filename matching complete locally.
+- Last activity:
+  - Prepared the invariant request base name, query word count, and distinct query words once, then replaced per-candidate split/intersection state with direct token-range scans.
+  - A warmed 10,000-peer call falls from 14,665,056 to 2,025,808 allocated bytes (86.2%).
+- Validation:
+  - Passed complete discovery service (`15/15`), MultiSource (`128/128`), and backend validation (`5144/5144`: `69` application, `4795` unit, `280` integration).
+  - Exact normalization/token/distinct/denominator/size/threshold/match/order/variant/empty semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotcha `0z735` (`5dd34b861`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the prepared advanced filename-matching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 06:34:06Z
 
 - Current task: performance and efficiency improvements in progress; one-pass advanced content-variant aggregation complete locally.

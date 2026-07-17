@@ -58,10 +58,16 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
                 cancellationToken).ConfigureAwait(false);
 
             var sources = verificationResult.BestSources ?? new List<VerifiedSource>();
+            FilenameSimilarityQuery? filenameSimilarityQuery = null;
 
             foreach (var source in sources)
             {
-                var similarity = CalculateSimilarity(request, source, request.FileSize);
+                filenameSimilarityQuery ??= PrepareFilenameSimilarityQuery(request.Filename);
+                var similarity = CalculateSimilarity(
+                    request,
+                    filenameSimilarityQuery,
+                    source,
+                    request.FileSize);
                 if (similarity >= request.MinSimilarity)
                 {
                     var matchType = DetermineMatchType(request, source, similarity, request.FileSize);
@@ -237,13 +243,16 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
             }
 
             var retainedCount = 0;
+            FilenameSimilarityQuery? filenameSimilarityQuery = null;
             for (var index = 0; index < groups.Count; index++)
             {
                 var group = groups[index];
                 group.SimilarityScore = !string.IsNullOrWhiteSpace(recordingId) &&
                     string.Equals(group.RecordingId, recordingId, StringComparison.OrdinalIgnoreCase)
                     ? 1.0
-                    : CalculateFilenameSimilarity(filename, group.Filename);
+                    : CalculateFilenameSimilarity(
+                        filenameSimilarityQuery ??= PrepareFilenameSimilarityQuery(filename),
+                        group.Filename);
                 if (group.SimilarityScore > 0)
                 {
                     groups[retainedCount++] = group;
@@ -291,12 +300,16 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
         }
     }
 
-    private double CalculateSimilarity(ContentDiscoveryRequest request, VerifiedSource source, long sourceSize)
+    private double CalculateSimilarity(
+        ContentDiscoveryRequest request,
+        FilenameSimilarityQuery filenameSimilarityQuery,
+        VerifiedSource source,
+        long sourceSize)
     {
         var sourceFilename = source.FullPath ?? string.Empty;
 
         // Filename similarity (Levenshtein distance normalized)
-        var filenameSimilarity = CalculateFilenameSimilarity(request.Filename, sourceFilename);
+        var filenameSimilarity = CalculateFilenameSimilarity(filenameSimilarityQuery, sourceFilename);
 
         // Size similarity (within tolerance)
         var sizeTolerance = 0.1; // 10% tolerance
@@ -307,26 +320,94 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
         return (filenameSimilarity * 0.6) + (sizeSimilarity * 0.4);
     }
 
-    private double CalculateFilenameSimilarity(string filename1, string filename2)
+    private static FilenameSimilarityQuery PrepareFilenameSimilarityQuery(string filename)
+    {
+        var normalizedName = System.IO.Path.GetFileNameWithoutExtension(filename).ToLowerInvariant();
+        var words = normalizedName.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+        return new FilenameSimilarityQuery(
+            normalizedName,
+            words.Distinct().ToArray(),
+            words.Length);
+    }
+
+    private static double CalculateFilenameSimilarity(FilenameSimilarityQuery query, string filename2)
     {
         // Simple similarity based on common substrings
         // In production, could use Levenshtein distance or other algorithms
-        var name1 = System.IO.Path.GetFileNameWithoutExtension(filename1).ToLowerInvariant();
         var name2 = System.IO.Path.GetFileNameWithoutExtension(filename2).ToLowerInvariant();
 
-        if (name1 == name2)
+        if (query.NormalizedName == name2)
         {
             return 1.0;
         }
 
-        // Check for common words
-        var words1 = name1.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
-        var words2 = name2.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+        var commonWords = 0;
+        foreach (var word in query.UniqueWords)
+        {
+            if (ContainsFilenameToken(name2, word))
+            {
+                commonWords++;
+            }
+        }
 
-        var commonWords = words1.Intersect(words2).Count();
-        var totalWords = Math.Max(words1.Length, words2.Length);
+        var totalWords = Math.Max(
+            query.WordCount,
+            CountFilenameTokens(name2));
 
         return totalWords > 0 ? (double)commonWords / totalWords : 0.0;
+    }
+
+    private static int CountFilenameTokens(string value)
+    {
+        var count = 0;
+        var offset = 0;
+        while (TryReadFilenameToken(value, ref offset, out _, out _))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
+    private static bool ContainsFilenameToken(string value, string token)
+    {
+        var offset = 0;
+        while (TryReadFilenameToken(value, ref offset, out var candidateStart, out var candidateLength))
+        {
+            if (candidateLength == token.Length &&
+                value.AsSpan(candidateStart, candidateLength).SequenceEqual(token.AsSpan()))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryReadFilenameToken(
+        string value,
+        ref int offset,
+        out int tokenStart,
+        out int tokenLength)
+    {
+        while (offset < value.Length && IsFilenameTokenSeparator(value[offset]))
+        {
+            offset++;
+        }
+
+        tokenStart = offset;
+        while (offset < value.Length && !IsFilenameTokenSeparator(value[offset]))
+        {
+            offset++;
+        }
+
+        tokenLength = offset - tokenStart;
+        return tokenLength > 0;
+    }
+
+    private static bool IsFilenameTokenSeparator(char value)
+    {
+        return value is ' ' or '-' or '_';
     }
 
     private MatchType DetermineMatchType(ContentDiscoveryRequest request, VerifiedSource source, double similarity, long sourceSize)
@@ -446,6 +527,11 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
     }
 
     private readonly record struct VariantGroupKey(string Filename, string? RecordingId);
+
+    private sealed record FilenameSimilarityQuery(
+        string NormalizedName,
+        string[] UniqueWords,
+        int WordCount);
 
     private struct VariantAggregation
     {

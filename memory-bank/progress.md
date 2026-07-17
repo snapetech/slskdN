@@ -1,3 +1,12 @@
+## Update 2026-07-17 06:45:59Z
+
+- Completed prepared-query, allocation-bounded advanced filename matching.
+- Moved invariant request base-name normalization, token splitting, distinct query-word construction, and query word count out of per-source/per-group comparisons; candidates now use one lowercase base name plus direct token-range scans.
+- Reduced a warmed 10,000-peer call from 14,665,056 to 2,025,808 allocated bytes (86.2%), removing per-match split arrays, token substrings, and intersection sets.
+- Preserved filename-without-extension/invariant-case behavior, exact matches, delimiters, distinct common query words, duplicate-inclusive denominator, size weighting, thresholds, match classification, peer order, variant similarity, and empty-input laziness.
+- Added exact token/duplicate/empty-token semantics and wide allocation regressions; passed complete discovery service (`15/15`), MultiSource (`128/128`), and backend (`5144/5144`: `69` application, `4795` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Documented repeated-scan gotcha `0z735` (`5dd34b861`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 06:34:06Z
 
 - Completed one-pass advanced content-variant aggregation.

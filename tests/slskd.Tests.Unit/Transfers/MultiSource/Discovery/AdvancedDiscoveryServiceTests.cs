@@ -214,6 +214,88 @@ public class AdvancedDiscoveryServiceTests
     }
 
     [Fact]
+    public async Task DiscoverPeersForContentAsync_PreservesFilenameTokenSimilaritySemantics()
+    {
+        var sources = new List<VerifiedSource>
+        {
+            new() { Username = "exact", FullPath = "/other/ALPHA-alpha__beta - GAMMA.mp3" },
+            new() { Username = "two-common", FullPath = "/music/alpha beta beta delta.ogg" },
+            new() { Username = "one-common", FullPath = "/music/alpha.wav" },
+            new() { Username = "no-words", FullPath = "/music/---__.aac" },
+        };
+        _contentVerificationMock
+            .Setup(service => service.VerifySourcesAsync(
+                It.IsAny<ContentVerificationRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ContentVerificationResult
+            {
+                SourcesByHash = new Dictionary<string, List<VerifiedSource>>
+                {
+                    ["hash"] = sources,
+                },
+            });
+
+        var result = await _service.DiscoverPeersForContentAsync(new ContentDiscoveryRequest
+        {
+            Filename = "/request/Alpha-alpha__BETA - gamma.FLAC",
+            FileSize = 123,
+            MinSimilarity = 0,
+        });
+
+        Assert.Collection(
+            result,
+            peer => Assert.Equal(1.0, peer.SimilarityScore, 12),
+            peer => Assert.Equal(0.7, peer.SimilarityScore, 12),
+            peer => Assert.Equal(0.55, peer.SimilarityScore, 12),
+            peer => Assert.Equal(0.4, peer.SimilarityScore, 12));
+    }
+
+    [Fact]
+    public async Task DiscoverPeersForContentAsync_WideFilenameMatchingBoundsAllocation()
+    {
+        const int sourceCount = 10_000;
+        var sources = Enumerable.Range(0, sourceCount)
+            .Select(index => new VerifiedSource
+            {
+                Username = $"peer-{index:D5}",
+                FullPath = $"/music/shared artist - candidate {index:D5}.flac",
+            })
+            .ToList();
+        _contentVerificationMock
+            .Setup(service => service.VerifySourcesAsync(
+                It.IsAny<ContentVerificationRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ContentVerificationResult
+            {
+                SourcesByHash = new Dictionary<string, List<VerifiedSource>>
+                {
+                    ["hash"] = sources,
+                },
+            });
+        var request = new ContentDiscoveryRequest
+        {
+            Filename = "shared artist - target song.flac",
+            FileSize = 123,
+            MinSimilarity = 0,
+        };
+
+        for (var iteration = 0; iteration < 4; iteration++)
+        {
+            await _service.DiscoverPeersForContentAsync(request);
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await _service.DiscoverPeersForContentAsync(request);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        _output.WriteLine($"Allocated bytes: {allocatedBytes:N0}");
+        Assert.Equal(sourceCount, result.Count);
+        Assert.Equal("peer-00000", result[0].PeerId);
+        Assert.Equal("peer-09999", result[^1].PeerId);
+        Assert.True(allocatedBytes < 2_300_000, $"Allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public async Task RankPeersAsync_Should_Sort_By_Ranking_Score()
     {
         // Arrange
