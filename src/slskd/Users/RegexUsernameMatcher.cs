@@ -75,16 +75,22 @@ public sealed class RegexUsernameMatcher : IUsernameMatcher, IDisposable
             return;
         }
 
+        var regexOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant;
+        if (!options.Flags.CaseSensitiveRegEx)
+        {
+            regexOptions |= RegexOptions.IgnoreCase;
+        }
+
         var expressions = rawPatterns
-            .Select(pattern => new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, RegexMatchTimeout))
+            .Select(pattern => new Regex(pattern, regexOptions, RegexMatchTimeout))
             .ToArray();
 
-        Patterns = new CompiledPatterns(CreateSignature(rawPatterns), expressions);
+        Patterns = new CompiledPatterns(CreateSignature(rawPatterns, options.Flags.CaseSensitiveRegEx), expressions);
     }
 
-    private static string CreateSignature(IEnumerable<string> patterns)
+    private static string CreateSignature(IEnumerable<string> patterns, bool caseSensitive)
     {
-        var joined = string.Join("\n", patterns);
+        var joined = $"case-sensitive:{caseSensitive}\n{string.Join("\n", patterns)}";
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(joined));
         return Convert.ToHexString(hash);
     }

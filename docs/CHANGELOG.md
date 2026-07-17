@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Blacklist username regular expressions now honor
+  `flags.case_sensitive_reg_ex`; changing the mode also invalidates cached
+  match decisions for otherwise unchanged patterns.
 - DHT rendezvous mesh-search response enrichment now consumes the share
   repository's file-content mapping iterator lazily and stops at the first
   advertisable mapping instead of buffering every row. In the covered
