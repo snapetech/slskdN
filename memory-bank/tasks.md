@@ -4115,5 +4115,6 @@
 - [2026-07-15T01:00:00Z] Completed: resolve scheduled E2E browse/policy failures, isolate concurrent node Web roots, preserve explicit web/network share identity boundaries, prevent stale incoming-share listings, and fix the Servarr readiness API import.
 - [2026-07-15T01:15:00Z] Completed: integrate and validate Dependabot PRs #257, #263, and #264, including direct test-package alignment for grouped NuGet updates.
 - [2026-07-15T01:30:00Z] Completed: harden Prometheus metadata parsing against malformed custom collector lines.
+- [2026-07-15T22:55:00Z] Completed: refresh the API route inventory and fix E2E Web content resolution with isolated executable-relative directories.
 - [2026-07-16T01:31:53Z] Completed: eliminate unrendered compact listen-along directory polling and bound full-panel DHT hydration with visible-only client polling plus process-wide refresh coalescing.
 - [2026-07-16T01:44:49Z] Completed: make Mesh diagnostics passive by removing STUN probes from stats reads, harden Mesh polling, and enforce Strict Mode-safe lifecycle setup across covered System pollers.

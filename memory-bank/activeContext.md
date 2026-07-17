@@ -12202,3 +12202,14 @@ rollback.
 - Next steps:
   1. Push the unified main tip to GitHub and GitLab.
   2. No release/build tag was created.
+
+## Update 2026-07-15 22:55:00Z
+
+- Current task: CI remediation complete.
+- Last activity:
+  - Regenerated the API route inventory for the Streams share-ticket route.
+  - Corrected E2E Web content placement to use isolated executable-relative directories.
+- Validation:
+  - Passed backend and Web production builds plus focused core-page Playwright coverage (`4/4`).
+- Next steps:
+  1. Push the CI fixes to `main` without creating a release/build tag.

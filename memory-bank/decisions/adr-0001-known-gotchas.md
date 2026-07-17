@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z551. Relative Web Content Paths Resolve From The Executable Directory
+
+**The Bug**: The parallel E2E harness copied each node's Web build beneath its
+private application-data directory and launched the process from that directory,
+but `Web.ContentPath` validation and serving resolve relative paths from
+`AppContext.BaseDirectory`. Every node therefore rejected the existing private
+`wwwroot` as a non-existent content path.
+
+**Files Affected**:
+- `src/web/e2e/harness/SlskdnNode.ts`
+
+**Prevention**: Keep the configured content path relative, but create a unique
+per-node directory under the built executable directory and remove it during
+harness cleanup. The process working directory and `--app-dir` control runtime
+data placement; neither changes the base used to resolve Web content.
+
 ### 0z759. Mesh Service Implementations Are Inert Until Registered With The Router
 
 **The Bug**: Pod, shadow-index, private-gateway, and introspection mesh service
@@ -3247,7 +3263,6 @@ the migration verify the ordered index columns, not merely the index name. Add
 query-plan coverage that requires the covering index. Apply the same rule to
 single-conversation detail reads: calculate unread counts with `COUNT` in SQL
 instead of loading up to 100 unread message bodies merely to count them.
-
 ### 0z550. Fixed Application Chrome Must Stay Below Modal Dimmers
 
 **The Bug**: The persistent player bar used `z-index: 1100`, above Semantic

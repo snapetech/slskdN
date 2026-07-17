@@ -325,15 +325,26 @@ class Footer extends Component {
                 />
               </a>
 
-              <a
-                className="slskdn-footer-sponsor"
-                href="https://github.com/sponsors/snapetech"
-                rel="noopener noreferrer"
-                target="_blank"
-                title="Support development - because Cursor isn't cheap!"
-              >
-                <Icon name="heart" /> Donate
-              </a>
+              <span className="slskdn-footer-support" aria-label="Support slskdN development">
+                <a
+                  className="slskdn-footer-sponsor"
+                  href="https://www.paypal.com/donate/?business=donations%40snape.tech"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  title="Support slskdN development with PayPal"
+                >
+                  <Icon name="paypal" /> PayPal
+                </a>
+                <a
+                  className="slskdn-footer-sponsor ko-fi"
+                  href="https://ko-fi.com/snapetech"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  title="Support slskdN development on Ko-fi"
+                >
+                  <Icon name="coffee" /> Ko-fi
+                </a>
+              </span>
 
               <span className="slskdn-footer-copyright">
                 © {year}{' '}

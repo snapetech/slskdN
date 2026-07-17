@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The web footer and README now offer direct PayPal and Ko-fi links for
+  supporting slskdN development.
 - Mesh DHT interoperability now uses one frozen 20-byte key/node contract,
   performs bounded iterative `FIND_VALUE` lookups after local misses, and binds
   signed STORE requester IDs and admission state to the Ed25519 signing key
