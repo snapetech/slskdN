@@ -716,17 +716,31 @@ jobs:
           COPR_FEDORA_PASSWORD: ${{ secrets.COPR_FEDORA_PASSWORD }}
           COPR_FEDORA_OTP_SECRET: ${{ secrets.COPR_FEDORA_OTP_SECRET }}
         run: |
+          set -euo pipefail
           if [[ -z "${COPR_KERBEROS_PRINCIPAL:-}" || -z "${COPR_KERBEROS_KEYTAB_B64:-}" ]] \
             && [[ -z "${COPR_FEDORA_USERNAME:-}" || -z "${COPR_FEDORA_PASSWORD:-}" || -z "${COPR_FEDORA_OTP_SECRET:-}" ]] \
             && [[ -z "${COPR_LOGIN:-}" || -z "${COPR_TOKEN:-}" ]]; then
             echo "Skipping COPR upload - credentials not configured"
             exit 0
           fi
-          
-          echo "Uploading SRPM to COPR: $SRPM_PATH"
-          # Upload to slskdn stable project
-          copr-cli build slskdn/slskdn "$SRPM_PATH" --nowait
-          echo "✅ Uploaded to COPR: slskdn"
+
+          copr_project="slskdn/slskdn"
+          srpm="${SRPM_PATH:?Build SRPM step did not publish an SRPM path}"
+          test -f "$srpm"
+          echo "Uploading SRPM to COPR: $srpm"
+          for attempt in 1 2 3; do
+            if copr-cli --debug build "$copr_project" "$srpm" --nowait; then
+              echo "✅ Uploaded to COPR: $copr_project"
+              break
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "COPR upload failed after $attempt attempts." >&2
+              exit 1
+            fi
+            sleep_seconds=$((attempt * 15))
+            echo "COPR upload attempt $attempt failed; retrying in ${sleep_seconds}s." >&2
+            sleep "$sleep_seconds"
+          done
 
   ppa-main:
     name: Publish to PPA (Main)

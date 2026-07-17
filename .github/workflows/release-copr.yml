@@ -235,4 +235,16 @@ jobs:
           srpm="${SLSKDN_SRPM:?Build SRPM step did not publish an SRPM path}"
           test -f "$srpm"
           echo "Uploading SRPM to COPR: $srpm"
-          copr-cli --debug build --nowait "$copr_project" "$SRPM"
+          for attempt in 1 2 3; do
+            if copr-cli --debug build "$copr_project" "$srpm" --nowait; then
+              echo "Uploaded SRPM to COPR: $copr_project"
+              break
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "COPR upload failed after $attempt attempts." >&2
+              exit 1
+            fi
+            sleep_seconds=$((attempt * 15))
+            echo "COPR upload attempt $attempt failed; retrying in ${sleep_seconds}s." >&2
+            sleep "$sleep_seconds"
+          done
