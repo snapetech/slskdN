@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
+using slskd.Configuration;
 using slskd.Core.API;
 using slskd.Events;
 using slskd.Files;
@@ -207,6 +208,54 @@ public class ApplicationLifecycleTests
 
         Assert.True(applicationState.CurrentValue.PendingReconnect);
         application.Dispose();
+    }
+
+    [Fact]
+    public async Task OptionsChanged_WhenCorsChanges_SetsPendingRestart()
+    {
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options());
+        var applicationState = new ManagedState<State>();
+        var restartPending = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var stateRegistration = applicationState.OnChange(change =>
+        {
+            if (change.Current.PendingRestart)
+            {
+                restartPending.TrySetResult(null);
+            }
+        });
+
+        var application = CreateApplication(
+            optionsMonitor,
+            applicationState,
+            new ManagedState<ShareState>(),
+            new ManagedState<RelayState>(),
+            out _,
+            out _);
+
+        optionsMonitor.Set(new Options
+        {
+            Web = new Options.WebOptions
+            {
+                Cors = new Options.WebOptions.CorsOptions
+                {
+                    Enabled = true,
+                    AllowedOrigins = ["https://example.invalid"],
+                },
+            },
+        });
+
+        await restartPending.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(applicationState.CurrentValue.PendingRestart);
+        application.Dispose();
+    }
+
+    [Fact]
+    public void CorsOptions_AllFieldsRequireRestart()
+    {
+        var properties = typeof(Options.WebOptions.CorsOptions).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
+        Assert.All(properties, property => Assert.NotNull(property.GetCustomAttribute<RequiresRestartAttribute>()));
     }
 
     [Fact]

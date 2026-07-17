@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Marked every startup-bound CORS option as restart-required so live
+  configuration edits set `pendingRestart` instead of implying that the
+  unchanged startup middleware policy has already taken effect.
 - Restored visible, named, and mouseover-explained Web controls for search and
   Lidarr pagination, Lidarr refresh, user browsing, wishlist pagination,
   transfer columns, and media-server provider selection; provider selectors now

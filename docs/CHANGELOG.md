@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Runtime CORS edits now set application `pendingRestart` state because the
+  policy is constructed from startup options; strict startup validation still
+  rejects credentialed wildcard CORS when `web.enforce_security` is enabled.
 - Live Web validation now has a repeatable authenticated Chromium audit across
   all top-level routes, System tabs, runtime-discovered internal links,
   external-link reachability, browser/network errors, visible error states,

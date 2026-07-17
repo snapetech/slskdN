@@ -3109,30 +3109,35 @@ namespace slskd
                 ///     Gets a value indicating whether CORS is enabled. When false, app.UseCors is not called (no CORS headers).
                 /// </summary>
                 [Description("when true, use AllowedOrigins and AllowCredentials; when false, no CORS middleware")]
+                [RequiresRestart]
                 public bool Enabled { get; init; } = false;
 
                 /// <summary>
                 ///     Gets a value indicating whether to allow credentials in CORS. When true, AllowedOrigins must not be wildcard/any when EnforceSecurity.
                 /// </summary>
                 [Description("allow credentials; when true with EnforceSecurity, AllowedOrigins must be an explicit allowlist")]
+                [RequiresRestart]
                 public bool AllowCredentials { get; init; } = false;
 
                 /// <summary>
                 ///     Gets the allowed origins. Null, empty, or '*' is treated as any. When AllowCredentials is true and EnforceSecurity, any/wildcard is invalid.
                 /// </summary>
                 [Description("allowed CORS origins; when Cors.Enabled and AllowCredentials, must be explicit (no wildcard) when EnforceSecurity")]
+                [RequiresRestart]
                 public string[] AllowedOrigins { get; init; } = Array.Empty<string>();
 
                 /// <summary>
                 ///     Gets the allowed headers. Empty or null = any (AllowAnyHeader).
                 /// </summary>
                 [Description("allowed CORS headers; empty = any")]
+                [RequiresRestart]
                 public string[] AllowedHeaders { get; init; } = Array.Empty<string>();
 
                 /// <summary>
                 ///     Gets the allowed methods. Empty or null = any (AllowAnyMethod).
                 /// </summary>
                 [Description("allowed CORS methods; empty = any")]
+                [RequiresRestart]
                 public string[] AllowedMethods { get; init; } = Array.Empty<string>();
             }
 
