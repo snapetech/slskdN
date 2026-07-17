@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Complete every defect represented by open PRs #266–#276.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: Treated each draft PR as a bug report and partial patch, integrated only its focused changes, and completed the missing boundaries. Fixed live listener/type-1 obfuscation reconfiguration, adversarial options DI, invalid obfuscation startup validation, fatal startup exit status, last-valid options retention, fractional auto-retry range validation, blacklist and search-filter case semantics, documented `transfers.groups` YAML validation, API-key rate-limit authentication ordering, and oversized-body 413 mapping. Strengthened the retaining monitor for invalid first reloads and unexpected failures, added real DI resolution coverage, and preserved CORS `pendingRestart` lifecycle reporting. Validation passed: focused (`53` application unit, `10` HTTP/integration, `29` vendored runtime), full .NET (`5302/5302`: `74` application, `4948` unit, `280` integration), repository lint, and substantive remediation checks. No release was created or deployed.
+
 - [x] Publish and deploy the finite performance-improvement release.
   - Status: completed (2026-07-17)
   - Priority: P1
@@ -4128,3 +4133,4 @@
 - [2026-07-15T22:55:00Z] Completed: refresh the API route inventory and fix E2E Web content resolution with isolated executable-relative directories.
 - [2026-07-16T01:31:53Z] Completed: eliminate unrendered compact listen-along directory polling and bound full-panel DHT hydration with visible-only client polling plus process-wide refresh coalescing.
 - [2026-07-16T01:44:49Z] Completed: make Mesh diagnostics passive by removing STUN probes from stats reads, harden Mesh polling, and enforce Strict Mode-safe lifecycle setup across covered System pollers.
+- [2026-07-17T20:13:00Z] Completed: fix all defects represented by draft PRs #266–#276, strengthen the partial retained-options implementation and DI coverage, and pass the full 5,302-test, lint, and remediation gates without creating a release.

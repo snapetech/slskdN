@@ -1,3 +1,21 @@
+## Update 2026-07-17 20:13:00Z
+
+- Current task: open PR defect backlog #266–#276 is fixed and validated locally; final push and PR-state reconciliation remain.
+- Last activity:
+  - Consolidated live listener/obfuscation reconfiguration, adversarial options injection, obfuscation validation, fatal startup status, retained valid reloads, fractional range validation, regex case semantics, compatibility YAML validation, API-key rate-limit authentication, and 413 request handling onto `main`.
+  - Hardened the submitted retaining monitor by priming the default validated value, narrowing its rejection catch boundary, and adding invalid-first-reload plus unexpected-failure coverage.
+  - Preserved the separate CORS lifecycle correction so startup-bound CORS edits report `pendingRestart`.
+- Validation:
+  - Focused combined coverage passed (`53` application unit, `10` HTTP/integration, `29` vendored runtime), retained-options coverage passed (`3/3`), and DI resolution coverage passed (`7/7`).
+  - Full .NET validation passed (`5302/5302`: `74` application, `4948` unit, `280` integration), repository lint passed, and every substantive remediation check passed.
+- Release status:
+  - No new release was published or deployed. The `.280` workflow failed in its build gate, and the live validation host remains on `.279`.
+  - Do not create another release or tag unless explicitly requested.
+- Next steps:
+  1. Commit and push the completion update to GitHub and GitLab.
+  2. Reconcile open PRs #266–#276 as superseded by the validated `main` fixes.
+  3. Do not deploy or publish a release without explicit authorization.
+
 ## Update 2026-07-17 18:20:49Z
 
 - Current task: finite performance-improvement goal complete; stable release `2026071717-slskdn.279` is published and running on the live validation host.

@@ -6,6 +6,7 @@ namespace slskd.Tests.Unit.Common.Security;
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -57,6 +58,22 @@ public class SecurityControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         Assert.Same(settings, ok.Value);
+    }
+
+    [Fact]
+    public void GetAdversarialSettings_ResolvesOptionsFrameworkRegistration()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddOptions<AdversarialOptions>().Configure(options => options.Enabled = true);
+        using var provider = services.BuildServiceProvider();
+        var controller = ActivatorUtilities.CreateInstance<SecurityController>(provider);
+
+        var result = controller.GetAdversarialSettings();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var settings = Assert.IsType<AdversarialOptions>(ok.Value);
+        Assert.True(settings.Enabled);
     }
 
     [Fact]
