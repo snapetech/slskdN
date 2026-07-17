@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove per-block arrays from canary watermark expansion.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CanaryTraps.GenerateWatermarkBytes` now computes into fixed 32-byte digest/output spans, prepares one 36-byte hash-plus-counter span, reuses one `HMACSHA256` instance, writes counters through allocation-free `BitConverter.TryWriteBytes`, and copies expanded spans directly into the required result. This removes the initial digest array and three arrays per 32-byte expansion block. Across 1,000 4 KiB watermarks, allocation falls from 38,504,264 to 4,600,264 bytes (88.1%) and elapsed time from 65 to 49 ms (24.6%). Exact requested lengths, default and boundary lengths, unique Guid-seeded data, platform-endian counters, partial final blocks, and negative-length rejection remain unchanged. Validation passed: complete canary tests (`24/24`) and backend (`5216/5216`: `69` application, `4867` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented the required endianness preservation as gotcha `0z750` (`fc9c38ad8`).
+
 - [x] Remove HMAC and lowercase-hex intermediates from canary registration.
   - Status: completed (2026-07-17)
   - Priority: P1

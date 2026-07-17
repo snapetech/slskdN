@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Canary watermark expansion now reuses one HMAC instance and fixed stack spans
+  for the initial digest, counter input, and expanded block instead of
+  allocating a counter array, concatenated hash/counter array, and result hash
+  for every 32-byte block. Across 1,000 4 KiB watermarks, allocation falls from
+  38,504,264 to 4,600,264 bytes (88.1%) and elapsed time from 65 to 49 ms
+  (24.6%). Requested lengths, unique per-call seeds, the existing platform
+  byte-order counter encoding, partial final blocks, default 32-byte output, and
+  negative-length rejection remain unchanged.
 - Canary registration now uses the static HMAC-SHA256 path and writes lowercase
   hexadecimal identifiers directly from hash spans instead of allocating a
   disposable HMAC object, an eight-byte prefix slice, uppercase hexadecimal

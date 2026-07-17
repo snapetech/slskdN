@@ -1,3 +1,17 @@
+## Update 2026-07-17 13:08:41Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded canary watermark expansion complete locally.
+- Last activity:
+  - Replaced initial/per-block digest, counter, and concatenation arrays with fixed spans and one reusable HMAC while preserving platform-endian counter bytes.
+  - Across 1,000 4 KiB watermarks, allocation falls from 38,504,264 to 4,600,264 bytes (88.1%) and elapsed time from 65 to 49 ms (24.6%).
+- Validation:
+  - Passed complete canary (`24/24`) and backend validation (`5216/5216`: `69` application, `4867` unit, `280` integration), plus repository lint.
+  - Exact length/uniqueness/endian/partial/negative behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotcha `0z750` (`fc9c38ad8`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the watermark expansion optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 12:56:07Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded canary registration complete locally.

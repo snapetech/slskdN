@@ -15,6 +15,63 @@ using Xunit;
 public class CanaryTrapsTests
 {
     [Fact]
+    public void GenerateWatermarkBytes_AvoidsPerBlockArrays()
+    {
+        var canary = new CanaryTraps(NullLogger<CanaryTraps>.Instance, new byte[32]);
+
+        _ = canary.GenerateWatermarkBytes("benchmark", "track.flac", 4096);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        byte[]? watermark = null;
+        for (var iteration = 0; iteration < 1_000; iteration++)
+        {
+            watermark = canary.GenerateWatermarkBytes("benchmark", "track.flac", 4096);
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(4096, watermark!.Length);
+        Assert.InRange(allocated, 0, 6_000_000);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(31)]
+    [InlineData(32)]
+    [InlineData(33)]
+    [InlineData(65)]
+    public void GenerateWatermarkBytes_ReturnsRequestedLength(int length)
+    {
+        var canary = new CanaryTraps(NullLogger<CanaryTraps>.Instance, new byte[32]);
+
+        var watermark = canary.GenerateWatermarkBytes("peer", "track.flac", length);
+
+        Assert.Equal(length, watermark.Length);
+    }
+
+    [Fact]
+    public void GenerateWatermarkBytes_DefaultCallsAreUnique()
+    {
+        var canary = new CanaryTraps(NullLogger<CanaryTraps>.Instance, new byte[32]);
+
+        var first = canary.GenerateWatermarkBytes("peer", "track.flac");
+        var second = canary.GenerateWatermarkBytes("peer", "track.flac");
+
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
+    public void GenerateWatermarkBytes_RejectsNegativeLength()
+    {
+        var canary = new CanaryTraps(NullLogger<CanaryTraps>.Instance, new byte[32]);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => canary.GenerateWatermarkBytes("peer", "track.flac", -1));
+    }
+
+    [Fact]
     public void GenerateCanary_AvoidsHmacAndHexFormattingIntermediates()
     {
         var canary = new CanaryTraps(NullLogger<CanaryTraps>.Instance, new byte[32]);

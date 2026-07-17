@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Long canary watermark expansion now reuses one HMAC and fixed span buffers
+  instead of allocating hash, counter, and concatenation arrays per block.
 - Canary registration now computes HMACs and lowercase identifiers without
   disposable hash objects, byte slices, or uppercase string intermediates.
 - Canary filename suffix encoding and decoding now avoid per-nibble strings and

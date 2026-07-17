@@ -257,27 +257,30 @@ public sealed class CanaryTraps
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         using var hmac = new HMACSHA256(_secretKey);
-        var hash = hmac.ComputeHash(inputBytes);
+        Span<byte> hash = stackalloc byte[32];
+        _ = hmac.TryComputeHash(inputBytes, hash, out _);
 
         // Expand if needed
         if (length <= hash.Length)
         {
-            return hash[..length];
+            return hash[..length].ToArray();
         }
 
         // Use HKDF-like expansion
         var result = new byte[length];
         var counter = 1;
         var pos = 0;
+        Span<byte> expandInput = stackalloc byte[36];
+        Span<byte> expanded = stackalloc byte[32];
+        hash.CopyTo(expandInput);
 
         while (pos < length)
         {
-            var counterBytes = BitConverter.GetBytes(counter++);
-            var expandInput = hash.Concat(counterBytes).ToArray();
-            var expanded = hmac.ComputeHash(expandInput);
+            _ = BitConverter.TryWriteBytes(expandInput[32..], counter++);
+            _ = hmac.TryComputeHash(expandInput, expanded, out _);
 
             var toCopy = Math.Min(expanded.Length, length - pos);
-            Buffer.BlockCopy(expanded, 0, result, pos, toCopy);
+            expanded[..toCopy].CopyTo(result.AsSpan(pos));
             pos += toCopy;
         }
 
