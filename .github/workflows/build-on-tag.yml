@@ -645,7 +645,16 @@ jobs:
             sudo sed -i '/^\[libdefaults\]/a\  dns_lookup_realm = false\n  rdns = false\n  dns_canonicalize_hostname = false' /etc/krb5.conf
           }
 
-          if [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then
+          if [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
+            echo "Configuring COPR with API token credentials."
+            cat > ~/.config/copr << EOF
+          [copr-cli]
+          login = ${COPR_LOGIN}
+          username = slskdn
+          token = ${COPR_TOKEN}
+          copr_url = https://copr.fedorainfracloud.org
+          EOF
+          elif [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then
             echo "Configuring COPR with Kerberos keytab credentials."
             configure_fedora_kerberos
 
@@ -678,15 +687,6 @@ jobs:
           username = slskdn
           copr_url = https://copr.fedorainfracloud.org
           gssapi = true
-          EOF
-          elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
-            echo "Configuring COPR with legacy API token credentials."
-            cat > ~/.config/copr << EOF
-          [copr-cli]
-          login = ${COPR_LOGIN}
-          username = slskdn
-          token = ${COPR_TOKEN}
-          copr_url = https://copr.fedorainfracloud.org
           EOF
           else
             echo "COPR credentials not configured. Skipping."

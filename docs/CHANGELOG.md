@@ -25,7 +25,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Release gates now fail unconditionally when a command exceeds its timeout,
   streaming pipe regressions dispose their leases on every assertion path, and
   COPR uploads retry bounded transient API failures using the verified SRPM
-  artifact path against Fedora's published COPR service host.
+  artifact path while preferring configured API-token credentials over GSSAPI
+  fallbacks.
 - Listener IP and port changes no longer report a reconnect requirement after
   Soulseek.NET has already rebound the live listeners and advertised the new
   endpoint to the Soulseek server.

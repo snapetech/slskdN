@@ -43,8 +43,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   overflows the viewport, including direct links to later admin panels.
 - Made release council reports regenerate from tracked repository files so
   ignored local build artifacts cannot mask clean-checkout gate failures.
-- Targeted Fedora COPR's published service host for password-and-OTP Kerberos
-  uploads so valid tickets no longer fail against a missing HTTP principal.
+- Preferred configured COPR API tokens for unattended uploads, with Kerberos
+  credentials retained as fallbacks, so missing HTTP service principals no
+  longer block releases that already have valid token credentials.
 - Restored distributed mesh DHT lookup and cross-runtime signed-store
   interoperability, registered the remote Pod/shadow-index/gateway services,
   and preserved routable shadow-index peer hints.
