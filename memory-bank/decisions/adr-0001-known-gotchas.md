@@ -52,22 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
-### 0z767. COPR GSSAPI Must Target The Fedora Copr Service Host
+### 0z767. COPR Automation Must Prefer Configured API Tokens Over GSSAPI
 
-**The Bug**: The password-and-OTP COPR path acquired a valid Fedora Kerberos
-ticket but configured `copr-cli` against `copr.fedoraproject.org`. The client
-then requested an HTTP service principal that does not exist and every upload
-attempt ended in 401, even though the Fedora Copr service is published at
-`copr.fedorainfracloud.org`.
+**The Bug**: The COPR workflow preferred Fedora password-and-OTP GSSAPI whenever
+those secrets existed, even when current API-token credentials were also
+configured. A valid user Kerberos ticket was acquired, but both Fedora COPR
+hostnames rejected HTTP negotiation because their requested service principals
+were unavailable. Changing only the hostname therefore preserved the same 401
+failure instead of using the already configured non-interactive token.
 
 **Files Affected**:
 - `.github/workflows/build-on-tag.yml`
 - `.github/workflows/release-copr.yml`
 
-**Prevention**: Keep all COPR authentication modes on Fedora's documented
-`copr.fedorainfracloud.org` service endpoint. A successful `kinit` proves only
-that user credentials are valid; retain a `copr-cli get` check that also proves
-the ticket is accepted by the configured HTTP service before building an SRPM.
+**Prevention**: Prefer a configured COPR API token for unattended release jobs;
+use keytab or password-and-OTP GSSAPI only as fallbacks when token credentials
+are absent. Keep every mode on Fedora's documented service endpoint. A
+successful `kinit` proves only that user credentials are valid; retain a
+`copr-cli get` check that also proves the selected authentication method is
+accepted before building an SRPM.
 
 ### 0z766. Scroll Content Bounds Are Not Scroll Viewport Bounds
 
