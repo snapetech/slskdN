@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z745. ASCII Token Scanners Must Preserve Prior Unicode Case Normalization
+
+**The Bug**: An allocation optimization replaced a lowercase-then-ASCII-regex
+filename tokenizer with an ASCII scanner that accepted uppercase characters
+directly. That looks equivalent for ordinary filenames, but it changes token
+boundaries for non-ASCII characters whose invariant lowercase form is ASCII.
+For example, the Kelvin sign in a word case-folds to `k`; scanning before the
+case conversion treats it as a separator instead.
+
+**Files Affected**:
+- `src/slskd/Transfers/AutoReplace/AutoReplaceService.cs`
+
+**Prevention**: When replacing a normalized regex with a manual ASCII scanner,
+retain the original normalization before scanning. Case-insensitive comparison
+of ASCII spans is not a semantic replacement for Unicode normalization because
+normalization can change which characters participate in a token.
+
 ### 0z744. Stackalloc Bitsets Must Be Cleared Before OR-Based Population
 
 **The Bug**: A stack-allocated two-word filename-character bitset was populated
