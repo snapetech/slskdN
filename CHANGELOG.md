@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Legacy bridge peer anonymization now hashes and formats its exact friendly
+  username through bounded span/pool storage without digest arrays, full-hex
+  strings, substrings, lowercase copies, or final interpolation.
 - MusicBrainz release/recording UUID-v5 mapping now uses big-endian Guid and
   span SHA-1 APIs over bounded stack/pool storage instead of namespace, name,
   combined-input, digest, and UUID byte arrays.

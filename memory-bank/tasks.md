@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove bridge peer-anonymizer hash and formatting intermediates.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `PeerIdAnonymizer` now UTF-8 encodes common peer IDs into bounded stack storage and long Unicode IDs into cleared pooled storage, hashes into a fixed SHA-256 digest span, and fills the exact `mesh-peer-` plus six-character lowercase prefix in one character span. This removes the disposable SHA object, input/digest arrays, full uppercase hex string, substring, lowercase copy, short-hash string, and final interpolation. Across 10,000 uncached unique peer IDs, allocation falls from 10,685,688 to 5,429,224 bytes (49.2%) and elapsed time falls from 13 to 8 ms (38.5%). Exact SHA prefix, case sensitivity, cached object identity, reverse and unknown lookup, Unicode fallback, and output format remain unchanged. Validation passed: focused (`4/4`), Virtual Soulfind (`424/424`), and backend (`5257/5257`: `69` application, `4908` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Make MusicBrainz UUID-v5 mapping allocation-free for typical IDs.
   - Status: completed (2026-07-17)
   - Priority: P1

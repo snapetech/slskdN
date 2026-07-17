@@ -1,3 +1,17 @@
+## Update 2026-07-17 15:52:34Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded legacy bridge peer anonymization complete locally.
+- Last activity:
+  - Replaced disposable SHA, input/digest arrays, full uppercase hex, substring, lowercase copy, short-hash string, and interpolation with bounded stack/pool encoding, a fixed digest span, and exact final character-span formatting.
+  - Across 10,000 uncached peer IDs, allocation falls from 10,685,688 to 5,429,224 bytes (49.2%) and elapsed time falls from 13 to 8 ms (38.5%).
+- Validation:
+  - Passed focused bridge helpers (`4/4`), Virtual Soulfind (`424/424`), and backend validation (`5257/5257`: `69` application, `4908` unit, `280` integration), plus repository lint.
+  - Exact hash/case/cache/reverse/unknown/Unicode/format behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bridge anonymizer optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 15:42:40Z
 
 - Current task: performance and efficiency improvements in progress; allocation-free typical MusicBrainz UUID-v5 mapping complete locally.

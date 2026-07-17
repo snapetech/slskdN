@@ -3,6 +3,9 @@
 // </copyright>
 namespace slskd.VirtualSoulfind.Bridge;
 
+using System.Buffers;
+using System.Security.Cryptography;
+using System.Text;
 using slskd.VirtualSoulfind.ShadowIndex;
 
 /// <summary>
@@ -43,8 +46,7 @@ public class PeerIdAnonymizer : IPeerIdAnonymizer
         }
 
         // Generate friendly username: mesh-peer-abc123
-        var hash = ComputeShortHash(peerId);
-        username = $"mesh-peer-{hash}";
+        username = ComputeAnonymizedUsername(peerId);
 
         peerIdToUsername[peerId] = username;
         usernameToPeerId[username] = peerId;
@@ -60,11 +62,32 @@ public class PeerIdAnonymizer : IPeerIdAnonymizer
         return Task.FromResult(peerId);
     }
 
-    private string ComputeShortHash(string peerId)
+    private static string ComputeAnonymizedUsername(string peerId)
     {
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(peerId));
-        return Convert.ToHexString(hash).Substring(0, 6).ToLowerInvariant();
+        var byteCount = Encoding.UTF8.GetByteCount(peerId);
+        byte[]? rentedBytes = null;
+        Span<byte> bytes = byteCount <= 512
+            ? stackalloc byte[byteCount]
+            : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
+
+        try
+        {
+            _ = Encoding.UTF8.GetBytes(peerId, bytes);
+            Span<byte> hash = stackalloc byte[32];
+            SHA256.HashData(bytes[..byteCount], hash);
+
+            Span<char> username = stackalloc char[16];
+            "mesh-peer-".AsSpan().CopyTo(username);
+            _ = Convert.TryToHexStringLower(hash[..3], username[10..], out _);
+            return new string(username);
+        }
+        finally
+        {
+            if (rentedBytes != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+            }
+        }
     }
 }
 

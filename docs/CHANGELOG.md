@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Legacy bridge peer anonymization now UTF-8 encodes peer IDs into bounded stack
+  or cleared pooled storage, hashes into a fixed SHA-256 span, and writes the
+  exact `mesh-peer-` plus six-character lowercase prefix through one character
+  span. Across 10,000 uncached unique peer IDs, allocation falls from 10,685,688
+  to 5,429,224 bytes (49.2%) and elapsed time falls from 13 to 8 ms (38.5%).
+  Exact hash identity, case sensitivity, cache identity, reverse/unknown lookup,
+  long Unicode inputs, and friendly username format remain unchanged.
 - MusicBrainz release and recording UUID-v5 mapping now writes namespace UUIDs
   directly in network byte order, UTF-8 encodes normalized names into bounded
   stack or cleared pooled storage, hashes into a fixed SHA-1 span, and constructs
