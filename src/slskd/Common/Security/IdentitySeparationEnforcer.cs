@@ -4,8 +4,11 @@
 namespace slskd.Common.Security
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Cryptography;
+    using System.Text;
     using slskd.Core;
 
     /// <summary>
@@ -106,12 +109,37 @@ namespace slskd.Common.Security
             {
                 // Create a deterministic hash of the original identity
                 // This preserves uniqueness without leaking the original username
-                var hash = System.Security.Cryptography.SHA256.HashData(
-                    System.Text.Encoding.UTF8.GetBytes(podPeerId));
-                return $"pod:{Convert.ToHexString(hash).Substring(0, 16).ToLowerInvariant()}";
+                return HashBridgeIdentity(podPeerId);
             }
 
             return podPeerId;
+        }
+
+        private static string HashBridgeIdentity(string identity)
+        {
+            var byteCount = Encoding.UTF8.GetByteCount(identity);
+            byte[]? rentedBytes = null;
+            Span<byte> bytes = byteCount <= 512
+                ? stackalloc byte[byteCount]
+                : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
+
+            try
+            {
+                _ = Encoding.UTF8.GetBytes(identity, bytes);
+                Span<byte> hash = stackalloc byte[32];
+                SHA256.HashData(bytes[..byteCount], hash);
+                Span<char> result = stackalloc char[20];
+                "pod:".AsSpan().CopyTo(result);
+                _ = Convert.TryToHexStringLower(hash[..8], result[4..], out _);
+                return new string(result);
+            }
+            finally
+            {
+                if (rentedBytes != null)
+                {
+                    ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+                }
+            }
         }
 
         /// <summary>

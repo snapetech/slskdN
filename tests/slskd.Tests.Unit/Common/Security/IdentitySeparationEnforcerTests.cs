@@ -3,6 +3,9 @@
 // </copyright>
 namespace slskd.Tests.Unit.Common.Security
 {
+    using System;
+    using System.Security.Cryptography;
+    using System.Text;
     using slskd.Common.Security;
     using Xunit;
 
@@ -88,6 +91,38 @@ namespace slskd.Tests.Unit.Common.Security
             Assert.NotEqual(bridgeIdentity, result);
             Assert.StartsWith("pod:", result);
             Assert.Equal(20, result.Length); // "pod:" + 16 hex chars
+        }
+
+        [Fact]
+        public void SanitizePodPeerId_RepeatedBridgeIdentityBoundsAllocation()
+        {
+            const string bridgeIdentity = "bridge:user123";
+            var expected = $"pod:{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(bridgeIdentity)))[..16]}";
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            string? result = null;
+            for (var index = 0; index < 100_000; index++)
+            {
+                result = IdentitySeparationEnforcer.SanitizePodPeerId(bridgeIdentity);
+            }
+
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.Equal(expected, result);
+            Assert.InRange(allocated, 0, 8_000_000);
+        }
+
+        [Fact]
+        public void SanitizePodPeerId_LongUnicodeBridgeIdentityPreservesHash()
+        {
+            var bridgeIdentity = $"bridge:{new string('\u00c9', 300)}";
+            var expected = $"pod:{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(bridgeIdentity)))[..16]}";
+
+            var result = IdentitySeparationEnforcer.SanitizePodPeerId(bridgeIdentity);
+
+            Assert.Equal(expected, result);
         }
 
         [Fact]

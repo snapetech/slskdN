@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove bridge identity hash and formatting intermediates.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `IdentitySeparationEnforcer.SanitizePodPeerId` now UTF-8 encodes common bridge IDs into bounded stack storage and long Unicode IDs into cleared pooled storage, hashes into a fixed digest span, and fills the exact `pod:` plus 16-character lowercase prefix in one character span. This removes the input byte array, digest array, full uppercase hexadecimal string, substring, lowercase copy, and interpolated final string while retaining one unavoidable result allocation. Across 100,000 repeated bridge IDs, allocation falls from 42,400,328 to 6,400,240 bytes (84.9%). Exact SHA-256 identity, input case sensitivity, lower-hex format, safe passthrough, blank behavior, and Unicode fallback remain unchanged. Validation passed: complete enforcer (`32/32`), Common Security (`376/376`), and backend (`5236/5236`: `69` application, `4887` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Reuse one chunk buffer across probabilistic file spot checks.
   - Status: completed (2026-07-17)
   - Priority: P1

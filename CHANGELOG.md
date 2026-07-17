@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Bridge identity sanitization now hashes and formats its abbreviated internal
+  pod ID through bounded span/pool storage without byte-array, full-hex,
+  substring, lowercase-copy, or interpolation intermediates.
 - Probabilistic file spot checks now reuse one cleared pooled chunk buffer and
   fixed digest span across the existing bounded sample instead of allocating
   chunk and hash buffers for every selected index.

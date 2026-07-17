@@ -1,3 +1,17 @@
+## Update 2026-07-17 14:36:03Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded bridge identity sanitization complete locally.
+- Last activity:
+  - Replaced bridge-ID input/digest arrays, full uppercase hex, substring, lowercase copy, and interpolation with bounded stack/pool storage plus exact final character-span formatting.
+  - Across 100,000 repeated bridge identities, allocation falls from 42,400,328 to 6,400,240 bytes (84.9%).
+- Validation:
+  - Passed complete identity enforcer (`32/32`), Common Security (`376/376`), and backend validation (`5236/5236`: `69` application, `4887` unit, `280` integration), plus repository lint.
+  - Exact SHA/input-case/format/passthrough/Unicode behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bridge identity optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 14:27:46Z
 
 - Current task: performance and efficiency improvements in progress; pooled probabilistic file spot-check hashing complete locally.

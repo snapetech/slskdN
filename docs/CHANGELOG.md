@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Bridge identity sanitization now UTF-8 encodes common inputs into bounded
+  stack storage and long Unicode inputs into cleared pooled storage, hashes into
+  a fixed digest span, and writes the exact `pod:` plus 16-character lowercase
+  hash prefix through one character span. Across 100,000 repeated bridge IDs,
+  allocation falls from 42,400,328 to 6,400,240 bytes (84.9%). Exact SHA-256
+  identity, original-input case sensitivity, prefix length, lowercase output,
+  safe-identity passthrough, and long Unicode behavior remain unchanged.
 - Probabilistic file spot checks now rent one chunk buffer lazily, reuse it
   across the existing maximum 50 selected chunks, hash each populated range
   through a fixed digest span, format lowercase hexadecimal directly, and clear
