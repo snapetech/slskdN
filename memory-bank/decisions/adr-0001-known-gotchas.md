@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z760. Release Gates Must Regenerate Reports From Repository-Owned Paths
+
+**The Bug**: The active-backlog gate reused an existing ignored `.council`
+report when present, and its generator scanned an optional top-level `examples`
+path that is not part of the repository. A developer checkout therefore passed
+with stale, machine-local candidate counts while the clean tag checkout
+regenerated different counts and failed the hosted release build.
+
+**Files Affected**:
+- `scripts/check-council-active-backlog.sh`
+- `scripts/run-council-active-bughunt.sh`
+- `docs/dev/bug-council-active-backlog.md`
+
+**Prevention**: A release gate must regenerate derived reports on every run and
+scan only repository-owned roots. Never let an ignored prior report or an
+optional local directory determine a committed baseline count. Validate the
+gate once with local ignored artifacts present and once from a clean checkout.
+
 ### 0z551. Relative Web Content Paths Resolve From The Executable Directory
 
 **The Bug**: The parallel E2E harness copied each node's Web build beneath its
