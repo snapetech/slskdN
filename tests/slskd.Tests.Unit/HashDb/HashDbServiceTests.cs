@@ -1031,51 +1031,34 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetVariantsByRecordingAsync_DuplicateHeavyRecordingHasBoundedAllocation()
+    {
+        const int variantsPerRecording = 1_000;
+        const int copiesPerVariant = 10;
+        await InsertDuplicateHeavyVariantsAsync(
+            recordingCount: 1,
+            variantsPerRecording,
+            copiesPerVariant);
+        _ = await service.GetVariantsByRecordingAsync("recording-001");
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var variants = await service.GetVariantsByRecordingAsync("recording-001");
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(variantsPerRecording, variants.Count);
+        Assert.All(variants, variant => Assert.Equal(1.0, variant.QualityScore));
+        Assert.True(
+            allocatedBytes < 4_700_000,
+            $"Duplicate-heavy recording allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public async Task GetVariantsByRecordingsAsync_DuplicateHeavyPageHasBoundedAllocation()
     {
         const int recordingCount = 100;
         const int variantsPerRecording = 10;
         const int copiesPerVariant = 10;
-        await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
-        {
-            await connection.OpenAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = $"""
-                WITH RECURSIVE sequence(value) AS (
-                    SELECT 1
-                    UNION ALL
-                    SELECT value + 1
-                    FROM sequence
-                    WHERE value < {recordingCount * variantsPerRecording * copiesPerVariant}
-                )
-                INSERT INTO HashDb (
-                    flac_key,
-                    byte_hash,
-                    size,
-                    first_seen_at,
-                    last_updated_at,
-                    seq_id,
-                    use_count,
-                    musicbrainz_id,
-                    variant_id,
-                    quality_score,
-                    seen_count)
-                SELECT
-                    printf('wide-key-%05d', value),
-                    printf('wide-hash-%05d', value),
-                    123,
-                    1,
-                    ((value - 1) % {copiesPerVariant}) + 1,
-                    value,
-                    1,
-                    printf('recording-%03d', ((value - 1) / {variantsPerRecording * copiesPerVariant}) + 1),
-                    printf('variant-%02d', ((value - 1) / {copiesPerVariant}) % {variantsPerRecording}),
-                    (((value - 1) % {copiesPerVariant}) + 1) / 10.0,
-                    value
-                FROM sequence
-                """;
-            await command.ExecuteNonQueryAsync();
-        }
+        await InsertDuplicateHeavyVariantsAsync(recordingCount, variantsPerRecording, copiesPerVariant);
 
         var recordingIds = Enumerable.Range(1, recordingCount)
             .Select(index => $"recording-{index:D3}")
@@ -1094,7 +1077,7 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetVariantsByRecordingsAsync_PreservesWinnerAndGroupOrderSemantics()
+    public async Task VariantRecordingReaders_PreserveTheirWinnerAndOrderSemantics()
     {
         await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
         {
@@ -1126,12 +1109,17 @@ public class HashDbServiceTests : IDisposable
             await command.ExecuteNonQueryAsync();
         }
 
-        var variants = await service.GetVariantsByRecordingsAsync(new[] { "recording-semantics" });
+        var batchedVariants = await service.GetVariantsByRecordingsAsync(new[] { "recording-semantics" });
+        var scalarVariants = await service.GetVariantsByRecordingAsync("recording-semantics");
 
         Assert.Equal(
             new[] { "a-winner", "b-null", "whitespace-1", "whitespace-2" },
-            variants.Select(variant => variant.FlacKey));
-        Assert.Equal(0, variants[1].QualityScore);
+            batchedVariants.Select(variant => variant.FlacKey));
+        Assert.Equal(0, batchedVariants[1].QualityScore);
+        Assert.Equal(
+            new[] { "a-winner", "whitespace-1", "whitespace-2", "b-negative" },
+            scalarVariants.Select(variant => variant.FlacKey));
+        Assert.Equal(-0.1, scalarVariants[^1].QualityScore);
     }
 
     [Fact]
@@ -1301,6 +1289,51 @@ public class HashDbServiceTests : IDisposable
 
         Assert.Contains(plan, detail =>
             detail.Contains("SEARCH HashDb USING INDEX idx_hashdb_musicbrainz_id", StringComparison.Ordinal));
+    }
+
+    private async Task InsertDuplicateHeavyVariantsAsync(
+        int recordingCount,
+        int variantsPerRecording,
+        int copiesPerVariant)
+    {
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"""
+            WITH RECURSIVE sequence(value) AS (
+                SELECT 1
+                UNION ALL
+                SELECT value + 1
+                FROM sequence
+                WHERE value < {recordingCount * variantsPerRecording * copiesPerVariant}
+            )
+            INSERT INTO HashDb (
+                flac_key,
+                byte_hash,
+                size,
+                first_seen_at,
+                last_updated_at,
+                seq_id,
+                use_count,
+                musicbrainz_id,
+                variant_id,
+                quality_score,
+                seen_count)
+            SELECT
+                printf('wide-key-%05d', value),
+                printf('wide-hash-%05d', value),
+                123,
+                1,
+                ((value - 1) % {copiesPerVariant}) + 1,
+                value,
+                1,
+                printf('recording-%03d', ((value - 1) / {variantsPerRecording * copiesPerVariant}) + 1),
+                printf('variant-%04d', ((value - 1) / {copiesPerVariant}) % {variantsPerRecording}),
+                (((value - 1) % {copiesPerVariant}) + 1) / 10.0,
+                value
+            FROM sequence
+            """;
+        await command.ExecuteNonQueryAsync();
     }
 
     private static HashDbEntry CreateVariantEntry(

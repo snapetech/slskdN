@@ -1,3 +1,12 @@
+## Update 2026-07-17 05:13:20Z
+
+- Completed database-ranked scalar HashDb variant deduplication.
+- Preserved the scalar reader's existing raw SQLite quality/recency sequence, partitioned structural variant identities, and hydrated only each identity's first ranked row; scalar and batched readers now share one complete .NET whitespace SQL character set.
+- In a 1,000-identity/ten-copy recording, reduced hydrated rows from 10,000 to 1,000 (90.0%) and warmed allocation from 41,366,248 to 4,091,440 bytes (90.1%).
+- Preserved raw null-quality ordering after negative values, quality/recency winners, stable ties, winner order, ordinal identity, whitespace fallback, and cancellation.
+- Added exact wide allocation coverage and extended the shared semantics fixture; passed focused scalar/batched (`5/5`), HashDb service (`104/104`), broader HashDb/Audio/direct caller (`174/174`), and backend (`5129/5129`: `69` application, `4780` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 05:02:26Z
 
 - Completed database-ranked batched HashDb variant deduplication.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Rank scalar HashDb variant duplicates before hydration.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `HashDbService.GetVariantsByRecordingAsync` now source-sequences its existing raw SQLite `quality_score DESC, last_updated_at DESC` order, partitions structural variant identities, and hydrates only the first row per identity. A 1,000-identity/ten-copy recording falls from 10,000 to 1,000 hydrated rows (90.0%) and from 41,366,248 to 4,091,440 warmed allocated bytes (90.1%). The full mapped-row list, application grouping buffers, and 9,000 discarded variants are removed. Raw SQL null-quality ordering after negative values, quality/recency winners, stable exact ties, returned winner order, ordinal identity, cancellation, and whitespace fallback remain unchanged. Scalar and batched queries share the complete .NET whitespace character set. Validation passed: focused scalar/batched (`5/5`), HashDb service (`104/104`), broader HashDb/Audio/direct caller (`174/174`), and backend (`5129/5129`: `69` application, `4780` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Rank batched HashDb variant duplicates before hydration.
   - Status: completed (2026-07-17)
   - Priority: P1

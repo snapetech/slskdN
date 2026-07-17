@@ -1,3 +1,17 @@
+## Update 2026-07-17 05:13:20Z
+
+- Current task: performance and efficiency improvements in progress; database-ranked scalar HashDb variants complete locally.
+- Last activity:
+  - Moved single-recording structural identity ranking ahead of hydration while preserving the method's existing raw SQLite quality/recency sequence; shared the exact .NET whitespace SQL set with batched reads.
+  - A 10,000-row/1,000-winner recording falls from 41,366,248 to 4,091,440 warmed allocated bytes (90.1%) and hydrates 90.0% fewer rows.
+- Validation:
+  - Passed focused scalar/batched (`5/5`), HashDb service (`104/104`), broader HashDb/Audio/direct caller (`174/174`), and backend validation (`5129/5129`: `69` application, `4780` unit, `280` integration).
+  - Exact raw-null/quality/recency/identity/whitespace/winner/order/tie/cancellation semantics, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the database-ranked scalar HashDb variant slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 05:02:26Z
 
 - Current task: performance and efficiency improvements in progress; database-ranked batched HashDb variants complete locally.

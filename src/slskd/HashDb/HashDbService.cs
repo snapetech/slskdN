@@ -54,6 +54,13 @@ namespace slskd.HashDb
         private const int VariantAnalysisUpdateBatchSize = 100;
         private const int HashLookupBatchSize = 500;
         private const int WarmCachePopularityUpsertBatchSize = 400;
+        private const string SqlDotNetWhitespaceCharacterSet =
+            "char(9) || char(10) || char(11) || char(12) || char(13) || " +
+            "char(32) || char(133) || char(160) || char(5760) || " +
+            "char(8192) || char(8193) || char(8194) || char(8195) || " +
+            "char(8196) || char(8197) || char(8198) || char(8199) || " +
+            "char(8200) || char(8201) || char(8202) || char(8232) || " +
+            "char(8233) || char(8239) || char(8287) || char(12288)";
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -2977,11 +2984,35 @@ namespace slskd.HashDb
             var list = new List<AudioVariant>();
             using var conn = GetConnection();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = @"
+            cmd.CommandText = $"""
+                WITH source AS (
+                    SELECT
+                        HashDb.*,
+                        CASE
+                            WHEN variant_id IS NULL OR TRIM(
+                                variant_id,
+                                {SqlDotNetWhitespaceCharacterSet}) = ''
+                                THEN flac_key
+                            ELSE variant_id
+                        END AS variant_identity,
+                        ROW_NUMBER() OVER (
+                            ORDER BY quality_score DESC, last_updated_at DESC) AS source_sequence
+                    FROM HashDb
+                    WHERE musicbrainz_id = @recordingId
+                ),
+                ranked AS (
+                    SELECT
+                        source.*,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY variant_identity
+                            ORDER BY source_sequence) AS variant_rank
+                    FROM source
+                )
                 SELECT *
-                FROM HashDb
-                WHERE musicbrainz_id = @recordingId
-                ORDER BY quality_score DESC, last_updated_at DESC";
+                FROM ranked
+                WHERE variant_rank = 1
+                ORDER BY source_sequence
+                """;
             cmd.Parameters.AddWithValue("@recordingId", recordingId);
 
             using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
@@ -2995,11 +3026,7 @@ namespace slskd.HashDb
                 }
             }
 
-            return list
-                .Where(variant => !string.IsNullOrWhiteSpace(variant.VariantId) || !string.IsNullOrWhiteSpace(variant.FlacKey))
-                .GroupBy(variant => string.IsNullOrWhiteSpace(variant.VariantId) ? variant.FlacKey : variant.VariantId, StringComparer.Ordinal)
-                .Select(group => group.First())
-                .ToList();
+            return list;
         }
 
         /// <inheritdoc/>
@@ -3065,12 +3092,7 @@ namespace slskd.HashDb
                             CASE
                                 WHEN variant_id IS NULL OR TRIM(
                                     variant_id,
-                                    char(9) || char(10) || char(11) || char(12) || char(13) ||
-                                    char(32) || char(133) || char(160) || char(5760) ||
-                                    char(8192) || char(8193) || char(8194) || char(8195) ||
-                                    char(8196) || char(8197) || char(8198) || char(8199) ||
-                                    char(8200) || char(8201) || char(8202) || char(8232) ||
-                                    char(8233) || char(8239) || char(8287) || char(12288)) = ''
+                                    {SqlDotNetWhitespaceCharacterSet}) = ''
                                     THEN flac_key
                                 ELSE variant_id
                             END AS variant_identity,

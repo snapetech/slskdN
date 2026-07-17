@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Single-recording HashDb variant reads now source-sequence the existing raw
+  SQLite quality/recency order, rank each structural variant identity, and
+  hydrate only the first row per identity. For 1,000 identities with ten copies
+  each, hydrated rows fall from 10,000 to 1,000 (90.0%) and warmed allocation
+  falls from 41,366,248 to 4,091,440 bytes (90.1%). The full row list,
+  application `GroupBy` buffers, and 9,000 discarded variant objects are gone.
+  Scalar SQL ordering still places `NULL` quality after negative values, while
+  quality, recency, stable exact ties, winner order, ordinal identity,
+  cancellation, and whitespace-to-FLAC-key fallback remain unchanged. Scalar
+  and batched readers now share one explicit SQL character set matching .NET
+  `IsNullOrWhiteSpace`.
 - Batched HashDb variant reads now rank each structural recording/variant
   identity inside the existing 500-recording SQLite batches and hydrate only
   its quality-then-recency winner. Source sequence preserves first-group and
