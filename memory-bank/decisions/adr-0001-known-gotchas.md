@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z738. PriorityQueue Root Priorities Require TryPeek
+
+**The Bug**: A bounded reputation-ranking heap tried to call a nonexistent
+`PriorityQueue.PeekPriority()` convenience method. The .NET API exposes the
+root element through `Peek()`, but retrieving its priority requires
+`TryPeek(out element, out priority)`.
+
+**Files Affected**:
+- `src/slskd/Common/Security/PeerReputation.cs`
+
+**Prevention**: When a replacement decision depends on the current worst
+priority, use `TryPeek` and compare its priority value. Do not infer symmetric
+peek methods from `PriorityQueue.Enqueue`; compile the focused project as soon
+as a new collection API is introduced.
+
 ### 0z737. Test Classes Do Not Inherit Production Constants
 
 **The Bug**: A peer-reputation allocation regression referenced `BaseScore`
