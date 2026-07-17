@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Advanced content-variant discovery now aggregates structural source groups in
+  one pass and creates peer sets only for groups that actually need them.
 - MediaCore fuzzy descriptor discovery now uses a bounded worker pool and
   coalesces normalized cache keys while preserving candidate result order.
 - MediaCore swarm grouping now discovers content variants once per target instead

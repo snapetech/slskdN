@@ -1,3 +1,12 @@
+## Update 2026-07-17 06:34:06Z
+
+- Completed one-pass advanced content-variant aggregation.
+- Replaced anonymous-key `GroupBy`, a `Distinct` peer set per group, eager result projection, and LINQ ordering buffers with a structural group index, inline singleton peer tracking, lazy repeated-group sets, pre-projection filtering, and an explicitly stable in-place sort.
+- Reduced a warmed 10,000-source/10,000-result fixture from 6,184,960 to 3,986,016 allocated bytes (35.6%).
+- Preserved semantic-source precedence, hash fallback, whitespace filtering, ordinal filename/recording identity, case-insensitive peer counts, recording fallback, filename similarity, score/count order, stable ties, file size, and cancellation.
+- Added structural identity/peer-count/stable-tie and wide allocation regressions; passed complete discovery service (`13/13`), MultiSource (`126/126`), and backend (`5142/5142`: `69` application, `4793` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 06:13:42Z
 
 - Completed bounded concurrent MediaCore fuzzy descriptor discovery.

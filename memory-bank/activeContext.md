@@ -1,3 +1,17 @@
+## Update 2026-07-17 06:34:06Z
+
+- Current task: performance and efficiency improvements in progress; one-pass advanced content-variant aggregation complete locally.
+- Last activity:
+  - Replaced `GroupBy`, per-group `Distinct`, eager projection, and LINQ sorting with one structural group index, lazy peer sets, pre-projection filtering, and an explicitly stable in-place sort.
+  - A warmed 10,000-source/10,000-result fixture falls from 6,184,960 to 3,986,016 allocated bytes (35.6%).
+- Validation:
+  - Passed complete discovery service (`13/13`), MultiSource (`126/126`), and backend validation (`5142/5142`: `69` application, `4793` unit, `280` integration).
+  - Exact source precedence/fallback, path filtering, structural identity, peer deduplication, recording fallback, similarity, ordering/ties, size, and cancellation semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the advanced content-variant aggregation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 06:13:42Z
 
 - Current task: performance and efficiency improvements in progress; bounded concurrent MediaCore descriptor discovery complete locally.

@@ -207,35 +207,80 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
                 ? verificationResult.SourcesBySemanticKey.Values.SelectMany(group => group)
                 : verificationResult.SourcesByHash.Values.SelectMany(group => group);
 
-            var variants = sources
-                .Where(source => !string.IsNullOrWhiteSpace(source.FullPath))
-                .GroupBy(source => new
+            var groups = new List<VariantAggregation>();
+            var groupIndexes = new Dictionary<VariantGroupKey, int>();
+            foreach (var source in sources)
+            {
+                if (string.IsNullOrWhiteSpace(source.FullPath))
                 {
-                    Filename = System.IO.Path.GetFileName(source.FullPath),
-                    RecordingId = source.MusicBrainzRecordingId ?? recordingId,
-                })
-                .Select(group =>
-                {
-                    var representative = group.First();
-                    var variantRecordingId = representative.MusicBrainzRecordingId ?? recordingId;
-                    var similarity = !string.IsNullOrWhiteSpace(recordingId) &&
-                        string.Equals(variantRecordingId, recordingId, StringComparison.OrdinalIgnoreCase)
-                        ? 1.0
-                        : CalculateFilenameSimilarity(filename, group.Key.Filename);
+                    continue;
+                }
 
-                    return new ContentVariant
-                    {
-                        Filename = group.Key.Filename,
-                        FileSize = fileSize,
-                        RecordingId = variantRecordingId,
-                        SimilarityScore = similarity,
-                        PeerCount = group.Select(source => source.Username).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
-                    };
-                })
-                .Where(variant => variant.SimilarityScore > 0)
-                .OrderByDescending(variant => variant.SimilarityScore)
-                .ThenByDescending(variant => variant.PeerCount)
-                .ToList();
+                var variantFilename = System.IO.Path.GetFileName(source.FullPath);
+                var variantRecordingId = source.MusicBrainzRecordingId ?? recordingId;
+                var key = new VariantGroupKey(variantFilename, variantRecordingId);
+                if (!groupIndexes.TryGetValue(key, out var groupIndex))
+                {
+                    groupIndex = groups.Count;
+                    groupIndexes[key] = groupIndex;
+                    groups.Add(new VariantAggregation(
+                        variantFilename,
+                        variantRecordingId,
+                        source.Username,
+                        groupIndex));
+                    continue;
+                }
+
+                var group = groups[groupIndex];
+                group.AddPeer(source.Username);
+                groups[groupIndex] = group;
+            }
+
+            var retainedCount = 0;
+            for (var index = 0; index < groups.Count; index++)
+            {
+                var group = groups[index];
+                group.SimilarityScore = !string.IsNullOrWhiteSpace(recordingId) &&
+                    string.Equals(group.RecordingId, recordingId, StringComparison.OrdinalIgnoreCase)
+                    ? 1.0
+                    : CalculateFilenameSimilarity(filename, group.Filename);
+                if (group.SimilarityScore > 0)
+                {
+                    groups[retainedCount++] = group;
+                }
+            }
+
+            if (retainedCount < groups.Count)
+            {
+                groups.RemoveRange(retainedCount, groups.Count - retainedCount);
+            }
+
+            groups.Sort(static (left, right) =>
+            {
+                var similarityOrder = right.SimilarityScore.CompareTo(left.SimilarityScore);
+                if (similarityOrder != 0)
+                {
+                    return similarityOrder;
+                }
+
+                var peerCountOrder = right.PeerCount.CompareTo(left.PeerCount);
+                return peerCountOrder != 0
+                    ? peerCountOrder
+                    : left.Sequence.CompareTo(right.Sequence);
+            });
+
+            var variants = new List<ContentVariant>(groups.Count);
+            foreach (var group in groups)
+            {
+                variants.Add(new ContentVariant
+                {
+                    Filename = group.Filename,
+                    FileSize = fileSize,
+                    RecordingId = group.RecordingId,
+                    SimilarityScore = group.SimilarityScore,
+                    PeerCount = group.PeerCount,
+                });
+            }
 
             return variants;
         }
@@ -398,5 +443,57 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
                (availabilityScore * availabilityWeight) +
                (peer.MetadataConfidence * metadataWeight) +
                matchTypeBonus;
+    }
+
+    private readonly record struct VariantGroupKey(string Filename, string? RecordingId);
+
+    private struct VariantAggregation
+    {
+        private readonly string _firstUsername;
+        private HashSet<string>? _peerUsernames;
+
+        public VariantAggregation(string filename, string? recordingId, string username, int sequence)
+        {
+            Filename = filename;
+            RecordingId = recordingId;
+            _firstUsername = username;
+            Sequence = sequence;
+            PeerCount = 1;
+            SimilarityScore = 0;
+        }
+
+        public string Filename { get; }
+
+        public string? RecordingId { get; }
+
+        public int Sequence { get; }
+
+        public int PeerCount { get; private set; }
+
+        public double SimilarityScore { get; set; }
+
+        public void AddPeer(string username)
+        {
+            if (_peerUsernames == null)
+            {
+                if (string.Equals(_firstUsername, username, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                _peerUsernames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    _firstUsername,
+                    username,
+                };
+                PeerCount = 2;
+                return;
+            }
+
+            if (_peerUsernames.Add(username))
+            {
+                PeerCount++;
+            }
+        }
     }
 }

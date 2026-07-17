@@ -422,6 +422,107 @@ public class AdvancedDiscoveryServiceTests
     }
 
     [Fact]
+    public async Task FindSimilarVariantsAsync_PreservesStructuralGroupsPeerCountsAndStableTies()
+    {
+        var sources = new List<VerifiedSource>
+        {
+            new()
+            {
+                Username = "Peer-One",
+                FullPath = "/first/target.flac",
+                MusicBrainzRecordingId = "recording-b",
+            },
+            new()
+            {
+                Username = "peer-one",
+                FullPath = "/duplicate/target.flac",
+                MusicBrainzRecordingId = "recording-b",
+            },
+            new()
+            {
+                Username = "peer-two",
+                FullPath = "/second/target.flac",
+                MusicBrainzRecordingId = "recording-a",
+            },
+            new()
+            {
+                Username = "ignored",
+                FullPath = " ",
+                MusicBrainzRecordingId = "recording-ignored",
+            },
+        };
+        _contentVerificationMock
+            .Setup(service => service.VerifySourcesAsync(
+                It.IsAny<ContentVerificationRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ContentVerificationResult
+            {
+                SourcesBySemanticKey = new Dictionary<string, List<VerifiedSource>>
+                {
+                    ["semantic"] = sources,
+                },
+            });
+
+        var result = await _service.FindSimilarVariantsAsync("target.flac", 123);
+
+        Assert.Collection(
+            result,
+            first =>
+            {
+                Assert.Equal("recording-b", first.RecordingId);
+                Assert.Equal(1, first.PeerCount);
+                Assert.Equal(1.0, first.SimilarityScore);
+            },
+            second =>
+            {
+                Assert.Equal("recording-a", second.RecordingId);
+                Assert.Equal(1, second.PeerCount);
+                Assert.Equal(1.0, second.SimilarityScore);
+            });
+    }
+
+    [Fact]
+    public async Task FindSimilarVariantsAsync_UniqueGroupsBoundAllocation()
+    {
+        const int sourceCount = 10_000;
+        const string recordingId = "recording-wide";
+        var sources = Enumerable.Range(0, sourceCount)
+            .Select(index => new VerifiedSource
+            {
+                Username = $"peer-{index:D5}",
+                FullPath = $"/music/track-{index:D5}.flac",
+                MusicBrainzRecordingId = recordingId,
+            })
+            .ToList();
+        _contentVerificationMock
+            .Setup(service => service.VerifySourcesAsync(
+                It.IsAny<ContentVerificationRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ContentVerificationResult
+            {
+                SourcesBySemanticKey = new Dictionary<string, List<VerifiedSource>>
+                {
+                    [recordingId] = sources,
+                },
+            });
+
+        for (var iteration = 0; iteration < 4; iteration++)
+        {
+            await _service.FindSimilarVariantsAsync("target.flac", 123, recordingId);
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await _service.FindSimilarVariantsAsync("target.flac", 123, recordingId);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        _output.WriteLine($"Allocated bytes: {allocatedBytes:N0}");
+        Assert.Equal(sourceCount, result.Count);
+        Assert.Equal("track-00000.flac", result[0].Filename);
+        Assert.Equal("track-09999.flac", result[^1].Filename);
+        Assert.True(allocatedBytes < 4_500_000, $"Allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public async Task DiscoverPeersForContentAsync_Should_Handle_Exceptions()
     {
         // Arrange

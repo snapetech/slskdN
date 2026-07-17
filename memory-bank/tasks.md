@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Aggregate advanced content variants without per-group LINQ state.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `AdvancedDiscoveryService.FindSimilarVariantsAsync` now indexes structural `(filename, recording ID)` groups during one source pass, keeps each singleton peer inline, creates a case-insensitive peer set only when a group receives a distinct second peer, filters group state before projection, and performs an in-place similarity/peer-count/first-seen sort. A warmed 10,000-source/10,000-result fixture falls from 6,184,960 to 3,986,016 allocated bytes (35.6%). Semantic-source precedence, hash fallback, whitespace paths, exact ordinal group identity, case-insensitive peer counts, recording fallback, filename similarity, score/count order, stable ties, file size, and cancellation remain unchanged. Validation passed: complete discovery service (`13/13`), MultiSource (`126/126`), and backend (`5142/5142`: `69` application, `4793` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Parallelize MediaCore fuzzy descriptor discovery with bounded work.
   - Status: completed (2026-07-17)
   - Priority: P1

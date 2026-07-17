@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Advanced content-variant discovery now indexes exact filename/recording-ID
+  groups in one source pass, tracks singleton peer counts without a per-group
+  set, filters groups before result projection, and sorts the retained group
+  state in place with an explicit first-seen tie key. A warmed 10,000-source
+  fixture whose sources form 10,000 returned variants falls from 6,184,960 to
+  3,986,016 allocated bytes (35.6%). Semantic-source precedence, hash-source
+  fallback, whitespace-path filtering, ordinal structural identity,
+  case-insensitive distinct peers, recording-ID fallback, filename similarity,
+  similarity/peer-count ordering, and stable equal-score ties remain unchanged.
 - MediaCore fuzzy variant discovery now retrieves descriptors through a fixed
   pool of at most ten workers instead of awaiting up to 50 candidates serially.
   A 50-candidate delayed-read fixture raises observed concurrency from one to
