@@ -17,7 +17,15 @@ import DirectoryTree from './DirectoryTree';
 import * as lzString from 'lz-string';
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
-import { Card, Icon, Input, Loader, Segment } from 'semantic-ui-react';
+import {
+  Button,
+  Card,
+  Icon,
+  Input,
+  Loader,
+  Popup,
+  Segment,
+} from 'semantic-ui-react';
 
 const initialState = {
   browseError: undefined,
@@ -603,10 +611,30 @@ class BrowseSession extends Component {
           </div>
           <Input
             action={
-              !pending &&
-              (browseState === 'idle'
-                ? { icon: 'search', onClick: this.browse }
-                : { color: 'red', icon: 'x', onClick: this.clear })
+              !pending && (
+                <Popup
+                  content={
+                    browseState === 'idle'
+                      ? "Browse this Soulseek user's shared files."
+                      : 'Clear this browse result and enter another username.'
+                  }
+                  position="top center"
+                  trigger={
+                    <Button
+                      aria-label={
+                        browseState === 'idle'
+                          ? 'Browse user files'
+                          : 'Clear browse result'
+                      }
+                      color={browseState === 'idle' ? undefined : 'red'}
+                      icon={browseState === 'idle' ? 'search' : 'x'}
+                      onClick={
+                        browseState === 'idle' ? this.browse : this.clear
+                      }
+                    />
+                  }
+                />
+              )
             }
             className="search-input"
             disabled={pending}

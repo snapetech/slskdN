@@ -20,6 +20,17 @@
   width: 100%;
 }
 
+.system .ui.tabular.menu {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.system .ui.tabular.menu > .item {
+  flex: 0 0 auto;
+}
+
 .integrations-admin {
   display: flex;
   flex-direction: column;

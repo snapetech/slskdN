@@ -157,17 +157,35 @@ const SearchList = ({
                 <span>
                   {pageStart}–{pageEnd} of {filteredCount}
                 </span>
-                <Button
-                  disabled={currentPage <= 1}
-                  icon="chevron left"
-                  onClick={() => setPage(currentPage - 1)}
-                  size="mini"
+                <Popup
+                  content="Go to the previous page of searches."
+                  position="top center"
+                  trigger={
+                    <span>
+                      <Button
+                        aria-label="Previous search page"
+                        disabled={currentPage <= 1}
+                        icon="chevron left"
+                        onClick={() => setPage(currentPage - 1)}
+                        size="mini"
+                      />
+                    </span>
+                  }
                 />
-                <Button
-                  disabled={currentPage >= totalPages}
-                  icon="chevron right"
-                  onClick={() => setPage(currentPage + 1)}
-                  size="mini"
+                <Popup
+                  content="Go to the next page of searches."
+                  position="top center"
+                  trigger={
+                    <span>
+                      <Button
+                        aria-label="Next search page"
+                        disabled={currentPage >= totalPages}
+                        icon="chevron right"
+                        onClick={() => setPage(currentPage + 1)}
+                        size="mini"
+                      />
+                    </span>
+                  }
                 />
               </div>
             )}

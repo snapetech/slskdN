@@ -35,6 +35,17 @@ const LocationProbe = () => {
 };
 
 describe('System', () => {
+  beforeEach(() => {
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    delete Element.prototype.scrollIntoView;
+  });
+
   it('redirects unknown system tabs to the default info tab', async () => {
     render(
       <MemoryRouter initialEntries={['/system/not-real']}>
@@ -94,6 +105,25 @@ describe('System', () => {
       expect(
         within(screen.getByText(panel).closest('.item')).getByText('Admin'),
       ).toBeInTheDocument();
+    });
+  });
+
+  it('reveals the active tab when a later route opens directly', async () => {
+    render(
+      <MemoryRouter initialEntries={['/system/options']}>
+        <Routes>
+          <Route
+            element={<System />}
+            path="/system/:tab"
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Options')).toBeInTheDocument();
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+      block: 'nearest',
+      inline: 'nearest',
     });
   });
 });

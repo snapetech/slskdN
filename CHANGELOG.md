@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Restored visible, named, and mouseover-explained Web controls for search and
+  Lidarr pagination, Lidarr refresh, user browsing, wishlist pagination,
+  transfer columns, and media-server provider selection; provider selectors now
+  render the adapters' actual labels instead of blank buttons.
+- Kept the selected System tab visible when its 22-item navigation strip
+  overflows the viewport, including direct links to later admin panels.
 - Made release council reports regenerate from tracked repository files so
   ignored local build artifacts cannot mask clean-checkout gate failures.
 - Restored distributed mesh DHT lookup and cross-runtime signed-store

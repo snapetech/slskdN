@@ -45,6 +45,14 @@ describe('BrowseSession', () => {
     setDocumentHidden(false);
   });
 
+  it('labels the browse action for assistive technology', () => {
+    render(<BrowseSession />);
+
+    expect(
+      screen.getByRole('button', { name: 'Browse user files' }),
+    ).toBeInTheDocument();
+  });
+
   it('shows the server browse failure reason', async () => {
     users.browse.mockRejectedValue({
       response: {

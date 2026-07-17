@@ -97,6 +97,44 @@ describe('Lidarr', () => {
     expect(lidarrAPI.getSyncStatus).toHaveBeenCalledTimes(1);
   });
 
+  it('labels refresh and pagination actions', async () => {
+    lidarrAPI.getWantedMissing.mockResolvedValue({
+      records: [{ albumType: 'Album', id: 1, title: 'Album One' }],
+      totalRecords: 51,
+    });
+    wishlistAPI.getAll.mockResolvedValue(
+      Array.from({ length: 51 }, (_, index) => ({
+        autoDownload: true,
+        enabled: true,
+        filter: 'flac',
+        id: `wishlist-${index}`,
+        searchText: `Album ${index}`,
+      })),
+    );
+
+    render(<Lidarr />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Refresh Lidarr wishlist items',
+      }),
+    ).toBeInTheDocument();
+    await screen.findByText('Album One');
+    await screen.findByText('Album 0');
+    expect(
+      screen.getByRole('button', { name: 'Previous Lidarr album page' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Next Lidarr album page' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Previous Lidarr wishlist page' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Next Lidarr wishlist page' }),
+    ).toBeInTheDocument();
+  });
+
   it('does not overlap slow status polls', async () => {
     vi.useFakeTimers();
     let resolveStatus;

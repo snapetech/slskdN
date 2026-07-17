@@ -17,6 +17,7 @@ import {
   Header,
   Icon,
   Message,
+  Popup,
   Segment,
   Table,
 } from 'semantic-ui-react';
@@ -148,21 +149,27 @@ const MediaServerPanel = () => {
         {hasAdapters && (
           <div className="integration-actions">
             {mediaServerAdapters.map((adapter) => (
-              <Button
+              <Popup
+                content={`Review ${adapter.label} integration readiness and path mapping.`}
                 key={adapter.id}
-                basic={activeAdapterId !== adapter.id}
-                color={
-                  activeAdapterId === adapter.id ? 'purple' : undefined
+                position="top center"
+                trigger={
+                  <Button
+                    aria-label={`Review ${adapter.label} sync readiness`}
+                    basic={activeAdapterId !== adapter.id}
+                    color={
+                      activeAdapterId === adapter.id ? 'purple' : undefined
+                    }
+                    disabled={executing}
+                    icon
+                    labelPosition="left"
+                    onClick={() => setActiveAdapterId(adapter.id)}
+                  >
+                    <Icon name={adapter.icon || 'server'} />
+                    {adapter.label}
+                  </Button>
                 }
-                content={adapter.name}
-                disabled={executing}
-                icon
-                labelPosition="left"
-                onClick={() => setActiveAdapterId(adapter.id)}
-              >
-                <Icon name={adapter.icon || 'server'} />
-                {adapter.name}
-              </Button>
+              />
             ))}
           </div>
         )}

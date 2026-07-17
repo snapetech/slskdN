@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Live Web validation now has a repeatable authenticated Chromium audit across
+  all top-level routes, System tabs, runtime-discovered internal links,
+  external-link reachability, browser/network errors, visible error states,
+  screenshots, control names, and active-tab visibility.
+- Search and Lidarr pagination, Lidarr refresh, user browsing, wishlist
+  pagination, transfer-column selection, and media-server provider controls now
+  expose clear accessible names and mouseover help. Media-server selectors use
+  the adapters' real labels instead of rendering blank, and direct navigation
+  automatically reveals later System tabs inside the overflowing tab strip.
 - Release council backlog validation now regenerates its derived report on
   every run and scans only Git-tracked repository roots. Local ignored reports,
   dependency trees, build outputs, and optional directories can no longer make

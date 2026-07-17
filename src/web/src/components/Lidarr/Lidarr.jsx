@@ -10,6 +10,7 @@ import {
   Input,
   Label,
   Loader,
+  Popup,
   Segment,
   Table,
 } from 'semantic-ui-react';
@@ -213,17 +214,35 @@ const WantedSection = ({ connected }) => {
             <span className="lidarr-pagination-info">
               {start}–{end} of {total.toLocaleString()}
             </span>
-            <Button
-              disabled={page <= 1}
-              icon="chevron left"
-              onClick={() => load(page - 1)}
-              size="mini"
+            <Popup
+              content="Load the previous page of Lidarr albums."
+              position="top center"
+              trigger={
+                <span>
+                  <Button
+                    aria-label="Previous Lidarr album page"
+                    disabled={page <= 1}
+                    icon="chevron left"
+                    onClick={() => load(page - 1)}
+                    size="mini"
+                  />
+                </span>
+              }
             />
-            <Button
-              disabled={page >= totalPages}
-              icon="chevron right"
-              onClick={() => load(page + 1)}
-              size="mini"
+            <Popup
+              content="Load the next page of Lidarr albums."
+              position="top center"
+              trigger={
+                <span>
+                  <Button
+                    aria-label="Next Lidarr album page"
+                    disabled={page >= totalPages}
+                    icon="chevron right"
+                    onClick={() => load(page + 1)}
+                    size="mini"
+                  />
+                </span>
+              }
             />
           </div>
         </>
@@ -274,7 +293,19 @@ const WishlistSection = () => {
             )}
           </Header.Content>
         </Header>
-        <Button icon="refresh" loading={loading} onClick={load} size="mini" />
+        <Popup
+          content="Refresh Lidarr-seeded wishlist items from the local database."
+          position="top center"
+          trigger={
+            <Button
+              aria-label="Refresh Lidarr wishlist items"
+              icon="refresh"
+              loading={loading}
+              onClick={load}
+              size="mini"
+            />
+          }
+        />
       </div>
 
       {loading ? (
@@ -329,17 +360,35 @@ const WishlistSection = () => {
             <span className="lidarr-pagination-info">
               {pageStart}–{pageEnd} of {items.length.toLocaleString()}
             </span>
-            <Button
-              disabled={currentPage <= 1}
-              icon="chevron left"
-              onClick={() => setPage(currentPage - 1)}
-              size="mini"
+            <Popup
+              content="Go to the previous page of Lidarr-seeded wishlist items."
+              position="top center"
+              trigger={
+                <span>
+                  <Button
+                    aria-label="Previous Lidarr wishlist page"
+                    disabled={currentPage <= 1}
+                    icon="chevron left"
+                    onClick={() => setPage(currentPage - 1)}
+                    size="mini"
+                  />
+                </span>
+              }
             />
-            <Button
-              disabled={currentPage >= totalPages}
-              icon="chevron right"
-              onClick={() => setPage(currentPage + 1)}
-              size="mini"
+            <Popup
+              content="Go to the next page of Lidarr-seeded wishlist items."
+              position="top center"
+              trigger={
+                <span>
+                  <Button
+                    aria-label="Next Lidarr wishlist page"
+                    disabled={currentPage >= totalPages}
+                    icon="chevron right"
+                    onClick={() => setPage(currentPage + 1)}
+                    size="mini"
+                  />
+                </span>
+              }
             />
           </div>
         </>

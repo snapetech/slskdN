@@ -1892,6 +1892,7 @@ const Wishlist = () => {
                   position="top center"
                   trigger={
                     <Button
+                      aria-label="Previous wishlist page"
                       disabled={currentPage <= 1}
                       icon="angle left"
                       onClick={() => setPage((value) => Math.max(1, value - 1))}
@@ -1906,6 +1907,7 @@ const Wishlist = () => {
                   position="top center"
                   trigger={
                     <Button
+                      aria-label="Next wishlist page"
                       disabled={currentPage >= pageCount}
                       icon="angle right"
                       onClick={() => setPage((value) => Math.min(pageCount, value + 1))}

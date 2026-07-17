@@ -485,7 +485,13 @@ const TransferTable = ({
           <div className="transfer-cell" role="columnheader">
             <Popup
               trigger={
-                <Button icon="columns" size="mini" compact style={{ fontSize: '0.65rem', padding: '2px 4px', margin: 0 }} />
+                <Button
+                  aria-label="Choose transfer table columns"
+                  compact
+                  icon="columns"
+                  size="mini"
+                  style={{ fontSize: '0.65rem', margin: 0, padding: '2px 4px' }}
+                />
               }
               flowing
               on="click"
