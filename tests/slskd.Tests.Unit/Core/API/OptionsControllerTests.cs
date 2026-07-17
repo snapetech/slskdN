@@ -182,6 +182,74 @@ public class OptionsControllerTests
     }
 
     [Fact]
+    public void ValidateYamlFile_AcceptsDocumentedTransfersGroupsPlacement()
+    {
+        var controller = CreateController();
+        var yaml = $$"""
+            transfers:
+              groups:
+                blacklisted:
+                  patterns:
+                    - '^(?<stem>case)\k<stem>peer$'
+            directories:
+              incomplete: '{{Path.GetTempPath()}}'
+              downloads: '{{Path.GetTempPath()}}'
+            web:
+              content_path: .
+            """;
+        var result = controller.ValidateYamlFile(yaml);
+
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
+    public void ValidateYamlFile_ValidatesPatternsUnderTransfersGroupsPlacement()
+    {
+        var controller = CreateController();
+
+        var result = controller.ValidateYamlFile($$"""
+            transfers:
+              groups:
+                blacklisted:
+                  patterns:
+                    - '[invalid'
+            directories:
+              incomplete: '{{Path.GetTempPath()}}'
+              downloads: '{{Path.GetTempPath()}}'
+            web:
+              content_path: .
+            """);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("Invalid YAML configuration", ok.Value);
+    }
+
+    [Fact]
+    public void ValidateYamlFile_TopLevelGroupsOverrideTransfersGroupsCompatibilityValues()
+    {
+        var controller = CreateController();
+
+        var result = controller.ValidateYamlFile($$"""
+            transfers:
+              groups:
+                blacklisted:
+                  patterns:
+                    - '[invalid'
+            groups:
+              blacklisted:
+                patterns:
+                  - '^valid$'
+            directories:
+              incomplete: '{{Path.GetTempPath()}}'
+              downloads: '{{Path.GetTempPath()}}'
+            web:
+              content_path: .
+            """);
+
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
     public void ApplyOverlay_WithInvalidOverlay_DoesNotLeakValidationMessage()
     {
         var controller = CreateController();

@@ -24,6 +24,7 @@ namespace slskd.Core.API
 {
     using System;
     using System.IO;
+    using System.Linq;
     using System.Reflection;
     using System.Text.RegularExpressions;
     using Asp.Versioning;
@@ -33,6 +34,7 @@ namespace slskd.Core.API
     using Serilog;
     using slskd.Core.Security;
     using slskd.Validation;
+    using YamlDotNet.RepresentationModel;
     using IOFile = System.IO.File;
 
     /// <summary>
@@ -269,7 +271,7 @@ namespace slskd.Core.API
 
             try
             {
-                var options = yaml.FromYaml<Options>();
+                var options = NormalizeCompatibilityYaml(yaml).FromYaml<Options>();
 
                 if (options is null)
                 {
@@ -293,6 +295,87 @@ namespace slskd.Core.API
 
             return true;
         }
+
+        private static string NormalizeCompatibilityYaml(string yaml)
+        {
+            var stream = new YamlStream();
+
+            using (var reader = new StringReader(yaml))
+            {
+                stream.Load(reader);
+            }
+
+            if (stream.Documents.Count == 0 || stream.Documents[0].RootNode is not YamlMappingNode root ||
+                !TryGetMappingChild(root, "transfers", out _, out var transfersNode) ||
+                transfersNode is not YamlMappingNode transfers ||
+                !TryGetMappingChild(transfers, "groups", out var transfersGroupsKey, out var transfersGroupsNode))
+            {
+                return yaml;
+            }
+
+            transfers.Children.Remove(transfersGroupsKey);
+
+            if (TryGetMappingChild(root, "groups", out _, out var rootGroupsNode))
+            {
+                if (rootGroupsNode is YamlMappingNode rootGroups && transfersGroupsNode is YamlMappingNode transfersGroups)
+                {
+                    MergeMissingYamlChildren(rootGroups, transfersGroups);
+                }
+            }
+            else
+            {
+                root.Children.Add(new YamlScalarNode("groups"), transfersGroupsNode);
+            }
+
+            using var writer = new StringWriter();
+            stream.Save(writer, assignAnchors: false);
+            return writer.ToString();
+        }
+
+        private static void MergeMissingYamlChildren(YamlMappingNode target, YamlMappingNode source)
+        {
+            foreach (var child in source.Children.ToArray())
+            {
+                var name = (child.Key as YamlScalarNode)?.Value;
+                if (name is not null && TryGetMappingChild(target, name, out _, out var existing))
+                {
+                    if (existing is YamlMappingNode existingMap && child.Value is YamlMappingNode childMap)
+                    {
+                        MergeMissingYamlChildren(existingMap, childMap);
+                    }
+
+                    continue;
+                }
+
+                target.Children.Add(child.Key, child.Value);
+            }
+        }
+
+        private static bool TryGetMappingChild(
+            YamlMappingNode mapping,
+            string name,
+            out YamlNode key,
+            out YamlNode value)
+        {
+            var normalizedName = NormalizeYamlKey(name);
+
+            foreach (var child in mapping.Children)
+            {
+                if (child.Key is YamlScalarNode scalar && NormalizeYamlKey(scalar.Value) == normalizedName)
+                {
+                    key = child.Key;
+                    value = child.Value;
+                    return true;
+                }
+            }
+
+            key = null!;
+            value = null!;
+            return false;
+        }
+
+        private static string NormalizeYamlKey(string? value)
+            => (value ?? string.Empty).Replace("_", string.Empty).Replace("-", string.Empty).ToLowerInvariant();
 
         private static string RedactConfigurationDebugView(string debugView)
         {
