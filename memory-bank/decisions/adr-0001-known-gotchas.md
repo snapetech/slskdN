@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z742. Upload Queue Fixtures Must Set The Strategy They Assert
+
+**The Bug**: A wide upload-queue benchmark assigned descending `Enqueued`
+timestamps and expected FIFO selection, but left the built-in test group on its
+default round-robin strategy. Because every `Ready` timestamp tied, the queue
+correctly selected list order instead of the expected oldest enqueue time.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Transfers/Uploads/UploadQueueTests.cs`
+
+**Prevention**: Set `UploadGroup.Strategy` explicitly in scheduling fixtures.
+Use `FirstInFirstOut` when expected order is derived from `Enqueued`, and
+`RoundRobin` when it is derived from `Ready`; do not infer the configured test
+strategy from the timestamp data being constructed.
+
 ### 0z741. Direct Concurrent Map Min Scans Can Lose To Dense Snapshots
 
 **The Bug**: Replacing full-capacity commitment eviction's
