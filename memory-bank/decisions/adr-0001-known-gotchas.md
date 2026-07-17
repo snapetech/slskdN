@@ -25602,3 +25602,22 @@ nowrap behavior, then reveal the active item whenever route selection changes.
 Headless route coverage must compare the active item's bounds with the menu's
 visible bounds; rendering the pane successfully does not prove its navigation
 control is reachable.
+
+### 0z596. Startup-Bound Option Fields Must Advertise Pending Restarts
+
+**The Bug**: CORS services and middleware are built from `OptionsAtStartup`,
+but the nested CORS fields were not marked with `RequiresRestart`. Editing
+`Web.Cors` therefore updated `/api/v0/options` while the startup CORS policy
+remained active and application state incorrectly reported
+`PendingRestart=false`. The accepted configuration and the effective request
+policy silently diverged until an operator restarted the process manually.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `tests/slskd.Tests.Unit/Core/ApplicationLifecycleTests.cs`
+
+**Prevention**: Mark every leaf option consumed only while constructing the
+service container or middleware pipeline with `RequiresRestart`. Add an
+options-monitor regression that changes a representative leaf and observes
+`State.PendingRestart`; API acceptance alone does not prove that a runtime
+configuration change took effect.
