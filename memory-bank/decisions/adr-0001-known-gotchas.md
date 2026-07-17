@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z733. Parallel Cacheable Reads Must Coalesce Normalized Duplicates
+
+**The Bug**: A descriptor-discovery optimization replaced serial reads with a
+fixed worker pool. Duplicate registry IDs that previously became cache hits
+after the first serial read could enter different workers simultaneously,
+causing duplicate DHT requests for the same trimmed ContentID.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/MediaCoreSwarmService.cs`
+- `tests/slskd.Tests.Unit/Transfers/MultiSource/MediaCoreSwarmServiceTests.cs`
+
+**Prevention**: Before parallelizing cacheable I/O, derive the callee's exact
+normalization and cache identity. Coalesce each normalized key into one
+in-flight result slot, then map that result back to every original input
+position so output multiplicity and order remain unchanged. A bounded worker
+count prevents global overload but does not prevent same-key cache stampedes.
+
 ### 0z732. Hoisted Async Work Must Preserve Empty-Loop Laziness
 
 **The Bug**: A swarm-grouping optimization moved invariant content discovery
