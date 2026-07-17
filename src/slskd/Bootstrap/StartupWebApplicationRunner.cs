@@ -117,11 +117,20 @@ public static class StartupWebApplicationRunner
         }
         catch (Exception ex)
         {
-            log.Fatal(ex, "Application terminated unexpectedly");
+            HandleUnexpectedTermination(ex, log, exit);
         }
         finally
         {
             Serilog.Log.CloseAndFlush();
         }
+    }
+
+    internal static void HandleUnexpectedTermination(
+        Exception exception,
+        Serilog.ILogger log,
+        Action<int> exit)
+    {
+        log.Fatal(exception, "Application terminated unexpectedly");
+        exit(1);
     }
 }
