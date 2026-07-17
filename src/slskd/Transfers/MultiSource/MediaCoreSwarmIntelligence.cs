@@ -157,7 +157,7 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
             var contentType = DetermineContentType(contentId, contentDescriptor);
 
             // Analyze peer capabilities
-            var peerAnalysis = AnalyzePeerCapabilities(availablePeers.ToList(), contentType);
+            var peerAnalysis = AnalyzePeerCapabilities(peerList, contentType);
 
             // Predict optimal configuration
             var recommendedStrategy = DetermineOptimalStrategy(contentType, peerAnalysis);
@@ -442,17 +442,52 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
 
     private static PeerCapabilityAnalysis AnalyzePeerCapabilities(IReadOnlyList<PeerCapability> peers, ContentType contentType)
     {
-        var compatiblePeers = peers.Where(p => IsCompatibleWithContentType(p, contentType)).ToList();
-        var averageSpeed = compatiblePeers.Any() ? compatiblePeers.Average(p => p.AverageSpeed) : 0;
-        var reliabilityDistribution = compatiblePeers.GroupBy(p => p.Reliability)
-            .ToDictionary(g => g.Key, g => g.Count());
+        var compatiblePeers = new bool[peers.Count];
+        string? cachedContentId = null;
+        var cachedCompatibility = false;
+        var reliabilityDistribution = new Dictionary<PeerReliability, int>();
+        var compatiblePeerCount = 0;
+        var totalSpeed = 0.0;
+        var reliablePeers = 0;
+        for (var index = 0; index < peers.Count; index++)
+        {
+            var peer = peers[index];
+            if (!IsCompatibleWithContentType(
+                peer,
+                contentType,
+                ref cachedContentId,
+                ref cachedCompatibility))
+            {
+                continue;
+            }
+
+            compatiblePeers[index] = true;
+            compatiblePeerCount++;
+            totalSpeed += peer.AverageSpeed;
+            reliabilityDistribution[peer.Reliability] =
+                reliabilityDistribution.GetValueOrDefault(peer.Reliability) + 1;
+            if (peer.Reliability >= PeerReliability.Good)
+            {
+                reliablePeers++;
+            }
+        }
+
+        var averageSpeed = compatiblePeerCount > 0 ? totalSpeed / compatiblePeerCount : 0;
+        var fastPeers = 0;
+        for (var index = 0; index < peers.Count; index++)
+        {
+            if (compatiblePeers[index] && peers[index].AverageSpeed > averageSpeed * 1.5)
+            {
+                fastPeers++;
+            }
+        }
 
         return new PeerCapabilityAnalysis(
-            CompatiblePeerCount: compatiblePeers.Count,
+            CompatiblePeerCount: compatiblePeerCount,
             AverageSpeed: averageSpeed,
             ReliabilityDistribution: reliabilityDistribution,
-            FastPeers: compatiblePeers.Count(p => p.AverageSpeed > averageSpeed * 1.5),
-            ReliablePeers: compatiblePeers.Count(p => p.Reliability >= PeerReliability.Good));
+            FastPeers: fastPeers,
+            ReliablePeers: reliablePeers);
     }
 
     private static SwarmStrategy DetermineOptimalStrategy(ContentType contentType, PeerCapabilityAnalysis analysis)
@@ -601,18 +636,52 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
         };
     }
 
-    private static bool IsCompatibleWithContentType(PeerCapability peer, ContentType contentType)
+    private static bool IsCompatibleWithContentType(
+        PeerCapability peer,
+        ContentType contentType,
+        ref string? cachedContentId,
+        ref bool cachedCompatibility)
     {
         // Simplified compatibility check - in practice, this would check
         // supported codecs, content types, and peer capabilities
-        return peer.SupportedContentIds.Any(id =>
-            contentType switch
+        if (contentType == ContentType.Unknown)
+        {
+            return peer.SupportedContentIds.Count > 0;
+        }
+
+        foreach (var contentId in peer.SupportedContentIds)
+        {
+            if (contentId != null && string.Equals(contentId, cachedContentId, StringComparison.Ordinal))
             {
-                ContentType.Audio => ContentIdParser.Parse(id)?.IsAudio ?? false,
-                ContentType.Video => ContentIdParser.Parse(id)?.IsVideo ?? false,
-                ContentType.Image => ContentIdParser.Parse(id)?.IsImage ?? false,
+                if (cachedCompatibility)
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            var parsedContentId = ContentIdParser.Parse(contentId!);
+            var compatible = contentType switch
+            {
+                ContentType.Audio => parsedContentId?.IsAudio ?? false,
+                ContentType.Video => parsedContentId?.IsVideo ?? false,
+                ContentType.Image => parsedContentId?.IsImage ?? false,
                 _ => true
-            });
+            };
+            if (contentId != null)
+            {
+                cachedContentId = contentId;
+                cachedCompatibility = compatible;
+            }
+
+            if (compatible)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static double CalculatePeerScore(PeerCapability peer, PeerCapabilityAnalysis analysis)

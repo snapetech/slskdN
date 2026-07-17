@@ -1,3 +1,17 @@
+## Update 2026-07-17 11:44:15Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded MediaCore swarm capability prediction complete locally.
+- Last activity:
+  - Reused one caller peer materialization, replaced compatible/grouping buffers with direct aggregation plus a compact compatibility bitmap, and cached the most recent exact ContentID compatibility result.
+  - Across 100 predictions over 10,000 repeated-ID peers, allocation falls from 940,953,880 to 93,407,112 bytes (90.1%) and elapsed time from 346 to 149 ms (56.9%).
+- Validation:
+  - Passed new MediaCore swarm intelligence (`2/2`) and backend validation (`5180/5180`: `69` application, `4831` unit, `280` integration), plus repository lint.
+  - Exact enumeration, compatibility, speed/distribution/counts, strategy, optimal peer count, recommendation behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the MediaCore capability analysis, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 11:29:29Z
 
 - Current task: performance and efficiency improvements in progress; one-pass adaptive factor correlation complete locally.

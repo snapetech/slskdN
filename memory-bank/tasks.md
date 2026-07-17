@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse MediaCore swarm peer materialization and ContentID compatibility.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `MediaCoreSwarmIntelligence.PredictOptimalConfigurationAsync` now materializes `availablePeers` once and passes that list through analysis and selection. Capability analysis aggregates compatible count, speed, reliability distribution, and reliable count directly, stores one compatibility bit per peer for the fast-peer pass, and reuses the most recent exact ContentID parse result without allocating a dictionary for unique IDs. Across 100 predictions over 10,000 peers advertising one ContentID, allocation falls from 940,953,880 to 93,407,112 bytes (90.1%) and elapsed time from 346 to 149 ms (56.9%). Exact compatibility, average speed, distribution/counts, strategy, optimal count, scoring, and recommendation ordering remain unchanged. Validation passed: new intelligence tests (`2/2`) and backend (`5180/5180`: `69` application, `4831` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Calculate adaptive scheduler factor correlations in one online pass.
   - Status: completed (2026-07-17)
   - Priority: P1

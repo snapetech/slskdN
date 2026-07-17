@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MediaCore optimal-swarm prediction now materializes caller-provided peers
+  once, reuses the most recent exact ContentID compatibility result, records
+  compatibility in a compact per-peer bitmap, and aggregates speed and
+  reliability statistics directly instead of copying peers again and building
+  compatible-peer and grouping buffers. Across 100 predictions over 10,000
+  peers advertising the same ContentID, allocation falls from 940,953,880 to
+  93,407,112 bytes (90.1%) and elapsed time from 346 to 149 ms (56.9%). Exact
+  content compatibility, average speed, reliability distribution, fast and
+  reliable peer counts, strategy, optimal count, scoring, and recommendation
+  order remain unchanged.
 - Adaptive scheduler weight learning now computes reputation, throughput, and
   RTT Pearson correlations together in one online covariance pass over recent
   completions instead of allocating six factor/outcome lists and repeatedly
