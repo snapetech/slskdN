@@ -52,6 +52,19 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z752. CommitmentVerification Uses IsValid, Not Success
+
+**The Bug**: New cryptographic-commitment tests asserted a presumed `Success`
+property on `CommitmentVerification`. The concrete result contract names the
+boolean `IsValid`, so the unit-test project failed with CS1061.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/CryptographicCommitmentTests.cs`
+
+**Prevention**: Inspect result DTOs before borrowing assertion vocabulary from
+neighboring services. For commitment verification assert `IsValid`, `Error`,
+and `VerifiedHash`; do not infer a generic `Success` member.
+
 ### 0z751. No-Build Benchmarks Must Follow A Proven Successful Build
 
 **The Bug**: A hash helper changed from one input string to two inputs, but one
