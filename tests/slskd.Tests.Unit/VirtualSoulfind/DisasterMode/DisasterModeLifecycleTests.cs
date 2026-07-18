@@ -13,6 +13,27 @@ using Xunit;
 public class DisasterModeLifecycleTests
 {
     [Fact]
+    public void DisasterModeCoordinator_Force_StartsInFullFallback()
+    {
+        var healthMonitor = new Mock<ISoulseekHealthMonitor>();
+        var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+        optionsMonitor.Setup(x => x.CurrentValue).Returns(new slskd.Options
+        {
+            VirtualSoulfind = new slskd.Core.VirtualSoulfindOptions
+            {
+                DisasterMode = new DisasterModeOptions { Force = true },
+            },
+        });
+        using var coordinator = new DisasterModeCoordinator(
+            NullLogger<DisasterModeCoordinator>.Instance,
+            healthMonitor.Object,
+            optionsMonitor.Object);
+
+        Assert.Equal(DisasterModeLevel.FullFallback, coordinator.CurrentLevel);
+        Assert.True(((IDisasterModeCoordinator)coordinator).IsDisasterModeActive);
+    }
+
+    [Fact]
     public void SoulseekClientWrapper_Dispose_UnsubscribesRoomMessageProxy()
     {
         var soulseekClient = new Mock<Soulseek.ISoulseekClient>();

@@ -102,8 +102,11 @@ public sealed class DisasterModeCoordinator : IDisasterModeCoordinator
         // Subscribe to health changes.
         healthMonitor.HealthChanged += OnHealthChanged;
 
-        // Start in normal mode (Soulseek + mesh together).
-        currentLevel = DisasterModeLevel.Normal;
+        // Honor the explicit test/operator override at startup. Previously the
+        // option was bound and exposed through the options API but never read.
+        currentLevel = optionsMonitor.CurrentValue.VirtualSoulfind?.DisasterMode?.Force == true
+            ? DisasterModeLevel.FullFallback
+            : DisasterModeLevel.Normal;
     }
 
     public DisasterModeLevel CurrentLevel

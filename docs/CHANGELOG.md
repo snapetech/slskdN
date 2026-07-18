@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Forced VirtualSoulfind disaster mode now starts the coordinator in full
+  fallback instead of exposing the configured override without applying it.
 - Release gates now fail unconditionally when a command exceeds its timeout,
   streaming pipe regressions dispose their leases on every assertion path, and
   COPR uploads retry bounded transient API failures using the verified SRPM
