@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Transferred exclusive ownership of active download cancellation sources before
+  shutdown cancellation, preventing transfer cleanup from disposing a source
+  immediately before service disposal calls `Cancel()` on it.
 - Reconfigured regular and type-1 obfuscated Soulseek listeners as one live
   update, including advertised metadata, without leaving a stale reconnect
   warning after the runtime successfully rebinds them.

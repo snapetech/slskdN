@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Download shutdown now takes exclusive ownership of each cancellation source
+  before cancelling and disposing it, preventing transfer cleanup from racing
+  service disposal with an `ObjectDisposedException`.
 - Chat, Rooms, System Files, adversarial security settings, and VPN gateway
   settings now render their persistent tab content instead of showing only the
   tab menu.

@@ -2000,12 +2000,18 @@ namespace slskd.Transfers.Downloads
 
         private void CancelActiveTransfers()
         {
-            foreach (var cancellationTokenSource in CancellationTokens.Values)
+            foreach (var (transferId, _) in CancellationTokens)
             {
-                cancellationTokenSource.Cancel();
-            }
+                if (!CancellationTokens.TryRemove(transferId, out var cancellationTokenSource))
+                {
+                    continue;
+                }
 
-            CancellationTokens.Clear();
+                using (cancellationTokenSource)
+                {
+                    cancellationTokenSource.Cancel();
+                }
+            }
         }
 
         private Task TrackTransferTask(ConcurrentDictionary<Guid, Task> taskMap, Guid transferId, Task task)
