@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z773. Scoped Result Actions Must Explain When And Why They Are Available
+
+**The Bug**: The search result UI rendered `Ignore for Wishlist` only when a
+search record carried a wishlist item ID. That scope is correct because the
+ignore rule belongs to one wishlist item, but manual and older result pages gave
+no visible explanation for the missing action. Users therefore saw the control
+on some searches and reasonably concluded that the feature was intermittent.
+
+**Files Affected**:
+- `src/web/src/components/Search/Detail/SearchDetail.jsx`
+- `src/web/src/components/Search/Detail/SearchDetail.test.jsx`
+
+**Prevention**: When an action is conditionally available because it persists
+state against a specific parent resource, show the scope and workflow in the
+surrounding page on both sides of the condition. Regression-test both contexts:
+wishlist results must explain where the action lives and what future runs it
+affects, while manual results must explain that a wishlist search is required.
+
 ### 0z772. Expected Upload Disconnects Need Peer Cooldown And Single-Point Logging
 
 **The Bug**: A remote peer that repeatedly closed the transfer connection could
