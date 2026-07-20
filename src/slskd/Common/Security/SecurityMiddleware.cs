@@ -62,6 +62,8 @@ public sealed class SecurityMiddleware
         // Get raw target from HTTP feature
         var httpRequestFeature = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>();
         var rawTarget = httpRequestFeature?.RawTarget ?? string.Empty;
+        var queryStart = rawTarget.IndexOf('?', StringComparison.Ordinal);
+        var rawPath = queryStart >= 0 ? rawTarget[..queryStart] : rawTarget;
 
         // Only log at DEBUG level for non-private IPs to reduce noise from localhost
         var isPrivateIp = remoteIp != null && IsPrivateOrLocalIp(remoteIp);
@@ -78,22 +80,22 @@ public sealed class SecurityMiddleware
 
         // Check raw target first (before normalization) - this catches plain traversal
         // PathGuard.ContainsTraversal checks for both plain and URL-encoded traversal
-        if (!string.IsNullOrEmpty(rawTarget) && PathGuard.ContainsTraversal(rawTarget))
+        if (!string.IsNullOrEmpty(rawPath) && PathGuard.ContainsTraversal(rawPath))
         {
             _logger.LogWarning("Path traversal attempt from {SanitizedIp}: {SanitizedPath}",
                 LoggingSanitizer.SanitizeIpAddress(remoteIp),
-                LoggingSanitizer.SanitizeSensitiveData(rawTarget));
+                LoggingSanitizer.SanitizeSensitiveData(rawPath));
 
             // Record violation if ViolationTracker is available
             if (remoteIp != null)
             {
-                _violationTracker?.RecordIpViolation(remoteIp, ViolationType.PathTraversal, rawTarget);
+                _violationTracker?.RecordIpViolation(remoteIp, ViolationType.PathTraversal, rawPath);
             }
 
             _eventSink?.Report(SecurityEvent.Create(
                 SecurityEventType.PathTraversal,
                 SecuritySeverity.High,
-                $"Path traversal attempt: {rawTarget}",
+                $"Path traversal attempt: {rawPath}",
                 remoteIp?.ToString() ?? "unknown"));
 
             context.Response.StatusCode = StatusCodes.Status400BadRequest;

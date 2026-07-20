@@ -1,3 +1,11 @@
+## Update 2026-07-20 13:23:50Z
+
+- Fixed four defects identified by tester feedback: ambiguous wishlist-folder ignore availability, false path-traversal self-bans for usernames containing `..`, a two-migration index recreate/drop loop on every restart, and repeated expected upload-disconnect work/log amplification.
+- Kept ignore rules scoped to one wishlist item and added visible workflow guidance to wishlist and manual Search Detail pages. Path traversal now requires an exact decoded `..` component and the middleware checks only the raw path, never query values.
+- Made the 2025 transfer-index migration accept the 2026 successor index and avoid recreating the superseded direction-only index. Added cross-migration convergence coverage.
+- Taught the shared Soulseek classifier about client/message wrapper exceptions, reduced expected upload failures to one concise warning, and added a 30-second per-peer enqueue cooldown while preserving error treatment for local file-access failures.
+- Validation passed: full .NET (`5311/5311`: `74` application, `4953` unit, `284` integration), full Web (`889` passed, `4` skipped), focused regressions, repository lint, and `git diff --check`. No release or deployment was created.
+
 ## Update 2026-07-17 18:20:49Z
 
 - Completed the finite performance-improvement publication and deployment goal.

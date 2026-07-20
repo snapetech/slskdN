@@ -827,6 +827,15 @@ const SearchDetail = ({
                 }
               />
             </div>
+            <div
+              className="search-wishlist-ignore-guidance"
+              role="note"
+            >
+              <Icon name={search.wishlistItemId ? 'ban' : 'info circle'} />
+              {search.wishlistItemId
+                ? 'Wishlist search: use “Ignore for Wishlist” below a result folder to hide that peer and folder from future runs of this wishlist item.'
+                : 'Folder ignores are available only for wishlist searches because each rule belongs to one wishlist item. Open a result from Wishlist history to use them.'}
+            </div>
             <Input
               action={
                 <Button.Group>

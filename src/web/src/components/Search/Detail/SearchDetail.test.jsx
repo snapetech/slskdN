@@ -121,6 +121,32 @@ describe('SearchDetail', () => {
     ]);
   });
 
+  it('explains that folder ignores require a wishlist search', async () => {
+    getResponses.mockResolvedValue([]);
+
+    render(<SearchDetail {...createProps()} />);
+
+    expect(await screen.findByRole('note')).toHaveTextContent(
+      'Folder ignores are available only for wishlist searches',
+    );
+    await waitFor(() => expect(getResponses).toHaveBeenCalledTimes(1));
+  });
+
+  it('explains where wishlist folder ignores apply', async () => {
+    getResponses.mockResolvedValue([]);
+
+    render(
+      <SearchDetail
+        {...createProps({ wishlistItemId: 'wishlist-item' })}
+      />,
+    );
+
+    expect(await screen.findByRole('note')).toHaveTextContent(
+      'hide that peer and folder from future runs of this wishlist item',
+    );
+    await waitFor(() => expect(getResponses).toHaveBeenCalledTimes(1));
+  });
+
   it('clears hydrated results when a reused detail changes to an active search without responses', async () => {
     getGroups.mockResolvedValue({ 'first-search-peer': 'privileged' });
     getResponses.mockResolvedValue([
@@ -186,4 +212,25 @@ describe('SearchDetail', () => {
     );
     expect(getResponses).toHaveBeenCalledTimes(1);
   });
+});
+
+const createProps = (searchOverrides = {}) => ({
+  creating: false,
+  disabled: false,
+  onCreate: vi.fn(),
+  onRemove: vi.fn(),
+  onStop: vi.fn(),
+  removing: false,
+  search: {
+    fileCount: 0,
+    id: 'search-id',
+    isComplete: true,
+    lockedFileCount: 0,
+    responseCount: 0,
+    responsesAvailable: true,
+    searchText: 'test',
+    state: 'Complete',
+    ...searchOverrides,
+  },
+  stopping: false,
 });

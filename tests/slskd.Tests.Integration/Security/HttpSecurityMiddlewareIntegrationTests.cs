@@ -94,6 +94,18 @@ public class HttpSecurityMiddlewareIntegrationTests : IClassFixture<SecurityTest
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("/api/v0/transfers/downloads/x..xyeppersesx..x")]
+    [InlineData("/api/v0/users/groups?usernames=x..xyeppersesx..x")]
+    public async Task PathTraversal_IdentifiersContainingAdjacentDots_Returns200(string target)
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync(target);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     [Fact]
     public async Task Authentication_WhenDisabled_AllowsAccess()
     {
@@ -199,6 +211,8 @@ public class SecurityTestWebApplicationFactory : IDisposable
                     {
                         endpoints.MapGet("/health", () => "OK");
                         endpoints.MapGet("/api/v0/session", () => new { authenticated = true });
+                        endpoints.MapGet("/api/v0/transfers/downloads/{username}", () => "OK");
+                        endpoints.MapGet("/api/v0/users/groups", () => "OK");
                     });
                 });
             });

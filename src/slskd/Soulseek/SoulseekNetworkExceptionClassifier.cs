@@ -86,6 +86,8 @@ public static class SoulseekNetworkExceptionClassifier
             isSoulseekTcpDoubleDisconnectRace ||
             isSoulseekDisconnectingReadLoopRace ||
             isSoulseekListenerSocketDisposed ||
+            typeName.Contains("Soulseek.SoulseekClientException", StringComparison.Ordinal) ||
+            typeName.Contains("Soulseek.MessageReadException", StringComparison.Ordinal) ||
             typeName.Contains("Soulseek.ConnectionReadException", StringComparison.Ordinal) ||
             typeName.Contains("Soulseek.ConnectionException", StringComparison.Ordinal) ||
             typeName.Contains("Soulseek.TransferException", StringComparison.Ordinal) ||

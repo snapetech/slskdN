@@ -283,6 +283,16 @@ public sealed class TransfersDbContextTests
             migration.Apply();
             Assert.False(migration.NeedsToBeApplied());
 
+            var supersededMigration = new Z07062025_TransferIndexesMigration(
+                new ConnectionStringDictionary(new()
+                {
+                    [Database.Transfers] = connectionString,
+                }));
+            Assert.True(supersededMigration.NeedsToBeApplied());
+            supersededMigration.Apply();
+            Assert.False(supersededMigration.NeedsToBeApplied());
+            Assert.False(migration.NeedsToBeApplied());
+
             using (var connection = new SqliteConnection(connectionString))
             {
                 connection.Open();

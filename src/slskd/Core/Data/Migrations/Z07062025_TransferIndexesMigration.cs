@@ -30,6 +30,10 @@ using Serilog;
 /// </summary>
 public class Z07062025_TransferIndexesMigration : IMigration
 {
+    private const string DirectionIndex = "IDX_Transfers_Direction";
+    private const string DirectionSuccessorIndex = "IDX_Transfers_Removed_Direction";
+    private const string StateIndex = "IDX_Transfers_State";
+
     public Z07062025_TransferIndexesMigration(ConnectionStringDictionary connectionStrings)
     {
         ConnectionString = connectionStrings[Database.Transfers];
@@ -42,7 +46,8 @@ public class Z07062025_TransferIndexesMigration : IMigration
     {
         try
         {
-            // check to see if *BOTH* of the indexes are in place. if one or both are missing, we must apply
+            // The later history migration replaces the direction-only index with a covering count index.
+            // Treat either direction index plus the state index as a complete schema.
             var idxes = SchemaInspector.GetDatabaseIndexes(ConnectionString);
 
             // If Transfers table doesn't exist yet (fresh install), migration is not needed
@@ -53,8 +58,10 @@ public class Z07062025_TransferIndexesMigration : IMigration
 
             var txfers = idxes["Transfers"];
 
-            var directionExists = txfers.Any(c => c.Name.Equals("IDX_Transfers_Direction", StringComparison.OrdinalIgnoreCase));
-            var stateExists = txfers.Any(c => c.Name.Equals("IDX_Transfers_State", StringComparison.OrdinalIgnoreCase));
+            var directionExists = txfers.Any(c =>
+                c.Name.Equals(DirectionIndex, StringComparison.OrdinalIgnoreCase) ||
+                c.Name.Equals(DirectionSuccessorIndex, StringComparison.OrdinalIgnoreCase));
+            var stateExists = txfers.Any(c => c.Name.Equals(StateIndex, StringComparison.OrdinalIgnoreCase));
 
             if (directionExists && stateExists)
             {
@@ -87,10 +94,17 @@ public class Z07062025_TransferIndexesMigration : IMigration
         {
             Log.Information("> Adding missing index(es) on the Transfers table...");
 
-            using var directionCommand = new SqliteCommand(@"
-                CREATE INDEX IF NOT EXISTS IDX_Transfers_Direction ON Transfers (Direction)
-            ", connection, transaction);
-            directionCommand.ExecuteNonQuery();
+            var transferIndexes = SchemaInspector.GetDatabaseIndexes(ConnectionString)["Transfers"];
+            var directionIsSuperseded = transferIndexes.Any(c =>
+                c.Name.Equals(DirectionSuccessorIndex, StringComparison.OrdinalIgnoreCase));
+
+            if (!directionIsSuperseded)
+            {
+                using var directionCommand = new SqliteCommand(@"
+                    CREATE INDEX IF NOT EXISTS IDX_Transfers_Direction ON Transfers (Direction)
+                ", connection, transaction);
+                directionCommand.ExecuteNonQuery();
+            }
 
             using var stateCommand = new SqliteCommand(@"
                 CREATE INDEX IF NOT EXISTS IDX_Transfers_State ON Transfers (State)

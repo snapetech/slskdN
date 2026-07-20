@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Fix the July tester-reported search-ignore, self-ban, migration-loop, and upload-storm defects.
+  - Status: completed (2026-07-20)
+  - Priority: P1
+  - Notes: Folder ignores remain correctly scoped to one wishlist item, but Search Detail now visibly explains both the wishlist workflow and why manual searches have no action. Traversal detection now matches exact decoded path components and excludes query values, so Soulseek usernames containing adjacent dots cannot accumulate false high-severity violations or ban the Web client. The old transfer-index migration recognizes the successor covering index and no longer recreates an index the history migration deliberately removes. Expected Soulseek upload disconnect wrappers are classified correctly, logged once without a duplicate stack trace, and place that peer in a 30-second enqueue cooldown; local file-access faults remain errors. Validation passed: full .NET (`5311/5311`: `74` application, `4953` unit, `284` integration), full Web (`889` passed, `4` skipped), focused security/upload/migration/Search Detail regressions, repository lint, and `git diff --check`. No release or deployment was created.
+
 - [x] Publish, deploy, and validate stable release `2026071721-slskdn.283`.
   - Status: completed (2026-07-17)
   - Priority: P1

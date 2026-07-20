@@ -122,6 +122,10 @@ public class UploadServiceLifecycleTests
             Assert.True(failed.State.HasFlag(TransferStates.Completed));
             Assert.True(failed.State.HasFlag(TransferStates.Errored));
             Assert.Contains("Connection refused", failed.Exception, StringComparison.Ordinal);
+
+            var enqueueException = await Assert.ThrowsAsync<DownloadEnqueueException>(
+                () => service.EnqueueAsync("alice", @"Music\another-track.flac"));
+            Assert.Equal("Recent transfer failed; retry later.", enqueueException.Message);
         }
         finally
         {

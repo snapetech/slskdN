@@ -38,6 +38,7 @@ namespace slskd.Transfers.Uploads
     using slskd.Events;
     using slskd.Relay;
     using slskd.Shares;
+    using slskd.SoulseekExceptions;
     using slskd.Users;
 
     /// <summary>
@@ -172,6 +173,8 @@ namespace slskd.Transfers.Uploads
     /// </summary>
     public class UploadService : IUploadService, IDisposable
     {
+        private static readonly TimeSpan FailedPeerCooldown = TimeSpan.FromSeconds(30);
+
         public UploadService(
             FileService fileService,
             IUserService userService,
@@ -221,6 +224,7 @@ namespace slskd.Transfers.Uploads
         private IShareService Shares { get; set; }
         private IUserService Users { get; set; }
         private EventBus EventBus { get; }
+        private ConcurrentDictionary<string, DateTime> FailedPeerCooldowns { get; } = new(StringComparer.OrdinalIgnoreCase);
         private ConcurrentDictionary<string, bool> Locks { get; } = new();
         private bool Disposed { get; set; }
 
@@ -483,9 +487,23 @@ namespace slskd.Transfers.Uploads
 
                 throw;
             }
-            catch (Exception ex) when (ex is OperationCanceledException || ex is TimeoutException)
+            catch (OperationCanceledException ex)
             {
-                Log.Error(ex, "Upload of {Filename} to user {Username} failed: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Information("Upload of {Filename} to user {Username} was canceled: {Message}", transfer.Filename, transfer.Username, ex.Message);
+
+                TryFail(transfer.Id, exception: ex);
+
+                throw;
+            }
+            catch (Exception ex) when (IsExpectedRemoteUploadFailure(ex))
+            {
+                FailedPeerCooldowns[transfer.Username] = DateTime.UtcNow.Add(FailedPeerCooldown);
+                Log.Warning(
+                    "Upload of {Filename} to user {Username} failed because of an expected peer/network error; pausing new uploads to this peer for {CooldownSeconds} seconds: {Message}",
+                    transfer.Filename,
+                    transfer.Username,
+                    FailedPeerCooldown.TotalSeconds,
+                    ex.Message);
 
                 TryFail(transfer.Id, exception: ex);
 
@@ -556,6 +574,23 @@ namespace slskd.Transfers.Uploads
             if (string.IsNullOrEmpty(filename))
             {
                 throw new ArgumentNullException(nameof(filename), "Filename is required");
+            }
+
+            var now = DateTime.UtcNow;
+            if (FailedPeerCooldowns.TryGetValue(username, out var retryAfter))
+            {
+                if (retryAfter > now)
+                {
+                    var retrySeconds = Math.Max(1, (int)Math.Ceiling((retryAfter - now).TotalSeconds));
+                    Log.Warning(
+                        "Rejected upload of {Filename} to {Username}; peer is cooling down after a recent connection failure for another {RetrySeconds} seconds",
+                        filename,
+                        username,
+                        retrySeconds);
+                    throw new DownloadEnqueueException("Recent transfer failed; retry later.");
+                }
+
+                FailedPeerCooldowns.TryRemove(username, out _);
             }
 
             var lockName = $"{nameof(EnqueueAsync)}:{username}:{filename}";
@@ -722,13 +757,23 @@ namespace slskd.Transfers.Uploads
                     * transfer record updated so that it's no longer in Queued | Locally
                     * Soulseek.NET already tracking an identical upload (slskd <> Soulseek.NET desync)
                 */
-                Log.Error(ex, "Task for upload of {Filename} to {Username} did not complete successfully: {Error}", filename, username, ex.Message);
+                Log.Debug("Observed failed upload task for {Filename} to {Username}: {Error}", filename, username, ex.Message);
 
                 if (!TryFail(id, ex))
                 {
                     Log.Error(ex, "Failed to clean up transfer {Id} after failed execution: {Message}", id, ex.Message);
                 }
             }
+        }
+
+        private static bool IsExpectedRemoteUploadFailure(Exception exception)
+        {
+            var details = exception.ToString();
+            var isLocalFileAccessFailure =
+                details.Contains("Access to the path", StringComparison.Ordinal) ||
+                details.Contains("Failed to create file", StringComparison.Ordinal);
+
+            return !isLocalFileAccessFailure && SoulseekNetworkExceptionClassifier.IsExpected(exception);
         }
 
         /// <summary>

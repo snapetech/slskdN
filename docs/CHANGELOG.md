@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Search result pages now explain that folder-ignore rules belong to one
+  wishlist item and show where to apply them. Valid Soulseek usernames
+  containing adjacent dots no longer trigger path-traversal violations or
+  auto-ban the Web client.
+- Transfer database migrations now converge instead of repeatedly recreating
+  and dropping a superseded index. Expected remote upload disconnects produce
+  one concise warning and briefly cool down retries from that peer, preventing
+  repeated failure work and log amplification on small hosts.
 - Release gates now fail unconditionally when a command exceeds its timeout,
   streaming pipe regressions dispose their leases on every assertion path, and
   COPR uploads retry bounded transient API failures using the verified SRPM

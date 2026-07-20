@@ -64,10 +64,6 @@ public static partial class PathGuard
         ".ape", ".wv", ".tta", ".alac", ".aiff", ".aif",
     };
 
-    // Patterns for dangerous path components
-    [GeneratedRegex(@"\.\.[\\/]?|[\\/]\.\.")]
-    private static partial Regex TraversalPatternRegex();
-
     [GeneratedRegex(@"^[a-zA-Z]:")]
     private static partial Regex WindowsDriveRegex();
 
@@ -262,30 +258,37 @@ public static partial class PathGuard
             return false;
         }
 
-        // Check for various traversal patterns
-        if (TraversalPatternRegex().IsMatch(path))
+        // A traversal marker is dangerous only as a complete path component.
+        // Soulseek identifiers can legitimately contain adjacent dots.
+        if (ContainsTraversalComponent(path))
         {
             return true;
         }
 
-        // Check for standalone ".." components
-        var parts = path.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Any(p => p == ".."))
-        {
-            return true;
-        }
-
-        // Also check URL-decoded form (catches double-encoding like %252e%252e -> ..)
+        // Also check URL-decoded form (catches double-encoding like %252e%252e -> ..).
         var decoded = DecodeUrlEncoding(path);
-        if (TraversalPatternRegex().IsMatch(decoded))
-        {
-            return true;
-        }
+        return ContainsTraversalComponent(decoded);
+    }
 
-        var decodedParts = decoded.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-        if (decodedParts.Any(p => p == ".."))
+    private static bool ContainsTraversalComponent(string path)
+    {
+        var componentStart = 0;
+
+        for (var index = 0; index <= path.Length; index++)
         {
-            return true;
+            if (index < path.Length && path[index] is not ('/' or '\\'))
+            {
+                continue;
+            }
+
+            if (index - componentStart == 2 &&
+                path[componentStart] == '.' &&
+                path[componentStart + 1] == '.')
+            {
+                return true;
+            }
+
+            componentStart = index + 1;
         }
 
         return false;

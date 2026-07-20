@@ -309,6 +309,16 @@ public class ProgramPathNormalizationTests
     }
 
     [Fact]
+    public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForSoulseekClientWrapperAroundRemoteClose()
+    {
+        var exception = new SoulseekClientException(
+            "Failed to upload file to user alice: Failed to read transfer start offset: Remote connection closed",
+            new ConnectionReadException("Failed to read 8 bytes: Remote connection closed"));
+
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
+    }
+
+    [Fact]
     public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForConnectionRefusedFailures()
     {
         var exception = new AggregateException(new IOException("Connection refused"));

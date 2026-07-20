@@ -47,6 +47,14 @@ public class SecurityMiddlewareTests
         Assert.False(hasTraversal, "PathGuard should allow normal paths");
     }
 
+    [Theory]
+    [InlineData("/api/v0/transfers/downloads/x..xyeppersesx..x")]
+    [InlineData("/api/v0/users/groups?usernames=x..xyeppersesx..x")]
+    public void PathGuard_IdentifiersContainingAdjacentDots_Allows(string target)
+    {
+        Assert.False(PathGuard.ContainsTraversal(target));
+    }
+
     [Fact]
     public void PathGuard_DoubleEncodedTraversal_Detects()
     {

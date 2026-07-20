@@ -80,6 +80,13 @@
   width: 100%;
 }
 
+.search-wishlist-ignore-guidance {
+  color: var(--slskd-color-subtle, rgba(0, 0, 0, 0.6));
+  font-size: 0.9rem;
+  line-height: 1.35;
+  margin-top: 0.85rem;
+}
+
 .search-acquisition-profile-strip {
   align-items: center;
   border-top: 1px solid var(--slskd-border-color, rgba(34, 36, 38, 0.15));

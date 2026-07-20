@@ -45,6 +45,15 @@ public class PathGuardTests
     }
 
     [Theory]
+    [InlineData("x..xyeppersesx..x")]
+    [InlineData("folder/.../track.flac")]
+    [InlineData("/api/v0/transfers/downloads/x..xyeppersesx..x")]
+    public void ContainsTraversal_AllowsAdjacentDotsInsidePathComponents(string path)
+    {
+        Assert.False(PathGuard.ContainsTraversal(path));
+    }
+
+    [Theory]
     [InlineData("song?.flac", "song_.flac")]
     [InlineData("folder/name.mp3", "folder_name.mp3")]
     [InlineData("folder\\name.mp3", "folder_name.mp3")]
