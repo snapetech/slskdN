@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z772. Expected Upload Disconnects Need Peer Cooldown And Single-Point Logging
+
+**The Bug**: A remote peer that repeatedly closed the transfer connection could
+immediately enqueue another upload. Each attempt created and persisted a new
+transfer, and the same expected network exception was logged with a complete
+stack trace once inside `UploadAsync` and again by the background task observer.
+A retrying client could therefore sustain an enqueue/fail/database/log loop and
+overload a small host.
+
+**Files Affected**:
+- `src/slskd/Transfers/Uploads/UploadService.cs`
+- `tests/slskd.Tests.Unit/Transfers/Uploads/UploadServiceLifecycleTests.cs`
+
+**Prevention**: Classify expected Soulseek transport failures through the shared
+network-exception classifier, emit one concise warning without a stack trace,
+and place that peer in a short in-memory retry cooldown before accepting more
+files. Keep unexpected application and local filesystem failures at error level
+with their exception details. Regression-test both terminal transfer state and
+that a cooled-down peer cannot immediately start another upload.
+
 ### 0z771. Superseded Index Migrations Must Not Recreate Deliberately Removed Indexes
 
 **The Bug**: `Z07062025_TransferIndexesMigration` considered the transfer
