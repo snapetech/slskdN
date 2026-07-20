@@ -6,6 +6,7 @@
   - Restricted traversal detection to exact decoded `..` path components and removed query strings from request-path security checks, eliminating false violations from valid Soulseek usernames containing adjacent dots.
   - Made transfer-index migrations converge instead of alternately recreating and dropping the legacy direction-only index on successive starts.
   - Classified expected wrapped upload disconnects, removed duplicate error-stack logging, and added a 30-second peer retry cooldown without downgrading local file-access failures.
+  - Added an owned cleanup timer that evicts expired cooldown entries with key-and-expiry matching, bounding retained peer state without racing newer failures.
 - Validation:
   - Full .NET passed (`5311/5311`: `74` application, `4953` unit, `284` integration).
   - Full Web passed (`889` passed, `4` skipped), together with repository lint and `git diff --check`.

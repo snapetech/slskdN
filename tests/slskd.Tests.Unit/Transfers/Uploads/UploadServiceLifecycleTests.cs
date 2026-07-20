@@ -126,6 +126,8 @@ public class UploadServiceLifecycleTests
             var enqueueException = await Assert.ThrowsAsync<DownloadEnqueueException>(
                 () => service.EnqueueAsync("alice", @"Music\another-track.flac"));
             Assert.Equal("Recent transfer failed; retry later.", enqueueException.Message);
+            Assert.Equal(1, service.RemoveExpiredFailedPeerCooldowns(DateTime.UtcNow.AddMinutes(1)));
+            Assert.Equal(0, service.RemoveExpiredFailedPeerCooldowns(DateTime.UtcNow.AddMinutes(1)));
         }
         finally
         {

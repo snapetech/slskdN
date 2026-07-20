@@ -201,6 +201,11 @@ namespace slskd.Transfers.Uploads
             Governor = new UploadGovernor(userService, optionsMonitor, scheduledRateLimitService);
             log.Debug("[UploadService] Creating UploadQueue");
             Queue = new UploadQueue(userService, optionsMonitor);
+            FailedPeerCooldownCleanupTimer = new Timer(
+                static state => ((UploadService)state!).RemoveExpiredFailedPeerCooldowns(DateTime.UtcNow),
+                this,
+                FailedPeerCooldown,
+                FailedPeerCooldown);
             log.Debug("[UploadService] Constructor completed");
         }
 
@@ -224,6 +229,7 @@ namespace slskd.Transfers.Uploads
         private IShareService Shares { get; set; }
         private IUserService Users { get; set; }
         private EventBus EventBus { get; }
+        private Timer FailedPeerCooldownCleanupTimer { get; }
         private ConcurrentDictionary<string, DateTime> FailedPeerCooldowns { get; } = new(StringComparer.OrdinalIgnoreCase);
         private ConcurrentDictionary<string, bool> Locks { get; } = new();
         private bool Disposed { get; set; }
@@ -776,6 +782,22 @@ namespace slskd.Transfers.Uploads
             return !isLocalFileAccessFailure && SoulseekNetworkExceptionClassifier.IsExpected(exception);
         }
 
+        internal int RemoveExpiredFailedPeerCooldowns(DateTime now)
+        {
+            var removed = 0;
+            var cooldowns = (ICollection<KeyValuePair<string, DateTime>>)FailedPeerCooldowns;
+
+            foreach (var cooldown in FailedPeerCooldowns)
+            {
+                if (cooldown.Value <= now && cooldowns.Remove(cooldown))
+                {
+                    removed++;
+                }
+            }
+
+            return removed;
+        }
+
         /// <summary>
         ///     Finds a single upload matching the specified <paramref name="expression"/>.
         /// </summary>
@@ -1169,6 +1191,8 @@ namespace slskd.Transfers.Uploads
             {
                 if (disposing)
                 {
+                    FailedPeerCooldownCleanupTimer.Dispose();
+
                     if (Governor is IDisposable disposableGovernor)
                     {
                         disposableGovernor.Dispose();
