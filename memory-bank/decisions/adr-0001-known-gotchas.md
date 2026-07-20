@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z779. Optional Status Probes Must Follow Feature Prerequisites
+
+**The Bug**: Opening the adversarial security screen always requested Tor and
+transport-selector status, even when anonymity was disabled and no transport
+selector existed. The UI caught the rejected promises, but the browser still
+reported avoidable 404 and 503 responses on an otherwise healthy page.
+
+**Files Affected**:
+- `src/web/src/components/System/Security/AdversarialSettings.jsx`
+- `src/web/src/lib/security.js`
+
+**Prevention**: Load the feature configuration first, then probe optional
+subsystems only when that configuration can use them. Treat caught HTTP errors
+as observable browser failures rather than assuming a `.catch(() => null)`
+makes unconditional capability probes harmless. Remove unreachable duplicate
+statements when reviewing the affected API wrapper.
+
 ### 0z778. Cancellation Sources Need Atomic Ownership Transfer Before Disposal
 
 **The Bug**: Shutdown enumerated active cancellation sources while transfer
