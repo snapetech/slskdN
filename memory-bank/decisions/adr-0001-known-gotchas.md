@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z771. Superseded Index Migrations Must Not Recreate Deliberately Removed Indexes
+
+**The Bug**: `Z07062025_TransferIndexesMigration` considered the transfer
+database incomplete whenever `IDX_Transfers_Direction` was absent, while
+`Z07152026_TransferHistoryIndexesMigration` deliberately dropped that redundant
+index after creating its replacement query indexes. Migration disposition runs
+before any migration applies, so successive restarts alternated between
+recreating and deleting the legacy index and backed up every database each time.
+
+**Files Affected**:
+- `src/slskd/Core/Data/Migrations/Z07062025_TransferIndexesMigration.cs`
+- `src/slskd/Core/Data/Migrations/Z07152026_TransferHistoryIndexesMigration.cs`
+- `tests/slskd.Tests.Unit/Transfers/TransfersDbContextTests.cs`
+
+**Prevention**: When a later migration intentionally supersedes an artifact
+required by an older idempotence check, update the older check to recognize the
+successor schema as complete. Add a full migrator convergence test that runs all
+registered migrations repeatedly against the same database and proves the
+second disposition is empty; isolated per-migration idempotence tests do not
+detect cross-migration cycles.
+
 ### 0z770. Traversal Detection Must Match Path Components, Not Arbitrary Double Dots
 
 **The Bug**: The request security middleware passed the complete raw target,
