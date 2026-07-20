@@ -1,3 +1,38 @@
+## Update 2026-07-20 17:53:05Z
+
+- Current task: stable release `2026072016-slskdn.287` is published, deployed,
+  and live-validated; two additional adversarial-status defects are fixed on
+  `main` only.
+- Last activity:
+  - Corrected a shutdown race by transferring exclusive ownership of active
+    download cancellation sources before cancellation and disposal, then
+    published `.287` after `.286` exposed the race in its hosted gate.
+  - Verified all release archives and the multi-architecture main image, then
+    deployed the immutable image digest with the prior service definition and
+    image retained for rollback.
+  - Audited `43` authenticated route shapes and five external links with zero
+    route or browser observations, visually reviewed every screenshot, passed
+    ten focused persistent-pane interactions, and completed a two-minute
+    authenticated realtime hold without HTTP, console, page, request, or socket
+    failures.
+  - The repeated audit found that the disabled adversarial screen
+    unconditionally probed optional endpoints and that its controller requested
+    an unregistered concrete selector type. The UI now gates those probes and
+    the controller resolves the registered selector interface.
+- Validation:
+  - `.287` remains healthy after more than 20 minutes with zero systemd or
+    container restarts, zero OOM events, and no error/fatal, traversal, ban,
+    unhandled-task, or upload-storm log entries. Memory was about 446--461 MiB
+    under the 4 GiB limit while downloads and browser traffic were active.
+  - Post-release source fixes pass repository lint, complete Web (`894` passed,
+    `4` skipped), application (`74/74`), unit (`4954/4954`), and integration
+    (`284/284`) suites.
+- Next steps:
+  1. Include the adversarial optional-status fixes in a future explicitly
+     authorized release; `.287` does not contain them.
+  2. Retry Chocolatey only after its external push service recovers.
+  3. Do not create another release or tag without explicit authorization.
+
 ## Update 2026-07-20 16:01:09Z
 
 - Current task: post-deployment log and headless-browser validation is complete; five silently blank persistent-tab screens are corrected on `main` only.

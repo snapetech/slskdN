@@ -9,6 +9,25 @@
 
 ### High Priority
 
+- [x] Publish, deploy, audit, and harden stable release `2026072016-slskdn.287`.
+  - Status: completed (2026-07-20)
+  - Priority: P1
+  - Notes: The `.286` hosted gate exposed a download-service disposal race;
+    shutdown now atomically takes ownership of cancellation sources before
+    cancelling and disposing them. `.287` passed the complete hosted gate and
+    artifact verification, published the amd64/arm64 main image at
+    `sha256:8c5157c0d60c7a6db7bace1477cd182881f7fd2d53a09c2953ea22935813fe6b`,
+    and replaced the prior live image with rollback preserved. More than 20
+    minutes of health and log checks found zero restarts, OOM events, severe
+    logs, traversal/self-ban events, unhandled tasks, or upload storms.
+    Authenticated Chromium audited `43` route shapes, five external links, all
+    screenshots, ten targeted pane interactions, and a two-minute realtime
+    hold without actionable observations. The repeated audit found two further
+    adversarial-status defects: unconditional optional endpoint probes and a
+    controller concrete/interface DI mismatch. Both are fixed on `main` only.
+    Post-release validation passed lint, Web (`894` passed, `4` skipped),
+    application (`74/74`), unit (`4954/4954`), and integration (`284/284`).
+
 - [x] Audit deployed `.285` logs and every Web route, then fix the silent persistent-tab failures.
   - Status: completed (2026-07-20)
   - Priority: P1
@@ -42,7 +61,7 @@
 - [ ] Retry stable Chocolatey publication after its push service recovers.
   - Status: blocked on external service availability (2026-07-20)
   - Priority: P2
-  - Notes: The `.285` package builds successfully, but `https://push.chocolatey.org/` returned 504 on all five bounded release attempts, continuing the external failure already observed for `.283` and `.284`. The existing manual workflow can safely retry `.285` without a new release.
+  - Notes: The `.287` package builds successfully, but `https://push.chocolatey.org/` returned 504 on all five bounded release attempts, continuing the external failure already observed for `.283` through `.285`. The existing manual workflow can safely retry `.287` without a new release.
 
 - [x] Complete every defect represented by open PRs #266–#276.
   - Status: completed (2026-07-17)
