@@ -53,6 +53,25 @@ public interface IAnonymityTransportSelector : IDisposable
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a specific configured transport.
+    /// </summary>
+    /// <param name="transportType">The transport type.</param>
+    /// <returns>The transport, or null when it is not configured.</returns>
+    IAnonymityTransport? GetTransport(AnonymityTransportType transportType);
+
+    /// <summary>
+    /// Gets a summary of selector availability.
+    /// </summary>
+    /// <returns>The selector status.</returns>
+    TransportSelectorStatus GetSelectorStatus();
+
+    /// <summary>
+    /// Gets detailed status for every configured transport.
+    /// </summary>
+    /// <returns>Status keyed by transport type.</returns>
+    Dictionary<AnonymityTransportType, AnonymityTransportStatus> GetAllStatuses();
+
+    /// <summary>
     /// Gets the status of all available transports.
     /// </summary>
     Dictionary<AnonymityTransportType, AnonymityTransportStatus> GetTransportStatuses();

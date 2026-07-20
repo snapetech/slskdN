@@ -36,7 +36,7 @@ public class SecurityController : ControllerBase
     private readonly SecurityServices? _security;
     private readonly ISecurityEventSink? _eventSink;
     private readonly AdversarialOptions? _adversarialOptions;
-    private readonly AnonymityTransportSelector? _transportSelector;
+    private readonly IAnonymityTransportSelector? _transportSelector;
     private readonly Mesh.IMeshCircuitBuilder? _circuitBuilder;
     private readonly Mesh.IMeshPeerManager? _peerManager;
     private readonly IOptionsSnapshot<slskd.Options>? _optionsSnapshot;
@@ -49,7 +49,7 @@ public class SecurityController : ControllerBase
         SecurityServices? security = null,
         ISecurityEventSink? eventSink = null,
         IOptions<AdversarialOptions>? adversarialOptions = null,
-        AnonymityTransportSelector? transportSelector = null,
+        IAnonymityTransportSelector? transportSelector = null,
         Mesh.IMeshCircuitBuilder? circuitBuilder = null,
         Mesh.IMeshPeerManager? peerManager = null,
         IOptionsSnapshot<slskd.Options>? optionsSnapshot = null,
@@ -491,7 +491,7 @@ public class SecurityController : ControllerBase
     [HttpGet("tor/status")]
     public ActionResult<AnonymityTransportStatus> GetTorStatus()
     {
-        var torTransport = _transportSelector?.GetTorTransport();
+        var torTransport = _transportSelector?.GetTransport(AnonymityTransportType.Tor);
         if (torTransport == null)
         {
             return NotFound("Tor transport is not configured or available");
@@ -505,7 +505,7 @@ public class SecurityController : ControllerBase
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<ActionResult<AnonymityTransportStatus>> TestTorConnectivity()
     {
-        var torTransport = _transportSelector?.GetTorTransport();
+        var torTransport = _transportSelector?.GetTransport(AnonymityTransportType.Tor);
         if (torTransport == null)
         {
             return NotFound("Tor transport is not configured or available");

@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Resolved the registered anonymity transport selector through its interface so
+  the adversarial security status endpoints can report live selector state, and
+  stopped the disabled Web UI from probing unavailable Tor and transport
+  endpoints on every visit.
 - Transferred exclusive ownership of active download cancellation sources before
   shutdown cancellation, preventing transfer cleanup from disposing a source
   immediately before service disposal calls `Cancel()` on it.

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Adversarial security status now resolves the registered anonymity transport
+  selector, while the disabled Web UI avoids unnecessary Tor and transport
+  probes that previously produced 404 and 503 browser errors.
 - Download shutdown now takes exclusive ownership of each cancellation source
   before cancelling and disposing it, preventing transfer cleanup from racing
   service disposal with an `ObjectDisposedException`.

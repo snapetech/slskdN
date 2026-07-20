@@ -77,6 +77,24 @@ public class SecurityControllerTests
     }
 
     [Fact]
+    public void GetTransportStatus_ResolvesRegisteredSelectorInterface()
+    {
+        var expected = new TransportSelectorStatus { TotalTransports = 1 };
+        var selector = new Mock<IAnonymityTransportSelector>();
+        selector.Setup(x => x.GetSelectorStatus()).Returns(expected);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(selector.Object);
+        using var provider = services.BuildServiceProvider();
+        var controller = ActivatorUtilities.CreateInstance<SecurityController>(provider);
+
+        var result = controller.GetTransportStatus();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Same(expected, ok.Value);
+    }
+
+    [Fact]
     public void GetEvents_With_NonPositive_Count_Returns_BadRequest()
     {
         var controller = CreateController();

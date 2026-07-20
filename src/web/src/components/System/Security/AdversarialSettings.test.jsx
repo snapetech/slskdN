@@ -4,7 +4,7 @@
 
 import * as securityApi from '../../../lib/security';
 import AdversarialSettings from './AdversarialSettings';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../../../lib/security', () => ({
@@ -38,5 +38,37 @@ describe('Adversarial Settings tabs', () => {
     expect(
       await screen.findByText('Adversarial Resilience Overview'),
     ).toBeInTheDocument();
+    expect(securityApi.getTransportStatus).not.toHaveBeenCalled();
+    expect(securityApi.getTorStatus).not.toHaveBeenCalled();
+  });
+
+  it('loads configured transport status without probing disabled Tor', async () => {
+    securityApi.getAdversarialSettings.mockResolvedValue({
+      Anonymity: { Enabled: false, Mode: 'Direct' },
+      Enabled: true,
+      Transport: { Enabled: true },
+    });
+
+    render(<AdversarialSettings />);
+
+    await waitFor(() =>
+      expect(securityApi.getTransportStatus).toHaveBeenCalledTimes(1),
+    );
+    expect(securityApi.getTorStatus).not.toHaveBeenCalled();
+  });
+
+  it('loads Tor status when Tor anonymity is enabled', async () => {
+    securityApi.getAdversarialSettings.mockResolvedValue({
+      Anonymity: { Enabled: true, Mode: 'Tor' },
+      Enabled: true,
+      Transport: { Enabled: true },
+    });
+
+    render(<AdversarialSettings />);
+
+    await waitFor(() =>
+      expect(securityApi.getTorStatus).toHaveBeenCalledTimes(1),
+    );
+    expect(securityApi.getTransportStatus).toHaveBeenCalledTimes(1);
   });
 });
