@@ -22,8 +22,10 @@
 - Validation:
   - `.287` remains healthy after more than 20 minutes with zero systemd or
     container restarts, zero OOM events, and no error/fatal, traversal, ban,
-    unhandled-task, or upload-storm log entries. Memory was about 446--461 MiB
-    under the 4 GiB limit while downloads and browser traffic were active.
+    unhandled-task, or upload-storm log entries. Routine samples were about
+    446--513 MiB under the 4 GiB limit. One 735 MiB/3.2-core sample coincided
+    with a ten-item auto-retry/search batch and fell to 513 MiB/0.46 core on the
+    next sample without a restart or health change.
   - Post-release source fixes pass repository lint, complete Web (`894` passed,
     `4` skipped), application (`74/74`), unit (`4954/4954`), and integration
     (`284/284`) suites.

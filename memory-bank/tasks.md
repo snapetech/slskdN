@@ -20,6 +20,9 @@
     and replaced the prior live image with rollback preserved. More than 20
     minutes of health and log checks found zero restarts, OOM events, severe
     logs, traversal/self-ban events, unhandled tasks, or upload storms.
+    Routine memory samples were about 446--513 MiB under the 4 GiB limit; one
+    short 735 MiB/3.2-core sample aligned with a ten-item auto-retry/search batch
+    and returned to 513 MiB/0.46 core on the next sample without a health event.
     Authenticated Chromium audited `43` route shapes, five external links, all
     screenshots, ten targeted pane interactions, and a two-minute realtime
     hold without actionable observations. The repeated audit found two further
