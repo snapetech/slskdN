@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Deploy and validate stable release `2026072013-slskdn.285`.
+  - Status: completed (2026-07-20)
+  - Priority: P1
+  - Notes: Verified the published main-image digest before deployment, retained the prior `.283` unit and image for rollback, and pinned the live service to `.285` at `sha256:c0f3dd38b8e92a2e2a3034711b0036ee4b36b6a3c04ce9c7abd500623a1bedc1`. The required transfer-history index migration backed up all databases and completed successfully in about 1.3 seconds. Systemd/Docker health, version alignment, Web and `/health`, VPN forwarding, Soulseek login, DHT readiness, three stability samples, and a follow-up log scan passed with zero restarts, errors, fatal events, OOM indicators, unhandled-task failures, or repeated upload-failure churn. The prior `.283` deployment remains available for rollback.
+
 - [x] Publish and verify stable release `2026072013-slskdn.285`.
   - Status: completed (2026-07-20)
   - Priority: P1

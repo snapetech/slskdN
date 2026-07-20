@@ -1,3 +1,10 @@
+## Update 2026-07-20 15:35:00Z
+
+- Deployed stable release `2026072013-slskdn.285` to the live validation host using the verified immutable main-image digest `sha256:c0f3dd38b8e92a2e2a3034711b0036ee4b36b6a3c04ce9c7abd500623a1bedc1` while retaining the prior `.283` service definition and image for rollback.
+- The startup transfer-history index migration created database backups and completed successfully in about 1.3 seconds. The application then reached HTTP health, DHT readiness, VPN forwarding readiness, and Soulseek connected/logged-in state.
+- Systemd and Docker remained active/healthy with zero restarts. Version alignment, Web HTTP 200, `/health=Healthy`, and three stability samples plus a follow-up passed; memory stayed around 346–401 MiB under the 4 GiB cap.
+- Post-readiness logs contained zero warnings, errors, fatal events, OOM indicators, unhandled-task failures, or repeated upload-failure/cooldown churn. No new release was created.
+
 ## Update 2026-07-20 15:13:30Z
 
 - Published and verified stable release `2026072013-slskdn.285` from source commit `854f4ac7b` after committing and pushing the complete baseline and refreshing the deterministic release-council counts.

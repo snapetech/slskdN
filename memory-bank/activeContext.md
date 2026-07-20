@@ -1,3 +1,20 @@
+## Update 2026-07-20 15:35:00Z
+
+- Current task: stable release `2026072013-slskdn.285` is deployed and validated on the live validation host.
+- Last activity:
+  - Pulled the published main image and verified its registry digest before changing the service.
+  - Saved the complete prior `.283` service definition for rollback, retained its local image, and replaced it with the readable version-plus-digest reference for `.285`.
+  - The one outstanding transfer-history index migration backed up every application database and completed successfully in about 1.3 seconds before normal startup.
+- Validation:
+  - Application CLI version and image version both report `2026072013-slskdn.285`; the running image is pinned to `sha256:c0f3dd38b8e92a2e2a3034711b0036ee4b36b6a3c04ce9c7abd500623a1bedc1`.
+  - Systemd and Docker are active/healthy with zero restarts; Web and `/health` return HTTP 200 and `Healthy`.
+  - VPN forwarding is ready, Soulseek connected and logged in, and DHT reached `Ready`.
+  - Three stability samples plus a follow-up held memory between about 346 and 401 MiB under the 4 GiB cap. Post-readiness logs contained zero warnings, errors, fatal events, OOM indicators, unhandled-task failures, or repeated upload-failure/cooldown churn.
+- Next steps:
+  1. Exercise the tester-reported wishlist-download and ignore-folder workflows against `.285` under normal traffic.
+  2. Continue normal log monitoring; the prior `.283` unit and image remain available for rollback.
+  3. Do not create another release or tag without explicit authorization.
+
 ## Update 2026-07-20 15:13:30Z
 
 - Current task: stable release `2026072013-slskdn.285` publication and verification are complete; no deployment was requested or performed.
