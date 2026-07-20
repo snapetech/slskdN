@@ -9,6 +9,12 @@ vi.mock('../../lib/chat', () => ({
   remove: vi.fn(),
 }));
 
+vi.mock('./ChatSession', () => ({
+  default: ({ username }) => (
+    <div data-testid="chat-session">{username || 'empty'}</div>
+  ),
+}));
+
 describe('Chat', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -24,7 +30,12 @@ describe('Chat', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('alice')).toBeInTheDocument();
+    expect((await screen.findAllByText('alice')).length).toBeGreaterThan(0);
+    expect(
+      screen
+        .getAllByTestId('chat-session')
+        .some((session) => session.textContent === 'alice'),
+    ).toBe(true);
   });
 
   it('ignores corrupted persisted tab shapes instead of crashing', async () => {
@@ -86,7 +97,7 @@ describe('Chat', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findAllByText('alice')).toHaveLength(2);
+    expect((await screen.findAllByText('alice')).length).toBeGreaterThan(0);
     expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
   });
 });

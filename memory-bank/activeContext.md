@@ -1,3 +1,18 @@
+## Update 2026-07-20 16:01:09Z
+
+- Current task: post-deployment log and headless-browser validation is complete; five silently blank persistent-tab screens are corrected on `main` only.
+- Last activity:
+  - Audited `43` authenticated route shapes, `230` unique resolved links, `2,924` visible controls, and `1,330` link occurrences with screenshots and interaction checks.
+  - Passed all seven live core/auth browser tests and a two-minute realtime hold with two open sockets and no console, page, request, HTTP, or socket failures.
+  - Found that Semantic UI ignores `render` callbacks when `renderActiveOnly={false}`; replaced the affected panes with `pane` shorthand in Chat, Rooms, System Files, adversarial settings, and VPN gateway settings.
+- Validation:
+  - The deployed `.285` service remains healthy with zero restarts/OOM events and no error, fatal, traversal, ban, unhandled-task, or upload-storm entries. Active downloads continue successfully.
+  - Focused persistent-tab coverage passed (`17/17`), followed by the complete Web suite (`892` passed, `4` skipped), full .NET (`5311/5311`: `74` application, `4953` unit, `284` integration), zero-error ESLint, the production Web build, and repository lint.
+- Next steps:
+  1. Include the persistent-tab correction in a future explicitly authorized release; the deployed `.285` bundle still contains the blank-pane defect.
+  2. Continue normal operational monitoring; duplicate wishlist enqueue and bounded alternative-search warnings currently reflect controlled work, not a server fault.
+  3. Do not create another release or tag without explicit authorization.
+
 ## Update 2026-07-20 15:35:00Z
 
 - Current task: stable release `2026072013-slskdn.285` is deployed and validated on the live validation host.

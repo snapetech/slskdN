@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Audit deployed `.285` logs and every Web route, then fix the silent persistent-tab failures.
+  - Status: completed (2026-07-20)
+  - Priority: P1
+  - Notes: Authenticated Chromium covered `43` route shapes, `230` unique resolved links, `2,924` visible controls, `1,330` link occurrences, seven live core/auth tests, and a two-minute realtime hold. The deployed service stayed healthy with zero restarts/OOM events and no severe, security-ban, unhandled-task, or upload-storm entries. Visual review found that Chat, Rooms, System Files, adversarial settings, and VPN gateway settings combined Semantic UI `render` callbacks with `renderActiveOnly={false}`, which silently omitted every pane. Converted them to supported `pane` shorthand and added wrapper regressions. Focused tests (`17/17`), full Web (`892` passed, `4` skipped), full .NET (`5311/5311`), zero-error ESLint, the production Web build, and repository lint passed. The correction is on `main` only; no release or deployment was created.
+
 - [x] Deploy and validate stable release `2026072013-slskdn.285`.
   - Status: completed (2026-07-20)
   - Priority: P1

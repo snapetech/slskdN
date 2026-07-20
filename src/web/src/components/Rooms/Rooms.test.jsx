@@ -48,6 +48,7 @@ describe('Rooms', () => {
     );
 
     expect(await screen.findByText('New Room Tab')).toBeInTheDocument();
+    expect(await screen.findByTestId('room-session')).toHaveTextContent('empty');
   });
 
   it('ignores malformed persisted tab entries and counters', async () => {
@@ -94,7 +95,7 @@ describe('Rooms', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('chill')).toBeInTheDocument();
+    expect((await screen.findAllByText('chill')).length).toBeGreaterThan(0);
     expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
   });
 
@@ -119,7 +120,7 @@ describe('Rooms', () => {
       target: { value: 'slskdn' },
     });
 
-    expect(await screen.findByText('slskdn')).toBeInTheDocument();
+    expect((await screen.findAllByText('slskdn')).length).toBeGreaterThan(0);
     expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('slskdn'));
@@ -128,7 +129,7 @@ describe('Rooms', () => {
     await waitFor(() =>
       expect(rooms.join).toHaveBeenCalledWith({ roomName: 'slskdn' }),
     );
-    expect(await screen.findByText('slskdn')).toBeInTheDocument();
+    expect((await screen.findAllByText('slskdn')).length).toBeGreaterThan(0);
   });
 
   it('pauses joined-room hydration while hidden and refreshes when visible', async () => {

@@ -254,8 +254,8 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
   const panes = [
     {
       menuItem: 'Basic Settings',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="basic-settings">
           <Form>
             <Form.Group>
               <Form.Field width={4}>
@@ -339,8 +339,8 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
     },
     {
       menuItem: 'Allowed Destinations',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="allowed-destinations">
           <div style={{ marginBottom: '20px' }}>
             <Button
               content="Add Destination"
@@ -394,8 +394,8 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
     },
     {
       menuItem: 'Registered Services',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="registered-services">
           <div style={{ marginBottom: '20px' }}>
             <Button
               content="Add Service"
@@ -456,8 +456,8 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
     },
     {
       menuItem: 'Resource Limits',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="resource-limits">
           <Form>
             <Header as="h4">Connection Limits</Header>
             <Form.Group widths="equal">

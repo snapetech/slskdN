@@ -10,8 +10,8 @@ const Files = ({ options } = {}) => {
   const panes = [
     {
       menuItem: 'Downloads',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="downloads">
           <Explorer
             active={activeIndex === 0}
             remoteFileManagement={remoteFileManagement}
@@ -23,8 +23,8 @@ const Files = ({ options } = {}) => {
     },
     {
       menuItem: 'Incomplete',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="incomplete">
           <Explorer
             active={activeIndex === 1}
             remoteFileManagement={remoteFileManagement}

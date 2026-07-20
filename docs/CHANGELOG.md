@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Chat, Rooms, System Files, adversarial security settings, and VPN gateway
+  settings now render their persistent tab content instead of showing only the
+  tab menu.
 - Search result pages now explain that folder-ignore rules belong to one
   wishlist item and show where to apply them. Valid Soulseek usernames
   containing adjacent dots no longer trigger path-traversal violations or

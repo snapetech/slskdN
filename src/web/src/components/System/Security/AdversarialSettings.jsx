@@ -288,8 +288,8 @@ const AdversarialSettings = () => {
   const panes = [
     {
       menuItem: 'Overview',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="overview">
           <Header as="h3">
             <Icon name="shield alternate" />
             Adversarial Resilience Overview
@@ -589,8 +589,8 @@ const AdversarialSettings = () => {
     },
     {
       menuItem: 'Privacy',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="privacy">
           <Header as="h4">Privacy Layer - Traffic Analysis Protection</Header>
           <p>
             Protect against traffic analysis by modifying message timing and
@@ -764,8 +764,8 @@ const AdversarialSettings = () => {
     },
     {
       menuItem: 'Anonymity',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="anonymity">
           <Header as="h4">Anonymity Layer - IP Protection</Header>
           <p>
             Route traffic through anonymizing networks to hide your IP address.
@@ -879,8 +879,8 @@ const AdversarialSettings = () => {
     },
     {
       menuItem: 'Transport',
-      render: () => (
-        <Tab.Pane>
+      pane: (
+        <Tab.Pane key="transport">
           <Header as="h4">Obfuscated Transport - Anti-DPI</Header>
           <p>Use obfuscated protocols to bypass deep packet inspection.</p>
 

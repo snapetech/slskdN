@@ -1,3 +1,10 @@
+## Update 2026-07-20 16:01:09Z
+
+- Re-audited deployed stable release `.285` with authenticated headless Chromium: `43` route shapes, `230` unique resolved links, `2,924` visible controls, `1,330` link occurrences, screenshots, theme interaction, seven live core/auth tests, and a two-minute realtime hold with two continuously open sockets. Stable routes produced no console, page, request, HTTP, or socket failures.
+- Found a silent persistent-tab contract mismatch: Semantic UI reads `pane`, not `render`, when `renderActiveOnly={false}`. This omitted all content beneath the menus on Chat, Rooms, System Files, adversarial settings, and VPN gateway settings. Converted every affected pane to the supported shorthand and added wrapper-level regressions.
+- The live service stayed healthy under active downloads with zero restarts/OOM events and no error, fatal, traversal, ban, unhandled-task, or upload-storm entries. Reviewed the two post-readiness warnings: duplicate wishlist files were already queued and downloading, while an alternative search completed one second after its bounded wait; neither established a daemon defect.
+- Validation passed: focused persistent-tab tests (`17/17`), full Web (`892` passed, `4` skipped), full .NET (`5311/5311`: `74` application, `4953` unit, `284` integration), zero-error ESLint, production Web build, repository lint, and diff checks. The source correction remains on `main`; no release or deployment was created.
+
 ## Update 2026-07-20 15:35:00Z
 
 - Deployed stable release `2026072013-slskdn.285` to the live validation host using the verified immutable main-image digest `sha256:c0f3dd38b8e92a2e2a3034711b0036ee4b36b6a3c04ce9c7abd500623a1bedc1` while retaining the prior `.283` service definition and image for rollback.

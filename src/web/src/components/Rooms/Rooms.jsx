@@ -336,7 +336,7 @@ const Rooms = () => {
         )}
       </Menu.Item>
     ),
-    render: () => (
+    pane: (
       <Tab.Pane
         attached={false}
         key={tab.key}
@@ -431,7 +431,7 @@ const Rooms = () => {
                 <Icon name="plus" />
               </Menu.Item>
             ),
-            render: () => null,
+            pane: null,
           },
         ]}
         renderActiveOnly={false}
