@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z778. Cancellation Sources Need Atomic Ownership Transfer Before Disposal
+
+**The Bug**: Shutdown enumerated active cancellation sources while transfer
+finalizers independently removed and disposed them. A finalizer could dispose a
+source after shutdown captured it but before shutdown called `Cancel()`, causing
+an `ObjectDisposedException` during service disposal.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `tests/slskd.Tests.Unit/Transfers/Downloads/DownloadServiceTests.cs`
+
+**Prevention**: Competing lifecycle paths must use `TryRemove` to transfer
+exclusive ownership before cancelling or disposing a cancellation source. Never
+enumerate values and then clear a concurrent resource dictionary; a terminal
+transfer state also does not prove its background task has completed cleanup.
+
 ### 0z777. Non-Active Semantic UI Tabs Need `pane`, Not `render`
 
 **The Bug**: Several tabbed screens combined `render` callbacks with
