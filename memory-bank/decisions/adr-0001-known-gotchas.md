@@ -84,8 +84,7 @@ reported avoidable 404 and 503 responses on an otherwise healthy page.
 **Prevention**: Load the feature configuration first, then probe optional
 subsystems only when that configuration can use them. Treat caught HTTP errors
 as observable browser failures rather than assuming a `.catch(() => null)`
-makes unconditional capability probes harmless. Remove unreachable duplicate
-statements when reviewing the affected API wrapper.
+makes unconditional capability probes harmless.
 
 ### 0z778. Cancellation Sources Need Atomic Ownership Transfer Before Disposal
 
