@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z775. Concurrent Success Must Not Clear A Newer Peer Failure Cooldown
+
+**The Bug**: The initial upload-cooldown implementation removed a peer's
+cooldown whenever any upload to that peer succeeded. With multiple files
+already in flight, an older successful upload could therefore erase the newer
+cooldown installed by a different upload's connection failure and admit the
+retry storm immediately.
+
+**Files Affected**:
+- `src/slskd/Transfers/Uploads/UploadService.cs`
+
+**Prevention**: Do not clear shared peer failure state from an operation that
+does not own that failure generation. Let enqueue-time expiry remove elapsed
+cooldowns, or use generation/value-conditional removal when early clearing is
+required. Review per-key success and failure updates under overlapping tasks.
+
 ### 0z774. Component Tests Must Await Background Hydration Before Ending
 
 **The Bug**: Search detail tests asserted immediately visible guidance and ended
