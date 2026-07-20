@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z774. Component Tests Must Await Background Hydration Before Ending
+
+**The Bug**: Search detail tests asserted immediately visible guidance and ended
+while the component's asynchronous response-hydration effect was still pending.
+Those late mock calls crossed into the next test after its mocks were cleared,
+making an unrelated call-count assertion fail only when the whole file ran.
+
+**Files Affected**:
+- `src/web/src/components/Search/Detail/SearchDetail.test.jsx`
+
+**Prevention**: When a rendered component starts background effects, wait for a
+stable observable from each relevant effect before allowing the test to end,
+even when the primary assertion targets synchronous markup. Run the complete
+test file after adding component coverage so leaked async work is visible.
+
 ### 0z773. Scoped Result Actions Must Explain When And Why They Are Available
 
 **The Bug**: The search result UI rendered `Ignore for Wishlist` only when a
