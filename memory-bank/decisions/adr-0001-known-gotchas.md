@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z770. Traversal Detection Must Match Path Components, Not Arbitrary Double Dots
+
+**The Bug**: The request security middleware passed the complete raw target,
+including its query string, to `PathGuard.ContainsTraversal`. That method used
+a regex whose separator after `..` was optional, so ordinary Soulseek usernames
+such as `x..xyeppersesx..x` were classified as directory traversal. Normal user
+and transfer API calls accumulated five high-severity violations and auto-banned
+the Web UI's own client IP for an hour.
+
+**Files Affected**:
+- `src/slskd/Common/Security/PathGuard.cs`
+- `src/slskd/Common/Security/SecurityMiddleware.cs`
+- `tests/slskd.Tests.Integration/Security/HttpSecurityMiddlewareIntegrationTests.cs`
+- `tests/slskd.Tests.Integration/Security/SecurityMiddlewareTests.cs`
+
+**Prevention**: Detect traversal only when URL decoding produces an exact `..`
+path component delimited by `/` or `\\`. Request-level checks must inspect the
+path portion of `RawTarget`, not query parameter values. Preserve regression
+coverage for identifiers containing adjacent dots in both route values and
+query strings, alongside encoded and double-encoded real traversal attempts.
+
 ### 0z769. Fragment-Only Anchors Resolve Against The Document Base
 
 **The Bug**: MediaCore workflow cards used fragment-only DOM anchor targets
