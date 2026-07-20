@@ -68,7 +68,9 @@ into an unbounded retained-key cache.
 independent of another request for the same key. Eviction must compare both key
 and observed expiry value so a cleanup racing with a newer failure cannot remove
 the replacement cooldown. Dispose the cleanup timer with its owning singleton
-and regression-test deterministic expiry without wall-clock sleeps.
+and create it only after other throwing constructor work has succeeded so a
+partially constructed service cannot be retained. Regression-test deterministic
+expiry without wall-clock sleeps.
 
 ### 0z775. Concurrent Success Must Not Clear A Newer Peer Failure Cooldown
 
