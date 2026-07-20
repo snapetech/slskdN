@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z780. Optional Controller Dependencies Must Use Their Registered Service Type
+
+**The Bug**: Experimental mesh startup registered the anonymity transport
+selector as `IAnonymityTransportSelector`, while `SecurityController` requested
+the unregistered concrete `AnonymityTransportSelector` as an optional
+dependency. Dependency injection therefore supplied `null`, making transport
+status return 503 and Tor status return 404 even when the selector was active.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/ExperimentalMeshServiceCollectionExtensions.cs`
+- `src/slskd/Common/Security/API/SecurityController.cs`
+
+**Prevention**: Controller constructor parameter types must exactly match the
+service type used at registration. Optional constructor defaults can conceal a
+registration mismatch by converting it into plausible feature-unavailable
+responses, so integration tests must resolve the controller through the real
+service collection and exercise the dependent endpoint.
+
 ### 0z779. Optional Status Probes Must Follow Feature Prerequisites
 
 **The Bug**: Opening the adversarial security screen always requested Tor and
