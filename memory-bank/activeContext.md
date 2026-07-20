@@ -1,3 +1,20 @@
+## Update 2026-07-20 15:13:30Z
+
+- Current task: stable release `2026072013-slskdn.285` publication and verification are complete; no deployment was requested or performed.
+- Last activity:
+  - Committed and pushed the complete source baseline, refreshed the deterministic release-council counts, and created `.285` through the guarded release helper from `854f4ac7b`.
+  - Passed the complete local and hosted release gates. All six platform archives and ancillary assets passed published SHA-256, required-payload, VPN-helper, bundled-Web-marker, and embedded-version verification.
+  - Fast-forwarded the workflow-generated stable package metadata commit and verified the released main image independently from GHCR and Docker Hub.
+- Release status:
+  - GitHub release, AUR source/binary, COPR, PPA, Homebrew, Nix, announcements, amd64/arm64 main Docker, and amd64 omnibus Docker all passed.
+  - Main image digest: `sha256:c0f3dd38b8e92a2e2a3034711b0036ee4b36b6a3c04ce9c7abd500623a1bedc1`; omnibus digest: `sha256:2266404ba8a43ca89d6ca2ddfb4fcd7add7885b7344698efcf4b01de7b4b9cb7`.
+- External package status:
+  - Chocolatey package creation succeeded, but `push.chocolatey.org` returned HTTP 504 on all five bounded attempts. This is the same external-service outage seen on prior releases; no repository defect was found.
+- Next steps:
+  1. Retry Chocolatey through the existing manual workflow only after the external service recovers.
+  2. Deploy `.285` to a validation host only if explicitly requested.
+  3. Do not create another release or tag without explicit authorization.
+
 ## Update 2026-07-20 13:23:50Z
 
 - Current task: tester-reported search-ignore, self-ban, migration-loop, and upload-storm defects are fixed locally; no release or deployment was requested.

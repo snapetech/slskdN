@@ -1,3 +1,11 @@
+## Update 2026-07-20 15:13:30Z
+
+- Published and verified stable release `2026072013-slskdn.285` from source commit `854f4ac7b` after committing and pushing the complete baseline and refreshing the deterministic release-council counts.
+- The local and hosted release gates passed (`889` Web passed with `4` skipped, `4953` unit, `74` smoke, `100` focused, and `40` integration). All six archives passed published-checksum, required-payload, VPN-helper, bundled-Web-marker, and embedded-version checks.
+- GitHub release, AUR source/binary, COPR, PPA, Homebrew, Nix metadata, announcements, and both container variants passed. The amd64/arm64 main image is `sha256:c0f3dd38b8e92a2e2a3034711b0036ee4b36b6a3c04ce9c7abd500623a1bedc1`; the amd64 omnibus image is `sha256:2266404ba8a43ca89d6ca2ddfb4fcd7add7885b7344698efcf4b01de7b4b9cb7`.
+- Chocolatey built `slskdn.2026072013.0.0-slskdn.285.nupkg`, but its external push endpoint returned HTTP 504 on all five bounded attempts. The workflow correctly tolerated that external channel failure and concluded `success`.
+- No deployment was requested or performed.
+
 ## Update 2026-07-20 13:23:50Z
 
 - Fixed four defects identified by tester feedback: ambiguous wishlist-folder ignore availability, false path-traversal self-bans for usernames containing `..`, a two-migration index recreate/drop loop on every restart, and repeated expected upload-disconnect work/log amplification.

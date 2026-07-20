@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Publish and verify stable release `2026072013-slskdn.285`.
+  - Status: completed (2026-07-20)
+  - Priority: P1
+  - Notes: Committed and pushed the complete source baseline, refreshed deterministic release-council counts, and created `.285` through the guarded helper from `854f4ac7b`. Local and hosted release gates passed (`889` Web passed with `4` skipped, `4953` unit, `74` smoke, `100` focused, `40` integration). All six archives passed checksum, payload, Web-marker, VPN-helper, and embedded-version verification. GitHub release, AUR, COPR, PPA, Homebrew, Nix, announcements, amd64/arm64 main Docker (`sha256:c0f3dd38b8e92a2e2a3034711b0036ee4b36b6a3c04ce9c7abd500623a1bedc1`), and amd64 omnibus Docker (`sha256:2266404ba8a43ca89d6ca2ddfb4fcd7add7885b7344698efcf4b01de7b4b9cb7`) passed. Chocolatey package creation succeeded, but the external push endpoint returned HTTP 504 on all five attempts. No deployment was requested or performed.
+
 - [x] Fix the July tester-reported search-ignore, self-ban, migration-loop, and upload-storm defects.
   - Status: completed (2026-07-20)
   - Priority: P1
@@ -25,9 +30,9 @@
   - Notes: Stable release `.284` contains the two Wishlist accessibility labels, explicit AngleSharp `1.5.0` security floor, and MediaCore workflow-anchor correction. The local and hosted release gates passed, all six platform archives passed published-checksum, payload, Web-marker, and embedded-version verification, and the amd64/arm64 main plus amd64 omnibus GHCR images were published. AUR, COPR, PPA, Homebrew, Nix, and release announcements passed. The Chocolatey package built successfully, but its external push endpoint returned HTTP 504 on all five bounded attempts.
 
 - [ ] Retry stable Chocolatey publication after its push service recovers.
-  - Status: blocked on external service availability (2026-07-17)
+  - Status: blocked on external service availability (2026-07-20)
   - Priority: P2
-  - Notes: The `.284` package builds successfully, but `https://push.chocolatey.org/` returned 504 on all five bounded release attempts, continuing the external failure already observed for `.283`. The existing manual workflow can safely retry `.284` without a new release.
+  - Notes: The `.285` package builds successfully, but `https://push.chocolatey.org/` returned 504 on all five bounded release attempts, continuing the external failure already observed for `.283` and `.284`. The existing manual workflow can safely retry `.285` without a new release.
 
 - [x] Complete every defect represented by open PRs #266–#276.
   - Status: completed (2026-07-17)
