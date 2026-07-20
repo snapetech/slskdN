@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z776. Expired Failure Cooldowns Need Generation-Safe Eviction
+
+**The Bug**: The first upload retry mitigation removed an expired peer cooldown
+only when that same peer enqueued another file. Unique peers that disconnected
+once and never returned therefore left usernames in the singleton upload
+service for the remainder of the process lifetime, turning a short cooldown
+into an unbounded retained-key cache.
+
+**Files Affected**:
+- `src/slskd/Transfers/Uploads/UploadService.cs`
+- `tests/slskd.Tests.Unit/Transfers/Uploads/UploadServiceLifecycleTests.cs`
+
+**Prevention**: Every time-bounded per-peer dictionary needs periodic expiry
+independent of another request for the same key. Eviction must compare both key
+and observed expiry value so a cleanup racing with a newer failure cannot remove
+the replacement cooldown. Dispose the cleanup timer with its owning singleton
+and regression-test deterministic expiry without wall-clock sleeps.
+
 ### 0z775. Concurrent Success Must Not Clear A Newer Peer Failure Cooldown
 
 **The Bug**: The initial upload-cooldown implementation removed a peer's
