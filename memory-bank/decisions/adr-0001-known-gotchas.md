@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z777. Non-Active Semantic UI Tabs Need `pane`, Not `render`
+
+**The Bug**: Several tabbed screens combined `render` callbacks with
+`renderActiveOnly={false}`. Semantic UI React ignores `render` in that mode and
+only creates each tab from its `pane` property, so the tab menu appeared while
+every content pane was silently absent.
+
+**Files Affected**:
+- `src/web/src/components/Chat/Chat.jsx`
+- `src/web/src/components/Rooms/Rooms.jsx`
+- `src/web/src/components/System/Files/index.jsx`
+- `src/web/src/components/System/Security/AdversarialSettings.jsx`
+- `src/web/src/components/Pods/VpnGatewayConfig.jsx`
+
+**Prevention**: Use `render` callbacks only with the default active-only tab
+behavior. When inactive panes must stay mounted, provide `pane` shorthand
+instead. Add wrapper-level tests that assert pane content exists, not merely
+that the tab labels render, because this mismatch produces no exception,
+console error, or failed request.
+
 ### 0z776. Expired Failure Cooldowns Need Generation-Safe Eviction
 
 **The Bug**: The first upload retry mitigation removed an expired peer cooldown
