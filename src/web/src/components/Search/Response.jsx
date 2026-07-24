@@ -41,8 +41,17 @@ const getResponseSignature = (response) => [
   asArray(response?.lockedFiles).map(getFileSignature).join('\u001f'),
 ].join('\u001e');
 
-export const buildSearchItemActionPath = (searchId, itemId, action) =>
-  `/searches/${segment(searchId)}/items/${segment(itemId)}/${action}`;
+export const buildSearchItemActionPath = (
+  searchId,
+  itemId,
+  action,
+  destination,
+) => {
+  const path = `/searches/${segment(searchId)}/items/${segment(itemId)}/${action}`;
+  return destination
+    ? `${path}?destination=${encodeURIComponent(destination)}`
+    : path;
+};
 
 const buildTree = (response) => {
   let files = asArray(response.files);
@@ -149,7 +158,7 @@ class Response extends Component {
   download = (username, files) => {
     this.setState({ downloadRequest: 'inProgress' }, async () => {
       try {
-        const { response, responseIndex, searchId } = this.props;
+        const { destination, response, responseIndex, searchId } = this.props;
         const sourceProviders = asArray(response.sourceProviders);
 
         // Check if this is a bridged search result (has provenance) and we have searchId
@@ -171,7 +180,14 @@ class Response extends Component {
             }
 
             const itemId = `${responseIndex ?? 0}:${fileIndex}`;
-            return api.post(buildSearchItemActionPath(searchId, itemId, 'download'));
+            return api.post(
+              buildSearchItemActionPath(
+                searchId,
+                itemId,
+                'download',
+                destination,
+              ),
+            );
           });
 
           await Promise.all(downloadPromises);
@@ -185,7 +201,11 @@ class Response extends Component {
             bitDepth,
             length,
           }));
-          await transfers.download({ files: requests, username });
+          await transfers.download({
+            destination,
+            files: requests,
+            username,
+          });
         }
 
         this.setState({ downloadRequest: 'complete' });

@@ -27,6 +27,7 @@ test.describe('browse transfer handoff', () => {
   test('downloads_browse_button_opens_populated_user_browse_tab', async ({ page, request }) => {
     const nodeA = harness ? harness.getNode('A').nodeCfg : NODES.A;
     const peer = 'fixturePeer';
+    let queuedDestination: string | null = null;
     let transferRequestCount = 0;
 
     await waitForHealth(request, nodeA.baseUrl);
@@ -84,6 +85,29 @@ test.describe('browse transfer handoff', () => {
         });
       },
     );
+    await page.route('**/api/v0/transfers/changes**', async (route) => {
+      transferRequestCount += 1;
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          counts: { download: 1, upload: 0 },
+          cursor: 1,
+          transfers: [
+            {
+              attempts: 1,
+              bytesTransferred: 0,
+              direction: 'Download',
+              filename: 'stalled-track.flac',
+              id: 'download-1',
+              percentComplete: 0,
+              size: 1234,
+              state: 'Completed, Errored',
+              username: peer,
+            },
+          ],
+        },
+      });
+    });
     await page.route('**/api/v0/transfers/downloads/accelerated', async (route) => {
       await route.fulfill({ contentType: 'application/json', json: { enabled: false } });
     });
@@ -126,8 +150,45 @@ test.describe('browse transfer handoff', () => {
         },
       });
     });
+    await page.route('**/api/v0/destinations', async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: [
+          {
+            exists: true,
+            isDefault: false,
+            name: 'Downloads',
+            path: '/downloads',
+          },
+          {
+            exists: true,
+            isDefault: true,
+            name: 'Music',
+            path: '/downloads/music',
+          },
+        ],
+      });
+    });
     await page.route('**/api/v0/transfers/**', async (route) => {
       const url = new URL(route.request().url());
+
+      if (url.pathname.endsWith('/negotiate')) {
+        await route.continue();
+        return;
+      }
+
+      if (
+        route.request().method() === 'POST'
+        && url.pathname === `/api/v0/transfers/downloads/${peer}`
+      ) {
+        queuedDestination = url.searchParams.get('destination');
+        await route.fulfill({
+          contentType: 'application/json',
+          json: { enqueued: [{}], failed: [] },
+          status: 201,
+        });
+        return;
+      }
 
       if (url.pathname.includes('/transfers/downloads/accelerated')) {
         await route.fulfill({
@@ -201,5 +262,23 @@ test.describe('browse transfer handoff', () => {
     });
     await expect(page.getByText('fixture-root')).toBeVisible();
     await expect(page.getByText('No user share to display')).toHaveCount(0);
+
+    const destination = page.getByRole('listbox', {
+      name: 'Download destination',
+    });
+    await expect(destination).toContainText('Music (default)');
+    await destination.click();
+    await page.getByRole('option', { name: /Downloads/ }).click();
+    await expect(destination).toContainText('Downloads');
+    await expect.poll(() => page.evaluate(() =>
+      window.localStorage.getItem('slskd-download-destination')))
+      .toBe('/downloads');
+
+    await page.getByRole('button', { name: 'fixture-root' }).click();
+    const selectedDirectory = page.locator('.browse-selected-directory-card');
+    await expect(selectedDirectory.getByText('proof-track.flac')).toBeVisible();
+    await selectedDirectory.locator('.ui.checkbox').last().click();
+    await selectedDirectory.getByRole('button', { name: /Download/ }).click();
+    await expect.poll(() => queuedDestination).toBe('/downloads');
   });
 });

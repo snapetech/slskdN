@@ -17,6 +17,7 @@ using Microsoft.Extensions.Options;
 using slskd;
 using slskd.Common;
 using slskd.Core.Security;
+using slskd.Destinations;
 using slskd.Mesh;
 using slskd.Search.Providers;
 using slskd.Streaming;
@@ -72,6 +73,7 @@ public class SearchActionsController : ControllerBase
     /// <param name="searchId">The search ID.</param>
     /// <param name="itemId">The item ID (response index or file identifier).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="destination">Optional configured completed-file destination.</param>
     /// <returns>Download result.</returns>
     [HttpPost("{searchId}/items/{itemId}/download")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
@@ -82,9 +84,21 @@ public class SearchActionsController : ControllerBase
     public async Task<IActionResult> DownloadItem(
         [FromRoute] Guid searchId,
         [FromRoute] string itemId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] string? destination = null)
     {
         _logger.LogDebug("[SearchActions] Download request: searchId={SearchId}, itemId={ItemId}", searchId, itemId);
+
+        var normalizedDestination = DownloadDestinationResolver.NormalizeExplicitPath(_optionsMonitor.CurrentValue, destination);
+        if (!string.IsNullOrWhiteSpace(destination) && normalizedDestination == null)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Type = "invalid_destination",
+                Title = "Invalid destination",
+                Detail = "Destination must be an absolute path inside the configured downloads directory or a configured destination folder"
+            });
+        }
 
         // Find the search
         var search = await _searchService.FindAsync(s => s.Id == searchId, includeResponses: true);
@@ -146,12 +160,12 @@ public class SearchActionsController : ControllerBase
                 ? file.ContentId
                 : response.PodContentRef.ContentId;
 
-            return await HandlePodDownloadAsync(contentId, file, response.Username, cancellationToken);
+            return await HandlePodDownloadAsync(contentId, file, response.Username, normalizedDestination, cancellationToken);
         }
         else if (primarySource == "scene" && response.SceneContentRef != null)
         {
             // Scene download - use existing Soulseek download pipeline
-            return await HandleSceneDownloadAsync(response.SceneContentRef, file, cancellationToken);
+            return await HandleSceneDownloadAsync(response.SceneContentRef, file, normalizedDestination, cancellationToken);
         }
         else
         {
@@ -277,7 +291,12 @@ public class SearchActionsController : ControllerBase
         });
     }
 
-    private async Task<IActionResult> HandlePodDownloadAsync(string contentId, Search.File file, string peerId, CancellationToken ct)
+    private async Task<IActionResult> HandlePodDownloadAsync(
+        string contentId,
+        Search.File file,
+        string peerId,
+        string? destination,
+        CancellationToken ct)
     {
         _logger.LogInformation("[SearchActions] Pod download: contentId={ContentId}, filename={Filename}, peerId={PeerId}", contentId, file.Filename, peerId);
 
@@ -335,8 +354,8 @@ public class SearchActionsController : ControllerBase
                 });
             }
 
-            var incompleteDir = _optionsMonitor.CurrentValue.Directories.Incomplete;
-            var localFilename = file.Filename.ToLocalFilename(baseDirectory: incompleteDir);
+            var completedRoot = destination ?? DownloadDestinationResolver.GetDefaultPath(_optionsMonitor.CurrentValue);
+            var localFilename = file.Filename.ToLocalFilename(baseDirectory: completedRoot);
             var localDirectory = System.IO.Path.GetDirectoryName(localFilename);
             if (!string.IsNullOrEmpty(localDirectory) && !System.IO.Directory.Exists(localDirectory))
             {
@@ -426,7 +445,11 @@ public class SearchActionsController : ControllerBase
         }
     }
 
-    private async Task<IActionResult> HandleSceneDownloadAsync(SceneContentRef sceneRef, Search.File file, CancellationToken ct)
+    private async Task<IActionResult> HandleSceneDownloadAsync(
+        SceneContentRef sceneRef,
+        Search.File file,
+        string? destination,
+        CancellationToken ct)
     {
         _logger.LogInformation("[SearchActions] Scene download: username={Username}, filename={Filename}",
             sceneRef.Username, sceneRef.Filename);
@@ -434,7 +457,15 @@ public class SearchActionsController : ControllerBase
         try
         {
             // Use existing Soulseek download pipeline
-            var files = new[] { (sceneRef.Filename, file.Size) };
+            var files = new[]
+            {
+                new DownloadEnqueueRequest
+                {
+                    Filename = sceneRef.Filename,
+                    Size = file.Size,
+                    DestinationDirectory = destination,
+                },
+            };
             var (enqueued, failed) = await _downloadService.EnqueueAsync(sceneRef.Username, files, ct);
 
             if (enqueued.Count > 0)

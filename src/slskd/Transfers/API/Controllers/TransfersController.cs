@@ -36,7 +36,6 @@ namespace slskd.Transfers.API
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.SignalR;
     using Serilog;
-    using slskd.Common.Security;
     using slskd.Core.Security;
     using slskd.Core.Web;
     using slskd.Transfers.AutoReplace;
@@ -476,7 +475,7 @@ namespace slskd.Transfers.API
                 return BadRequest("Each file requires a non-empty filename");
             }
 
-            var destinationDirectory = NormalizeDownloadDestination(destination);
+            var destinationDirectory = Destinations.DownloadDestinationResolver.NormalizeExplicitPath(OptionsSnapshot.Value, destination);
             if (!string.IsNullOrWhiteSpace(destination) && destinationDirectory == null)
             {
                 return BadRequest("Destination must be an absolute path inside the configured downloads directory or a configured destination folder");
@@ -517,31 +516,6 @@ namespace slskd.Transfers.API
             finally
             {
                 DownloadRequestLimiter.Release();
-            }
-        }
-
-        private string? NormalizeDownloadDestination(string? destination)
-        {
-            if (string.IsNullOrWhiteSpace(destination))
-            {
-                return null;
-            }
-
-            return PathGuard.NormalizeAbsolutePathWithinRoots(destination, GetAllowedDownloadDestinationRoots());
-        }
-
-        private IEnumerable<string> GetAllowedDownloadDestinationRoots()
-        {
-            var options = OptionsSnapshot.Value;
-
-            yield return options.Directories.Downloads;
-
-            foreach (var configuredDestination in options.Destinations?.Folders ?? Enumerable.Empty<Options.DestinationOption>())
-            {
-                if (!string.IsNullOrWhiteSpace(configuredDestination.Path))
-                {
-                    yield return configuredDestination.Path;
-                }
             }
         }
 

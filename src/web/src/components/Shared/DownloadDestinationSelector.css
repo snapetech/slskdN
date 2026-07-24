@@ -1,0 +1,28 @@
+.download-destination-selector {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.download-destination-selector > span:first-child {
+  white-space: nowrap;
+}
+
+.download-destination-selector .ui.selection.dropdown {
+  min-width: 220px;
+}
+
+@media only screen and (max-width: 684px) {
+  .download-destination-selector {
+    margin-left: 0;
+    margin-top: 0.75rem;
+    width: 100%;
+  }
+
+  .download-destination-selector .ui.popup,
+  .download-destination-selector .ui.selection.dropdown {
+    flex: 1 1 auto;
+  }
+}

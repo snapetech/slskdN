@@ -1,3 +1,32 @@
+## Update 2026-07-24 16:23:00Z
+
+- Current task: multiple download destinations are implemented end to end and
+  locally validated; stable release publication is authorized and pending.
+- Last activity:
+  - Made the configured destination marked `default` authoritative for
+    destination-less, wishlist, and automatic downloads while retaining
+    explicit API/UI precedence and configured-root validation.
+  - Added a persistent **Download to** selector to Search Results and Browse,
+    including ordinary transfers and bridged scene/Pod result actions.
+  - Added exact README, getting-started, advanced-feature, and example-config
+    instructions for writable paths, container mounts, one default, restart,
+    UI selection, and automatic routing.
+  - Headless startup found a singleton mesh adapter consuming scoped Pod
+    messaging; it now opens an operation scope. The Browser fixture now seeds
+    the indexed transfer-changes contract used by the current UI.
+- Validation:
+  - Focused backend passed `63/63`; complete Web passed `898` with `4` skipped;
+    the first complete .NET run passed `5316/5316`; Release build completed with
+    zero warnings/errors; ESLint has zero errors; repository format lint passes.
+  - Authenticated Chromium started a real Release-mode node, followed Downloads
+    to Browse, loaded the configured default, persisted a manual selection, and
+    observed that selection on the enqueue request.
+- Next steps:
+  1. Finish the repeated complete .NET run.
+  2. Commit and push the entire repository worktree.
+  3. Run the guarded local release gate, create `.288`, and verify hosted CI,
+     release assets, and container publication. Do not deploy unless requested.
+
 ## Update 2026-07-20 17:53:05Z
 
 - Current task: stable release `2026072016-slskdn.287` is published, deployed,

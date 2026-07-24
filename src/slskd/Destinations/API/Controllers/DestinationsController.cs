@@ -10,7 +10,6 @@ namespace slskd.Destinations.API
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Options;
-    using slskd.Common.Security;
     using slskd.Core.Security;
 
     /// <summary>
@@ -45,13 +44,13 @@ namespace slskd.Destinations.API
             var destinations = new List<DestinationResponse>();
 
             // Always include the default downloads directory
-            var defaultPath = options.Directories.Downloads;
+            var downloadsPath = options.Directories.Downloads;
             destinations.Add(new DestinationResponse
             {
                 Name = "Downloads",
-                Path = defaultPath,
-                IsDefault = true,
-                Exists = Directory.Exists(defaultPath),
+                Path = downloadsPath,
+                IsDefault = downloadsPath == DownloadDestinationResolver.GetDefaultPath(options),
+                Exists = Directory.Exists(downloadsPath),
             });
 
             // Add configured destinations
@@ -60,7 +59,7 @@ namespace slskd.Destinations.API
                 foreach (var dest in options.Destinations.Folders)
                 {
                     // Skip if this is the same as the default
-                    if (dest.Path == defaultPath)
+                    if (dest.Path == downloadsPath)
                     {
                         continue;
                     }
@@ -74,15 +73,6 @@ namespace slskd.Destinations.API
                     });
                 }
 
-                // If a custom default is set, update the flags
-                var customDefault = options.Destinations.Folders.FirstOrDefault(d => d.Default);
-                if (customDefault != null)
-                {
-                    foreach (var dest in destinations)
-                    {
-                        dest.IsDefault = dest.Path == customDefault.Path;
-                    }
-                }
             }
 
             return Ok(destinations);
@@ -100,8 +90,8 @@ namespace slskd.Destinations.API
         {
             var options = OptionsSnapshot.Value;
 
-            // Check for custom default first
-            var customDefault = options.Destinations?.Folders?.FirstOrDefault(d => d.Default);
+            var defaultPath = DownloadDestinationResolver.GetDefaultPath(options);
+            var customDefault = options.Destinations?.Folders?.FirstOrDefault(d => d.Path == defaultPath);
             if (customDefault != null)
             {
                 return Ok(new DestinationResponse
@@ -114,7 +104,6 @@ namespace slskd.Destinations.API
             }
 
             // Fall back to standard downloads directory
-            var defaultPath = options.Directories.Downloads;
             return Ok(new DestinationResponse
             {
                 Name = "Downloads",
@@ -146,7 +135,7 @@ namespace slskd.Destinations.API
                 return BadRequest("Path is required");
             }
 
-            var normalizedPath = PathGuard.NormalizeAbsolutePathWithinRoots(request.Path, GetAllowedDestinationRoots());
+            var normalizedPath = DownloadDestinationResolver.NormalizeExplicitPath(OptionsSnapshot.Value, request.Path);
             if (normalizedPath == null)
             {
                 return Ok(new ValidateDestinationResponse
@@ -183,20 +172,6 @@ namespace slskd.Destinations.API
             });
         }
 
-        private IEnumerable<string> GetAllowedDestinationRoots()
-        {
-            var options = OptionsSnapshot.Value;
-
-            yield return options.Directories.Downloads;
-
-            foreach (var destination in options.Destinations?.Folders ?? Enumerable.Empty<slskd.Options.DestinationOption>())
-            {
-                if (!string.IsNullOrWhiteSpace(destination.Path))
-                {
-                    yield return destination.Path;
-                }
-            }
-        }
     }
 
     /// <summary>

@@ -186,6 +186,9 @@
 #   enable_stun: true
 # destinations:
 #   folders:
+#     # Paths must exist inside the host/container and be writable by slskdN.
+#     # Set default: true on at most one folder. It becomes the daemon-wide
+#     # destination for downloads without an explicit Search/Browse UI choice.
 #     - name: "Music"
 #       path: "/downloads/music"
 #       default: true

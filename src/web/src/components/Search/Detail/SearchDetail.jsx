@@ -31,6 +31,7 @@ import { getGroups } from '../../../lib/users';
 import { getDirectoryName, sleep } from '../../../lib/util';
 import * as wishlistAPI from '../../../lib/wishlist';
 import ErrorSegment from '../../Shared/ErrorSegment';
+import DownloadDestinationSelector from '../../Shared/DownloadDestinationSelector';
 import LoaderSegment from '../../Shared/LoaderSegment';
 import Switch from '../../Shared/Switch';
 import DiscoveryGraphModal from '../DiscoveryGraphModal';
@@ -149,6 +150,7 @@ const SearchDetail = ({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(undefined);
+  const [downloadDestination, setDownloadDestination] = useState(undefined);
 
   const [results, setResults] = useState([]);
 
@@ -780,6 +782,7 @@ const SearchDetail = ({
               style={{ marginLeft: '0.5em' }}
               text={pageSize >= 999_999 ? 'Show All' : `${pageSize} per page`}
             />
+            <DownloadDestinationSelector onChange={setDownloadDestination} />
             <div className="search-option-toggles">
               <Checkbox
                 checked={hideLocked}
@@ -1074,6 +1077,7 @@ const SearchDetail = ({
           visibleResults.map((r, index) => (
             <Response
               disabled={disabled}
+              destination={downloadDestination}
               downloadStats={r.downloadStats}
               isBlocked={blockedUsers.includes(r.username)}
               isInitiallyFolded={foldResults}

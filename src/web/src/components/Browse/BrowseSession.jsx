@@ -10,6 +10,7 @@ import {
 import * as userNotes from '../../lib/userNotes';
 import * as users from '../../lib/users';
 import PlaceholderSegment from '../Shared/PlaceholderSegment';
+import DownloadDestinationSelector from '../Shared/DownloadDestinationSelector';
 import UserCard from '../Shared/UserCard';
 import UserNoteModal from '../Users/UserNoteModal';
 import Directory from './Directory';
@@ -31,6 +32,7 @@ const initialState = {
   browseError: undefined,
   browseState: 'idle',
   browseStatus: 0,
+  downloadDestination: undefined,
   info: {
     directories: 0,
     files: 0,
@@ -528,7 +530,7 @@ class BrowseSession extends Component {
   };
 
   handleDownloadDirectory = (directory) => {
-    const { separator, username } = this.state;
+    const { downloadDestination, separator, username } = this.state;
 
     // Collect all files recursively
     const collectFiles = (folder) => {
@@ -564,7 +566,11 @@ class BrowseSession extends Component {
       )
     ) {
       transfers
-        .download({ files: filesToDownload, username })
+        .download({
+          destination: downloadDestination,
+          files: filesToDownload,
+          username,
+        })
         .then(() => {
           toast.success(`Queued ${filesToDownload.length} files for download`);
         })
@@ -575,11 +581,16 @@ class BrowseSession extends Component {
     }
   };
 
+  handleDestinationChange = (downloadDestination) => {
+    this.setState({ downloadDestination });
+  };
+
   render() {
     const {
       browseError,
       browseState,
       browseStatus,
+      downloadDestination,
       info,
       selectedDirectory,
       separator,
@@ -731,6 +742,9 @@ class BrowseSession extends Component {
                       </Card.Meta>
                     </Card.Content>
                     <Card.Content>
+                      <DownloadDestinationSelector
+                        onChange={this.handleDestinationChange}
+                      />
                       <Segment className="browse-folderlist">
                         <DirectoryTree
                           onDownload={this.handleDownloadDirectory}
@@ -745,6 +759,7 @@ class BrowseSession extends Component {
                 {name && (
                   <Directory
                     files={files}
+                    destination={downloadDestination}
                     locked={locked}
                     name={name}
                     onClose={this.handleDeselectDirectory}

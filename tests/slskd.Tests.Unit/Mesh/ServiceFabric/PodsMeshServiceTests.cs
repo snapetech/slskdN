@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Mesh.ServiceFabric;
 
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Mesh.ServiceFabric;
@@ -16,10 +17,7 @@ public class PodsMeshServiceTests
     [Fact]
     public async Task HandleCallAsync_UnknownMethod_ReturnsSanitizedMethodNotFound()
     {
-        var service = new PodsMeshService(
-            Mock.Of<ILogger<PodsMeshService>>(),
-            Mock.Of<IPodService>(),
-            Mock.Of<IPodMessaging>());
+        var service = CreateService();
 
         var reply = await service.HandleCallAsync(
             new ServiceCall
@@ -45,10 +43,7 @@ public class PodsMeshServiceTests
             .Setup(service => service.SendAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var service = new PodsMeshService(
-            Mock.Of<ILogger<PodsMeshService>>(),
-            Mock.Of<IPodService>(),
-            podMessaging.Object);
+        var service = CreateService(podMessaging.Object);
 
         var reply = await service.HandleCallAsync(
             new ServiceCall
@@ -87,10 +82,7 @@ public class PodsMeshServiceTests
             .Setup(service => service.GetMessagesAsync("pod:00000000000000000000000000000001", "general", 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<PodMessage>());
 
-        var service = new PodsMeshService(
-            Mock.Of<ILogger<PodsMeshService>>(),
-            Mock.Of<IPodService>(),
-            podMessaging.Object);
+        var service = CreateService(podMessaging.Object);
 
         var reply = await service.HandleCallAsync(
             new ServiceCall
@@ -116,10 +108,7 @@ public class PodsMeshServiceTests
     public async Task HandleCallAsync_PostMessage_RejectsBodyOverFourKilobytesByUtf8Bytes()
     {
         var podMessaging = new Mock<IPodMessaging>();
-        var service = new PodsMeshService(
-            Mock.Of<ILogger<PodsMeshService>>(),
-            Mock.Of<IPodService>(),
-            podMessaging.Object);
+        var service = CreateService(podMessaging.Object);
 
         var reply = await service.HandleCallAsync(
             new ServiceCall
@@ -165,10 +154,7 @@ public class PodsMeshServiceTests
             .Setup(service => service.GetMessagesAsync("pod:00000000000000000000000000000001", "general", 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedMessages);
 
-        var service = new PodsMeshService(
-            Mock.Of<ILogger<PodsMeshService>>(),
-            Mock.Of<IPodService>(),
-            podMessaging.Object);
+        var service = CreateService(podMessaging.Object);
 
         var stream = new TestMeshServiceStream(JsonSerializer.SerializeToUtf8Bytes(new
         {
@@ -219,5 +205,17 @@ public class PodsMeshServiceTests
             Closed = true;
             return Task.CompletedTask;
         }
+    }
+
+    private static PodsMeshService CreateService(IPodMessaging? podMessaging = null)
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(_ => podMessaging ?? Mock.Of<IPodMessaging>());
+        var provider = services.BuildServiceProvider();
+
+        return new PodsMeshService(
+            Mock.Of<ILogger<PodsMeshService>>(),
+            Mock.Of<IPodService>(),
+            provider.GetRequiredService<IServiceScopeFactory>());
     }
 }

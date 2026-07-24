@@ -136,7 +136,9 @@ configuration is disabled, edit the configuration file directly and restart.
 #### 2. Configure Download Directory
 
 Use **System -> Options** for raw YAML or edit `directories.downloads`,
-`directories.incomplete`, and `destinations.folders`.
+`directories.incomplete`, and `destinations.folders`. Destination folders must
+exist, be writable, and be mounted into the container when using Docker. Set
+`default: true` on one destination to make it the daemon-wide default.
 
 #### 3. Configure Share Directories
 
@@ -190,9 +192,16 @@ Click the **⚙️ Advanced Filters** button to access:
 
 ### Downloading Files
 
-1. **Click Download** on any search result
-2. **Monitor progress** in the Downloads section
-3. **Files are saved** to your configured download directory
+1. On Search Results or Browse, choose a configured folder from **Download to**
+2. **Click Download** on the desired file or folder
+3. **Monitor progress** in the Downloads section
+4. **Files are saved** to the selected destination; the browser remembers the
+   choice for later manual downloads
+
+Wishlist and other automatic downloads use the folder marked `default: true`.
+If none is marked, they use `directories.downloads`. See
+[Multiple Download Destinations](advanced-features.md#multiple-download-destinations)
+for configuration and container-mount examples.
 
 **Auto-Replace Stuck Downloads:**
 - Enable the **"Auto-Replace"** toggle in Downloads header

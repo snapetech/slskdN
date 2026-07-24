@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Configured download destinations now work end to end. The folder marked
+  `default` governs automatic and destination-less downloads, and Search
+  Results plus Browse provide a persistent **Download to** selector for normal
+  and bridged downloads.
+- The process-lifetime Pods mesh adapter now resolves scoped messaging storage
+  per operation, so application startup succeeds with dependency scope
+  validation enabled.
 - Adversarial security status now resolves the registered anonymity transport
   selector, while the disabled Web UI avoids unnecessary Tor and transport
   probes that previously produced 404 and 503 browser errors.

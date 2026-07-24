@@ -59,7 +59,33 @@ public class DestinationsControllerTests
         }
     }
 
-    private static DestinationsController CreateController(string? downloadsRoot = null)
+    [Fact]
+    public void GetDefault_ReturnsConfiguredDefaultFolder()
+    {
+        var configuredRoot = Path.Combine(Path.GetTempPath(), "music");
+        var controller = CreateController(
+            destinations:
+            [
+                new slskd.Options.DestinationOption
+                {
+                    Name = "Music",
+                    Path = configuredRoot,
+                    Default = true,
+                },
+            ]);
+
+        var result = controller.GetDefault();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<DestinationResponse>(ok.Value);
+        Assert.Equal("Music", response.Name);
+        Assert.Equal(configuredRoot, response.Path);
+        Assert.True(response.IsDefault);
+    }
+
+    private static DestinationsController CreateController(
+        string? downloadsRoot = null,
+        List<slskd.Options.DestinationOption>? destinations = null)
     {
         var options = new slskd.Options
         {
@@ -67,7 +93,10 @@ public class DestinationsControllerTests
             {
                 Downloads = downloadsRoot ?? Path.GetTempPath(),
             },
-            Destinations = new slskd.Options.DestinationsOptions(),
+            Destinations = new slskd.Options.DestinationsOptions
+            {
+                Folders = destinations ?? [],
+            },
         };
 
         var snapshot = new Mock<IOptionsSnapshot<slskd.Options>>();

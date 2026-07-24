@@ -1,3 +1,22 @@
+## Update 2026-07-24 16:23:00Z
+
+- Completed multiple-destination routing from configuration through discovery,
+  visible Web selection, enqueue, and completed-file placement. Explicit
+  selections win; the configured default covers automatic and destination-less
+  work; `directories.downloads` remains the fallback.
+- Added persistent Search Results and Browse selectors plus regressions for
+  default/preference selection, bridged query encoding, configured completion
+  roots, destination discovery, explicit scene routing, and invalid roots.
+- Documented setup in the root README, getting-started guide, advanced-feature
+  guide, example YAML, and changelogs.
+- A Release-mode Chromium startup exposed a captive scoped `IPodMessaging` in
+  singleton `PodsMeshService`; changed it to create an operation scope. Updated
+  the Browse handoff fixture to seed `/transfers/changes`, then passed the real
+  browser selection and enqueue-query workflow.
+- Validation so far: focused backend `63/63`, complete Web `898` passed with `4`
+  skipped, initial complete .NET `5316/5316`, zero-error ESLint, zero-warning
+  Release build, repository format lint, and authenticated Chromium pass.
+
 ## Update 2026-07-20 16:01:09Z
 
 - Re-audited deployed stable release `.285` with authenticated headless Chromium: `43` route shapes, `230` unique resolved links, `2,924` visible controls, `1,330` link occurrences, screenshots, theme interaction, seven live core/auth tests, and a two-minute realtime hold with two continuously open sockets. Stable routes produced no console, page, request, HTTP, or socket failures.

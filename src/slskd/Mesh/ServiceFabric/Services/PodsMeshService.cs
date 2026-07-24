@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using slskd.Mesh;
 using slskd.Mesh.ServiceFabric;
@@ -23,19 +24,19 @@ public class PodsMeshService : IMeshService
 {
     private readonly ILogger<PodsMeshService> _logger;
     private readonly IPodService _podService;
-    private readonly IPodMessaging _podMessaging;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly int _maxPayload;
     private const int MaxMessageBodyBytes = 4096;
 
     public PodsMeshService(
         ILogger<PodsMeshService> logger,
         IPodService podService,
-        IPodMessaging podMessaging,
+        IServiceScopeFactory serviceScopeFactory,
         IOptions<MeshOptions>? meshOptions = null)
     {
         _logger = logger;
         _podService = podService;
-        _podMessaging = podMessaging;
+        _serviceScopeFactory = serviceScopeFactory;
         _maxPayload = meshOptions?.Value?.Security?.GetEffectiveMaxPayloadSize() ?? SecurityUtils.MaxRemotePayloadSize;
     }
 
@@ -113,7 +114,9 @@ public class PodsMeshService : IMeshService
                 return;
             }
 
-            var messages = await _podMessaging.GetMessagesAsync(
+            using var scope = _serviceScopeFactory.CreateScope();
+            var podMessaging = scope.ServiceProvider.GetRequiredService<IPodMessaging>();
+            var messages = await podMessaging.GetMessagesAsync(
                 podId,
                 channelId,
                 request!.SinceTimestamp,
@@ -322,7 +325,9 @@ public class PodsMeshService : IMeshService
             Signature = request.Signature?.Trim() ?? string.Empty
         };
 
-        var success = await _podMessaging.SendAsync(message, cancellationToken);
+        using var scope = _serviceScopeFactory.CreateScope();
+        var podMessaging = scope.ServiceProvider.GetRequiredService<IPodMessaging>();
+        var success = await podMessaging.SendAsync(message, cancellationToken);
 
         var response = JsonSerializer.Serialize(new { Success = success, MessageId = message.MessageId });
 
@@ -353,7 +358,9 @@ public class PodsMeshService : IMeshService
             };
         }
 
-        var messages = await _podMessaging.GetMessagesAsync(
+        using var scope = _serviceScopeFactory.CreateScope();
+        var podMessaging = scope.ServiceProvider.GetRequiredService<IPodMessaging>();
+        var messages = await podMessaging.GetMessagesAsync(
             podId,
             channelId,
             request!.SinceTimestamp,

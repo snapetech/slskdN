@@ -2140,12 +2140,37 @@ namespace slskd
         /// <summary>
         ///     Download destination options.
         /// </summary>
-        public class DestinationsOptions
+        public class DestinationsOptions : IValidatableObject
         {
             /// <summary>
             ///     Gets the list of download destinations.
             /// </summary>
             public List<DestinationOption> Folders { get; init; } = new List<DestinationOption>();
+
+            /// <summary>
+            ///     Validates configured download destinations.
+            /// </summary>
+            public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+            {
+                var folders = Folders ?? new List<DestinationOption>();
+
+                if (folders.Count(destination => destination.Default) > 1)
+                {
+                    yield return new ValidationResult("Only one download destination can be marked as default");
+                }
+
+                foreach (var destination in folders)
+                {
+                    if (string.IsNullOrWhiteSpace(destination.Path))
+                    {
+                        yield return new ValidationResult("Each download destination requires a path");
+                    }
+                    else if (!Path.IsPathFullyQualified(destination.Path.LocalizePath()))
+                    {
+                        yield return new ValidationResult($"Download destination {destination.Path} contains a relative path; only absolute paths are supported");
+                    }
+                }
+            }
         }
 
         /// <summary>

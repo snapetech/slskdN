@@ -2276,7 +2276,7 @@ namespace slskd.Transfers.Downloads
         {
             var completedRoot = !string.IsNullOrWhiteSpace(transfer.DestinationDirectory)
                 ? transfer.DestinationDirectory
-                : OptionsMonitor.CurrentValue.Directories.Downloads;
+                : Destinations.DownloadDestinationResolver.GetDefaultPath(OptionsMonitor.CurrentValue);
 
             // An explicit destination directory always wins.
             if (!string.IsNullOrWhiteSpace(transfer.DestinationDirectory))

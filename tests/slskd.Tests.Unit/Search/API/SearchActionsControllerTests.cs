@@ -123,6 +123,22 @@ public class SearchActionsControllerTests
     }
 
     [Fact]
+    public async Task DownloadItem_WhenDestinationIsNotConfigured_ReturnsBadRequest()
+    {
+        var controller = CreateController();
+
+        var result = await controller.DownloadItem(
+            Guid.NewGuid(),
+            "0",
+            CancellationToken.None,
+            "/not-configured");
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        var details = Assert.IsType<ProblemDetails>(badRequest.Value);
+        Assert.Equal("invalid_destination", details.Type);
+    }
+
+    [Fact]
     public async Task HandlePodDownloadAsync_WhenNoFallbackPeerExists_ReturnsSanitizedNotFound()
     {
         var meshDirectory = new Mock<IMeshDirectory>();
@@ -141,6 +157,7 @@ public class SearchActionsControllerTests
                 "sha256:test",
                 new slskd.Search.File { Filename = "song.flac", Size = 1234 },
                 string.Empty,
+                null!,
                 CancellationToken.None
             })!;
 
@@ -202,6 +219,7 @@ public class SearchActionsControllerTests
                 "sha256:test",
                 new slskd.Search.File { Filename = "song.flac", Size = 1234 },
                 "peer-1",
+                null!,
                 CancellationToken.None
             })!;
 
@@ -242,6 +260,7 @@ public class SearchActionsControllerTests
                 "sha256:test",
                 new slskd.Search.File { Filename = "song.flac", Size = 1234 },
                 "peer-1",
+                null!,
                 CancellationToken.None
             })!;
 
@@ -294,6 +313,7 @@ public class SearchActionsControllerTests
                     "sha256:test",
                     new slskd.Search.File { Filename = "song.flac", Size = 4097 },
                     "peer-1",
+                    null!,
                     CancellationToken.None
                 })!;
 
@@ -316,7 +336,7 @@ public class SearchActionsControllerTests
         downloadService
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size)>>(),
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("sensitive detail"));
 
@@ -330,6 +350,7 @@ public class SearchActionsControllerTests
             {
                 new SceneContentRef { Username = "alice", Filename = "Music/song.flac", Size = 1234 },
                 new slskd.Search.File { Filename = "song.flac", Size = 1234 },
+                null!,
                 CancellationToken.None
             })!;
 
@@ -347,7 +368,7 @@ public class SearchActionsControllerTests
         downloadService
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size)>>(),
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<slskd.Transfers.Transfer>(), new List<string> { "alice: sensitive detail" }));
 
@@ -361,6 +382,7 @@ public class SearchActionsControllerTests
             {
                 new SceneContentRef { Username = "alice", Filename = "Music/song.flac", Size = 1234 },
                 new slskd.Search.File { Filename = "song.flac", Size = 1234 },
+                null!,
                 CancellationToken.None
             })!;
 
@@ -370,6 +392,44 @@ public class SearchActionsControllerTests
         Assert.Equal("Failed to enqueue scene download", details.Detail);
         Assert.DoesNotContain("sensitive detail", details.Detail ?? string.Empty);
         Assert.DoesNotContain("alice", details.Detail ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task HandleSceneDownloadAsync_PreservesExplicitDestination()
+    {
+        var captured = Array.Empty<DownloadEnqueueRequest>();
+        var downloadService = new Mock<IDownloadService>();
+        downloadService
+            .Setup(service => service.EnqueueAsync(
+                "alice",
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback((string _, IEnumerable<DownloadEnqueueRequest> requests, CancellationToken _) =>
+                captured = requests.ToArray())
+            .ReturnsAsync((
+                new List<slskd.Transfers.Transfer>
+                {
+                    new slskd.Transfers.Transfer { Id = Guid.NewGuid() },
+                },
+                new List<string>()));
+
+        var controller = CreateController(downloadService: downloadService);
+        var method = typeof(SearchActionsController).GetMethod("HandleSceneDownloadAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        var task = (Task<IActionResult>)method!.Invoke(
+            controller,
+            new object[]
+            {
+                new SceneContentRef { Username = "alice", Filename = "Music/song.flac", Size = 1234 },
+                new slskd.Search.File { Filename = "song.flac", Size = 1234 },
+                "/tmp/music",
+                CancellationToken.None
+            })!;
+
+        Assert.IsType<OkObjectResult>(await task);
+        Assert.Single(captured);
+        Assert.Equal("/tmp/music", captured[0].DestinationDirectory);
     }
 
     private static SearchActionsController CreateController(
@@ -384,7 +444,7 @@ public class SearchActionsControllerTests
         {
             Directories = new slskd.Options.DirectoriesOptions
             {
-                Downloads = "/tmp",
+                Downloads = incompleteDir ?? "/tmp",
                 Incomplete = incompleteDir ?? "/tmp",
             }
         });

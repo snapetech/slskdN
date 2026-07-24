@@ -410,7 +410,8 @@ search:
 
 ## Multiple Download Destinations
 
-Configure multiple download folders and choose where files go.
+Configure multiple download folders, choose a daemon-wide default, and override
+it from Search Results or Browse in the Web UI.
 
 ### Setting Up Destinations
 
@@ -429,15 +430,34 @@ destinations:
 
 ### Using Destinations
 
-1. **Default Destination**: Files go to default destination
-2. **Choose Destination**: Select destination when downloading
-3. **Auto-Detection**: Some features auto-select based on content type
+1. Create every destination directory and make it writable by the account that
+   runs slskdN. For containers, mount each host directory at the configured
+   container path.
+2. Add the folders under top-level `destinations.folders`. Set `default: true`
+   on at most one folder, then restart slskdN after changing file mounts or YAML.
+3. On a Search Results page, use **Download to** above the results before
+   clicking a file or folder download action.
+4. On Browse, load a user's shares and use **Download to** above the folder
+   tree before downloading a folder or selected files.
+
+The configured default applies daemon-wide when a request has no explicit
+destination, including wishlist/automatic downloads and API clients that omit
+the `destination` query parameter. A Search/Browse selection is stored in that
+browser and applies to later manual downloads until the user chooses another
+configured folder. An explicit UI/API selection overrides the configured
+default for that download only.
+
+The regular `directories.downloads` folder remains available in the selector.
+If no destination has `default: true`, `directories.downloads` is the default.
 
 ### Best Practices
 
 - **Organize by Type**: Music, audiobooks, etc.
 - **Set Default**: Mark most-used as default
+- **Use One Default**: Do not mark more than one destination as default
 - **Ensure Writable**: All paths must be writable
+- **Mount Container Paths**: A YAML path is inside the container; bind-mount or
+  volume-mount the corresponding host storage
 - **Sufficient Space**: Ensure all destinations have space
 
 ## Job Management & Monitoring

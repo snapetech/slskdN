@@ -155,7 +155,10 @@ Save searches that run automatically in the background. Never miss rare content 
 ```
 
 ### 📁 Multiple Download Destinations
-Configure multiple download folders and choose where files go.
+Configure multiple download folders, set one daemon-wide default, and choose a
+different folder from the **Download to** selector on Search Results or Browse.
+The browser remembers manual selections; wishlist, automatic, and API downloads
+without an explicit selection use the configured default.
 ```yaml
 destinations:
   folders:
@@ -165,6 +168,11 @@ destinations:
     - name: "Audiobooks"
       path: "/downloads/audiobooks"
 ```
+Create and mount each path with write access, then restart slskdN after changing
+the YAML or container mounts. If no folder is marked `default: true`,
+`directories.downloads` remains the default. See
+[Multiple Download Destinations](docs/advanced-features.md#multiple-download-destinations)
+for setup and UI instructions.
 
 ### 🗑️ Clear All Searches
 One-click cleanup for your search history.

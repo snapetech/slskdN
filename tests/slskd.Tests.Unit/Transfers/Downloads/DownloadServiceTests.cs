@@ -1522,6 +1522,30 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public void ResolveCompletedDestinationDirectory_ConfiguredDefault_UsesConfiguredRoot()
+    {
+        var configuredRoot = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(),
+            $"slskdn-configured-download-{Guid.NewGuid():N}");
+        var options = CreateDownloadLayoutOptions(configuredDefault: configuredRoot);
+        var transfer = new slskd.Transfers.Transfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Direction = TransferDirection.Download,
+            Filename = @"Root\Artist - Album\01 Song.flac",
+            RequestedAt = DateTime.UtcNow,
+        };
+
+        using var service = CreateDownloadServiceForLayoutTest(options);
+        var destination = ResolveCompletedDestinationDirectory(service, transfer);
+
+        Assert.Equal(
+            System.IO.Path.Combine(configuredRoot, "Artist - Album"),
+            destination);
+    }
+
+    [Fact]
     public void ResolveCompletedDestinationDirectory_BatchId_UsesBatchIdWhenExplicitlyConfigured()
     {
         var options = CreateDownloadLayoutOptions("batch_id");
@@ -1565,7 +1589,9 @@ public class DownloadServiceTests
             destination);
     }
 
-    private static slskd.Options CreateDownloadLayoutOptions(string? completedLayout = null)
+    private static slskd.Options CreateDownloadLayoutOptions(
+        string? completedLayout = null,
+        string? configuredDefault = null)
     {
         return new slskd.Options
         {
@@ -1581,6 +1607,20 @@ public class DownloadServiceTests
                     {
                         CompletedLayout = completedLayout,
                     },
+            },
+            Destinations = new slskd.Options.DestinationsOptions
+            {
+                Folders = configuredDefault is null
+                    ? []
+                    :
+                    [
+                        new slskd.Options.DestinationOption
+                        {
+                            Name = "Music",
+                            Path = configuredDefault,
+                            Default = true,
+                        },
+                    ],
             },
         };
     }

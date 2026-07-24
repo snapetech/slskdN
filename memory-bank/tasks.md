@@ -9,6 +9,20 @@
 
 ### High Priority
 
+- [ ] Publish and verify the multiple-download-destinations release.
+  - Status: implementation and local validation complete; release authorized
+    (2026-07-24)
+  - Priority: P1
+  - Notes: The configured `destinations.folders[].default` path now governs
+    automatic and destination-less downloads. Search Results and Browse expose
+    a persistent **Download to** selector, including normal Soulseek, bridged
+    scene, and direct Pod paths. Focused backend (`63/63`), complete Web
+    (`898` passed, `4` skipped), initial full .NET (`5316/5316`), Release build,
+    and a real authenticated Chromium Browse selection/enqueue flow passed.
+    Headless startup also found and fixed a captive scoped dependency in the
+    singleton Pods mesh adapter and updated the stale indexed-transfer fixture.
+    Final release gates and tag publication remain.
+
 - [x] Publish, deploy, audit, and harden stable release `2026072016-slskdn.287`.
   - Status: completed (2026-07-20)
   - Priority: P1

@@ -49,7 +49,11 @@ class Directory extends Component {
           bitDepth,
           length,
         }));
-        await transfers.download({ files: requests, username });
+        await transfers.download({
+          destination: this.props.destination,
+          files: requests,
+          username,
+        });
 
         this.setState({ downloadRequest: 'complete' });
       } catch (error) {

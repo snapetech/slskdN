@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Made configured download destinations functional end to end: the folder
+  marked `default` now governs destination-less and automatic downloads, while
+  Search Results and Browse expose a persistent **Download to** selector for
+  ordinary and bridged downloads.
+- Removed a captive scoped Pod-messaging dependency from the singleton mesh
+  service, restoring application startup when dependency scope validation is
+  enabled.
 - Resolved the registered anonymity transport selector through its interface so
   the adversarial security status endpoints can report live selector state, and
   stopped the disabled Web UI from probing unavailable Tor and transport
