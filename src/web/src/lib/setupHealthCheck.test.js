@@ -71,6 +71,54 @@ describe('setupHealthCheck', () => {
     });
   });
 
+  it('uses the live state contract for Soulseek connectivity', () => {
+    const summary = buildSetupHealthChecks({
+      state: {
+        server: {
+          isConnected: true,
+          isLoggedIn: true,
+          state: 'Connected, LoggedIn',
+        },
+      },
+    });
+
+    expect(summary.checks.find((item) => item.area === 'Soulseek session')).toMatchObject({
+      status: 'pass',
+      summary: 'Connected',
+    });
+  });
+
+  it('recognizes current integration and API key collection shapes', () => {
+    const summary = buildSetupHealthChecks({
+      options: {
+        integration: {
+          youTube: {
+            apiKey: '',
+            enabled: true,
+          },
+        },
+        web: {
+          authentication: {
+            apiKeys: {
+              automation: {
+                key: '*****',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(summary.checks.find((item) => item.area === 'API access')).toMatchObject({
+      status: 'pass',
+      summary: 'API key configured',
+    });
+    expect(summary.checks.find((item) => item.area === 'Provider credentials')).toMatchObject({
+      status: 'warn',
+      summary: 'Provider credential gaps',
+    });
+  });
+
   it('formats a copyable report from the local checks', () => {
     const summary = buildSetupHealthChecks({
       options: {},

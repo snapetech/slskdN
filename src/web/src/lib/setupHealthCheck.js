@@ -34,13 +34,24 @@ const check = ({ action, area, evidence, group, status, summary }) => ({
 
 const getEnabledIntegrationGaps = (options = {}) => {
   const integrations = getPath(options, [
+    ['integration'],
     ['integrations'],
+    ['Integration'],
     ['Integrations'],
   ]) || {};
   const providers = [
     ['Spotify', integrations.spotify || integrations.Spotify],
-    ['YouTube', integrations.youtube || integrations.YouTube],
-    ['Last.fm', integrations.lastfm || integrations.LastFm || integrations.lastFM],
+    [
+      'YouTube',
+      integrations.youtube || integrations.youTube || integrations.YouTube,
+    ],
+    [
+      'Last.fm',
+      integrations.lastfm ||
+        integrations.lastFm ||
+        integrations.LastFm ||
+        integrations.lastFM,
+    ],
   ];
 
   return providers
@@ -92,21 +103,32 @@ export const buildSetupHealthChecks = ({ options = {}, state = {} } = {}) => {
   ]);
   const soulseekConnected = getPath(state, [
     ['connected'],
+    ['isConnected'],
     ['server', 'connected'],
+    ['server', 'isConnected'],
     ['Server', 'Connected'],
+    ['Server', 'IsConnected'],
   ]);
   const pendingRestart = getPath(state, [
     ['pendingRestart'],
     ['PendingRestart'],
   ]);
-  const apiKeyConfigured = hasValue(
+  const apiKey = getPath(options, [
+    ['web', 'authentication', 'apiKey'],
+    ['Web', 'Authentication', 'ApiKey'],
+    ['apiKey'],
+    ['ApiKey'],
+  ]);
+  const apiKeys = asArray(
     getPath(options, [
-      ['web', 'authentication', 'apiKey'],
-      ['Web', 'Authentication', 'ApiKey'],
-      ['apiKey'],
-      ['ApiKey'],
+      ['web', 'authentication', 'apiKeys'],
+      ['web', 'authentication', 'api_keys'],
+      ['Web', 'Authentication', 'ApiKeys'],
     ]),
   );
+  const apiKeyConfigured =
+    hasValue(apiKey) ||
+    apiKeys.some((entry) => hasValue(entry?.key || entry?.Key || entry));
   const authDisabled =
     getPath(options, [
       ['web', 'authentication', 'disabled'],

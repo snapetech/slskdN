@@ -25,9 +25,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Guided System configuration editors now emit bindable YAML for AcoustID,
   MusicBrainz, YouTube, Last.fm, transfer schedules, search retention, and
   feature flags instead of failing validation when those settings are saved.
-- Web build dependencies, TypeScript, System.Reactive, .NET servicing packages,
-  telemetry, SQLite, and parser dependencies are updated together with aligned
-  test-project references so clean solution restore remains downgrade-free.
+- Setup Health now reads the live Soulseek connection, integration, and API-key
+  state contracts instead of falsely reporting a connected node as offline or
+  overlooking configured provider and automation credentials.
+- Less, Vite, System.Reactive, .NET servicing packages, telemetry, SQLite, and
+  parser dependencies are updated together with aligned test-project references
+  so clean solution restore remains downgrade-free. TypeScript remains on the
+  compatible 6.x line because 7.x is not yet supported by the current lint
+  parser stack.
 - Configured download destinations now work end to end. The folder marked
   `default` governs automatic and destination-less downloads, and Search
   Results plus Browse provide a persistent **Download to** selector for normal
