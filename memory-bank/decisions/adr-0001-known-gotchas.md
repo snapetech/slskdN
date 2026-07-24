@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z785. PPA Upload Success Is Not Publication Success
+
+**The Bug**: The stable-release PPA job stopped after `dput` accepted a source
+upload. Launchpad builds binaries asynchronously, so the next stable source
+version superseded the previous source publication while its binary build was
+still uploading. The package built successfully, but Launchpad rejected the
+finished binary with `Unable to find source publication` while GitHub Actions
+had already reported the PPA job as successful.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-ppa.yml`
+
+**Prevention**: Serialize uploads to the same PPA and keep the workflow job
+active after `dput` until Launchpad exposes the exact source version and every
+requested binary build reaches a successful published state. Treat rejected,
+failed-to-upload, failed-to-build, superseded, deleted, cancelled, or timed-out
+states as job failures. Transport acceptance alone proves only that Launchpad
+received the source files; it does not prove the PPA contains an installable
+package.
+
 ### 0z784. Release Test Timeouts Must Preserve The Running Test Sequence
 
 **The Bug**: A hosted stable-release gate built the unit-test assembly, then the
