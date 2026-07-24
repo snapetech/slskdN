@@ -131,6 +131,14 @@ describe('AdminPolicies', () => {
     );
     expect(saved.integrations.scripts.local.run.command).toBe('./hook.sh');
     expect(saved.transfers.download.auto_replace_stuck).toBe(true);
+    expect(saved.scheduled_limits).toBeUndefined();
+    expect(saved.transfers.upload.scheduled_limits.enabled).toBe(false);
+    expect(saved.transfers.download.scheduled_limits.enabled).toBe(false);
+    expect(saved.filters.search_retention.max_age_days).toBe(30);
+    expect(saved.filters.search_retention.max_count).toBe(1000);
+    expect(saved.filters.search_retention.cleanup_interval_seconds).toBe(86400);
+    expect(saved.features).toBeUndefined();
+    expect(saved.feature.scene_pod_bridge).toBe(false);
     expect(saved.web.enforce_security).toBe(true);
     expect(saved.web.authentication.jwt.key).toBe('new-jwt-secret');
     expect(saved.web.authentication.api_keys.automation.key).toBe(
@@ -150,3 +158,4 @@ describe('AdminPolicies', () => {
     expect(screen.getByRole('button', { name: 'Save YAML' })).toBeDisabled();
   });
 });
+

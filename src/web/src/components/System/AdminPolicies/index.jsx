@@ -359,7 +359,6 @@ const AdminPolicies = ({ options = {} }) => {
         Number.parseFloat(form.autoReplaceThreshold) || 0,
       );
       document.setIn(['auto_replace', 'max_retries'], toNumber(form.autoReplaceMaxRetries, 3));
-      document.setIn(['scheduled_limits', 'enabled'], form.scheduledLimitsEnabled);
       document.setIn(
         ['transfers', 'upload', 'scheduled_limits', 'enabled'],
         form.uploadScheduledLimitsEnabled,
@@ -423,9 +422,9 @@ const AdminPolicies = ({ options = {} }) => {
       );
 
       document.setIn(['filters', 'search', 'request'], parseLines(form.searchFilterRequest));
-      document.setIn(['filters', 'searchRetention', 'maxAgeDays'], toNumber(form.searchRetentionMaxAgeDays, 30));
-      document.setIn(['filters', 'searchRetention', 'maxCount'], toNumber(form.searchRetentionMaxCount, 1000));
-      document.setIn(['filters', 'searchRetention', 'cleanupIntervalSeconds'], toNumber(form.searchRetentionCleanupInterval, 86400));
+      document.setIn(['filters', 'search_retention', 'max_age_days'], toNumber(form.searchRetentionMaxAgeDays, 30));
+      document.setIn(['filters', 'search_retention', 'max_count'], toNumber(form.searchRetentionMaxCount, 1000));
+      document.setIn(['filters', 'search_retention', 'cleanup_interval_seconds'], toNumber(form.searchRetentionCleanupInterval, 86400));
       document.setIn(['blacklist', 'enabled'], form.blacklistEnabled);
       document.setIn(['blacklist', 'file'], form.blacklistFile.trim());
       document.setIn(['dht', 'enabled'], form.dhtEnabled);
@@ -437,7 +436,7 @@ const AdminPolicies = ({ options = {} }) => {
         ['dht', 'announce_interval_seconds'],
         toNumber(form.dhtAnnounceIntervalSeconds, 900),
       );
-      document.setIn(['features', 'scene_pod_bridge'], form.featureScenePodBridge);
+      document.setIn(['feature', 'scene_pod_bridge'], form.featureScenePodBridge);
       document.setIn(['rescue_mode', 'enabled'], form.rescueModeEnabled);
       document.setIn(
         ['rescue_mode', 'max_queue_time_seconds'],
@@ -1575,3 +1574,4 @@ const AdminPolicies = ({ options = {} }) => {
 };
 
 export default AdminPolicies;
+

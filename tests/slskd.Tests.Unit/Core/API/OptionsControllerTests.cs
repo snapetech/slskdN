@@ -250,6 +250,46 @@ public class OptionsControllerTests
     }
 
     [Fact]
+    public void ValidateYamlFile_AcceptsGuidedEditorIntegrationAndPolicyKeys()
+    {
+        var controller = CreateController();
+
+        var yaml = $$"""
+            integrations:
+              acoustid:
+                enabled: false
+              musicbrainz:
+                timeout_seconds: 20
+              youtube:
+                api_key: ''
+              lastfm:
+                api_key: ''
+            transfers:
+              upload:
+                scheduled_limits:
+                  enabled: false
+              download:
+                scheduled_limits:
+                  enabled: false
+            filters:
+              search_retention:
+                max_age_days: 30
+                max_count: 1000
+                cleanup_interval_seconds: 86400
+            feature:
+              scene_pod_bridge: false
+            directories:
+              incomplete: '{{Path.GetTempPath()}}'
+              downloads: '{{Path.GetTempPath()}}'
+            web:
+              content_path: .
+            """;
+        var result = controller.ValidateYamlFile(yaml);
+
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
     public void ApplyOverlay_WithInvalidOverlay_DoesNotLeakValidationMessage()
     {
         var controller = CreateController();

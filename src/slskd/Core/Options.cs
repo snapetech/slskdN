@@ -3492,12 +3492,14 @@ namespace slskd
             ///     Gets AcoustID integration options.
             /// </summary>
             [Validate]
+            [YamlMember(Alias = "acoustid")]
             public AcoustIdOptions AcoustId { get; init; } = new AcoustIdOptions();
 
             /// <summary>
             ///     Gets MusicBrainz integration options.
             /// </summary>
             [Validate]
+            [YamlMember(Alias = "musicbrainz")]
             public MusicBrainzOptions MusicBrainz { get; init; } = new MusicBrainzOptions();
 
             /// <summary>
@@ -3516,12 +3518,14 @@ namespace slskd
             ///     Gets YouTube source feed import options.
             /// </summary>
             [Validate]
+            [YamlMember(Alias = "youtube")]
             public YouTubeOptions YouTube { get; init; } = new YouTubeOptions();
 
             /// <summary>
             ///     Gets Last.fm source feed import options.
             /// </summary>
             [Validate]
+            [YamlMember(Alias = "lastfm")]
             public LastFmOptions LastFm { get; init; } = new LastFmOptions();
 
             /// <summary>
