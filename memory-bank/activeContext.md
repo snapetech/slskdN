@@ -1,8 +1,7 @@
-## Update 2026-07-24 19:30:00Z
+## Update 2026-07-24 19:46:00Z
 
-- Current task: correct the PPA publication race exposed by the `.289` Jammy
-  binary-upload rejection, then verify the current `.290` package and push the
-  workflow correction without creating another release.
+- Current task: repository remediation complete; Launchpad is still processing
+  the already-built `.290` Jammy binary externally.
 - Last activity:
   - Confirmed `.289` compiled successfully but Launchpad rejected the binary
     upload after the `.290` source superseded its exact source publication.
@@ -14,14 +13,19 @@
     an active publication.
 - Validation:
   - Shell syntax, workflow YAML syntax, packaging metadata, repository lint,
-    and diff checks pass.
+    diff checks, and the synchronized remediation baseline pass.
   - The live gate rejects the superseded `.289` source as expected. The `.290`
-    package build log reports a successful binary build and Launchpad is still
-    processing its binary upload.
+    package build log reports a successful binary build. After a bounded
+    30-minute observation, Launchpad still reports `Uploading build`, exposes no
+    published binary or upload log, and marks the build non-retryable.
+- Publication:
+  - Gotcha commit `b5a435047`, implementation commit `bda14516b`, and generated
+    council-count commit `cde92e314` are pushed to both writable remotes.
+  - No additional tag or release was created.
 - Next steps:
-  1. Confirm the exact `.290` Jammy binary reaches Published state.
-  2. Commit and push the PPA gate plus completion documentation to both writable
-     remotes.
+  1. Recheck Launchpad build `33439006`; retry it only if Launchpad reaches a
+     retryable failed state.
+  2. Do not submit another PPA source while that exact build remains active.
   3. Do not create another tag or release without explicit authorization.
 
 ## Update 2026-07-24 19:16:47Z
