@@ -26315,3 +26315,19 @@ transition happened to change the coordinator state.
 initial effective state, not only appear in configuration and status models.
 Add a constructor-level lifecycle test for both the overridden and default
 startup states.
+
+### 0z613. Health Summaries Must Read The Actual State Contract
+
+**The Bug**: Setup Health looked for `server.connected`, while the state API
+publishes `server.isConnected`. A live, logged-in Soulseek session therefore
+appeared as “Not connected” in the modal and diagnostic bundle even though the
+status indicator used the correct field.
+
+**Files Affected**:
+- `src/web/src/lib/setupHealthCheck.js`
+- `src/web/src/lib/setupHealthCheck.test.js`
+
+**Prevention**: Normalize health inputs against fixtures copied from the real
+state payload, including `isConnected` casing variants. When two UI surfaces
+summarize the same runtime state, regression-test both against one canonical
+contract fixture.
