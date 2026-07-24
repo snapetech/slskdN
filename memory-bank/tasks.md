@@ -25,9 +25,11 @@
   - Priority: P2
   - Notes: `react-router-dom` `7.18.1` is the newest published version and the
     app uses its client-only routing APIs. Its transitive `react-router` package
-    reports `GHSA-qwww-vcr4-c8h2` for RSC/server-action mode. The registry's
+    reports `GHSA-qwww-vcr4-c8h2` for RSC/server-action mode. Patched core
+    `react-router` `8.3.0` requires React `19.2.7` and Node `22.22`, while a
+    matching `react-router-dom` package is not published. The registry's
     suggested downgrade restores several older high-severity advisories, so no
-    currently published version produces a clean audit.
+    currently compatible version produces a clean audit.
 
 - [ ] Publish and verify the multiple-download-destinations release.
   - Status: implementation and local validation complete; release authorized

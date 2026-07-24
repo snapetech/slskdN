@@ -1,3 +1,27 @@
+## Update 2026-07-24 17:31:30Z
+
+- Current task: complete. GitHub reports zero open issues and zero open pull
+  requests for the fork repository.
+- Last activity:
+  - Pushed all PR completions, issue fixes, tests, changelog, and dependency
+    remediation to both configured remotes.
+  - Posted root-cause and validation evidence on issue `#277`, then closed it
+    as completed. PRs `#278`--`#282` are recorded as merged.
+  - Investigated the remaining Dependabot record: React Router's RSC/server-
+    action advisory does not affect the client-only APIs used here. Patched core
+    `8.3.0` requires React `19.2.7` and Node `22.22`, and matching Router DOM is
+    not published, so a compatible upstream release remains the only blocker.
+- Validation:
+  - Complete .NET passed (`74` application, `4964` unit, `284` integration).
+  - Complete Web passed (`900` with `4` skipped), production build passed,
+    ESLint has zero errors, and repository lint passed.
+  - GitHub inventory returned empty open-issue and open-PR lists.
+- Next steps:
+  1. Upgrade the React Router stack after a compatible patched upstream release.
+  2. Let the already-running `.288` omnibus package job finish; Chocolatey is
+     still blocked by its previously documented external publishing failure.
+  3. Do not create another tag or release without explicit authorization.
+
 ## Update 2026-07-24 17:27:37Z
 
 - Current task: the open issue and pull-request backlog is resolved locally;
