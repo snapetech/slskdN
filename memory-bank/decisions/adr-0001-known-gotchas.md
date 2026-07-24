@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z782. Singleton Mesh Services Must Resolve Scoped Storage Per Operation
+
+**The Bug**: `PodsMeshService` was registered as a singleton for the process-
+lifetime mesh router but directly injected scoped `IPodMessaging`. Development
+service-provider validation therefore rejected the dependency graph and stopped
+the application before Kestrel could listen.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/Services/PodsMeshService.cs`
+- `src/slskd/Bootstrap/ExperimentalMeshServiceCollectionExtensions.cs`
+
+**Prevention**: Process-lifetime mesh adapters must inject
+`IServiceScopeFactory` and resolve database-backed scoped services inside each
+call or stream operation. Add a real service-provider build/startup regression
+with scope validation enabled; constructor-only unit tests cannot expose a
+captive dependency.
+
 ### 0z781. Configuration, API Discovery, And Download Routing Must Share One Default
 
 **The Bug**: Multiple download destinations were exposed in configuration and
