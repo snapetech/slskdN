@@ -26331,3 +26331,18 @@ status indicator used the correct field.
 state payload, including `isConnected` casing variants. When two UI surfaces
 summarize the same runtime state, regression-test both against one canonical
 contract fixture.
+
+### 0z614. Dependency Upgrades Must Be Tested After A Clean Install
+
+**The Bug**: A TypeScript 7 upgrade appeared to pass Web tests, lint, and build
+while `node_modules` still contained TypeScript 6. After `npm ci` installed the
+new lockfile exactly, ESLint crashed because the current TypeScript-ESLint
+parser depends on compiler APIs removed by TypeScript 7.
+
+**Files Affected**:
+- `src/web/package.json`
+- `src/web/package-lock.json`
+
+**Prevention**: Run `npm ci` before validating dependency PRs, confirm installed
+versions with `npm ls`, then run lint, tests, and production build. A lockfile
+diff plus tests against a stale dependency tree does not validate an upgrade.
