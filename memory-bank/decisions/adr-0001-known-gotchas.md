@@ -26346,3 +26346,18 @@ parser depends on compiler APIs removed by TypeScript 7.
 **Prevention**: Run `npm ci` before validating dependency PRs, confirm installed
 versions with `npm ls`, then run lint, tests, and production build. A lockfile
 diff plus tests against a stale dependency tree does not validate an upgrade.
+
+### 0z615. Dependency PR Validation Must Include The Resolved Audit Graph
+
+**The Bug**: Direct Web dependency updates left multiple transitive
+`brace-expansion` lockfile entries on vulnerable versions even though patched
+versions satisfied their parent ranges. Tests and production build passed, but
+the resolved dependency graph still carried a high-severity denial-of-service
+advisory.
+
+**Files Affected**:
+- `src/web/package-lock.json`
+
+**Prevention**: After a clean install, run `npm audit` and apply bounded
+non-breaking transitive updates when patched versions already satisfy parent
+ranges. Re-run `npm ci`, lint, tests, and build against the resulting lockfile.
