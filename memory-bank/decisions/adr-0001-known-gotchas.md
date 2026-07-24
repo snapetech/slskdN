@@ -25592,8 +25592,11 @@ errors before any tests could run.
 
 **Recurrence**: A later grouped .NET servicing update again changed only the
 application, build-task, and vendored runtime projects while leaving direct
-test and performance references one patch behind. Treat every grouped update
-as solution-wide even when Dependabot scopes its branch to fewer projects.
+test and performance references one patch behind. It also exposed an older
+direct `System.IdentityModel.Tokens.Jwt` reference after JwtBearer raised its
+transitive minimum. Treat every grouped update as solution-wide and inspect
+all NU1605 dependency chains even when Dependabot scopes its branch to fewer
+projects.
 
 **Prevention**: Search the entire solution for every package in a grouped
 update and keep direct test/tool references at the same version as the runtime
