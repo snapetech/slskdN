@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- PPA workflows now serialize uploads per Ubuntu series and wait for the exact
+  source, binary build, and published binary records, preventing a later source
+  upload from superseding a package whose binary is still being processed.
 - Guided System configuration editors now emit bindable YAML for AcoustID,
   MusicBrainz, YouTube, Last.fm, transfer schedules, search retention, and
   feature flags instead of failing validation when those settings are saved.

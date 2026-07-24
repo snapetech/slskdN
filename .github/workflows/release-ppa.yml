@@ -14,6 +14,9 @@ permissions:
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
+    concurrency:
+      group: slskdn-ppa-${{ matrix.ubuntu_series }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
@@ -126,6 +129,7 @@ jobs:
           cp packaging/aur/slskd.tmpfiles "$SRC_DIR/usr/lib/tmpfiles.d/slskd.conf"
 
       - name: Prepare Source Package
+        id: ppa-package
         run: |
           SRC_DIR="slskdn-${{ steps.version.outputs.version }}"
           SERIES="${{ matrix.ubuntu_series }}"
@@ -140,11 +144,13 @@ jobs:
           
           # Use timestamp-based PPA revision to avoid conflicts on rebuilds
           PPA_REV=$(date +%Y%m%d%H%M)
+          PPA_VERSION="${{ steps.version.outputs.version }}-1ppa${PPA_REV}~${SERIES}"
+          echo "version=$PPA_VERSION" >> "$GITHUB_OUTPUT"
           
           # Update changelog
           cd "$SRC_DIR"
           cat > debian/changelog << EOF
-          slskdn (${{ steps.version.outputs.version }}-1ppa${PPA_REV}~${SERIES}) ${SERIES}; urgency=medium
+          slskdn (${PPA_VERSION}) ${SERIES}; urgency=medium
           
             * Release ${{ steps.version.outputs.tag }}
           
@@ -307,3 +313,9 @@ jobs:
           fi
 
           echo "✅ Uploaded to PPA: slskdn"
+
+      - name: Wait for PPA Publication
+        run: |
+          scripts/wait-for-launchpad-ppa-publication.sh \
+            "${{ steps.ppa-package.outputs.version }}" \
+            "${{ matrix.ubuntu_series }}"

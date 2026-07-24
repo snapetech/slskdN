@@ -1,3 +1,29 @@
+## Update 2026-07-24 19:30:00Z
+
+- Current task: correct the PPA publication race exposed by the `.289` Jammy
+  binary-upload rejection, then verify the current `.290` package and push the
+  workflow correction without creating another release.
+- Last activity:
+  - Confirmed `.289` compiled successfully but Launchpad rejected the binary
+    upload after the `.290` source superseded its exact source publication.
+  - Added a shared exact-version publication gate that waits through source
+    acceptance, binary build, and binary publication, while failing terminal
+    source/build states.
+  - Serialized Jammy uploads across both PPA workflows and independently
+    serialized each standalone Ubuntu series so a later source cannot overtake
+    an active publication.
+- Validation:
+  - Shell syntax, workflow YAML syntax, packaging metadata, repository lint,
+    and diff checks pass.
+  - The live gate rejects the superseded `.289` source as expected. The `.290`
+    package build log reports a successful binary build and Launchpad is still
+    processing its binary upload.
+- Next steps:
+  1. Confirm the exact `.290` Jammy binary reaches Published state.
+  2. Commit and push the PPA gate plus completion documentation to both writable
+     remotes.
+  3. Do not create another tag or release without explicit authorization.
+
 ## Update 2026-07-24 19:16:47Z
 
 - Current task: complete. Stable `2026072418-slskdn.290` is published,

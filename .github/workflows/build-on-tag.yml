@@ -748,6 +748,9 @@ jobs:
     if: needs.parse.outputs.channel == 'main'
     continue-on-error: true
     runs-on: ubuntu-latest
+    concurrency:
+      group: slskdn-ppa-jammy
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -802,6 +805,7 @@ jobs:
           cp packaging/aur/slskd.tmpfiles slskdn-${VERSION}/usr/lib/tmpfiles.d/slskd.conf
 
       - name: Prepare Source Package
+        id: ppa-package
         run: |
           VERSION="${{ needs.parse.outputs.version }}"
           # Convert version for Debian (replace ALL hyphens with dots)
@@ -818,10 +822,12 @@ jobs:
           
           # Use timestamp-based PPA revision
           PPA_REV=$(date +%Y%m%d%H%M)
+          PPA_VERSION="${DEB_VERSION}-1ppa${PPA_REV}~jammy"
+          echo "version=$PPA_VERSION" >> "$GITHUB_OUTPUT"
           
           # Update changelog for slskdn stable (use DEB_VERSION with dots)
           cat > debian/changelog << EOF
-          slskdn (${DEB_VERSION}-1ppa${PPA_REV}~jammy) jammy; urgency=medium
+          slskdn (${PPA_VERSION}) jammy; urgency=medium
 
             * Stable release
             * Multi-source swarm downloads
@@ -985,6 +991,17 @@ jobs:
           fi
 
           echo "✅ Uploaded to PPA: slskdn"
+
+      - name: Wait for PPA Publication
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "Skipping PPA publication wait - GPG_PRIVATE_KEY not configured"
+            exit 0
+          fi
+          scripts/wait-for-launchpad-ppa-publication.sh \
+            "${{ steps.ppa-package.outputs.version }}" jammy
 
   docker-main:
     name: Build and Push Docker (Main)

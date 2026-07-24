@@ -4260,3 +4260,4 @@
 - [2026-07-16T01:31:53Z] Completed: eliminate unrendered compact listen-along directory polling and bound full-panel DHT hydration with visible-only client polling plus process-wide refresh coalescing.
 - [2026-07-16T01:44:49Z] Completed: make Mesh diagnostics passive by removing STUN probes from stats reads, harden Mesh polling, and enforce Strict Mode-safe lifecycle setup across covered System pollers.
 - [2026-07-17T20:13:00Z] Completed: fix all defects represented by draft PRs #266–#276, strengthen the partial retained-options implementation and DI coverage, and pass the full 5,302-test, lint, and remediation gates without creating a release.
+- [2026-07-24T19:30:00Z] Completed: prevent PPA source-superseding races by serializing uploads per Ubuntu series and requiring exact source acceptance, successful binary builds, and published binary records before a workflow reports package success.
