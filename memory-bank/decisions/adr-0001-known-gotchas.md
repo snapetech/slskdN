@@ -26288,3 +26288,19 @@ Saving either form produced YAML that the same API immediately rejected.
 guided editors limited to properties represented by the current options model.
 Regression-test generated editor YAML through the backend validation endpoint,
 not only by parsing it as generic YAML in the frontend test suite.
+
+### 0z612. Startup Overrides Must Determine Initial Runtime State
+
+**The Bug**: VirtualSoulfind exposed and bound a forced disaster-mode option,
+but the coordinator constructor always initialized its runtime level to normal.
+The configured operator override therefore had no effect until another health
+transition happened to change the coordinator state.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/DisasterMode/DisasterModeCoordinator.cs`
+- `tests/slskd.Tests.Unit/VirtualSoulfind/DisasterMode/DisasterModeLifecycleTests.cs`
+
+**Prevention**: Every startup override must participate in construction of the
+initial effective state, not only appear in configuration and status models.
+Add a constructor-level lifecycle test for both the overridden and default
+startup states.
