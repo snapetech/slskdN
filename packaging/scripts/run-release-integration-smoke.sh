@@ -10,13 +10,15 @@ INTEGRATION_FILTER='FullyQualifiedName~LoadTests|FullyQualifiedName~DisasterMode
 
 echo
 echo "==> Run backend unit smoke tests"
-echo "dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj -c Release --filter \"$UNIT_FILTER\" -v minimal"
-dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj -c Release --filter "$UNIT_FILTER" -v minimal
+echo "dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj -c Release --filter \"$UNIT_FILTER\" -v minimal --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none"
+dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj -c Release --filter "$UNIT_FILTER" -v minimal \
+    --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
 
 echo
 echo "==> Run backend integration smoke tests"
-echo "dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj -c Release --filter \"$INTEGRATION_FILTER\" -v minimal"
-dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj -c Release --filter "$INTEGRATION_FILTER" -v minimal
+echo "dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj -c Release --filter \"$INTEGRATION_FILTER\" -v minimal --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none"
+dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj -c Release --filter "$INTEGRATION_FILTER" -v minimal \
+    --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
 
 echo
 echo "Release smoke passed."

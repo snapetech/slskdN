@@ -1,3 +1,31 @@
+## Update 2026-07-24 18:26:28Z
+
+- Current task: publish the security/quality and release-diagnostics follow-up,
+  then deploy and validate the final immutable release on the live validation
+  host.
+- Last activity:
+  - Dismissed CodeQL alerts `2554`--`2557` as false positives with the exact
+    fail-fast authorization rationale, and Dependabot alert `104` as unused
+    because this client-only SPA has no React Router RSC/server-action path.
+  - Confirmed zero open CodeQL, Dependabot, secret-scanning, normal issue, and
+    pull-request records.
+  - Reproduced the hosted `.289` unit-test timeout under two-CPU affinity; all
+    `4964` tests passed in 40.7 seconds, so the first hosted stall is not
+    reproducible. A fresh `.289` hosted attempt is running.
+  - Added bounded hang-sequence capture to all .NET release-test commands and
+    documented gotcha `0z784` in standalone commit `5a7aa0436`.
+- Validation:
+  - Shell syntax and packaging metadata pass.
+  - Application (`74/74`), complete unit (`4964/4964`), focused unit-smoke, and
+    integration-smoke (`40/40`) paths pass with the new hang diagnostics.
+- Next steps:
+  1. Commit and push the release-diagnostic and context updates to both writable
+     remotes after the `.289` rerun establishes hosted-runner behavior.
+  2. Cut the explicitly authorized subsequent stable release through the
+     guarded helper and verify all artifacts plus the immutable main image.
+  3. Deploy only the final follow-up release, retain rollback, and verify
+     service, version, connectivity, health, and fresh logs.
+
 ## Update 2026-07-24 17:37:08Z
 
 - Current task: complete. The local repository and both writable remotes now

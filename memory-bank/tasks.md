@@ -9,6 +9,22 @@
 
 ### High Priority
 
+- [ ] Publish and deploy the security/quality and release-diagnostics follow-up.
+  - Status: implementation and local validation complete; hosted release work
+    in progress (2026-07-24)
+  - Priority: P1
+  - Notes: Investigated every open GitHub security finding. Four CodeQL
+    `cs/user-controlled-bypass` alerts were false positives on request-null
+    branches that return before authenticated pod authorization or mutation.
+    Dependabot's React Router advisory requires RSC/server-action mode, while
+    the app uses only client-side SPA routing; all five records now carry exact
+    dismissal rationale and GitHub reports zero open CodeQL, Dependabot, or
+    secret-scanning alerts. The first `.289` hosted attempt exposed an opaque
+    unit-test-host stall after the same `4964/4964` suite passed locally;
+    release test commands now preserve a bounded hang sequence after five
+    minutes instead of losing the active test at the outer 30-minute timeout.
+    The updated smoke/regression (`74/74`) and integration (`40/40`) paths pass.
+
 - [x] Reduce the fork repositories and local checkout to the `main` branch.
   - Status: completed (2026-07-24)
   - Priority: P1
@@ -41,9 +57,8 @@
     suggested downgrade restores several older high-severity advisories, so no
     currently compatible version produces a clean audit.
 
-- [ ] Publish and verify the multiple-download-destinations release.
-  - Status: implementation and local validation complete; release authorized
-    (2026-07-24)
+- [x] Publish and verify the multiple-download-destinations release.
+  - Status: completed in stable release `2026072416-slskdn.288` (2026-07-24)
   - Priority: P1
   - Notes: The configured `destinations.folders[].default` path now governs
     automatic and destination-less downloads. Search Results and Browse expose
@@ -53,7 +68,9 @@
     and a real authenticated Chromium Browse selection/enqueue flow passed.
     Headless startup also found and fixed a captive scoped dependency in the
     singleton Pods mesh adapter and updated the stale indexed-transfer fixture.
-    Final release gates and tag publication remain.
+    Stable `.288` passed the complete local and hosted release gates, published
+    its platform archives and container images, and passed independent artifact
+    verification.
 
 - [x] Publish, deploy, audit, and harden stable release `2026072016-slskdn.287`.
   - Status: completed (2026-07-20)

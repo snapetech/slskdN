@@ -81,10 +81,12 @@ run_step "Smoke built frontend under a subpath" 180 \
     node src/web/scripts/smoke-subpath-build.mjs
 
 run_step "Run backend unit tests" 1800 \
-    dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj -c Release
+    dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj -c Release \
+        --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
 
 run_step "Run backend smoke/regression tests" 1800 \
-    dotnet test tests/slskd.Tests/slskd.Tests.csproj -c Release
+    dotnet test tests/slskd.Tests/slskd.Tests.csproj -c Release \
+        --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type none
 
 run_step "Run backend integration smoke tests" 1800 \
     bash packaging/scripts/run-release-integration-smoke.sh

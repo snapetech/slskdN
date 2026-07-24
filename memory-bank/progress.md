@@ -1,3 +1,22 @@
+## Update 2026-07-24 18:26:28Z
+
+- Cleared the complete GitHub security and quality inventory: four high-severity
+  CodeQL alerts were false positives on fail-fast request validation, and the
+  one React Router advisory affects only unused RSC/server-action mode. Each
+  alert records its specific rationale; open CodeQL, Dependabot, and secret-
+  scanning counts are now zero.
+- Stable `.289` passed the complete guarded local release gate, but its first
+  hosted attempt compiled the unit-test assembly and then stalled until the
+  outer 30-minute timeout. The same `4964/4964` suite passed again under two-CPU
+  affinity in 40.7 seconds, so no product or dependency regression was
+  established; a fresh hosted rerun is in progress.
+- Added five-minute hang-sequence capture without memory dumps to every .NET
+  release-gating test command. This preserves the active test when a rare host
+  stall occurs while retaining the existing 30-minute command safety cap.
+- Validation: shell syntax, packaging metadata, application tests (`74/74`),
+  focused unit smoke, integration smoke (`40/40`), and the two-CPU complete unit
+  run (`4964/4964`) pass with the new diagnostic options.
+
 ## Update 2026-07-24 16:23:00Z
 
 - Completed multiple-destination routing from configuration through discovery,
