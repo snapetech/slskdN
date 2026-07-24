@@ -26270,3 +26270,21 @@ type is intentionally too generic to communicate a concrete failure category.
 **Prevention**: Use a specific exception outside the production catch filter,
 such as `IOException`, when testing propagation boundaries. Run the focused
 test project with analyzers enabled before broad validation.
+
+### 0z611. Configuration Editors Must Emit Keys The YAML Binder Accepts
+
+**The Bug**: Guided configuration editors wrote documented acronym keys such
+as `integrations.acoustid` without matching `YamlMember` aliases, while the
+underscored naming convention expected a different spelling. The Policies
+editor also wrote the removed top-level `scheduled_limits` compatibility node.
+Saving either form produced YAML that the same API immediately rejected.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `src/web/src/components/System/AdminPolicies/index.jsx`
+- YAML validation and guided-editor tests
+
+**Prevention**: Give conventional acronym keys explicit YAML aliases and keep
+guided editors limited to properties represented by the current options model.
+Regression-test generated editor YAML through the backend validation endpoint,
+not only by parsing it as generic YAML in the frontend test suite.
