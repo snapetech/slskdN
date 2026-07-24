@@ -1,3 +1,28 @@
+## Update 2026-07-24 17:27:37Z
+
+- Current task: the open issue and pull-request backlog is resolved locally;
+  final push, issue comment/closure, and zero-open-item verification remain.
+- Last activity:
+  - Reviewed issue `#277` and PRs `#278`--`#282`; all five PRs are merged with
+    their incomplete dependency and disaster-mode fixes completed on `main`.
+  - Corrected guided configuration YAML aliases/paths and the Setup Health
+    reader's stale Soulseek connection, integration, and API-key field shapes.
+  - Kept TypeScript on compatible `6.0.3` after a clean install proved `7.0.2`
+    incompatible with the current lint parser. Updated Less and Vite remain.
+  - Removed the patched `brace-expansion` audit graph. React Router `7.18.1`
+    retains one RSC/server-action advisory with no clean published upgrade;
+    the client-only app does not use the affected mode.
+- Validation:
+  - Full .NET passed (`74` application, `4964` unit, `284` integration).
+  - Full Web passed (`900` with `4` skipped), production build passed, ESLint
+    has zero errors, repository lint passed, and release `.288` archives passed
+    independent checksum, payload, Web-marker, and embedded-version checks.
+- Next steps:
+  1. Push the final source and documentation commits to both configured remotes.
+  2. Comment on and close issue `#277`, then confirm zero open issues or PRs.
+  3. Upgrade React Router when a patched upstream release becomes available.
+  4. Do not create another tag or release without explicit authorization.
+
 ## Update 2026-07-24 16:23:00Z
 
 - Current task: multiple download destinations are implemented end to end and

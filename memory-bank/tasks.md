@@ -9,6 +9,26 @@
 
 ### High Priority
 
+- [x] Investigate and resolve the complete open issue and pull-request backlog.
+  - Status: completed (2026-07-24)
+  - Priority: P1
+  - Notes: Reviewed issue `#277` and PRs `#278`--`#282`. Merged the disaster-mode,
+    Less/Vite, TypeScript, grouped NuGet, and System.Reactive PR heads, then
+    completed their missing dependency alignment and compatibility work. The
+    guided configuration editor now emits bindable YAML and Setup Health reads
+    the live connection, integration, and API-key contracts. Full .NET passed
+    (`74` application, `4964` unit, `284` integration); full Web passed (`900`
+    with `4` skipped), together with the production build and zero-error lint.
+
+- [ ] Upgrade React Router after the server-action CSRF advisory is patched.
+  - Status: blocked on an upstream patched release (2026-07-24)
+  - Priority: P2
+  - Notes: `react-router-dom` `7.18.1` is the newest published version and the
+    app uses its client-only routing APIs. Its transitive `react-router` package
+    reports `GHSA-qwww-vcr4-c8h2` for RSC/server-action mode. The registry's
+    suggested downgrade restores several older high-severity advisories, so no
+    currently published version produces a clean audit.
+
 - [ ] Publish and verify the multiple-download-destinations release.
   - Status: implementation and local validation complete; release authorized
     (2026-07-24)
