@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z784. Release Test Timeouts Must Preserve The Running Test Sequence
+
+**The Bug**: A hosted stable-release gate built the unit-test assembly, then the
+test host stopped making progress until the outer 30-minute command timeout
+terminated it with exit code 124. The release log contained no test name or
+sequence, so the timeout proved that the suite stalled but discarded the
+evidence needed to isolate the responsible test.
+
+**Files Affected**:
+- `packaging/scripts/run-release-gate.sh`
+
+**Prevention**: Run release-gating test assemblies with the test platform's
+bounded hang detector and sequence capture inside the longer command timeout.
+Keep the per-test inactivity limit comfortably above normal suite duration and
+disable memory dumps when the sequence is sufficient, so a rare hosted-runner
+stall fails quickly with the active test identified instead of consuming the
+entire release timeout without diagnostics.
+
 ### 0z783. Browser Transfer Fixtures Must Follow The Indexed Changes Contract
 
 **The Bug**: The Browse handoff browser test mocked legacy grouped and flat
