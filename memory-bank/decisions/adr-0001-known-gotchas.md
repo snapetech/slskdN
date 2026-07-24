@@ -26361,3 +26361,19 @@ advisory.
 **Prevention**: After a clean install, run `npm audit` and apply bounded
 non-breaking transitive updates when patched versions already satisfy parent
 ranges. Re-run `npm ci`, lint, tests, and build against the resulting lockfile.
+
+### 0z616. Audit Fix Suggestions Can Reintroduce Older Vulnerabilities
+
+**The Bug**: `npm audit` suggested downgrading React Router from the latest
+release to avoid a new RSC-only advisory. The suggested version removed that
+one finding but reintroduced a larger set of older XSS, redirect, RCE, and DoS
+advisories. No currently published version resolved the full advisory set.
+
+**Files Affected**:
+- `src/web/package.json`
+- `src/web/package-lock.json`
+
+**Prevention**: Inspect the complete audit graph before accepting forced or
+out-of-range remediation. Prefer the latest release when no clean version
+exists, document whether vulnerable server-only features are unused, and track
+the upstream patched release instead of trading one advisory for several.
