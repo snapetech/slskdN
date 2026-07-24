@@ -9,9 +9,8 @@
 
 ### High Priority
 
-- [ ] Publish and deploy the security/quality and release-diagnostics follow-up.
-  - Status: implementation and local validation complete; hosted release work
-    in progress (2026-07-24)
+- [x] Publish and deploy the security/quality and release-diagnostics follow-up.
+  - Status: completed in stable release `2026072418-slskdn.290` (2026-07-24)
   - Priority: P1
   - Notes: Investigated every open GitHub security finding. Four CodeQL
     `cs/user-controlled-bypass` alerts were false positives on request-null
@@ -23,7 +22,14 @@
     unit-test-host stall after the same `4964/4964` suite passed locally;
     release test commands now preserve a bounded hang sequence after five
     minutes instead of losing the active test at the outer 30-minute timeout.
-    The updated smoke/regression (`74/74`) and integration (`40/40`) paths pass.
+    Stable `.290` passed local and hosted gates, all six archives plus published
+    checksums, and the amd64/arm64 main image at
+    `sha256:15e0f62a1991d61a48aaa192b0f12b6296a97628bfec10551f51ff3183b505da`.
+    The live validation service now runs that immutable image with rollback
+    preserved; version, HTTP health, DHT readiness, VPN forwarding, Soulseek
+    login, restart/OOM state, resource use, and fresh logs pass. Chocolatey's
+    external endpoint returned HTTP 504 on all five bounded attempts; every
+    release-critical channel passed.
 
 - [x] Reduce the fork repositories and local checkout to the `main` branch.
   - Status: completed (2026-07-24)

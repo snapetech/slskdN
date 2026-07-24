@@ -1,3 +1,31 @@
+## Update 2026-07-24 19:16:47Z
+
+- Current task: complete. Stable `2026072418-slskdn.290` is published,
+  independently verified, deployed by immutable digest, and healthy on the live
+  validation host.
+- Last activity:
+  - Cleared every open GitHub security and quality record with exact technical
+    rationale, committed and pushed bounded release-test hang diagnostics, and
+    synchronized workflow-generated stable metadata to both writable remotes.
+  - Verified all `.290` archives/checksums and the amd64/arm64 main image at
+    `sha256:15e0f62a1991d61a48aaa192b0f12b6296a97628bfec10551f51ff3183b505da`.
+  - Preserved the `.287` service definition for rollback, deployed `.290`, and
+    confirmed version, HTTP health, DHT readiness, VPN forwarding, Soulseek
+    connection/login, zero restarts/OOM, and clean severe/risk logs.
+- Validation:
+  - Local and hosted release gates pass: Web `900` with `4` skipped, complete
+    unit `4964`, application `74`, focused unit smoke, and integration `40`.
+  - GitHub reports zero open CodeQL, Dependabot, secret-scanning, issue, and
+    pull-request records.
+  - Chocolatey's external endpoint returned HTTP 504 on all five bounded
+    retries. This did not affect the stable release, verified artifacts, main
+    image, or deployment.
+- Next steps:
+  1. Monitor tester feedback and the live validation service; retain `.287` as
+     the immediate rollback image/unit.
+  2. Upgrade React Router when a compatible patched DOM release exists.
+  3. Do not create another tag or release without explicit authorization.
+
 ## Update 2026-07-24 18:26:28Z
 
 - Current task: publish the security/quality and release-diagnostics follow-up,

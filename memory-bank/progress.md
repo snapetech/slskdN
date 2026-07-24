@@ -1,3 +1,26 @@
+## Update 2026-07-24 19:16:47Z
+
+- Published stable `2026072418-slskdn.290` from the complete security/quality
+  and release-diagnostics source state. The guarded local and hosted gates
+  passed (`900` Web with `4` skipped, `4964` unit, `74` application, focused
+  unit smoke, and `40` integration), and all six archives passed published-
+  checksum, required-payload, bundled-Web-marker, and embedded-version checks.
+- Verified the amd64/arm64 main image at immutable digest
+  `sha256:15e0f62a1991d61a48aaa192b0f12b6296a97628bfec10551f51ff3183b505da`,
+  preserved the prior live service unit, and replaced `.287` with `.290`.
+  Version alignment, active/healthy service and container state, HTTP 200,
+  `/health=Healthy`, DHT readiness with 17 nodes, VPN forwarding, and Soulseek
+  connection/login all pass.
+- Fresh runtime inspection found zero errors, fatals, restarts, OOM events,
+  traversal/self-ban events, upload-failure storms, or crash indicators. The
+  two warnings are the configured public-DHT exposure notice and an expected
+  empty-table store before bootstrap; memory was about 266--274 MiB under the
+  4 GiB limit.
+- GitHub now reports zero open CodeQL, Dependabot, secret-scanning, issue, and
+  pull-request records. Stable metadata is synchronized to both writable
+  remotes. Chocolatey's external push service returned HTTP 504 on all five
+  bounded retries; release-critical publication and the main image succeeded.
+
 ## Update 2026-07-24 18:26:28Z
 
 - Cleared the complete GitHub security and quality inventory: four high-severity
