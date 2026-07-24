@@ -26377,3 +26377,19 @@ advisories. No currently published version resolved the full advisory set.
 out-of-range remediation. Prefer the latest release when no clean version
 exists, document whether vulnerable server-only features are unused, and track
 the upstream patched release instead of trading one advisory for several.
+
+### 0z617. Lockfile Maintenance Changes Council Source Counts
+
+**The Bug**: A bounded npm audit repair changed the generated lockfile line
+count without changing application behavior. The active council backlog kept
+the previous red-team inventory count, so the post-push remediation gate failed
+even though lint, tests, build, and the substantive security checks passed.
+
+**Files Affected**:
+- `src/web/package-lock.json`
+- `docs/dev/bug-council-active-backlog.md`
+
+**Prevention**: Treat dependency and lockfile updates as council-inventory
+changes. Run `scripts/run-council-active-bughunt.sh`, copy the regenerated
+section counts into the active backlog, and rerun the complete remediation gate
+before declaring the branch synchronized.
