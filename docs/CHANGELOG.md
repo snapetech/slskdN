@@ -25,6 +25,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Guided System configuration editors now emit bindable YAML for AcoustID,
   MusicBrainz, YouTube, Last.fm, transfer schedules, search retention, and
   feature flags instead of failing validation when those settings are saved.
+- Web build dependencies, TypeScript, System.Reactive, .NET servicing packages,
+  telemetry, SQLite, and parser dependencies are updated together with aligned
+  test-project references so clean solution restore remains downgrade-free.
 - Configured download destinations now work end to end. The folder marked
   `default` governs automatic and destination-less downloads, and Search
   Results plus Browse provide a persistent **Download to** selector for normal
