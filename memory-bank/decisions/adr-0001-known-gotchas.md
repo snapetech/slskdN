@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z783. Browser Transfer Fixtures Must Follow The Indexed Changes Contract
+
+**The Bug**: The Browse handoff browser test mocked legacy grouped and flat
+transfer endpoints after `TransferManager` moved its initial seed to
+`/api/v0/transfers/changes`. The browser therefore displayed an empty Downloads
+page and never reached the Browse workflow the test claimed to cover.
+
+**Files Affected**:
+- `src/web/src/components/Transfers/TransferManager.jsx`
+- `src/web/e2e/browse-transfer-handoff.spec.ts`
+
+**Prevention**: Browser fixtures must mock the endpoint actually used for the
+initial state contract, including its cursor, counts, and flat `transfers`
+payload. Assert that the mock was called so a stale fixture fails at the
+contract boundary instead of later as a missing UI control.
+
 ### 0z782. Singleton Mesh Services Must Resolve Scoped Storage Per Operation
 
 **The Bug**: `PodsMeshService` was registered as a singleton for the process-
