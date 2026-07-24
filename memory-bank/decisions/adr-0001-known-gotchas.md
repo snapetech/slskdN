@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z781. Configuration, API Discovery, And Download Routing Must Share One Default
+
+**The Bug**: Multiple download destinations were exposed in configuration and
+through `/api/v0/destinations`, but the Web UI never loaded or submitted a
+destination and the download service ignored the folder marked `default`.
+Consequently the documented feature could not be selected in the UI and
+automatic or destination-less downloads still used `directories.downloads`.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `src/slskd/Search/API/SearchActionsController.cs`
+- `src/web/src/components/Search/`
+- `src/web/src/components/Browse/`
+- `src/web/src/lib/destinations.js`
+
+**Prevention**: Treat destination routing as one end-to-end contract: configured
+default, discovery API, visible UI selection, enqueue request, and completed
+file placement must agree. Regression coverage must start from a configured
+default and verify both destination-less and explicitly selected downloads;
+API-only plumbing does not make a user-facing feature complete.
+
 ### 0z780. Optional Controller Dependencies Must Use Their Registered Service Type
 
 **The Bug**: Experimental mesh startup registered the anonymity transport
