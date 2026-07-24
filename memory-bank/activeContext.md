@@ -1,3 +1,24 @@
+## Update 2026-07-24 17:37:08Z
+
+- Current task: complete. The local repository and both writable remotes now
+  contain only the `main` branch.
+- Last activity:
+  - Audited all non-main tips against the defect-specific implementations and
+    consolidated regression coverage already on `main`; nothing needed merging.
+  - Removed `13` GitHub topic branches, `11` internal topic branches, `16`
+    local branches, and every obsolete linked or prunable worktree.
+  - Confirmed the one dirty legacy donation worktree was an older, reformatted
+    copy of the donation feature already merged and tested on `main` before
+    purging it.
+- Validation:
+  - Direct `ls-remote` checks show only `refs/heads/main` on both writable
+    remotes; the local head list and worktree list each contain only `main`.
+  - GitHub reports zero open pull requests.
+- Next steps:
+  1. Keep new work on short-lived branches and delete them when merged.
+  2. Upgrade React Router after a compatible patched upstream release.
+  3. Do not create another tag or release without explicit authorization.
+
 ## Update 2026-07-24 17:31:30Z
 
 - Current task: complete. GitHub reports zero open issues and zero open pull

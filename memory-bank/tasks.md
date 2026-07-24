@@ -9,6 +9,16 @@
 
 ### High Priority
 
+- [x] Reduce the fork repositories and local checkout to the `main` branch.
+  - Status: completed (2026-07-24)
+  - Priority: P1
+  - Notes: Audited every local, GitHub, and internal topic tip. True merge
+    ancestors and older PR drafts whose fixes were already consolidated and
+    hardened on `main` were deleted rather than reintroduced. Removed `13`
+    GitHub branches, `11` internal branches, `16` local branches, and all
+    obsolete linked worktrees. Direct remote inspection confirms that each
+    writable repository now advertises only `refs/heads/main`.
+
 - [x] Investigate and resolve the complete open issue and pull-request backlog.
   - Status: completed (2026-07-24)
   - Priority: P1
