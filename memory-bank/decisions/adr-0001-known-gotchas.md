@@ -25586,6 +25586,14 @@ errors before any tests could run.
 **Files Affected**:
 - `src/slskd/slskd.csproj`
 - `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj`
+- `tests/slskd.Tests/slskd.Tests.csproj`
+- `tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj`
+- `tests/slskd.Tests.Performance/slskd.Tests.Performance.csproj`
+
+**Recurrence**: A later grouped .NET servicing update again changed only the
+application, build-task, and vendored runtime projects while leaving direct
+test and performance references one patch behind. Treat every grouped update
+as solution-wide even when Dependabot scopes its branch to fewer projects.
 
 **Prevention**: Search the entire solution for every package in a grouped
 update and keep direct test/tool references at the same version as the runtime
