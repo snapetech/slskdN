@@ -26517,3 +26517,18 @@ receive empty notes and even backward compare links to a newer release.
 stable tag is created, validate the generated title/date/highlights and reject
 placeholder wording both locally and in CI, and use explicit chronological
 release order for historical backfills instead of guessing from tag sorting.
+
+### 0z791. A Changelog Must Have One Canonical Unreleased Section
+
+**The Bug**: `docs/CHANGELOG.md` contained two `## [Unreleased]` headings. New
+release notes could be added to the later historical section while validation
+and release generation read the first, making a real changelog update appear
+missing and allowing release-note drift.
+
+**Files Affected**:
+- `docs/CHANGELOG.md`
+- `scripts/validate-changelog-entry.sh`
+
+**Prevention**: Keep exactly one canonical `## [Unreleased]` heading and make
+changelog validation fail when duplicate headings exist instead of silently
+choosing one.
