@@ -208,6 +208,12 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         }
 
         var relative = fullPath[normalizedFrom.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (IsWindowsPath(toPrefix))
+        {
+            var windowsRelative = relative.Replace('/', '\\');
+            return toPrefix.TrimEnd('/', '\\') + (windowsRelative.Length == 0 ? string.Empty : "\\" + windowsRelative);
+        }
+
         if (toPrefix.Contains('/') && !toPrefix.Contains('\\'))
         {
             return toPrefix.TrimEnd('/', '\\') + "/" + relative.Replace('\\', '/');
@@ -246,6 +252,10 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         var next = path.Length > prefix.Length ? path[prefix.Length] : '\0';
         return next == Path.DirectorySeparatorChar || next == Path.AltDirectorySeparatorChar;
     }
+
+    private static bool IsWindowsPath(string path)
+        => (path.Length >= 3 && char.IsLetter(path[0]) && path[1] == ':' && (path[2] == '\\' || path[2] == '/'))
+            || path.StartsWith("\\\\", StringComparison.Ordinal);
 }
 
 public sealed record LidarrImportResult

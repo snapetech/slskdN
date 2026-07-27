@@ -48,6 +48,19 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 **If you skip this step, the same bug WILL happen again. Document it NOW.**
 
+### 0z786. Verbatim C# Windows Paths Use Single Backslashes
+
+**The Bug**: A new Lidarr Windows-path regression test used doubled
+backslashes inside a verbatim C# string, so the expected path contained two
+literal separators and failed even though the mapper emitted the correct path.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrImportServiceTests.cs`
+
+**Prevention**: In a verbatim C# string (`@"..."`), write Windows paths as
+`@"C:\\Media\\Downloads"`; doubled backslashes are only needed in ordinary
+escaped strings such as `"C:\\\\Media\\\\Downloads"`.
+
 ---
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Lidarr path mapping now preserves Windows separators when Docker-hosted
+  slskdN sends a mapped completed-download path to native Windows Lidarr, with
+  explicit Docker-to-Windows configuration guidance.
 - PPA workflows now serialize uploads per Ubuntu series and wait for the exact
   source, binary build, and published binary records, preventing a later source
   upload from superseding a package whose binary is still being processed.

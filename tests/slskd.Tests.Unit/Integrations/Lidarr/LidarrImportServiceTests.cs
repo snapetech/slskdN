@@ -107,6 +107,27 @@ public class LidarrImportServiceTests
     }
 
     [Fact]
+    public async Task ImportCompletedDirectoryAsync_MapsToWindowsPathWhenRunningOnUnix()
+    {
+        var client = new FakeLidarrClient();
+        var service = CreateService(
+            client,
+            new Options.IntegrationOptions.LidarrOptions
+            {
+                Enabled = true,
+                Url = "http://lidarr.test",
+                ApiKey = "key",
+                AutoImportCompleted = true,
+                ImportPathFrom = "/downloads/music",
+                ImportPathTo = @"C:\Media\Downloads",
+            });
+
+        await service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album");
+
+        Assert.Equal(@"C:\Media\Downloads\Artist\Album", client.LastCandidateFolder);
+    }
+
+    [Fact]
     public async Task ImportCompletedDirectoryAsync_DebouncesConcurrentDirectoryAttempts()
     {
         var client = new FakeLidarrClient
