@@ -26500,3 +26500,20 @@ so deleting it would remove unrelated downloads.
 directory itself. Destructive post-processing must resolve and delete only the
 exact files rejected by the external consumer, verify each resolved path stays
 inside the event directory, and leave the directory intact.
+
+### 0z790. Release Notes Must Fail Closed Before Tag Creation
+
+**The Bug**: Release-note generation allowed a stable release without an exact
+versioned changelog section, emitted “No recorded changes,” and guessed the
+previous release by version-sorting tags. Historical versions could therefore
+receive empty notes and even backward compare links to a newer release.
+
+**Files Affected**:
+- `scripts/generate-release-notes.sh`
+- `scripts/create-release-tag.sh`
+- `.github/workflows/build-on-tag.yml`
+
+**Prevention**: Require a meaningful exact-version changelog section before a
+stable tag is created, validate the generated title/date/highlights and reject
+placeholder wording both locally and in CI, and use explicit chronological
+release order for historical backfills instead of guessing from tag sorting.
