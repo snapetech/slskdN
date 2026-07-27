@@ -65,6 +65,29 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z787. Cross-OS Path Mapping Must Use The Destination OS Syntax
+
+**The Bug**: Docker-hosted slskdN used the Linux runtime's `Path.Combine` when
+rewriting a completed-download directory for native Windows Lidarr. A configured
+Windows destination therefore became `D:\downloaded/Artist/Album`, and Lidarr
+rejected the manual-import request because it requires a full Windows path.
+Using `D:/downloaded` avoided YAML backslash escaping but still sent forward
+slashes that Lidarr rejected. An unescaped Windows path inside a double-quoted
+YAML scalar failed configuration parsing before startup.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrImportService.cs`
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrImportServiceTests.cs`
+- `docs/lidarr-integration.md`
+- `docs/config.md`
+
+**Prevention**: Path rewrites between processes must format separators for the
+destination process rather than the local runtime. Detect Windows drive and UNC
+destinations explicitly and join their relative segments with backslashes.
+Regression-test the Linux-to-Windows mapping on Linux. Document Windows YAML
+paths with single quotes, such as `import_path_to: 'D:\downloaded'`, so the
+backslash remains literal.
+
 ### 0z785. PPA Upload Success Is Not Publication Success
 
 **The Bug**: The stable-release PPA job stopped after `dput` accepted a source
