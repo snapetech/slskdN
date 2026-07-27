@@ -9,6 +9,17 @@
 
 ### High Priority
 
+- [ ] Publish and verify the Docker-to-Windows Lidarr path-mapping fix.
+  - Status: release candidate `2026072716-slskdn.291` prepared (2026-07-27)
+  - Priority: P1
+  - Notes: Native Windows Lidarr rejects Linux and mixed-separator paths from
+    Docker-hosted slskdN. The mapper now formats drive-letter and UNC
+    destinations with Windows separators. The exact tester contract from
+    `/music/downloaded` to `D:\downloaded` passes focused regression coverage;
+    documentation uses YAML single quotes so Windows backslashes remain
+    literal. Local release gate, hosted publication, and artifact verification
+    remain.
+
 - [x] Publish and deploy the security/quality and release-diagnostics follow-up.
   - Status: completed in stable release `2026072418-slskdn.290` (2026-07-24)
   - Priority: P1

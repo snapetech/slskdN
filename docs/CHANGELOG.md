@@ -2204,6 +2204,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Documented the inverted migration condition gotcha in
   `memory-bank/decisions/adr-0001-known-gotchas.md` as entry 0z361.
 
+## [2026072716-slskdn.291] — 2026-07-27
+
+- Fixed Docker-to-Windows Lidarr auto-import mapping so a container path such
+  as `/music/downloaded/Artist/Album` is submitted as the full native Windows
+  path `D:\downloaded\Artist\Album`, without Linux or mixed separators.
+- Documented the exact Docker mount, source-prefix, destination-prefix, and YAML
+  single-quote requirements for native Windows Lidarr paths.
+- Serialized PPA uploads per Ubuntu series and made release publication wait
+  for the exact source, binary build, and published binary records, preventing
+  a later upload from superseding an active package build.
+
 ## [2026051318-slskdn.251] — 2026-05-13
 
 - Labeled System admin and experimental panels in the tab menu to reduce

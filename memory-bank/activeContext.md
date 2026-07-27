@@ -1,3 +1,24 @@
+## Update 2026-07-27 16:00:00Z
+
+- Current task: publish and verify stable `2026072716-slskdn.291` with the
+  Docker-to-Windows Lidarr auto-import path fix.
+- Last activity:
+  - Reclassified the tester report as a released cross-OS path-formatting bug:
+    Linux `Path.Combine` emitted mixed separators for a native Windows Lidarr
+    destination, while forward-slash drive paths were also rejected by Lidarr.
+  - Added Windows destination joining independent of the slskdN host OS and
+    changed the regression to the exact reported `/music/downloaded` to
+    `D:\downloaded` contract.
+  - Documented single-quoted Windows YAML paths and added critical gotcha
+    `0z787`.
+- Validation:
+  - Focused Lidarr import tests pass `10/10`, including the exact tester path.
+- Next steps:
+  1. Commit and push the release-candidate documentation/context.
+  2. Run repository lint and the guarded local release gate.
+  3. Create `build-main-2026072716-slskdn.291`, monitor hosted publication,
+     and verify the released artifacts.
+
 ## Update 2026-07-24 19:46:00Z
 
 - Current task: repository remediation complete; Launchpad is still processing
