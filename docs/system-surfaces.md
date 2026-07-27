@@ -155,3 +155,11 @@ Use:
 replacement search seeds, quarantine review packets, and safe-fix manifests.
 Exports are review-first and do not create remediation jobs or mutate files by
 themselves.
+
+This scan status is for Library Health jobs. It does not currently expose the
+per-file pipeline that runs after an audio download: HashDb hashing,
+Chromaprint extraction, AcoustID lookup, MusicBrainz recording lookup, and
+optional auto-tagging. Those stages are currently observable only through
+logs; successful hash storage and AcoustID resolution are logged, while some
+fingerprint details are debug-level and raw fingerprints are intentionally not
+shown. A bounded provider activity/history surface is tracked follow-up work.

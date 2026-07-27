@@ -9,6 +9,29 @@
 
 ### High Priority
 
+- [ ] Add policy-controlled cleanup and reacquisition suppression for Lidarr-rejected downloads.
+  - Status: requested (2026-07-27)
+  - Priority: P2
+  - Notes: Preserve the current safe default of retaining rejected or ambiguous
+    files. Add explicit operator choices to delete rejected files, quarantine
+    them, or retain them. Persist a bounded rejection record keyed by the
+    acquisition identity and rejection reason so automatic Lidarr/Wishlist
+    acquisition does not repeatedly download the same rejected candidate.
+    Provide review, expiry, and manual-clear controls; never blacklist an
+    entire Soulseek user because one release was rejected. Deletion must be
+    opt-in and confined to validated completed-download roots.
+
+- [ ] Expose MusicBrainz, AcoustID, and Chromaprint scan activity and history.
+  - Status: requested (2026-07-27)
+  - Priority: P2
+  - Notes: Add a visible provider-processing surface showing queued, active,
+    succeeded, unresolved, skipped, and failed states for completed audio files.
+    Include provider, privacy-safe file identity, start/end time, MusicBrainz
+    recording result, and concise failure/skip reason. Keep bounded history and
+    realtime progress without exposing raw fingerprints. Distinguish HashDb
+    hashing, Chromaprint extraction, AcoustID lookup, MusicBrainz lookup, and
+    optional auto-tagging so users can tell which stage actually ran.
+
 - [ ] Publish and verify the Docker-to-Windows Lidarr path-mapping fix.
   - Status: release candidate `2026072716-slskdn.291` prepared (2026-07-27)
   - Priority: P1

@@ -163,6 +163,12 @@ slskdN only submits candidates that Lidarr has already matched cleanly:
 Rejected or ambiguous candidates are left alone so the user can import them
 interactively in Lidarr.
 
+slskdN does not currently delete rejected downloads or persist a rejection
+blacklist. A rejected candidate can therefore be selected again by a later
+automatic search. Policy-controlled delete/quarantine handling and bounded
+reacquisition suppression are tracked follow-up work; until then, review and
+remove rejected downloads manually.
+
 This is intentionally stricter than blindly accepting every manual-import
 decision. A file is not auto-imported if Lidarr reports rejection reasons, cannot
 match the artist/album/release/tracks, cannot parse quality, or marks the file
