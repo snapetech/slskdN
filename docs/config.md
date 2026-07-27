@@ -1277,7 +1277,9 @@ If slskdN and Lidarr see completed downloads at different paths, set both
 `import_path_from` and `import_path_to`. `import_path_from` must match the path
 inside the slskdN process; it does not change `directories.downloads`. For
 example, Docker slskdN can rewrite `/music/downloaded` to
-`C:\\Media\\Downloaded` for a native Windows Lidarr instance. If both
+`D:\downloaded` for a native Windows Lidarr instance. Write the YAML value with
+single quotes (`import_path_to: 'D:\downloaded'`) so its backslash remains
+literal. If both
 applications see the same Windows directory, leave the mapping empty and set
 `directories.downloads` to that Windows path.
 

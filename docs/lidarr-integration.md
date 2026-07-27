@@ -112,7 +112,7 @@ integrations:
   lidarr:
     auto_import_completed: true
     import_path_from: "/music/downloaded"
-    import_path_to: "C:\\Media\\Downloaded"
+    import_path_to: 'D:\downloaded'
 ```
 
 `import_path_from` does not change where slskdN stores files. It only rewrites
@@ -120,6 +120,11 @@ the folder sent to Lidarr's manual-import API. If both applications run on
 Windows and see the same folder, leave both mapping values empty and configure
 `directories.downloads` with the actual Windows path. Restart slskdN after
 changing `directories.downloads` or the integration settings.
+
+Use single quotes around Windows paths in YAML. A value such as
+`"D:\downloaded"` is invalid YAML because the backslash begins an escape
+sequence; `D:/downloaded` parses but Lidarr rejects it because its manual-import
+API requires a full Windows path with backslashes.
 
 ## API
 

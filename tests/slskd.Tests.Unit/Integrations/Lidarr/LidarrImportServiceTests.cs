@@ -118,13 +118,15 @@ public class LidarrImportServiceTests
                 Url = "http://lidarr.test",
                 ApiKey = "key",
                 AutoImportCompleted = true,
-                ImportPathFrom = "/downloads/music",
-                ImportPathTo = @"C:\Media\Downloads",
+                ImportPathFrom = "/music/downloaded",
+                ImportPathTo = @"D:\downloaded",
             });
 
-        await service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album");
+        await service.ImportCompletedDirectoryAsync("/music/downloaded/2 Chainz - T.R.U. REALigion (Anniversary Edition)");
 
-        Assert.Equal(@"C:\Media\Downloads\Artist\Album", client.LastCandidateFolder);
+        Assert.Equal(
+            @"D:\downloaded\2 Chainz - T.R.U. REALigion (Anniversary Edition)",
+            client.LastCandidateFolder);
     }
 
     [Fact]
