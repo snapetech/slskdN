@@ -100,6 +100,27 @@ For example, a completed slskdN directory
 `/downloads/music/Artist/Album` is sent to Lidarr as
 `/data/soulseek/music/Artist/Album`.
 
+For a Docker slskdN instance importing into native Windows Lidarr, the source
+must be the path inside the slskdN container and the destination must be the
+Windows path visible to Lidarr:
+
+```yaml
+directories:
+  downloads: "/music/downloaded"
+
+integrations:
+  lidarr:
+    auto_import_completed: true
+    import_path_from: "/music/downloaded"
+    import_path_to: "C:\\Media\\Downloaded"
+```
+
+`import_path_from` does not change where slskdN stores files. It only rewrites
+the folder sent to Lidarr's manual-import API. If both applications run on
+Windows and see the same folder, leave both mapping values empty and configure
+`directories.downloads` with the actual Windows path. Restart slskdN after
+changing `directories.downloads` or the integration settings.
+
 ## API
 
 Use slskdN's API to verify and run the integration manually:

@@ -1274,9 +1274,12 @@ integrations:
 ```
 
 If slskdN and Lidarr see completed downloads at different paths, set both
-`import_path_from` and `import_path_to`. For example, `/downloads/music` in
-slskdN can be rewritten to `/data/soulseek/music` before Lidarr is asked to
-import.
+`import_path_from` and `import_path_to`. `import_path_from` must match the path
+inside the slskdN process; it does not change `directories.downloads`. For
+example, Docker slskdN can rewrite `/music/downloaded` to
+`C:\\Media\\Downloaded` for a native Windows Lidarr instance. If both
+applications see the same Windows directory, leave the mapping empty and set
+`directories.downloads` to that Windows path.
 
 See [Lidarr Integration](lidarr-integration.md) for setup, Docker volume
 examples, operator API calls, and import safety rules.
