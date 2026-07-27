@@ -26468,3 +26468,19 @@ even though lint, tests, build, and the substantive security checks passed.
 changes. Run `scripts/run-council-active-bughunt.sh`, copy the regenerated
 section counts into the active backlog, and rerun the complete remediation gate
 before declaring the branch synchronized.
+
+### 0z788. Origin IDs Must Survive Automatic Download Enqueue
+
+**The Bug**: Wishlist auto-download grouped and enqueued result files without
+copying the originating Wishlist item ID into each enqueue request. The
+download-request schema supported the relationship, but completed downloads
+could not be attributed back to the Wishlist item for exact-result suppression
+or other post-download policy decisions.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `src/slskd/Transfers/Downloads/DownloadEnqueueRequest.cs`
+
+**Prevention**: Whenever an automated source creates transfers, propagate its
+stable origin ID through every request in a batch. Regression-test the enqueue
+payload, not only the number of files enqueued.
