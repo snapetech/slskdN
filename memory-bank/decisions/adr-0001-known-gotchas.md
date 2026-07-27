@@ -26484,3 +26484,19 @@ or other post-download policy decisions.
 **Prevention**: Whenever an automated source creates transfers, propagate its
 stable origin ID through every request in a batch. Regression-test the enqueue
 payload, not only the number of files enqueued.
+
+### 0z789. Completed Directory Events Can Reference A Shared Root
+
+**The Bug**: An initial Lidarr rejection-cleanup implementation recursively
+deleted the directory carried by `DownloadDirectoryCompleteEvent`. Under the
+flat completed-download layout that directory can be the shared completed root,
+so deleting it would remove unrelated downloads.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrImportService.cs`
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Prevention**: Never treat a completed-directory event as ownership of the
+directory itself. Destructive post-processing must resolve and delete only the
+exact files rejected by the external consumer, verify each resolved path stays
+inside the event directory, and leave the directory intact.
