@@ -1,3 +1,23 @@
+## Update 2026-07-27 18:00:00Z
+
+- Current task: complete the historical release-note audit and permanent gate.
+- Last activity:
+  - Updated all 67 published GitHub releases in `snapetech/slskdN` with
+    chronological, informative notes while preserving release assets and tags.
+  - Fixed backward historical compare selection and replaced empty-release
+    output with explicit maintenance/republish boundaries.
+  - Added local pre-tag and hosted pre-publication note validation requiring an
+    exact versioned changelog section and meaningful highlights.
+  - Documented gotcha `0z790` in standalone commit `6d027720e`.
+- Validation:
+  - All 67 historical bodies generated successfully; current `.292` notes pass
+    exact generator/validator coverage with two bullets and 407 non-space
+    highlight characters.
+- Next steps:
+  1. Verify all remote release bodies match the audited files.
+  2. Run repository lint/remediation checks.
+  3. Rebase the release-generated metadata update, commit, and push.
+
 ## Update 2026-07-27 16:57:35Z
 
 - Current task: validate and publish Lidarr rejection policies and visible

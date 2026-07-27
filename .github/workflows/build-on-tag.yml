@@ -218,6 +218,9 @@ jobs:
             "${{ needs.parse.outputs.version }}" \
             release/RELEASE_NOTES.md \
             "${{ github.sha }}"
+          ./scripts/validate-release-notes.sh \
+            "${{ needs.parse.outputs.version }}" \
+            release/RELEASE_NOTES.md
           cat release/RELEASE_NOTES.md
 
       # Creates release under VERSION tag (e.g., 0.24.1-slskdn.35) for backward compatibility

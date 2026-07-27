@@ -21,6 +21,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ---
 
 ## [Unreleased]
+- Repaired and standardized all historical GitHub release notes, and added
+  local plus hosted fail-closed validation requiring informative exact-version
+  changelog highlights before future stable releases can be tagged or published.
 - PPA workflows now serialize uploads per Ubuntu series and wait for the exact
   source, binary build, and published binary records, preventing a later source
   upload from superseding a package whose binary is still being processed.
@@ -3842,7 +3845,7 @@ Relevant non-documentation commits preserved in this rollback line:
 - `139af4e8d` fix: reduce background search log noise
 - `ed5a7dd9a` fix: quiet auto-replace shutdown cancellation
 
-## [Unreleased]
+## Historical Unreleased Snapshot
 
 - **License rollback to slskd 0.24.x base.** slskdN no longer incorporates changes from slskd 0.25.0 or later; the project tracks the pre-0.25.0 plain-AGPLv3 codebase only, and future development is independent of upstream slskd. See `memory-bank/license-rollback-plan.md` for the full rationale and migration plan.
 - Backported release-critical fixes onto the 0.24.x rollback branch: release notes now fail closed instead of synthesizing oversized commit dumps, tag builds no longer block publishing on pre-publish Nix smoke checks for unpublished stable assets, public YAML aliases such as `dht:` bind in runtime configuration, remote directory browse timeouts return controlled 503 responses, shutdown-wrapped download cancellations stay out of error logs, and empty cached user groups fall back to built-in groups.

@@ -58,15 +58,29 @@ The release gate now covers:
    - split multi-symptom reports into separate acceptance checks
    - re-run the same path after the patch
    - identify any symptoms that remain unverified
-3. Push the code branch normally if needed.
-4. Only trigger build/release by running the guarded tag helper when explicitly desired:
+3. Move the shipped user-facing bullets from `## [Unreleased]` into an exact
+   version section in `docs/CHANGELOG.md`, for example:
+   `## [2026072717-slskdn.292] — 2026-07-27`. The section must contain at least
+   one meaningful highlight; empty, placeholder, or “no recorded changes” notes
+   are release-blocking.
+4. Preview and validate the exact notes when needed:
+   - `scripts/generate-release-notes.sh <version> /tmp/release-notes.md <git-ref>`
+   - `scripts/validate-release-notes.sh <version> /tmp/release-notes.md`
+5. Push the code branch normally if needed.
+6. Only trigger build/release by running the guarded tag helper when explicitly desired:
    - `scripts/create-release-tag.sh build-main-YYYYMMDDHH-slskdn.N`
    - `scripts/create-release-tag.sh build-dev-MAJOR.MINOR.PATCH.dev.YYYYMMDD.HHMMSS`
-5. After GitHub publishes the release, verify the actual assets:
+7. After GitHub publishes the release, verify the actual assets:
    - `scripts/verify-release-artifacts.sh <tag>`
 
 Do not rely on a normal branch push to validate packaging or publish artifacts. This repo builds releases on tags.
 Do not create or push plain `slskdn.N` tags for releases; those do not run the release packaging workflow.
+
+The guarded tag helper validates the versioned changelog section before doing
+the expensive release gate or creating a tag. The hosted workflow generates
+the notes again from the tagged source and validates them immediately before
+the GitHub release write. Both paths fail closed on missing titles/dates,
+missing or short highlights, and placeholder wording.
 
 ## Recommended extra checks for risky changes
 

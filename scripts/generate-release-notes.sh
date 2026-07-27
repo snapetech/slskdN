@@ -274,7 +274,11 @@ RELEASE_DATE="$(extract_changelog_release_date "$LOGICAL_VERSION")"
 if [[ -z "$RELEASE_DATE" ]]; then
   RELEASE_DATE="$(git log -1 --format=%cs "$GIT_REF")"
 fi
-PREV_RELEASE_VERSION="$(find_previous_published_release_version "$LOGICAL_VERSION" "$REPO_SLUG")"
+if [[ -n "${RELEASE_NOTES_PREVIOUS_VERSION+x}" ]]; then
+  PREV_RELEASE_VERSION="$RELEASE_NOTES_PREVIOUS_VERSION"
+else
+  PREV_RELEASE_VERSION="$(find_previous_published_release_version "$LOGICAL_VERSION" "$REPO_SLUG")"
+fi
 PREV_TAG=""
 PREV_DISPLAY_TAG=""
 
@@ -292,7 +296,7 @@ if [[ -n "$PREV_RELEASE_VERSION" ]]; then
   done
 fi
 
-if [[ -z "$PREV_TAG" ]]; then
+if [[ -z "$PREV_TAG" && -z "${RELEASE_NOTES_PREVIOUS_VERSION+x}" ]]; then
   PREV_TAG="$(find_previous_tag "$CURRENT_SOURCE_TAG")"
   PREV_DISPLAY_TAG="$(strip_build_prefix "$PREV_TAG")"
 fi
@@ -322,9 +326,14 @@ if [[ -z "$COMMITS" ]]; then
 fi
 
 DISPLAY_COMMITS=""
+MAINTENANCE_COMMITS=""
 if [[ -n "$COMMITS" ]]; then
   while IFS=$'\t' read -r sha subject; do
     [[ -n "$sha" ]] || continue
+    case "$subject" in
+      chore\(release\):*|ci:*|ci\(*\):*|build:*|build\(*\):*|test:*|test\(*\):*) ;;
+      *) MAINTENANCE_COMMITS+="${sha}"$'\t'"${subject}"$'\n' ;;
+    esac
     if is_release_hygiene_subject "$subject"; then
       continue
     fi
@@ -333,7 +342,65 @@ if [[ -n "$COMMITS" ]]; then
   done <<<"$COMMITS"
 
   DISPLAY_COMMITS="$(printf '%s' "$DISPLAY_COMMITS" | trim_blank_edges || true)"
+  MAINTENANCE_COMMITS="$(printf '%s' "$MAINTENANCE_COMMITS" | trim_blank_edges || true)"
 fi
+
+categorize_subject() {
+  local subject="$1"
+  case "$subject" in
+    feat:*|feat\(*\):*) printf '%s\n' "Added" ;;
+    fix:*|fix\(*\):*|perf:*|perf\(*\):*) printf '%s\n' "Fixed and improved" ;;
+    docs:*|docs\(*\):*) printf '%s\n' "Documentation" ;;
+    *) printf '%s\n' "Changed" ;;
+  esac
+}
+
+write_synthesized_highlights() {
+  local max_per_category="${RELEASE_NOTES_MAX_PER_CATEGORY:-10}"
+  local category subject highlight
+  local added="" fixed="" changed="" documentation=""
+  local added_count=0 fixed_count=0 changed_count=0 documentation_count=0
+
+  while IFS=$'\t' read -r _sha subject; do
+    [[ -n "$subject" ]] || continue
+    highlight="$(subject_highlight "$subject")"
+    [[ -n "$highlight" ]] || continue
+    category="$(categorize_subject "$subject")"
+    case "$category" in
+      "Added")
+        added_count=$((added_count + 1))
+        if (( added_count <= max_per_category )); then added+="- ${highlight}"$'\n'; fi
+        ;;
+      "Fixed and improved")
+        fixed_count=$((fixed_count + 1))
+        if (( fixed_count <= max_per_category )); then fixed+="- ${highlight}"$'\n'; fi
+        ;;
+      "Documentation")
+        documentation_count=$((documentation_count + 1))
+        if (( documentation_count <= max_per_category )); then documentation+="- ${highlight}"$'\n'; fi
+        ;;
+      *)
+        changed_count=$((changed_count + 1))
+        if (( changed_count <= max_per_category )); then changed+="- ${highlight}"$'\n'; fi
+        ;;
+    esac
+  done <<<"$DISPLAY_COMMITS"
+
+  for category in "Added" "Fixed and improved" "Changed" "Documentation"; do
+    case "$category" in
+      "Added") local body="$added" count=$added_count ;;
+      "Fixed and improved") local body="$fixed" count=$fixed_count ;;
+      "Changed") local body="$changed" count=$changed_count ;;
+      *) local body="$documentation" count=$documentation_count ;;
+    esac
+    [[ -n "$body" ]] || continue
+    printf '### %s\n\n%s' "$category" "$body"
+    if (( count > max_per_category )); then
+      printf '%s\n' "- Plus $((count - max_per_category)) additional ${category,,} changes; see the compare link for the complete diff."
+    fi
+    printf '\n'
+  done
+}
 
 INCLUDE_COMMIT_DETAILS="${RELEASE_NOTES_INCLUDE_COMMITS:-0}"
 
@@ -377,15 +444,19 @@ mkdir -p "$(dirname "$OUT_PATH")"
     printf '_Source: `%s` section for `%s`._\n\n' "$CHANGELOG_PATH" "$LOGICAL_VERSION"
   else
     if [[ -z "$DISPLAY_COMMITS" ]]; then
-      printf '%s\n\n' "- No recorded changes found for \`${LOGICAL_VERSION}\`."
-    else
-      while IFS=$'\t' read -r sha subject; do
-        highlight="$(subject_highlight "$subject")"
-        if [[ -n "$highlight" ]]; then
-          printf '%s\n' "- ${highlight}"
+      if [[ -z "$MAINTENANCE_COMMITS" ]]; then
+        if [[ "${RELEASE_NOTES_ALLOW_EMPTY:-0}" != "1" ]]; then
+          err "no changes found for ${LOGICAL_VERSION}; add a versioned changelog section"
         fi
-      done <<<"$DISPLAY_COMMITS"
-      printf '\n'
+        printf '%s\n\n' "This release republishes the same source commit as the previous published release. There are no additional application or configuration changes; use this release for refreshed distribution artifacts and package-channel publication."
+        printf '%s\n\n' "- Rebuilt and republished the existing slskdN source for all supported release targets."
+      else
+        printf '%s\n\n' "This is a maintenance/documentation release with no additional application binary changes beyond the previous published release."
+        DISPLAY_COMMITS="$MAINTENANCE_COMMITS"
+        write_synthesized_highlights
+      fi
+    else
+      write_synthesized_highlights
     fi
   fi
 

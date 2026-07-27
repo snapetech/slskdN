@@ -131,6 +131,11 @@ before_section="$(
 after_section="$(
   read_changelog_at_ref "$after_ref" | extract_unreleased_from_stream | trim_blank_edges || true
 )"
+unreleased_heading_count="$(read_changelog_at_ref "$after_ref" | grep -Fxc '## [Unreleased]' || true)"
+
+if [[ "$unreleased_heading_count" -ne 1 ]]; then
+  err "${CHANGELOG_PATH} must contain exactly one ## [Unreleased] heading; found ${unreleased_heading_count}."
+fi
 
 if is_placeholder_unreleased "$after_section"; then
   err "release-worthy changes require a real bullet under ${CHANGELOG_PATH} -> ## [Unreleased]."

@@ -77,6 +77,13 @@ echo "==> Verify release branch sync"
 bash scripts/check-release-branch-sync.sh
 
 echo
+echo "==> Validate versioned release notes"
+notes_tmp="$(mktemp)"
+trap 'rm -f "$notes_tmp"' EXIT
+./scripts/generate-release-notes.sh "$version" "$notes_tmp" "$branch"
+./scripts/validate-release-notes.sh "$version" "$notes_tmp"
+
+echo
 echo "==> Run release gate"
 bash packaging/scripts/run-release-gate.sh
 

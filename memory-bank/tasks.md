@@ -9,6 +9,15 @@
 
 ### High Priority
 
+- [x] Audit and repair every GitHub release note and prevent empty notes.
+  - Status: completed (2026-07-27)
+  - Priority: P1
+  - Notes: Regenerated and updated all 67 published release bodies in
+    chronological order. Exact versioned changelog sections remain authoritative;
+    older weak notes use bounded categorized commit summaries, and same-source
+    republishes state that boundary explicitly. The guarded tag helper and hosted
+    release workflow now both reject missing, placeholder, or uninformative notes.
+
 - [x] Add policy-controlled cleanup and reacquisition suppression for Lidarr-rejected downloads.
   - Status: completed (2026-07-27)
   - Priority: P2
