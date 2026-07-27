@@ -3,6 +3,7 @@ import * as lidarr from '../../../lib/lidarr';
 import * as optionsApi from '../../../lib/options';
 import * as YAML from 'yaml';
 import MetadataSettingsPanel from './MetadataSettingsPanel';
+import MetadataProcessingPanel from './MetadataProcessingPanel';
 import FtpIntegrationPanel from './FtpIntegrationPanel';
 import SourceFeedIntegrationsPanel from './SourceFeedIntegrationsPanel';
 import VpnPanel from './VpnPanel';
@@ -234,6 +235,7 @@ const Integrations = ({ options = {}, state = {} }) => (
     />
     <LidarrPanel options={options} />
     <MetadataSettingsPanel options={options} />
+    <MetadataProcessingPanel />
     <NotificationIntegrationsPanel options={options} />
     <SourceFeedIntegrationsPanel options={options} />
     <FtpIntegrationPanel options={options} />

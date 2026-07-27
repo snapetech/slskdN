@@ -590,6 +590,11 @@ public class WishlistControllerTests : IDisposable
         Assert.NotNull(item);
         Assert.False(item.Enabled);
         Assert.Equal(2, item.TotalDownloadCount);
+        downloadService.Verify(service => service.EnqueueAsync(
+            "alice",
+            It.Is<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(requests =>
+                requests.All(request => request.WishlistItemId == itemId)),
+            It.IsAny<CancellationToken>()));
     }
 
     private static Mock<ISearchService> CreateCompletedSearchService(Guid searchId)

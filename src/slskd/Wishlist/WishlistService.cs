@@ -806,7 +806,7 @@ namespace slskd.Wishlist
             // If auto-download is enabled and we have results, download the best ones
             if (item.AutoDownload && searchWithResponses?.Responses?.Any() == true)
             {
-                var downloadResult = await AutoDownloadBestResultsAsync(searchWithResponses, item.Filter, ignoredResults, cancellationToken);
+                var downloadResult = await AutoDownloadBestResultsAsync(searchWithResponses, item.Id, item.Filter, ignoredResults, cancellationToken);
                 if (downloadResult.EnqueuedCount > 0)
                 {
                     item.TotalDownloadCount += downloadResult.EnqueuedCount;
@@ -848,6 +848,7 @@ namespace slskd.Wishlist
 
         private async Task<WishlistDownloadResult> AutoDownloadBestResultsAsync(
             SlskdSearch search,
+            Guid wishlistItemId,
             string filter,
             IReadOnlyCollection<WishlistIgnoredResult> ignoredResults,
             CancellationToken cancellationToken)
@@ -913,6 +914,7 @@ namespace slskd.Wishlist
                         SampleRate = c.SampleRate,
                         BitDepth = c.BitDepth,
                         Length = c.Length,
+                        WishlistItemId = wishlistItemId,
                     })
                     .ToList();
 

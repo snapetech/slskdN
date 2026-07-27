@@ -27,6 +27,9 @@ namespace slskd.HashDb
         /// </summary>
         HashDbStats GetStats();
 
+        MetadataProcessingStatus GetMetadataProcessingStatus(int limit = 50)
+            => new([], []);
+
         /// <summary>
         ///     Gets the current schema version of the database.
         /// </summary>
@@ -536,4 +539,17 @@ namespace slskd.HashDb
         /// <summary>Gets or sets database file size in bytes.</summary>
         public long DatabaseSizeBytes { get; set; }
     }
+
+    public sealed record MetadataProcessingEvent(
+        Guid Id,
+        string Filename,
+        string Stage,
+        string Status,
+        string? Detail,
+        DateTime StartedAt,
+        DateTime? FinishedAt);
+
+    public sealed record MetadataProcessingStatus(
+        IReadOnlyList<MetadataProcessingEvent> Active,
+        IReadOnlyList<MetadataProcessingEvent> History);
 }

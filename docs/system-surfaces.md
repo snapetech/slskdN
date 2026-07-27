@@ -88,6 +88,10 @@ change daemon configuration or execute any network/file action.
 - VPN status and port-forwarding visibility.
 - Lidarr status, wanted sync, path mapping, and safe manual-import handoff.
 - Metadata provider settings for Chromaprint, AcoustID, MusicBrainz, and Lidarr.
+- Live and bounded recent metadata-processing activity for HashDb hashing,
+  Chromaprint, AcoustID, MusicBrainz, and optional auto-tagging. The surface
+  shows only the downloaded file basename, stage, timing, result, and concise
+  failure/skip reason; raw fingerprints and full local paths are not exposed.
 - Notification providers: Pushbullet, Ntfy, and Pushover.
 - Source-feed imports: Spotify, YouTube, and Last.fm.
 - FTP completed-download upload settings.

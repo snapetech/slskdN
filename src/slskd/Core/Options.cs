@@ -4340,6 +4340,16 @@ namespace slskd
                 [Description("allow Lidarr auto-import to replace existing files")]
                 public bool ImportReplaceExistingFiles { get; init; } = false;
 
+                [Argument(default, "lidarr-delete-rejected-downloads")]
+                [EnvironmentVariable("LIDARR_DELETE_REJECTED_DOWNLOADS")]
+                [Description("delete completed download files rejected by Lidarr automatic import")]
+                public bool DeleteRejectedDownloads { get; init; } = false;
+
+                [Argument(default, "lidarr-blacklist-rejected-downloads")]
+                [EnvironmentVariable("LIDARR_BLACKLIST_REJECTED_DOWNLOADS")]
+                [Description("exclude a rejected Wishlist peer and directory from future automatic downloads")]
+                public bool BlacklistRejectedDownloads { get; init; } = false;
+
                 public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
                 {
                     if (!Enabled)

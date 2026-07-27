@@ -16,6 +16,23 @@ using Xunit;
 public class HashDbControllerTests
 {
     [Fact]
+    public void GetMetadataProcessing_ReturnsBoundedServiceSnapshot()
+    {
+        var snapshot = new MetadataProcessingStatus(
+            [new MetadataProcessingEvent(Guid.NewGuid(), "track.flac", "acoustid", "running", null, DateTime.UtcNow, null)],
+            []);
+        var hashDb = new Mock<IHashDbService>();
+        hashDb.Setup(service => service.GetMetadataProcessingStatus(25)).Returns(snapshot);
+        var controller = new HashDbController(
+            hashDb.Object,
+            Mock.Of<IDbContextFactory<SearchDbContext>>());
+
+        var result = Assert.IsType<OkObjectResult>(controller.GetMetadataProcessing(25));
+
+        Assert.Same(snapshot, result.Value);
+    }
+
+    [Fact]
     public async Task OptimizeIndexes_WhenOptimizationThrows_DoesNotLeakExceptionMessage()
     {
         var optimizationService = new Mock<IHashDbOptimizationService>();

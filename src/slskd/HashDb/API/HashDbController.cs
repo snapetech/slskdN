@@ -55,6 +55,11 @@ namespace slskd.HashDb.API
             return Ok(stats);
         }
 
+        [HttpGet("metadata-processing")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        public IActionResult GetMetadataProcessing([FromQuery] int limit = 50)
+            => Ok(HashDb.GetMetadataProcessingStatus(limit));
+
         /// <summary>
         ///     Gets database schema version and migration status.
         /// </summary>

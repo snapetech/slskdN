@@ -104,6 +104,12 @@ const buildMetadataSettingsForm = (options = {}) => {
     lidarrAutoImportCompleted: Boolean(
       getOption(lidarrOptions, 'autoImportCompleted', 'AutoImportCompleted'),
     ),
+    lidarrDeleteRejectedDownloads: Boolean(
+      getOption(lidarrOptions, 'deleteRejectedDownloads', 'DeleteRejectedDownloads'),
+    ),
+    lidarrBlacklistRejectedDownloads: Boolean(
+      getOption(lidarrOptions, 'blacklistRejectedDownloads', 'BlacklistRejectedDownloads'),
+    ),
     lidarrEnabled: Boolean(getOption(lidarrOptions, 'enabled', 'Enabled')),
     lidarrImportMode:
       getOption(lidarrOptions, 'importMode', 'ImportMode') || 'move',
@@ -197,6 +203,8 @@ const MetadataSettingsPanel = ({ options }) => {
     const lidarrPatch = {
       autoDownload: form.lidarrAutoDownload,
       autoImportCompleted: form.lidarrAutoImportCompleted,
+      blacklistRejectedDownloads: form.lidarrBlacklistRejectedDownloads,
+      deleteRejectedDownloads: form.lidarrDeleteRejectedDownloads,
       enabled: form.lidarrEnabled,
       importMode: form.lidarrImportMode,
       importPathFrom: form.lidarrImportPathFrom.trim(),
@@ -671,6 +679,34 @@ const MetadataSettingsPanel = ({ options }) => {
                     label="Auto-import completed downloads"
                     onChange={(_, { checked }) =>
                       update('lidarrAutoImportCompleted', checked)
+                    }
+                  />
+                }
+              />
+              <Popup
+                content="Delete a completed directory only when Lidarr rejects every candidate in it. Disabled by default."
+                trigger={
+                  <Checkbox
+                    aria-label="Delete Lidarr rejected downloads setting"
+                    checked={form.lidarrDeleteRejectedDownloads}
+                    disabled={!remoteConfiguration || saving}
+                    label="Delete fully rejected downloads"
+                    onChange={(_, { checked }) =>
+                      update('lidarrDeleteRejectedDownloads', checked)
+                    }
+                  />
+                }
+              />
+              <Popup
+                content="Exclude the exact rejected peer and remote release directory from the originating Wishlist item so it is not automatically selected again."
+                trigger={
+                  <Checkbox
+                    aria-label="Blacklist Lidarr rejected downloads setting"
+                    checked={form.lidarrBlacklistRejectedDownloads}
+                    disabled={!remoteConfiguration || saving}
+                    label="Blacklist rejected Wishlist result"
+                    onChange={(_, { checked }) =>
+                      update('lidarrBlacklistRejectedDownloads', checked)
                     }
                   />
                 }

@@ -21,10 +21,6 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ---
 
 ## [Unreleased]
-
-- Lidarr path mapping now preserves Windows separators when Docker-hosted
-  slskdN sends a mapped completed-download path to native Windows Lidarr, with
-  explicit Docker-to-Windows configuration guidance.
 - PPA workflows now serialize uploads per Ubuntu series and wait for the exact
   source, binary build, and published binary records, preventing a later source
   upload from superseding a package whose binary is still being processed.
@@ -2203,6 +2199,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
   to fail every cycle with `SQLite Error 1: no such column: w.LastViewedAt`.
 - Documented the inverted migration condition gotcha in
   `memory-bank/decisions/adr-0001-known-gotchas.md` as entry 0z361.
+
+## [2026072717-slskdn.292] — 2026-07-27
+
+- Added opt-in Lidarr rejection cleanup that deletes only exact rejected files,
+  plus exact Wishlist item/peer/release-directory suppression so rejected
+  automatic acquisitions are not selected repeatedly.
+- Added live and bounded recent HashDb, Chromaprint, AcoustID, MusicBrainz, and
+  auto-tagging processing activity to System Integrations without exposing full
+  local paths or raw fingerprints.
 
 ## [2026072716-slskdn.291] — 2026-07-27
 

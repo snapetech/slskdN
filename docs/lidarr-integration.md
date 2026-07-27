@@ -160,14 +160,21 @@ slskdN only submits candidates that Lidarr has already matched cleanly:
 - parsed quality
 - not an additional/non-track file
 
-Rejected or ambiguous candidates are left alone so the user can import them
-interactively in Lidarr.
+Rejected or ambiguous candidates are retained by default so the user can import
+them interactively in Lidarr. Two independent, opt-in policies are available:
 
-slskdN does not currently delete rejected downloads or persist a rejection
-blacklist. A rejected candidate can therefore be selected again by a later
-automatic search. Policy-controlled delete/quarantine handling and bounded
-reacquisition suppression are tracked follow-up work; until then, review and
-remove rejected downloads manually.
+- `delete_rejected_downloads: true` deletes only the exact completed files that
+  Lidarr rejected. It never recursively deletes the completed directory, which
+  may be a shared root under flat download layouts.
+- `blacklist_rejected_downloads: true` adds the exact Soulseek peer and remote
+  release directory to the originating Wishlist item's ignored results. Future
+  automatic searches skip that result without banning the peer. The rule is
+  persistent and can be reviewed or removed through the Wishlist ignored-results
+  controls/API.
+
+These policies apply to automatic completed-directory events. Manual import API
+calls do not delete files or add suppression rules because they lack the
+originating transfer identity.
 
 This is intentionally stricter than blindly accepting every manual-import
 decision. A file is not auto-imported if Lidarr reports rejection reasons, cannot

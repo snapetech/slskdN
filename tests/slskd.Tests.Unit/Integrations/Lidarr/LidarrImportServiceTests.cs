@@ -60,6 +60,7 @@ public class LidarrImportServiceTests
 
         Assert.Equal(1, result.CandidateCount);
         Assert.Equal(0, result.SafeCandidateCount);
+        Assert.Equal(["01 Track.flac"], result.RejectedFilenames);
         Assert.Equal("Lidarr candidates had rejections or ambiguous matches", result.SkippedReason);
         Assert.Empty(client.ImportedFiles);
     }

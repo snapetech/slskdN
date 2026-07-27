@@ -5,6 +5,7 @@ namespace slskd.HashDb
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Concurrent;
     using System.Diagnostics;
     using System.Globalization;
     using System.IO;
@@ -83,6 +84,8 @@ namespace slskd.HashDb
             PropertyNameCaseInsensitive = true,
         };
         private long currentSeqId;
+        private readonly ConcurrentDictionary<Guid, MetadataProcessingEvent> activeMetadataProcessing = new();
+        private readonly ConcurrentQueue<MetadataProcessingEvent> metadataProcessingHistory = new();
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="HashDbService"/> class.
@@ -244,6 +247,8 @@ namespace slskd.HashDb
         /// </summary>
         private async Task OnDownloadCompleteAsync(DownloadFileCompleteEvent evt)
         {
+            var filename = Path.GetFileName(evt.LocalFilename);
+            var pipeline = BeginMetadataStage(filename, "hash");
             try
             {
                 var localFilename = evt.LocalFilename;
@@ -252,6 +257,7 @@ namespace slskd.HashDb
                 if (!IsAudioHashCandidate(localFilename, evt.RemoteFilename))
                 {
                     log.Debug("[HashDb] Skipping hash for non-audio completed download {Filename}", localFilename);
+                    FinishMetadataStage(pipeline, "skipped", "Not a supported audio file");
                     return;
                 }
 
@@ -259,6 +265,7 @@ namespace slskd.HashDb
                 if (fileSize < HashChunkSize)
                 {
                     log.Debug("[HashDb] Skipping hash for {Filename}: file too small ({Size} bytes)", localFilename, fileSize);
+                    FinishMetadataStage(pipeline, "skipped", "File is too small for hashing");
                     return;
                 }
 
@@ -269,6 +276,7 @@ namespace slskd.HashDb
                 {
                     log.Debug("[HashDb] Hash already exists for {Filename}", localFilename);
                     await IncrementHashUseCountAsync(flacKey);
+                    FinishMetadataStage(pipeline, "complete", "Existing hash reused");
                     return;
                 }
 
@@ -277,12 +285,14 @@ namespace slskd.HashDb
                 if (hash == null)
                 {
                     log.Warning("[HashDb] Failed to compute hash for {Filename}", localFilename);
+                    FinishMetadataStage(pipeline, "failed", "Hash computation failed");
                     return;
                 }
 
                 // Store the hash locally
                 await StoreHashFromVerificationAsync(evt.RemoteFilename, fileSize, hash);
                 log.Information("[HashDb] Stored hash for downloaded file {Filename}: {Hash}", localFilename, hash);
+                FinishMetadataStage(pipeline, "complete", "Hash stored");
 
                 // Derive variant metadata + quality score
                 try
@@ -297,6 +307,7 @@ namespace slskd.HashDb
 
                 if (fingerprintExtractionService != null)
                 {
+                    var fingerprintStage = BeginMetadataStage(filename, "chromaprint");
                     try
                     {
                         var fingerprint = await fingerprintExtractionService.ExtractFingerprintAsync(localFilename).ConfigureAwait(false);
@@ -305,14 +316,25 @@ namespace slskd.HashDb
                         {
                             await UpdateHashFingerprintAsync(flacKey, fingerprint).ConfigureAwait(false);
                             log.Debug("[HashDb] Stored fingerprint for {Filename}", localFilename);
+                            FinishMetadataStage(fingerprintStage, "complete", "Fingerprint stored");
 
                             await TryResolveAcoustIdAsync(localFilename, flacKey, fingerprint).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            FinishMetadataStage(fingerprintStage, "failed", "No fingerprint produced");
                         }
                     }
                     catch (Exception ex)
                     {
                         log.Warning(ex, "[HashDb] Fingerprint extraction failed for {Filename}", localFilename);
+                        FinishMetadataStage(fingerprintStage, "failed", $"Fingerprint extraction failed ({ex.GetType().Name})");
                     }
+                }
+                else
+                {
+                    var skipped = BeginMetadataStage(filename, "chromaprint");
+                    FinishMetadataStage(skipped, "skipped", "Chromaprint is not configured");
                 }
 
                 // Publish to mesh for other slskdn clients (lazy resolution to avoid circular dependency)
@@ -328,7 +350,37 @@ namespace slskd.HashDb
             }
             catch (Exception ex)
             {
+                FinishMetadataStage(pipeline, "failed", $"Hash processing failed ({ex.GetType().Name})");
                 log.Error(ex, "[HashDb] Error hashing downloaded file {Filename}", evt.LocalFilename);
+            }
+        }
+
+        public MetadataProcessingStatus GetMetadataProcessingStatus(int limit = 50)
+        {
+            limit = Math.Clamp(limit, 1, 200);
+            return new MetadataProcessingStatus(
+                activeMetadataProcessing.Values.OrderBy(item => item.StartedAt).ToList(),
+                metadataProcessingHistory.Reverse().Take(limit).ToList());
+        }
+
+        private MetadataProcessingEvent BeginMetadataStage(string filename, string stage)
+        {
+            var item = new MetadataProcessingEvent(Guid.NewGuid(), filename, stage, "running", null, DateTime.UtcNow, null);
+            activeMetadataProcessing[item.Id] = item;
+            return item;
+        }
+
+        private void FinishMetadataStage(MetadataProcessingEvent item, string status, string? detail)
+        {
+            if (!activeMetadataProcessing.TryRemove(item.Id, out _))
+            {
+                return;
+            }
+
+            metadataProcessingHistory.Enqueue(item with { Status = status, Detail = detail, FinishedAt = DateTime.UtcNow });
+            while (metadataProcessingHistory.Count > 200)
+            {
+                metadataProcessingHistory.TryDequeue(out _);
             }
         }
 
@@ -2695,49 +2747,80 @@ namespace slskd.HashDb
 
         private async Task TryResolveAcoustIdAsync(string filePath, string flacKey, string fingerprint, CancellationToken cancellationToken = default)
         {
+            var filename = Path.GetFileName(filePath);
+            var acoustIdStage = BeginMetadataStage(filename, "acoustid");
             filePath = filePath?.Trim() ?? string.Empty;
             flacKey = flacKey?.Trim() ?? string.Empty;
             fingerprint = fingerprint?.Trim() ?? string.Empty;
             if (acoustIdClient == null || optionsMonitor == null || musicBrainzClient == null)
             {
+                FinishMetadataStage(acoustIdStage, "skipped", "AcoustID or MusicBrainz is not configured");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(flacKey) || string.IsNullOrWhiteSpace(fingerprint))
             {
+                FinishMetadataStage(acoustIdStage, "skipped", "Fingerprint data is unavailable");
                 return;
             }
 
-            var chromaOptions = optionsMonitor.CurrentValue.Integration.Chromaprint;
-            var result = await acoustIdClient.LookupAsync(fingerprint, chromaOptions.SampleRate, chromaOptions.DurationSeconds, cancellationToken).ConfigureAwait(false);
-
-            var recordingId = result?.Recordings?.FirstOrDefault()?.Id;
-
-            if (string.IsNullOrWhiteSpace(recordingId))
+            MetadataProcessingEvent? musicBrainzStage = null;
+            try
             {
-                log.Debug("[HashDb] AcoustID did not resolve a recording for fingerprint {Fingerprint}", fingerprint);
-                return;
-            }
+                var chromaOptions = optionsMonitor.CurrentValue.Integration.Chromaprint;
+                var result = await acoustIdClient.LookupAsync(fingerprint, chromaOptions.SampleRate, chromaOptions.DurationSeconds, cancellationToken).ConfigureAwait(false);
 
-            await UpdateHashRecordingIdAsync(flacKey, recordingId, cancellationToken).ConfigureAwait(false);
-            log.Information("[HashDb] Resolved AcoustID fingerprint to recording {RecordingId} for key {FlacKey}", recordingId, flacKey);
+                var recordingId = result?.Recordings?.FirstOrDefault()?.Id;
 
-            var track = await musicBrainzClient.GetRecordingAsync(recordingId, cancellationToken).ConfigureAwait(false);
-
-            if (track is not null && autoTaggingService != null && !string.IsNullOrWhiteSpace(filePath))
-            {
-                try
+                if (string.IsNullOrWhiteSpace(recordingId))
                 {
-                    var tagResult = await autoTaggingService.TagAsync(filePath, track, cancellationToken).ConfigureAwait(false);
-                    if (tagResult?.Updated == true)
+                    log.Debug("[HashDb] AcoustID did not resolve a recording for fingerprint {Fingerprint}", fingerprint);
+                    FinishMetadataStage(acoustIdStage, "complete", "No recording match");
+                    return;
+                }
+
+                await UpdateHashRecordingIdAsync(flacKey, recordingId, cancellationToken).ConfigureAwait(false);
+                log.Information("[HashDb] Resolved AcoustID fingerprint to recording {RecordingId} for key {FlacKey}", recordingId, flacKey);
+                FinishMetadataStage(acoustIdStage, "complete", $"Recording {recordingId}");
+
+                musicBrainzStage = BeginMetadataStage(filename, "musicbrainz");
+                var track = await musicBrainzClient.GetRecordingAsync(recordingId, cancellationToken).ConfigureAwait(false);
+                FinishMetadataStage(
+                    musicBrainzStage,
+                    "complete",
+                    track is null ? "Recording metadata not found" : "Recording metadata found");
+
+                if (track is not null && autoTaggingService != null && !string.IsNullOrWhiteSpace(filePath))
+                {
+                    var autoTagStage = BeginMetadataStage(filename, "auto_tagging");
+                    try
                     {
-                        log.Information("[HashDb] Auto-tagged {File}", filePath);
+                        var tagResult = await autoTaggingService.TagAsync(filePath, track, cancellationToken).ConfigureAwait(false);
+                        FinishMetadataStage(autoTagStage, "complete", tagResult?.Updated == true ? "Tags updated" : "No tag changes needed");
+                        if (tagResult?.Updated == true)
+                        {
+                            log.Information("[HashDb] Auto-tagged {File}", filePath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        FinishMetadataStage(autoTagStage, "failed", $"Auto-tagging failed ({ex.GetType().Name})");
+                        log.Warning(ex, "[HashDb] Auto-tagging failed for {File}", filePath);
                     }
                 }
-                catch (Exception ex)
+            }
+            catch (Exception ex)
+            {
+                FinishMetadataStage(
+                    musicBrainzStage ?? acoustIdStage,
+                    "failed",
+                    $"Provider request failed ({ex.GetType().Name})");
+                if (musicBrainzStage != null)
                 {
-                    log.Warning(ex, "[HashDb] Auto-tagging failed for {File}", filePath);
+                    FinishMetadataStage(acoustIdStage, "complete", "Recording resolved");
                 }
+
+                throw;
             }
         }
 

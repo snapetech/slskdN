@@ -5,6 +5,7 @@ namespace slskd.Integrations.Lidarr;
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -12,8 +13,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using slskd.Events;
+using slskd.Transfers;
+using slskd.Wishlist;
 
 public interface ILidarrImportService
 {
@@ -27,11 +31,15 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
     public LidarrImportService(
         ILidarrClient lidarrClient,
         EventBus eventBus,
-        IOptionsMonitor<global::slskd.Options> optionsMonitor)
+        IOptionsMonitor<global::slskd.Options> optionsMonitor,
+        IDbContextFactory<TransfersDbContext>? transfersContextFactory = null,
+        IWishlistService? wishlistService = null)
     {
         LidarrClient = lidarrClient;
         EventBus = eventBus;
         OptionsMonitor = optionsMonitor;
+        TransfersContextFactory = transfersContextFactory;
+        WishlistService = wishlistService;
     }
 
     private ILidarrClient LidarrClient { get; }
@@ -39,6 +47,8 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
     private EventBus EventBus { get; }
 
     private IOptionsMonitor<global::slskd.Options> OptionsMonitor { get; }
+    private IDbContextFactory<TransfersDbContext>? TransfersContextFactory { get; }
+    private IWishlistService? WishlistService { get; }
 
     private ConcurrentDictionary<string, DateTime> RecentlyProcessed { get; } = new(StringComparer.Ordinal);
 
@@ -93,6 +103,12 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
                 CandidateCount = candidates.Count,
                 SafeCandidateCount = safeCandidates.Count,
                 RejectedCandidateCount = candidates.Count - safeCandidates.Count,
+                RejectedFilenames = candidates
+                    .Where(candidate => !candidate.IsSafeAutomaticImportCandidate)
+                    .Select(candidate => GetPortableFileName(candidate.Path))
+                    .Where(filename => !string.IsNullOrWhiteSpace(filename))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray(),
             };
 
             if (safeCandidates.Count == 0)
@@ -146,7 +162,11 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
 
                 try
                 {
-                    await ImportCompletedDirectoryAsync(evt.LocalDirectoryName, stoppingToken).ConfigureAwait(false);
+                    var result = await ImportCompletedDirectoryAsync(evt.LocalDirectoryName, stoppingToken).ConfigureAwait(false);
+                    if (result.RejectedCandidateCount > 0)
+                    {
+                        await ApplyRejectedDownloadPolicyAsync(evt, result, stoppingToken).ConfigureAwait(false);
+                    }
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -182,6 +202,54 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         {
             EventBus.Unsubscribe<DownloadDirectoryCompleteEvent>(SubscriberName);
         }
+    }
+
+    private async Task ApplyRejectedDownloadPolicyAsync(
+        DownloadDirectoryCompleteEvent evt,
+        LidarrImportResult result,
+        CancellationToken cancellationToken)
+    {
+        var options = OptionsMonitor.CurrentValue.Integration.Lidarr;
+        if (options.BlacklistRejectedDownloads && TransfersContextFactory != null && WishlistService != null && evt.RequestId.HasValue &&
+            !string.IsNullOrWhiteSpace(evt.Username) && !string.IsNullOrWhiteSpace(evt.RemoteDirectoryName))
+        {
+            await using var context = await TransfersContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            var wishlistItemId = await context.DownloadRequests
+                .Where(request => request.Id == evt.RequestId.Value)
+                .Select(request => request.WishlistItemId)
+                .SingleOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (wishlistItemId.HasValue)
+            {
+                await WishlistService.IgnoreResultAsync(wishlistItemId.Value, evt.Username, evt.RemoteDirectoryName).ConfigureAwait(false);
+                Log.Information(
+                    "Excluded Lidarr-rejected Wishlist result from {Username} in {Directory}",
+                    evt.Username,
+                    evt.RemoteDirectoryName);
+            }
+        }
+
+        if (options.DeleteRejectedDownloads && Directory.Exists(evt.LocalDirectoryName))
+        {
+            var directory = Path.GetFullPath(evt.LocalDirectoryName);
+            foreach (var filename in result.RejectedFilenames)
+            {
+                var path = Path.GetFullPath(Path.Combine(directory, filename));
+                if (Path.GetDirectoryName(path) == directory && File.Exists(path))
+                {
+                    File.Delete(path);
+                    Log.Information("Deleted completed file rejected by Lidarr: {Filename}", filename);
+                }
+            }
+        }
+    }
+
+    private static string GetPortableFileName(string? path)
+    {
+        var normalized = path?.Replace('\\', '/').TrimEnd('/') ?? string.Empty;
+        var separator = normalized.LastIndexOf('/');
+        return separator < 0 ? normalized : normalized[(separator + 1)..];
     }
 
     private static string NormalizeImportMode(string importMode)
@@ -271,6 +339,8 @@ public sealed record LidarrImportResult
     public int SafeCandidateCount { get; init; }
 
     public int RejectedCandidateCount { get; init; }
+
+    public IReadOnlyList<string> RejectedFilenames { get; init; } = [];
 
     public int CommandId { get; set; }
 

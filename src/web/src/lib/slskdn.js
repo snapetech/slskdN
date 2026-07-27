@@ -37,6 +37,13 @@ export const getHashDatabaseEntries = async (limit = 100, offset = 0) => {
   });
 };
 
+export const getMetadataProcessingStatus = async (limit = 50) => {
+  return safeGet(`/hashdb/metadata-processing?limit=${limit}`, {
+    active: [],
+    history: [],
+  });
+};
+
 // Mesh API
 export const getMeshStats = async () => {
   return safeGet('/mesh/stats', {

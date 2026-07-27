@@ -1763,6 +1763,7 @@ namespace slskd.Transfers.Downloads
                             Username = transfer.Username,
                             LocalDirectoryName = destinationDirectory,
                             RemoteDirectoryName = remoteDirectoryName,
+                            RequestId = transfer.RequestId,
                         });
                     }
 

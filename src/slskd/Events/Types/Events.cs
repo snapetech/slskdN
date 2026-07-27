@@ -94,6 +94,7 @@ public sealed record DownloadDirectoryCompleteEvent : Event
     public required string LocalDirectoryName { get; init; }
     public required string RemoteDirectoryName { get; init; }
     public string Username { get; init; } = string.Empty;
+    public Guid? RequestId { get; init; }
 }
 
 public sealed record UploadFileCompleteEvent : Event

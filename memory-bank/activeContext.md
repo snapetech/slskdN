@@ -1,3 +1,27 @@
+## Update 2026-07-27 16:57:35Z
+
+- Current task: validate and publish Lidarr rejection policies and visible
+  metadata-processing activity as a new stable release.
+- Last activity:
+  - Added opt-in exact-file cleanup and persistent exact Wishlist
+    item/peer/remote-directory suppression for Lidarr-rejected candidates.
+  - Restored Wishlist origin IDs on automatic download enqueue so completed
+    transfers can be attributed safely.
+  - Added a bounded in-memory metadata stage feed, read-only API, and polling
+    System Integrations panel for HashDb, Chromaprint, AcoustID, MusicBrainz,
+    and auto-tagging.
+  - Documented origin-linkage and shared-completed-root gotchas as `0z788` and
+    `0z789` in standalone commits.
+- Validation:
+  - Full Web passes `901` with `4` skipped, zero lint errors, and a successful
+    production build. Full .NET passes application `74`, unit `4966`, and
+    integration `284`; repository lint passes.
+- Next steps:
+  1. Run the full backend and Web suites and production build.
+  2. Finalize versioned release notes and state documents.
+  3. Commit, push, run the guarded release gate, tag the next stable release,
+     and verify hosted publication and artifacts.
+
 ## Update 2026-07-27 16:00:00Z
 
 - Current task: publish and verify stable `2026072716-slskdn.291` with the
