@@ -65,6 +65,24 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z791. Relay Public-IP Readiness Must Follow Tunnel Liveness
+
+**The Bug**: The first self-hosted relay status endpoint returned its cached
+public IP whenever relay state existed, even after the WireGuard handshake had
+become stale. The slskdN VPN integration uses a non-empty public IP as its
+connected signal, so it could keep Soulseek online while the relay path was no
+longer usable.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+
+**Prevention**: A compatibility endpoint used as a readiness signal must derive
+its response from current transport liveness, not cached identity or
+configuration. The relay `/v1/publicip/ip` endpoint must return an empty IP and
+an unavailable response whenever the latest WireGuard handshake exceeds the
+configured maximum age, causing the existing VPN watchdog to disconnect
+Soulseek and preserve fail-closed behavior.
+
 ### 0z787. Cross-OS Path Mapping Must Use The Destination OS Syntax
 
 **The Bug**: Docker-hosted slskdN used the Linux runtime's `Path.Combine` when
