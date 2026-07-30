@@ -65,6 +65,21 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z792. Status Labels And Panel Headings Can Intentionally Repeat
+
+**The Bug**: A VPN integration regression asserted a unique `Self-hosted relay`
+text node after the UI deliberately used that phrase both as the configured
+provider value and the diagnostics panel heading. Testing Library rejected the
+ambiguous query even though both rendered elements were correct.
+
+**Files Affected**:
+- `src/web/src/components/System/Integrations/index.test.jsx`
+
+**Prevention**: When the same user-facing term intentionally identifies a
+summary value and its detailed section, assert the exact expected collection
+with `getAllByText` or scope the queries to their table/panel containers. Do not
+force unique copy solely to satisfy an unscoped test query.
+
 ### 0z791. Relay Public-IP Readiness Must Follow Tunnel Liveness
 
 **The Bug**: The first self-hosted relay status endpoint returned its cached
@@ -78,10 +93,10 @@ longer usable.
 
 **Prevention**: A compatibility endpoint used as a readiness signal must derive
 its response from current transport liveness, not cached identity or
-configuration. The relay `/v1/publicip/ip` endpoint must return an empty IP and
-an unavailable response whenever the latest WireGuard handshake exceeds the
-configured maximum age, causing the existing VPN watchdog to disconnect
-Soulseek and preserve fail-closed behavior.
+configuration. The relay `/v1/publicip/ip` endpoint must return an empty IP
+whenever the latest WireGuard handshake exceeds the configured maximum age,
+causing the existing VPN watchdog to disconnect Soulseek while the separate
+relay status remains available for diagnosis.
 
 ### 0z787. Cross-OS Path Mapping Must Use The Destination OS Syntax
 
