@@ -65,6 +65,20 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z797. Tailscale Relay ACLs Must Pin The Exact Home Node
+
+**The Bug**: The Tailscale relay defaulted its accepted tunnel source to the
+home node's `/32`, but still accepted an operator-supplied broader tunnel CIDR.
+A mistaken `100.64.0.0/10` value could authorize egress forwarding from every
+node in the tailnet instead of only the configured home slskdN node.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+
+**Prevention**: In identity-addressed overlay transports, validate the effective
+forwarding source against the exact configured peer address. Defaults are not a
+security boundary when a broader environment override remains accepted.
+
 ### 0z796. Background HttpListener Handlers Must Complete Failed Responses
 
 **The Bug**: The relay API dispatched each `HttpListenerContext` through an
