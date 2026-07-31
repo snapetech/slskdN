@@ -15,7 +15,9 @@
   passes: application/Web tests, production Web build, .NET formatting, Web
   lint with zero errors, companion container build, configuration/installer/
   systemd packaging checks, identity-leak check, diff check, and GitHub-target
-  verification. Publication is pending; no tag is authorized.
+  verification. Implementation commit `94e5e7291` and the standalone gotcha
+  commits are published to `snapetech/slskdN` main; the remote object was
+  verified. No tag, release, or deployment was created.
 
 ## Update 2026-07-24 19:16:47Z
 

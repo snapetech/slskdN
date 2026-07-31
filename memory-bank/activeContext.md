@@ -1,7 +1,7 @@
 ## Update 2026-07-31 17:15:00Z
 
-- Current task: completed native Tailscale transport support for the self-hosted
-  CGNAT relay; publication to `snapetech/slskdN` main is pending the final commit.
+- Current task: complete. Native Tailscale transport support for the self-hosted
+  CGNAT relay is published to `snapetech/slskdN` main.
 - Last activity:
   - Generalized the VPS companion from WireGuard-only to validated Tailscale or
     WireGuard transport ownership.
@@ -11,9 +11,11 @@
     guide that routes only slskdN through the OCI exit node.
   - Added lifecycle coverage for broad-CIDR rejection and bounded HTTP 500
     behavior on malformed Tailscale status.
+  - Published implementation commit `94e5e7291` plus its standalone gotcha
+    commits and verified the GitHub main branch resolves to the same object.
 - Next steps:
-  1. Commit the implementation and documentation, push main, and verify the
-     remote object. Do not create a tag.
+  1. Await operator deployment feedback. No tag, release, or deployment was
+     created.
 
 ## Update 2026-07-27 18:00:00Z
 
