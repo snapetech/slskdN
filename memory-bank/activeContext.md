@@ -12650,9 +12650,10 @@ rollback.
 - Next steps:
   1. Review and merge the draft PR.
   2. No release/build tag was created.
-## Update 2026-07-30 23:55:00Z
+## Update 2026-07-31 00:04:00Z
 
-- Current task: finalize, commit, and push first-class self-hosted relay mode.
+- Current task: complete. First-class self-hosted relay mode is implemented,
+  documented, validated, committed, and pushed to the fork `main` branch.
 - Last activity:
   - Added the bounded WireGuard VPS companion, authenticated two-key status API,
     automatic public endpoint reporting, fail-closed handshake signal,
@@ -12669,6 +12670,6 @@ rollback.
   - Relay API lifecycle test, container build, packaging validation, repository
     lint, identity leak scan, and GitHub target gate pass.
 - Next steps:
-  1. Complete the requirement-by-requirement diff audit.
-  2. Commit the implementation and state updates.
-  3. Push `main` to `snapetech/slskdN`; do not create a tag.
+  1. Help the reporting user test a home/VPS deployment and capture provider-
+     specific interface or firewall differences.
+  2. Do not create a tag or release without explicit authorization.

@@ -9,9 +9,8 @@
 
 ### High Priority
 
-- [ ] Add and publish first-class self-hosted relay mode for CGNAT deployments.
-  - Status: implementation and complete local validation finished (2026-07-30);
-    final commit and push pending
+- [x] Add and publish first-class self-hosted relay mode for CGNAT deployments.
+  - Status: completed and pushed to `main` (2026-07-30)
   - Priority: P1
   - Notes: The existing VPN agent now has a bounded Linux VPS role that installs
     one configured Soulseek TCP forward, private WireGuard egress, fail-closed
