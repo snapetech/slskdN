@@ -65,6 +65,22 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z793. Generic Relay Services Must Not Require One Tunnel Owner
+
+**The Bug**: The first self-hosted relay systemd unit unconditionally wanted
+and ordered itself after `wg-quick@slskdN-relay.service`. That contradicted the
+relay's externally managed transport boundary and would start or wait for a
+second WireGuard tunnel on a host whose private interface was already owned by
+Tailscale.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/systemd/slskdN-relay.service`
+
+**Prevention**: A transport-neutral relay service must depend only on network
+readiness. Transport-specific setup belongs to the selected tunnel owner and
+the relay's runtime validation; documentation can order Tailscale or wg-quick
+before the relay without encoding both mutually exclusive owners in one unit.
+
 ### 0z792. Status Labels And Panel Headings Can Intentionally Repeat
 
 **The Bug**: A VPN integration regression asserted a unique `Self-hosted relay`
