@@ -189,6 +189,10 @@ const VpnPanel = ({ options, state }) => {
             <Table basic="very" compact definition>
               <Table.Body>
                 <Table.Row>
+                  <Table.Cell>Transport</Table.Cell>
+                  <Table.Cell>{valueOrDash(getOption(relay, 'transport', 'Transport'))}</Table.Cell>
+                </Table.Row>
+                <Table.Row>
                   <Table.Cell>Latency</Table.Cell>
                   <Table.Cell>
                     {valueOrDash(getOption(relay, 'latencyMs', 'LatencyMs'))} ms
@@ -215,11 +219,21 @@ const VpnPanel = ({ options, state }) => {
                   </Table.Cell>
                 </Table.Row>
                 <Table.Row>
-                  <Table.Cell>Latest Handshake</Table.Cell>
+                  <Table.Cell>
+                    {getOption(relay, 'transport', 'Transport') === 'tailscale'
+                      ? 'Latest Peer Activity'
+                      : 'Latest Handshake'}
+                  </Table.Cell>
                   <Table.Cell>
                     {valueOrDash(getOption(relay, 'latestHandshakeAt', 'LatestHandshakeAt'))}
                   </Table.Cell>
                 </Table.Row>
+                {getOption(relay, 'path', 'Path') && (
+                  <Table.Row>
+                    <Table.Cell>Peer Path</Table.Cell>
+                    <Table.Cell>{getOption(relay, 'path', 'Path')}</Table.Cell>
+                  </Table.Row>
+                )}
               </Table.Body>
             </Table>
           </Segment>

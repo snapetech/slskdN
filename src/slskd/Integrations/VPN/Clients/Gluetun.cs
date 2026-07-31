@@ -87,6 +87,7 @@ public class Gluetun : IVPNClient
             var relay = relayResponse is null ? null : new VPNRelayStatus
             {
                 Mode = relayResponse.Mode,
+                Transport = relayResponse.Transport,
                 Connected = relayResponse.Connected,
                 LatencyMs = relayResponse.LatencyMs,
                 RxBytes = relayResponse.RxBytes,
@@ -95,6 +96,7 @@ public class Gluetun : IVPNClient
                 ConnectionLimit = relayResponse.ConnectionLimit,
                 BandwidthLimitMbit = relayResponse.BandwidthLimitMbit,
                 LatestHandshakeAt = relayResponse.LatestHandshakeAt,
+                Path = relayResponse.Path,
             };
             var publicIp = await MakeRequest<GluetunPublicIpResponse>(http, "/v1/publicip/ip");
 
@@ -221,6 +223,7 @@ public class Gluetun : IVPNClient
     private class SlskdNRelayResponse
     {
         public string Mode { get; init; } = string.Empty;
+        public string Transport { get; init; } = string.Empty;
         public bool Connected { get; init; }
         public double? LatencyMs { get; init; }
         public long RxBytes { get; init; }
@@ -229,5 +232,6 @@ public class Gluetun : IVPNClient
         public int ConnectionLimit { get; init; }
         public int BandwidthLimitMbit { get; init; }
         public DateTimeOffset? LatestHandshakeAt { get; init; }
+        public string Path { get; init; } = string.Empty;
     }
 }

@@ -51,22 +51,26 @@ slskdN-vpn-agent <command>
 - `watchdog`: run one verification pass and recover ingress after repeated
   failures.
 - `relay-apply`: install the bounded VPS forwarding, egress, and limit rules.
-- `relay-api`: serve the authenticated WireGuard-only relay status API.
+- `relay-api`: serve the authenticated Tailscale/WireGuard relay status API.
 - `relay-run`: apply relay networking and then serve the status API.
 
 ## Self-Hosted Relay Extension
 
-In self-hosted relay mode the compatibility surface binds to the VPS WireGuard
+In self-hosted relay mode the compatibility surface binds to the VPS tunnel
 address instead of loopback. Every request requires `X-API-Key` or a Bearer
 token matching one of the two bounded keys in `SLSKDN_RELAY_API_KEY_FILE`. A
-stale WireGuard handshake makes `/v1/publicip/ip` return an empty address so
-slskdN treats the VPN as disconnected while retaining relay diagnostics.
+stale WireGuard handshake, or an offline/unreachable Tailscale peer, makes
+`/v1/publicip/ip` return an empty address so slskdN treats the relay as
+disconnected while retaining diagnostics.
 
-`GET /v1/slskdn/relay` returns current tunnel liveness, public and target ports,
-round-trip latency, WireGuard byte counters, active and maximum connections,
-the bandwidth policy, and latest handshake time. It is read-only. The companion
-exposes no filesystem, configuration, slskdN credential, arbitrary destination,
-SOCKS, or HTTP proxy API.
+`GET /v1/slskdn/relay` returns current tunnel liveness, transport, public and
+target ports, round-trip latency, tunnel byte counters, active and maximum
+connections, bandwidth policy, latest peer activity, and the observed path.
+For WireGuard, latest peer activity is its latest handshake. For Tailscale, the
+path is the bounded `tailscale ping` result and may identify a direct or DERP
+route. The endpoint is read-only. The companion exposes no filesystem,
+configuration, slskdN credential, arbitrary destination, SOCKS, or HTTP proxy
+API.
 
 ## Current Port-Reduction Boundary
 

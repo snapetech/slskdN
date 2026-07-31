@@ -75,6 +75,7 @@ public class GluetunTests
             ["/v1/slskdn/relay"] = """
                 {
                   "mode":"self-hosted-relay",
+                  "transport":"tailscale",
                   "connected":true,
                   "latencyMs":12.5,
                   "rxBytes":1048576,
@@ -82,7 +83,8 @@ public class GluetunTests
                   "activeConnections":4,
                   "connectionLimit":128,
                   "bandwidthLimitMbit":100,
-                  "latestHandshakeAt":"2026-07-30T15:00:00Z"
+                  "latestHandshakeAt":"2026-07-30T15:00:00Z",
+                  "path":"pong from home via DERP(tor) in 12.5ms"
                 }
                 """,
         });
@@ -108,12 +110,14 @@ public class GluetunTests
         Assert.Equal(50300, status.ForwardedPort);
         Assert.NotNull(status.Relay);
         Assert.True(status.Relay.Connected);
+        Assert.Equal("tailscale", status.Relay.Transport);
         Assert.Equal(12.5, status.Relay.LatencyMs);
         Assert.Equal(1048576, status.Relay.RxBytes);
         Assert.Equal(2097152, status.Relay.TxBytes);
         Assert.Equal(4, status.Relay.ActiveConnections);
         Assert.Equal(128, status.Relay.ConnectionLimit);
         Assert.Equal(100, status.Relay.BandwidthLimitMbit);
+        Assert.Equal("pong from home via DERP(tor) in 12.5ms", status.Relay.Path);
     }
 
     [Fact]

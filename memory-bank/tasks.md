@@ -23,6 +23,16 @@
     .NET and Web validation passes (`74` application, `4969` unit, `284`
     integration, and `901` Web with `4` existing skips).
 
+- [x] Add native Tailscale transport to the self-hosted CGNAT relay.
+  - Status: completed (2026-07-31)
+  - Priority: P1
+  - Notes: The OCI companion now uses `tailscale0` directly, pins forwarding to
+    the exact home node `/32`, discovers its tailnet API address, and reports
+    Tailscale peer liveness, activity, counters, latency, and direct/DERP path.
+    The deployment guide uses OCI as an approved exit node and scopes that exit
+    route to slskdN through a home Docker Tailscale sidecar. Dedicated
+    WireGuard remains available as an alternate transport.
+
 - [x] Audit and repair every GitHub release note and prevent empty notes.
   - Status: completed (2026-07-27)
   - Priority: P1

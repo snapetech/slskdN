@@ -18,7 +18,8 @@ UID split routing, verification, status, watchdog behavior, and ingress cleanup.
 - [External tunnel setup](external-tunnel.md): OpenVPN, Tailscale, static
   forwarded ports, and externally-managed tunnel interfaces.
 - [Self-hosted relay](self-hosted-relay.md): keep slskdN and shares behind
-  CGNAT while a bounded WireGuard VPS companion provides public ingress/egress.
+  CGNAT while a bounded Tailscale or WireGuard VPS companion provides public
+  ingress/egress.
 - [Windows and macOS](windows-macos.md): platform fail-closed behavior,
   required inputs, and limitations.
 - [API contract](api-contract.md): Gluetun-compatible endpoints, slskdN

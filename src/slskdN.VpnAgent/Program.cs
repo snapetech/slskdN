@@ -60,7 +60,7 @@ static void Usage()
       platform-split
                  Configure platform-native fail-closed routing/firewall
       relay-apply
-                 Configure a bounded VPS WireGuard relay and forwarding policy
+                 Configure a bounded VPS Tailscale/WireGuard relay and forwarding policy
       relay-api  Run the authenticated relay health/status API
       relay-run  Apply relay networking, then run the relay API
       verify     Verify slskdN VPN health
@@ -71,6 +71,10 @@ static void Usage()
 
 static class Commands
 {
+    private static readonly SemaphoreSlim RelayTransportStatusLock = new(1, 1);
+    private static RelayTransportStatus? CachedRelayTransportStatus;
+    private static DateTimeOffset CachedRelayTransportStatusAt;
+
     public static async Task<int> RelayApply()
     {
         if (!OperatingSystem.IsLinux())
@@ -81,11 +85,17 @@ static class Commands
         ValidateRelayConfiguration();
         await RequireCommand("iptables");
         await RequireCommand("ip");
+        await RequireCommand(AppConfig.RelayTunnelType == "tailscale" ? "tailscale" : "wg");
         if (AppConfig.RelayBandwidthMbit > 0)
         {
             await RequireCommand("tc");
         }
         await ProcessUtil.Run("sysctl", "-qw", "net.ipv4.ip_forward=1");
+        await MustRun("ip", "link", "show", AppConfig.RelayInterface);
+        if (AppConfig.RelayTunnelType == "tailscale")
+        {
+            await MustRun("tailscale", "status", "--json");
+        }
 
         await RecreateChain("iptables", "-t", "nat", "SLSKDN-RELAY-NAT");
         await RecreateChain("iptables", "SLSKDN-RELAY-FWD");
@@ -98,36 +108,36 @@ static class Commands
 
         await MustRun("iptables", "-t", "nat", "-A", "SLSKDN-RELAY-NAT", "-i", AppConfig.RelayPublicIface,
             "-p", "tcp", "--dport", AppConfig.RelayPublicPort.ToString(), "-j", "DNAT", "--to-destination", $"{AppConfig.RelayHomeIp}:{AppConfig.RelayTargetPort}");
-        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayWireGuardIface,
+        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayInterface,
             "-p", "tcp", "--dport", AppConfig.RelayTargetPort.ToString(), "-m", "conntrack", "--ctstate", "NEW",
             "-m", "connlimit", "--connlimit-above", AppConfig.RelayConnectionLimit.ToString(), "--connlimit-mask", "0", "-j", "REJECT", "--reject-with", "tcp-reset");
-        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayWireGuardIface,
+        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayInterface,
             "-p", "tcp", "-d", AppConfig.RelayHomeIp, "--dport", AppConfig.RelayTargetPort.ToString(), "-m", "conntrack", "--ctstate", "NEW,ESTABLISHED", "-j", "ACCEPT");
-        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayWireGuardIface, "-o", AppConfig.RelayPublicIface,
+        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayInterface, "-o", AppConfig.RelayPublicIface,
             "-s", AppConfig.RelayTunnelCidr, "-m", "conntrack", "--ctstate", "NEW,ESTABLISHED,RELATED", "-j", "ACCEPT");
-        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayWireGuardIface,
+        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayInterface,
             "-d", AppConfig.RelayTunnelCidr, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT");
 
         if (AppConfig.RelayBandwidthMbit > 0)
         {
-            await MustRun("tc", "qdisc", "replace", "dev", AppConfig.RelayWireGuardIface, "root", "tbf",
+            await MustRun("tc", "qdisc", "replace", "dev", AppConfig.RelayInterface, "root", "tbf",
                 "rate", $"{AppConfig.RelayBandwidthMbit}mbit", "burst", "256kb", "latency", "100ms");
-            await MustRun("tc", "qdisc", "replace", "dev", AppConfig.RelayWireGuardIface, "handle", "ffff:", "ingress");
-            await MustRun("tc", "filter", "replace", "dev", AppConfig.RelayWireGuardIface, "parent", "ffff:", "protocol", "all", "u32",
+            await MustRun("tc", "qdisc", "replace", "dev", AppConfig.RelayInterface, "handle", "ffff:", "ingress");
+            await MustRun("tc", "filter", "replace", "dev", AppConfig.RelayInterface, "parent", "ffff:", "protocol", "all", "u32",
                 "match", "u32", "0", "0", "police", "rate", $"{AppConfig.RelayBandwidthMbit}mbit", "burst", "256kb", "drop", "flowid", ":1");
         }
 
         var publicIp = await ResolveRelayPublicIp();
         Directory.CreateDirectory(AppConfig.StateDir.FullName);
         await File.WriteAllTextAsync(AppConfig.StateFile("relay.env").FullName, $"public_ip={publicIp}\npublic_port={AppConfig.RelayPublicPort}\ntarget_port={AppConfig.RelayTargetPort}\nhome_ip={AppConfig.RelayHomeIp}\n");
-        Console.WriteLine($"Configured TCP relay {publicIp}:{AppConfig.RelayPublicPort} -> {AppConfig.RelayHomeIp}:{AppConfig.RelayTargetPort} over {AppConfig.RelayWireGuardIface}");
+        Console.WriteLine($"Configured TCP relay {publicIp}:{AppConfig.RelayPublicPort} -> {AppConfig.RelayHomeIp}:{AppConfig.RelayTargetPort} over {AppConfig.RelayTunnelType}/{AppConfig.RelayInterface}");
         return 0;
     }
 
     public static async Task<int> RelayApi(string[] args)
     {
         ValidateRelayConfiguration();
-        var host = Option(args, "--host") ?? AppConfig.RelayApiHost;
+        var host = Option(args, "--host") ?? await ResolveRelayApiHost();
         var portText = Option(args, "--port") ?? AppConfig.RelayApiPort.ToString();
         var port = int.TryParse(portText, out var parsed) ? parsed : AppConfig.RelayApiPort;
         using var listener = new HttpListener();
@@ -137,7 +147,7 @@ static class Commands
         while (true)
         {
             var context = await listener.GetContextAsync();
-            _ = Task.Run(() => HandleRelayApiRequest(context));
+            _ = Task.Run(() => HandleRelayApiRequestSafely(context));
         }
     }
 
@@ -761,7 +771,7 @@ static class Commands
                 claimed = publicPort > 0 ? 1 : 0,
                 forwards = new[]
                 {
-                    new PortForwardState(0, AppConfig.RelayPublicPort, AppConfig.RelayTargetPort, "tcp", publicPort, publicIp, AppConfig.RelayWireGuardIface)
+                    new PortForwardState(0, AppConfig.RelayPublicPort, AppConfig.RelayTargetPort, "tcp", publicPort, publicIp, AppConfig.RelayInterface)
                 }
             });
             return;
@@ -781,6 +791,22 @@ static class Commands
         }
 
         await JsonResponse(context, 404, new { error = "not found" });
+    }
+
+    private static async Task HandleRelayApiRequestSafely(HttpListenerContext context)
+    {
+        try
+        {
+            await HandleRelayApiRequest(context);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"relay API request failed: {ex.Message}");
+            if (context.Response.OutputStream.CanWrite)
+            {
+                await JsonResponse(context, 500, new { error = "relay status unavailable" });
+            }
+        }
     }
 
     private static bool RelayRequestAuthenticated(HttpListenerRequest request)
@@ -806,38 +832,29 @@ static class Commands
 
     private static async Task<object> RelayStatus(string publicIp, int publicPort)
     {
-        var connected = await RelayTunnelConnected();
-        var ping = await ProcessUtil.Run("ping", "-n", "-c", "1", "-W", "2", AppConfig.RelayHomeIp);
-        double? latencyMs = null;
-        var latency = Regex.Match(ping.Stdout, @"time[=<]([0-9.]+)\s*ms");
-        if (latency.Success && double.TryParse(latency.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, out var parsedLatency))
-        {
-            latencyMs = parsedLatency;
-        }
-
-        var rxBytes = ReadInterfaceCounter("rx_bytes");
-        var txBytes = ReadInterfaceCounter("tx_bytes");
-        var latestHandshake = await LatestRelayHandshake();
+        var transport = await GetRelayTransportStatus();
         return new
         {
             mode = "self-hosted-relay",
-            connected,
+            transport = AppConfig.RelayTunnelType,
+            connected = transport.Connected,
             publicIp,
             publicPort,
             targetPort = AppConfig.RelayTargetPort,
-            latencyMs,
-            rxBytes,
-            txBytes,
+            latencyMs = transport.LatencyMs,
+            rxBytes = transport.RxBytes,
+            txBytes = transport.TxBytes,
             activeConnections = await ActiveRelayConnections(),
             connectionLimit = AppConfig.RelayConnectionLimit,
             bandwidthLimitMbit = AppConfig.RelayBandwidthMbit,
-            latestHandshakeAt = latestHandshake > 0 ? DateTimeOffset.FromUnixTimeSeconds(latestHandshake) : (DateTimeOffset?)null
+            latestHandshakeAt = transport.LatestActivityAt,
+            path = transport.Path
         };
     }
 
     private static long ReadInterfaceCounter(string counter)
     {
-        var path = $"/sys/class/net/{AppConfig.RelayWireGuardIface}/statistics/{counter}";
+        var path = $"/sys/class/net/{AppConfig.RelayInterface}/statistics/{counter}";
         return File.Exists(path) && long.TryParse(File.ReadAllText(path).Trim(), out var value) ? value : 0;
     }
 
@@ -849,16 +866,110 @@ static class Commands
 
     private static async Task<bool> RelayTunnelConnected()
     {
-        var handshake = await LatestRelayHandshake();
-        return handshake > 0 && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - handshake <= AppConfig.RelayHandshakeMaxAgeSeconds;
+        return (await GetRelayTransportStatus()).Connected;
     }
 
-    private static async Task<long> LatestRelayHandshake()
+    private static async Task<RelayTransportStatus> GetRelayTransportStatus()
     {
-        var result = await ProcessUtil.Run("wg", "show", AppConfig.RelayWireGuardIface, "latest-handshakes");
-        return result.ExitCode == 0
+        await RelayTransportStatusLock.WaitAsync();
+        try
+        {
+            if (CachedRelayTransportStatus is not null && DateTimeOffset.UtcNow - CachedRelayTransportStatusAt < TimeSpan.FromSeconds(2))
+            {
+                return CachedRelayTransportStatus;
+            }
+
+            CachedRelayTransportStatus = AppConfig.RelayTunnelType == "tailscale"
+                ? await TailscaleRelayStatus()
+                : await WireGuardRelayStatus();
+            CachedRelayTransportStatusAt = DateTimeOffset.UtcNow;
+            return CachedRelayTransportStatus;
+        }
+        finally
+        {
+            RelayTransportStatusLock.Release();
+        }
+    }
+
+    private static async Task<RelayTransportStatus> WireGuardRelayStatus()
+    {
+        var result = await ProcessUtil.Run("wg", "show", AppConfig.RelayInterface, "latest-handshakes");
+        var handshake = result.ExitCode == 0
             ? result.Stdout.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Select(value => long.TryParse(value, out var parsed) ? parsed : 0).DefaultIfEmpty().Max()
             : 0;
+        var connected = handshake > 0 && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - handshake <= AppConfig.RelayHandshakeMaxAgeSeconds;
+        var ping = await ProcessUtil.Run("ping", "-n", "-c", "1", "-W", "2", AppConfig.RelayHomeIp);
+        return new RelayTransportStatus(
+            connected,
+            ParseLatencyMilliseconds(ping.Stdout),
+            ReadInterfaceCounter("rx_bytes"),
+            ReadInterfaceCounter("tx_bytes"),
+            handshake > 0 ? DateTimeOffset.FromUnixTimeSeconds(handshake) : null,
+            connected ? "wireguard" : "");
+    }
+
+    private static async Task<RelayTransportStatus> TailscaleRelayStatus()
+    {
+        var status = await ProcessUtil.Run("tailscale", "status", "--json");
+        if (status.ExitCode != 0)
+        {
+            return new RelayTransportStatus(false, null, 0, 0, null, "");
+        }
+
+        var backendRunning = false;
+        var peerOnline = false;
+        long rxBytes = 0;
+        long txBytes = 0;
+        DateTimeOffset? lastSeen = null;
+        using (var document = JsonDocument.Parse(status.Stdout))
+        {
+            var root = document.RootElement;
+            backendRunning = root.TryGetProperty("BackendState", out var backend) && backend.GetString() == "Running";
+            if (root.TryGetProperty("Peer", out var peers) && peers.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var peerProperty in peers.EnumerateObject())
+                {
+                    var peer = peerProperty.Value;
+                    if (!peer.TryGetProperty("TailscaleIPs", out var addresses) ||
+                        addresses.ValueKind != JsonValueKind.Array ||
+                        !addresses.EnumerateArray().Any(address => address.GetString() == AppConfig.RelayHomeIp))
+                    {
+                        continue;
+                    }
+
+                    peerOnline = peer.TryGetProperty("Online", out var online) && online.ValueKind == JsonValueKind.True;
+                    rxBytes = peer.TryGetProperty("RxBytes", out var rx) && rx.TryGetInt64(out var parsedRx) ? parsedRx : 0;
+                    txBytes = peer.TryGetProperty("TxBytes", out var tx) && tx.TryGetInt64(out var parsedTx) ? parsedTx : 0;
+                    if (peer.TryGetProperty("LastSeen", out var seen) && seen.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(seen.GetString(), out var parsedSeen))
+                    {
+                        lastSeen = parsedSeen;
+                    }
+                    break;
+                }
+            }
+        }
+
+        var ping = await ProcessUtil.Run("tailscale", "ping", "--c", "1", "--timeout", "2s", AppConfig.RelayHomeIp);
+        var connected = backendRunning && peerOnline && ping.ExitCode == 0;
+        var path = ping.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
+        return new RelayTransportStatus(
+            connected,
+            ParseLatencyMilliseconds(ping.Stdout),
+            rxBytes,
+            txBytes,
+            connected ? DateTimeOffset.UtcNow : lastSeen,
+            path);
+    }
+
+    private static double? ParseLatencyMilliseconds(string output)
+    {
+        var latency = Regex.Match(output, @"(?:time[=<]|\bin\s+)([0-9.]+)\s*(ms|s)\b", RegexOptions.IgnoreCase);
+        if (!latency.Success || !double.TryParse(latency.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+        {
+            return null;
+        }
+
+        return latency.Groups[2].Value.Equals("s", StringComparison.OrdinalIgnoreCase) ? parsed * 1000 : parsed;
     }
 
     private static async Task<string> ResolveRelayPublicIp()
@@ -874,11 +985,29 @@ static class Commands
             : throw new InvalidOperationException($"public IP discovery returned an invalid address: {discovered}");
     }
 
+    private static async Task<string> ResolveRelayApiHost()
+    {
+        if (!string.IsNullOrWhiteSpace(AppConfig.RelayApiHost))
+        {
+            return AppConfig.RelayApiHost;
+        }
+
+        var result = await ProcessUtil.Run("tailscale", "ip", "-4");
+        var address = result.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
+        return result.ExitCode == 0 && IPAddress.TryParse(address, out var parsed)
+            ? parsed.ToString()
+            : throw new InvalidOperationException("could not discover the relay Tailscale IPv4 address; set SLSKDN_RELAY_API_HOST");
+    }
+
     private static void ValidateRelayConfiguration()
     {
-        if (!IPAddress.TryParse(AppConfig.RelayHomeIp, out var homeIp) || !IsPrivateAddress(homeIp))
+        if (AppConfig.RelayTunnelType is not ("wireguard" or "tailscale"))
         {
-            throw new InvalidOperationException("SLSKDN_RELAY_HOME_IP must be a private WireGuard address");
+            throw new InvalidOperationException("SLSKDN_RELAY_TUNNEL_TYPE must be wireguard or tailscale");
+        }
+        if (!IPAddress.TryParse(AppConfig.RelayHomeIp, out var homeIp) || !IsRelayAddressAllowed(homeIp))
+        {
+            throw new InvalidOperationException("SLSKDN_RELAY_HOME_IP must be a private tunnel address");
         }
         if (AppConfig.RelayPublicPort is < 1024 or > 65535 || AppConfig.RelayTargetPort is < 1024 or > 65535)
         {
@@ -888,13 +1017,24 @@ static class Commands
         {
             throw new InvalidOperationException("SLSKDN_RELAY_API_KEY_FILE must contain at least one key of 32 or more characters");
         }
+        if (AppConfig.RelayTunnelType == "tailscale" && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SLSKDN_RELAY_HOME_IP")))
+        {
+            throw new InvalidOperationException("SLSKDN_RELAY_HOME_IP must be set explicitly to the home node's Tailscale IPv4 address");
+        }
+        if (AppConfig.RelayTunnelType == "tailscale" && AppConfig.RelayTunnelCidr != $"{homeIp}/32")
+        {
+            throw new InvalidOperationException("SLSKDN_RELAY_TUNNEL_CIDR must match the exact Tailscale home node /32");
+        }
     }
 
-    private static bool IsPrivateAddress(IPAddress address)
+    private static bool IsRelayAddressAllowed(IPAddress address)
     {
         var bytes = address.GetAddressBytes();
         return address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
-            (bytes[0] == 10 || (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) || (bytes[0] == 192 && bytes[1] == 168));
+            (bytes[0] == 10 ||
+             (bytes[0] == 100 && bytes[1] is >= 64 and <= 127 && AppConfig.RelayTunnelType == "tailscale") ||
+             (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) ||
+             (bytes[0] == 192 && bytes[1] == 168));
     }
 
     private static async Task RecreateChain(params string[] prefix)
@@ -1356,10 +1496,11 @@ static class AppConfig
     public static string WatchdogLogTag { get; } = Env.Get("SLSKDN_VPN_WATCHDOG_LOG_TAG", "slskdN-vpn-watchdog");
     public static string PfAnchorName { get; } = Env.Get("SLSKDN_VPN_PF_ANCHOR", "slskdN/vpn");
     public static FileInfo PfAnchorFile { get; } = new(Env.Get("SLSKDN_VPN_PF_ANCHOR_FILE", "/etc/pf.anchors/slskdN-vpn"));
-    public static string RelayWireGuardIface { get; } = Env.Get("SLSKDN_RELAY_WG_IFACE", "slskdN-relay");
+    public static string RelayTunnelType { get; } = Env.Get("SLSKDN_RELAY_TUNNEL_TYPE", "wireguard").Trim().ToLowerInvariant();
+    public static string RelayInterface { get; } = Env.GetAny(["SLSKDN_RELAY_IFACE", "SLSKDN_RELAY_WG_IFACE"], RelayTunnelType == "tailscale" ? "tailscale0" : "slskdN-relay");
     public static string RelayPublicIface { get; } = Env.Get("SLSKDN_RELAY_PUBLIC_IFACE", "eth0");
-    public static string RelayTunnelCidr { get; } = Env.Get("SLSKDN_RELAY_TUNNEL_CIDR", "10.77.0.0/30");
     public static string RelayHomeIp { get; } = Env.Get("SLSKDN_RELAY_HOME_IP", "10.77.0.2");
+    public static string RelayTunnelCidr { get; } = Env.Get("SLSKDN_RELAY_TUNNEL_CIDR", RelayTunnelType == "tailscale" ? $"{RelayHomeIp}/32" : "10.77.0.0/30");
     public static int RelayPublicPort { get; } = Env.GetInt("SLSKDN_RELAY_PUBLIC_PORT", 50300);
     public static int RelayTargetPort { get; } = Env.GetInt("SLSKDN_RELAY_TARGET_PORT", 50300);
     public static int RelayConnectionLimit { get; } = Env.GetInt("SLSKDN_RELAY_CONNECTION_LIMIT", 128);
@@ -1367,7 +1508,7 @@ static class AppConfig
     public static int RelayHandshakeMaxAgeSeconds { get; } = Env.GetInt("SLSKDN_RELAY_HANDSHAKE_MAX_AGE", 180);
     public static string RelayPublicIp { get; } = Env.Get("SLSKDN_RELAY_PUBLIC_IP", "");
     public static string RelayPublicIpUrl { get; } = Env.Get("SLSKDN_RELAY_PUBLIC_IP_URL", "https://ifconfig.me/ip");
-    public static string RelayApiHost { get; } = Env.Get("SLSKDN_RELAY_API_HOST", "10.77.0.1");
+    public static string RelayApiHost { get; } = Env.Get("SLSKDN_RELAY_API_HOST", RelayTunnelType == "tailscale" ? "" : "10.77.0.1");
     public static int RelayApiPort { get; } = Env.GetInt("SLSKDN_RELAY_API_PORT", 8010);
     public static IReadOnlyList<string> RelayApiKeys { get; } = ReadRelayApiKeys();
     public static FileInfo StateFile(string name) => new(Path.Combine(StateDir.FullName, name));
@@ -1648,6 +1789,14 @@ sealed record PortForwardState(
     int PublicPort,
     string PublicIp,
     string Namespace);
+
+sealed record RelayTransportStatus(
+    bool Connected,
+    double? LatencyMs,
+    long RxBytes,
+    long TxBytes,
+    DateTimeOffset? LatestActivityAt,
+    string Path);
 
 sealed class Verifier(bool quiet)
 {

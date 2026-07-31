@@ -105,7 +105,9 @@ describe('Integrations', () => {
               connectionLimit: 128,
               latestHandshakeAt: '2026-07-30T15:00:00Z',
               latencyMs: 12.5,
+              path: 'pong from home via DERP(tor) in 12.5ms',
               rxBytes: 1048576,
+              transport: 'tailscale',
               txBytes: 2097152,
             },
           },
@@ -118,6 +120,9 @@ describe('Integrations', () => {
     expect(screen.getAllByText('Self-hosted relay')).toHaveLength(2);
     expect(screen.getByText('12.5 ms')).toBeInTheDocument();
     expect(screen.getByText('1.0 MiB received / 2.0 MiB sent')).toBeInTheDocument();
+    expect(screen.getByText('tailscale')).toBeInTheDocument();
+    expect(screen.getByText('Latest Peer Activity')).toBeInTheDocument();
+    expect(screen.getByText('pong from home via DERP(tor) in 12.5ms')).toBeInTheDocument();
     expect(screen.getAllByText('Lidarr').length).toBeGreaterThan(0);
     expect(screen.getByText('http://lidarr.local:8686')).toBeInTheDocument();
     expect(screen.getByText('API Key Configured')).toBeInTheDocument();

@@ -1,3 +1,22 @@
+## Update 2026-07-31 17:15:00Z
+
+- Added native Tailscale transport to the bounded self-hosted relay. The OCI
+  companion now validates `tailscale0`, restricts forwarding and masquerade to
+  the exact configured home node `/32`, discovers its tailnet API bind address,
+  and derives connected state, peer activity, counters, latency, and direct or
+  DERP path from Tailscale status and ping output.
+- Kept the existing WireGuard path backward-compatible while removing its
+  unconditional service dependency. Added API model and System VPN panel fields
+  for transport and peer path, plus fail-closed malformed-status handling.
+- Added a Tailscale-first OCI/home guide that uses the existing tailnet rather
+  than a second WireGuard tunnel and isolates OCI exit-node routing to the
+  slskdN Docker network namespace.
+- Focused relay lifecycle and backend VPN client tests pass. Full validation
+  passes: application/Web tests, production Web build, .NET formatting, Web
+  lint with zero errors, companion container build, configuration/installer/
+  systemd packaging checks, identity-leak check, diff check, and GitHub-target
+  verification. Publication is pending; no tag is authorized.
+
 ## Update 2026-07-24 19:16:47Z
 
 - Published stable `2026072418-slskdn.290` from the complete security/quality

@@ -1,3 +1,20 @@
+## Update 2026-07-31 17:15:00Z
+
+- Current task: completed native Tailscale transport support for the self-hosted
+  CGNAT relay; publication to `snapetech/slskdN` main is pending the final commit.
+- Last activity:
+  - Generalized the VPS companion from WireGuard-only to validated Tailscale or
+    WireGuard transport ownership.
+  - Added exact-home-node forwarding, tailnet API-address discovery, peer JSON
+    status, bounded Tailscale ping diagnostics, and direct/DERP path display.
+  - Added the Tailscale environment example and a Docker sidecar deployment
+    guide that routes only slskdN through the OCI exit node.
+  - Added lifecycle coverage for broad-CIDR rejection and bounded HTTP 500
+    behavior on malformed Tailscale status.
+- Next steps:
+  1. Commit the implementation and documentation, push main, and verify the
+     remote object. Do not create a tag.
+
 ## Update 2026-07-27 18:00:00Z
 
 - Current task: complete the historical release-note audit and permanent gate.

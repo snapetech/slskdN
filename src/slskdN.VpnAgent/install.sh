@@ -22,7 +22,7 @@ case "$MODE" in
   install|--install)
     ;;
   relay|--relay)
-    for cmd in conntrack dotnet ip iptables ping systemctl tc wg; do
+    for cmd in conntrack dotnet ip iptables systemctl tc; do
       command -v "$cmd" >/dev/null || {
         echo "Missing required relay command: $cmd" >&2
         exit 2
@@ -37,7 +37,7 @@ case "$MODE" in
       install_file 0600 "$ROOT/examples/self-hosted-relay.env.example" /etc/slskdN-relay/relay.env
     fi
     systemctl daemon-reload
-    echo "Relay companion installed but not started. Configure WireGuard, relay.env, and api-keys, then enable slskdN-relay.service."
+    echo "Relay companion installed but not started. Configure Tailscale or WireGuard, relay.env, and api-keys, then enable slskdN-relay.service."
     exit 0
     ;;
   check|--check|verify|--verify)

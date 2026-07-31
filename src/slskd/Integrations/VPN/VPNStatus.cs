@@ -37,6 +37,7 @@ public record VPNStatus
 public record VPNRelayStatus
 {
     public string Mode { get; init; } = string.Empty;
+    public string Transport { get; init; } = string.Empty;
     public bool Connected { get; init; }
     public double? LatencyMs { get; init; }
     public long RxBytes { get; init; }
@@ -45,6 +46,7 @@ public record VPNRelayStatus
     public int ConnectionLimit { get; init; }
     public int BandwidthLimitMbit { get; init; }
     public DateTimeOffset? LatestHandshakeAt { get; init; }
+    public string Path { get; init; } = string.Empty;
 }
 
 public record VPNPortForward

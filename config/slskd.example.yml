@@ -462,7 +462,7 @@
 #     self_hosted_relay: false # enable only for the authenticated slskdN VPS companion; requires port_forwarding
 #     polling_interval: 2500
 #     gluetun:
-#       url: "http://10.77.0.1:8010" # keep this on the private WireGuard address in self-hosted relay mode
+#       url: "http://100.64.0.1:8010" # use the relay's private Tailscale/WireGuard address in self-hosted relay mode
 #       timeout: 5000
 #       api_key: "" # use the independent relay status key, never the slskdN API key
 #   lidarr:
