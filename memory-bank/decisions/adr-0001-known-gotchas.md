@@ -65,6 +65,21 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z795. Do Not Put JSON Objects Inside Bash Default Expansions
+
+**The Bug**: A fake `tailscale status --json` command used a JSON object as the
+fallback inside `${VALUE:-...}`. The JSON closing brace and parameter-expansion
+closing brace were ambiguous, so an explicitly supplied fixture still emitted
+one extra `}` and caused the relay request handler to reject malformed JSON.
+
+**Files Affected**:
+- `scripts/test-self-hosted-relay-api.sh`
+
+**Prevention**: When a shell fixture chooses between environment-provided JSON
+and default JSON, use an explicit `if` branch and print each complete value.
+Never embed a brace-delimited JSON object directly inside Bash's default-value
+parameter expansion.
+
 ### 0z794. Conditional Semantic UI Cell Labels Still Need Closed Cells
 
 **The Bug**: A transport-specific VPN status label opened a Semantic UI
