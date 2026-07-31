@@ -107,6 +107,7 @@ services:
     hostname: slskdn-home
     environment:
       TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
     volumes:
       - tailscale-state:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun

@@ -50,7 +50,8 @@ completed workstream notes, and incident reports live under
 - [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md) - Peer/distributed-message obfuscation options and runtime activation plan
 - [Soulseek Native Discovery](soulseek-native-discovery.md) - Backend API and Web UI integration for native Soulseek discovery protocol features
 - [VPN Agent](../src/slskdN.VpnAgent/README.md) - Host-side fail-closed VPN routing and forwarded-port integration
-- [Self-Hosted Relay](../src/slskdN.VpnAgent/self-hosted-relay.md) - Public VPS ingress/egress for a home slskdN instance behind CGNAT
+- [Self-Hosted Relay](../src/slskdN.VpnAgent/self-hosted-relay.md) - Tailscale-first public VPS ingress/egress for a home slskdN instance behind CGNAT
+- [Self-Hosted Relay Tester Guide](self-hosted-relay-tester-guide.md) - Release installation, OCI/home setup, acceptance checks, and diagnostic evidence
 - [System Admin Surfaces](system-surfaces.md) - Guided System UI and operator panels
 - [Implementation Roadmap](IMPLEMENTATION_ROADMAP.md) - Development status and planned features
 

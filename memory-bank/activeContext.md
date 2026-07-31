@@ -1,3 +1,20 @@
+## Update 2026-07-31 17:20:00Z
+
+- Current task: publish and verify stable self-hosted Tailscale relay release
+  `2026073117-slskdn.293`.
+- Last activity:
+  - Added top-level README and documentation-index links for the CGNAT relay.
+  - Added a release-based tester guide covering OCI, the home Tailscale Docker
+    sidecar, slskdN configuration, acceptance checks, fail-closed validation,
+    and redacted evidence collection.
+  - Corrected the sidecar examples to require kernel-mode Tailscale with
+    `TS_USERSPACE=false`; documented gotcha `0z798` in standalone commit
+    `7fe851167`.
+- Next steps:
+  1. Validate, commit, and push the documentation release candidate.
+  2. Run the guarded release helper for `.293`, monitor hosted workflows, and
+     verify published artifacts.
+
 ## Update 2026-07-31 17:15:00Z
 
 - Current task: complete. Native Tailscale transport support for the self-hosted

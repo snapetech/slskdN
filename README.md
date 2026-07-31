@@ -447,9 +447,11 @@ Host-side companion for users who need Soulseek traffic to use a VPN while keepi
 - **Dynamic forwarded ports** — slskdN consumes a local Gluetun-compatible API and advertises the current forwarded port
 - **WireGuard full mode** — outbound WireGuard plus per-port ingress namespaces, DNAT, NAT-PMP renewal, and static-forward support
 - **External tunnel mode** — OpenVPN, Tailscale, and other Linux tunnel interfaces can be used when the tunnel is already managed by another service
+- **Self-hosted CGNAT relay** — keep slskdN, configuration, and shares at home while a bounded public VPS forwards one Soulseek TCP port over the existing Tailscale network or a dedicated WireGuard tunnel
+- **Tailscale-native path** — use the VPS as an exit node for only the slskdN container; no second WireGuard tunnel or remote slskdN instance is required
 - **Manual or installer setup** — real VPN configs stay out of git; redacted examples and step-by-step installation live with the agent
 
-📖 **Guide**: [slskdN VPN agent](src/slskdN.VpnAgent/README.md)
+📖 **Guides**: [slskdN VPN agent](src/slskdN.VpnAgent/README.md) • [Self-hosted relay](src/slskdN.VpnAgent/self-hosted-relay.md) • [Tester checklist](docs/self-hosted-relay-tester-guide.md)
 
 ### 📦 Pod System (Decentralized Communities)
 Topic-based micro-communities over the mesh overlay.
@@ -779,6 +781,8 @@ Detailed documentation for configuration options can be found in [docs/config.md
 | [Documentation Audit](docs/dev/documentation-audit-2026-05-05.md) | Current documentation gaps and remediation priorities |
 | [Lidarr Integration](docs/lidarr-integration.md) | First-class plugin-free Lidarr wanted sync, download handoff, and safe post-download import |
 | [VPN Agent](src/slskdN.VpnAgent/README.md) | Fail-closed VPN routing, port forwarding, WireGuard/OpenVPN/Tailscale modes |
+| [Self-Hosted Relay](src/slskdN.VpnAgent/self-hosted-relay.md) | Tailscale-first public VPS ingress and scoped exit-node routing for CGNAT homes |
+| [Self-Hosted Relay Tester Guide](docs/self-hosted-relay-tester-guide.md) | Release installation, OCI/home configuration, acceptance checks, and diagnostic evidence |
 | [System Admin Surfaces](docs/system-surfaces.md) | Guided System UI for policies, integrations, diagnostics, provider catalog, and local experience preferences |
 | [Pods, Rooms, and Messages](docs/pods-and-rooms.md) | User-facing path for Gold Star, pods, rooms, unified messages, and listen-along |
 | [SongID and Discovery](docs/songid-discovery.md) | Native identification, evidence review, Discovery Graph, and remaining research scope |

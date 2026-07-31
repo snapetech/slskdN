@@ -21,18 +21,6 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ---
 
 ## [Unreleased]
-- Added first-class self-hosted relay mode for CGNAT deployments: a bounded
-  Tailscale or WireGuard VPS companion provides authenticated public-IP/port discovery,
-  automatic TCP forwarding and outbound routing, fail-closed liveness,
-  current/previous key rotation, connection and bidirectional bandwidth caps,
-  container/systemd packaging, and relay health/latency/traffic status in the
-  System VPN panel while keeping files, configuration, credentials, and the
-  Web UI/API on the home host. Tailscale mode uses the existing tailnet directly,
-  pins forwarding to the exact home node, discovers the private API bind address,
-  reports direct/DERP path state, and documents a per-container exit-node setup.
-- Repaired and standardized all historical GitHub release notes, and added
-  local plus hosted fail-closed validation requiring informative exact-version
-  changelog highlights before future stable releases can be tagged or published.
 - PPA workflows now serialize uploads per Ubuntu series and wait for the exact
   source, binary build, and published binary records, preventing a later source
   upload from superseding a package whose binary is still being processed.
@@ -2211,6 +2199,25 @@ For dev or build tags, use the same logical version string embedded in the tag.
   to fail every cycle with `SQLite Error 1: no such column: w.LastViewedAt`.
 - Documented the inverted migration condition gotcha in
   `memory-bank/decisions/adr-0001-known-gotchas.md` as entry 0z361.
+
+## [2026073117-slskdn.293] — 2026-07-31
+
+- Added first-class self-hosted relay mode for CGNAT deployments. A bounded
+  Tailscale or WireGuard VPS companion now provides authenticated public-IP and
+  port discovery, automatic TCP forwarding and outbound routing, fail-closed
+  liveness, key rotation, connection and bandwidth caps, and relay diagnostics
+  while all files, configuration, credentials, and management remain at home.
+  Tailscale mode uses the existing tailnet directly, pins forwarding to the
+  exact home node, reports direct or DERP path state, and supports an exit node
+  scoped to the slskdN Docker namespace.
+- Added linked operator and tester documentation covering released companion
+  installation, OCI and home-sidecar setup, kernel-mode Tailscale routing,
+  private API and firewall boundaries, external ingress checks, fail-closed
+  validation, and safe diagnostic evidence collection. No second WireGuard
+  tunnel or remote slskdN instance is required for the Tailscale path.
+- Repaired and standardized all historical GitHub release notes, and added
+  local plus hosted fail-closed validation requiring informative exact-version
+  changelog highlights before future stable releases can be tagged or published.
 
 ## [2026072717-slskdn.292] — 2026-07-27
 

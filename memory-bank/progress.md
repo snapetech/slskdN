@@ -1,3 +1,18 @@
+## Update 2026-07-31 17:20:00Z
+
+- Prepared the stable `.293` documentation release candidate for native
+  Tailscale relay testing. Added root/index/agent entry points and a dedicated
+  release-installation checklist for OCI firewall and forwarding, exact-node
+  tailnet ACLs, the home Docker namespace, slskdN configuration, acceptance
+  checks, fail-closed behavior, and safe diagnostic evidence.
+- Found that the initial sidecar example did not explicitly disable Tailscale
+  userspace networking. Added `TS_USERSPACE=false` wherever slskdN shares the
+  sidecar namespace and documented gotcha `0z798` in standalone commit
+  `7fe851167`.
+- Exact `.293` changelog notes are prepared. Documentation validation, commit,
+  push, guarded release gate, hosted publication, and artifact verification
+  remain.
+
 ## Update 2026-07-31 17:15:00Z
 
 - Added native Tailscale transport to the bounded self-hosted relay. The OCI
