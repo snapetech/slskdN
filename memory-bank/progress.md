@@ -1,3 +1,22 @@
+## Update 2026-07-31 18:05:00Z
+
+- Published stable release `2026073117-slskdn.293` from commit `6def57b15`.
+  The GitHub release is public with all six platform archives, generated notes,
+  checksums, Linux service/configuration assets, and the installer.
+- The first hosted Release Gate attempt completed all `4362` unit tests with
+  zero failures, then the test host became inactive. The named fragmented SOCKS
+  handshake test passed `50` consecutive local Release-mode runs; rerunning the
+  failed hosted workflow passed the complete gate in `8m44s` without a source
+  or tag change.
+- Verified every published archive against `SHA256SUMS.txt`, required release
+  payloads, the bundled Web marker, the VPN helper payload, and the embedded
+  `.293` version. Verified the published amd64/arm64 GHCR image at immutable
+  digest `sha256:2e3f9199c535773cfdbd0d8a66d21e7f131e6051b0909e46919a4e0b6c5d2d86`.
+- AUR, COPR, Homebrew, and Nix publication completed. Chocolatey's package
+  built successfully, but its service returned HTTP 504 for all five upload
+  attempts; this did not affect the GitHub release, archives, or container
+  image.
+
 ## Update 2026-07-31 17:20:00Z
 
 - Prepared the stable `.293` documentation release candidate for native

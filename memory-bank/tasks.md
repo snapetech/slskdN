@@ -9,14 +9,17 @@
 
 ### High Priority
 
-- [ ] Publish and verify stable self-hosted Tailscale relay release `.293`.
-  - Status: documentation and release candidate prepared (2026-07-31)
+- [x] Publish and verify stable self-hosted Tailscale relay release `.293`.
+  - Status: completed (2026-07-31)
   - Priority: P1
   - Notes: Root README, documentation index, VPN-agent guide, and a dedicated
     tester runbook now cover release installation, OCI forwarding, kernel-mode
     Tailscale sidecar routing, exact-node ACL scope, acceptance checks,
-    fail-closed behavior, and diagnostic evidence. Commit/push, guarded release
-    gate, hosted publication, and artifact verification remain.
+    fail-closed behavior, and diagnostic evidence. Stable release
+    `2026073117-slskdn.293` is published; the hosted Release gate passed on its
+    second attempt after one inactive-host timeout, and all six archives passed
+    published-checksum, required-payload, bundled-Web-marker, and embedded-
+    version verification.
 
 - [x] Add and publish first-class self-hosted relay mode for CGNAT deployments.
   - Status: completed and pushed to `main` (2026-07-30)
