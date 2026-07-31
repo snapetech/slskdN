@@ -65,6 +65,21 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z794. Conditional Semantic UI Cell Labels Still Need Closed Cells
+
+**The Bug**: A transport-specific VPN status label opened a Semantic UI
+`Table.Cell`, rendered a conditional text expression, and then opened the value
+cell without closing the label cell. The JSX structure was invalid even though
+the surrounding table rows visually followed an existing pattern.
+
+**Files Affected**:
+- `src/web/src/components/System/Integrations/VpnPanel.jsx`
+
+**Prevention**: When changing a static table label to a JSX conditional, retain
+the label cell's explicit closing tag before the adjacent value cell. Inspect
+the complete row and run the focused frontend parser/lint immediately after
+editing nested Semantic UI shorthand.
+
 ### 0z793. Generic Relay Services Must Not Require One Tunnel Owner
 
 **The Bug**: The first self-hosted relay systemd unit unconditionally wanted
