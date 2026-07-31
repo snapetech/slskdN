@@ -1,3 +1,21 @@
+## Update 2026-07-31 18:05:00Z
+
+- Current task: complete. Stable self-hosted Tailscale relay release
+  `2026073117-slskdn.293` is published and its downloadable artifacts are
+  verified.
+- Last activity:
+  - Published the documentation and tester runbook in commits `b372f2a54` and
+    `6def57b15`, then created guarded tag
+    `build-main-2026073117-slskdn.293`.
+  - Passed the complete hosted Release Gate on retry after an inactive-host
+    timeout; the named test passed `50` consecutive local Release-mode runs.
+  - Verified all six published archives, checksums, required payloads, bundled
+    Web marker, VPN helper payload, embedded version, and the amd64/arm64 GHCR
+    manifest.
+- Next steps:
+  1. Collect tester feedback from the OCI/home Tailscale deployment runbook.
+  2. Retry Chocolatey publication after its HTTP 504 service failure.
+
 ## Update 2026-07-31 17:20:00Z
 
 - Current task: publish and verify stable self-hosted Tailscale relay release
