@@ -120,11 +120,14 @@ Tailscale.
 
 **Files Affected**:
 - `src/slskdN.VpnAgent/systemd/slskdN-relay.service`
+- `src/slskdN.VpnAgent/install.sh`
 
 **Prevention**: A transport-neutral relay service must depend only on network
 readiness. Transport-specific setup belongs to the selected tunnel owner and
 the relay's runtime validation; documentation can order Tailscale or wg-quick
 before the relay without encoding both mutually exclusive owners in one unit.
+The generic installer must likewise defer the mutually exclusive `wg` or
+`tailscale` executable check to the selected runtime transport.
 
 ### 0z792. Status Labels And Panel Headings Can Intentionally Repeat
 
