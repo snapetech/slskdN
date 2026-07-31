@@ -12650,3 +12650,25 @@ rollback.
 - Next steps:
   1. Review and merge the draft PR.
   2. No release/build tag was created.
+## Update 2026-07-30 23:55:00Z
+
+- Current task: finalize, commit, and push first-class self-hosted relay mode.
+- Last activity:
+  - Added the bounded WireGuard VPS companion, authenticated two-key status API,
+    automatic public endpoint reporting, fail-closed handshake signal,
+    connection/bandwidth controls, application status mapping, and System VPN
+    relay diagnostics.
+  - Added systemd/container packaging and a complete home/VPS WireGuard,
+    security-boundary, rotation, and verification guide.
+  - Fixed and documented cached-public-IP readiness gotcha `0z791` before full
+    validation.
+- Validation:
+  - Full .NET passes `74` application, `4969` isolated unit, and `284`
+    integration; the exact load-sensitive allocation test also passes alone.
+  - Full Web passes `901` with `4` existing skips; production build passes.
+  - Relay API lifecycle test, container build, packaging validation, repository
+    lint, identity leak scan, and GitHub target gate pass.
+- Next steps:
+  1. Complete the requirement-by-requirement diff audit.
+  2. Commit the implementation and state updates.
+  3. Push `main` to `snapetech/slskdN`; do not create a tag.

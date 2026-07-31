@@ -1,0 +1,23 @@
+[Unit]
+Description=Bounded self-hosted Soulseek relay for slskdN
+After=network-online.target wg-quick@slskdN-relay.service
+Wants=network-online.target wg-quick@slskdN-relay.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/slskdN-relay/relay.env
+ExecStartPre=/usr/local/bin/slskdN-vpn-agent relay-apply
+ExecStart=/usr/local/bin/slskdN-vpn-agent relay-api
+ExecReload=/usr/local/bin/slskdN-vpn-agent relay-apply
+Restart=always
+RestartSec=2
+User=root
+Group=root
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=full
+ReadOnlyPaths=/etc/slskdN-relay /etc/wireguard
+ReadWritePaths=/var/lib/slskdN-vpn
+
+[Install]
+WantedBy=multi-user.target

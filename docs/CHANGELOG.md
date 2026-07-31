@@ -21,6 +21,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ---
 
 ## [Unreleased]
+- Added first-class self-hosted relay mode for CGNAT deployments: a bounded
+  WireGuard VPS companion provides authenticated public-IP/port discovery,
+  automatic TCP forwarding and outbound routing, fail-closed liveness,
+  current/previous key rotation, connection and bidirectional bandwidth caps,
+  container/systemd packaging, and relay health/latency/traffic status in the
+  System VPN panel while keeping files, configuration, credentials, and the
+  Web UI/API on the home host.
 - Repaired and standardized all historical GitHub release notes, and added
   local plus hosted fail-closed validation requiring informative exact-version
   changelog highlights before future stable releases can be tagged or published.

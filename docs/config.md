@@ -741,6 +741,14 @@ stale listen port. The Web UI/API can usually remain local or LAN-bound while
 Soulseek traffic uses VPN egress. When VPN integration is enabled, the agent can
 update `soulseek.listen_port` from the active provider mapping.
 
+For a home instance behind CGNAT, the
+[self-hosted relay mode](../src/slskdN.VpnAgent/self-hosted-relay.md) uses a
+private WireGuard control URL and requires
+`integrations.vpn.self_hosted_relay: true` together with
+`integrations.vpn.port_forwarding: true`. This explicit mode enables relay
+diagnostics without probing optional relay endpoints on ordinary Gluetun
+installations.
+
 | Command-Line                | Environment Variable           | Description                                                      |
 | --------------------------- | ------------------------------ | ---------------------------------------------------------------- |
 | `--slsk-listen-ip-address`  | `SLSKD_SLSK_LISTEN_IP_ADDRESS` | The local IP address on which to listen for incoming connections |

@@ -3551,6 +3551,14 @@ namespace slskd
                 public bool PortForwarding { get; init; } = false;
 
                 /// <summary>
+                ///     Gets a value indicating whether the configured endpoint is the slskdN self-hosted relay companion.
+                /// </summary>
+                [Argument(default, "vpn-self-hosted-relay")]
+                [EnvironmentVariable("VPN_SELF_HOSTED_RELAY")]
+                [Description("VPN endpoint is the slskdN self-hosted relay companion")]
+                public bool SelfHostedRelay { get; init; } = false;
+
+                /// <summary>
                 ///     Gets the rate at which to poll the configured VPN client for status updates, in milliseconds.
                 /// </summary>
                 [Argument(default, "vpn-polling-interval")]
@@ -3580,6 +3588,11 @@ namespace slskd
                         if (!Uri.TryCreate(Gluetun.Url, UriKind.Absolute, out _))
                         {
                             yield return new ValidationResult("The gluetun URL must be absolute, e.g. 'http://127.0.0.1:8000'");
+                        }
+
+                        if (SelfHostedRelay && !PortForwarding)
+                        {
+                            yield return new ValidationResult("Self-hosted relay mode requires VPN port forwarding");
                         }
                     }
                 }

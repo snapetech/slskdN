@@ -456,6 +456,15 @@
 #   max_relay_duration_seconds: 300
 #   trusted_certificate_pins: {} # { "203.0.113.10:50401": ["base64-spki-sha256"] }; required for outbound data-plane QUIC.
 # integrations:
+#   vpn:
+#     enabled: false
+#     port_forwarding: false
+#     self_hosted_relay: false # enable only for the authenticated slskdN VPS companion; requires port_forwarding
+#     polling_interval: 2500
+#     gluetun:
+#       url: "http://10.77.0.1:8010" # keep this on the private WireGuard address in self-hosted relay mode
+#       timeout: 5000
+#       api_key: "" # use the independent relay status key, never the slskdN API key
 #   lidarr:
 #     enabled: false
 #     url: "http://127.0.0.1:8686"

@@ -9,6 +9,21 @@
 
 ### High Priority
 
+- [ ] Add and publish first-class self-hosted relay mode for CGNAT deployments.
+  - Status: implementation and complete local validation finished (2026-07-30);
+    final commit and push pending
+  - Priority: P1
+  - Notes: The existing VPN agent now has a bounded Linux VPS role that installs
+    one configured Soulseek TCP forward, private WireGuard egress, fail-closed
+    handshake readiness, connection and bidirectional bandwidth limits, and an
+    authenticated read-only status API with two-key rotation. slskdN discovers
+    the relay endpoint through its VPN integration and exposes tunnel health,
+    latency, traffic, connection use, policy limits, handshake time, and
+    advertised endpoint in System Integrations. Systemd, container, installer,
+    examples, API contract, and end-to-end home/VPS guide are included; full
+    .NET and Web validation passes (`74` application, `4969` unit, `284`
+    integration, and `901` Web with `4` existing skips).
+
 - [x] Audit and repair every GitHub release note and prevent empty notes.
   - Status: completed (2026-07-27)
   - Priority: P1

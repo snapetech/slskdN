@@ -1,0 +1,10 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+WORKDIR /src
+COPY slskdN-vpn-agent.csproj Program.cs ./
+RUN dotnet publish slskdN-vpn-agent.csproj -c Release -r linux-musl-x64 --self-contained true -p:PublishSingleFile=true -o /out
+
+FROM alpine:3.22
+RUN apk add --no-cache conntrack-tools iproute2 iptables iputils wireguard-tools
+COPY --from=build /out/slskdN-vpn-agent /usr/local/bin/slskdN-vpn-agent
+ENTRYPOINT ["/usr/local/bin/slskdN-vpn-agent"]
+CMD ["relay-run"]

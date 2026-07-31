@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -22,6 +24,9 @@ try
         "ingress" => await Commands.Ingress(),
         "split" => await Commands.Split(),
         "platform-split" => await Commands.PlatformSplit(),
+        "relay-apply" => await Commands.RelayApply(),
+        "relay-api" => await Commands.RelayApi(args.Skip(1).ToArray()),
+        "relay-run" => await Commands.RelayRun(args.Skip(1).ToArray()),
         "verify" => await Commands.Verify(args.Skip(1).Contains("--quiet")),
         "status" => await Commands.Verify(quiet: false),
         "watchdog" => await Commands.Watchdog(),
@@ -54,6 +59,10 @@ static void Usage()
       split      Configure UID policy routing through the VPN table
       platform-split
                  Configure platform-native fail-closed routing/firewall
+      relay-apply
+                 Configure a bounded VPS WireGuard relay and forwarding policy
+      relay-api  Run the authenticated relay health/status API
+      relay-run  Apply relay networking, then run the relay API
       verify     Verify slskdN VPN health
       status     Human-readable status check
       watchdog   Run one watchdog check and recover ingress after repeated failures
@@ -62,6 +71,82 @@ static void Usage()
 
 static class Commands
 {
+    public static async Task<int> RelayApply()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            throw new InvalidOperationException("relay-apply is supported only on Linux");
+        }
+
+        ValidateRelayConfiguration();
+        await RequireCommand("iptables");
+        await RequireCommand("ip");
+        if (AppConfig.RelayBandwidthMbit > 0)
+        {
+            await RequireCommand("tc");
+        }
+        await ProcessUtil.Run("sysctl", "-qw", "net.ipv4.ip_forward=1");
+
+        await RecreateChain("iptables", "-t", "nat", "SLSKDN-RELAY-NAT");
+        await RecreateChain("iptables", "SLSKDN-RELAY-FWD");
+        await EnsureIptablesRule("iptables", "-t", "nat", "-C", "PREROUTING", "-j", "SLSKDN-RELAY-NAT",
+            "iptables", "-t", "nat", "-A", "PREROUTING", "-j", "SLSKDN-RELAY-NAT");
+        await EnsureIptablesRule("iptables", "-C", "FORWARD", "-j", "SLSKDN-RELAY-FWD",
+            "iptables", "-A", "FORWARD", "-j", "SLSKDN-RELAY-FWD");
+        await EnsureIptablesRule("iptables", "-t", "nat", "-C", "POSTROUTING", "-s", AppConfig.RelayTunnelCidr, "-o", AppConfig.RelayPublicIface, "-j", "MASQUERADE",
+            "iptables", "-t", "nat", "-A", "POSTROUTING", "-s", AppConfig.RelayTunnelCidr, "-o", AppConfig.RelayPublicIface, "-j", "MASQUERADE");
+
+        await MustRun("iptables", "-t", "nat", "-A", "SLSKDN-RELAY-NAT", "-i", AppConfig.RelayPublicIface,
+            "-p", "tcp", "--dport", AppConfig.RelayPublicPort.ToString(), "-j", "DNAT", "--to-destination", $"{AppConfig.RelayHomeIp}:{AppConfig.RelayTargetPort}");
+        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayWireGuardIface,
+            "-p", "tcp", "--dport", AppConfig.RelayTargetPort.ToString(), "-m", "conntrack", "--ctstate", "NEW",
+            "-m", "connlimit", "--connlimit-above", AppConfig.RelayConnectionLimit.ToString(), "--connlimit-mask", "0", "-j", "REJECT", "--reject-with", "tcp-reset");
+        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayWireGuardIface,
+            "-p", "tcp", "-d", AppConfig.RelayHomeIp, "--dport", AppConfig.RelayTargetPort.ToString(), "-m", "conntrack", "--ctstate", "NEW,ESTABLISHED", "-j", "ACCEPT");
+        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayWireGuardIface, "-o", AppConfig.RelayPublicIface,
+            "-s", AppConfig.RelayTunnelCidr, "-m", "conntrack", "--ctstate", "NEW,ESTABLISHED,RELATED", "-j", "ACCEPT");
+        await MustRun("iptables", "-A", "SLSKDN-RELAY-FWD", "-i", AppConfig.RelayPublicIface, "-o", AppConfig.RelayWireGuardIface,
+            "-d", AppConfig.RelayTunnelCidr, "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT");
+
+        if (AppConfig.RelayBandwidthMbit > 0)
+        {
+            await MustRun("tc", "qdisc", "replace", "dev", AppConfig.RelayWireGuardIface, "root", "tbf",
+                "rate", $"{AppConfig.RelayBandwidthMbit}mbit", "burst", "256kb", "latency", "100ms");
+            await MustRun("tc", "qdisc", "replace", "dev", AppConfig.RelayWireGuardIface, "handle", "ffff:", "ingress");
+            await MustRun("tc", "filter", "replace", "dev", AppConfig.RelayWireGuardIface, "parent", "ffff:", "protocol", "all", "u32",
+                "match", "u32", "0", "0", "police", "rate", $"{AppConfig.RelayBandwidthMbit}mbit", "burst", "256kb", "drop", "flowid", ":1");
+        }
+
+        var publicIp = await ResolveRelayPublicIp();
+        Directory.CreateDirectory(AppConfig.StateDir.FullName);
+        await File.WriteAllTextAsync(AppConfig.StateFile("relay.env").FullName, $"public_ip={publicIp}\npublic_port={AppConfig.RelayPublicPort}\ntarget_port={AppConfig.RelayTargetPort}\nhome_ip={AppConfig.RelayHomeIp}\n");
+        Console.WriteLine($"Configured TCP relay {publicIp}:{AppConfig.RelayPublicPort} -> {AppConfig.RelayHomeIp}:{AppConfig.RelayTargetPort} over {AppConfig.RelayWireGuardIface}");
+        return 0;
+    }
+
+    public static async Task<int> RelayApi(string[] args)
+    {
+        ValidateRelayConfiguration();
+        var host = Option(args, "--host") ?? AppConfig.RelayApiHost;
+        var portText = Option(args, "--port") ?? AppConfig.RelayApiPort.ToString();
+        var port = int.TryParse(portText, out var parsed) ? parsed : AppConfig.RelayApiPort;
+        using var listener = new HttpListener();
+        listener.Prefixes.Add($"http://{host}:{port}/");
+        listener.Start();
+
+        while (true)
+        {
+            var context = await listener.GetContextAsync();
+            _ = Task.Run(() => HandleRelayApiRequest(context));
+        }
+    }
+
+    public static async Task<int> RelayRun(string[] args)
+    {
+        var result = await RelayApply();
+        return result == 0 ? await RelayApi(args) : result;
+    }
+
     public static async Task<int> Api(string[] args)
     {
         var host = Option(args, "--host") ?? Env.Get("GLUETUN_COMPAT_HOST", "127.0.0.1");
@@ -631,6 +716,195 @@ static class Commands
         await JsonResponse(context, 404, new { error = "not found" });
     }
 
+    private static async Task HandleRelayApiRequest(HttpListenerContext context)
+    {
+        if (!RelayRequestAuthenticated(context.Request))
+        {
+            context.Response.Headers["WWW-Authenticate"] = "Bearer";
+            await JsonResponse(context, 401, new { error = "unauthorized" });
+            return;
+        }
+
+        var path = context.Request.Url?.AbsolutePath ?? "";
+        var state = EnvFile.Read(AppConfig.StateFile("relay.env"));
+        var publicIp = state.GetValueOrDefault("public_ip", "");
+        _ = int.TryParse(state.GetValueOrDefault("public_port", "0"), out var publicPort);
+
+        if (path == "/v1/publicip/ip")
+        {
+            var connected = await RelayTunnelConnected();
+            await JsonResponse(context, 200, new
+            {
+                public_ip = connected ? publicIp : "",
+                city = "",
+                country = AppConfig.Country,
+                region = "",
+                location = "",
+                organization = "slskdN self-hosted relay",
+                postal_code = "",
+                timezone = ""
+            });
+            return;
+        }
+
+        if (path is "/v1/portforward" or "/v1/openvpn/portforwarded")
+        {
+            await JsonResponse(context, 200, new { port = publicPort });
+            return;
+        }
+
+        if (path is "/v1/slskdn/portforwards" or "/v1/slskdN/portforwards")
+        {
+            await JsonResponse(context, 200, new
+            {
+                mode = "self-hosted-relay",
+                claimed = publicPort > 0 ? 1 : 0,
+                forwards = new[]
+                {
+                    new PortForwardState(0, AppConfig.RelayPublicPort, AppConfig.RelayTargetPort, "tcp", publicPort, publicIp, AppConfig.RelayWireGuardIface)
+                }
+            });
+            return;
+        }
+
+        if (path is "/v1/slskdn/relay" or "/v1/slskdN/relay")
+        {
+            await JsonResponse(context, 200, await RelayStatus(publicIp, publicPort));
+            return;
+        }
+
+        if (path is "/v1/openvpn/status" or "/v1/wireguard/status" or "/v1/vpn/status")
+        {
+            var status = await RelayTunnelConnected() ? "running" : "stopped";
+            await JsonResponse(context, 200, new { status });
+            return;
+        }
+
+        await JsonResponse(context, 404, new { error = "not found" });
+    }
+
+    private static bool RelayRequestAuthenticated(HttpListenerRequest request)
+    {
+        var supplied = request.Headers["X-API-Key"];
+        if (string.IsNullOrWhiteSpace(supplied) && request.Headers["Authorization"]?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            supplied = request.Headers["Authorization"]!["Bearer ".Length..].Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(supplied))
+        {
+            return false;
+        }
+
+        var suppliedBytes = Encoding.UTF8.GetBytes(supplied);
+        return AppConfig.RelayApiKeys.Any(key =>
+        {
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            return suppliedBytes.Length == keyBytes.Length && CryptographicOperations.FixedTimeEquals(suppliedBytes, keyBytes);
+        });
+    }
+
+    private static async Task<object> RelayStatus(string publicIp, int publicPort)
+    {
+        var connected = await RelayTunnelConnected();
+        var ping = await ProcessUtil.Run("ping", "-n", "-c", "1", "-W", "2", AppConfig.RelayHomeIp);
+        double? latencyMs = null;
+        var latency = Regex.Match(ping.Stdout, @"time[=<]([0-9.]+)\s*ms");
+        if (latency.Success && double.TryParse(latency.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, out var parsedLatency))
+        {
+            latencyMs = parsedLatency;
+        }
+
+        var rxBytes = ReadInterfaceCounter("rx_bytes");
+        var txBytes = ReadInterfaceCounter("tx_bytes");
+        var latestHandshake = await LatestRelayHandshake();
+        return new
+        {
+            mode = "self-hosted-relay",
+            connected,
+            publicIp,
+            publicPort,
+            targetPort = AppConfig.RelayTargetPort,
+            latencyMs,
+            rxBytes,
+            txBytes,
+            activeConnections = await ActiveRelayConnections(),
+            connectionLimit = AppConfig.RelayConnectionLimit,
+            bandwidthLimitMbit = AppConfig.RelayBandwidthMbit,
+            latestHandshakeAt = latestHandshake > 0 ? DateTimeOffset.FromUnixTimeSeconds(latestHandshake) : (DateTimeOffset?)null
+        };
+    }
+
+    private static long ReadInterfaceCounter(string counter)
+    {
+        var path = $"/sys/class/net/{AppConfig.RelayWireGuardIface}/statistics/{counter}";
+        return File.Exists(path) && long.TryParse(File.ReadAllText(path).Trim(), out var value) ? value : 0;
+    }
+
+    private static async Task<int> ActiveRelayConnections()
+    {
+        var result = await ProcessUtil.Run("conntrack", "-L", "-p", "tcp", "--dport", AppConfig.RelayPublicPort.ToString());
+        return result.ExitCode == 0 ? result.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length : 0;
+    }
+
+    private static async Task<bool> RelayTunnelConnected()
+    {
+        var handshake = await LatestRelayHandshake();
+        return handshake > 0 && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - handshake <= AppConfig.RelayHandshakeMaxAgeSeconds;
+    }
+
+    private static async Task<long> LatestRelayHandshake()
+    {
+        var result = await ProcessUtil.Run("wg", "show", AppConfig.RelayWireGuardIface, "latest-handshakes");
+        return result.ExitCode == 0
+            ? result.Stdout.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Select(value => long.TryParse(value, out var parsed) ? parsed : 0).DefaultIfEmpty().Max()
+            : 0;
+    }
+
+    private static async Task<string> ResolveRelayPublicIp()
+    {
+        if (IPAddress.TryParse(AppConfig.RelayPublicIp, out var configured))
+        {
+            return configured.ToString();
+        }
+
+        var discovered = await Http.Text(AppConfig.RelayPublicIpUrl, AppConfig.VerifyTimeoutSeconds);
+        return IPAddress.TryParse(discovered, out var parsed)
+            ? parsed.ToString()
+            : throw new InvalidOperationException($"public IP discovery returned an invalid address: {discovered}");
+    }
+
+    private static void ValidateRelayConfiguration()
+    {
+        if (!IPAddress.TryParse(AppConfig.RelayHomeIp, out var homeIp) || !IsPrivateAddress(homeIp))
+        {
+            throw new InvalidOperationException("SLSKDN_RELAY_HOME_IP must be a private WireGuard address");
+        }
+        if (AppConfig.RelayPublicPort is < 1024 or > 65535 || AppConfig.RelayTargetPort is < 1024 or > 65535)
+        {
+            throw new InvalidOperationException("relay ports must be between 1024 and 65535");
+        }
+        if (AppConfig.RelayApiKeys.Count == 0 || AppConfig.RelayApiKeys.Any(key => key.Length < 32))
+        {
+            throw new InvalidOperationException("SLSKDN_RELAY_API_KEY_FILE must contain at least one key of 32 or more characters");
+        }
+    }
+
+    private static bool IsPrivateAddress(IPAddress address)
+    {
+        var bytes = address.GetAddressBytes();
+        return address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
+            (bytes[0] == 10 || (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) || (bytes[0] == 192 && bytes[1] == 168));
+    }
+
+    private static async Task RecreateChain(params string[] prefix)
+    {
+        var chain = prefix[^1];
+        var commandPrefix = prefix[..^1];
+        await ProcessUtil.Run(commandPrefix.Concat(["-N", chain]).ToArray());
+        await MustRun(commandPrefix.Concat(["-F", chain]).ToArray());
+    }
+
     private static List<PortForwardState> ReadPortForwards()
     {
         var forwards = new List<PortForwardState>();
@@ -1082,7 +1356,37 @@ static class AppConfig
     public static string WatchdogLogTag { get; } = Env.Get("SLSKDN_VPN_WATCHDOG_LOG_TAG", "slskdN-vpn-watchdog");
     public static string PfAnchorName { get; } = Env.Get("SLSKDN_VPN_PF_ANCHOR", "slskdN/vpn");
     public static FileInfo PfAnchorFile { get; } = new(Env.Get("SLSKDN_VPN_PF_ANCHOR_FILE", "/etc/pf.anchors/slskdN-vpn"));
+    public static string RelayWireGuardIface { get; } = Env.Get("SLSKDN_RELAY_WG_IFACE", "slskdN-relay");
+    public static string RelayPublicIface { get; } = Env.Get("SLSKDN_RELAY_PUBLIC_IFACE", "eth0");
+    public static string RelayTunnelCidr { get; } = Env.Get("SLSKDN_RELAY_TUNNEL_CIDR", "10.77.0.0/30");
+    public static string RelayHomeIp { get; } = Env.Get("SLSKDN_RELAY_HOME_IP", "10.77.0.2");
+    public static int RelayPublicPort { get; } = Env.GetInt("SLSKDN_RELAY_PUBLIC_PORT", 50300);
+    public static int RelayTargetPort { get; } = Env.GetInt("SLSKDN_RELAY_TARGET_PORT", 50300);
+    public static int RelayConnectionLimit { get; } = Env.GetInt("SLSKDN_RELAY_CONNECTION_LIMIT", 128);
+    public static int RelayBandwidthMbit { get; } = Env.GetInt("SLSKDN_RELAY_BANDWIDTH_MBIT", 100);
+    public static int RelayHandshakeMaxAgeSeconds { get; } = Env.GetInt("SLSKDN_RELAY_HANDSHAKE_MAX_AGE", 180);
+    public static string RelayPublicIp { get; } = Env.Get("SLSKDN_RELAY_PUBLIC_IP", "");
+    public static string RelayPublicIpUrl { get; } = Env.Get("SLSKDN_RELAY_PUBLIC_IP_URL", "https://ifconfig.me/ip");
+    public static string RelayApiHost { get; } = Env.Get("SLSKDN_RELAY_API_HOST", "10.77.0.1");
+    public static int RelayApiPort { get; } = Env.GetInt("SLSKDN_RELAY_API_PORT", 8010);
+    public static IReadOnlyList<string> RelayApiKeys { get; } = ReadRelayApiKeys();
     public static FileInfo StateFile(string name) => new(Path.Combine(StateDir.FullName, name));
+
+    private static IReadOnlyList<string> ReadRelayApiKeys()
+    {
+        var path = Env.Get("SLSKDN_RELAY_API_KEY_FILE", "/etc/slskdN-relay/api-keys");
+        if (!File.Exists(path))
+        {
+            return Array.Empty<string>();
+        }
+
+        return File.ReadLines(path)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !line.StartsWith('#'))
+            .Distinct(StringComparer.Ordinal)
+            .Take(2)
+            .ToArray();
+    }
 
     private static string ResolveSlskdConfig()
     {

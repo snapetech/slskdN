@@ -287,6 +287,7 @@ public class VPNService : IDisposable
                     Location = Status.Location ?? string.Empty,
                     ForwardedPort = Status.ForwardedPort,
                     PortForwards = Status.PortForwards,
+                    Relay = Status.Relay,
                 },
             });
         }

@@ -12239,3 +12239,29 @@ Code quality improvements were completed as part of Option A:
 [2026-07-24T19:46:00Z] PPA publication race remediation: Launchpad build `33438958` compiled `.289` successfully, but its later binary upload was rejected because the already-submitted `.290` source had superseded the exact `.289` source publication. Both PPA workflows now share a Jammy concurrency lock, standalone series are independently serialized, and a reusable gate follows the exact Debian version through source acceptance, all scheduled binary builds, and binary publication. Terminal superseded/deleted source and failed/cancelled build states now fail the job instead of treating `dput` acceptance as package success. Shell syntax, workflow YAML syntax, packaging validation, repository lint, diff checks, and the synchronized remediation baseline pass; live validation correctly rejected the superseded `.289` record. The deterministic council inventory was refreshed from `11641` to `11642` after the new script added one scanned source line. Build `33439006` for `.290` has a successful package-build log but remained in Launchpad's non-retryable `Uploading build` state with no published binary or upload log after a bounded 30-minute observation. No additional release was created.
 [2026-07-27T16:57:35Z] Lidarr rejection and metadata activity implementation: added independent opt-in exact-file deletion and persistent exact Wishlist item/peer/remote-directory suppression after Lidarr rejects automatic-import candidates. Wishlist automatic enqueue now preserves its stable origin ID. Added a privacy-safe, 200-event in-memory processing feed and read-only API for hashing, Chromaprint, AcoustID, MusicBrainz, and auto-tagging, plus a five-second System Integrations view of active and recent stages. Recursive directory cleanup was rejected after confirming flat layouts can report the shared completed root; gotchas `0z788` and `0z789` were committed independently. Full validation passes: Web `901` with `4` skipped, zero lint errors, production build, application `74`, unit `4966`, integration `284`, and repository lint.
 [2026-07-27T18:00:00Z] Historical release-note audit: inventoried all 67 GitHub releases in `snapetech/slskdN`, regenerated each body in publication order, preserved informative exact-version changelog sections, replaced weak mechanical notes with bounded Added/Fixed and improved/Changed/Documentation summaries, and explicitly identified same-source artifact republishes. Updated every GitHub release body without changing tags, assets, titles, dates, or upstream state. Fixed backward compare-link selection and empty “No recorded changes” publication. Added fail-closed local pre-tag and hosted pre-release validation for exact versioned changelog sections, title/date/highlight structure, minimum informative content, and placeholder rejection. Documented gotcha `0z790` in standalone commit `6d027720e`.
+## Update 2026-07-30 23:55:00Z
+
+- Implemented first-class self-hosted relay mode for operators behind CGNAT.
+  The VPS companion is a narrow WireGuard data plane with one public Soulseek
+  listener, private-peer egress, idempotent forwarding chains, fail-closed
+  handshake readiness, 128-connection and 100-Mbit/s conservative defaults,
+  bidirectional shaping, and no slskdN/filesystem/configuration control plane.
+- Added an authenticated read-only relay status extension with constant-time
+  current/previous key acceptance. The existing VPN integration now imports
+  relay liveness, latency, WireGuard byte counters, active/maximum connections,
+  bandwidth policy, and latest handshake into application state and System ->
+  Integrations while continuing to discover the public IP and advertised port.
+- Added a native systemd service, independent relay installer mode, Alpine
+  companion container/Compose assets, release-bundle wiring, example
+  environment, API contract, and guided WireGuard home/VPS deployment plus key
+  rotation and fail-closed verification.
+- A readiness audit found that cached public identity could outlive a stale
+  handshake; fixed it before broader validation and documented gotcha `0z791`
+  in standalone commit `1c4328e22`.
+- Validation: relay authentication/rotation/stale-handshake test passes; focused
+  VPN tests pass `2/2`; full Web passes `901` with `4` existing skips and its
+  production build; full .NET passes application `74`, isolated unit `4969`,
+  and integration `284`. One concurrent all-suite run exceeded an unrelated
+  allocation-test threshold; the exact test and complete unit assembly passed
+  immediately in isolation. Relay container build, packaging metadata, repository
+  lint, diff checks, identity-leak gate, and GitHub-target verification pass.

@@ -81,12 +81,27 @@ public class Gluetun : IVPNClient
 
         try
         {
+            var relayResponse = OptionsMonitor.CurrentValue.Integration.Vpn.SelfHostedRelay
+                ? await TryMakeRequest<SlskdNRelayResponse>(http, "/v1/slskdn/relay")
+                : null;
+            var relay = relayResponse is null ? null : new VPNRelayStatus
+            {
+                Mode = relayResponse.Mode,
+                Connected = relayResponse.Connected,
+                LatencyMs = relayResponse.LatencyMs,
+                RxBytes = relayResponse.RxBytes,
+                TxBytes = relayResponse.TxBytes,
+                ActiveConnections = relayResponse.ActiveConnections,
+                ConnectionLimit = relayResponse.ConnectionLimit,
+                BandwidthLimitMbit = relayResponse.BandwidthLimitMbit,
+                LatestHandshakeAt = relayResponse.LatestHandshakeAt,
+            };
             var publicIp = await MakeRequest<GluetunPublicIpResponse>(http, "/v1/publicip/ip");
 
             // per the gluetun docs/discussions, the public ip field will be an empty string if the VPN isn't up
             if (string.IsNullOrEmpty(publicIp.PublicIp))
             {
-                return new VPNStatus { IsConnected = false };
+                return new VPNStatus { IsConnected = false, Relay = relay };
             }
 
             int? port = null;
@@ -129,6 +144,7 @@ public class Gluetun : IVPNClient
                 Location = string.Join(", ", new[] { publicIp.City, publicIp.Country }),
                 ForwardedPort = port,
                 PortForwards = portForwards,
+                Relay = relay,
             };
         }
         catch (Exception ex)
@@ -200,5 +216,18 @@ public class Gluetun : IVPNClient
         public int PublicPort { get; init; }
         public string PublicIp { get; init; } = string.Empty;
         public string Namespace { get; init; } = string.Empty;
+    }
+
+    private class SlskdNRelayResponse
+    {
+        public string Mode { get; init; } = string.Empty;
+        public bool Connected { get; init; }
+        public double? LatencyMs { get; init; }
+        public long RxBytes { get; init; }
+        public long TxBytes { get; init; }
+        public int ActiveConnections { get; init; }
+        public int ConnectionLimit { get; init; }
+        public int BandwidthLimitMbit { get; init; }
+        public DateTimeOffset? LatestHandshakeAt { get; init; }
     }
 }

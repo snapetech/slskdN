@@ -133,10 +133,13 @@ dotnet publish ../../src/slskdN.VpnAgent/slskdN-vpn-agent.csproj \
     --runtime "$runtime" \
     --output "$output/vpn-agent"
 cp ../../src/slskdN.VpnAgent/README.md "$output/vpn-agent/README.md"
+cp ../../src/slskdN.VpnAgent/self-hosted-relay.md "$output/vpn-agent/self-hosted-relay.md"
 cp ../../src/slskdN.VpnAgent/windows-macos.md "$output/vpn-agent/windows-macos.md"
 case "$runtime" in
   linux-*)
     cp -r ../../src/slskdN.VpnAgent/systemd "$output/vpn-agent/"
+    cp -r ../../src/slskdN.VpnAgent/examples "$output/vpn-agent/"
+    cp ../../src/slskdN.VpnAgent/Dockerfile.relay ../../src/slskdN.VpnAgent/compose.relay.yml "$output/vpn-agent/"
     cp ../../src/slskdN.VpnAgent/install.sh "$output/vpn-agent/install.sh"
     chmod +x "$output/vpn-agent/slskdN-vpn-agent" "$output/vpn-agent/install.sh"
     ;;

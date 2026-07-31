@@ -88,6 +88,7 @@ describe('Integrations', () => {
               },
               pollingInterval: 2500,
               portForwarding: true,
+              selfHostedRelay: true,
             },
           },
         }}
@@ -97,6 +98,16 @@ describe('Integrations', () => {
             isConnected: true,
             isReady: true,
             publicIPAddress: '203.0.113.7',
+            relay: {
+              activeConnections: 4,
+              bandwidthLimitMbit: 100,
+              connected: true,
+              connectionLimit: 128,
+              latestHandshakeAt: '2026-07-30T15:00:00Z',
+              latencyMs: 12.5,
+              rxBytes: 1048576,
+              txBytes: 2097152,
+            },
           },
         }}
       />,
@@ -104,6 +115,9 @@ describe('Integrations', () => {
 
     expect(screen.getByText('VPN')).toBeInTheDocument();
     expect(screen.getByText('203.0.113.7')).toBeInTheDocument();
+    expect(screen.getAllByText('Self-hosted relay')).toHaveLength(2);
+    expect(screen.getByText('12.5 ms')).toBeInTheDocument();
+    expect(screen.getByText('1.0 MiB received / 2.0 MiB sent')).toBeInTheDocument();
     expect(screen.getAllByText('Lidarr').length).toBeGreaterThan(0);
     expect(screen.getByText('http://lidarr.local:8686')).toBeInTheDocument();
     expect(screen.getByText('API Key Configured')).toBeInTheDocument();

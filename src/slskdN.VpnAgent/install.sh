@@ -21,12 +21,31 @@ require_root
 case "$MODE" in
   install|--install)
     ;;
+  relay|--relay)
+    for cmd in conntrack dotnet ip iptables ping systemctl tc wg; do
+      command -v "$cmd" >/dev/null || {
+        echo "Missing required relay command: $cmd" >&2
+        exit 2
+      }
+    done
+    dotnet publish "$ROOT/slskdN-vpn-agent.csproj" -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o /usr/local/lib/slskdN-vpn-agent >/dev/null
+    ln -sfn /usr/local/lib/slskdN-vpn-agent/slskdN-vpn-agent /usr/local/bin/slskdN-vpn-agent
+    install_file 0644 "$ROOT/systemd/slskdN-relay.service" /etc/systemd/system/slskdN-relay.service
+    install -d -m 0700 /etc/slskdN-relay
+    install -d -m 0755 /var/lib/slskdN-vpn
+    if [[ ! -e /etc/slskdN-relay/relay.env ]]; then
+      install_file 0600 "$ROOT/examples/self-hosted-relay.env.example" /etc/slskdN-relay/relay.env
+    fi
+    systemctl daemon-reload
+    echo "Relay companion installed but not started. Configure WireGuard, relay.env, and api-keys, then enable slskdN-relay.service."
+    exit 0
+    ;;
   check|--check|verify|--verify)
     dotnet run --project "$ROOT/slskdN-vpn-agent.csproj" -- verify
     exit $?
     ;;
   *)
-    echo "Usage: $0 [install|--check]" >&2
+    echo "Usage: $0 [install|relay|--check]" >&2
     exit 64
     ;;
 esac
@@ -76,6 +95,7 @@ install_file 0644 "$ROOT/systemd/slskdN-vpn-ingress-renew.timer" /etc/systemd/sy
 install_file 0644 "$ROOT/systemd/slskdN-vpn-gluetun-compat.service" /etc/systemd/system/slskdN-vpn-gluetun-compat.service
 install_file 0644 "$ROOT/systemd/slskdN-vpn-watchdog.service" /etc/systemd/system/slskdN-vpn-watchdog.service
 install_file 0644 "$ROOT/systemd/slskdN-vpn-watchdog.timer" /etc/systemd/system/slskdN-vpn-watchdog.timer
+install_file 0644 "$ROOT/systemd/slskdN-relay.service" /etc/systemd/system/slskdN-relay.service
 
 install -d -m 0755 /var/lib/slskdN-vpn
 

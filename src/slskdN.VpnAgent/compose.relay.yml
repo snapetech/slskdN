@@ -1,0 +1,16 @@
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: Dockerfile.relay
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    env_file:
+      - /etc/slskdN-relay/relay.env
+    volumes:
+      - /etc/slskdN-relay:/etc/slskdN-relay:ro
+      - /var/lib/slskdN-vpn:/var/lib/slskdN-vpn
+      - /sys/class/net:/sys/class/net:ro
+    command: ["relay-run"]
+    restart: unless-stopped

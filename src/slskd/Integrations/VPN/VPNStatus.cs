@@ -31,6 +31,20 @@ public record VPNStatus
     public int? ForwardedPort { get; init; }
     public IReadOnlyList<VPNPortForward> PortForwards { get; init; } = Array.Empty<VPNPortForward>();
     public string? Location { get; init; }
+    public VPNRelayStatus? Relay { get; init; }
+}
+
+public record VPNRelayStatus
+{
+    public string Mode { get; init; } = string.Empty;
+    public bool Connected { get; init; }
+    public double? LatencyMs { get; init; }
+    public long RxBytes { get; init; }
+    public long TxBytes { get; init; }
+    public int ActiveConnections { get; init; }
+    public int ConnectionLimit { get; init; }
+    public int BandwidthLimitMbit { get; init; }
+    public DateTimeOffset? LatestHandshakeAt { get; init; }
 }
 
 public record VPNPortForward

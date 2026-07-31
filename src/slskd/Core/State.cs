@@ -119,6 +119,7 @@ namespace slskd
         public string Location { get; init; } = string.Empty;
         public int? ForwardedPort { get; init; }
         public IReadOnlyList<VPNPortForward> PortForwards { get; init; } = Array.Empty<VPNPortForward>();
+        public VPNRelayStatus? Relay { get; init; }
     }
 
     public record RelayState
