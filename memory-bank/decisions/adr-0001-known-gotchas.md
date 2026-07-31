@@ -65,6 +65,21 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z796. Background HttpListener Handlers Must Complete Failed Responses
+
+**The Bug**: The relay API dispatched each `HttpListenerContext` through an
+unobserved background task. If status parsing or a child command threw, the
+task faulted without closing the response, leaving the polling HTTP client
+waiting indefinitely instead of receiving a bounded failure.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+
+**Prevention**: Background `HttpListener` dispatch must terminate exceptions at
+a safe wrapper that logs a concise server-side reason and completes any still-
+writable response with a generic JSON 500. Never rely on an unobserved task to
+close an owned request context after failure.
+
 ### 0z795. Do Not Put JSON Objects Inside Bash Default Expansions
 
 **The Bug**: A fake `tailscale status --json` command used a JSON object as the
