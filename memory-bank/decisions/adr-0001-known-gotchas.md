@@ -65,6 +65,23 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z798. A Shared Docker Namespace Needs Kernel-Mode Tailscale
+
+**The Bug**: The first home Docker sidecar example mounted `/dev/net/tun` and
+granted `NET_ADMIN`, but did not set `TS_USERSPACE=false`. The official
+Tailscale container could therefore remain in userspace-networking mode, which
+does not install the exit-node routes needed by a slskdN container sharing its
+network namespace.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/self-hosted-relay.md`
+- `docs/self-hosted-relay-tester-guide.md`
+
+**Prevention**: When another container shares a Tailscale sidecar's network
+namespace and relies on its exit-node routes, explicitly select kernel mode
+with `TS_USERSPACE=false`, mount `/dev/net/tun`, and grant `NET_ADMIN`. A
+working Tailscale proxy in userspace mode does not prove namespace-wide routing.
+
 ### 0z797. Tailscale Relay ACLs Must Pin The Exact Home Node
 
 **The Bug**: The Tailscale relay defaulted its accepted tunnel source to the
