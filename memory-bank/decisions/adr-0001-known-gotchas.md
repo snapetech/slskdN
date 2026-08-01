@@ -65,6 +65,28 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z799. API Feature Flags Are Not Global Service Switches
+
+**The Bug**: Documentation described the experimental `feature.*` values as
+though they disabled complete subsystems. Most of those values are consumed by
+controller feature gates, while mesh, DHT, service-router, pod, and related
+hosted services are registered independently and can still initialize or
+publish network state. Documentation also showed `mesh.enabled`, which is not a
+property of `MeshOptions`; the runtime switches are `mesh.enable_overlay` and
+`mesh.enable_dht`.
+
+**Files Affected**:
+- `README.md`
+- `config/slskd.example.yml`
+- `docs/config.md`
+- `docs/network-privacy-security-surfaces.md`
+
+**Prevention**: Describe a setting according to its actual consumer. Call
+`feature.*` an API/controller gate unless service registration or execution
+also reads it. Document independent runtime switches separately, list any
+default-on network behavior, and never invent a convenient aggregate YAML key
+that is absent from the bound options type.
+
 ### 0z798. A Shared Docker Namespace Needs Kernel-Mode Tailscale
 
 **The Bug**: The first home Docker sidecar example mounted `/dev/net/tun` and
