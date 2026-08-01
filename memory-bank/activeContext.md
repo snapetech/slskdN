@@ -1,3 +1,21 @@
+## Update 2026-08-01 15:09:53Z
+
+- Current task: complete. Gold Star Club is strictly opt-in for every node;
+  the live validation deployment is explicitly opted in.
+- Last activity:
+  - Required exact `true` opt-in for Gold Star reserved-pod creation, DHT
+    publication, and automatic enrollment.
+  - Updated focused tests and all relevant documentation/configuration
+    references.
+  - Passed full tests, lint, publish, and diff validation; verified the live
+    deployment is healthy and running the current payload with both opt-ins.
+- The worker was still waiting for Soulseek login during the bounded
+  post-restart sample, so membership was not asserted as an observed result.
+- Next steps:
+  1. Have a tester exercise the explicit opt-in path after Soulseek login.
+  2. Keep the local implementation/documentation changes separate from
+     unrelated concurrent worktree edits; no release tag was created.
+
 ## Update 2026-08-01 15:45:00Z
 
 - Current task: complete. All established features remain enabled by default;

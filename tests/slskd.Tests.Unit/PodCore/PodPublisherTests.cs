@@ -4,6 +4,7 @@
 
 namespace slskd.Tests.Unit.PodCore;
 
+using System;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -12,8 +13,39 @@ using slskd.Mesh.Dht;
 using slskd.PodCore;
 using Xunit;
 
+[Collection("GoldStarClubEnv")]
 public sealed class PodPublisherTests
 {
+    private sealed class EnvScope : IDisposable
+    {
+        private readonly string? previous;
+
+        public EnvScope(string? value)
+        {
+            previous = Environment.GetEnvironmentVariable(GoldStarClubService.AutoJoinEnvironmentVariable);
+            Environment.SetEnvironmentVariable(GoldStarClubService.AutoJoinEnvironmentVariable, value);
+        }
+
+        public void Dispose() => Environment.SetEnvironmentVariable(GoldStarClubService.AutoJoinEnvironmentVariable, previous);
+    }
+
+    [Fact]
+    public async Task PublishPodAsync_DoesNotPublishGoldStarWithoutExplicitOptIn()
+    {
+        using var _ = new EnvScope(null);
+        var dht = new Mock<IMeshDhtClient>();
+        var publisher = CreatePublisher(dht.Object);
+
+        await publisher.PublishPodAsync(new Pod
+        {
+            PodId = GoldStarClubService.GoldStarClubPodId,
+            Name = "Gold Star Club ⭐",
+            Visibility = PodVisibility.Listed,
+        });
+
+        Assert.Empty(dht.Invocations);
+    }
+
     [Fact]
     public async Task RefreshListedPodsAsync_PublishesMetadataAndRefreshesIndexOnce()
     {

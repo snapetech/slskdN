@@ -19,6 +19,12 @@ This document describes:
 
 During early testing, the First 1000 (F1000) governance members will be **auto-joined** to this First Pod as part of the test program. That is a **social/governance choice**, not a hard technical dependency: pods remain sovereign, and this pod is not a control-plane.
 
+This is a future design proposal and is separate from the implemented Gold Star
+Club service. Current Gold Star behavior remains dormant unless the local
+daemon explicitly sets `feature.Pods: true` and
+`SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true`; any future F1000 auto-join
+integration must preserve that explicit opt-in boundary.
+
 Security and hardening are mandatory for all features described here.
 
 ---

@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 using Soulseek;
 
 /// <summary>
-/// Manages the Gold Star Club pod - auto-join for the first 250 network members.
+/// Manages the Gold Star Club pod - auto-join for the first 250 explicitly opted-in network members.
 /// Once the pod reaches 250 members, no new members can be added, even if people leave.
 /// </summary>
 public interface IGoldStarClubService
@@ -48,7 +48,8 @@ public interface IGoldStarClubService
     Task RecordRevocationAsync(string peerId, CancellationToken ct = default);
 
     /// <summary>
-    /// Ensures the Gold Star Club pod exists (creates it if it doesn't).
+    /// Ensures the Gold Star Club pod exists (creates it if it doesn't) after
+    /// explicit opt-in; otherwise this is a no-op.
     /// </summary>
     Task EnsurePodExistsAsync(CancellationToken ct = default);
 }
@@ -63,10 +64,14 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
     private const string GoldStarClubGeneralChannelId = "gold-star-club-general";
     public const int MaxMembership = 250;
 
-    // Operators can set this env var to "false" before startup to opt out of Gold Star Club auto-join.
-    // Leaving the pod later records a local revocation marker so the default-on startup path does not
-    // silently rejoin that node.
-    private const string AutoJoinEnvVar = "SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN";
+    // Gold Star Club is deliberately opt-in. Only the exact value "true" enables
+    // reserved-pod creation, publication, or automatic enrollment.
+    // Leaving the pod later records a local revocation marker so an explicitly
+    // enabled node does not silently rejoin that node.
+    /// <summary>
+    /// Gets the environment variable used for explicit Gold Star Club opt-in.
+    /// </summary>
+    public const string AutoJoinEnvironmentVariable = "SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN";
     private const string RevocationFileName = "gold-star-club.revoked";
 
     private readonly IPodService podService;
@@ -77,12 +82,13 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
     private bool? isAcceptingMembers; // null = not checked yet, true/false = cached result
     private DateTime lastConnectionWaitLogUtc = DateTime.MinValue;
 
-    private static bool IsAutoJoinEnabled()
+    /// <summary>
+    /// Gets a value indicating whether Gold Star Club has an exact positive opt-in.
+    /// </summary>
+    public static bool IsOptedIn()
     {
-        var value = Environment.GetEnvironmentVariable(AutoJoinEnvVar);
-        return !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) &&
-               !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase) &&
-               !string.Equals(value, "no", StringComparison.OrdinalIgnoreCase);
+        var value = Environment.GetEnvironmentVariable(AutoJoinEnvironmentVariable);
+        return string.Equals(value?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string RevocationFilePath =>
@@ -107,6 +113,11 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
 
     public async Task<bool> IsAcceptingMembersAsync(CancellationToken ct = default)
     {
+        if (!IsOptedIn() || IsRevokedLocally())
+        {
+            return false;
+        }
+
         // If we've already checked and cached the result, return it
         if (isAcceptingMembers.HasValue)
         {
@@ -133,6 +144,11 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
 
     public async Task<int> GetMembershipCountAsync(CancellationToken ct = default)
     {
+        if (!IsOptedIn() || IsRevokedLocally())
+        {
+            return 0;
+        }
+
         await EnsurePodExistsAsync(ct);
         var members = await podService.GetMembersAsync(GoldStarClubPodId, ct);
         return members.Count;
@@ -140,9 +156,11 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
 
     public async Task<bool> TryAutoJoinAsync(string peerId, CancellationToken ct = default)
     {
-        if (!IsAutoJoinEnabled())
+        if (!IsOptedIn())
         {
-            logger.LogDebug("[GoldStarClub] Auto-join disabled by {EnvVar}=false", AutoJoinEnvVar);
+            logger.LogDebug(
+                "[GoldStarClub] Auto-join disabled because {EnvVar} is not exactly 'true'",
+                AutoJoinEnvironmentVariable);
             return false;
         }
 
@@ -217,6 +235,20 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
 
     public async Task EnsurePodExistsAsync(CancellationToken ct = default)
     {
+        if (!IsOptedIn())
+        {
+            logger.LogDebug(
+                "[GoldStarClub] Reserved pod creation disabled because {EnvVar} is not exactly 'true'",
+                AutoJoinEnvironmentVariable);
+            return;
+        }
+
+        if (IsRevokedLocally())
+        {
+            logger.LogDebug("[GoldStarClub] Reserved pod creation skipped because this node revoked membership");
+            return;
+        }
+
         if (podInitialized)
         {
             return; // Already checked
@@ -294,19 +326,17 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
         // application, so contain everything except genuine shutdown cancellation.
         try
         {
-            if (!IsAutoJoinEnabled())
+            if (!IsOptedIn())
             {
                 logger.LogInformation(
-                    "[GoldStarClub] Auto-join disabled by {EnvVar}=false. Pod will still be ensured.",
-                    AutoJoinEnvVar);
-                await EnsurePodExistsAsync(stoppingToken);
+                    "[GoldStarClub] Opt-in is absent: {EnvVar} is not exactly 'true'. No pod will be created, published, or joined.",
+                    AutoJoinEnvironmentVariable);
                 return;
             }
 
             if (IsRevokedLocally())
             {
-                logger.LogInformation("[GoldStarClub] Auto-join disabled by local revocation marker. Pod will still be ensured.");
-                await EnsurePodExistsAsync(stoppingToken);
+                logger.LogInformation("[GoldStarClub] No pod will be created, published, or joined because this node revoked membership.");
                 return;
             }
 

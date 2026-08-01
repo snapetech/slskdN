@@ -281,8 +281,12 @@ Messages is the unified conversation workspace.
   Soulseek DMs.
 - Pod room channels can show compact room-scoped Listen Along controls.
 - Permanent delete/leave actions require confirmation.
-- Gold Star Club is a pod/room workflow; leaving is intentionally irreversible
-  for local Gold Star status.
+- Gold Star Club is a pod/room workflow and is strictly opt-in per daemon.
+  `feature.Pods: true` alone is insufficient: the exact environment value
+  `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true` is also required before startup.
+  Missing or non-`true` values keep reserved-pod creation, publication, and
+  automatic enrollment dormant. This local setting does not opt other users or
+  testers in. Leaving is intentionally irreversible for local Gold Star status.
 
 See [Pods, Rooms, And Messages](pods-and-rooms.md) for user-facing details.
 

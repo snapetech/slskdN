@@ -464,7 +464,7 @@ Topic-based micro-communities over the mesh overlay.
 - **Mesh-DHT pod discovery** — Find pods by name, focus, or tags
 - **Decentralized chat** — Pod messaging over mesh overlay
 - **Soulseek chat bridge** — Bridge legacy Soulseek rooms to pods
-- **Gold Star Club** — Available when `feature.Pods: true`; disabled pod mode does not create, publish, or auto-join the reserved pod. With pods enabled, operators can disable enrollment before startup with `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`; users can later leave the pod from the Web UI, but leaving is irrevocable and permanently revokes local Gold Star status.
+- **Gold Star Club** — Strictly opt-in for each daemon. `feature.Pods: true` does not opt anyone into Gold Star: the reserved pod is created and published, and the local Soulseek username is auto-enrolled, only when the daemon environment contains the exact value `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true`. An unset, malformed, or non-`true` value causes no Gold Star startup side effects. This is a local deployment setting; it does not opt other users or testers in. Users can later leave the pod from the Web UI, but leaving is irrevocable and permanently revokes local Gold Star status. See [Runtime Feature Gates and Network Defaults](docs/runtime-feature-gating.md).
 - **Pod APIs** — Full REST API for pod operations
 
 

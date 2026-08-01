@@ -1,3 +1,18 @@
+## Update 2026-08-01 15:09:53Z
+
+- Made Gold Star Club a strict positive opt-in: reserved-pod creation, DHT
+  publication, and automatic enrollment now require `feature.Pods: true` and
+  `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true` exactly.
+- Updated the implementation, focused regression tests, README, example
+  configuration, runtime/configuration/design/security documentation, feature
+  inventory, and changelog.
+- Validation passes: focused Gold Star/PodPublisher tests, full `dotnet test
+  --no-restore`, `./bin/lint`, publish, and diff checks.
+- The live validation deployment now carries the explicit feature and
+  environment opt-ins in its Docker/systemd configuration. It is healthy and
+  running the current manual payload; the Gold Star worker was waiting for
+  Soulseek login at handoff, so no post-login enrollment event was claimed.
+
 ## Update 2026-08-01 15:45:00Z
 
 - Restored all established feature, DHT, mesh, overlay, STUN, pod,

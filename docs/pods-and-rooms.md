@@ -44,13 +44,18 @@ channels, not direct-message channels.
 
 ## Gold Star Club
 
-Gold Star Club is the early user/governance bootstrap pod.
+Gold Star Club is the early user/governance bootstrap pod and is strictly
+opt-in for every node.
 
 - `feature.Pods: false` prevents Gold Star pod creation, publication, and
   enrollment.
-- Set `feature.Pods: true` to opt into pod services.
-- Operators can opt out before startup with
-  `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false` after enabling pods.
+- Even with pods enabled, Gold Star remains dormant unless the daemon
+  environment contains the exact value
+  `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true`.
+- This environment value is local to one daemon and its Soulseek account; it
+  does not opt remote users or testers into Gold Star.
+- Missing, malformed, `false`, `0`, and other values do not create or publish
+  the reserved pod and do not auto-enroll the local Soulseek username.
 - Users can leave the pod from the Web UI.
 - Leaving is intentionally irreversible for local Gold Star status.
 

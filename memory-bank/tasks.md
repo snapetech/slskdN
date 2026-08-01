@@ -9,6 +9,18 @@
 
 ### High Priority
 
+- [x] Make Gold Star Club strictly opt-in for all nodes and explicitly opt in
+  the live validation deployment.
+  - Status: completed (2026-08-01)
+  - Priority: P1
+  - Notes: Gold Star reserved-pod creation, DHT publication, and automatic
+    enrollment now require `feature.Pods: true` and exact
+    `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true`; focused tests and documentation
+    were updated. The live validation Docker/systemd deployment uses the
+    current manual payload with explicit feature/environment overrides and
+    passed health/version checks. The worker was waiting for Soulseek login at
+    handoff.
+
 - [x] Make explicitly disabled experimental features dormant.
   - Status: completed (2026-08-01)
   - Priority: P1

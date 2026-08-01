@@ -1449,9 +1449,10 @@ disabled independently.
 There is no `mesh.enabled` option. Use the actual independent settings such as
 `mesh.enable_dht`, `mesh.enable_overlay`, `dht.enabled`, `overlay.enable`, and
 `overlay_data.enable`. `feature.Pods: false` prevents Gold Star pod creation,
-publication, and enrollment. When pods are enabled, set
-`SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false` before startup to prevent automatic
-enrollment.
+publication, and enrollment. Gold Star is independently strictly opt-in:
+creation, publication, and automatic enrollment require the daemon environment
+variable `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true` exactly. Missing, malformed,
+or non-`true` values leave it dormant.
 See [Runtime Feature Gates and Network Defaults](runtime-feature-gating.md) for
 the current lifecycle boundary, enabled defaults, and explicit reduction examples.
 

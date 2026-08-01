@@ -114,6 +114,15 @@ public class PodPublisher : IPodPublisher
             return false;
         }
 
+        if (string.Equals(pod.PodId, GoldStarClubService.GoldStarClubPodId, StringComparison.Ordinal) &&
+            !GoldStarClubService.IsOptedIn())
+        {
+            logger.LogDebug(
+                "[PodPublisher] Skipping Gold Star Club publication because {EnvVar} is not exactly 'true'",
+                GoldStarClubService.AutoJoinEnvironmentVariable);
+            return false;
+        }
+
         // HARDENING: Never publish DM pods, even if marked as listed
         if (pod.Tags?.Contains("dm") == true)
         {

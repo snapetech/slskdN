@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Gold Star Club is now strictly opt-in: reserved-pod creation, DHT
+  publication, and automatic enrollment require `feature.Pods: true` plus the
+  exact daemon environment value
+  `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true`. Unset, malformed, and non-`true`
+  values leave it dormant.
+
 ## [2026080114-slskdn.294] — 2026-08-01
 
 - Refreshed the release-council source inventory after the documentation update

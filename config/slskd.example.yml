@@ -337,6 +337,10 @@
 #  Join:
 #    SignatureMode: Off   # Off | Warn | Enforce
 #feature:                    # Experimental feature and hosted-service gates. See docs/runtime-feature-gating.md.
+# Gold Star Club is strictly opt-in and is separate from the pod API gate:
+# enable it only with feature.Pods: true and the daemon environment variable
+# SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true. Any other or missing value keeps the
+# reserved pod dormant (the environment variable is intentionally not YAML).
 #  swagger: true              # Enable Swagger API documentation UI (default: true)
 #  CollectionsSharing: true   # Enable Collections, ShareGroups, ShareGrants APIs (default: true)
 #  Streaming: true            # Enable streaming API (/api/v0/streams/{contentId}) (default: true)
@@ -352,7 +356,7 @@
 #  SongId: true                # Experimental SongID analysis APIs (default: true).
 #  Mesh: true                  # Mesh APIs and mesh hosted services (default: true).
 #  Dht: true                   # DHT APIs; dht.enabled must also be true (default: true).
-#  Pods: true                  # Pod APIs, Gold Star, and pod publishing services (default: true).
+#  Pods: true                  # Pod APIs and pod services (default: true); Gold Star also requires explicit environment opt-in.
 #  SocialFederation: true      # ActivityPub/social federation APIs (default: true).
 #  VirtualSoulfind: true       # VirtualSoulfind APIs (default: true).
 #  MultiSourceDownloads: true  # Multi-source/swarm download APIs (default: true).

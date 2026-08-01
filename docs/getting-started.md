@@ -293,7 +293,11 @@ Use **Messages** as the unified conversation workspace. Direct messages, joined
 rooms, and pod room channels can be opened as panels. Pod direct channels are
 hidden from the normal list so they do not duplicate Soulseek DMs. Gold Star
 Club membership is surfaced through pod/room workflows; leaving is intentionally
-irreversible for local Gold Star status.
+irreversible for local Gold Star status. Gold Star is dormant by default: an
+operator must enable `feature.Pods: true` and set the exact daemon environment
+value `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true` before startup. This opts in
+only the local daemon/account; it does not enroll other users or testers.
+See [Pods, Rooms, And Messages](pods-and-rooms.md) for the full policy.
 
 ## Troubleshooting
 

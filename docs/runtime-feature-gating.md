@@ -83,19 +83,21 @@ and `dht.enabled`, while mesh descriptor publishing needs `feature.Mesh` and
 ## Pods and Gold Star Club
 
 `feature.Pods: false` prevents Gold Star Club startup, including reserved-pod
-creation, DHT publication, and automatic Soulseek-username enrollment.
+creation, DHT publication, and automatic Soulseek-username enrollment. The
+Gold Star Club is also independently and strictly opt-in: the reserved pod is
+not created, published, or used for automatic enrollment unless the daemon
+environment contains the exact value `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true`.
+Missing, malformed, `false`, `0`, and other values are all disabled.
 
-When pods are explicitly enabled, Gold Star auto-enrollment can still be
-disabled independently before first startup:
+To opt in, enable the pod feature and export the variable before startup:
 
-```yaml
-environment:
-  SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN: "false"
+```sh
+SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true
 ```
 
-With pods enabled and auto-join disabled, the reserved pod is created locally
-but the Soulseek username is not enrolled. Leaving an existing membership
-writes a local revocation marker and prevents later automatic rejoin.
+With pods enabled and the variable unset or not exactly `true`, Gold Star has
+no startup side effects. Leaving an existing membership writes a local
+revocation marker and prevents later automatic rejoin.
 
 ## DHT controls
 

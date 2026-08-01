@@ -20,16 +20,15 @@ using Xunit;
 [Collection("GoldStarClubEnv")]
 public class GoldStarClubServiceTests
 {
-    // HARDENING-2026-04-20 H6: auto-join is default-on but can be disabled via env var. Tests that exercise the disabled path
-    // must set it; we wrap in IDisposable to guarantee cleanup even on assertion failure, and
-    // serialize via an xUnit [Collection] since env vars are process-global.
-    private const string AutoJoinEnvVar = "SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN";
+    // Gold Star Club is strictly opt-in. Tests wrap the process-global environment
+    // variable in IDisposable and serialize through an xUnit collection.
+    private const string AutoJoinEnvVar = GoldStarClubService.AutoJoinEnvironmentVariable;
 
     private sealed class EnvScope : IDisposable
     {
         private readonly string? previous;
 
-        public EnvScope(string value)
+        public EnvScope(string? value)
         {
             previous = Environment.GetEnvironmentVariable(AutoJoinEnvVar);
             Environment.SetEnvironmentVariable(AutoJoinEnvVar, value);
@@ -65,6 +64,8 @@ public class GoldStarClubServiceTests
     [Fact]
     public async Task EnsurePodExistsAsync_ShouldCreatePodIfNotExists()
     {
+        using var _ = new EnvScope("true");
+
         // Arrange
         mockPodService.Setup(s => s.GetPodAsync(GoldStarClubService.GoldStarClubPodId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Pod)null);
@@ -89,6 +90,8 @@ public class GoldStarClubServiceTests
     [Fact]
     public async Task EnsurePodExistsAsync_ShouldNotCreatePodIfExists()
     {
+        using var _ = new EnvScope("true");
+
         // Arrange
         var existingPod = new Pod { PodId = GoldStarClubService.GoldStarClubPodId, Name = "Gold Star Club ⭐" };
         mockPodService.Setup(s => s.GetPodAsync(GoldStarClubService.GoldStarClubPodId, It.IsAny<CancellationToken>()))
@@ -104,6 +107,8 @@ public class GoldStarClubServiceTests
     [Fact]
     public async Task GetMembershipCountAsync_ShouldReturnCorrectCount()
     {
+        using var _ = new EnvScope("true");
+
         // Arrange
         var pod = new Pod { PodId = GoldStarClubService.GoldStarClubPodId };
         mockPodService.Setup(s => s.GetPodAsync(GoldStarClubService.GoldStarClubPodId, It.IsAny<CancellationToken>()))
@@ -128,6 +133,8 @@ public class GoldStarClubServiceTests
     [Fact]
     public async Task IsAcceptingMembersAsync_ShouldReturnTrueWhenUnderLimit()
     {
+        using var _ = new EnvScope("true");
+
         // Arrange
         var pod = new Pod { PodId = GoldStarClubService.GoldStarClubPodId };
         mockPodService.Setup(s => s.GetPodAsync(GoldStarClubService.GoldStarClubPodId, It.IsAny<CancellationToken>()))
@@ -149,6 +156,8 @@ public class GoldStarClubServiceTests
     [Fact]
     public async Task IsAcceptingMembersAsync_ShouldReturnFalseWhenAtLimit()
     {
+        using var _ = new EnvScope("true");
+
         // Arrange
         var pod = new Pod { PodId = GoldStarClubService.GoldStarClubPodId };
         mockPodService.Setup(s => s.GetPodAsync(GoldStarClubService.GoldStarClubPodId, It.IsAny<CancellationToken>()))
@@ -170,6 +179,8 @@ public class GoldStarClubServiceTests
     [Fact]
     public async Task IsAcceptingMembersAsync_ShouldReturnFalseWhenOverLimit()
     {
+        using var _ = new EnvScope("true");
+
         // Arrange
         var pod = new Pod { PodId = GoldStarClubService.GoldStarClubPodId };
         mockPodService.Setup(s => s.GetPodAsync(GoldStarClubService.GoldStarClubPodId, It.IsAny<CancellationToken>()))
@@ -328,6 +339,58 @@ public class GoldStarClubServiceTests
         mockPodService.Verify(
             s => s.JoinAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()),
             Times.Never);
+        mockPodService.Verify(
+            s => s.GetMembersAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsurePodExistsAsync_ShouldNotCreatePodWithoutExplicitOptIn()
+    {
+        using var _ = new EnvScope(null);
+
+        await goldStarClubService.EnsurePodExistsAsync();
+
+        mockPodService.Verify(
+            s => s.GetPodAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        mockPodService.Verify(
+            s => s.CreateAsync(It.IsAny<Pod>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("false")]
+    [InlineData("0")]
+    [InlineData("yes")]
+    public async Task TryAutoJoinAsync_ShouldRequireExactTrueOptIn(string? value)
+    {
+        using var _ = new EnvScope(value);
+
+        var joined = await goldStarClubService.TryAutoJoinAsync("new-user");
+
+        Assert.False(joined);
+        mockPodService.Verify(
+            s => s.GetPodAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        mockPodService.Verify(
+            s => s.GetMembersAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        mockPodService.Verify(
+            s => s.JoinAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetMembershipCountAsync_ShouldReturnZeroWithoutExplicitOptIn()
+    {
+        using var _ = new EnvScope(null);
+
+        var count = await goldStarClubService.GetMembershipCountAsync();
+
+        Assert.Equal(0, count);
         mockPodService.Verify(
             s => s.GetMembersAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
