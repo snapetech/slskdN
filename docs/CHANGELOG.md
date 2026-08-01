@@ -24,6 +24,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [2026080114-slskdn.294] — 2026-08-01
 
+- Refreshed the release-council source inventory after the documentation update
+  changed the tracked red-team and public-mutable-surface counts.
 - Clarified public BitTorrent DHT rendezvous, mesh-DHT metadata, and mesh
   overlay transfer boundaries throughout user, architecture, research, and
   packaging documentation without changing the enabled-by-default DHT policy.
