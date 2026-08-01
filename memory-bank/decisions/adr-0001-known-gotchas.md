@@ -65,6 +65,24 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
+
+**The Bug**: The initial Unraid Community Applications template exposed only
+the web and Soulseek ports plus a small set of environment variables, forcing
+operators who enabled DHT/mesh or less-common Docker settings to hunt through
+the configuration documentation.
+
+**Files Affected**:
+- `packaging/unraid/slskdn.xml`
+- `packaging/unraid/README.md`
+- `packaging/unraid/SUPPORT_POST.md`
+
+**Prevention**: Keep the template inventory synchronized with the current
+public listeners (`50305/tcp`, `50305/udp`, and optional `50401/udp`) and expose
+documented optional `SLSKD_*` Docker overrides as blank advanced fields. Keep
+core ports, paths, credentials, and image-managed runtime values typed or
+defaulted so blank optional overrides do not invalidate startup.
+
 ### 0z803. Unraid Community Apps Repositories Need Root Profile Metadata
 
 **The Bug**: The Unraid template and public container image were valid, but the
