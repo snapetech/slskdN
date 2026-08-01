@@ -65,6 +65,27 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z800. Privacy-Sensitive Subsystems Must Default To Dormant
+
+**The Bug**: Experimental API flags could default off while independent mesh,
+DHT, overlay, STUN, VirtualSoulfind, BitTorrent signaling, mDNS, and Soulseek
+profile defaults still contacted networks or identified the account. The
+recognizable Soulseek rendezvous tag was opt-in, but the default Soulseek
+description separately identified the same account as a slskdN user.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `src/slskd/DhtRendezvous/DhtRendezvousService.cs`
+- `src/slskd/Mesh/MeshOptions.cs`
+- `src/slskd/Mesh/Overlay/OverlayOptions.cs`
+- `src/slskd/Signals/SignalSystemOptions.cs`
+- `src/slskd/VirtualSoulfind/v2/Configuration/VirtualSoulfindOptions.cs`
+
+**Prevention**: Every independently bound network surface must have its own
+quiet default. An API gate is not consent for background discovery, identity
+advertising, public bootstrap, or signaling. Review defaults as a complete
+outbound identity and traffic posture rather than one option at a time.
+
 ### 0z799. API Feature Flags Are Not Global Service Switches
 
 **The Bug**: Documentation described the experimental `feature.*` values as
