@@ -21,6 +21,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ---
 
 ## [Unreleased]
+
+## [2026080114-slskdn.294] — 2026-08-01
+
 - Clarified public BitTorrent DHT rendezvous, mesh-DHT metadata, and mesh
   overlay transfer boundaries throughout user, architecture, research, and
   packaging documentation without changing the enabled-by-default DHT policy.
@@ -542,7 +545,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Source ranking now snapshots candidates once, deduplicates usernames directly,
   and reads only stored success/failure counters through one raw SQLite query
   over a JSON table parameter. Missing peers remain neutral without allocating
-  placeholder history DTOs or dictionary entries before scoring. A warmed
+  synthetic history DTOs or dictionary entries before scoring. A warmed
   10,000-unseen-source ranking falls from 17,691,760 to 3,072,360 allocated
   bytes (82.6%). The public batch-history API shares the lookup, materializing
   its required default DTOs only in the final result; its equivalent fixture
@@ -2041,12 +2044,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
   verification, fresh timestamp checks, join nonce replay protection, and
   legacy Off/Warn compatibility for existing local workflows.
 - Reworked the Synology SPK builder to package the real published `slskd`
-  binary instead of a placeholder script, and added packaging gates to block
-  placeholder SPK payloads from returning.
+  binary instead of a nonfunctional script, and added packaging gates to block
+  nonfunctional SPK payloads from returning.
 - Built out VirtualSoulfind disaster-mode mesh peer discovery so known hashes
   can resolve through HashDb recording IDs into shadow-index peer hints before
   scene-discovery fallback.
-- Cleaned stale placeholder wording from native job API docs, mesh circuit
+- Cleaned stale provisional wording from native job API docs, mesh circuit
   comments, playback feedback, and related release-facing code comments so
   intentionally gated paths are described as such.
 - Fixed release-tagged Docker builds being reported as local development
