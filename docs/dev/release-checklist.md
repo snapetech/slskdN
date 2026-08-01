@@ -20,6 +20,7 @@ If the release claims to fix a reported bug, also run the reproduce-first workfl
 The release gate now covers:
 
 - branch sync with the tracked upstream before tagging
+- vendored `slskNet.Runtime` revision and local-patch composition
 - packaging metadata validation
 - frontend unit tests
 - frontend production build

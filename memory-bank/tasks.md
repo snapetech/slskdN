@@ -9,6 +9,18 @@
 
 ### High Priority
 
+- [x] Prevent slskNet.Runtime vendor drift and enforce the current fork head.
+  - Status: completed (2026-08-01)
+  - Priority: P1
+  - Notes: Added a full-commit sync manifest, an exact source-plus-local-patch
+    composition check, a guarded updater, release-gate registration, and a
+    scheduled GitHub workflow. The current baseline is fork `main` commit
+    `af73ff3f84fda7ba890bb5aea3adf712e5400cf6`; release validation now fails
+    when the remote fork advances or the vendored file set/content drifts.
+    Corrected active documentation and release-note terminology to identify
+    `slskNet.Runtime` rather than implying upstream Soulseek.NET is consumed.
+    Full .NET, vendored runtime tests, lint, and focused repository checks pass.
+
 - [x] Make Gold Star Club strictly opt-in for all nodes and explicitly opt in
   the live validation deployment.
   - Status: completed (2026-08-01)
@@ -2885,7 +2897,7 @@
 - [ ] **Unraid Community Applications listing**
   - Status: repository preparation completed (2026-08-01); forum support-thread creation and portal submission remain manual.
   - Priority: Medium
-  - Notes: Added the required root `ca_profile.xml`, fork-owned icon and registry links, current v2 Docker template metadata, blank share defaults, and XML/profile smoke validation. The remaining steps require the maintainer's Unraid forum account and Community Applications portal authentication.
+  - Notes: Added the required root `ca_profile.xml`, fork-owned icon and registry links, current v2 Docker template metadata, all current public listeners (`5030`, `5031`, `50300`, `50305/tcp`, `50305/udp`, optional `50401/udp`), documented Docker environment overrides, blank optional values, a copy-ready support post, and XML/profile smoke validation. The remaining steps require the maintainer's Unraid forum account and Community Applications portal authentication.
 
 ---
 

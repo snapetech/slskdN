@@ -139,6 +139,6 @@ GNU Affero General Public License v3.0, same as upstream slskd.
 slskdN is built on the work of:
 
 - upstream `slskd` by jpdillingham and contributors
-- `Soulseek.NET`
+- `slskNet.Runtime` (derived from `Soulseek.NET`)
 - the Soulseek community
 - MusicBrainz, Cover Art Archive, AcoustID, and related metadata projects

@@ -144,19 +144,43 @@ reject_literal AGENTS.md 'git tag build-main-'
 
 expect_line ca_profile.xml '^<CommunityApplications>$'
 expect_line ca_profile.xml '<Profile>[^<[:space:]][^<]*</Profile>'
-expect_literal ca_profile.xml '<Icon>https://raw.githubusercontent.com/snapetech/slskdn/main/etc/icon.svg</Icon>'
-expect_literal ca_profile.xml '<WebPage>https://github.com/snapetech/slskdn</WebPage>'
+expect_literal ca_profile.xml '<Icon>https://github.com/snapetech/slskdN/raw/refs/heads/main/etc/icon.svg</Icon>'
+expect_literal ca_profile.xml '<WebPage>https://github.com/snapetech/slskdN</WebPage>'
 expect_literal packaging/unraid/slskdn.xml '<Repository>ghcr.io/snapetech/slskdn:latest</Repository>'
-expect_literal packaging/unraid/slskdn.xml '<Registry>https://github.com/snapetech/slskdn/pkgs/container/slskdn</Registry>'
+expect_literal packaging/unraid/slskdn.xml '<Registry>https://github.com/snapetech/slskdN/pkgs/container/slskdn</Registry>'
 expect_literal packaging/unraid/slskdn.xml '<Category>Downloaders: MediaApp:Music Status:Stable</Category>'
-expect_literal packaging/unraid/slskdn.xml '<Icon>https://raw.githubusercontent.com/snapetech/slskdn/main/etc/icon.svg</Icon>'
-expect_literal packaging/unraid/slskdn.xml '<TemplateURL>https://raw.githubusercontent.com/snapetech/slskdn/main/packaging/unraid/slskdn.xml</TemplateURL>'
+expect_literal packaging/unraid/slskdn.xml '<Icon>https://github.com/snapetech/slskdN/raw/refs/heads/main/etc/icon.svg</Icon>'
+expect_literal packaging/unraid/slskdn.xml '<TemplateURL>https://github.com/snapetech/slskdN/raw/refs/heads/main/packaging/unraid/slskdn.xml</TemplateURL>'
+expect_literal packaging/unraid/slskdn.xml '<ReadMe>https://github.com/snapetech/slskdN/blob/main/README.md</ReadMe>'
+expect_literal packaging/unraid/slskdn.xml '<Config Name="Mesh Overlay TCP Port" Target="50305"'
+expect_literal packaging/unraid/slskdn.xml '<Config Name="DHT and Mesh UDP Port" Target="50305"'
+expect_literal packaging/unraid/slskdn.xml '<Config Name="QUIC Data Overlay UDP Port" Target="50401"'
+expect_literal packaging/unraid/slskdn.xml '<Config Name="SLSKD_REMOTE_CONFIGURATION" Target="SLSKD_REMOTE_CONFIGURATION" Default=""'
+expect_literal packaging/unraid/slskdn.xml '<Config Name="SLSKD_SLSK_PROXY_PASSWORD" Target="SLSKD_SLSK_PROXY_PASSWORD" Default=""'
 expect_literal packaging/unraid/slskdn.xml 'Target="/downloads" Default=""'
 expect_literal packaging/unraid/slskdn.xml 'Target="/music" Default=""'
 reject_literal packaging/unraid/slskdn.xml '<Networking>'
 reject_literal packaging/unraid/slskdn.xml '<Data>'
 reject_literal packaging/unraid/slskdn.xml '<Environment>'
 reject_literal packaging/unraid/slskdn.xml 'https://raw.githubusercontent.com/slskd/slskd/'
+reject_literal ca_profile.xml 'https://raw.githubusercontent.com/snapetech/slskdn'
+reject_literal ca_profile.xml 'https://github.com/snapetech/slskdn'
+reject_literal packaging/unraid/slskdn.xml 'https://raw.githubusercontent.com/snapetech/slskdn'
+reject_literal packaging/unraid/slskdn.xml 'https://github.com/snapetech/slskdn'
+reject_literal packaging/unraid/README.md 'https://raw.githubusercontent.com/snapetech/slskdn'
+reject_literal packaging/unraid/README.md 'https://github.com/snapetech/slskdn'
+reject_literal packaging/unraid/SUPPORT_POST.md 'https://raw.githubusercontent.com/snapetech/slskdn'
+reject_literal packaging/unraid/SUPPORT_POST.md 'https://github.com/snapetech/slskdn'
+expect_literal packaging/unraid/README.md 'https://forums.unraid.net/forum/71-docker-containers/'
+expect_literal packaging/unraid/SUPPORT_POST.md 'Community feedback requested that Docker environment variables be exposed in the template'
+reject_line packaging/unraid/SUPPORT_POST.md '^>'
+
+while IFS= read -r env_name; do
+  case "$env_name" in
+    SLSKD_SCRIPT_DATA|SLSKD_SOME_OPTION) continue ;;
+  esac
+  expect_literal packaging/unraid/slskdn.xml "Target=\"$env_name\""
+done < <(grep -oE 'SLSKD_[A-Z0-9_]+' docs/config.md | sort -u)
 
 expect_line packaging/winget/snapetech.slskdn.yaml '^PackageIdentifier: snapetech\.slskdn$'
 expect_line packaging/winget/snapetech.slskdn.installer.yaml '^PackageIdentifier: snapetech\.slskdn$'

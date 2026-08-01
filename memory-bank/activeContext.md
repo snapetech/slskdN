@@ -1,15 +1,41 @@
-## Update 2026-08-01 16:19:02Z
+## Update 2026-08-01 16:52:00Z
+
+- Current task: complete. Vendored `slskNet.Runtime` now has an enforced
+  current-head and content-drift policy.
+- Last activity:
+  - Added the full fork revision manifest, reproducible local patch, strict
+    remote-head/source-plus-patch checker, guarded updater, remediation-gate
+    registration, and scheduled/PR GitHub workflow.
+  - Corrected active documentation and the listener-rebind release note to
+    name `slskNet.Runtime` instead of implying the upstream Soulseek.NET
+    package is consumed.
+  - Documented the portable `git cat-file -e` existence-check gotcha in ADR-
+    0001 and committed that documentation immediately after fixing it.
+- Validation:
+  - Runtime sync check passes against the live fork head
+    `af73ff3f84fda7ba890bb5aea3adf712e5400cf6`.
+  - `./bin/lint` passes; `dotnet test` passes application `74`, unit `4985`,
+    and integration `284`; vendored runtime unit tests pass `2908/2908`.
+- The full remediation baseline passes all checks through runtime sync and
+  stops only at the expected local-main-ahead release-branch guard.
+- Next steps:
+  1. Push the user-requested full current-worktree commit to `origin/main`.
+  2. Do not create a tag or release without explicit authorization.
+
+## Update 2026-08-01 16:43:57Z
 
 - Current task: complete the repository-side preparation for the slskdN
-  Community Applications listing.
+  Community Applications listing and Unraid support thread.
 - Last activity:
   - Added the required root `ca_profile.xml` with a non-empty profile and
     fork-owned icon/project links.
-  - Cleaned the Unraid v2 template metadata, removed redundant legacy blocks,
-    replaced guessed download/music share defaults with user-selected paths,
-    and updated the manual-install fallback documentation.
-  - Added profile/template smoke validation and passed XML validation,
-    packaging metadata validation, `./bin/lint`, `dotnet test`, and diff checks.
+  - Added all current public Unraid listeners, including DHT/mesh TCP and UDP
+    ports plus optional QUIC data UDP, and exposed documented Docker overrides
+    as blank advanced fields while preserving safe core defaults.
+  - Added `packaging/unraid/SUPPORT_POST.md` and documented the community
+    request for discoverable blank environment-variable fields.
+  - Passed XML validation, packaging metadata validation, support-post checks,
+    `./bin/lint`, `dotnet test`, and diff checks.
 - Next steps:
   1. Create the maintainer support thread on the Unraid forum and replace the
      temporary GitHub Issues support link if desired.

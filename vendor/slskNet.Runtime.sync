@@ -1,0 +1,6 @@
+# slskNet.Runtime source-of-truth revision for the vendored build.
+# Keep this full SHA aligned with refs/heads/main in the fork repository.
+repository=https://github.com/snapetech/slskNet.Runtime.git
+ref=refs/heads/main
+commit=af73ff3f84fda7ba890bb5aea3adf712e5400cf6
+local_patch=vendor/slskNet.Runtime.patches/0001-slskdN-local-runtime-delta.patch

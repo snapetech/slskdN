@@ -2,6 +2,43 @@
 
 This repository vendors `slskNet.Runtime` under `vendor/slskNet.Runtime` and consumes it through the `Soulseek` project reference in `src/slskd/slskd.csproj`.
 
+## Source and Drift Policy
+
+The vendored runtime is a reproducible mirror of the `main` branch in
+[`snapetech/slskNet.Runtime`](https://github.com/snapetech/slskNet.Runtime),
+with the small slskdN-specific delta recorded in
+`vendor/slskNet.Runtime.patches/0001-slskdN-local-runtime-delta.patch`.
+`vendor/slskNet.Runtime.sync` records the exact fork commit used by builds.
+
+The sync check performs all of these checks:
+
+- resolves the live fork `main` ref and rejects a stale manifest;
+- exports the declared commit and applies the declared local patch;
+- compares the resulting complete tracked file set and contents with
+  `vendor/slskNet.Runtime`; and
+- rejects untracked files inside the vendored runtime.
+
+Run it directly when working on runtime changes:
+
+```bash
+bash scripts/check-slsknet-runtime-sync.sh
+```
+
+The release gate runs the same check, and `.github/workflows/runtime-sync.yml`
+runs it on pull requests plus a scheduled remote check. A release cannot be
+cut from a runtime baseline that has advanced upstream.
+
+When the fork advances, run the guarded updater from a clean runtime subtree:
+
+```bash
+bash scripts/sync-slsknet-runtime.sh --apply
+bash scripts/check-slsknet-runtime-sync.sh
+```
+
+The updater stops without changing files if the local patch no longer applies.
+That forces a deliberate reconciliation or upstreaming of the local runtime
+change instead of silently dropping it.
+
 ## Synced Runtime Features
 
 - Peer capability descriptors and envelopes for slskdN-to-slskdN feature discovery over Soulseek peer messages.

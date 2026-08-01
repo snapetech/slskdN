@@ -906,7 +906,7 @@ The vendored `slskNet.Runtime` sync adds `BouncyCastle.Cryptography` for Ed25519
 
 ### Protocol & Network
 - **Soulseek Protocol** - The P2P file-sharing protocol created by Nir Arbel
-- **[Soulseek.NET](https://github.com/jpdillingham/Soulseek.NET)** - The excellent .NET Soulseek library
+- **[slskNet.Runtime](https://github.com/snapetech/slskNet.Runtime)** - The slskdN-maintained Soulseek.NET-derived runtime library
 - The Soulseek community
 
 ### Metadata & Discovery

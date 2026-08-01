@@ -641,7 +641,7 @@ rooms:
 
 # Soulseek Configuration
 
-The Soulseek configuration determines how slskd interacts with the Soulseek network and underlying [Soulseek.NET](https://github.com/jpdillingham/Soulseek.NET) library.
+The Soulseek configuration determines how slskd interacts with the Soulseek network and the vendored [slskNet.Runtime](https://github.com/snapetech/slskNet.Runtime) library, which is derived from Soulseek.NET.
 
 ## Server Connection
 
@@ -919,7 +919,7 @@ soulseek:
 
 ## Diagnostic Level
 
-The diagnostic level option is passed to the Soulseek.NET configuration and determines the level of detail the library produces diagnostic messages. This option should generally be left to `Info` or `Warning` but can be set to `Debug` if more verbose logging is desired.
+The diagnostic level option is passed to the vendored `slskNet.Runtime` configuration and determines the level of detail the library produces diagnostic messages. This option should generally be left to `Info` or `Warning` but can be set to `Debug` if more verbose logging is desired.
 
 | Command-Line        | Environment Variable       | Description                                               |
 | ------------------- | -------------------------- | --------------------------------------------------------- |
