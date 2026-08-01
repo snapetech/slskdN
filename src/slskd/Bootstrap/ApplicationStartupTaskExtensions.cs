@@ -31,12 +31,16 @@ public static class ApplicationStartupTaskExtensions
             Log.Information("[AudioReanalyze] Updated {Count} variants", n);
         }
 
-        Log.Debug("[DI] Forcing construction of ScriptService, WebhookService, VPNService, and TrafficObserverIntegrationService...");
+        Log.Debug("[DI] Forcing construction of ScriptService, WebhookService, and VPNService...");
         _ = app.Services.GetService<ScriptService>();
         _ = app.Services.GetService<WebhookService>();
         _ = app.Services.GetService<VPNService>();
-        _ = app.Services.GetService<VirtualSoulfind.Capture.TrafficObserverIntegrationService>();
-        Log.Debug("[DI] ScriptService, WebhookService, VPNService, and TrafficObserverIntegrationService constructed");
+        if (optionsAtStartup.Feature.VirtualSoulfind)
+        {
+            _ = app.Services.GetService<VirtualSoulfind.Capture.TrafficObserverIntegrationService>();
+        }
+
+        Log.Debug("[DI] Required startup integration services constructed");
 
         return app;
     }

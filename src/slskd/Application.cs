@@ -619,8 +619,14 @@ namespace slskd
                 }
             }
 
-            // Register mesh services for DHT operations (non-blocking - run after startup completes)
-            _ = RegisterMeshServicesInBackgroundAsync(cancellationToken);
+            if (OptionsAtStartup.Feature.Mesh ||
+                (OptionsAtStartup.Feature.Dht && OptionsAtStartup.DhtRendezvous.Enabled) ||
+                OptionsAtStartup.Feature.Pods ||
+                OptionsAtStartup.Feature.VirtualSoulfind)
+            {
+                // Register enabled mesh services for DHT operations (non-blocking - run after startup completes)
+                _ = RegisterMeshServicesInBackgroundAsync(cancellationToken);
+            }
 
             Log.Information("[Application] Initialization complete");
         }
@@ -633,81 +639,95 @@ namespace slskd
                 var router = ServiceProvider.GetService<Mesh.ServiceFabric.MeshServiceRouter>();
                 if (router != null)
                 {
-                    var dhtService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.DhtMeshService>();
-                    if (dhtService != null)
+                    var dhtService = OptionsAtStartup.Feature.Dht && OptionsAtStartup.DhtRendezvous.Enabled
+                        ? ServiceProvider.GetService<Mesh.ServiceFabric.Services.DhtMeshService>()
+                        : null;
+                    if (dhtService is not null)
                     {
                         router.RegisterService(dhtService);
                         Log.Information("Registered DHT mesh service for Kademlia RPC operations");
                     }
-                    else
+                    else if (OptionsAtStartup.Feature.Dht && OptionsAtStartup.DhtRendezvous.Enabled)
                     {
                         Log.Warning("DhtMeshService not available for registration");
                     }
 
                     // Register hole punch mesh service for NAT traversal
-                    var holePunchService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.HolePunchMeshService>();
-                    if (holePunchService != null)
+                    var holePunchService = OptionsAtStartup.Feature.Mesh
+                        ? ServiceProvider.GetService<Mesh.ServiceFabric.Services.HolePunchMeshService>()
+                        : null;
+                    if (holePunchService is not null)
                     {
                         router.RegisterService(holePunchService);
                         Log.Information("Registered hole punch mesh service for NAT traversal");
                     }
-                    else
+                    else if (OptionsAtStartup.Feature.Mesh)
                     {
                         Log.Warning("HolePunchMeshService not available for registration");
                     }
 
                     // Register MeshContent service for GetByContentId (T-906, def-5)
-                    var meshContentService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.MeshContentMeshService>();
-                    if (meshContentService != null)
+                    var meshContentService = OptionsAtStartup.Feature.Mesh
+                        ? ServiceProvider.GetService<Mesh.ServiceFabric.Services.MeshContentMeshService>()
+                        : null;
+                    if (meshContentService is not null)
                     {
                         router.RegisterService(meshContentService);
                         Log.Information("Registered MeshContent mesh service for GetByContentId RPC");
                     }
-                    else
+                    else if (OptionsAtStartup.Feature.Mesh)
                     {
                         Log.Warning("MeshContentMeshService not available for registration");
                     }
 
-                    var podsService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.PodsMeshService>();
-                    if (podsService != null)
+                    var podsService = OptionsAtStartup.Feature.Pods
+                        ? ServiceProvider.GetService<Mesh.ServiceFabric.Services.PodsMeshService>()
+                        : null;
+                    if (podsService is not null)
                     {
                         router.RegisterService(podsService);
                         Log.Information("Registered Pods mesh service for remote Pod workflows");
                     }
-                    else
+                    else if (OptionsAtStartup.Feature.Pods)
                     {
                         Log.Warning("PodsMeshService not available for registration");
                     }
 
-                    var virtualSoulfindService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.VirtualSoulfindMeshService>();
-                    if (virtualSoulfindService != null)
+                    var virtualSoulfindService = OptionsAtStartup.Feature.VirtualSoulfind
+                        ? ServiceProvider.GetService<Mesh.ServiceFabric.Services.VirtualSoulfindMeshService>()
+                        : null;
+                    if (virtualSoulfindService is not null)
                     {
                         router.RegisterService(virtualSoulfindService);
                         Log.Information("Registered shadow-index mesh service for remote content discovery");
                     }
-                    else
+                    else if (OptionsAtStartup.Feature.VirtualSoulfind)
                     {
                         Log.Warning("VirtualSoulfindMeshService not available for registration");
                     }
 
-                    var privateGatewayService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.PrivateGatewayMeshService>();
-                    if (privateGatewayService != null)
+                    var privateGatewayService = OptionsAtStartup.Feature.Mesh
+                        ? ServiceProvider.GetService<Mesh.ServiceFabric.Services.PrivateGatewayMeshService>()
+                        : null;
+                    if (privateGatewayService is not null)
                     {
                         router.RegisterService(privateGatewayService);
                         Log.Information("Registered private-gateway mesh service for Pod forwarding");
                     }
-                    else
+                    else if (OptionsAtStartup.Feature.Mesh)
                     {
                         Log.Warning("PrivateGatewayMeshService not available for registration");
                     }
 
-                    var introspectionService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.MeshIntrospectionService>();
-                    if (introspectionService != null)
+                    var introspectionService = OptionsAtStartup.Feature.Mesh
+                        ? ServiceProvider.GetService<Mesh.ServiceFabric.Services.MeshIntrospectionService>()
+                        : null;
+                    if (introspectionService is not null)
                     {
                         router.RegisterService(introspectionService);
                         Log.Information("Registered mesh-introspect service");
                     }
-                    else
+                    else if (OptionsAtStartup.Feature.Mesh)
                     {
                         Log.Warning("MeshIntrospectionService not available for registration");
                     }

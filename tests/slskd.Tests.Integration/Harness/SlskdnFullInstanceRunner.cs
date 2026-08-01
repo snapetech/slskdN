@@ -255,6 +255,11 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         sb.AppendLine("  cache:");
         sb.AppendLine("    storage_mode: disk");
         sb.AppendLine("feature:");
+        sb.AppendLine("  Dht: true");
+        sb.AppendLine("  Mesh: true");
+        sb.AppendLine("  MultiSourceDownloads: true");
+        sb.AppendLine("  Pods: true");
+        sb.AppendLine("  VirtualSoulfind: true");
         sb.AppendLine("  identityFriends: true");
         sb.AppendLine("  collectionsSharing: true");
         sb.AppendLine("  scenePodBridge: true");
@@ -265,7 +270,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         sb.AppendLine($"  password: {YamlEscape(soulseekPassword ?? "test-password")}");
         sb.AppendLine("  listen_ip_address: 0.0.0.0");
         sb.AppendLine($"  listen_port: {soulseekListenPort ?? 50300}");
-        sb.AppendLine("dhtRendezvous:");
+        sb.AppendLine("dht:");
         sb.AppendLine("  enabled: true");
         sb.AppendLine($"  overlay_port: {overlayPort ?? 50305}");
         sb.AppendLine($"  dht_port: {dhtPort ?? 50305}");
@@ -276,6 +281,9 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         sb.AppendLine("  announce_interval_seconds: 900");
         sb.AppendLine("  discovery_interval_seconds: 600");
         sb.AppendLine("  min_neighbors: 1");
+        sb.AppendLine("mesh:");
+        sb.AppendLine("  enable_dht: true");
+        sb.AppendLine("  enable_overlay: true");
         sb.AppendLine("overlay:");
         sb.AppendLine("  enable: false");
         sb.AppendLine($"  listen_port: {udpOverlayPort ?? 50400}");

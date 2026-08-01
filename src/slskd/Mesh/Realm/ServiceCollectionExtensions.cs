@@ -16,8 +16,9 @@ namespace slskd.Mesh.Realm
         ///     Adds realm services to the service collection.
         /// </summary>
         /// <param name="services">The service collection.</param>
+        /// <param name="runHostedServices">Whether realm initialization workers should run.</param>
         /// <returns>The service collection.</returns>
-        public static IServiceCollection AddRealmServices(this IServiceCollection services)
+        public static IServiceCollection AddRealmServices(this IServiceCollection services, bool runHostedServices)
         {
             // Register concrete service first
             services.AddSingleton<RealmService>();
@@ -25,14 +26,20 @@ namespace slskd.Mesh.Realm
             // Bind interface to same singleton instance
             services.AddSingleton<IRealmService>(sp => sp.GetRequiredService<RealmService>());
 
-            // Hosted service uses concrete RealmService
-            services.AddHostedService<RealmHostedService>();
+            if (runHostedServices)
+            {
+                // Hosted service uses concrete RealmService
+                services.AddHostedService<RealmHostedService>();
+            }
 
             // Register multi-realm service (T-REALM-02)
             services.AddSingleton<MultiRealmService>();
 
-            // Register multi-realm service as hosted service for initialization
-            services.AddHostedService<MultiRealmHostedService>();
+            if (runHostedServices)
+            {
+                // Register multi-realm service as hosted service for initialization
+                services.AddHostedService<MultiRealmHostedService>();
+            }
 
             // Register migration services (T-REALM-05)
             services.AddRealmMigrationServices();

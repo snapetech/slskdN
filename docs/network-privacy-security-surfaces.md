@@ -8,7 +8,7 @@ This document records remediation rules for features that can publish data, disc
 | --- | --- |
 | Explicit opt-in | Features that publish externally identifiable state must default off and require an operator action. |
 | Visible privacy copy | The UI must describe what identifier or interest is published before enabling the action. |
-| Server-side gate | UI disablement is not sufficient; the API must enforce the same feature flag and relay-agent restrictions. Most current `feature.*` values are API gates, not global service-lifecycle switches. |
+| Server-side gate | UI disablement is not sufficient; the API and corresponding hosted/network services must enforce the same feature flag and relay-agent restrictions. |
 | Rate limiting | Soulseek-originated discovery and browse/search style calls must pass through `ISoulseekSafetyLimiter`. |
 | Versioned route preference | New web-consumed APIs should use `/api/v0/*` unless intentionally native/internal and documented. |
 | Minimal data display | Candidate peer and mesh diagnostics should show enough to operate the feature without exposing unnecessary topology. |
@@ -21,10 +21,10 @@ This document records remediation rules for features that can publish data, disc
 | --- | --- | --- | --- | --- |
 | Soulseek recommendations/interests | Interest strings and account identity through Soulseek protocol | Existing Soulseek behavior | Auth, relay-agent gate, safety limiter on reads/mutations | UI is search-adjacent and user initiated. |
 | Soulseek mesh rendezvous | Recognizable `slskdN` mesh interest tag on the Soulseek account | Disabled | `mesh.enableSoulseekRendezvous`, auth, relay-agent gate, safety limiter | System > Mesh shows warning and opt-in controls. |
-| Mesh transport/DHT | Peer descriptor and mesh transport metadata | Public DHT, mesh DHT/overlay, and STUN are default-on | Independent `dht.*`, `mesh.*`, `overlay.*`, and transport settings; `feature.Mesh`/`feature.Dht` only gate APIs | Mesh routing can prefer configured Tor/I2P or anti-DPI transports while falling back to normal routing. False API flags do not establish process dormancy. |
+| Public DHT rendezvous / mesh DHT / mesh transport | Public BitTorrent DHT endpoint announcements and lookups; signed mesh descriptors and metadata over the mesh overlay | Disabled | Feature lifecycle gates plus independent `dht.*`, `mesh.*`, `overlay.*`, and transport settings | Public DHT requires explicit `feature.Dht: true`, `dht.enabled: true`, and `dht.lan_only: false`; it discovers overlay endpoints only. Mesh DHT metadata and file bytes use separate overlay paths. |
 | Federation/ActivityPub | Federated profile/activity data | Experimental/configured | Mesh/federation options | Needs admin diagnostics before broader UI exposure. |
-| Pods/native sharing | Pod metadata and membership state | Gold Star pod creation and auto-enrollment are default-on | Pod API gate plus separate `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN` enrollment control | `feature.Pods: false` does not stop the hosted Gold Star service; disabling auto-join still ensures the reserved pod locally. |
-| Identity LAN discovery | Profile display name and friend code over mDNS | Enabled | `feature.IdentityFriends` | Unlike most experimental flags, this one also controls application-startup mDNS advertising. |
+| Pods/native sharing | Pod metadata and membership state | Disabled | `feature.Pods` lifecycle gate plus separate `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN` enrollment control | Disabled pods do not create, publish, or auto-join Gold Star. With pods enabled, disabling auto-join still ensures the reserved pod locally. |
+| Identity LAN discovery | Profile display name and friend code over mDNS | Disabled | `feature.IdentityFriends` | Enabling Identity/Friends also opts into application-startup mDNS advertising. |
 | Swarm jobs | Source/job status inside local web UI | Local view | Authenticated APIs | Modal is tied to active jobs; no standalone exposure. |
 | Web player | Local browser playback state and file access | User initiated | Existing auth/file APIs | Browser-local queue state should stay local unless explicitly synced. |
 

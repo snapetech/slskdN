@@ -114,6 +114,21 @@ public class HostedServiceLifecycleTests
     }
 
     [Fact]
+    public async Task DhtRendezvousService_Disabled_StartsAndStopsWithoutInitializationWait()
+    {
+        var service = new DhtRendezvousService(
+            Mock.Of<ILogger<DhtRendezvousService>>(),
+            Mock.Of<IMeshOverlayServer>(),
+            Mock.Of<IMeshOverlayConnector>(),
+            new MeshNeighborRegistry(Mock.Of<ILogger<MeshNeighborRegistry>>()),
+            Mock.Of<IMeshPeerManager>(),
+            new DhtRendezvousOptions { Enabled = false });
+
+        await service.StartAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(1));
+        await service.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
     public void DhtRendezvousService_Dispose_CancelsInitializationAndDetachesDhtEngineSubscriptions()
     {
         var service = new DhtRendezvousService(

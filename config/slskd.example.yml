@@ -1,625 +1,637 @@
-# debug: false
-# headless: false
-# remote_configuration: false
-# remote_file_management: false
-# instance_name: default
-# flags:
-#   no_logo: false
-#   no_start: false
-#   no_config_watch: false
-#   no_connect: false
-#   no_share_scan: false
-#   force_share_scan: false
-#   force_migrations: false
-#   no_version_check: false
-#   log_sql: false
-#   log_unobserved_exceptions: false
-#   experimental: false
-#   volatile: false
-#   case_sensitive_reg_ex: false
-#   legacy_windows_tcp_keepalive: false
-#   optimistic_relay_file_info: false
-# soulseek:
-#   liked_interests: [] # published to native Soulseek interests after login
-#   hated_interests: [] # published to native Soulseek dislikes after login
-# relay:
-#   enabled: false
-#   mode: controller # controller (default), agent, or debug (for local development)
-#   # controller config is required when running in 'agent' mode
-#   # this specifies the relay controller that will be controlling this agent
-#   controller:
-#     address: https://some.site.com:5000
-#     ignore_certificate_errors: false
-#     api_key: <a 16-255 character string corresponding to one of the controller's 'readwrite' or 'administrator' API keys>
-#     secret: <a 16-255 character shared secret matching the controller's config for this agent>
-#     downloads: false
-#   # agent config is optional when running in 'controller' mode
-#   # this specifies all of the agents capable of connecting
-#   agents:
-#     my_agent:
-#       instance_name: my_agent # make sure the top-level instance_name of the agent matches!
-#       secret: <a 16-255 character string unique to this agent>
-#       cidr: 0.0.0.0/0,::/0
-# permissions:
-#   file:
-#     mode: ~ # not for Windows, chmod syntax, e.g. 644, 777. can't escalate beyond umask
-# directories:
-#   incomplete: ~
-#   downloads: ~
-# shares:
-#   directories:
-#     - ~
-#   filters:
-#     - \.ini$
-#     - Thumbs.db$
-#     - \.DS_Store$
-#   probe_media_attributes: true # set false on slow/remote storage to skip TagLib audio probing during scans
-#   cache:
-#     storage_mode: memory
-#     workers: 4 # default is conservative; lower this on weaker hosts, raise it carefully if scans are too slow
-#     retention: ~ # retain indefinitely (do not automatically re-scan)
-# rooms:
-#   - ~
-# transfers:
-#   upload:
-#     slots: 20
-#     speed_limit: 1000 # in kibibytes
-#     limits:
-#       queued:
-#         files: 500
-#         megabytes: 5000
-#       daily:
-#         files: 1000
-#         megabytes: 10000
-#         failures: 200
-#       weekly:
-#         files: 5000
-#         megabytes: 50000
-#         failures: 1000
-#   download:
-#     slots: 500
-#     speed_limit: 1000
-#     completed_layout: remote_folder # default; preserves source folder/file names. Other values: uploader_folder (<uploader>/<remote folder>/<files>), batch_id, or flat
-#     completed_path_template: '' # optional override; e.g. '{uploader}/{remote_folder}'. Tokens: {uploader}, {remote_folder}, {remote_parent}, {remote_filename}, {batch_id}, {request_name}, {date}, {date:yyyy-MM}
-#     retry:
-#       incomplete: resume # resume or overwrite
-#       attempts: 1
-#       delay: 5000
-#       max_delay: 60000
-#     auto_retry:
-#       enabled: true # retry failed downloads conservatively; disable if you only want manual retries
-#       retry_delay_seconds: 1800 # wait this long after a failed transfer before retrying it
-#       check_interval_seconds: 300 # scan for failed transfers this often
-#       max_attempts: 5 # maximum automatic retries per username+filename per process lifetime; 0 means retry forever
-#       max_files_per_cycle: 10 # global Soulseek retry budget per scan
-#       max_files_per_peer_per_cycle: 1 # avoid repeatedly hitting one remote peer in a scan
-#       peer_cooldown_seconds: 900 # wait this long before contacting the same peer again via auto-retry
-#       alternate_sources_enabled: true # prefer cooled-down alternate sources from local HashDb/search before retrying the same peer
-#       max_alternate_source_searches_per_cycle: 1 # bounded network searches per scan when local evidence has no alternate
-#       alternate_source_size_tolerance_percent: 5 # maximum size difference for alternate-source retry candidates
-#     auto_replace_stuck: true
-#     auto_replace_threshold: 5.0
-#     auto_replace_interval: 60
-#   groups:
-#     default:
-#       upload:
-#         priority: 500
-#         strategy: roundrobin
-#         slots: 10
-#         limits:
-#           queued:
-#             files: 150
-#             megabytes: 1500
-#           daily: ~ # no daily limits (weekly still apply)
-#           weekly:
-#             files: 1500
-#             megabytes: 15000
-#             failures: 150
-#     leechers:
-#       thresholds:
-#         files: 1
-#         directories: 1
-#       upload:
-#         priority: 999
-#         strategy: roundrobin
-#         slots: 1
-#         speed_limit: 100
-#         limits:
-#           queued:
-#             files: 15
-#             megabytes: 150
-#           daily:
-#             files: 30
-#             megabytes: 300
-#             failures: 10
-#           weekly:
-#             files: 150
-#             megabytes: 1500
-#             failures: 30
-#     blacklisted:
-#       members:
-#         - <username to blacklist>
-#       cidrs:
-#         - <CIDR to blacklist, e.g. 255.255.255.255/32>
-#       patterns:
-#         - ^spammer_[0-9]+$
-#     user_defined:
-#       my_buddies:
-#         upload:
-#           priority: 250
-#           strategy: firstinfirstout
-#           slots: 10
-#           limits:
-#             queued:
-#               files: 1000 # override global default
-#         members:
-#           - alice
-#           - bob
-# player:
-#   external_visualizer:
-#     enabled: false # opt in only; launches on the slskdN host, not the browser device
-#     name: MilkDrop3
-#     path: "" # e.g. C:\Tools\MilkDrop3\MilkDrop 3.exe or /usr/local/bin/milkdrop3-wine
-#     working_directory: "" # optional; defaults to the executable directory when omitted
-#     arguments: [] # optional configured-only args; the browser cannot supply launch args
-# dht:
-#   enabled: true
-#   lan_only: false # set true to avoid public BitTorrent DHT bootstrap/discoverability
-#   overlay_port: 50305 # TCP overlay rendezvous. Can share the same numeric port as dht_port because TCP/UDP port spaces are separate.
-#   advertised_overlay_port: 0 # optional public TCP overlay port to announce when VPN/NAT rewrites overlay_port; 0 uses overlay_port
-#   vpn_port_sync: disabled # auto-follow VPN port forwarding for advertised_overlay_port; requires integration.vpn.enabled + port_forwarding
-#                           # disabled   - no sync; advertised_overlay_port is used as-is (default)
-#                           # primary    - track VPNStatus.ForwardedPort (standard gluetun: one port, updated every reconnect)
-#                           # target_port - track the VPN port-forward slot whose local port equals overlay_port (multi-slot forwarding)
-#   dht_port: 50305 # explicit stable UDP port; forward/allow-list this port if DHT rendezvous is enabled
-#   bootstrap_routers:
-#     - router.bittorrent.com
-#     - router.utorrent.com
-#     - dht.transmissionbt.com
-#   announce_interval_seconds: 900
-#   discovery_interval_seconds: 600
-#   min_neighbors: 3
-#   bootstrap_timeout_seconds: 120 # warm startup when a saved DHT node table exists
-#   cold_bootstrap_timeout_seconds: 180 # first startup or missing saved DHT node table
-#   lan_only_bootstrap_timeout_seconds: 30 # shorter because public bootstrap routers are disabled
-#   enable_upnp: false # opt in only; when true slskdn will try to map overlay/dht ports automatically
-#   enable_stun: true
-# destinations:
-#   folders:
-#     # Paths must exist inside the host/container and be writable by slskdN.
-#     # Set default: true on at most one folder. It becomes the daemon-wide
-#     # destination for downloads without an explicit Search/Browse UI choice.
-#     - name: "Music"
-#       path: "/downloads/music"
-#       default: true
-#     - name: "Audiobooks"
-#       path: "/downloads/audiobooks"
-# blacklist:
-#   enabled: true
-#   file: <path to file containing CIDRs to blacklist>
-# wishlist:
-#   enabled: true             # background wishlist searching; on by default
-#   interval_seconds: 3600    # delay between full wishlist scan cycles (min 300)
-#   auto_download: false      # global default; per-item autoDownload overrides this
-#   max_results: 100
-# filters:
-#   search:
-#     request:
-#       - ^.{1,2}$
-#   search_retention:
-#     max_age_days: 30            # auto-delete searches older than this (0 = no age limit)
-#     max_count: 1000             # keep at most this many searches (0 = no count limit)
-#     cleanup_interval_seconds: 86400  # how often to run cleanup (default: daily)
-# web:
-#   port: 5030
-#   socket: ~
-#   https:
-#     disabled: false
-#     port: 5031
-#     force: false
-#     certificate:
-#       pfx: ~
-#       password: ~
-#   url_base: /
-#   content_path: wwwroot
-#   enforce_security: false   # PR-01: when true, strict auth/CORS/startup checks; ModelState 400 when invalid
-#   allow_remote_no_auth: false  # when no-auth, allow non-loopback only if true
-#   max_request_body_size: 10485760  # PR-09: Kestrel Limits.MaxRequestBodySize in bytes; default 10 MB
-#   logging: false
-#   authentication:
-#     disabled: false
-#     username: slskd
-#     password: ""   # set a non-empty password before enabling metrics auth
-#     passthrough:              # PR-03: when no-auth, AllowedCidrs can allow non-loopback in addition to loopback
-#       allowed_cidrs: ~        # optional; e.g. 127.0.0.1/32,::1/128
-#     jwt:
-#       key: ~
-#       ttl: 604800000
-#     api_keys:
-#       my_api_key:
-#         key: <some example string between 16 and 255 characters>
-#         role: readonly # readonly, readwrite, administrator
-#         cidr: 0.0.0.0/0,::/0
-#   cors:
-#     enabled: false
-#     allowed_origins: []       # e.g. [https://app.example.com] when enabled; required when enabled
-#     allow_credentials: false
-#     allowed_headers: []       # empty = any
-#     allowed_methods: []       # empty = any
-#   rate_limiting:              # PR-09: HTTP rate limits (api, federation inbox, mesh gateway). Per-IP.
-#     enabled: true
-#     api_permit_limit: 200
-#     api_window_seconds: 60
-#     federation_permit_limit: 30
-#     federation_window_seconds: 60
-#     mesh_gateway_permit_limit: 60
-#     mesh_gateway_window_seconds: 60
-# retention:
-#   search: 10080 # 7 days, in minutes
-#   transfers:
-#     upload:
-#       succeeded: 1440 # 1 day, in minutes
-#       errored: 30
-#       cancelled: 5
-#     download:
-#       succeeded: 1440 # 1 day, in minutes
-#       errored: 20160 # 2 weeks, in minutes
-#       cancelled: 5
-#   files:
-#     complete: 20160 # 2 weeks, in minutes
-#     incomplete: 43200 # 30 days, in minutes
-#   logs: 180 # days
-# logger:
-#   disk: false
-#   no_color: false
-#   loki: ~
-# diagnostics:
-#   allow_memory_dump: false   # when false, /api/v0/application/dump returns 404
-#   allow_remote_dump: false   # when false, dump allowed only from loopback (127.0.0.1, ::1)
-# metrics:
-#   enabled: false
-#   url: /metrics
-#   authentication:
-#     disabled: false
-#     username: slskd
-#     password: ""   # set a non-empty password before enabling metrics auth
-# telemetry:
-#   tracing:
-#     enabled: false              # Enable OpenTelemetry distributed tracing (default: false)
-#     exporter: console           # Exporter type: console, jaeger, otlp (default: console)
-#     jaeger_endpoint: http://localhost:4317  # Jaeger OTLP collector endpoint (default: unset)
-#     jaeger_port: 4317           # Jaeger OTLP collector port when endpoint is a host only (default: 4317)
-#     otlp_endpoint: http://localhost:4317  # OTLP collector endpoint (default: http://localhost:4317)
-# song_id:
-#   max_concurrent_runs: 2        # Process SongID jobs in the background with a fixed worker pool while allowing unbounded queueing
-# player:
-#   external_visualizer:
-#     enabled: false              # Enable authenticated API launch of a locally configured external visualizer helper
-#     name: MilkDrop3
-#     path: ""                    # Executable or launcher script path. Keep empty unless you trust the local slskdN admin surface.
-#     working_directory: ""       # Optional working directory for the launcher
-#     arguments: []               # Optional argument list passed as separate process arguments
-# virtualSoulfind:
-#   bridge:
-#     enabled: false              # Opt in to the legacy Soulfind protocol bridge.
-#     bindAddress: 127.0.0.1      # Loopback by default. Non-loopback requires auth and a password.
-#     port: 2242
-#     maxClients: 10
-#     requireAuth: true           # Secure default. Set a strong password before enabling.
-#     password: ""
-#     maxRequestsPerMinute: 60    # Per connected client.
-#     maxTransfersPerSession: 10 # Total downloads initiated by one connection.
-#   disasterMode:
-#     auto: false                 # Legacy auto-fallback. Opt-in only. Default behavior is Soulseek + mesh together.
-#     force: false                # Force legacy fallback for testing only.
-#     unavailableThresholdMinutes: 10
-#     enableGracefulDegradation: true
-#     recoveryCheckIntervalMinutes: 5
-#     recoveryHealthyChecksRequired: 3
-# PodCore.Security (MessageSigner). Binds to PodCore:Security.
-# PodCore.Join binds to PodCore:Join. Off accepts legacy non-Ed25519 join/leave
-# signatures for compatibility; Warn logs legacy or missing signatures; Enforce
-# requires ed25519:<base64 signature>, a valid Ed25519 public key, fresh
-# timestamp, and a join Nonce for replay protection.
-# PodCore:
-#   Security:
-#     SignatureMode: Off   # Off | Warn | Enforce
-#   Join:
-#     SignatureMode: Off   # Off | Warn | Enforce
-# feature:                    # Controller/API gates; most values below do not stop background services. See docs/runtime-feature-gating.md.
-#   swagger: true              # Enable Swagger API documentation UI (default: true)
-#   CollectionsSharing: true   # Enable Collections, ShareGroups, ShareGrants APIs (default: true)
-#   Streaming: true            # Enable streaming API (/api/v0/streams/{contentId}) (default: true)
-#   StreamingRelayFallback: true  # Enable relay streaming fallback (controller proxies to agent) (default: true)
-#   MeshParallelSearch: true  # Run mesh overlay search in parallel with Soulseek and merge results (default: true)
-#   MeshPublishAvailability: true  # Publish availability to mesh/DHT (default: true)
-#   IdentityFriends: true      # Enable Identity & Friends (profiles, contacts, invites) (default: true)
-#   ScenePodBridge: false       # Opt in to experimental Scene ↔ Pod Bridging (default: false).
-#                                # When enabled, search results from both Pod/Mesh and Soulseek Scene are merged and deduplicated.
-#                                # Keep disabled if you want the proven upstream-compatible Soulseek search path.
-#                                # Pod results can be downloaded from remote mesh peers if not available locally.
-#                                # Scene results use the standard Soulseek download pipeline.
-#   SongId: true                # Experimental SongID analysis APIs (default: true).
-#   Mesh: true                  # Gate mesh APIs (default: true); does not stop mesh hosted services.
-#   Dht: true                   # Gate DHT APIs (default: true); use dht.enabled and mesh.enable_dht for runtime activity.
-#   Pods: true                  # Gate pod APIs (default: true); does not stop Gold Star service/auto-enrollment.
-#   SocialFederation: true      # Gate ActivityPub/social federation APIs (default: true); not a global service switch.
-#   VirtualSoulfind: true       # Gate VirtualSoulfind APIs (default: true); not a global service switch.
-#   MultiSourceDownloads: true  # Gate multi-source/swarm APIs (default: true); not a global service switch.
-#   ScenePodBridgeOptions:
-#     ProxyTransfers: false     # Proxy scene downloads through pod (future feature, intentionally disabled)
-#     ExportPodAvailability: false  # Export pod availability to scene (future feature, intentionally disabled)
-#   Solid: true                  # Enable Solid (WebID, Solid-OIDC) (default: true)
-#                                # Note: Even when enabled, remote fetches are blocked until AllowedHosts is configured (SSRF safety)
-# solid:
-#   allowedHosts: []            # Empty = deny all remote fetches (SSRF safety). Add hostnames like ["your-solid-idp.example", "your-pod-provider.example"]
-#                                # IMPORTANT: Solid feature is enabled by default, but will not work until you add at least one hostname here
-#   timeoutSeconds: 10
-#   maxFetchBytes: 1000000
-#   allowInsecureHttp: false    # ONLY for dev/test. Keep false in production
-#   redirectPath: "/solid/callback"
-# security:
-#   enabled: true  # Enable security features (path traversal protection is ALWAYS enabled)
-#   profile: Standard  # Security profile: Minimal, Standard, Maximum, or Custom
-#   network_guard:
-#     enabled: true
-#     max_connections_per_ip: 10
-#     max_global_connections: 100
-#     max_messages_per_minute: 60
-#     max_message_size: 10485760  # 10 MB
-#   violation_tracker:
-#     enabled: true
-#     violations_before_auto_ban: 5
-#     base_ban_duration_minutes: 60
-#   path_guard:
-#     enabled: true  # Path traversal protection (ALWAYS enabled, even if security.enabled is false)
-#     max_path_length: 512
-#     max_path_depth: 20
-#   content_safety:
-#     enabled: true
-#     verify_magic_bytes: true
-#     quarantine_suspicious: true
-#     quarantine_directory: ~
-#     block_executables: true
-#   peer_reputation:
-#     enabled: true
-#     trusted_threshold: 70
-#     untrusted_threshold: 20
-#   adversarial:  # Security:Adversarial (privacy, padding, anonymity, etc.)
-#     privacy:
-#       padding:
-#         max_unpadded_bytes: 0  # 0=default 1MB. PR-11 DoS limit for Unpad.
-#         max_padded_bytes: 0    # 0=default 2MB. PR-11 DoS limit for Unpad.
-#     anonymity:   # I2P, RelayOnly, Tor. AnonymityLayerOptions.
-#       relay_only:
-#         relay_peer_data_endpoints: []  # ["host:port"] per relay's QUIC data overlay; used when TrustedRelayPeers not resolved. Required for RelayOnly until peer-id resolution.
-#         relay_authentication_token: "" # Must match the trusted relay's overlay_data token.
-#         # trusted_relay_peers: []
-#         # max_chain_length: 3
-# soulseek:
-#   address: vps.slsknet.org
-#   port: 2271
-#   username: ~
-#   password: ~
-#   description: |
-#     A slskdN user. Unofficial fork of slskd: https://github.com/snapetech/slskdn
-#   picture: path/to/slsk-profile-picture.jpg
-#   listen_ip_address: 0.0.0.0  # do not use 127.0.0.1/::1 for live peer traffic; remote peers will not be able to connect back
-#   listen_port: 50300
-#   obfuscation:
-#     enabled: true
-#     mode: compatibility      # compatibility keeps regular outbound dials first; prefer prioritizes compatible obfuscated dials
-#     listen_port: 0           # 0 derives from listen_port + 1 when runtime support exists
-#     advertise_regular_port: true
-#     prefer_outbound: true    # only changes outbound priority when mode is prefer
-#   private_message_auto_response:
-#     enabled: false
-#     message: "Hi, I'm human and testing a slskdN client. Shares may be temporarily unavailable while I validate the client."
-#     cooldown_minutes: 360
-#   diagnostic_level: Info
-#   distributed_network:
-#     disabled: false
-#     disable_children: false
-#     child_limit: 25
-#     logging: false
-#   connection:
-#     timeout:
-#       connect: 10000
-#       inactivity: 60000
-#       transfer: 60000
-#     buffer:
-#       read: 16384
-#       write: 16384
-#       transfer: 262144
-#       write_queue: 250
-#     proxy:
-#       enabled: false
-#       address: ~
-#       port: ~
-#       username: ~
-#       password: ~
-# overlay:
-#   enable: true
-#   listen_port: 50305               # UDP overlay control shares the DHT UDP forward by default
-#   enable_quic: true
-#   quic_listen_port: 50305          # public QUIC overlay port; shares the DHT UDP forward when share_quic_with_dht_port is true
-#   share_quic_with_dht_port: true   # DHT binds 50305/udp and demuxes DHT, UDP overlay, and QUIC traffic
-#   quic_backend_listen_port: 55305  # loopback-only MsQuic listener behind the shared public UDP port; do not forward this
-#   trusted_certificate_pins: {} # { "203.0.113.10:50305": ["base64-spki-sha256"] }; direct QUIC clients fail closed without a matching endpoint pin.
-# overlay_data:
-#   enable: false        # QUIC data plane; requires a stable MsQuic/runtime stack
-#   listen_port: 50401
-#   relay_authentication_token: "" # Required to enable RELAY_TCP; use a high-entropy shared secret.
-#   allowed_relay_destinations: [] # Exact public host:port destinations; private and loopback addresses are always denied.
-#   max_concurrent_relays: 4
-#   max_relay_bytes_per_direction: 67108864
-#   max_relay_duration_seconds: 300
-#   trusted_certificate_pins: {} # { "203.0.113.10:50401": ["base64-spki-sha256"] }; required for outbound data-plane QUIC.
-# integrations:
-#   vpn:
-#     enabled: false
-#     port_forwarding: false
-#     self_hosted_relay: false # enable only for the authenticated slskdN VPS companion; requires port_forwarding
-#     polling_interval: 2500
-#     gluetun:
-#       url: "http://100.64.0.1:8010" # use the relay's private Tailscale/WireGuard address in self-hosted relay mode
-#       timeout: 5000
-#       api_key: "" # use the independent relay status key, never the slskdN API key
-#   lidarr:
-#     enabled: false
-#     url: "http://127.0.0.1:8686"
-#     api_key: ""
-#     timeout_seconds: 20
-#     sync_wanted_to_wishlist: false # when true, Lidarr Wanted/Missing albums become slskdN Wishlist searches
-#     sync_interval_seconds: 3600
-#     max_items_per_sync: 100
-#     auto_download: false # applies only to Wishlist items created by Lidarr sync
-#     wishlist_filter: ""
-#     wishlist_max_results: 100
-#     auto_import_completed: false # when true, clean completed download directories are submitted to Lidarr manual import
-#     import_mode: "move" # move or copy
-#     import_replace_existing_files: false
-#     delete_rejected_downloads: false # delete only exact files rejected by Lidarr; never recursively deletes the directory
-#     blacklist_rejected_downloads: false # ignore the exact Wishlist peer+remote directory after rejection
-#     import_path_from: "" # optional local slskdN completed path prefix
-#     import_path_to: ""   # optional Lidarr-visible completed path prefix
-#   spotify:
-#     enabled: false # enables Spotify source-feed imports and account connection
-#     client_id: ""
-#     client_secret: "" # optional for OAuth; required for app-token public imports without a connected account
-#     redirect_uri: "" # optional; defaults to /api/v0/integrations/spotify/callback on the current host
-#     timeout_seconds: 20
-#     max_items_per_import: 500
-#     market: "US" # used for artist top-track imports
-#   youtube:
-#     enabled: false
-#     api_key: "" # YouTube Data API key for source-feed playlist expansion
-#   lastfm:
-#     enabled: false
-#     api_key: "" # Last.fm API key for loved/recent/top track source-feed imports
-#   webhooks:
-#     my_webhook:
-#       on:
-#         - DownloadFileComplete
-#       call:
-#         url: https://192.168.1.42:8080/slskd_webhook
-#         headers:
-#           - name: X-API-Key
-#             value: foobar1234
-#           - name: Authorization
-#             value: Bearer eyJ...ssw5c
-#           - name: User-Agent
-#             value: slskd/0.0
-#         ignore_certificate_errors: false
-#       timeout: 5000 # in milliseconds
-#       retry:
-#         attempts: 3
-#   scripts:
-#     run_command_with_linux_system_shell: # automatically uses the executable defined in $SHELL
-#       on:
-#         - DownloadFileComplete
-#       run:
-#         command: 'echo "$SLSKD_SCRIPT_DATA" >> linux_system_shell.txt'
-#     run_with_sh:
-#       on:
-#         - DownloadFileComplete
-#       run:
-#         executable: /bin/sh
-#         args: '-c "echo $SLSKD_SCRIPT_DATA >> linux_sh.txt"'
-#     run_with_sh_and_args_list:
-#       on:
-#         - DownloadFileComplete
-#       run:
-#         executable: /bin/sh
-#         arglist:
-#           - -c
-#           - echo $SLSKD_SCRIPT_DATA >> linux_sh_and_args_list.txt
-#     run_command_with_windows_system_shell: # automatically uses cmd.exe (included with all Windows installs)
-#       on:
-#         - DownloadFileComplete
-#       run:
-#         command: 'echo "%SLSKD_SCRIPT_DATA%" >> windows_system_shell.txt'
-#     run_with_windows_cmd:
-#       on:
-#         - DownloadFileComplete
-#       run:
-#         executable: cmd.exe
-#         args: '/c "echo "%SLSKD_SCRIPT_DATA%" >> windows_cmd.txt"'
-#     run_with_windows_git_bash:
-#       on:
-#         - DownloadFileComplete
-#       run:
-#         executable: C:\Program Files\Git\bin\bash.exe
-#         args: '-c "echo "$SLSKD_SCRIPT_DATA" >> windows_git_bash.txt"'
-#     run_with_windows_cmd_and_args_list:
-#       on:
-#         - DownloadFileComplete
-#       run:
-#         executable: cmd.exe
-#         arglist:
-#           - /c
-#           - 'echo "%SLSKD_SCRIPT_DATA%" >> windows_cmd_and_args_list.txt'
-#   ftp:
-#     enabled: false
-#     address: ~
-#     port: ~
-#     username: ~
-#     password: ~
-#     remote_path: /
-#     encryption_mode: auto
-#     ignore_certificate_errors: false
-#     overwrite_existing: true
-#     connection_timeout: 5000
-#     retry_attempts: 3
-#   pushbullet:
-#     enabled: false
-#     access_token: ~
-#     notification_prefix: "From slskdN:"
-#     notify_on_private_message: true
-#     notify_on_room_mention: true
-#     retry_attempts: 3
-#     cooldown_time: 900000
-#   ntfy:
-#     enabled: false
-#     url: ""
-#     access_token: ""
-#     notification_prefix: "slskdN"
-#     notify_on_private_message: true
-#     notify_on_room_mention: true
-#   pushover:
-#     enabled: false
-#     user_key: ""
-#     token: ""
-#     notification_prefix: "slskdN"
-#     notify_on_private_message: true
-#     notify_on_room_mention: true
-# Mesh runtime controls are independent from feature.Mesh. There is no mesh.enabled option.
-# Mesh.Security (PR-01, §8). Binds to Mesh:Security when Mesh section is used.
-# mesh:
-#   enable_dht: true                              # controls mesh descriptor DHT publishing/refresh; default true
-#   enable_overlay: true                          # controls mesh overlay availability; default true
-#   enable_soulseek_capability_handshake: true      # exchange signed slskdN runtime capabilities over Soulseek peer messages
-#   enable_soulseek_rendezvous: false              # opt-in only; publishes the public slskdn-mesh-v1 Soulseek interest tag
-#   probe_soulseek_rendezvous_capabilities: true   # probe rendezvous candidates for runtime capability descriptors
-#   dht:
-#     bootstrap_nodes: 60
-#   overlay:
-#     udp_port: 50301
-#     quic_port: 50302
-#   security:
-#     enforceRemotePayloadLimits: true   # when true, enforce max size and safe deserialization on overlay/transport
-#     maxRemotePayloadSize: 1048576      # 1 MiB; max for remote JSON/MessagePack payloads
+## This file is valid when copied as-is. To enable an example line, remove only
+## its first `#`; the remaining indentation is the intended YAML indentation.
+#debug: false
+#headless: false
+#remote_configuration: false
+#remote_file_management: false
+#instance_name: default
+#flags:
+#  no_logo: false
+#  no_start: false
+#  no_config_watch: false
+#  no_connect: false
+#  no_share_scan: false
+#  force_share_scan: false
+#  force_migrations: false
+#  no_version_check: false
+#  log_sql: false
+#  log_unobserved_exceptions: false
+#  experimental: false
+#  volatile: false
+#  case_sensitive_reg_ex: false
+#  legacy_windows_tcp_keepalive: false
+#  optimistic_relay_file_info: false
+#soulseek:
+#  liked_interests: [] # published to native Soulseek interests after login
+#  hated_interests: [] # published to native Soulseek dislikes after login
+#relay:
+#  enabled: false
+#  mode: controller # controller (default), agent, or debug (for local development)
+#  # controller config is required when running in 'agent' mode
+#  # this specifies the relay controller that will be controlling this agent
+#  controller:
+#    address: https://some.site.com:5000
+#    ignore_certificate_errors: false
+#    api_key: <a 16-255 character string corresponding to one of the controller's 'readwrite' or 'administrator' API keys>
+#    secret: <a 16-255 character shared secret matching the controller's config for this agent>
+#    downloads: false
+#  # agent config is optional when running in 'controller' mode
+#  # this specifies all of the agents capable of connecting
+#  agents:
+#    my_agent:
+#      instance_name: my_agent # make sure the top-level instance_name of the agent matches!
+#      secret: <a 16-255 character string unique to this agent>
+#      cidr: 0.0.0.0/0,::/0
+#permissions:
+#  file:
+#    mode: ~ # not for Windows, chmod syntax, e.g. 644, 777. can't escalate beyond umask
+#directories:
+#  incomplete: ~
+#  downloads: ~
+#shares:
+#  directories:
+#    - ~
+#  filters:
+#    - \.ini$
+#    - Thumbs.db$
+#    - \.DS_Store$
+#  probe_media_attributes: true # set false on slow/remote storage to skip TagLib audio probing during scans
+#  cache:
+#    storage_mode: memory
+#    workers: 4 # default is conservative; lower this on weaker hosts, raise it carefully if scans are too slow
+#    retention: ~ # retain indefinitely (do not automatically re-scan)
+#rooms:
+#  - ~
+#transfers:
+#  upload:
+#    slots: 20
+#    speed_limit: 1000 # in kibibytes
+#    limits:
+#      queued:
+#        files: 500
+#        megabytes: 5000
+#      daily:
+#        files: 1000
+#        megabytes: 10000
+#        failures: 200
+#      weekly:
+#        files: 5000
+#        megabytes: 50000
+#        failures: 1000
+#  download:
+#    slots: 500
+#    speed_limit: 1000
+#    completed_layout: remote_folder # default; preserves source folder/file names. Other values: uploader_folder (<uploader>/<remote folder>/<files>), batch_id, or flat
+#    completed_path_template: '' # optional override; e.g. '{uploader}/{remote_folder}'. Tokens: {uploader}, {remote_folder}, {remote_parent}, {remote_filename}, {batch_id}, {request_name}, {date}, {date:yyyy-MM}
+#    retry:
+#      incomplete: resume # resume or overwrite
+#      attempts: 1
+#      delay: 5000
+#      max_delay: 60000
+#    auto_retry:
+#      enabled: true # retry failed downloads conservatively; disable if you only want manual retries
+#      retry_delay_seconds: 1800 # wait this long after a failed transfer before retrying it
+#      check_interval_seconds: 300 # scan for failed transfers this often
+#      max_attempts: 5 # maximum automatic retries per username+filename per process lifetime; 0 means retry forever
+#      max_files_per_cycle: 10 # global Soulseek retry budget per scan
+#      max_files_per_peer_per_cycle: 1 # avoid repeatedly hitting one remote peer in a scan
+#      peer_cooldown_seconds: 900 # wait this long before contacting the same peer again via auto-retry
+#      alternate_sources_enabled: true # prefer cooled-down alternate sources from local HashDb/search before retrying the same peer
+#      max_alternate_source_searches_per_cycle: 1 # bounded network searches per scan when local evidence has no alternate
+#      alternate_source_size_tolerance_percent: 5 # maximum size difference for alternate-source retry candidates
+#    auto_replace_stuck: true
+#    auto_replace_threshold: 5.0
+#    auto_replace_interval: 60
+#  groups:
+#    default:
+#      upload:
+#        priority: 500
+#        strategy: roundrobin
+#        slots: 10
+#        limits:
+#          queued:
+#            files: 150
+#            megabytes: 1500
+#          daily: ~ # no daily limits (weekly still apply)
+#          weekly:
+#            files: 1500
+#            megabytes: 15000
+#            failures: 150
+#    leechers:
+#      thresholds:
+#        files: 1
+#        directories: 1
+#      upload:
+#        priority: 999
+#        strategy: roundrobin
+#        slots: 1
+#        speed_limit: 100
+#        limits:
+#          queued:
+#            files: 15
+#            megabytes: 150
+#          daily:
+#            files: 30
+#            megabytes: 300
+#            failures: 10
+#          weekly:
+#            files: 150
+#            megabytes: 1500
+#            failures: 30
+#    blacklisted:
+#      members:
+#        - <username to blacklist>
+#      cidrs:
+#        - <CIDR to blacklist, e.g. 255.255.255.255/32>
+#      patterns:
+#        - ^spammer_[0-9]+$
+#    user_defined:
+#      my_buddies:
+#        upload:
+#          priority: 250
+#          strategy: firstinfirstout
+#          slots: 10
+#          limits:
+#            queued:
+#              files: 1000 # override global default
+#        members:
+#          - alice
+#          - bob
+#player:
+#  external_visualizer:
+#    enabled: false # opt in only; launches on the slskdN host, not the browser device
+#    name: MilkDrop3
+#    path: "" # e.g. C:\Tools\MilkDrop3\MilkDrop 3.exe or /usr/local/bin/milkdrop3-wine
+#    working_directory: "" # optional; defaults to the executable directory when omitted
+#    arguments: [] # optional configured-only args; the browser cannot supply launch args
+#dht:
+#  enabled: false # opt in to public BitTorrent DHT rendezvous; this discovers mesh endpoints, not file data
+#  lan_only: true # default blocks public BitTorrent DHT bootstrap/discoverability
+#  overlay_port: 50305 # TCP slskdN mesh overlay rendezvous. Can share the same numeric port as dht_port because TCP/UDP port spaces are separate.
+#  advertised_overlay_port: 0 # optional public TCP overlay port to announce when VPN/NAT rewrites overlay_port; 0 uses overlay_port
+#  vpn_port_sync: disabled # auto-follow VPN port forwarding for advertised_overlay_port; requires integration.vpn.enabled + port_forwarding
+#                          # disabled   - no sync; advertised_overlay_port is used as-is (default)
+#                          # primary    - track VPNStatus.ForwardedPort (standard gluetun: one port, updated every reconnect)
+#                          # target_port - track the VPN port-forward slot whose local port equals overlay_port (multi-slot forwarding)
+#  dht_port: 50305 # explicit stable UDP port for the public BitTorrent DHT; forward/allow-list this port if rendezvous is enabled
+#  bootstrap_routers:
+#    - router.bittorrent.com
+#    - router.utorrent.com
+#    - dht.transmissionbt.com
+#  announce_interval_seconds: 900
+#  discovery_interval_seconds: 600
+#  min_neighbors: 3
+#  bootstrap_timeout_seconds: 120 # warm startup when a saved DHT node table exists
+#  cold_bootstrap_timeout_seconds: 180 # first startup or missing saved DHT node table
+#  lan_only_bootstrap_timeout_seconds: 30 # shorter because public bootstrap routers are disabled
+#  enable_upnp: false # opt in only; when true slskdn will try to map overlay/dht ports automatically
+#  enable_stun: false
+#destinations:
+#  folders:
+#    # Paths must exist inside the host/container and be writable by slskdN.
+#    # Set default: true on at most one folder. It becomes the daemon-wide
+#    # destination for downloads without an explicit Search/Browse UI choice.
+#    - name: "Music"
+#      path: "/downloads/music"
+#      default: true
+#    - name: "Audiobooks"
+#      path: "/downloads/audiobooks"
+#blacklist:
+#  enabled: true
+#  file: <path to file containing CIDRs to blacklist>
+#wishlist:
+#  enabled: true             # background wishlist searching; on by default
+#  interval_seconds: 3600    # delay between full wishlist scan cycles (min 300)
+#  auto_download: false      # global default; per-item autoDownload overrides this
+#  max_results: 100
+#filters:
+#  search:
+#    request:
+#      - ^.{1,2}$
+#  search_retention:
+#    max_age_days: 30            # auto-delete searches older than this (0 = no age limit)
+#    max_count: 1000             # keep at most this many searches (0 = no count limit)
+#    cleanup_interval_seconds: 86400  # how often to run cleanup (default: daily)
+#web:
+#  port: 5030
+#  socket: ~
+#  https:
+#    disabled: false
+#    port: 5031
+#    force: false
+#    certificate:
+#      pfx: ~
+#      password: ~
+#  url_base: /
+#  content_path: wwwroot
+#  enforce_security: false   # PR-01: when true, strict auth/CORS/startup checks; ModelState 400 when invalid
+#  allow_remote_no_auth: false  # when no-auth, allow non-loopback only if true
+#  max_request_body_size: 10485760  # PR-09: Kestrel Limits.MaxRequestBodySize in bytes; default 10 MB
+#  logging: false
+#  authentication:
+#    disabled: false
+#    username: slskd
+#    password: ""   # set a non-empty password before enabling metrics auth
+#    passthrough:              # PR-03: when no-auth, AllowedCidrs can allow non-loopback in addition to loopback
+#      allowed_cidrs: ~        # optional; e.g. 127.0.0.1/32,::1/128
+#    jwt:
+#      key: ~
+#      ttl: 604800000
+#    api_keys:
+#      my_api_key:
+#        key: <some example string between 16 and 255 characters>
+#        role: readonly # readonly, readwrite, administrator
+#        cidr: 0.0.0.0/0,::/0
+#  cors:
+#    enabled: false
+#    allowed_origins: []       # e.g. [https://app.example.com] when enabled; required when enabled
+#    allow_credentials: false
+#    allowed_headers: []       # empty = any
+#    allowed_methods: []       # empty = any
+#  rate_limiting:              # PR-09: HTTP rate limits (api, federation inbox, mesh gateway). Per-IP.
+#    enabled: true
+#    api_permit_limit: 200
+#    api_window_seconds: 60
+#    federation_permit_limit: 30
+#    federation_window_seconds: 60
+#    mesh_gateway_permit_limit: 60
+#    mesh_gateway_window_seconds: 60
+#retention:
+#  search: 10080 # 7 days, in minutes
+#  transfers:
+#    upload:
+#      succeeded: 1440 # 1 day, in minutes
+#      errored: 30
+#      cancelled: 5
+#    download:
+#      succeeded: 1440 # 1 day, in minutes
+#      errored: 20160 # 2 weeks, in minutes
+#      cancelled: 5
+#  files:
+#    complete: 20160 # 2 weeks, in minutes
+#    incomplete: 43200 # 30 days, in minutes
+#  logs: 180 # days
+#logger:
+#  disk: false
+#  no_color: false
+#  loki: ~
+#diagnostics:
+#  allow_memory_dump: false   # when false, /api/v0/application/dump returns 404
+#  allow_remote_dump: false   # when false, dump allowed only from loopback (127.0.0.1, ::1)
+#metrics:
+#  enabled: false
+#  url: /metrics
+#  authentication:
+#    disabled: false
+#    username: slskd
+#    password: ""   # set a non-empty password before enabling metrics auth
+#telemetry:
+#  tracing:
+#    enabled: false              # Enable OpenTelemetry distributed tracing (default: false)
+#    exporter: console           # Exporter type: console, jaeger, otlp (default: console)
+#    jaeger_endpoint: http://localhost:4317  # Jaeger OTLP collector endpoint (default: unset)
+#    jaeger_port: 4317           # Jaeger OTLP collector port when endpoint is a host only (default: 4317)
+#    otlp_endpoint: http://localhost:4317  # OTLP collector endpoint (default: http://localhost:4317)
+#song_id:
+#  max_concurrent_runs: 2        # Process SongID jobs in the background with a fixed worker pool while allowing unbounded queueing
+#player:
+#  external_visualizer:
+#    enabled: false              # Enable authenticated API launch of a locally configured external visualizer helper
+#    name: MilkDrop3
+#    path: ""                    # Executable or launcher script path. Keep empty unless you trust the local slskdN admin surface.
+#    working_directory: ""       # Optional working directory for the launcher
+#    arguments: []               # Optional argument list passed as separate process arguments
+#virtualSoulfind:
+#  bridge:
+#    enabled: false              # Opt in to the legacy Soulfind protocol bridge.
+#    bindAddress: 127.0.0.1      # Loopback by default. Non-loopback requires auth and a password.
+#    port: 2242
+#    maxClients: 10
+#    requireAuth: true           # Secure default. Set a strong password before enabling.
+#    password: ""
+#    maxRequestsPerMinute: 60    # Per connected client.
+#    maxTransfersPerSession: 10 # Total downloads initiated by one connection.
+#  disasterMode:
+#    auto: false                 # Legacy auto-fallback. Opt-in only. Default behavior is Soulseek + mesh together.
+#    force: false                # Force legacy fallback for testing only.
+#    unavailableThresholdMinutes: 10
+#    enableGracefulDegradation: true
+#    recoveryCheckIntervalMinutes: 5
+#    recoveryHealthyChecksRequired: 3
+#virtualSoulfindV2:
+#  enabled: false              # opt in to the v2 autonomous planning/processing engine
+#signalSystem:
+#  enabled: false
+#  meshChannel:
+#    enabled: false
+#  btExtensionChannel:
+#    enabled: false            # opt in only; requires a configured BitTorrent extension sender
+#PodCore.Security (MessageSigner). Binds to PodCore:Security.
+#PodCore.Join binds to PodCore:Join. Off accepts legacy non-Ed25519 join/leave
+#signatures for compatibility; Warn logs legacy or missing signatures; Enforce
+#requires ed25519:<base64 signature>, a valid Ed25519 public key, fresh
+#timestamp, and a join Nonce for replay protection.
+#PodCore:
+#  Security:
+#    SignatureMode: Off   # Off | Warn | Enforce
+#  Join:
+#    SignatureMode: Off   # Off | Warn | Enforce
+#feature:                    # Experimental feature and hosted-service gates. See docs/runtime-feature-gating.md.
+#  swagger: true              # Enable Swagger API documentation UI (default: true)
+#  CollectionsSharing: true   # Enable Collections, ShareGroups, ShareGrants APIs (default: true)
+#  Streaming: true            # Enable streaming API (/api/v0/streams/{contentId}) (default: true)
+#  StreamingRelayFallback: true  # Enable relay streaming fallback (controller proxies to agent) (default: true)
+#  MeshParallelSearch: false  # Opt in to mesh overlay search alongside Soulseek (default: false)
+#  MeshPublishAvailability: false  # Opt in to availability publication to the slskdN mesh DHT (default: false)
+#  IdentityFriends: false     # Opt in to Identity/Friends APIs and mDNS friend-code advertising (default: false)
+#  ScenePodBridge: false       # Opt in to experimental Scene ↔ Pod Bridging (default: false).
+#                               # When enabled, search results from both Pod/Mesh and Soulseek Scene are merged and deduplicated.
+#                               # Keep disabled if you want the proven upstream-compatible Soulseek search path.
+#                               # Pod results can be downloaded from remote mesh peers if not available locally.
+#                               # Scene results use the standard Soulseek download pipeline.
+#  SongId: true                # Experimental SongID analysis APIs (default: true).
+#  Mesh: false                 # Opt in to mesh APIs and mesh hosted services (default: false).
+#  Dht: false                  # Opt in to DHT APIs; dht.enabled must also be true (default: false).
+#  Pods: false                 # Opt in to pod APIs, Gold Star, and pod publishing services (default: false).
+#  SocialFederation: false     # Opt in to ActivityPub/social federation APIs (default: false).
+#  VirtualSoulfind: false      # Opt in to VirtualSoulfind APIs (default: false).
+#  MultiSourceDownloads: false # Opt in to multi-source/swarm download APIs (default: false).
+#  ScenePodBridgeOptions:
+#    ProxyTransfers: false     # Proxy scene downloads through pod (future feature, intentionally disabled)
+#    ExportPodAvailability: false  # Export pod availability to scene (future feature, intentionally disabled)
+#  Solid: true                  # Enable Solid (WebID, Solid-OIDC) (default: true)
+#                               # Note: Even when enabled, remote fetches are blocked until AllowedHosts is configured (SSRF safety)
+#solid:
+#  allowedHosts: []            # Empty = deny all remote fetches (SSRF safety). Add hostnames like ["your-solid-idp.example", "your-pod-provider.example"]
+#                               # IMPORTANT: Solid feature is enabled by default, but will not work until you add at least one hostname here
+#  timeoutSeconds: 10
+#  maxFetchBytes: 1000000
+#  allowInsecureHttp: false    # ONLY for dev/test. Keep false in production
+#  redirectPath: "/solid/callback"
+#security:
+#  enabled: true  # Enable security features (path traversal protection is ALWAYS enabled)
+#  profile: Standard  # Security profile: Minimal, Standard, Maximum, or Custom
+#  network_guard:
+#    enabled: true
+#    max_connections_per_ip: 10
+#    max_global_connections: 100
+#    max_messages_per_minute: 60
+#    max_message_size: 10485760  # 10 MB
+#  violation_tracker:
+#    enabled: true
+#    violations_before_auto_ban: 5
+#    base_ban_duration_minutes: 60
+#  path_guard:
+#    enabled: true  # Path traversal protection (ALWAYS enabled, even if security.enabled is false)
+#    max_path_length: 512
+#    max_path_depth: 20
+#  content_safety:
+#    enabled: true
+#    verify_magic_bytes: true
+#    quarantine_suspicious: true
+#    quarantine_directory: ~
+#    block_executables: true
+#  peer_reputation:
+#    enabled: true
+#    trusted_threshold: 70
+#    untrusted_threshold: 20
+#  adversarial:  # Security:Adversarial (privacy, padding, anonymity, etc.)
+#    privacy:
+#      padding:
+#        max_unpadded_bytes: 0  # 0=default 1MB. PR-11 DoS limit for Unpad.
+#        max_padded_bytes: 0    # 0=default 2MB. PR-11 DoS limit for Unpad.
+#    anonymity:   # I2P, RelayOnly, Tor. AnonymityLayerOptions.
+#      relay_only:
+#        relay_peer_data_endpoints: []  # ["host:port"] per relay's QUIC data overlay; used when TrustedRelayPeers not resolved. Required for RelayOnly until peer-id resolution.
+#        relay_authentication_token: "" # Must match the trusted relay's overlay_data token.
+#        # trusted_relay_peers: []
+#        # max_chain_length: 3
+#soulseek:
+#  address: vps.slsknet.org
+#  port: 2271
+#  username: ~
+#  password: ~
+#  description: "" # quiet default; set explicitly if you want a public Soulseek profile description
+#  picture: path/to/slsk-profile-picture.jpg
+#  listen_ip_address: 0.0.0.0  # do not use 127.0.0.1/::1 for live peer traffic; remote peers will not be able to connect back
+#  listen_port: 50300
+#  obfuscation:
+#    enabled: true
+#    mode: compatibility      # compatibility keeps regular outbound dials first; prefer prioritizes compatible obfuscated dials
+#    listen_port: 0           # 0 derives from listen_port + 1 when runtime support exists
+#    advertise_regular_port: true
+#    prefer_outbound: true    # only changes outbound priority when mode is prefer
+#  private_message_auto_response:
+#    enabled: false
+#    message: "Hi, I'm human and testing a slskdN client. Shares may be temporarily unavailable while I validate the client."
+#    cooldown_minutes: 360
+#  diagnostic_level: Info
+#  distributed_network:
+#    disabled: false
+#    disable_children: false
+#    child_limit: 25
+#    logging: false
+#  connection:
+#    timeout:
+#      connect: 10000
+#      inactivity: 60000
+#      transfer: 60000
+#    buffer:
+#      read: 16384
+#      write: 16384
+#      transfer: 262144
+#      write_queue: 250
+#    proxy:
+#      enabled: false
+#      address: ~
+#      port: ~
+#      username: ~
+#      password: ~
+#overlay:
+#  enable: false
+#  listen_port: 50305               # UDP overlay control shares the DHT UDP forward by default
+#  enable_quic: true
+#  quic_listen_port: 50305          # public QUIC overlay port; shares the DHT UDP forward when share_quic_with_dht_port is true
+#  share_quic_with_dht_port: true   # DHT binds 50305/udp and demuxes DHT, UDP overlay, and QUIC traffic
+#  quic_backend_listen_port: 55305  # loopback-only MsQuic listener behind the shared public UDP port; do not forward this
+#  trusted_certificate_pins: {} # { "203.0.113.10:50305": ["base64-spki-sha256"] }; direct QUIC clients fail closed without a matching endpoint pin.
+#overlay_data:
+#  enable: false        # QUIC data plane; requires a stable MsQuic/runtime stack
+#  listen_port: 50401
+#  relay_authentication_token: "" # Required to enable RELAY_TCP; use a high-entropy shared secret.
+#  allowed_relay_destinations: [] # Exact public host:port destinations; private and loopback addresses are always denied.
+#  max_concurrent_relays: 4
+#  max_relay_bytes_per_direction: 67108864
+#  max_relay_duration_seconds: 300
+#  trusted_certificate_pins: {} # { "203.0.113.10:50401": ["base64-spki-sha256"] }; required for outbound data-plane QUIC.
+#integrations:
+#  vpn:
+#    enabled: false
+#    port_forwarding: false
+#    self_hosted_relay: false # enable only for the authenticated slskdN VPS companion; requires port_forwarding
+#    polling_interval: 2500
+#    gluetun:
+#      url: "http://100.64.0.1:8010" # use the relay's private Tailscale/WireGuard address in self-hosted relay mode
+#      timeout: 5000
+#      api_key: "" # use the independent relay status key, never the slskdN API key
+#  lidarr:
+#    enabled: false
+#    url: "http://127.0.0.1:8686"
+#    api_key: ""
+#    timeout_seconds: 20
+#    sync_wanted_to_wishlist: false # when true, Lidarr Wanted/Missing albums become slskdN Wishlist searches
+#    sync_interval_seconds: 3600
+#    max_items_per_sync: 100
+#    auto_download: false # applies only to Wishlist items created by Lidarr sync
+#    wishlist_filter: ""
+#    wishlist_max_results: 100
+#    auto_import_completed: false # when true, clean completed download directories are submitted to Lidarr manual import
+#    import_mode: "move" # move or copy
+#    import_replace_existing_files: false
+#    delete_rejected_downloads: false # delete only exact files rejected by Lidarr; never recursively deletes the directory
+#    blacklist_rejected_downloads: false # ignore the exact Wishlist peer+remote directory after rejection
+#    import_path_from: "" # optional local slskdN completed path prefix
+#    import_path_to: ""   # optional Lidarr-visible completed path prefix
+#  spotify:
+#    enabled: false # enables Spotify source-feed imports and account connection
+#    client_id: ""
+#    client_secret: "" # optional for OAuth; required for app-token public imports without a connected account
+#    redirect_uri: "" # optional; defaults to /api/v0/integrations/spotify/callback on the current host
+#    timeout_seconds: 20
+#    max_items_per_import: 500
+#    market: "US" # used for artist top-track imports
+#  youtube:
+#    enabled: false
+#    api_key: "" # YouTube Data API key for source-feed playlist expansion
+#  lastfm:
+#    enabled: false
+#    api_key: "" # Last.fm API key for loved/recent/top track source-feed imports
+#  webhooks:
+#    my_webhook:
+#      on:
+#        - DownloadFileComplete
+#      call:
+#        url: https://192.168.1.42:8080/slskd_webhook
+#        headers:
+#          - name: X-API-Key
+#            value: foobar1234
+#          - name: Authorization
+#            value: Bearer eyJ...ssw5c
+#          - name: User-Agent
+#            value: slskd/0.0
+#        ignore_certificate_errors: false
+#      timeout: 5000 # in milliseconds
+#      retry:
+#        attempts: 3
+#  scripts:
+#    run_command_with_linux_system_shell: # automatically uses the executable defined in $SHELL
+#      on:
+#        - DownloadFileComplete
+#      run:
+#        command: 'echo "$SLSKD_SCRIPT_DATA" >> linux_system_shell.txt'
+#    run_with_sh:
+#      on:
+#        - DownloadFileComplete
+#      run:
+#        executable: /bin/sh
+#        args: '-c "echo $SLSKD_SCRIPT_DATA >> linux_sh.txt"'
+#    run_with_sh_and_args_list:
+#      on:
+#        - DownloadFileComplete
+#      run:
+#        executable: /bin/sh
+#        arglist:
+#          - -c
+#          - echo $SLSKD_SCRIPT_DATA >> linux_sh_and_args_list.txt
+#    run_command_with_windows_system_shell: # automatically uses cmd.exe (included with all Windows installs)
+#      on:
+#        - DownloadFileComplete
+#      run:
+#        command: 'echo "%SLSKD_SCRIPT_DATA%" >> windows_system_shell.txt'
+#    run_with_windows_cmd:
+#      on:
+#        - DownloadFileComplete
+#      run:
+#        executable: cmd.exe
+#        args: '/c "echo "%SLSKD_SCRIPT_DATA%" >> windows_cmd.txt"'
+#    run_with_windows_git_bash:
+#      on:
+#        - DownloadFileComplete
+#      run:
+#        executable: C:\Program Files\Git\bin\bash.exe
+#        args: '-c "echo "$SLSKD_SCRIPT_DATA" >> windows_git_bash.txt"'
+#    run_with_windows_cmd_and_args_list:
+#      on:
+#        - DownloadFileComplete
+#      run:
+#        executable: cmd.exe
+#        arglist:
+#          - /c
+#          - 'echo "%SLSKD_SCRIPT_DATA%" >> windows_cmd_and_args_list.txt'
+#  ftp:
+#    enabled: false
+#    address: ~
+#    port: ~
+#    username: ~
+#    password: ~
+#    remote_path: /
+#    encryption_mode: auto
+#    ignore_certificate_errors: false
+#    overwrite_existing: true
+#    connection_timeout: 5000
+#    retry_attempts: 3
+#  pushbullet:
+#    enabled: false
+#    access_token: ~
+#    notification_prefix: "From slskdN:"
+#    notify_on_private_message: true
+#    notify_on_room_mention: true
+#    retry_attempts: 3
+#    cooldown_time: 900000
+#  ntfy:
+#    enabled: false
+#    url: ""
+#    access_token: ""
+#    notification_prefix: "slskdN"
+#    notify_on_private_message: true
+#    notify_on_room_mention: true
+#  pushover:
+#    enabled: false
+#    user_key: ""
+#    token: ""
+#    notification_prefix: "slskdN"
+#    notify_on_private_message: true
+#    notify_on_room_mention: true
+#Mesh runtime controls require feature.Mesh. There is no mesh.enabled option.
+#The public BitTorrent DHT finds overlay endpoints; mesh DHT stores small signed
+#metadata; file and chunk bytes travel over the slskdN mesh overlay, not DHT or BitTorrent.
+#Mesh.Security (PR-01, §8). Binds to Mesh:Security when Mesh section is used.
+#mesh:
+#  enable_dht: false                             # opt in to slskdN mesh-DHT descriptor/content metadata publishing and refresh
+#  enable_overlay: false                         # opt in to slskdN mesh overlay availability and data paths
+#  enable_stun: false                            # opt in to external STUN address discovery
+#  enable_soulseek_capability_handshake: false     # opt in to signed slskdN runtime capabilities over Soulseek peer messages
+#  enable_soulseek_rendezvous: false              # opt-in only; publishes the public slskdn-mesh-v1 Soulseek interest tag
+#  probe_soulseek_rendezvous_capabilities: false  # probe rendezvous candidates for runtime capability descriptors
+#  dht:
+#    bootstrap_nodes: 60
+#  overlay:
+#    udp_port: 50301
+#    quic_port: 50302
+#  security:
+#    enforceRemotePayloadLimits: true   # when true, enforce max size and safe deserialization on overlay/transport
+#    maxRemotePayloadSize: 1048576      # 1 MiB; max for remote JSON/MessagePack payloads
 #
-# Mesh:SyncSecurity (T-1432, T-1433, T-1434, T-1435). Rate limiting, quarantine, proof-of-possession, consensus, alert thresholds.
-#   sync_security:
-#     max_invalid_entries_per_window: 50    # T-1432: entries before rate limit. Default 50.
-#     max_invalid_messages_per_window: 10   # T-1432: messages before rate limit. Default 10.
-#     rate_limit_window_minutes: 5          # T-1432/1433: window for rate limit and quarantine. Default 5.
-#     quarantine_violation_threshold: 3     # T-1433: violations in window to quarantine. Default 3.
-#     quarantine_duration_minutes: 30       # T-1433: quarantine length. Default 30.
-#     proof_of_possession_enabled: false    # T-1434: require PoP before accepting new hashes. Default false.
-#     consensus_min_peers: 5                # T-1435: min peers to query for hash consensus. Default 5.
-#     consensus_min_agreements: 3           # T-1435: min agreeing peers to accept hash. Default 3.
-#     alert_threshold_signature_failures: 50   # Alert when exceeded. 0=disabled. Default 50.
-#     alert_threshold_rate_limit_violations: 20 # Alert when exceeded. 0=disabled. Default 20.
-#     alert_threshold_quarantine_events: 10    # Alert when exceeded. 0=disabled. Default 10.
+#Mesh:SyncSecurity (T-1432, T-1433, T-1434, T-1435). Rate limiting, quarantine, proof-of-possession, consensus, alert thresholds.
+#  sync_security:
+#    max_invalid_entries_per_window: 50    # T-1432: entries before rate limit. Default 50.
+#    max_invalid_messages_per_window: 10   # T-1432: messages before rate limit. Default 10.
+#    rate_limit_window_minutes: 5          # T-1432/1433: window for rate limit and quarantine. Default 5.
+#    quarantine_violation_threshold: 3     # T-1433: violations in window to quarantine. Default 3.
+#    quarantine_duration_minutes: 30       # T-1433: quarantine length. Default 30.
+#    proof_of_possession_enabled: false    # T-1434: require PoP before accepting new hashes. Default false.
+#    consensus_min_peers: 5                # T-1435: min peers to query for hash consensus. Default 5.
+#    consensus_min_agreements: 3           # T-1435: min agreeing peers to accept hash. Default 3.
+#    alert_threshold_signature_failures: 50   # Alert when exceeded. 0=disabled. Default 50.
+#    alert_threshold_rate_limit_violations: 20 # Alert when exceeded. 0=disabled. Default 20.
+#    alert_threshold_quarantine_events: 10    # Alert when exceeded. 0=disabled. Default 10.

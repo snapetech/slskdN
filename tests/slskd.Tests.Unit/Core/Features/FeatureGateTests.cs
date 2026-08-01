@@ -5,7 +5,6 @@
 namespace slskd.Tests.Unit.Core.Features;
 
 using slskd.Core.Features;
-using slskd.DhtRendezvous;
 using slskd.Mesh;
 using slskd.Tests.Unit;
 using Xunit;
@@ -63,8 +62,8 @@ public class FeatureGateTests
             new slskd.Options
             {
                 Feature = new slskd.Options.FeatureOptions { Dht = true },
-            },
-            dhtOptions: new DhtRendezvousOptions { Enabled = false });
+                DhtRendezvous = new() { Enabled = false },
+            });
 
         var result = gate.Get(FeatureId.Dht);
 
@@ -74,9 +73,7 @@ public class FeatureGateTests
 
     private static FeatureGate CreateGate(
         slskd.Options options,
-        MeshOptions meshOptions = null,
-        DhtRendezvousOptions dhtOptions = null) => new(
+        MeshOptions meshOptions = null) => new(
             new TestOptionsMonitor<slskd.Options>(options),
-            new TestOptionsMonitor<MeshOptions>(meshOptions ?? new MeshOptions()),
-            new TestOptionsMonitor<DhtRendezvousOptions>(dhtOptions ?? new DhtRendezvousOptions()));
+            new TestOptionsMonitor<MeshOptions>(meshOptions ?? new MeshOptions()));
 }

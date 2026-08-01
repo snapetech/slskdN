@@ -224,6 +224,7 @@ public class DhtRendezvousServiceTests
     {
         var options = new DhtRendezvousOptions
         {
+            LanOnly = false,
             BootstrapTimeoutSeconds = 120,
             ColdBootstrapTimeoutSeconds = 180,
             LanOnlyBootstrapTimeoutSeconds = 30,

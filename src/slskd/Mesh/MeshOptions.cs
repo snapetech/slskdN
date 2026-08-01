@@ -19,8 +19,8 @@ public enum MeshTransportPreference
 public class MeshOptions
 {
     public MeshTransportPreference TransportPreference { get; set; } = MeshTransportPreference.DhtFirst;
-    public bool EnableOverlay { get; set; } = true;
-    public bool EnableDht { get; set; } = true;
+    public bool EnableOverlay { get; set; } = false;
+    public bool EnableDht { get; set; } = false;
     public bool EnableMirrored { get; set; } = false;
 
     /// <summary>
@@ -34,13 +34,13 @@ public class MeshOptions
     /// Enable slskdN peer capability handshakes over Soulseek peer-message connections.
     /// This does not publish an interest tag by itself.
     /// </summary>
-    public bool EnableSoulseekCapabilityHandshake { get; set; } = true;
+    public bool EnableSoulseekCapabilityHandshake { get; set; } = false;
 
     /// <summary>
     /// Probe Soulseek rendezvous users for runtime peer capability descriptors.
     /// Requires <see cref="EnableSoulseekRendezvous"/>.
     /// </summary>
-    public bool ProbeSoulseekRendezvousCapabilities { get; set; } = true;
+    public bool ProbeSoulseekRendezvousCapabilities { get; set; } = false;
 
     /// <summary>
     /// Bootstrap nodes for DHT join (host:port).
@@ -65,7 +65,7 @@ public class MeshOptions
     /// <summary>
     /// Enable STUN-based NAT detection.
     /// </summary>
-    public bool EnableStun { get; set; } = true;
+    public bool EnableStun { get; set; } = false;
 
     /// <summary>
     /// STUN servers (host:port).

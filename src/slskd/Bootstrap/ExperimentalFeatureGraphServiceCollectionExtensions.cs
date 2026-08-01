@@ -14,15 +14,15 @@ public static class ExperimentalFeatureGraphServiceCollectionExtensions
         slskd.Options optionsAtStartup)
     {
         services.AddSlskdMultiSourceFeatureServices(optionsAtStartup);
-        services.AddSlskdVirtualSoulfindServices();
+        services.AddSlskdVirtualSoulfindServices(optionsAtStartup);
 
-        services.AddSlskdMediaCorePodServices();
+        services.AddSlskdMediaCorePodServices(optionsAtStartup);
 
         services.AddSlskdExperimentalMeshServices(configuration, optionsAtStartup);
 
         services.AddSlskdCapabilitiesAndRendezvousServices(optionsAtStartup);
 
-        services.AddSlskdTransferDiscoveryServices();
+        services.AddSlskdTransferDiscoveryServices(optionsAtStartup);
 
         services.AddSlskdIntegrationAndMediaServices();
 

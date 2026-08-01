@@ -29,6 +29,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
     {
         // Typed options (Phase 11) - bind under slskd: namespace to match YAML provider
         var slskdSection = configuration.GetSection(Program.AppName);
+        var meshOptionsAtStartup = slskdSection.GetSection("Mesh").Get<Mesh.MeshOptions>() ?? new Mesh.MeshOptions();
         services.AddOptions<Core.SwarmOptions>().Bind(slskdSection.GetSection("Swarm"));
         services.AddOptions<Core.SecurityOptions>().Bind(slskdSection.GetSection("Security"));
         services.AddOptions<Common.Security.AdversarialOptions>().Bind(slskdSection.GetSection("Security:Adversarial"));
@@ -96,7 +97,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
         Log.Debug("[DI] Configuring Realm services...");
         services.Configure<Mesh.Realm.RealmConfig>(configuration.GetSection($"{Program.AppName}:Realm"));
         services.Configure<Mesh.Realm.MultiRealmConfig>(configuration.GetSection($"{Program.AppName}:MultiRealm"));
-        services.AddRealmServices();
+        services.AddRealmServices(optionsAtStartup.Feature.Mesh);
 
         // Social federation services (required by bridges)
         Log.Debug("[DI] Configuring Social Federation services...");
@@ -175,20 +176,24 @@ public static class ExperimentalMeshServiceCollectionExtensions
             return service;
         });
         services.AddSingleton<Mesh.IMeshStatsCollector>(sp => sp.GetRequiredService<Mesh.MeshStatsCollector>());
-        services.AddHostedService(p =>
+        if (optionsAtStartup.Feature.Mesh && meshOptionsAtStartup.EnableDht)
         {
-            Log.Debug("[DI] Resolving MeshBootstrapService hosted service...");
-            var service = ActivatorUtilities.CreateInstance<Mesh.Bootstrap.MeshBootstrapService>(p);
-            Log.Debug("[DI] MeshBootstrapService hosted service resolved");
-            return service;
-        });
-        services.AddHostedService(p =>
-        {
-            Log.Debug("[DI] Resolving PeerDescriptorRefreshService hosted service...");
-            var service = ActivatorUtilities.CreateInstance<Mesh.Dht.PeerDescriptorRefreshService>(p);
-            Log.Debug("[DI] PeerDescriptorRefreshService hosted service resolved");
-            return service;
-        });
+            services.AddHostedService(p =>
+            {
+                Log.Debug("[DI] Resolving MeshBootstrapService hosted service...");
+                var service = ActivatorUtilities.CreateInstance<Mesh.Bootstrap.MeshBootstrapService>(p);
+                Log.Debug("[DI] MeshBootstrapService hosted service resolved");
+                return service;
+            });
+            services.AddHostedService(p =>
+            {
+                Log.Debug("[DI] Resolving PeerDescriptorRefreshService hosted service...");
+                var service = ActivatorUtilities.CreateInstance<Mesh.Dht.PeerDescriptorRefreshService>(p);
+                Log.Debug("[DI] PeerDescriptorRefreshService hosted service resolved");
+                return service;
+            });
+        }
+
         services.AddSingleton<Mesh.Dht.IContentPeerPublisher>(sp =>
         {
             Log.Debug("[DI] Constructing ContentPeerPublisher...");
@@ -212,7 +217,13 @@ public static class ExperimentalMeshServiceCollectionExtensions
             Log.Debug("[DI] ContentPeerHintService constructed");
             return service;
         });
-        services.AddHostedService(sp => (Mesh.Dht.ContentPeerHintService)sp.GetRequiredService<Mesh.Dht.IContentPeerHintService>());
+        if (optionsAtStartup.Feature.Mesh &&
+            optionsAtStartup.Feature.MeshPublishAvailability &&
+            meshOptionsAtStartup.EnableDht)
+        {
+            services.AddHostedService(sp => (Mesh.Dht.ContentPeerHintService)sp.GetRequiredService<Mesh.Dht.IContentPeerHintService>());
+        }
+
         services.AddSingleton<Mesh.Health.IMeshHealthService, Mesh.Health.MeshHealthService>();
 
         // Service Fabric (client + directory + validation)
@@ -309,13 +320,16 @@ public static class ExperimentalMeshServiceCollectionExtensions
             return new Mesh.MeshCircuitBuilder(meshOptions.Value, logger, peerManager, transportSelector);
         });
         services.AddSingleton<Mesh.IMeshCircuitBuilder>(sp => sp.GetRequiredService<Mesh.MeshCircuitBuilder>());
-        services.AddHostedService(p =>
+        if (optionsAtStartup.Feature.Mesh && meshOptionsAtStartup.EnableOverlay)
         {
-            Log.Debug("[DI] Constructing CircuitMaintenanceService hosted service...");
-            var service = ActivatorUtilities.CreateInstance<Mesh.CircuitMaintenanceService>(p);
-            Log.Debug("[DI] CircuitMaintenanceService constructed");
-            return service;
-        });
+            services.AddHostedService(p =>
+            {
+                Log.Debug("[DI] Constructing CircuitMaintenanceService hosted service...");
+                var service = ActivatorUtilities.CreateInstance<Mesh.CircuitMaintenanceService>(p);
+                Log.Debug("[DI] CircuitMaintenanceService constructed");
+                return service;
+            });
+        }
 
         // Transport dialers (Tor/I2P integration Phase 2)
         var meshTransportoptionsAtStartup =
@@ -411,11 +425,13 @@ public static class ExperimentalMeshServiceCollectionExtensions
         var dhtoptionsAtStartup = optionsAtStartup.DhtRendezvous;
         var quicPlatformSupported = OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows();
         var quicRuntimeAvailable = quicPlatformSupported && Mesh.QuicRuntime.IsAvailable();
-        var quicOverlayRequested = overlayoptionsAtStartup.Enable && overlayoptionsAtStartup.EnableQuic;
-        var quicDataRequested = dataOverlayoptionsAtStartup.Enable;
+        var quicOverlayRequested = optionsAtStartup.Feature.Mesh && meshOptionsAtStartup.EnableOverlay && overlayoptionsAtStartup.Enable && overlayoptionsAtStartup.EnableQuic;
+        var quicDataRequested = optionsAtStartup.Feature.Mesh && meshOptionsAtStartup.EnableOverlay && dataOverlayoptionsAtStartup.Enable;
         var sharedMeshUdpRequested = DhtRendezvousService.ShouldUseSharedMeshUdpListener(dhtoptionsAtStartup, overlayoptionsAtStartup);
 
-        if (Mesh.Overlay.QuicOverlayFactory.ShouldRunStandaloneUdpOverlayServer(overlayoptionsAtStartup.Enable, sharedMeshUdpRequested))
+        if (optionsAtStartup.Feature.Mesh &&
+            meshOptionsAtStartup.EnableOverlay &&
+            Mesh.Overlay.QuicOverlayFactory.ShouldRunStandaloneUdpOverlayServer(overlayoptionsAtStartup.Enable, sharedMeshUdpRequested))
         {
             services.AddHostedService(p =>
             {

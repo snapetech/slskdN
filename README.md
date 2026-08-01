@@ -459,7 +459,7 @@ Topic-based micro-communities over the mesh overlay.
 - **DHT-based pod discovery** — Find pods by name, focus, or tags
 - **Decentralized chat** — Pod messaging over mesh overlay
 - **Soulseek chat bridge** — Bridge legacy Soulseek rooms to pods
-- **Gold Star Club** — Default-on auto-join pod for the first 250 users, used for realm governance bootstrap plus early-stage testing and feedback. `feature.Pods: false` does not disable this hosted service. Operators can opt out before startup with `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`; the reserved pod is still created locally. Users can later leave the pod from the Web UI, but leaving is irrevocable and permanently revokes local Gold Star status.
+- **Gold Star Club** — Available when `feature.Pods: true`; disabled pod mode does not create, publish, or auto-join the reserved pod. With pods enabled, operators can disable enrollment before startup with `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`; users can later leave the pod from the Web UI, but leaving is irrevocable and permanently revokes local Gold Star status.
 - **Pod APIs** — Full REST API for pod operations
 
 
@@ -751,11 +751,11 @@ security:
   profile: Standard  # Minimal, Standard, Maximum, or Custom
 
 mesh:
-  enable_dht: true
-  enable_overlay: true
-  enable_soulseek_capability_handshake: true
+  enable_dht: false
+  enable_overlay: false
+  enable_soulseek_capability_handshake: false
   enable_soulseek_rendezvous: false
-  probe_soulseek_rendezvous_capabilities: true
+  probe_soulseek_rendezvous_capabilities: false
   dht:
     bootstrap_nodes: 60
   overlay:
@@ -765,14 +765,11 @@ mesh:
 
 `mesh.enable_soulseek_rendezvous` intentionally defaults off because enabling it publishes the recognizable `slskdn-mesh-v1` interest tag on the configured Soulseek account. Runtime capability handshakes are separate and do not publish that interest by themselves.
 
-The `feature.*` experimental flags primarily gate controllers and APIs; they
-are not global service-lifecycle switches. Mesh, DHT, service-router, pod, and
-related hosted services have independent runtime settings and may still start
-when their API flags are false. `feature.IdentityFriends` additionally controls
-startup mDNS advertising. Gold Star auto-enrollment is controlled separately
-with `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`. See [Runtime Feature Gates and
-Network Defaults](docs/runtime-feature-gating.md) before using these settings as
-part of a privacy or security posture.
+The networked `feature.*` defaults gate both APIs and their corresponding
+hosted-service activation. Independent DHT, mesh, overlay, VirtualSoulfind,
+signal-system, mDNS, and identifying Soulseek-description defaults are also
+off. See [Runtime Feature Gates and Network Defaults](docs/runtime-feature-gating.md)
+for explicit opt-in combinations and upgrade behavior.
 
 Detailed documentation for configuration options can be found in [docs/config.md](docs/config.md), and an example of the YAML configuration file can be reviewed in [config/slskd.example.yml](config/slskd.example.yml).
 

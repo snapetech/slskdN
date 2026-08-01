@@ -124,7 +124,7 @@ See [Building from Source](build.md) for detailed instructions.
 | Web UI / API | `5030/tcp` | Keep local or behind your own reverse proxy unless intentionally exposed. |
 | HTTPS Web UI | `5031/tcp` | Configure certificate settings before forcing HTTPS. |
 | Soulseek listen | `50300/tcp` | Forward or allow-list this when accepting inbound Soulseek transfers. |
-| Mesh/DHT/QUIC | `50305/tcp` + `50305/udp` | Optional slskdN mesh listener, DHT rendezvous, and shared-port QUIC overlay; set `dht.lan_only: true` to avoid public bootstrap. |
+| Public DHT rendezvous / mesh overlay | `50305/tcp` + `50305/udp` | Disabled by default. TCP carries the mesh overlay; UDP carries public BitTorrent DHT rendezvous and may be shared with overlay/QUIC. Mesh DHT metadata and file bytes stay on the overlay. Public DHT also requires `dht.lan_only: false`. |
 
 ### Essential Settings
 

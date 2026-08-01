@@ -1,3 +1,35 @@
+## Update 2026-08-01 15:05:00Z
+
+- Current task: complete. Experimental network features are dormant when their
+  feature flags are false, and fresh installs use privacy-safe defaults.
+- Last activity:
+  - Completed hosted-service, router-registration, pod-enrollment, disabled-DHT
+    wait, default-value, and YAML-template fixes.
+  - Corrected the DHT API gate to read the bound root options and made test
+    scenarios opt in explicitly to the experimental graph they exercise.
+  - Passed application, unit, integration, lint, configuration, link, privacy,
+    and diff validation.
+- Next steps:
+  1. Obtain tester confirmation with an upgraded image and the reduction
+     profile in `docs/runtime-feature-gating.md`.
+
+## Update 2026-08-01 14:00:16Z
+
+- Current task: finish validation for tester-reported configuration, feature-
+  lifecycle, Gold Star, defaults, and disabled-DHT corrections.
+- Last activity:
+  - Gated mesh/DHT/pod/VirtualSoulfind hosted services and service-router
+    registration with their feature and transport settings.
+  - Made network-visible experimental defaults dormant and removed the default
+    identifying Soulseek description.
+  - Made the commented YAML template safe when one `#` is removed and added
+    parser plus hosted-service regression coverage.
+- Next steps:
+  1. Run complete tests, lint, configuration/package checks, and a disabled-
+     feature startup probe.
+  2. Update final task state, commit the implementation, and preserve unrelated
+     concurrent documentation edits outside this change.
+
 ## Update 2026-08-01 13:34:11Z
 
 - Current task: complete. Public documentation now describes experimental API
@@ -12743,3 +12775,28 @@ rollback.
   1. Help the reporting user test a home/VPS deployment and capture provider-
      specific interface or firewall differences.
   2. Do not create a tag or release without explicit authorization.
+## Update 2026-08-01 14:10:51Z
+
+- Current task: complete. Clarify DHT and mesh terminology in the README and
+  current documentation for tester-facing accuracy.
+- Last activity:
+  - Added `docs/DHT_MESH_ARCHITECTURE.md` as the canonical distinction between
+    public BitTorrent DHT rendezvous, slskdN mesh-DHT metadata, mesh overlay
+    control/data paths, and optional native Soulseek rendezvous.
+  - Updated related guides, architecture/design documents, research notes,
+    configuration/package comments, and privacy/feature references; removed
+    the inaccurate user-agent discovery wording.
+  - Preserved the separate concurrent runtime/defaults work and its existing
+    dirty files.
+- Next steps:
+  1. No further documentation work is required for this request.
+  2. The earlier runtime/defaults task still has its own pending full-suite
+     validation and should be handled separately.
+## Update 2026-08-01 14:17:50Z
+
+- Final validation for the documentation task is complete: `./bin/lint` passed;
+  `dotnet test` passed application `74/74` and unit `4977/4977`.
+- Two integration tests failed in the concurrent overlay-instance slice because
+  the runtime now rejects DHT-gated requests with `feature=Dht disabled` when
+  the test does not explicitly enable DHT. This is outside the documentation
+  task and remains part of the earlier runtime/defaults validation work.

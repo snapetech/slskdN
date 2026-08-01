@@ -9,6 +9,16 @@
 
 ### High Priority
 
+- [x] Make disabled experimental features dormant and privacy-safe by default.
+  - Status: completed (2026-08-01)
+  - Priority: P1
+  - Notes: Feature flags now gate hosted workers and router registration;
+    disabled pods cannot create or auto-enroll Gold Star; disabled DHT skips
+    its initialization wait; public DHT, mesh/overlay/STUN, VirtualSoulfind,
+    signal channels, mDNS, and the identifying Soulseek description default
+    off. The shipped YAML template is safe to uncomment by removing one `#`;
+    the DHT API gate now reads the same bound options graph as the runtime.
+
 - [x] Align feature-gating and network-default documentation with runtime.
   - Status: completed (2026-08-01)
   - Priority: P1
@@ -2801,6 +2811,18 @@
 - [x] **CHANGELOG and option docs**: CHANGELOG and option docs (e.g. `config/slskd.example.yml`) updated for new flags and breaking behavior from 40-fixes (EnforceSecurity, Mesh:SyncSecurity, etc.).
 
 ### Docs / meta
+
+- [x] Clarify public BitTorrent DHT, slskdN mesh DHT, and mesh-overlay boundaries in current documentation.
+  - Status: completed (2026-08-01)
+  - Priority: P1
+  - Notes: Added the canonical `docs/DHT_MESH_ARCHITECTURE.md` explainer and
+    linked it from the README/index. Updated current guides, configuration
+    comments, architecture/design notes, research records, service-fabric and
+    VirtualSoulfind docs, packaging metadata, and privacy surfaces. Public
+    BitTorrent DHT is documented as endpoint rendezvous; mesh DHT metadata and
+    service records are carried over the mesh overlay; file/range/chunk bytes
+    are carried by the overlay. Explicitly removed the inaccurate user-agent
+    discovery description.
 
 - [x] **Sync DEVELOPMENT_HISTORY Pending**: `docs/archive/DEVELOPMENT_HISTORY.md` "Pending Features" — Phase 8 Create Chat Rooms/Predictable Search URLs → ✅ (T-006, T-007); Pending section now points to tasks.md, lists done (T-001–T-007) and still-pending.
 - [x] **slskd.Tests.Unit Phase 2–6**: Completion-plan shows 0 Compile Remove, 0 skips; `dotnet test` slskd.Tests.Unit 2294 pass, 0 fail, 0 skip. Re-enablement complete.

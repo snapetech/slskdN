@@ -16,17 +16,23 @@ public static class CapabilitiesAndRendezvousServiceCollectionExtensions
         slskd.Options optionsAtStartup)
     {
         // MediaCore publisher
-        services.AddHostedService(p =>
+        if (optionsAtStartup.Feature.MeshPublishAvailability)
         {
-            Log.Debug("[DI] Constructing ContentPublisherService hosted service...");
-            var service = ActivatorUtilities.CreateInstance<MediaCore.ContentPublisherService>(p);
-            Log.Debug("[DI] ContentPublisherService constructed");
-            return service;
-        });
+            services.AddHostedService(p =>
+            {
+                Log.Debug("[DI] Constructing ContentPublisherService hosted service...");
+                var service = ActivatorUtilities.CreateInstance<MediaCore.ContentPublisherService>(p);
+                Log.Debug("[DI] ContentPublisherService constructed");
+                return service;
+            });
+        }
 
         // Capabilities - tracks available features per peer
         services.AddSingleton<Capabilities.ICapabilityService, Capabilities.CapabilityService>();
-        services.AddHostedService<Capabilities.SoulseekCapabilityBridgeService>();
+        if (optionsAtStartup.Feature.Mesh)
+        {
+            services.AddHostedService<Capabilities.SoulseekCapabilityBridgeService>();
+        }
 
         // DhtRendezvous services (BitTorrent DHT peer discovery)
         services.AddSingleton(optionsAtStartup.DhtRendezvous);
@@ -40,16 +46,22 @@ public static class CapabilitiesAndRendezvousServiceCollectionExtensions
         services.AddSingleton<DhtRendezvous.Search.IMeshOverlaySearchService, DhtRendezvous.Search.MeshOverlaySearchService>();
         services.AddSingleton<IMeshOverlayServer, MeshOverlayServer>();
         services.AddSingleton<IMeshOverlayConnector, MeshOverlayConnector>();
-        services.AddHostedService<MeshNeighborPeerSyncService>();
+        if (optionsAtStartup.Feature.Dht && optionsAtStartup.DhtRendezvous.Enabled)
+        {
+            services.AddHostedService<MeshNeighborPeerSyncService>();
+        }
 
         services.AddSingleton<IDhtRendezvousService, DhtRendezvousService>();
-        services.AddHostedService(p =>
+        if (optionsAtStartup.Feature.Dht && optionsAtStartup.DhtRendezvous.Enabled)
         {
-            Log.Debug("[DI] Resolving DhtRendezvousService hosted service...");
-            var service = (DhtRendezvousService)p.GetRequiredService<IDhtRendezvousService>();
-            Log.Debug("[DI] DhtRendezvousService hosted service resolved");
-            return service;
-        });
+            services.AddHostedService(p =>
+            {
+                Log.Debug("[DI] Resolving DhtRendezvousService hosted service...");
+                var service = (DhtRendezvousService)p.GetRequiredService<IDhtRendezvousService>();
+                Log.Debug("[DI] DhtRendezvousService hosted service resolved");
+                return service;
+            });
+        }
 
         return services;
     }

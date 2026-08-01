@@ -17,7 +17,9 @@ using Soulseek;
 
 public static class MediaCorePodServiceCollectionExtensions
 {
-    public static IServiceCollection AddSlskdMediaCorePodServices(this IServiceCollection services)
+    public static IServiceCollection AddSlskdMediaCorePodServices(
+        this IServiceCollection services,
+        slskd.Options optionsAtStartup)
     {
         // Content Domain Provider Registry (P3: Custom Domain Matching Logic)
         services.AddContentDomainProviders();
@@ -216,7 +218,10 @@ public static class MediaCorePodServiceCollectionExtensions
 
         services.AddSingleton<PodCore.GoldStarClubService>();
         services.AddSingleton<PodCore.IGoldStarClubService>(sp => sp.GetRequiredService<PodCore.GoldStarClubService>());
-        services.AddHostedService(sp => sp.GetRequiredService<PodCore.GoldStarClubService>());
+        if (optionsAtStartup.Feature.Pods)
+        {
+            services.AddHostedService(sp => sp.GetRequiredService<PodCore.GoldStarClubService>());
+        }
 
         // Pod messaging service (SQLite-backed)
         services.AddScoped<PodCore.IPodMessaging>(sp =>
@@ -291,13 +296,16 @@ public static class MediaCorePodServiceCollectionExtensions
         });
 
         // Background service for periodic pod metadata refresh
-        services.AddHostedService(p =>
+        if (optionsAtStartup.Feature.Pods)
         {
-            Log.Debug("[DI] Constructing PodPublisherBackgroundService hosted service...");
-            var service = ActivatorUtilities.CreateInstance<PodCore.PodPublisherBackgroundService>(p);
-            Log.Debug("[DI] PodPublisherBackgroundService constructed");
-            return service;
-        });
+            services.AddHostedService(p =>
+            {
+                Log.Debug("[DI] Constructing PodPublisherBackgroundService hosted service...");
+                var service = ActivatorUtilities.CreateInstance<PodCore.PodPublisherBackgroundService>(p);
+                Log.Debug("[DI] PodPublisherBackgroundService constructed");
+                return service;
+            });
+        }
 
         return services;
     }

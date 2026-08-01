@@ -28,7 +28,7 @@ namespace slskd.VirtualSoulfind.v2.Configuration
         /// <remarks>
         ///     If false, all v2 endpoints return 503 Service Unavailable.
         /// </remarks>
-        public bool Enabled { get; init; } = true;
+        public bool Enabled { get; init; } = false;
 
         /// <summary>
         ///     Gets or initializes the maximum number of concurrent plan executions.

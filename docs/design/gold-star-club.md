@@ -6,7 +6,7 @@ The **Gold Star Club** is a special pod that automatically joins the first 250 u
 
 ## Requirements
 
-1. **Auto-join**: Network members automatically join on first connection unless they opt out
+1. **Feature opt-in**: The service runs only when `feature.Pods: true`; when enabled, network members automatically join on first connection unless they opt out
 2. **Limit**: Maximum 250 members
 3. **One-time**: Once full, no new members can be added (even if people leave)
 4. **Irrevocable leave**: A user can leave later, but leaving permanently revokes Gold Star status and cannot be undone

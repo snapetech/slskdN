@@ -13,7 +13,7 @@ Each finding references the source location it affects. Follow-ups that are out 
 | H3 | `DescriptorRetrieverController` `[AllowAnonymous]` | High | ✅ fixed (gated behind `AuthPolicy.Any`) |
 | H4 | `federation.verify_signatures=false` bypass | High | ✅ fixed (option is now a no-op; verification is unconditional) |
 | H5 | Solid SSRF allow-list is string-based (DNS rebinding) | High | ✅ fixed (resolve host, re-check every resolved IP) |
-| H6 | Gold Star Club auto-joins every tester by default | Medium | Superseded: default-on by product policy; opt out with `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false` or leave/revoke in the Web UI |
+| H6 | Gold Star Club auto-joins every tester by default | Medium | Fixed: pods are opt-in; `feature.Pods: false` prevents pod creation and enrollment, with a separate auto-join opt-out when pods are enabled |
 | H7 | HashDb mesh-merge accepts unsigned peer entries | High | ✅ implemented (opt-in enforcement during rollout) |
 | H8 | `Constants.IgnoreCertificateErrors` / `RelayClient` TLS bypass | High | ✅ periodic warn + optional SPKI pinning shipped |
 | H9 | Auto-replace + wishlist auto-download enabled from README | Medium | ℹ no change — already `false` by default in `Options.cs` |
@@ -84,7 +84,12 @@ sudo systemctl restart slskd
 
 **Original fix:** `TryAutoJoinAsync` and `ExecuteAsync` originally short-circuited unless `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true` was set in the environment.
 
-**Current policy:** This has been intentionally superseded. Gold Star Club is now default-on for the first 250 users for realm governance bootstrap and testing. Operators can opt out before startup with `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`. Users can leave the pod later from the Web UI, which records a local revocation marker so restart does not auto-join them again.
+**Current policy:** Pods default off. `feature.Pods: false` prevents Gold Star
+service startup, reserved-pod creation, publication, and enrollment. Operators
+who explicitly enable pods can still disable enrollment before startup with
+`SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`. Users can leave the pod later from
+the Web UI, which records a local revocation marker so restart does not
+auto-join them again.
 
 ---
 

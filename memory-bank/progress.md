@@ -1,3 +1,32 @@
+## Update 2026-08-01 15:05:00Z
+
+- Completed the privacy-safe defaults and lifecycle-gating correction from the
+  tester report, including the multi-source rescue worker and the DHT API
+  gate's previously unbound nested options.
+- Updated the full-instance integration harness to opt in explicitly to the
+  experimental DHT, mesh, pod, VirtualSoulfind, and multi-source graph that its
+  scenarios exercise.
+- Validation passes: application `74`, unit `4977`, integration `284`, lint,
+  configuration drift, fork-link, local-identity, and diff checks.
+
+## Update 2026-08-01 14:00:16Z
+
+- Implemented the tester-requested runtime corrections. Networked experimental
+  flags now control hosted-service activation and mesh router registration,
+  rather than only returning disabled APIs.
+- Disabled pods no longer start Gold Star creation/publication/enrollment;
+  disabled DHT no longer waits for an engine that was intentionally not
+  initialized; disabled VirtualSoulfind no longer starts publishers, health,
+  intent, bridge, or traffic-observer integration workers.
+- Changed public DHT, LAN/public discovery, mesh/overlay/STUN, VirtualSoulfind,
+  signal channels, Identity/mDNS, and identifying Soulseek description defaults
+  to dormant. Existing explicit configuration continues to override defaults.
+- Reproduced the example-config failure as a comment-unindent trap: removing
+  only `#` from `# feature:` left a leading root space. The template now uses
+  comment markers directly against intended YAML indentation, with parser
+  regressions for appended and uncommented settings.
+- Focused gating/default/configuration tests pass. Full validation remains.
+
 ## Update 2026-08-01 13:34:11Z
 
 - Aligned the README, configuration reference/example, documentation index,
@@ -12340,3 +12369,29 @@ Code quality improvements were completed as part of Option A:
 - Published implementation commit `80f0fc0f1` to `snapetech/slskdN` `main` and
   verified the remote branch resolves to the identical object. No tag, release,
   deployment, or upstream write was created.
+## Update 2026-08-01 14:10:51Z
+
+- Clarified the DHT/mesh architecture throughout current documentation. Added
+  `docs/DHT_MESH_ARCHITECTURE.md` as the canonical terminology page and linked
+  it from the root README and documentation index.
+- Updated the public README, configuration example, getting-started/config
+  references, feature inventory, privacy table, service-fabric and
+  VirtualSoulfind guides, multi-swarm/MusicBrainz designs, research records,
+  packaging metadata, and related architecture notes. The documentation now
+  distinguishes public BitTorrent DHT BEP 5 endpoint rendezvous, slskdN mesh
+  DHT metadata/service discovery over the overlay, optional native Soulseek
+  rendezvous, and overlay control/transfer data paths.
+- Corrected the tester-facing misconception: DHT does not discover peers by
+  exchanging an HTTP-style user-agent string, and neither DHT layer carries
+  file bytes. Validation passed `git diff --check` and documentation link
+  existence checks. Existing concurrent implementation and documentation
+  edits remain untouched.
+## Update 2026-08-01 14:17:50Z
+
+- Final validation: `./bin/lint` passed and the documentation checks remain
+  clean. `dotnet test` passed the application suite (`74/74`) and unit suite
+  (`4977/4977`), while 2 of 284 integration tests failed in the existing
+  overlay-instance slice because concurrent runtime defaults now correctly
+  return `feature=Dht disabled` for requests that do not explicitly enable
+  DHT. No source changes were made to address that separate runtime/test
+  alignment issue.

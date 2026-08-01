@@ -4,6 +4,9 @@
 
 > **Note**: This is a fork of [slskd](https://github.com/slskd/slskd) with mesh networking and advanced features. See [README.md](../README.md#acknowledgments) for full attribution.
 
+For the distinction between public BitTorrent DHT rendezvous, the slskdN mesh
+DHT, and the mesh overlay transfer path, see [DHT and Mesh Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ---
 
 ## Core Features (Existing)
@@ -160,11 +163,11 @@
   messages
 
 ### Mesh Overlay Network
-- DHT-based peer discovery
+- Public BitTorrent DHT rendezvous discovers mesh endpoints; the separate mesh DHT stores bounded metadata and service records over mesh connections
 - QUIC/UDP with TLS encryption
 - Certificate pinning for security
 - Rendezvous and relay capabilities
-- **Fault-tolerant operation**: Mesh continues functioning behind firewalls when UDP port cannot be opened, using DHT, relay, and hole punching for connectivity
+- **Fault-tolerant operation**: Mesh continues functioning behind firewalls when UDP port cannot be opened, using DHT rendezvous, relay, and hole punching for connectivity
 
 ### Multi-Source Downloads
 - Chunked downloads from multiple sources
@@ -188,7 +191,7 @@ Generic service discovery and RPC over the mesh overlay network. Any feature can
 ### Features
 
 #### Service Discovery
-- **DHT-Based Publishing**: Services publish signed descriptors to DHT
+- **Mesh-DHT Publishing**: Services publish signed descriptors to the slskdN mesh DHT over the mesh overlay; public BitTorrent DHT is endpoint rendezvous only
 - **Signature Validation**: Ed25519 signatures prevent spoofing
 - **TTL-Based Expiry**: Services auto-expire if not refreshed
 - **Reputation Filtering**: Discovery respects peer reputation
@@ -230,8 +233,8 @@ Content-aware acquisition that's not limited to music. Supports multiple content
   - GenericFile: SHA256 hash matching
   - Future domains: custom matching logic per domain
 - **Domain-Specific Backends**:
-  - Music: Soulseek, Mesh/DHT, Torrents, Local
-  - GenericFile: Mesh/DHT, Torrents, HTTP, Local (NO Soulseek)
+  - Music: Soulseek, mesh DHT/overlay, Torrents, Local
+  - GenericFile: mesh DHT/overlay, Torrents, HTTP, Local (NO Soulseek)
 
 #### Soulseek Safety
 - **Compile-Time Gating**: Soulseek backend only accepts `ContentDomain.Music`
@@ -442,13 +445,13 @@ TrustedRelay:
 
 ### Music Acquisition (Existing + Enhanced)
 - Search Soulseek with etiquette caps
-- Multi-source downloads (Soulseek + mesh + torrents)
+- Multi-source downloads (Soulseek + mesh overlay + torrents)
 - MBID-based matching via shadow index
 - Verified content served via mesh CDN
 
 ### Generic File Sharing (New)
 - Hash-based matching (SHA256)
-- Mesh/DHT/torrent backends only (NO Soulseek)
+- Mesh DHT/overlay/torrent backends only (NO Soulseek)
 - Content verification before advertisement
 - Mesh CDN for verified files
 
@@ -480,7 +483,7 @@ Human-friendly peer addressing and discovery system enabling the "befriend → g
 #### Configuration
 ```yaml
 Feature:
-  IdentityFriends: true  # Enable identity and friends system
+  IdentityFriends: false # Opt in to identity/friends APIs and LAN mDNS advertising
 ```
 
 **Default**: Disabled (opt-in)

@@ -2,6 +2,11 @@
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [../README.md](../README.md#acknowledgments) for attribution.
 
+> **DHT terminology**: the public BitTorrent DHT is used only for mesh
+> endpoint rendezvous. The slskdN mesh DHT stores small signed metadata over
+> established mesh connections, while the TLS-protected mesh overlay carries
+> control messages and file/range bytes. See [DHT and Mesh Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ---
 
 ## 1. Purpose & Scope
@@ -9,14 +14,14 @@
 This document describes a **decentralized "Virtual Soulfind" plane** that runs on top of slskdn's existing:
 
 - Soulseek client stack (legacy protocol, official server)
-- DHT-based rendezvous
+    - Public BitTorrent DHT-based rendezvous for mesh endpoints
 - Overlay multi-swarm layer (MBID-aware, chunk-based transfers)
 
 The goal is to get **Soulfind-like server intelligence** (search, indexing, rooms, scenes) **without** any static servers or privileged nodes:
 
 - No central Soulfind instance
 - No permanent infra anyone has to operate
-- Behaviour emerges from **peers + DHT + overlay**, not from a dedicated backend
+    - Behaviour emerges from **peers + mesh DHT + overlay**, not from a dedicated backend
 
 This also defines:
 
@@ -35,12 +40,13 @@ Microtasks and implementation breakdown are intentionally out-of-scope here; thi
 1. **No central servers**
    - No "always-on" Soulfind instance.
    - No privileged control nodes.
-   - All behaviour must be implementable by any slskdn peer using DHT + overlay.
+   - All behaviour must be implementable by any slskdn peer using public DHT rendezvous, mesh DHT, and overlay.
 
 2. **DHT and overlay as backbone**
-   - DHT: rendezvous and *small* metadata.
+   - Public BitTorrent DHT: endpoint rendezvous only.
+   - Mesh DHT: *small* signed metadata and service records over the mesh overlay.
    - Overlay: authenticated peer-to-peer tunnels for control + data (multi-swarm chunks, gossip, richer metadata).
-   - "Beacons" are just peers that, by virtue of DHT partitioning and config, temporarily take on more responsibility; they are not special roles in the protocol.
+   - "Beacons" are just peers that, by virtue of public-DHT rendezvous and config, temporarily take on more responsibility; they are not special roles in the protocol.
 
 3. **Soulseek is origin / legacy, not center**
    - Official Soulseek server is:
@@ -58,7 +64,7 @@ Microtasks and implementation breakdown are intentionally out-of-scope here; thi
 
 6. **Governance is local-first, optional mesh-enhanced**
    - Each peer enforces its own fairness and trust rules.
-   - Any "shared governance" must be gossip- or DHT-based and optional, not authoritative.
+   - Any "shared governance" must be gossip- or mesh-DHT-based and optional, not authoritative.
 
 ### 2.2 Soft assumptions
 
@@ -91,12 +97,12 @@ We conceptually split the world into three planes:
    - Runs in slskdn peers only.
    - Provides:
      - MBID-aware indexing and search.
-     - Scene/micro-network semantics (room-like, but via DHT topics).
+   - Scene/micro-network semantics (room-like, but via mesh-DHT topics).
      - "Shadow index" of availability derived from captured Soulseek traffic + overlay.
      - Disaster-mode mappings from high-level requests → peers & variants.
 
 3. **Overlay Swarm Plane**
-   - slskdn-only, over DHT + TLS overlay connections.
+   - slskdn-only, over DHT-discovered TLS overlay connections.
    - Provides:
      - Multi-swarm chunk transfers.
      - Canonical variant selection.
@@ -116,12 +122,12 @@ The Virtual Soulfind mesh **observes** plane 1 and **feeds** plane 3.
     - Local policy (fairness, trust, disaster mode toggles).
 
 - **Beacon**
-  - Any peer that, by DHT ownership and config, temporarily stores additional metadata for certain keys (scenes, MBIDs, missions).
+  - Any peer that, by mesh-DHT ownership and config, temporarily stores additional metadata for certain keys (scenes, MBIDs, missions).
   - Not a special type; simply "the peers who currently own those keys".
 
 - **Scene**
   - A conceptual "micro-network" (label, genre, crew).
-  - Represented as a DHT key and associated overlay gossip.
+  - Represented as a mesh-DHT key and associated overlay gossip.
   - Example keys:
     - `scene:label:warp-records`
     - `scene:genre:dub-techno`
@@ -167,7 +173,7 @@ The Virtual Soulfind mesh **observes** plane 1 and **feeds** plane 3.
        - Quality statistics.
 
 4. **Shadow index contribution**
-   - Periodically, the peer publishes tiny aggregated "shards" into the DHT and optionally gossips via overlay:
+   - Periodically, the peer publishes tiny aggregated "shards" into the mesh DHT and optionally gossips via overlay:
      - For MBID keys: "N peers, canonical variants A/B, recent activity timestamp."
      - For scenes: "This peer participates in scene S and has these MBIDs/labels."
 
@@ -175,7 +181,7 @@ The Virtual Soulfind mesh **observes** plane 1 and **feeds** plane 3.
    - For MBID jobs and rescue:
      - slskdn uses:
        - Live Soulseek responses (direct).
-       - Shadow index (DHT).
+       - Shadow index (mesh DHT).
        - Overlay adverts (swarm descriptors).
      - To choose:
        - Which peers to swarm with.
@@ -195,7 +201,7 @@ Behaviour changes:
    - Legacy Soulseek plane is bypassed.
    - All discovery is:
      - MBID/metadata-based (MB/Discogs queries).
-     - DHT-based:
+     - Mesh-DHT-based:
        - Query MBID keys → get back peer sets & hints.
        - Query scene keys → find micro-networks.
      - Overlay-based:
@@ -204,7 +210,7 @@ Behaviour changes:
 2. **Rooms / chats**
    - Soulseek rooms vanish.
    - Scenes become the replacement:
-     - Scene DHT keys + overlay pubsub.
+     - Scene mesh-DHT keys + overlay pubsub.
    - The UX can map former room names to scene keys if known.
 
 3. **Transfers**
@@ -344,7 +350,7 @@ Schedulers and job planners:
   - Shadow index for initial candidate set.
   - Overlay descriptors for detailed scoring (quality, canonical, RTT, reputation).
 - Disaster mode:
-  - Skips the "ask legacy server" step and relies entirely on DHT + overlay descriptors.
+     - Skips the "ask legacy server" step and relies entirely on mesh DHT + overlay descriptors.
 
 ### 5.5 Disaster Mode & Failover
 
@@ -462,7 +468,7 @@ Guidelines:
    - The mapping (username → overlay ID) stays local.
 
 2. **Content privacy**
-   - Never store full filenames / paths in DHT.
+   - Never store full filenames / paths in the mesh DHT.
    - Only publish:
      - MBIDs, variant hashes, codec/duration info.
    - Peers who want the full path can ask the peer that owns the file during overlay negotiation.
@@ -491,7 +497,7 @@ Guidelines:
     - In normal mode:
       - Use Soulseek + overlay + shadow index.
     - In disaster mode:
-      - Use DHT + overlay only.
+      - Use mesh DHT + overlay only.
 
 No API surface change is needed; only the internal resolver changes.
 
@@ -541,7 +547,7 @@ Soulbeet doesn't need to be aware of DHT, scenes, or shadow index internals.
 
 Recommended config knobs (names illustrative):
 
-- `mesh.enabled` (bool)
+- `feature.Mesh` plus the specific `mesh.enable_dht` / `mesh.enable_overlay` transport switch
 - `mesh.shadow_index.enabled` (bool)
 - `mesh.disaster_mode.auto` (bool)
 - `mesh.disaster_mode.force` (bool)
@@ -556,7 +562,7 @@ Modes:
   - slskdn behaves like a fancy but still mostly classic Soulseek client.
 
 - **Hybrid (default)**  
-  - `mesh.enabled = true`, `shadow_index.enabled = true`, `disaster_mode.auto = true`.
+  - `feature.Mesh = true`, the required `mesh.enable_*` transport switch, `shadow_index.enabled = true`, and `disaster_mode.auto = true`.
   - Uses server when present; falls back to mesh when needed.
 
 - **Mesh-only**  
@@ -593,6 +599,4 @@ The result is a **Virtual Soulfind plane**:
   - Lets enhanced slskdn peers continue operating as a self-sustaining mesh, with minimal disruption to the UX for those peers.
 
 All of this is compatible with the existing multi-swarm, MBID, Collection Doctor, and Soulbeet integration designs, and it respects the constraints:
-no central nodes, DHT + overlay first, Soulseek as input rather than anchor.
-
-
+no central nodes, public DHT rendezvous plus mesh DHT/overlay first, Soulseek as input rather than anchor.

@@ -16,7 +16,9 @@ using Soulseek;
 
 public static class TransferDiscoveryServiceCollectionExtensions
 {
-    public static IServiceCollection AddSlskdTransferDiscoveryServices(this IServiceCollection services)
+    public static IServiceCollection AddSlskdTransferDiscoveryServices(
+        this IServiceCollection services,
+        slskd.Options optionsAtStartup)
     {
         // Backfill services (Long-tail content discovery)
         services.AddSingleton<Backfill.IBackfillSchedulerService, Backfill.BackfillSchedulerService>();
@@ -47,7 +49,11 @@ public static class TransferDiscoveryServiceCollectionExtensions
             sp.GetService<Transfers.MultiSource.IMultiSourceDownloadService>(),
             sp.GetRequiredService<IDownloadService>(),
             sp.GetService<IRescueGuardrailService>()));
-        services.AddHostedService<UnderperformanceDetectorHostedService>();
+        if (optionsAtStartup.Feature.MultiSourceDownloads)
+        {
+            services.AddHostedService<UnderperformanceDetectorHostedService>();
+        }
+
         services.AddSingleton<Transfers.MultiSource.IContentVerificationService, Transfers.MultiSource.ContentVerificationService>();
         services.AddSingleton<Transfers.MultiSource.Metrics.IPeerMetricsService, Transfers.MultiSource.Metrics.PeerMetricsService>();
         services.AddSingleton<Transfers.MultiSource.Scheduling.IChunkScheduler>(sp =>

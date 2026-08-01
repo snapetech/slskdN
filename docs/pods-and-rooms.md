@@ -46,8 +46,11 @@ channels, not direct-message channels.
 
 Gold Star Club is the early user/governance bootstrap pod.
 
+- `feature.Pods: false` prevents Gold Star pod creation, publication, and
+  enrollment.
+- Set `feature.Pods: true` to opt into pod services.
 - Operators can opt out before startup with
-  `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`.
+  `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false` after enabling pods.
 - Users can leave the pod from the Web UI.
 - Leaving is intentionally irreversible for local Gold Star status.
 

@@ -29,7 +29,7 @@ public sealed class VirtualSoulfindServiceCollectionExtensionsTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IOptionsMonitor<slskd.Options>>(new TestOptionsMonitor<slskd.Options>(options));
-        services.AddSlskdVirtualSoulfindServices();
+        services.AddSlskdVirtualSoulfindServices(options);
         await using var provider = services.BuildServiceProvider();
 
         var registrations = provider.GetServices<IDhtRateLimiter>().ToList();

@@ -1,15 +1,13 @@
 # Runtime Feature Gates and Network Defaults
 
-This page documents the current runtime boundary of the slskdN-specific
-feature settings. The `feature.*` section is not a master switch for all
-background services.
+slskdN-specific network features are opt-in. The upstream Soulseek client,
+shares, search, transfers, and Gluetun integration continue to operate when all
+experimental flags are false.
 
-## API gates versus service lifecycle
+## Feature and service lifecycle gates
 
-The following settings gate controllers and APIs. Setting them to `false`
-makes corresponding gated endpoints unavailable, but does not prevent the
-underlying services from being constructed, hosted, registered with the mesh
-service router, or performing independently configured startup work:
+These settings gate both their controllers/APIs and their corresponding
+background or network service activation:
 
 - `feature.Mesh`
 - `feature.Dht`
@@ -18,20 +16,18 @@ service router, or performing independently configured startup work:
 - `feature.VirtualSoulfind`
 - `feature.MultiSourceDownloads`
 
-`feature.MeshPublishAvailability` and `feature.MeshParallelSearch` control
-their named operations; they do not stop the mesh or DHT hosts. The service
-router currently registers DHT, hole-punch, MeshContent, pods, shadow-index,
-private-gateway, and mesh-introspection services independently of those API
-flags.
+When all are false, slskdN does not start mesh bootstrap or peer-descriptor
+refresh, does not register mesh RPC services with the service router, does not
+start DHT rendezvous, and does not start VirtualSoulfind or pod workers.
 
-`feature.IdentityFriends` is an exception: in addition to gating Identity and
-Friends APIs, setting it to `false` prevents application-startup mDNS friend-
-code advertising. It does not disable unrelated mesh discovery.
+`feature.MeshPublishAvailability` and `feature.MeshParallelSearch` separately
+gate availability publication and parallel mesh search. `feature.IdentityFriends`
+gates Identity/Friends APIs and startup mDNS friend-code advertising.
 
-## Independent runtime controls
+## Quiet default profile
 
-There is no supported `mesh.enabled` setting. The current mesh options are
-independent:
+The shipped defaults are equivalent to the following privacy-sensitive
+settings:
 
 ```yaml
 feature:
@@ -48,10 +44,12 @@ feature:
 dht:
   enabled: false
   lan_only: true
+  enable_stun: false
 
 mesh:
   enable_dht: false
   enable_overlay: false
+  enable_stun: false
   enable_soulseek_capability_handshake: false
   enable_soulseek_rendezvous: false
   probe_soulseek_rendezvous_capabilities: false
@@ -61,49 +59,64 @@ overlay:
 
 overlay_data:
   enable: false
+
+virtualSoulfindV2:
+  enabled: false
+
+signalSystem:
+  enabled: false
+  meshChannel:
+    enabled: false
+  btExtensionChannel:
+    enabled: false
+
+soulseek:
+  description: ""
 ```
 
-This is a reduction profile, not a guarantee that no slskdN-specific service
-will be constructed or appear in startup logs. In particular, the DHT
-initialization waiter is independently hosted and can currently log a bounded
-initialization timeout even when DHT is disabled. A service being registered
-also does not prove that its network operation succeeded or is reachable.
+There is no supported `mesh.enabled` key. Enabling a feature gate does not
+implicitly enable every transport: for example, DHT needs both `feature.Dht`
+and `dht.enabled`, while mesh descriptor publishing needs `feature.Mesh` and
+`mesh.enable_dht`.
 
 ## Pods and Gold Star Club
 
-`feature.Pods: false` gates pod APIs; it does not stop `GoldStarClubService`.
-The service ensures the reserved pod exists locally and, by default, enrolls
-the configured Soulseek username after login. To prevent automatic enrollment,
-set this environment variable before the first startup:
+`feature.Pods: false` prevents Gold Star Club startup, including reserved-pod
+creation, DHT publication, and automatic Soulseek-username enrollment.
+
+When pods are explicitly enabled, Gold Star auto-enrollment can still be
+disabled independently before first startup:
 
 ```yaml
 environment:
   SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN: "false"
 ```
 
-With auto-join disabled, the reserved pod is still created locally. Leaving an
-existing Gold Star membership writes a local revocation marker and prevents a
-later automatic rejoin.
+With pods enabled and auto-join disabled, the reserved pod is created locally
+but the Soulseek username is not enrolled. Leaving an existing membership
+writes a local revocation marker and prevents later automatic rejoin.
 
-## Default network-visible behavior
+## Explicit public DHT opt-in
 
-The current defaults favor participation rather than a quiet VPN-first node:
+To join the public BitTorrent DHT, enable both the feature and rendezvous
+service and explicitly turn off LAN-only mode:
 
-- `dht.enabled` defaults to `true` and `dht.lan_only` defaults to `false`, so
-  the node bootstraps against the configured public BitTorrent DHT routers.
-- `mesh.enable_dht`, `mesh.enable_overlay`, mesh STUN, the Soulseek capability
-  handshake, `virtualSoulfindV2.enabled`, and
-  `signalSystem.btExtensionChannel.enabled` default to `true`.
-- `feature.IdentityFriends` defaults to `true`, which starts LAN mDNS
-  advertising of the local profile/friend code when the Web port is available.
-- Gold Star Club auto-enrollment defaults to on.
-- `soulseek.description` defaults to a public string identifying the account
-  as a slskdN user.
-- `mesh.enable_soulseek_rendezvous` defaults to `false`; this only prevents the
-  recognizable `slskdn-mesh-v1` interest tag from being published. It does not
-  suppress the default Soulseek description, DHT bootstrap, mDNS, or capability
-  handshake.
+```yaml
+feature:
+  Dht: true
 
-Operators who need a quiet or privacy-minimized deployment must configure each
-surface explicitly. A false value reported under `/system/info` confirms the
-API feature state, not whole-process dormancy.
+dht:
+  enabled: true
+  lan_only: false
+```
+
+This contacts the configured public bootstrap routers and makes the configured
+DHT endpoint discoverable. Keep `lan_only: true` for private/LAN-only use.
+
+## Existing configurations
+
+Explicit values in an existing configuration continue to win over the new
+defaults. Operators upgrading from a network-forward release should review
+their `feature`, `dht`, `mesh`, `overlay`, `virtualSoulfindV2`, `signalSystem`,
+and `soulseek.description` sections rather than assuming prior implicit
+enablement remains active.

@@ -47,6 +47,12 @@ public sealed class LanDiscoveryService : ILanDiscoveryService, IDisposable
     {
         if (_advertising) return;
 
+        if (!_options.CurrentValue.Feature.IdentityFriends)
+        {
+            _log.LogDebug("[LanDiscovery] Identity and Friends disabled; skipping mDNS advertising");
+            return;
+        }
+
         try
         {
             var profile = await _profile.GetMyProfileAsync(ct).ConfigureAwait(false);

@@ -22,7 +22,8 @@ public class LanDiscoveryServiceTests : IDisposable
     private readonly Mock<ILogger<LanDiscoveryService>> _logMock = new();
     private IOptionsMonitor<slskd.Options> _options = new TestOptionsMonitor(new slskd.Options
     {
-        Web = new slskd.Options.WebOptions { Port = 8080 }
+        Web = new slskd.Options.WebOptions { Port = 8080 },
+        Feature = new slskd.Options.FeatureOptions { IdentityFriends = true }
     });
 
     public LanDiscoveryServiceTests()
@@ -46,7 +47,8 @@ public class LanDiscoveryServiceTests : IDisposable
     {
         _options = new TestOptionsMonitor(new slskd.Options
         {
-            Web = new slskd.Options.WebOptions { Port = 0 }
+            Web = new slskd.Options.WebOptions { Port = 0 },
+            Feature = new slskd.Options.FeatureOptions { IdentityFriends = true }
         });
         var svc = CreateService();
 
@@ -58,6 +60,21 @@ public class LanDiscoveryServiceTests : IDisposable
             It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Cannot advertise")),
             It.IsAny<Exception>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task StartAdvertisingAsync_WhenIdentityFriendsDisabled_DoesNotReadProfile()
+    {
+        _options = new TestOptionsMonitor(new slskd.Options
+        {
+            Web = new slskd.Options.WebOptions { Port = 8080 },
+            Feature = new slskd.Options.FeatureOptions { IdentityFriends = false }
+        });
+        var svc = CreateService();
+
+        await svc.StartAdvertisingAsync(CancellationToken.None);
+
+        _profileMock.Verify(x => x.GetMyProfileAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

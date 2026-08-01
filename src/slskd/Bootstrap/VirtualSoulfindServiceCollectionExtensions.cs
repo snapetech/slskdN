@@ -12,7 +12,9 @@ using Serilog;
 
 public static class VirtualSoulfindServiceCollectionExtensions
 {
-    public static IServiceCollection AddSlskdVirtualSoulfindServices(this IServiceCollection services)
+    public static IServiceCollection AddSlskdVirtualSoulfindServices(
+        this IServiceCollection services,
+        slskd.Options optionsAtStartup)
     {
         // Virtual Soulfind services
         services.AddSingleton<VirtualSoulfind.Capture.ITrafficObserver, VirtualSoulfind.Capture.TrafficObserver>();
@@ -44,7 +46,11 @@ public static class VirtualSoulfindServiceCollectionExtensions
                 maxOpsPerMin);
         });
         services.AddSingleton<VirtualSoulfind.ShadowIndex.IShardPublisher, VirtualSoulfind.ShadowIndex.ShardPublisher>();
-        services.AddHostedService(sp => (VirtualSoulfind.ShadowIndex.ShardPublisher)sp.GetRequiredService<VirtualSoulfind.ShadowIndex.IShardPublisher>());
+        if (optionsAtStartup.Feature.VirtualSoulfind)
+        {
+            services.AddHostedService(sp => (VirtualSoulfind.ShadowIndex.ShardPublisher)sp.GetRequiredService<VirtualSoulfind.ShadowIndex.IShardPublisher>());
+        }
+
         services.AddSingleton<VirtualSoulfind.ShadowIndex.IShadowIndexQuery, VirtualSoulfind.ShadowIndex.ShadowIndexQuery>();
         services.AddSingleton<VirtualSoulfind.ShadowIndex.IShardMerger, VirtualSoulfind.ShadowIndex.ShardMerger>();
         services.AddSingleton<VirtualSoulfind.ShadowIndex.IShardCache, VirtualSoulfind.ShadowIndex.ShardCache>();
@@ -76,7 +82,11 @@ public static class VirtualSoulfindServiceCollectionExtensions
                 sp.GetRequiredService<ILogger<VirtualSoulfind.DisasterMode.SoulseekHealthMonitor>>(),
                 sp.GetRequiredService<Soulseek.ISoulseekClient>(),
                 sp.GetRequiredService<IOptionsMonitor<slskd.Options>>()));
-        services.AddHostedService(sp => (VirtualSoulfind.DisasterMode.SoulseekHealthMonitor)sp.GetRequiredService<VirtualSoulfind.DisasterMode.ISoulseekHealthMonitor>());
+        if (optionsAtStartup.Feature.VirtualSoulfind)
+        {
+            services.AddHostedService(sp => (VirtualSoulfind.DisasterMode.SoulseekHealthMonitor)sp.GetRequiredService<VirtualSoulfind.DisasterMode.ISoulseekHealthMonitor>());
+        }
+
         services.AddSingleton<VirtualSoulfind.DisasterMode.IDisasterModeCoordinator, VirtualSoulfind.DisasterMode.DisasterModeCoordinator>();
         services.AddSingleton<VirtualSoulfind.DisasterMode.IMeshSearchService, VirtualSoulfind.DisasterMode.MeshSearchService>();
         services.AddSingleton<VirtualSoulfind.DisasterMode.IMeshTransferService, VirtualSoulfind.DisasterMode.MeshTransferService>();
@@ -101,7 +111,8 @@ public static class VirtualSoulfindServiceCollectionExtensions
         services.AddSingleton<VirtualSoulfind.Bridge.Protocol.SoulseekProtocolParser>();
 
         // BridgeProxyServer is opt-in because construction has blocked startup in local-dev runs.
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SLSKDN_E2E_SKIP_BRIDGE_PROXY")) &&
+        if (optionsAtStartup.Feature.VirtualSoulfind &&
+            string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SLSKDN_E2E_SKIP_BRIDGE_PROXY")) &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SLSKDN_ENABLE_BRIDGE_PROXY")))
         {
             services.AddHostedService<VirtualSoulfind.Bridge.Proxy.BridgeProxyServer>();
@@ -206,7 +217,10 @@ public static class VirtualSoulfindServiceCollectionExtensions
         services.AddSingleton<VirtualSoulfind.v2.Processing.IIntentQueueProcessor, VirtualSoulfind.v2.Processing.IntentQueueProcessor>();
         services.AddSingleton<VirtualSoulfind.v2.Reconciliation.ILibraryReconciliationService, VirtualSoulfind.v2.Reconciliation.LibraryReconciliationService>();
         services.AddSingleton<VirtualSoulfind.v2.Processing.IntentQueueProcessorBackgroundService>();
-        services.AddHostedService(sp => sp.GetRequiredService<VirtualSoulfind.v2.Processing.IntentQueueProcessorBackgroundService>());
+        if (optionsAtStartup.Feature.VirtualSoulfind && optionsAtStartup.VirtualSoulfindV2.Enabled)
+        {
+            services.AddHostedService(sp => sp.GetRequiredService<VirtualSoulfind.v2.Processing.IntentQueueProcessorBackgroundService>());
+        }
 
         services.AddSingleton<VirtualSoulfind.v2.Backends.IContentBackend, VirtualSoulfind.v2.Backends.LocalLibraryBackend>();
         services.AddSingleton<VirtualSoulfind.v2.Backends.IContentBackend, VirtualSoulfind.v2.Backends.NativeMeshBackend>();

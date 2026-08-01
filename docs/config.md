@@ -795,7 +795,7 @@ soulseek:
     prefer_outbound: true  # only changes outbound priority when mode is prefer
 ```
 
-Mesh/DHT privacy uses the separate `security.adversarial` transport options. Those options can prefer Tor, I2P, WebSocket tunnel, HTTP tunnel, obfs4, or meek for slskdN mesh paths while falling back to normal mesh routing when private/obfuscated transports are unavailable. They do not wrap the official Soulseek server connection.
+Mesh-DHT and overlay privacy uses the separate `security.adversarial` transport options. Those options can prefer Tor, I2P, WebSocket tunnel, HTTP tunnel, obfs4, or meek for slskdN mesh paths while falling back to normal mesh routing when private/obfuscated transports are unavailable. They do not wrap the official Soulseek server connection or change the separate public BitTorrent DHT rendezvous layer.
 
 ## Soulseek Mesh Rendezvous and Capability Handshakes
 
@@ -805,16 +805,16 @@ Runtime capability handshakes are separate from rendezvous interest publishing. 
 
 | YAML option | Default | Description |
 | ----------- | ------- | ----------- |
-| `mesh.enable_soulseek_capability_handshake` | `true` | Enables slskdN peer capability descriptor exchange over Soulseek peer-message connections. |
+| `mesh.enable_soulseek_capability_handshake` | `false` | Opts into slskdN peer capability descriptor exchange over Soulseek peer-message connections. |
 | `mesh.enable_soulseek_rendezvous` | `false` | Allows System -> Mesh and API callers to publish/remove the public `slskdn-mesh-v1` rendezvous interest and query rendezvous candidates. |
-| `mesh.probe_soulseek_rendezvous_capabilities` | `true` | Probes rendezvous candidates for runtime peer capability descriptors when running active rendezvous discovery. |
+| `mesh.probe_soulseek_rendezvous_capabilities` | `false` | Probes rendezvous candidates for runtime peer capability descriptors when running active rendezvous discovery. |
 
 #### **YAML**
 ```yaml
 mesh:
-  enable_soulseek_capability_handshake: true
+  enable_soulseek_capability_handshake: false
   enable_soulseek_rendezvous: false
-  probe_soulseek_rendezvous_capabilities: true
+  probe_soulseek_rendezvous_capabilities: false
 ```
 
 ## Other
@@ -830,7 +830,7 @@ so formats .JPG/.JPEG, .GIF, and .BMP are advised.
 #### **YAML**
 ```yaml
 soulseek:
-  description: A slskdN user. Unofficial fork of slskd: https://github.com/snapetech/slskdn
+  description: "" # quiet default; set explicitly if you want a public Soulseek profile description
   picture: path/to/slsk-profile-picture.jpg
 ```
 
@@ -1441,19 +1441,23 @@ metrics:
 
 The slskdN-specific `feature.Mesh`, `feature.Dht`, `feature.Pods`,
 `feature.SocialFederation`, `feature.VirtualSoulfind`, and
-`feature.MultiSourceDownloads` values are controller/API gates. They do not
-disable all corresponding hosted services or mesh service-router registration.
-`feature.IdentityFriends` is an exception and also prevents startup mDNS
-advertising when false.
+`feature.MultiSourceDownloads` values gate their controllers/APIs and related
+hosted-service activation. `feature.IdentityFriends` also controls startup mDNS
+advertising. These networked experimental flags default to false.
 
 There is no `mesh.enabled` option. Use the actual independent settings such as
 `mesh.enable_dht`, `mesh.enable_overlay`, `dht.enabled`, `overlay.enable`, and
-`overlay_data.enable`. Pod API gating also does not disable Gold Star Club
-creation or auto-enrollment; set
-`SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false` before startup to prevent enrollment.
+`overlay_data.enable`. `feature.Pods: false` prevents Gold Star pod creation,
+publication, and enrollment. When pods are enabled, set
+`SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false` before startup to prevent automatic
+enrollment.
 See [Runtime Feature Gates and Network Defaults](runtime-feature-gating.md) for
-the current lifecycle boundary, reduction profile, and default network-visible
-behavior.
+the current lifecycle boundary, quiet defaults, and explicit opt-in examples.
+
+These settings expose separate layers: public BitTorrent DHT rendezvous finds
+mesh overlay endpoints, the slskdN mesh DHT stores bounded metadata, and the
+mesh overlay carries control messages and file bytes. See [DHT and Mesh
+Architecture](DHT_MESH_ARCHITECTURE.md) for the complete boundary.
 
 Several features have been added that aid in the application's development, debugging, and operation but are generally not valuable for most users.
 

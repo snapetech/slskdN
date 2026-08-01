@@ -2,10 +2,15 @@
 
 > **New Phase**: T-800 to T-840 (41 tasks)  
 > **Branch**: `experimental/virtual-soulfind`  
-> **Dependencies**: Phases 1-5 (MusicBrainz, Multi-swarm, DHT, Overlay)  
+> **Dependencies**: Phases 1-5 (MusicBrainz, multi-swarm, public DHT rendezvous, mesh DHT, overlay)
 > **Estimated Duration**: 12-16 weeks
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [../README.md](../README.md#acknowledgments) for attribution.
+
+> **DHT terminology**: this design's shadow-index and scene records belong to
+> the slskdN mesh DHT. The public BitTorrent DHT is only an optional rendezvous
+> mechanism for finding mesh overlay endpoints. Mesh metadata and file bytes
+> use the TLS-protected overlay. See [DHT and Mesh Architecture](DHT_MESH_ARCHITECTURE.md).
 
 ---
 
@@ -18,8 +23,8 @@ The Virtual Soulfind Mesh transforms slskdn into a **truly decentralized music s
 3. **Never requires** central servers or privileged nodes
 
 This is a **peer-to-peer "virtual server"** where each slskdn instance contributes to:
-- **Shadow index**: Decentralized MBID→peers mapping via DHT
-- **Scenes**: Decentralized rooms/communities via DHT topics
+- **Shadow index**: Decentralized MBID→peers mapping via the mesh DHT
+- **Scenes**: Decentralized rooms/communities via mesh-DHT topics
 - **Disaster resilience**: Mesh-only operation when Soulseek is down
 
 ---
@@ -37,11 +42,11 @@ This is a **peer-to-peer "virtual server"** where each slskdn instance contribut
 
 **Decentralized Intelligence**:
 - Each slskdn peer **observes** Soulseek traffic and **learns** what's available
-- Peers **share** this knowledge via DHT (shadow index)
+- Peers **share** this knowledge via the mesh DHT (shadow index)
 - When Soulseek dies, the mesh **already knows** who has what
 - Transfers continue via overlay, guided by the shadow index
 
-**Think of it as**: BitTorrent DHT + MBID awareness + multi-swarm = resilient music network
+**Think of it as**: public BitTorrent DHT rendezvous + mesh-DHT MBID awareness + overlay multi-swarm = resilient music network
 
 ---
 
@@ -401,11 +406,11 @@ namespace slskd.VirtualSoulfind.Capture
 
 ---
 
-## Phase 6B: Shadow Index Over DHT (T-805 to T-812)
+## Phase 6B: Shadow Index Over Mesh DHT (T-805 to T-812)
 
-### Task T-805: DHT Key Derivation
+### Task T-805: Mesh-DHT Key Derivation
 
-**Purpose**: Map MBIDs and scenes to DHT keys.
+**Purpose**: Map MBIDs and scenes to mesh-DHT keys.
 
 ```csharp
 namespace slskd.VirtualSoulfind.ShadowIndex
@@ -438,13 +443,13 @@ namespace slskd.VirtualSoulfind.ShadowIndex
 
 ### Task T-806: Shadow Index Shard Format
 
-**Purpose**: Define compact DHT value format.
+**Purpose**: Define compact mesh-DHT value format.
 
 ```csharp
 namespace slskd.VirtualSoulfind.ShadowIndex
 {
     /// <summary>
-    /// Compact shadow index shard (stored in DHT).
+    /// Compact shadow index shard (stored in the mesh DHT).
     /// </summary>
     public class ShadowIndexShard
     {
@@ -489,13 +494,13 @@ public interface IShadowIndexBuilder
 
 ---
 
-### Tasks T-808 to T-812: DHT Publishing & Querying
+### Tasks T-808 to T-812: Mesh-DHT Publishing & Querying
 
 **T-808**: Shard publisher (periodic background task)  
-**T-809**: DHT query interface (resolve MBID → peer hints)  
+**T-809**: Mesh-DHT query interface (resolve MBID → peer hints)
 **T-810**: Shard merging logic (combine shards from multiple peers)  
 **T-811**: TTL and eviction policy  
-**T-812**: Rate limiting for DHT writes
+**T-812**: Rate limiting for mesh-DHT writes
 
 ---
 
@@ -536,7 +541,7 @@ namespace slskd.VirtualSoulfind.Scenes
 
 ### Tasks T-814 to T-820: Scene Infrastructure
 
-**T-814**: Scene DHT announcements  
+**T-814**: Scene mesh-DHT announcements
 **T-815**: Scene membership tracking  
 **T-816**: Overlay pubsub for scene gossip  
 **T-817**: Scene-scoped job creation (label crate from scene)  
@@ -638,7 +643,7 @@ public interface IDisasterModeCoordinator
 
 When disaster mode activates:
 1. Disable Soulseek search/transfer paths
-2. Switch all resolvers to DHT + overlay only
+2. Switch all resolvers to mesh DHT + overlay only
 3. Show UI indicator
 4. Emit telemetry event
 
@@ -646,9 +651,9 @@ When disaster mode activates:
 
 ### Tasks T-823 to T-830: Disaster Mode Features
 
-**T-823**: Mesh-only search (MBID → DHT → peers)  
+**T-823**: Mesh-only search (MBID → mesh DHT → peers)
 **T-824**: Mesh-only transfers (overlay multi-swarm only)  
-**T-825**: Scene-based peer discovery (fallback when DHT sparse)  
+**T-825**: Scene-based peer discovery (fallback when mesh DHT is sparse)
 **T-826**: Disaster mode UI indicator  
 **T-827**: Configuration: auto vs forced disaster mode  
 **T-828**: Graceful degradation (partial Soulseek availability)  
@@ -663,12 +668,12 @@ When disaster mode activates:
 **T-832**: Integrate scenes with label crate jobs  
 **T-833**: Integrate disaster mode with rescue mode  
 **T-834**: Privacy audit (ensure username anonymization)  
-**T-835**: Performance optimization (DHT query caching)  
+**T-835**: Performance optimization (mesh-DHT query caching)
 **T-836**: Configuration UI (mesh settings panel)  
 **T-837**: Telemetry dashboard (shadow index stats, disaster events)  
 **T-838**: Documentation (user guide for disaster mode)  
 **T-839**: Integration tests (full disaster mode simulation)  
-**T-840**: Load testing (DHT scalability, shard size limits)
+**T-840**: Load testing (mesh-DHT scalability, shard size limits)
 
 ---
 
@@ -702,7 +707,7 @@ mesh:
   privacy:
     anonymize_usernames: true
     never_publish_paths: true
-    dht_rate_limit_per_minute: 100
+    dht_rate_limit_per_minute: 100  # mesh-DHT write budget
 ```
 
 ---
@@ -711,13 +716,13 @@ mesh:
 
 ### Normal Mode
 - ✅ Shadow index populated from Soulseek traffic
-- ✅ Scenes created and joined via DHT
+- ✅ Scenes created and joined via mesh DHT
 - ✅ MBID jobs enriched with shadow index hints
-- ✅ Privacy maintained (no username leaks in DHT)
+- ✅ Privacy maintained (no username leaks in mesh DHT)
 
 ### Disaster Mode
 - ✅ Auto-detection when Soulseek unreachable
-- ✅ MBID jobs resolve via DHT + overlay only
+- ✅ MBID jobs resolve via mesh DHT + overlay only
 - ✅ Transfers complete via overlay multi-swarm
 - ✅ UI shows disaster mode indicator
 - ✅ Recovery when Soulseek returns
@@ -737,5 +742,3 @@ mesh:
 ---
 
 **This is the "killer feature" that makes slskdn truly revolutionary**: a decentralized music network that doesn't die when central servers do.
-
-

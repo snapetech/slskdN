@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Configuration;
 
 using System;
 using System.IO;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using slskd;
@@ -13,6 +14,45 @@ using Xunit;
 
 public class YamlConfigurationSourceTests
 {
+    [Fact]
+    public void ShippedExample_AcceptsAppendedLiveConfiguration()
+    {
+        var examplePath = FindRepositoryFile("config", "slskd.example.yml");
+        var yaml = File.ReadAllText(examplePath) + """
+
+            feature:
+              Mesh: false
+              Dht: false
+              Pods: false
+            dht:
+              enabled: false
+            """;
+
+        var options = ReadOptions(yaml);
+
+        Assert.False(options.Feature.Mesh);
+        Assert.False(options.Feature.Dht);
+        Assert.False(options.Feature.Pods);
+        Assert.False(options.DhtRendezvous.Enabled);
+    }
+
+    [Fact]
+    public void ShippedExample_AcceptsSectionsUncommentedByRemovingHashMarker()
+    {
+        var examplePath = FindRepositoryFile("config", "slskd.example.yml");
+        var yaml = File.ReadAllText(examplePath)
+            .Replace("#feature:", "feature:", StringComparison.Ordinal)
+            .Replace("#  Mesh: false", "  Mesh: false", StringComparison.Ordinal)
+            .Replace("#  Dht: false", "  Dht: false", StringComparison.Ordinal)
+            .Replace("#  Pods: false", "  Pods: false", StringComparison.Ordinal);
+
+        var options = ReadOptions(yaml);
+
+        Assert.False(options.Feature.Mesh);
+        Assert.False(options.Feature.Dht);
+        Assert.False(options.Feature.Pods);
+    }
+
     [Fact]
     public void AddYamlFile_BindsPublicDhtAliasToDhtRendezvousOptions()
     {
@@ -205,5 +245,22 @@ public class YamlConfigurationSourceTests
         {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    private static string FindRepositoryFile(params string[] pathSegments)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(new[] { directory.FullName }.Concat(pathSegments).ToArray());
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException($"Repository file was not found: {Path.Combine(pathSegments)}");
     }
 }
