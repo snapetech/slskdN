@@ -65,6 +65,24 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z802. Commented YAML Must Preserve Indentation When Un-commented
+
+**The Bug**: The shipped example wrote root keys as `# feature:` and children
+as `#   Mesh`. Removing only the hash left one extra leading space on every
+line. YamlDotNet accepted the indented first mapping as a document root, then
+reported `Did not find expected <document end>` at the next correctly
+column-zero key, misleading operators into debugging the appended block.
+
+**Files Affected**:
+- `config/slskd.example.yml`
+- `tests/slskd.Tests.Unit/Configuration/YamlConfigurationSourceTests.cs`
+
+**Prevention**: In a copy-and-uncomment YAML template, put the comment marker
+immediately before the intended YAML text: `#feature:` and `#  Mesh`. Removing
+exactly one `#` must yield valid indentation. Test both appending live settings
+to the untouched template and enabling representative lines by removing only
+their first comment marker.
+
 ### 0z801. Controller Gates Must Also Own Hosted-Service Side Effects
 
 **The Bug**: Experimental feature flags returned disabled API state while DI
