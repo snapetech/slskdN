@@ -2,7 +2,7 @@
 <Container version="2">
   <Name>slskdn</Name>
   <Repository>ghcr.io/snapetech/slskdn:latest</Repository>
-  <Registry>https://github.com/snapetech/slskdN/pkgs/container/slskdn</Registry>
+  <Registry>https://ghcr.io</Registry>
   <Branch>
     <Tag>latest</Tag>
     <TagDescription>Latest stable release</TagDescription>

@@ -81,4 +81,5 @@ defaults safe.
 - **Documentation:** https://github.com/snapetech/slskdN
 - **Unraid support forum:** https://forums.unraid.net/forum/71-docker-containers/
 - **Unraid submission help:** https://ca.unraid.net/submit/help
-- **Copy-ready support post:** [`SUPPORT_POST.md`](SUPPORT_POST.md)
+- **Copy-ready GitHub Markdown support post:** [`SUPPORT_POST.md`](SUPPORT_POST.md)
+- **Copy-ready Unraid forum text:** [`SUPPORT_POST_FORUM.txt`](SUPPORT_POST_FORUM.txt)
