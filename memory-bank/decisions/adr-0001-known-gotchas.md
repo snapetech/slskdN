@@ -26742,3 +26742,18 @@ missing and allowing release-note drift.
 **Prevention**: Keep exactly one canonical `## [Unreleased]` heading and make
 changelog validation fail when duplicate headings exist instead of silently
 choosing one.
+
+### 0z803. Feature Gates Must Read The Bound Options Graph
+
+**The Bug**: The DHT API feature gate injected an
+`IOptionsMonitor<DhtRendezvousOptions>` that was never bound to the YAML `dht`
+section. The DHT runtime used `Options.DhtRendezvous`, so an explicitly enabled
+runtime could coexist with APIs that returned `Feature Dht: Disabled`.
+
+**Files Affected**:
+- `src/slskd/Core/Features/FeatureGate.cs`
+- `src/slskd/Core/Options.cs`
+
+**Prevention**: Read nested settings from the same bound root `Options` graph
+used by startup unless the standalone options type is explicitly bound and
+covered by an integration test. Test both disabled defaults and explicit opt-in.
