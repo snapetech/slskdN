@@ -65,6 +65,27 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z801. Controller Gates Must Also Own Hosted-Service Side Effects
+
+**The Bug**: Experimental feature flags returned disabled API state while DI
+still registered their hosted services. Disabled mesh and DHT flags could
+publish descriptors and register remote services; disabled pods could create,
+publish, and auto-join Gold Star; and the disabled DHT worker waited one minute
+for an engine that `StartAsync` intentionally never created.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+- `src/slskd/Bootstrap/CapabilitiesAndRendezvousServiceCollectionExtensions.cs`
+- `src/slskd/Bootstrap/ExperimentalMeshServiceCollectionExtensions.cs`
+- `src/slskd/Bootstrap/MediaCorePodServiceCollectionExtensions.cs`
+- `src/slskd/DhtRendezvous/DhtRendezvousService.cs`
+
+**Prevention**: A feature with background or network side effects must gate
+both its controller and its `IHostedService` registration. Router registration
+must resolve only enabled services. A disabled hosted component must return
+before readiness waits, publication, local network advertisement, or persistent
+object creation even when defensive runtime guards also exist inside workers.
+
 ### 0z800. Privacy-Sensitive Subsystems Must Default To Dormant
 
 **The Bug**: Experimental API flags could default off while independent mesh,
