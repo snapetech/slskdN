@@ -65,6 +65,22 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z803. Unraid Community Apps Repositories Need Root Profile Metadata
+
+**The Bug**: The Unraid template and public container image were valid, but the
+repository had no root `ca_profile.xml`, so the current Community Apps portal
+could not finalize the repository submission.
+
+**Files Affected**:
+- `ca_profile.xml`
+- `packaging/unraid/slskdn.xml`
+- `packaging/unraid/README.md`
+
+**Prevention**: Treat Community Apps submission as repository-level metadata,
+not only container XML. Keep a non-empty root `<Profile>`, an OSI-approved
+repository license, canonical icon/project/support links, and run the portal's
+Validate and Scan flow after meaningful template changes.
+
 ### 0z802. Commented YAML Must Preserve Indentation When Un-commented
 
 **The Bug**: The shipped example wrote root keys as `# feature:` and children
