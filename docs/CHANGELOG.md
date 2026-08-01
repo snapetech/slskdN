@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Unraid Community Applications metadata now includes the required repository
+  profile, fork-owned links, safer user-selected share paths, and package
+  smoke validation for the template and profile.
+
 ## [2026080115-slskdn.295] — 2026-08-01
 
 - Gold Star Club is now strictly opt-in: reserved-pod creation, DHT
