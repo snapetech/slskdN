@@ -83,6 +83,30 @@ documented optional `SLSKD_*` Docker overrides as blank advanced fields. Keep
 core ports, paths, credentials, and image-managed runtime values typed or
 defaulted so blank optional overrides do not invalidate startup.
 
+### 0z806. Git Cat-File Existence Checks Do Not Support `--quiet` In Batch Mode
+
+**The Bug**: The runtime sync checker used `git cat-file --quiet
+--batch-check=<object>`, but this Git version rejects `--quiet` for batch
+mode, causing a valid runtime checkout to fail the sync gate.
+
+**Files Affected**:
+- `scripts/check-slsknet-runtime-sync.sh`
+
+**Wrong**:
+```bash
+git cat-file --quiet --batch-check="${commit}^{commit}"
+```
+
+**Correct**:
+```bash
+git cat-file -e "${commit}^{commit}"
+```
+
+**Why This Keeps Happening**: `git cat-file` has separate option sets for
+single-object and batch modes; a quiet flag that is familiar from other Git
+commands is not portable to the batch interface. Use the single-object
+existence form when checking one declared revision.
+
 ### 0z803. Unraid Community Apps Repositories Need Root Profile Metadata
 
 **The Bug**: The Unraid template and public container image were valid, but the
