@@ -26777,3 +26777,31 @@ bug was that explicit false values did not stop their services.
 When fixing a false feature or service setting, preserve established defaults,
 test that defaults remain enabled, and independently test that explicit false
 prevents hosted-service registration and startup waits.
+
+### 0z805. Consent Gates Must Be Positive Opt-In
+
+**The Bug**: The Gold Star Club treated an unset auto-join environment variable
+as enabled and still created the reserved pod when automatic enrollment was
+disabled. That made pod creation, DHT publication, and membership enrollment
+occur for users who had not explicitly consented.
+
+**Files Affected**:
+- `src/slskd/PodCore/GoldStarClubService.cs`
+- `src/slskd/PodCore/PodPublisher.cs`
+- `tests/slskd.Tests.Unit/PodCore/GoldStarClubServiceTests.cs`
+- `tests/slskd.Tests.Unit/PodCore/PodPublisherTests.cs`
+
+**Wrong**:
+```csharp
+return value != "false" && value != "0" && value != "no";
+```
+
+**Correct**:
+```csharp
+return string.Equals(value?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+```
+
+**Why This Keeps Happening**: Negative opt-out checks are easy to read as
+"enabled unless someone objects," but network-visible membership and identity
+features require affirmative consent. Treat missing, malformed, and negative
+values as disabled, and test creation, publication, and enrollment separately.
