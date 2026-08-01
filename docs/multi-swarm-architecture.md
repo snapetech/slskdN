@@ -1,12 +1,17 @@
 # slskdn Multi-Swarm Architecture (Experimental Branch)
 
+> Terminology: the public BitTorrent DHT is used for rendezvous and endpoint
+> discovery. The slskdN mesh DHT carries small metadata; the TLS-protected mesh
+> overlay carries control messages and transfer bytes. See [DHT and Mesh
+> Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ## 1. Objectives
 
 The experimental/multi-swarm branch aims to turn slskdn into a "next-generation" Soulseek client that:
 
 - Keeps **Soulseek** as the **primary network** for search, social graph, and origin traffic.
 
-- Adds a **mesh overlay** between slskdn nodes, discovered via BitTorrent DHT, to:
+- Adds a **mesh overlay** between slskdn nodes, discovered via the public BitTorrent DHT rendezvous layer, to:
   - Improve throughput via multi-source, chunk-based swarming.
   - Help in NAT/CGNAT scenarios by using public "beacon" nodes as relays.
 
@@ -37,14 +42,17 @@ The design is explicitly **augmentative**:
      - File transfer slots and queues.
    - slskdn participates as a regular Soulseek client.
 
-2. **Overlay mesh layer (slskdn-only)**  
-   - Uses BitTorrent DHT for rendezvous.
+2. **Overlay mesh layer (slskdn-only)**
+   - Uses the public BitTorrent DHT only for rendezvous and endpoint discovery.
    - Establishes TLS-protected TCP connections between slskdn peers.
    - Runs a JSON-framed protocol carrying:
      - Mesh discovery and capabilities.
      - Fingerprint/MBID metadata.
      - Multi-swarm control messages.
      - Chunk transfer data (request/response/cancel).
+
+   The public DHT is not the transfer path. Once peers are connected, mesh
+   searches, metadata, control messages, and file/chunk bytes use the overlay.
 
 3. **Metadata / intelligence layer**  
    - Maintains:
@@ -572,6 +580,4 @@ Rescue mode keeps Soulseek as origin/authority while using the overlay as an acc
 ---
 
 This architecture document is the conceptual foundation. See `multi-swarm-roadmap.md` for phased implementation details and GitHub issue breakdowns.
-
-
 

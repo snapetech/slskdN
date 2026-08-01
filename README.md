@@ -354,9 +354,12 @@ Understand swarm performance and make data-driven optimizations.
 - **System UI dashboard** — trends, recommendations, and summaries
 
 ### 🌐 DHT Peer Discovery & Mesh Networking
-Discover other slskdN users via BitTorrent DHT and form encrypted mesh overlay.
-- **DHT bootstrap** — 60+ bootstrap nodes for peer discovery
-- **Mesh overlay network** — TLS-encrypted P2P connections
+Discover other slskdN users through a public BitTorrent DHT rendezvous layer,
+then form a separate encrypted mesh overlay connection.
+- **Public DHT rendezvous** — standard BitTorrent DHT `get_peers`/`announce_peer` operations under well-known slskdN rendezvous infohashes; it discovers overlay endpoints but does not transfer files
+- **Mesh DHT** — slskdN Kademlia-style metadata and service discovery carried over the mesh overlay, separate from the public BitTorrent DHT
+- **Mesh overlay network** — TLS-protected slskdN peer connections for search, synchronization, service calls, and mesh file/chunk transfers
+- This mesh path is separate from the optional native Soulseek rendezvous path; normal Soulseek search, social, and origin-transfer paths remain available
 - **Private/obfuscated mesh transport selection** — mesh routing can prefer configured Tor/I2P or anti-DPI transports such as WebSocket, HTTP tunnel, obfs4, or meek while falling back to normal mesh routing when unavailable
 - **Hash database sync** — Epidemic protocol for content verification database
 - **Peer greeting service** — Auto-discovery and handshake
@@ -368,6 +371,8 @@ Discover other slskdN users via BitTorrent DHT and form encrypted mesh overlay.
 
 
 📖 **Design docs**: [MeshCore research](docs/phase8-meshcore-research.md) • [Mesh architecture](docs/virtual-soulfind-mesh-architecture.md) • [Runtime sync notes](docs/slsknet-runtime-sync.md)
+
+📖 **DHT/mesh terminology**: [DHT and Mesh Architecture](docs/DHT_MESH_ARCHITECTURE.md)
 
 ### 🕶️ Soulseek Type-1 Obfuscation Options
 First-class Soulseek peer-message, distributed-message, and file-transfer obfuscation posture for compatible clients.
@@ -456,7 +461,7 @@ Host-side companion for users who need Soulseek traffic to use a VPN while keepi
 ### 📦 Pod System (Decentralized Communities)
 Topic-based micro-communities over the mesh overlay.
 - **Pod creation/management** — Private, Unlisted, or Listed visibility
-- **DHT-based pod discovery** — Find pods by name, focus, or tags
+- **Mesh-DHT pod discovery** — Find pods by name, focus, or tags
 - **Decentralized chat** — Pod messaging over mesh overlay
 - **Soulseek chat bridge** — Bridge legacy Soulseek rooms to pods
 - **Gold Star Club** — Available when `feature.Pods: true`; disabled pod mode does not create, publish, or auto-join the reserved pod. With pods enabled, operators can disable enrollment before startup with `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`; users can later leave the pod from the Web UI, but leaving is irrevocable and permanently revokes local Gold Star status.
@@ -505,7 +510,7 @@ solid:
 
 ### 🎭 VirtualSoulfind & Shadow Index
 Decentralized content discovery without relying solely on the Soulseek network.
-- **Shadow Index** — Decentralized MBID→peers mapping
+- **Shadow Index** — Decentralized MBID→peers metadata mapping; the mesh DHT stores bounded hints and the mesh overlay carries peer requests and content
 - **Traffic Observer** — Observes search results and extracts MBIDs
 - **Privacy Controls** — Username pseudonymization, configurable retention
 - **Disaster Mode** — Mesh-only operation when Soulseek unavailable
@@ -522,7 +527,7 @@ Visibility into performance and network behavior.
 ### 🔧 Service Fabric
 Experimental service layer for opt-in mesh-based applications.
 - **Service descriptors** — Signed Ed25519 descriptors for service discovery
-- **Service directory** — DHT-based service registry
+- **Service directory** — Mesh-DHT service registry carried over the mesh overlay
 - **Service router** — Routes requests to service providers
 - **HTTP gateway** — API key + CSRF authentication for services
 - **Service wrappers** — Pods, VirtualSoulfind, introspection wrapped as services
@@ -783,6 +788,7 @@ Detailed documentation for configuration options can be found in [docs/config.md
 | [Advanced Features](docs/advanced-features.md) | Deep dives for major slskdN features |
 | [How It Works](docs/HOW-IT-WORKS.md) | Technical architecture and design |
 | [Multi-Source Downloads](docs/multipart-downloads.md) | Network impact analysis |
+| [DHT and Mesh Architecture](docs/DHT_MESH_ARCHITECTURE.md) | Distinguishes public BitTorrent DHT rendezvous, mesh DHT metadata, and overlay data transfers |
 | [DHT Rendezvous Design](docs/DHT_RENDEZVOUS_DESIGN.md) | Peer discovery architecture |
 | [slskNet.Runtime Sync Notes](docs/slsknet-runtime-sync.md) | Vendored runtime features, slskdN integration decisions, and license impact |
 | [Documentation Audit](docs/dev/documentation-audit-2026-05-05.md) | Current documentation gaps and remediation priorities |

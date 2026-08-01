@@ -1,5 +1,10 @@
 # 9 Research Tasks — Design & Scope
 
+> **DHT terminology**: public BitTorrent DHT (BEP 5/UDP) is used for mesh
+> endpoint rendezvous only. Shadow-index, service, and content metadata use the
+> separate slskdN mesh DHT over the overlay. See [DHT and Mesh
+> Architecture](../DHT_MESH_ARCHITECTURE.md).
+
 > **✅ Research (9) order complete.**  
 > **Tasks**: T-901, T-902, T-903, T-906, T-907, T-908, T-911, T-912, T-913  
 > **Design/scope:** this document. **Order:** T-912 → T-911 → T-913 → T-901 → T-902 → T-903 → T-906 → T-907 → T-908. **All implemented.**  
@@ -39,18 +44,18 @@ These 9 tasks are **research / future-enhancement** items. Implementation is opt
 **One-line**: Implement a proper Kademlia DHT node with routing table and RPC.
 
 **Current state**:
-- `DhtRendezvous` uses **BitTorrent DHT** for peer discovery (GET_PEERS for `slskdn-mb-v1:*` style keys).
+- `DhtRendezvous` uses the **public BitTorrent DHT** for mesh endpoint rendezvous (BEP 5 `get_peers`/`announce_peer` under `slskdn-mesh-v1` infohashes).
 - `KademliaRpcClient`, `KademliaRoutingTable`, `InMemoryDhtClient` exist. Shadow index / Phase 6 DHT uses custom keys and publishers.
 
 **Proposed scope**:
 - **Kademlia routing table**: NodeIds (160-bit), k-buckets, FIND_NODE. Align with `KademliaRoutingTable` if it already implements; otherwise specify and extend.
-- **DHT node role**: Join the DHT as a proper node (respond to FIND_NODE, GET_PEERS, ANNOUNCE_PEER from other clients), not only as a client.
-- **Interop**: BEP 5 (BitTorrent DHT) for compatibility with existing DHT; or separate “slskdn DHT” with its own wire format — design choice.
+- **Mesh-DHT node role**: Join the mesh DHT as a proper node (respond to FIND_NODE, FIND_VALUE, STORE, and PING over the overlay), not only as a client.
+- **Interop**: Keep BEP 5 (public BitTorrent DHT) endpoint rendezvous separate from the slskdN mesh DHT wire format.
 
 **Dependencies**: T-901 (node identity = Ed25519 or NodeId derived) helpful.  
 **Open**: Reuse BT DHT vs. clean-slate slskdn DHT. Overlap with `DhtRendezvous` responsibilities.
 
-**Implemented (2026-01-25):** `docs/research/T-902-dht-node-design.md`. KademliaRoutingTable: 160-bit NodeIds, k=20, bucket splitting, XOR, Touch, GetClosest; selfId = SHA1(Ed25519 publicKey) from IKeyStore (Program). DHT node role: DhtMeshService responds to FindNode, FindValue, Store, Ping; registered with MeshServiceRouter. KademliaRpcClient: FindNode, FindValue, Store, Ping. GET_PEERS/ANNOUNCE_PEER = BEP 5; we use slskdn DHT (FindValue≈get_peers, Store≈announce_peer). DhtRendezvous remains BEP 5 client; mesh DHT = slskdn wire (mesh overlay, JSON).
+**Implemented (2026-01-25):** `docs/research/T-902-dht-node-design.md`. KademliaRoutingTable: 160-bit NodeIds, k=20, bucket splitting, XOR, Touch, GetClosest; selfId = SHA1(Ed25519 publicKey) from IKeyStore (Program). Mesh-DHT node role: DhtMeshService responds to FindNode, FindValue, Store, Ping; registered with MeshServiceRouter. KademliaRpcClient: FindNode, FindValue, Store, Ping. GET_PEERS/ANNOUNCE_PEER are public BEP 5 operations; the mesh DHT has its own FindValue/Store equivalents over the mesh overlay. DhtRendezvous remains a BEP 5 client for endpoint rendezvous.
 
 ---
 
@@ -84,7 +89,7 @@ These 9 tasks are **research / future-enhancement** items. Implementation is opt
 - Mesh overlay: control plane, sync, transfer; `MeshTorrentBackend` uses it for discovery and data.
 
 **Proposed scope**:
-- **NativeMeshBackend**: Implements `IContentBackend`. Find candidates via mesh/DHT only (e.g. shadow index, mesh GET), fetch via overlay transfer (custom protocol or reuse mesh chunk RPC). No Soulseek, no .torrent.
+- **NativeMeshBackend**: Implements `IContentBackend`. Find candidates via mesh DHT only (e.g. shadow index, mesh GET), fetch via overlay transfer (custom protocol or reuse mesh chunk RPC). No Soulseek, no .torrent.
 - **Protocol**: Define mesh “get content by ContentId / hash” RPC and wire to existing overlay. Reuse `MeshTorrentBackend` patterns where possible.
 - **Use case**: Pure mesh-only deployments; disaster mode; closed communities.
 

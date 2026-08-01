@@ -143,7 +143,8 @@ Status or Adversarial pane.
 
 Use:
 
-- **System -> Network** for Soulseek/DHT/mesh health and public exposure notes.
+- **System -> Network** for Soulseek, public BitTorrent DHT rendezvous, mesh-DHT,
+  and mesh-transport health and public exposure notes.
 - **System -> Mesh** for mesh evidence, realm subject-index review, and
   conflict surfaces. It also includes Soulseek mesh rendezvous controls for the
   opt-in `slskdn-mesh-v1` public interest tag and runtime peer capability

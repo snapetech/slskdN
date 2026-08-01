@@ -6,6 +6,12 @@
 
 > **Note**: This is a fork of [slskd](https://github.com/slskd/slskd) with experimental mesh networking features. See [README.md](README.md#acknowledgments) for full attribution.
 
+> **DHT terminology**: references to DHT-backed services in this document mean
+> the slskdN mesh DHT. The public BitTorrent DHT is a separate endpoint
+> rendezvous layer; it does not carry service records or file bytes. Those
+> records and transfers use the TLS-protected mesh overlay. See [DHT and Mesh
+> Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ---
 
 ## Overview
@@ -26,8 +32,8 @@ This document explains how they interact and why the design choices matter.
 
 ### What It Is
 
-A **generic service layer** on top of the existing DHT and mesh overlay:
-- Services publish signed descriptors to DHT (`svc:service-name`)
+A **generic service layer** on top of the slskdN mesh DHT and mesh overlay:
+- Services publish signed descriptors to the mesh DHT (`svc:service-name`)
 - Clients discover and call services via mesh overlay
 - RPC-style calls with correlation IDs, timeouts, rate limits
 - HTTP gateway for external tools (localhost-only by default)
@@ -222,8 +228,8 @@ Result: Home server controls VPS without port forwarding
 ### Synergy 5: Multi-Domain + Domain-Specific Backends
 
 **What Happens**:
-- `ContentDomain.Music` uses: Soulseek, Mesh/DHT, Torrents, Local
-- `ContentDomain.GenericFile` uses: Mesh/DHT, Torrents, HTTP, Local (NO Soulseek)
+- `ContentDomain.Music` uses: Soulseek, mesh DHT/overlay, Torrents, Local
+- `ContentDomain.GenericFile` uses: mesh DHT/overlay, Torrents, HTTP, Local (NO Soulseek)
 - Future domains can add their own backends without touching existing code
 
 **Why This Matters**:
@@ -557,4 +563,3 @@ The result is a platform for building decentralized content acquisition features
 ---
 
 *"No hype. Just engineering. Here's how the pieces fit together and why."*
-

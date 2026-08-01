@@ -6,7 +6,7 @@
 
 ## One-line
 
-`IContentBackend` that uses only the mesh overlay (no Soulseek, no BitTorrent). Find candidates via mesh/DHT; fetch via overlay transfer (RPC and resolver support defined here, implemented later).
+`IContentBackend` that uses only the mesh overlay (no Soulseek, no BitTorrent). Find candidates via the mesh DHT; fetch via overlay transfer (RPC and resolver support defined here, implemented later).
 
 ---
 

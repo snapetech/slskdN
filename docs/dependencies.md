@@ -32,7 +32,7 @@ rg "MonoTorrent|AWSSDK|dotNetRDF|Zeroconf|MathNet|Microsoft.CodeAnalysis|Microso
 | TagLibSharp | HashDb media attribute probing (`HashDbService`) and audio/library surfaces | required-feature | Keep because active share/media probing call sites exist; ensure slow/remote storage opt-out remains documented. |
 | FluentFTP | FTP integration | experimental-feature | Gate integration and document credentials/egress. |
 | Mono.Nat | NAT/port mapping | experimental-feature | Gate under mesh/VPN/network features. |
-| MonoTorrent | DHT rendezvous and BitTorrent-backed swarm experiments | experimental-feature | Gated by DHT/multi-source surfaces; confirm public bootstrap policy in runtime docs. |
+| MonoTorrent | Public BitTorrent DHT rendezvous and BitTorrent-backed swarm experiments | experimental-feature | Gated by DHT/multi-source surfaces; the public DHT layer discovers mesh endpoints and does not carry slskdN file data. Confirm public bootstrap policy in runtime docs. |
 | NSec.Cryptography | Mesh transport signing and ActivityPub key/signature work | experimental-feature | Keep with mesh/social federation gates; expand protocol tests before stable claims. |
 | MathNet.Numerics | MediaCore perceptual hashing (`PerceptualHasher`) | experimental-feature | Keep while MediaCore hashing uses MathNet vectors; gate MediaCore/SongID claims until tests cover this path. |
 | AWSSDK.S3 | VirtualSoulfind v2 S3 backend | experimental-feature | Gated by VirtualSoulfind; document credential/egress behavior before stable claims. |

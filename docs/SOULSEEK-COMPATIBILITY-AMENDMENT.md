@@ -7,6 +7,11 @@
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [README.md](README.md#acknowledgments) for attribution.
 
+> **DHT terminology**: DHT records and services in this amendment refer to the
+> slskdN mesh DHT. The public BitTorrent DHT is a separate endpoint-rendezvous
+> layer and must not receive Soulseek identities, content records, or file
+> data. See [DHT and Mesh Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ---
 
 ## CRITICAL AMENDMENT
@@ -26,7 +31,7 @@ These rules apply globally to T-SF01 through T-SF07 and must be followed strictl
 **RULE**: All communication with the official Soulseek server and Soulseek peers must remain fully compliant with existing protocol(s).
 
 ✅ **Allowed**:
-- Service fabric, DHT, mesh, and gateway sit *beside* Soulseek protocol
+- Service fabric, mesh DHT, mesh overlay, and gateway sit *beside* Soulseek protocol
 - Additional non-Soulseek transports (mesh overlay, BitTorrent, HTTP)
 - Augmenting Soulseek with alternative paths
 
@@ -94,7 +99,7 @@ These rules apply globally to T-SF01 through T-SF07 and must be followed strictl
 
 ✅ **Allowed**:
 - One Soulseek account per slskdn instance
-- Mesh/DHT identities are additional and separate
+- Mesh-DHT/overlay identities are additional and separate
 - Clear separation in code and data structures
 
 ❌ **Forbidden**:
@@ -103,28 +108,28 @@ These rules apply globally to T-SF01 through T-SF07 and must be followed strictl
 - Presenting as multiple Soulseek clients
 - Identity spoofing or confusion
 
-### 1.6. Do Not Leak Soulseek User Data Into the DHT
+### 1.6. Do Not Leak Soulseek User Data Into the Mesh DHT
 
-**RULE**: Soulseek usernames, room names, file paths, and IPs of other clients must NOT be stored verbatim in DHT records or service descriptors.
+**RULE**: Soulseek usernames, room names, file paths, and IPs of other clients must NOT be stored verbatim in mesh-DHT records or service descriptors, and must never be announced to the public BitTorrent DHT.
 
 ✅ **Allowed**:
 - Use local mapping tables: `soulseek_username → internal_peer_id` (stored locally only)
-- Publish internal peer IDs and content IDs to DHT
-- Abstract identities before DHT publication
+- Publish internal peer IDs and content IDs to the mesh DHT
+- Abstract identities before mesh-DHT publication
 
 ❌ **Forbidden**:
-- Storing raw Soulseek usernames in DHT
-- Storing Soulseek room names in DHT
-- Storing other users' file paths in DHT
-- Storing other users' IP addresses in DHT
+- Storing raw Soulseek usernames in the mesh DHT
+- Storing Soulseek room names in the mesh DHT
+- Storing other users' file paths in the mesh DHT
+- Storing other users' IP addresses in the mesh DHT
 - Any verbatim Soulseek identity leakage
 
 **IMPLEMENTATION**: If mapping Soulseek world → mesh world:
 ```csharp
-// Local mapping table (NEVER published to DHT)
+// Local mapping table (NEVER published to the mesh DHT or public DHT)
 private readonly Dictionary<string, string> _soulseekToMeshId = new();
 
-// Only publish mesh IDs to DHT
+// Only publish mesh IDs to the mesh DHT
 public async Task PublishContentAsync(string localFilePath, string soulseekUsername)
 {
     // Map to internal ID
@@ -152,7 +157,7 @@ public async Task PublishContentAsync(string localFilePath, string soulseekUsern
 
 ### 1.8. Opt-In for Advanced Features
 
-**RULE**: All advanced mesh/DHT features are clearly separated from core Soulseek config and opt-in.
+**RULE**: All advanced mesh-DHT/overlay features are clearly separated from core Soulseek config and opt-in.
 
 ✅ **Requirements**:
 - Clear separation from Soulseek config
@@ -178,7 +183,7 @@ public async Task PublishContentAsync(string localFilePath, string soulseekUsern
 
 ### 1.9. Reduce, Don't Amplify, Harmful Load on Soulseek
 
-**RULE**: Use mesh/DHT/index capabilities to *cache and offload*, not to amplify Soulseek traffic.
+**RULE**: Use mesh-DHT/overlay/index capabilities to *cache and offload*, not to amplify Soulseek traffic.
 
 ✅ **Best practices**:
 - Cache and reuse Soulseek results
@@ -201,7 +206,7 @@ public async Task<ServiceReply> HandleSearchAsync(ServiceCall call, ...)
     var cached = await _cache.GetAsync(searchTerm);
     if (cached != null) return cached;
     
-    // 2. Try mesh/DHT sources
+    // 2. Try mesh-DHT/overlay sources
     var meshResults = await SearchMeshAsync(searchTerm);
     if (meshResults.Any()) return meshResults;
     
@@ -268,7 +273,7 @@ Add to all config schemas:
 ```
 
 **When `MeshTurboEnabled = true`**:
-- ✅ Allows aggressive multi-source/turbo behavior over mesh/DHT/BT
+- ✅ Allows aggressive multi-source/turbo behavior over mesh-DHT/overlay/BT
 - ✅ Subject to their own limits and rate controls
 - ❌ Must NOT loosen any Soulseek-layer limits
 - ✅ Soulseek remains normalized and well-behaved
@@ -392,7 +397,7 @@ public class VirtualSoulfindMeshService : IMeshService
 ✅ **Acceptable**:
 - Aggregate many mesh or BT sources
 - Serve rapid multi-source fetching
-- Heavy mesh/DHT usage
+- Heavy mesh-DHT/overlay usage
 
 ❌ **Not acceptable**:
 - Drive explosion of Soulseek search/browse traffic
@@ -433,7 +438,7 @@ public async Task<IActionResult> InvokeService(string serviceName, ...)
         return Forbid(); // DO NOT allow services that spam Soulseek
     }
     
-    // Only allow services that use mesh/DHT/BT, not Soulseek abuse
+    // Only allow services that use mesh-DHT/overlay/BT, not Soulseek abuse
 }
 ```
 
@@ -446,7 +451,7 @@ public async Task<IActionResult> InvokeService(string serviceName, ...)
 ```csharp
 public class RateLimiterConfig
 {
-    // Mesh/DHT limits (can be higher for turbo)
+    // Mesh-DHT/overlay limits (can be higher for turbo)
     public int MaxMeshCallsPerMinute { get; set; } = 200;
     public int MaxDhtQueriesPerMinute { get; set; } = 100;
     
@@ -481,7 +486,7 @@ public async Task<ServiceReply> HandleMeshServiceWithSoulseekFallback(...)
 #### Abuse Logic Clarification
 
 ```csharp
-// Misbehavior in DHT/mesh context:
+// Misbehavior in mesh-DHT/overlay context:
 // - Handle locally (ban, unweight, quarantine in mesh)
 // - DO NOT reflect abuse back into Soulseek
 // - NO retaliatory behavior
@@ -512,7 +517,7 @@ slskdn aims to:
 
 ✅ **Allowed and encouraged** when running over:
 - Mesh overlay
-- DHT-based services
+- Mesh-DHT-based services
 - BitTorrent or other networks
 - Local caches and indexes
 
@@ -608,7 +613,7 @@ Add to every task's anti-slop checklist:
 
 - [x] No changes to Soulseek wire protocol
 - [x] No injection of experimental frames into Soulseek messages
-- [x] Turbo features ONLY use non-Soulseek transports (mesh/DHT/BT)
+- [x] Turbo features ONLY use non-Soulseek transports (mesh-DHT/overlay/BT)
 - [x] Soulseek rate limits are separate and never loosened for turbo
 - [x] No Soulseek usernames in DHT/service descriptors
 - [x] No Soulseek room names in DHT
@@ -704,7 +709,7 @@ With these amendments:
 
 ✅ **Good network behavior**: Soulseek treated as first-class but non-abused
 
-✅ **Turbo where it belongs**: All optimization aimed at mesh/DHT/BT, not Soulseek
+✅ **Turbo where it belongs**: All optimization aimed at mesh-DHT/overlay/BT, not Soulseek
 
 ✅ **Privacy maintained**: No leaking Soulseek identities into DHT
 
@@ -752,11 +757,11 @@ Compatibility Rules:
 
 Configuration Modes:
 - LegacySoulseekMode: disables all mesh/turbo (Soulseek-only)
-- MeshTurboEnabled: enables aggressive optimization on mesh/DHT/BT only
+- MeshTurboEnabled: enables aggressive optimization on mesh-DHT/overlay/BT only
 
 Rate Limiting:
 - Separate Soulseek rate limits (never loosened)
-- Mesh/DHT rate limits (can be higher for turbo)
+- Mesh-DHT/overlay rate limits (can be higher for turbo)
 - Throttled fallbacks prevent amplification
 
 Metrics:

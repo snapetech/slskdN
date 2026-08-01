@@ -102,7 +102,7 @@ Hosts can explicitly opt in to listing a party in the slskdN radio directory. Th
 
 The host controls two separate toggles:
 
-- **List globally** publishes a `slskdn.listeningParty.announce.v1` announcement into the mesh/DHT-backed party index.
+- **List globally** publishes a `slskdn.listeningParty.announce.v1` announcement into the mesh-DHT-backed party index; the public BitTorrent DHT is only endpoint rendezvous.
 - **Mesh streaming** allows listeners who find the listing to stream the current track directly from the host's slskdN node.
 
 The registry announcement is TTL-based and contains metadata plus a relative stream path when mesh streaming is enabled:

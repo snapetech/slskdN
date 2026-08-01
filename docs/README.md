@@ -34,6 +34,7 @@ completed workstream notes, and incident reports live under
 ## 📖 Design Documents
 
 ### Core Features
+- [DHT and Mesh Architecture](DHT_MESH_ARCHITECTURE.md) - Current terminology, discovery layers, overlay transport, and file-transfer boundaries
 - [Multi-Source Downloads](multipart-downloads.md) - Network impact analysis and architecture
 - [DHT Rendezvous Design](DHT_RENDEZVOUS_DESIGN.md) - Peer discovery and mesh overlay architecture
 - [Music Discovery Federation Plan](design/music-discovery-federation-plan.md) - Planned mesh/social discovery features without backup or mirroring scope

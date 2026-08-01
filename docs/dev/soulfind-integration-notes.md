@@ -4,6 +4,11 @@
 > **Purpose**: Reference implementation + test harness + protocol oracle  
 > **Usage**: Development and testing ONLY
 
+> **DHT terminology**: “DHT + overlay” in this note means the slskdN mesh DHT
+> and TLS overlay. The public BitTorrent DHT is only an optional endpoint
+> rendezvous layer; it does not carry the shadow index or transfer bytes. See
+> [DHT and Mesh Architecture](../DHT_MESH_ARCHITECTURE.md).
+
 ---
 
 ## What Soulfind Is (For Us)
@@ -201,7 +206,7 @@ public async Task DisasterMode_Should_ActivateWhenServerDown()
 ### Design Documents
 
 **NO CHANGES NEEDED** to what we just planned:
-- Phase 6 (Virtual Soulfind) is purely DHT + overlay
+- Phase 6 (Virtual Soulfind) is purely mesh DHT + overlay
 - All runtime behavior is decentralized
 - Shadow index is DHT shards, not a Soulfind DB
 - Scenes are DHT topics, not Soulfind rooms
@@ -271,17 +276,17 @@ testing:
 4. **Development speedup** - borrow proven logic
 
 ### ❌ Don't Use Soulfind For:
-1. ~~Runtime indexing~~ (use DHT shadow index)
+1. ~~Runtime indexing~~ (use mesh-DHT shadow index)
 2. ~~Mesh coordination~~ (use overlay)
 3. ~~Scene management~~ (use DHT topics)
-4. ~~Production deployment~~ (pure DHT + overlay)
+4. ~~Production deployment~~ (pure mesh DHT + overlay)
 
 ---
 
 ## Action Items
 
 **For Documentation**:
-- ✅ Keep Phase 6 design as-is (pure DHT + overlay)
+- ✅ Keep Phase 6 design as-is (pure mesh DHT + overlay)
 - ⬜ Add this file to clarify Soulfind scope
 - ⬜ Add test setup documentation
 
@@ -295,6 +300,5 @@ testing:
 
 **Bottom Line**: Soulfind helps us **build** Virtual Soulfind faster and more correctly, but it's not **part of** the Virtual Soulfind mesh at runtime.
 
-The mesh is pure DHT + overlay, exactly as designed.
-
+The runtime mesh is mesh DHT + overlay, exactly as designed.
 

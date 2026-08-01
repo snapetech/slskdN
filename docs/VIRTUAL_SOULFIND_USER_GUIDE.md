@@ -2,18 +2,24 @@
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [../README.md](../README.md#acknowledgments) for attribution.
 
+> **DHT terminology**: Shadow Index and scene records use the slskdN **mesh
+> DHT**. The public BitTorrent DHT, when enabled, only helps discover mesh
+> overlay endpoints. Search requests, metadata exchange, and file bytes use
+> the mesh overlay; no DHT carries file data. See [DHT and Mesh
+> Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ---
 
 ## Overview
 
-Virtual Soulfind is a decentralized mesh network that provides resilience when the Soulseek server is unavailable. It automatically captures metadata from Soulseek traffic and publishes it to a distributed hash table (DHT), creating a "shadow index" of available content.
+Virtual Soulfind is a decentralized mesh network that provides resilience when the Soulseek server is unavailable. It automatically captures metadata from Soulseek traffic and publishes it to the slskdN mesh DHT, creating a "shadow index" of available content.
 
 ## Key Features
 
 ### 1. **Shadow Index**
 - Passively observes Soulseek searches and transfers
 - Extracts MusicBrainz IDs via AcoustID fingerprinting
-- Publishes peer hints to DHT (with pseudonymized usernames)
+- Publishes peer hints to the mesh DHT (with pseudonymized usernames)
 - Enables MBID-based peer discovery
 
 ### 2. **Scenes (Micro-Networks)**
@@ -24,7 +30,7 @@ Virtual Soulfind is a decentralized mesh network that provides resilience when t
 
 ### 3. **Disaster Mode**
 - Automatically activates when Soulseek server is unavailable
-- Switches all operations to mesh-only (DHT + overlay transfers)
+- Switches all operations to mesh-only (mesh-DHT discovery and overlay transfers)
 - Clear UI indicator when disaster mode is active
 - Automatically recovers when Soulseek returns
 
@@ -42,10 +48,10 @@ VirtualSoulfind:
 
   ShadowIndex:
     Enabled: true
-    PublishIntervalMinutes: 15  # Publish to DHT every 15 minutes
-    ShardTTLHours: 1  # Shard lifetime in DHT
-    MaxShardsPerPublish: 100  # Upper bound before the DHT minute budget
-    MaxDhtOperationsPerMinute: 60  # Shared write-rate ceiling
+    PublishIntervalMinutes: 15  # Publish to the mesh DHT every 15 minutes
+    ShardTTLHours: 1  # Shard lifetime in the mesh DHT
+    MaxShardsPerPublish: 100  # Upper bound before the mesh-DHT minute budget
+    MaxDhtOperationsPerMinute: 60  # Shared mesh-DHT write-rate ceiling
 
   Scenes:
     Enabled: true
@@ -74,7 +80,7 @@ VirtualSoulfind:
 
 When Soulseek server is unavailable for 10 minutes (configurable), disaster mode automatically activates:
 
-1. All searches query the shadow index (DHT)
+1. All searches query the shadow index (mesh DHT)
 2. Transfers use overlay multi-swarm protocol
 3. UI shows "Disaster Mode Active" indicator
 4. Scene peers are used for additional peer discovery
@@ -175,7 +181,7 @@ Run privacy audit at `/api/virtualsoulfind/privacy/audit`:
 - Requires:
   1. Completed Soulseek transfers (for fingerprinting)
   2. MusicBrainz + AcoustID lookups
-  3. DHT publishing (15 min interval)
+  3. Mesh-DHT publishing (15 min interval)
 
 ## Best Practices
 
@@ -188,7 +194,7 @@ Run privacy audit at `/api/virtualsoulfind/privacy/audit`:
 
 ❌ **DON'T:**
 - Set `AnonymizationLevel: None` (exposes usernames)
-- Publish to public DHT with `Force: true` (testing only)
+- Do not publish shadow-index data to the public BitTorrent DHT; `DisasterMode.Force: true` only forces mesh-only mode for testing, while public DHT is for endpoint rendezvous rather than content metadata
 
 ### Performance
 
@@ -196,7 +202,7 @@ Shadow Index publishing advances through normalized recording IDs in bounded
 indexed pages and wraps at the end of the library. The effective per-cycle
 batch is the smaller of `MaxShardsPerPublish` and
 `MaxDhtOperationsPerMinute`, so increasing the shard setting alone cannot
-create work that the DHT write budget will reject.
+create work that the mesh-DHT write budget will reject.
 
 ✅ **DO:**
 - Enable shadow index caching: `ShadowIndex.EnableCache: true`
@@ -204,7 +210,7 @@ create work that the DHT write budget will reject.
 - Prefetch hot MBIDs for frequently accessed content
 
 ❌ **DON'T:**
-- Set `PublishIntervalMinutes` < 10 (DHT spam)
+- Set `PublishIntervalMinutes` < 10 (mesh-DHT spam)
 - Join too many scenes (`MaxJoinedScenes: 20`)
 
 ## Advanced: Scene Chat

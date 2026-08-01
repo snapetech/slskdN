@@ -30,7 +30,7 @@
       <li>Decentralized pod communities - Private micro-communities over mesh overlay with DHT discovery</li>
       <li>Content validation - Byzantine consensus &amp; proof-of-storage with cryptographic commitments</li>
       <li>Multi-source swarm downloads - Download files from multiple peers simultaneously with SHA-256 verification</li>
-      <li>DHT mesh networking - BitTorrent DHT peer discovery with TLS-encrypted mesh overlay</li>
+      <li>DHT mesh networking - public BitTorrent DHT endpoint rendezvous with a TLS-encrypted mesh overlay; mesh metadata and file transfers stay on the overlay</li>
       <li>Security hardening - CSRF protection, NetworkGuard rate limiting, PathGuard traversal prevention</li>
       <li>MusicBrainz integration - Metadata enrichment, library health scanning, AcoustID fingerprinting</li>
       <li>Service fabric - Generic mesh service layer for decentralized applications</li>

@@ -1,5 +1,10 @@
 # Multi-Swarm + MBID Intelligence Implementation Guide
 
+> **DHT terminology**: public BitTorrent DHT is used for mesh endpoint
+> rendezvous only. MBID/content/service metadata belongs to the slskdN mesh
+> DHT and is exchanged over the mesh overlay; chunk bytes also use the overlay.
+> See [DHT and Mesh Architecture](./DHT_MESH_ARCHITECTURE.md).
+
 > **Status**: Implementation Backlog  
 > **Branch**: `experimental/brainz`  
 > **Last Updated**: 2025-12-09
@@ -398,7 +403,7 @@ When a Soulseek transfer is underperforming, use the mesh overlay to fetch missi
 **Implementation Notes:**
 - New service: `src/slskd/Transfers/Rescue/RescueService.cs`
 - Subscribe to `TransferStalledEvent`
-- Query DHT for MBID: `sha1(b"slskdn-mb-v1:" + mb_recording_id)`
+- Query the mesh DHT for the MBID: `sha1(b"slskdn-mb-v1:" + mb_recording_id)`; this lookup is carried over the mesh overlay, not the public BitTorrent DHT
 - Integrate with existing `MultiSourceDownloadJob`
 
 ---
@@ -1142,7 +1147,7 @@ Implement the actual warm caching behaviour: prefetching popular MBIDs from Soul
 
 **Implementation Notes:**
 - Integrate with `MultiSourceDownloadJob` to fetch candidates
-- Announce via DHT with `cache: true` flag
+- Announce via the mesh DHT with `cache: true` flag
 - LRU eviction: track `last_accessed_at` in `CachedMbids` table
 - Respect fairness constraints from `FairnessGovernor`
 
@@ -1286,7 +1291,7 @@ Provide a minimal UI/CLI output that shows how playback-aware swarming is perfor
 - [BRAINZ_CHUNK_TRANSFER.md](archive/research/BRAINZ_CHUNK_TRANSFER.md) - Data-plane chunk protocol
 - [BRAINZ_STATE_MACHINES.md](archive/research/BRAINZ_STATE_MACHINES.md) - Downloader/uploader state machines
 - [MULTI_SOURCE_DOWNLOADS.md](archive/duplicates/MULTI_SOURCE_DOWNLOADS.md) - Current multi-source implementation
-- [DHT_RENDEZVOUS_DESIGN.md](./DHT_RENDEZVOUS_DESIGN.md) - DHT mesh overlay
+- [DHT_MESH_ARCHITECTURE.md](./DHT_MESH_ARCHITECTURE.md) - Public rendezvous DHT, mesh DHT, overlay, and transfer boundaries
 - [HASHDB_SCHEMA.md](archive/implementation/HASHDB_SCHEMA.md) - Database schema
 
 ---

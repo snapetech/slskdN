@@ -11,7 +11,7 @@
   2. `RescueService` — only after a normal download underperforms and accelerated downloads are enabled,
   3. `LibraryHealthRemediationService` — auto-fixes detected bad transcodes.
 - **Trust is split by source kind.**
-  - **Mesh-overlay peers** (other slskdN nodes, discovered via the mesh DHT) are protocol-aware and use **parallel chunked downloads**.
+  - **Mesh-overlay peers** (other slskdN nodes, discovered through DHT rendezvous and mesh-DHT metadata) are protocol-aware and use **parallel chunked downloads over the mesh overlay**.
   - **Public Soulseek peers** are not protocol-aware. For these, slskdN uses **sequential failover** (one peer at a time, resume offset preserved on stall), so the receiving Soulseek client sees at most one cancelled transfer per failover, never one per chunk.
 - Hash discipline is enforced before chunking. Multi-source is **declined** unless either (a) ≥2 sources share a verified content hash, or (b) all sources are mesh-overlay. Otherwise the request falls back to single-source.
 
@@ -70,7 +70,7 @@ In the worst case (the file pulls bytes from N peers), this produces **at most N
 
 ## Parallel chunking (mesh-overlay path)
 
-When all sources are `VerificationMethod.MeshOverlay`, `DownloadAsync` keeps the original parallel-chunk worker pool: shared work queue, per-source workers, retries. Mesh-overlay peers expect this protocol; the cancellation noise concern doesn't apply.
+When all sources are `VerificationMethod.MeshOverlay`, `DownloadAsync` keeps the original parallel-chunk worker pool: shared work queue, per-source workers, retries. Mesh-overlay peers expect this protocol; the cancellation noise concern doesn't apply. The DHT layers help locate or describe those peers, but do not carry the chunk bytes.
 
 ## Observability
 

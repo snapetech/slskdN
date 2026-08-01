@@ -26,7 +26,7 @@
 
 ## Overview
 
-This document outlines the phased implementation of a **generic service fabric** layer on top of the existing DHT and mesh overlay infrastructure. The goal is to create "DHT internet mode" - a privacy-conscious, security-hardened service discovery and routing layer that maintains backward compatibility with existing Soulseek protocol behavior.
+This document outlines the phased implementation of a **generic service fabric** layer on top of the slskdN mesh DHT and mesh overlay infrastructure. The goal is to create "DHT internet mode" - a privacy-conscious, security-hardened service discovery and routing layer that maintains backward compatibility with existing Soulseek protocol behavior. The public BitTorrent DHT is separate and is used only for mesh endpoint rendezvous; service descriptors and calls stay on the mesh DHT/overlay.
 
 **Hard Rules**:
 1. Read before writing - understand existing DHT, mesh, security subsystems
@@ -87,11 +87,11 @@ This document outlines the phased implementation of a **generic service fabric**
     }
     ```
 
-- [x] **T-SF01-003**: Implement DHT-backed service directory
+- [x] **T-SF01-003**: Implement mesh-DHT-backed service directory
   - Priority: P0
   - Notes:
-    - Use existing DHT client
-    - DHT key pattern: `svc:<ServiceName>`
+    - Use the existing mesh DHT client
+    - Mesh-DHT key pattern: `svc:<ServiceName>`
     - Enforce max descriptor count per result (clamp to 20)
     - Validate signatures, timestamps, sizes
     - Filter expired/invalid/banned peers
@@ -440,7 +440,7 @@ This document outlines the phased implementation of a **generic service fabric**
   - Notes:
     - All existing tests still pass
     - No regressions in Soulseek protocol
-    - No regressions in DHT/mesh/security
+    - No regressions in mesh DHT/overlay/security
 
 - [x] **T-SF06-004**: Write service fabric architecture doc
   - Priority: P1
@@ -537,7 +537,7 @@ Run this before each commit:
 ### New Infrastructure to Build
 - MeshServiceDescriptor types
 - IMeshServiceDirectory interface
-- DHT-backed service directory
+- Mesh-DHT-backed service directory
 - Service router with abuse controls
 - IMeshServiceClient
 - HTTP/WebSocket gateway
@@ -550,7 +550,7 @@ Run this before each commit:
 ### Phase 1 (T-SF01) Complete When:
 - [x] MeshServiceDescriptor types exist with validation
 - [x] IMeshServiceDirectory interface defined
-- [x] DHT-backed directory implementation works
+- [x] Mesh-DHT-backed directory implementation works
 - [x] Unit tests pass for ID derivation and validation
 - [x] No existing functionality broken
 

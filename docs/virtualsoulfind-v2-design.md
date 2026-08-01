@@ -11,9 +11,14 @@
 **Author:** AI Assistant + User
 
 **Created:** December 11, 2025
-**Scope:** Extend VirtualSoulfind into a full "virtual catalogue + multi-source planner" brain, integrated with the mesh/service fabric and DHT, without hammering Soulseek or making it second-class.
+**Scope:** Extend VirtualSoulfind into a full "virtual catalogue + multi-source planner" brain, integrated with the mesh/service fabric and mesh DHT, without hammering Soulseek or making it second-class.
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [../README.md](../README.md#acknowledgments) for attribution.
+
+> **DHT terminology**: this design's catalogue and source-discovery records
+> use the slskdN mesh DHT. Public BitTorrent DHT is only endpoint rendezvous;
+> the mesh overlay carries metadata exchange and file transfers. See [DHT and
+> Mesh Architecture](DHT_MESH_ARCHITECTURE.md).
 
 ---
 
@@ -25,16 +30,16 @@ VirtualSoulfind today sits roughly as:
 * A way to map those IDs onto available sources (Soulseek, local files, maybe mesh/BT).
 * A starting point for smarter, ID-driven search and source selection.
 
-With the new multi-source-swarm branch, service fabric, DHT, and mesh gateway, VirtualSoulfind can evolve into the central "brain" for:
+With the new multi-source-swarm branch, service fabric, mesh DHT, and mesh gateway, VirtualSoulfind can evolve into the central "brain" for:
 
 * Virtual catalogue browsing and "offline planning".
-* Multi-source planning across Soulseek, Mesh/DHT, BT, HTTP, LAN, and local library.
+* Multi-source planning across Soulseek, mesh DHT/overlay, BT, HTTP, LAN, and local library.
 * Precise matching, verification, and library reconciliation.
 * Strict control over how and when Soulseek is touched.
 
 Key constraints:
 
-* **No Soulseek abuse.** Turbo behavior is allowed only via mesh/DHT/BT and other non-Soulseek paths.
+* **No Soulseek abuse.** Turbo behavior is allowed only via mesh DHT/overlay, BT, and other non-Soulseek paths.
 * **Soulseek remains first-class but not a punching bag.**
 * **Backwards compatible.** The system must not break existing flows or turn slskdn into a weird client on the Soulseek network.
 
@@ -54,7 +59,7 @@ Key constraints:
    Use VirtualSoulfind metadata to drive multi-source planning across:
 
    * Soulseek
-   * Mesh/DHT
+   * Mesh DHT/overlay
    * BitTorrent / multi-swarm
    * HTTP / LAN / local mirrors
 
@@ -82,7 +87,7 @@ Key constraints:
 ### 2.2 Non-Goals
 
 * Replacing the Soulseek protocol or changing its wire semantics.
-* Solving all possible trust/poisoning problems in DHT; we will implement *basic* heuristics and leave advanced reputation to other components.
+* Solving all possible trust/poisoning problems in the mesh DHT; we will implement *basic* heuristics and leave advanced reputation to other components.
 * Building a full-blown UI in this doc; UI is out-of-scope beyond API affordances and expectations.
 
 ---
@@ -101,7 +106,7 @@ VirtualSoulfind v2 is a module composed of several cooperating components:
   Internal catalogue of potential sources for each track:
 
   * Soulseek (when allowed)
-  * Mesh/DHT (service descriptors, content keys)
+  * Mesh DHT/overlay (service descriptors, content keys)
   * BT/multi-swarm
   * HTTP / LAN
   * Local library (already have it)
@@ -403,7 +408,7 @@ When a file passes all checks:
 * Use that as the truth source for:
 
   * Later candidate verification.
-  * DHT/mesh announcements of "this node has a correct copy".
+  * Mesh-DHT/overlay announcements of "this node has a correct copy".
 
 ### 7.3 Canonical Naming
 
@@ -554,7 +559,7 @@ These modes integrate with the work budget (H-02) and Soulseek limiter (H-08).
 
 Key principles:
 
-* No third-party Soulseek user data in DHT or VirtualSoulfind indices:
+* No third-party Soulseek user data in the mesh DHT or VirtualSoulfind indices:
 
   * No usernames.
   * No room names.
@@ -563,9 +568,9 @@ Key principles:
 * Source candidates for Soulseek:
 
   * Only represent *this node's* knowledge of "user X offers file path Y", stored locally.
-  * Not published into DHT.
+  * Not published into the mesh DHT.
 
-* DHT/mesh announcements:
+* Mesh-DHT/overlay announcements:
 
   * Only expose internal peer IDs and content IDs, never Soulseek-specific identifiers.
 
@@ -596,7 +601,7 @@ Key principles:
     * VirtualSoulfind should limit itself to:
 
       * Local catalogue & library.
-      * No mesh/DHT or turbo features.
+      * No mesh DHT/overlay or turbo features.
     * Behavior should approximate plain slskd.
 
 ---
@@ -617,7 +622,7 @@ Key principles:
 
     * Soulseek caps are hit.
     * Work budgets are exhausted.
-    * DHT/mesh poisoning heuristics trigger.
+    * Mesh-DHT poisoning heuristics trigger.
 
 ---
 
@@ -653,7 +658,7 @@ This section assumes all the earlier hardening tasks (H-01…H-10) exist or will
 
 Primary threat vectors:
 
-1. **Remote mesh/DHT peers**
+1. **Remote mesh-DHT peers**
    * Malicious or Sybil peers poisoning metadata, DHT entries, and service calls.
 
 2. **Untrusted HTTP callers**
@@ -683,7 +688,7 @@ Design choices below should reduce damage from all of the above.
 1. **Data-level separation of identifiers**
    * Ensure schema and code never join Soulseek identifiers directly into persistent VirtualSoulfind entities.
    * `SourceCandidate.BackendRef` for Soulseek should be an internal ID (e.g. `SoulseekPeerId`), not a username; mapping to username stays in a separate, Soulseek-specific table.
-   * Same goes for IPs: mesh/DHT IPs shouldn't be stored in VirtualSoulfind's catalogue structures.
+   * Same goes for IPs: mesh peer IPs shouldn't be stored in VirtualSoulfind's catalogue structures.
 
 2. **Configurable "privacy mode"**
    * Add `VirtualSoulfind.PrivacyMode` with options like:
@@ -751,7 +756,7 @@ This is where we integrate VirtualSoulfind with all the networks.
 1. **Avoid storing third-party identity in source registry**
    * For Soulseek sources:
      * Store a local "peer handle" only; the real username/IP stays in the Soulseek module.
-   * For mesh/DHT:
+   * For mesh DHT/overlay:
      * Store peer IDs that are internal to the mesh, not IPs.
 
 2. **Backend-level work budget enforcement**
@@ -838,7 +843,7 @@ This is mostly offline, but it touches real files and might influence what you s
    * Only treat a track as "advertisable" when:
      * It matches the Track's canonical duration within tolerance.
      * Its hash is stable and (optionally) confirmed by multiple checks.
-   * This helps avoid poisoning the mesh/DHT with mislabeled content.
+   * This helps avoid poisoning the mesh DHT with mislabeled content.
 
 3. **Guard against trusting unknown fingerprints**
    * If you support crowd-fingerprint data:
@@ -1106,7 +1111,7 @@ See `VIRTUALSOULFIND-V2-TASKS.md` for detailed task breakdown.
 
 ### Phase 4: Backend Implementations (V2-P4)
 - Soulseek backend (with H-08 caps)
-- Mesh/DHT backend
+- Mesh DHT/overlay backend
 - Local library backend
 - Optional: Torrent/HTTP/LAN backends
 
@@ -1405,6 +1410,6 @@ This design gives you a coherent architecture that:
 
 * Works with the multi-source-swarm/service-fabric work already completed.
 * Treats VirtualSoulfind as the hub for catalogue, planning, and verification.
-* Shifts "turbo" behavior firmly onto mesh/DHT/BT and away from Soulseek, by design.
+* Shifts "turbo" behavior firmly onto mesh DHT/overlay/BT and away from Soulseek, by design.
 * Maintains backwards compatibility and Soulseek-friendly defaults.
 * **Supports multi-domain content (Music, Books, Movies, TV, GenericFile) with first-class domain abstractions.**

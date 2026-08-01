@@ -1,5 +1,10 @@
 # slskdn Multi-Swarm Roadmap (Experimental Branch)
 
+> **DHT terminology**: public BitTorrent DHT is used for mesh endpoint
+> rendezvous only. Mesh-DHT metadata and multi-swarm coordination use the
+> slskdN overlay, which also carries chunk bytes. See [DHT and Mesh
+> Architecture](DHT_MESH_ARCHITECTURE.md).
+
 This document breaks the multi-swarm work into phased feature sets and concrete implementation tasks. It is intended to map directly to GitHub issues.
 
 ## Phase 0 – Foundations
@@ -14,7 +19,7 @@ This document breaks the multi-swarm work into phased feature sets and concrete 
 
 ### F0.2 – Overlay mesh and chunk protocol
 
-- Implement BitTorrent DHT-based rendezvous + TCP overlay.
+- Implement public BitTorrent DHT-based endpoint rendezvous + TLS overlay.
 - Add TLS on overlay connections.
 - Implement JSON-framed message envelope.
 - Implement:
@@ -335,6 +340,5 @@ This document breaks the multi-swarm work into phased feature sets and concrete 
 ---
 
 This roadmap can be applied directly to GitHub issues. Each "Issue" block in earlier conversations maps to a concrete ticket; this file captures their grouping and sequencing.
-
 
 

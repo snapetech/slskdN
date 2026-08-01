@@ -85,5 +85,5 @@
 | `IActivityPubKeyStore`, `ActivityPubKeyStore` | SocialFederation | ActivityPub key storage and HTTP signature |
 | `IPodMembershipSigner`, `PodMembershipSigner` | PodCore | Pod membership; uses `IKeyStore` |
 | `ControlSigner` (KeyedSigner), `DescriptorSigningService` | Mesh.Overlay, Mesh.Transport | Control envelopes, descriptors |
-| `IMeshMessageSigner`, `MeshMessageSigner` | Mesh | DHT/mesh message signing |
+| `IMeshMessageSigner`, `MeshMessageSigner` | Mesh | Mesh-DHT/overlay message signing |
 | `KademliaRpcClient` | Mesh.Dht | Uses `IMeshMessageSigner` |

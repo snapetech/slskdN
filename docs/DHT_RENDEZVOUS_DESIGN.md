@@ -1,16 +1,20 @@
 # BitTorrent DHT Rendezvous Layer - Design Document
 
+> This document describes the **public BitTorrent DHT rendezvous layer**.
+> For the distinction between this layer, the slskdN mesh DHT, and the mesh
+> data path, see [DHT and Mesh Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ## Synopsis
 
 The slskdn mesh network faces a **cold start problem**: when a client has no mesh neighbors, it cannot discover other slskdn clients to sync FLAC hashes or coordinate multi-source downloads. 
 
-**Solution:** Use the **BitTorrent mainline DHT** as a decentralized rendezvous mechanism. All slskdn clients agree on a magic "channel" (infohash derived from `"slskdn-mesh-v1"`). Clients that are publicly reachable ("beacons") announce their presence on this channel. Clients that need neighbors ("seekers") query the channel to find beacons, then establish direct TCP connections for mesh sync.
+**Solution:** Use the **BitTorrent mainline DHT** as a decentralized rendezvous mechanism. All slskdn clients agree on a magic "channel" (infohash derived from `"slskdn-mesh-v1"`). Clients that are publicly reachable ("beacons") announce their mesh overlay endpoint on this channel. Clients that need neighbors ("seekers") query the channel to find candidate endpoints, then establish separate TLS-protected overlay connections for mesh sync and data exchange.
 
 **Key Properties:**
 - **No central infrastructure** - leverages existing BitTorrent DHT (millions of nodes)
 - **Works for firewalled users** - they can still query DHT and make outbound connections
 - **Separate from Soulseek** - doesn't modify the Soulseek protocol at all
-- **Minimal overhead** - only used for peer discovery, not data transfer
+- **Minimal overhead** - this public BitTorrent DHT layer is used for peer discovery, not data transfer
 - **Privacy-preserving** - only exposes overlay IP:port, same as normal P2P
 
 ---
@@ -95,6 +99,13 @@ IH_BACKUP_2  = SHA1("slskdn-mesh-v1-backup-2")
 
 These are used like "channels" on the DHT. Beacons announce their `(IP, overlay_port)` under these infohashes. Seekers query these infohashes to get a list of beacon endpoints.
 
+This is standard BitTorrent DHT rendezvous behavior: the node uses
+`announce_peer` when it can accept inbound overlay connections and `get_peers`
+when it is looking for candidates. It does not advertise through an HTTP-style
+user-agent string, and it does not listen for other slskdN clients' user-agent
+strings. The DHT returns endpoint candidates; the slskdN identity and feature
+handshake happen later on the separate overlay connection.
+
 ### Overlay Handshake
 
 Once a TCP connection is established (seeker → beacon), the handshake proceeds:
@@ -129,9 +140,13 @@ Once a TCP connection is established (seeker → beacon), the handshake proceeds
 }
 ```
 
-**Step 3: Connection handed to mesh sync**
+**Step 3: Connection handed to mesh services**
 
-Both sides now know each other's Soulseek username and features. The TCP stream is handed to the existing `MeshSyncService` for FLAC hash exchange.
+Both sides now know each other's Soulseek username and features. The
+TLS-protected overlay stream is handed to mesh services for FLAC-hash exchange,
+search, service calls, and other mesh operations. File bytes and ranges remain
+on this overlay path; they are not sent through the public DHT or BitTorrent's
+piece-transfer protocol.
 
 ### Message Validation
 
@@ -264,7 +279,7 @@ The overlay TCP connection established during DHT rendezvous serves dual purpose
 - No compatibility concerns
 - Low overhead
 
-### Option 3: Store Hashes in BitTorrent DHT ❌ REJECTED
+### Option 3: Store Hashes in the Public BitTorrent DHT ❌ REJECTED
 
 | Problem | Why |
 |---------|-----|
@@ -273,7 +288,10 @@ The overlay TCP connection established during DHT rendezvous serves dual purpose
 | Churn | DHT entries expire; constant re-announcement needed |
 | Size | Our DB could be gigabytes; DHT values are tiny |
 
-**Verdict:** DHT is for peer discovery only, not data storage.
+**Verdict:** The public BitTorrent DHT rendezvous layer is for peer discovery,
+not file or content transfer. slskdN has a separate mesh DHT for bounded,
+signed metadata such as descriptors and content-peer hints; that metadata layer
+also does not carry file bytes.
 
 ### Option 4: HTTP API Between Clients ❌ REJECTED
 
@@ -628,7 +646,7 @@ public interface IMeshNeighborRegistry
 1. **Peer exchange (PEX)** - Share known mesh peers with each other
 2. **Geographic routing** - Prefer nearby peers for lower latency
 3. **Reputation system** - Track reliable beacons
-4. **DHT-based hash lookups** - Store popular hashes directly in DHT (requires careful design)
+4. **Mesh-DHT content lookups** - Store bounded content metadata in the slskdN mesh DHT; do not put content records in the public BitTorrent DHT
 5. **Tor/I2P support** - Anonymous mesh participation
 
 ---

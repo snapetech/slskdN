@@ -21,6 +21,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ---
 
 ## [Unreleased]
+- Clarified public BitTorrent DHT rendezvous, mesh-DHT metadata, and mesh
+  overlay transfer boundaries throughout user, architecture, research, and
+  packaging documentation without changing the enabled-by-default DHT policy.
 - Networked experimental feature defaults remain enabled, while explicit
   disable settings now gate hosted services as well as APIs. Disabled
   mesh/DHT/pod/VirtualSoulfind settings no

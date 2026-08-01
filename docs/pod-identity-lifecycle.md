@@ -6,6 +6,11 @@
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [../README.md](../README.md#acknowledgments) for attribution.
 
+> **DHT terminology**: mesh/DHT references here mean the slskdN mesh DHT and
+> overlay identity. The public BitTorrent DHT is a separate endpoint-rendezvous
+> layer and does not store pod identity or content records. See [DHT and Mesh
+> Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ---
 
 ## Overview
@@ -43,14 +48,14 @@ A **pod** consists of:
   - Privacy modes, work budgets, rate limits
   - MCP configuration (providers, policies)
 - **Network Config**:
-  - Mesh/DHT settings
+  - Mesh-DHT and overlay settings
   - Soulseek credentials (per-backend)
   - Social federation settings
 
 ### Identity Material (Keys & Credentials)
 
 - **Mesh/Pod Identity**:
-  - Keypair for mesh/DHT overlay
+  - Keypair for mesh-DHT and overlay identity
   - `PodId = hash(publicKey_pod)`
 - **Soulseek Identity**:
   - Username/password for Soulseek network
@@ -65,7 +70,7 @@ A **pod** consists of:
 ### Services (Runtime)
 
 - VirtualSoulfind service
-- Mesh/DHT service
+- Mesh-DHT/overlay service
 - Content relay service
 - MCP service
 - Social federation service
@@ -127,7 +132,7 @@ If you have **storage but not keys**:
 
 ❌ **You Lose**:
 - Ability to prove you're the same pod to others
-- Mesh/DHT participation as previous `PodId`
+- Mesh-DHT/overlay participation as previous `PodId`
 - ActivityPub actors (old handles dead)
 - Any encrypted data (if keys used for encryption)
 
@@ -277,7 +282,7 @@ Three levels of "end of life" for a pod:
 
 **What Happens**:
 - Stop all external services:
-  - No mesh/DHT/torrent/Soulseek
+  - No mesh-DHT/overlay/torrent/Soulseek
   - No ActivityPub (or keep read-only)
 - Keep data + keys (can revive later)
 
@@ -628,7 +633,7 @@ public interface IAdminService
 - Require admin authentication for key export
 
 **If Keys Stolen**:
-- Attacker can impersonate your pod on mesh/DHT/social
+- Attacker can impersonate your pod on mesh-DHT/overlay/social
 - Mitigation: Identity suicide + generate new identity
 - Optional: Publish "movedTo" pointer on ActivityPub (if possible before attacker takes over)
 
@@ -1072,4 +1077,3 @@ Cross-realm migration MUST respect the following security constraints:
 - `docs/realm-design.md` - Realm isolation and cross-realm bridging
 - `docs/social-federation-design.md` - ActivityPub "move" semantics
 - `docs/f1000-governance-design.md` - Governance identities (realm-agnostic)
-

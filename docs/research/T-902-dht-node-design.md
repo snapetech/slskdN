@@ -1,4 +1,9 @@
-# T-902: DHT Node and Routing Table — Design
+# T-902: Mesh DHT Node and Routing Table — Design
+
+> The public BitTorrent DHT rendezvous layer is separate: it uses BEP 5 UDP
+> only to discover mesh overlay endpoints. This document covers the slskdN
+> mesh DHT carried over established overlay connections. See [DHT and Mesh
+> Architecture](../DHT_MESH_ARCHITECTURE.md).
 
 > Implement a proper Kademlia DHT node with routing table and RPC.  
 > **Status**: Implemented (routing table, node role, RPC). **See**: `9-research-design-scope.md` T-902.
@@ -54,7 +59,7 @@ So we **join the DHT as a proper node**: we handle FIND_NODE, FIND_VALUE, STORE,
 - `get_peers` → **FindValue(key=info_hash)**: value can be peer list.
 - `announce_peer` → **Store(key=info_hash, value=peer_info)** with signature.
 
-**DhtRendezvous** (BitTorrent DHT): separate. It uses BEP 5 UDP for peer discovery (`slskdn-mb-v1:*` style keys) and does **not** use `KademliaRoutingTable` or `DhtMeshService`. Overlap: both are “DHT” but different protocols. DhtRendezvous = bootstrap/peer discovery over public BT DHT; mesh DHT = Kademlia over mesh overlay and shadow index.
+**DhtRendezvous** (BitTorrent DHT): separate. It uses BEP 5 UDP for mesh endpoint rendezvous under the well-known `slskdn-mesh-v1` infohashes and does **not** use `KademliaRoutingTable` or `DhtMeshService`. Overlap: both are “DHT” but different protocols. DhtRendezvous = bootstrap/peer discovery over public BT DHT; mesh DHT = Kademlia over mesh overlay and shadow index.
 
 ---
 

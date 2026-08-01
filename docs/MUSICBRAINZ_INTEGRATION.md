@@ -9,11 +9,16 @@
 
 This document outlines the integration of MusicBrainz IDs, Discogs IDs, and acoustic fingerprinting into slskdn's multi-source swarm + DHT mesh architecture.
 
+> **DHT terminology**: content-aware keys and records in this design belong to
+> the slskdN mesh DHT and are exchanged over the mesh overlay. The public
+> BitTorrent DHT is reserved for endpoint rendezvous; it must not be used for
+> MBID announcements or file transfer. See [DHT and Mesh Architecture](DHT_MESH_ARCHITECTURE.md).
+
 ---
 
 ## Philosophy
 
-**Core Principle**: Soulseek remains the canonical social/search layer and data origin. MusicBrainz/Discogs/fingerprints add **semantic intelligence** on top, while the DHT mesh becomes a **content-aware overlay** that understands real-world music identity.
+**Core Principle**: Soulseek remains the canonical social/search layer and data origin. MusicBrainz/Discogs/fingerprints add **semantic intelligence** on top, while the mesh DHT and overlay become a **content-aware mesh layer** that understands real-world music identity.
 
 **Key Insight**: Multi-swarm already abstracts away filenames/paths for content-addressed chunks. Extending this to **acoustically-addressed chunks** (via fingerprints + MBIDs) is the natural evolution.
 
@@ -178,7 +183,7 @@ Album: Kind of Blue (MB:1234-5678-9abc)
 
 ### Phase 2: "Distinctive but Safe" (Mesh Integration)
 
-Extends Phase 1 to use DHT mesh for discovery and coordination, but no aggressive relaying yet.
+Extends Phase 1 to use the mesh DHT and overlay for discovery and coordination, but no aggressive relaying yet.
 
 #### 2.1 Fingerprint-Driven Swarms: Semantic Content Identity
 
@@ -236,28 +241,28 @@ CREATE INDEX idx_hashdb_semantic ON HashDb(mb_recording_id, codec_profile);
 -- Multiple byte_hashes can map to same (mb_recording_id, codec_profile)
 ```
 
-#### 2.2 ID-Level DHT Overlay: Cross-Client Discovery
+#### 2.2 ID-Level Mesh-DHT Discovery: Cross-Client Discovery
 
-**DHT Announcement Strategy**:
+**Mesh-DHT Announcement Strategy**:
 
-**DO NOT** abuse BitTorrent DHT by announcing every MBID you have.
+**DO NOT** use the public BitTorrent DHT to announce every MBID you have.
 
-**DO** announce actively-worked items:
+**DO** announce actively-worked items to the slskdN mesh DHT:
 - Albums currently downloading
 - Albums you're configured to "seed" (high-value releases)
 - Limited to top N (e.g., 100) most active MBIDs per node
 
-**DHT Key Derivation**:
+**Mesh-DHT Key Derivation**:
 ```python
 def mbid_dht_key(mb_release_id: str) -> bytes:
     """
-    Generate Kademlia key for MB Release discovery.
+    Generate a mesh-DHT Kademlia key for MB Release discovery.
     Namespace-prefixed to avoid collisions with real torrents.
     """
     return sha1(b"slskdn-mb-v1:" + mb_release_id.encode())
 ```
 
-**DHT Value Format** (BEncoded):
+**Mesh-DHT Value Format** (conceptual):
 ```python
 {
   "overlay_addr": "ip:port",          # TLS overlay endpoint
@@ -276,8 +281,8 @@ def mbid_dht_key(mb_release_id: str) -> bytes:
 ```
 User: "Download MB Release abc-123"
 
-1. slskdn → BitTorrent DHT: GET_PEERS(key=sha1("slskdn-mb-v1:abc-123"))
-2. DHT returns: [peer1_value, peer2_value, ...]
+1. slskdn → mesh DHT over the mesh overlay: lookup `sha1("slskdn-mb-v1:abc-123")`
+2. Mesh DHT returns: [peer1_value, peer2_value, ...]
 3. For each peer:
    a. Connect to overlay_addr via TLS
    b. Handshake with peer_id + token
@@ -293,8 +298,8 @@ Result: Faster discovery, more sources, better NAT traversal
 - **Announce limit**: 100 MBIDs per node
 - **Announce interval**: 15 minutes per MBID
 - **Token rotation**: Every 30 minutes
-- **Mesh handshake**: Require valid token from DHT value
-- **Respect DHT etiquette**: No flood announcements
+- **Mesh handshake**: Require valid token from the mesh-DHT value
+- **Respect mesh-DHT etiquette**: No flood announcements
 
 #### 2.3 "Curated Editions" via Fingerprint Consensus
 
@@ -371,7 +376,7 @@ Results:
 
 ### Phase 3: "Ingenious" (Advanced Mesh Behaviors)
 
-Fully exploits DHT mesh + fingerprints to create emergent behaviors impossible in vanilla Soulseek.
+Fully exploits mesh DHT + overlay + fingerprints to create emergent behaviors impossible in vanilla Soulseek.
 
 #### 3.1 Mesh Caches / Super Peers for Popular MBIDs
 
@@ -391,11 +396,11 @@ Fully exploits DHT mesh + fingerprints to create emergent behaviors impossible i
 2. Cache node:
    - Downloads full album from Soulseek (once)
    - Verifies all tracks via fingerprints → MBIDs
-   - Announces to DHT with `cache: true` capability
+   - Announces to the mesh DHT with `cache: true` capability
    - Serves chunks to other slskdn peers over TLS overlay
 
 3. Other nodes:
-   - Discover cache via DHT
+   - Discover cache via the mesh DHT
    - Connect over mesh (fast, no Soulseek queue/slot limits)
    - Download chunks directly from cache
    - Cache, in turn, maintains Soulseek origin as backup
@@ -458,7 +463,7 @@ Peer A has full album, sees job for tracks 3,7
 ```
 Peer B doesn't have tracks, but sees job
 → Also starts searching Soulseek for them
-→ If found, shares results back to mesh (via DHT announcement)
+→ If found, shares results back to the mesh (via a mesh-DHT announcement)
 ```
 
 **Behavior 3: Cache Pre-Fetch**
@@ -906,9 +911,9 @@ cost(peer) = (1 / throughput) + (penalty_error_rate × error_rate) + (penalty_ti
 
 **Rescue Flow**:
 1. Mark transfer as "critical but underperforming".
-2. Query mesh via DHT: "Who has MB Recording X with fingerprint Y?"
+2. Query the mesh DHT: "Who has MB Recording X with fingerprint Y?"
 3. If mesh peers found:
-   - Start overlay swarm for missing byte ranges.
+   - Start an overlay swarm for missing byte ranges.
    - Keep Soulseek transfer alive (deprioritized).
 4. If Soulseek transfer recovers: rebalance swarm to prefer it again.
 5. If Soulseek transfer dies: rely entirely on mesh.
@@ -1205,6 +1210,7 @@ playback continuity when enough verified sources are available.
 - [Discogs API](https://www.discogs.com/developers)
 - [BitTorrent DHT Protocol (BEP 5)](http://www.bittorrent.org/beps/bep_0005.html)
 - [slskdn Multi-Source Design](archive/duplicates/MULTI_SOURCE_DOWNLOADS.md)
+- [DHT and Mesh Architecture](./DHT_MESH_ARCHITECTURE.md)
 - [slskdn DHT Rendezvous Design](./DHT_RENDEZVOUS_DESIGN.md)
 
 ---

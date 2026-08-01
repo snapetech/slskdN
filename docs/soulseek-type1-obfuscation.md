@@ -61,9 +61,9 @@ The feature is not encryption. It should not be described as anonymous, secure, 
 
 ## Adjacent Mesh Privacy Work
 
-slskdN also has mesh/DHT transport privacy controls outside native Soulseek type-1 obfuscation. Mesh routing can now consult the configured anonymity/obfuscated transport selector without opening a throwaway connection, prefer overlay routing when Tor, I2P, WebSocket tunnel, HTTP tunnel, obfs4, or meek is selected, and fall back to normal mesh routing when none of those transports are available.
+slskdN also has mesh-DHT and overlay transport privacy controls outside native Soulseek type-1 obfuscation. Mesh routing can now consult the configured anonymity/obfuscated transport selector without opening a throwaway connection, prefer overlay routing when Tor, I2P, WebSocket tunnel, HTTP tunnel, obfs4, or meek is selected, and fall back to normal mesh routing when none of those transports are available.
 
-This is not the same as Soulseek type-1 obfuscation. It applies to slskdN mesh/DHT paths, not to the official Soulseek server socket.
+This is not the same as Soulseek type-1 obfuscation. It applies to slskdN mesh-DHT and overlay paths, not to the official Soulseek server socket. The public BitTorrent DHT remains a separate endpoint-rendezvous path.
 
 Metadata minimization is part of this posture: bridge searches, bridge downloads, DHT store logs, and remote metadata-search logs should use sanitized fingerprints, short identifiers, or basename-only values rather than raw searches, full filenames, full paths, or full peer identifiers.
 

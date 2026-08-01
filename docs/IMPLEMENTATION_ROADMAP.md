@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document maps out the complete implementation path for building out the multi-source download functionality with a distributed hash table (DHT) / epidemic mesh sync protocol. The goal is to create a network of `slskdn` clients that can share FLAC hash information, enabling instant content verification without redundant header probing.
+This document maps out the complete implementation path for building out the multi-source download functionality with the slskdN mesh DHT / epidemic mesh sync protocol. The public BitTorrent DHT is a separate endpoint-rendezvous layer and does not carry the FLAC hash database or transfer data. The goal is to create a network of `slskdn` clients that can share FLAC hash information, enabling instant content verification without redundant header probing.
 
 **Current Branch:** `main`
 
@@ -44,7 +44,7 @@ when they reference code, tests, or release notes in this repository.
 | HashDbController | `src/slskd/HashDb/API/HashDbController.cs` | REST API endpoints |
 | Peer model | `src/slskd/HashDb/Models/Peer.cs` | Capability & backfill tracking |
 | FlacInventoryEntry | `src/slskd/HashDb/Models/FlacInventoryEntry.cs` | File inventory with hash status |
-| HashDbEntry | `src/slskd/HashDb/Models/HashDbEntry.cs` | Content-addressed DHT entry |
+| HashDbEntry | `src/slskd/HashDb/Models/HashDbEntry.cs` | Content-addressed mesh-DHT entry |
 
 ### Not Yet Implemented ❌
 
@@ -152,7 +152,7 @@ CREATE TABLE FlacInventory (
     duration_samples INTEGER
 );
 
--- DHT/Mesh hash database (content-addressed)
+-- Mesh-DHT hash database (content-addressed)
 CREATE TABLE HashDb (
     flac_key TEXT PRIMARY KEY,         -- 64-bit truncated hash (16 hex chars)
     byte_hash TEXT NOT NULL,           -- SHA256 of first 32KB
@@ -354,7 +354,13 @@ rate-limiting pieces were implemented for the scoped workstream.
 
 **The Cold Start Problem:** When a new slskdn client starts up, or when a client has been offline for a while, it may have no mesh neighbors. Without mesh neighbors, it can't sync FLAC hashes, coordinate multi-source downloads, or benefit from the distributed network. How does it find other slskdn clients?
 
-**The Solution:** Use the **BitTorrent mainline DHT** as a decentralized "bulletin board" where slskdn clients advertise their presence and discover each other. This is purely a **rendezvous mechanism** - we don't store any file hashes or content in the DHT.
+**The Solution:** Use the **BitTorrent mainline DHT** as a decentralized
+"bulletin board" where slskdn clients advertise their mesh overlay endpoints
+and discover each other. This public BitTorrent layer is purely a
+**rendezvous mechanism**: it does not store file hashes or content bytes. The
+separate slskdN mesh DHT may carry bounded signed metadata, while file data
+travels over the mesh overlay. See [DHT and Mesh Architecture](DHT_MESH_ARCHITECTURE.md)
+for the distinction.
 
 ### 6.1 Key Concepts
 
@@ -363,7 +369,7 @@ rate-limiting pieces were implemented for the scoped workstream.
 | **Rendezvous Infohash** | A well-known SHA-1 hash derived from a magic string (e.g., `SHA1("slskdn-mesh-v1")`) that all slskdn clients agree on |
 | **Beacon** | An slskdn client that is publicly reachable, announces itself to the DHT, and accepts inbound overlay connections |
 | **Seeker** | An slskdn client behind NAT/firewall that queries the DHT and makes outbound connections to beacons |
-| **Overlay Port** | A separate TCP port (not Soulseek) where slskdn clients perform mesh handshakes and sync |
+| **Overlay Port** | A separate TCP port (not Soulseek) where slskdn clients perform TLS-protected mesh handshakes, sync, and overlay operations |
 
 ### 6.2 How It Works
 
@@ -1195,7 +1201,7 @@ namespace slskd.HashDb.Models
 public static class FlacKeyGenerator
 {
     /// <summary>
-    /// Generate 64-bit DHT key from filename and size.
+    /// Generate 64-bit mesh-DHT content key from filename and size.
     /// </summary>
     public static ulong GenerateKey(string filename, long size)
     {
