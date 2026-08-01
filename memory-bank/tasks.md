@@ -9,6 +9,15 @@
 
 ### High Priority
 
+- [x] Align feature-gating and network-default documentation with runtime.
+  - Status: completed (2026-08-01)
+  - Priority: P1
+  - Notes: Documented that most experimental `feature.*` values gate APIs
+    rather than hosted-service lifecycle, identified `feature.IdentityFriends`
+    as the mDNS-startup exception, replaced the nonexistent `mesh.enabled`
+    example, and disclosed independent mesh/DHT/overlay controls, Gold Star
+    enrollment behavior, and current default-on network-visible surfaces.
+
 - [x] Publish and verify stable self-hosted Tailscale relay release `.293`.
   - Status: completed (2026-07-31)
   - Priority: P1

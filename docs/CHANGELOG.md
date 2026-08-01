@@ -21,6 +21,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ---
 
 ## [Unreleased]
+- Documentation now identifies experimental `feature.*` settings as API gates
+  rather than global service switches, lists the independent mesh/DHT/overlay
+  controls and current network-forward defaults, and discloses Gold Star pod
+  creation and auto-enrollment behavior.
 - PPA workflows now serialize uploads per Ubuntu series and wait for the exact
   source, binary build, and published binary records, preventing a later source
   upload from superseding a package whose binary is still being processed.

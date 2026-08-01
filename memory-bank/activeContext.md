@@ -1,3 +1,19 @@
+## Update 2026-08-01 13:34:11Z
+
+- Current task: complete. Public documentation now describes experimental API
+  gates and network/service lifecycle according to the current runtime.
+- Last activity:
+  - Added `docs/runtime-feature-gating.md` with current defaults and a bounded
+    reduction profile.
+  - Corrected the README and example configuration to remove the nonexistent
+    `mesh.enabled` option and disclose API-only flags, Gold Star behavior, and
+    independent runtime controls.
+  - Updated the privacy/security surface table so false API flags are not
+    represented as process-dormancy guarantees.
+- Next steps:
+  1. Decide separately whether to change the runtime defaults or service gates;
+     this documentation-only task intentionally preserves current behavior.
+
 ## Update 2026-07-31 18:05:00Z
 
 - Current task: complete. Stable self-hosted Tailscale relay release

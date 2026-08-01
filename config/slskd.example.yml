@@ -326,7 +326,7 @@
 #     SignatureMode: Off   # Off | Warn | Enforce
 #   Join:
 #     SignatureMode: Off   # Off | Warn | Enforce
-# feature:
+# feature:                    # Controller/API gates; most values below do not stop background services. See docs/runtime-feature-gating.md.
 #   swagger: true              # Enable Swagger API documentation UI (default: true)
 #   CollectionsSharing: true   # Enable Collections, ShareGroups, ShareGrants APIs (default: true)
 #   Streaming: true            # Enable streaming API (/api/v0/streams/{contentId}) (default: true)
@@ -340,12 +340,12 @@
 #                                # Pod results can be downloaded from remote mesh peers if not available locally.
 #                                # Scene results use the standard Soulseek download pipeline.
 #   SongId: true                # Experimental SongID analysis APIs (default: true).
-#   Mesh: true                  # Experimental mesh overlay/hash gossip APIs (default: true).
-#   Dht: true                   # Experimental DHT rendezvous and overlay discovery APIs (default: true).
-#   Pods: true                  # Experimental pod community APIs (default: true).
-#   SocialFederation: true      # Experimental ActivityPub/social federation APIs (default: true).
-#   VirtualSoulfind: true       # Experimental VirtualSoulfind APIs (default: true).
-#   MultiSourceDownloads: true  # Experimental multi-source/swarm download APIs (default: true).
+#   Mesh: true                  # Gate mesh APIs (default: true); does not stop mesh hosted services.
+#   Dht: true                   # Gate DHT APIs (default: true); use dht.enabled and mesh.enable_dht for runtime activity.
+#   Pods: true                  # Gate pod APIs (default: true); does not stop Gold Star service/auto-enrollment.
+#   SocialFederation: true      # Gate ActivityPub/social federation APIs (default: true); not a global service switch.
+#   VirtualSoulfind: true       # Gate VirtualSoulfind APIs (default: true); not a global service switch.
+#   MultiSourceDownloads: true  # Gate multi-source/swarm APIs (default: true); not a global service switch.
 #   ScenePodBridgeOptions:
 #     ProxyTransfers: false     # Proxy scene downloads through pod (future feature, intentionally disabled)
 #     ExportPodAvailability: false  # Export pod availability to scene (future feature, intentionally disabled)
@@ -593,9 +593,11 @@
 #     notification_prefix: "slskdN"
 #     notify_on_private_message: true
 #     notify_on_room_mention: true
+# Mesh runtime controls are independent from feature.Mesh. There is no mesh.enabled option.
 # Mesh.Security (PR-01, §8). Binds to Mesh:Security when Mesh section is used.
 # mesh:
-#   enabled: true
+#   enable_dht: true                              # controls mesh descriptor DHT publishing/refresh; default true
+#   enable_overlay: true                          # controls mesh overlay availability; default true
 #   enable_soulseek_capability_handshake: true      # exchange signed slskdN runtime capabilities over Soulseek peer messages
 #   enable_soulseek_rendezvous: false              # opt-in only; publishes the public slskdn-mesh-v1 Soulseek interest tag
 #   probe_soulseek_rendezvous_capabilities: true   # probe rendezvous candidates for runtime capability descriptors

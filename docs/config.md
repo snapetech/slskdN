@@ -1437,6 +1437,24 @@ metrics:
 
 ## Features
 
+### slskdN experimental feature flags
+
+The slskdN-specific `feature.Mesh`, `feature.Dht`, `feature.Pods`,
+`feature.SocialFederation`, `feature.VirtualSoulfind`, and
+`feature.MultiSourceDownloads` values are controller/API gates. They do not
+disable all corresponding hosted services or mesh service-router registration.
+`feature.IdentityFriends` is an exception and also prevents startup mDNS
+advertising when false.
+
+There is no `mesh.enabled` option. Use the actual independent settings such as
+`mesh.enable_dht`, `mesh.enable_overlay`, `dht.enabled`, `overlay.enable`, and
+`overlay_data.enable`. Pod API gating also does not disable Gold Star Club
+creation or auto-enrollment; set
+`SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false` before startup to prevent enrollment.
+See [Runtime Feature Gates and Network Defaults](runtime-feature-gating.md) for
+the current lifecycle boundary, reduction profile, and default network-visible
+behavior.
+
 Several features have been added that aid in the application's development, debugging, and operation but are generally not valuable for most users.
 
 The application can publish Prometheus metrics to `/metrics` using [prometheus-net](https://github.com/prometheus-net/prometheus-net).  This is especially useful for anyone attempting to tune performance characteristics.

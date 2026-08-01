@@ -1,3 +1,20 @@
+## Update 2026-08-01 13:34:11Z
+
+- Aligned the README, configuration reference/example, documentation index,
+  and network/privacy surface table with current experimental-feature runtime
+  behavior after tester feedback.
+- Documented that most `feature.*` values gate controllers/APIs rather than
+  hosted services, while `feature.IdentityFriends` additionally controls mDNS
+  startup. Replaced the unbound `mesh.enabled` example with
+  `mesh.enable_dht` and `mesh.enable_overlay`.
+- Added a current-runtime guide covering the reduction profile, independently
+  hosted DHT timeout log, service-router registration, Gold Star pod creation
+  and auto-enrollment, public BitTorrent DHT, STUN/capability defaults,
+  VirtualSoulfind/BT signaling, and the identifying Soulseek description.
+- Full validation passes: application `74`, unit `4969`, integration `284`,
+  repository lint, configuration-option drift, fork links, identity-leak
+  protection, and diff checks.
+
 ## Update 2026-07-31 18:05:00Z
 
 - Published stable release `2026073117-slskdn.293` from commit `6def57b15`.

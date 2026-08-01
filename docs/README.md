@@ -15,6 +15,7 @@ completed workstream notes, and incident reports live under
 - [Docker Deployment](docker.md) - Container setup
 - [Reverse Proxy Setup](reverse_proxy.md) - Running behind a proxy
 - [Known Issues](known_issues.md) - Current known problems
+- [Runtime Feature Gates and Network Defaults](runtime-feature-gating.md) - Exact API-gate, service-lifecycle, pod enrollment, and network-default behavior
 
 ## 📘 User Guides
 
