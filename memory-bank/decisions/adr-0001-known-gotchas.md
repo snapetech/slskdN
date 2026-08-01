@@ -26757,3 +26757,23 @@ runtime could coexist with APIs that returned `Feature Dht: Disabled`.
 **Prevention**: Read nested settings from the same bound root `Options` graph
 used by startup unless the standalone options type is explicitly bound and
 covered by an integration test. Test both disabled defaults and explicit opt-in.
+
+### 0z804. Fix Explicit Disable Semantics Without Changing Product Defaults
+
+**The Bug**: A lifecycle-gating fix also changed DHT, mesh, pod, federation,
+VirtualSoulfind, multi-source, discovery, and signaling defaults from enabled
+to disabled. That altered fresh-install product behavior even though the actual
+bug was that explicit false values did not stop their services.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `src/slskd/DhtRendezvous/DhtRendezvousService.cs`
+- `src/slskd/Mesh/MeshOptions.cs`
+- `src/slskd/Mesh/Overlay/OverlayOptions.cs`
+- `src/slskd/Signals/SignalSystemOptions.cs`
+- `src/slskd/VirtualSoulfind/v2/Configuration/VirtualSoulfindOptions.cs`
+
+**Prevention**: Separate default-value policy from disable-path correctness.
+When fixing a false feature or service setting, preserve established defaults,
+test that defaults remain enabled, and independently test that explicit false
+prevents hosted-service registration and startup waits.
