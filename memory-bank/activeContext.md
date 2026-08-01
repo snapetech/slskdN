@@ -1,3 +1,22 @@
+## Update 2026-08-01 16:19:02Z
+
+- Current task: complete the repository-side preparation for the slskdN
+  Community Applications listing.
+- Last activity:
+  - Added the required root `ca_profile.xml` with a non-empty profile and
+    fork-owned icon/project links.
+  - Cleaned the Unraid v2 template metadata, removed redundant legacy blocks,
+    replaced guessed download/music share defaults with user-selected paths,
+    and updated the manual-install fallback documentation.
+  - Added profile/template smoke validation and passed XML validation,
+    packaging metadata validation, `./bin/lint`, `dotnet test`, and diff checks.
+- Next steps:
+  1. Create the maintainer support thread on the Unraid forum and replace the
+     temporary GitHub Issues support link if desired.
+  2. Sign in to the Community Applications portal, validate/scan the public
+     repository, and submit it for review.
+  3. Keep the repository-side task open until the portal accepts the listing.
+
 ## Update 2026-08-01 15:09:53Z
 
 - Current task: complete. Gold Star Club is strictly opt-in for every node;

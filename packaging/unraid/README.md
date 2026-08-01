@@ -1,27 +1,22 @@
 # slskdn Unraid Template
 
-This template allows you to easily install slskdn on Unraid via Community Applications.
+This template is the Community Applications package metadata for slskdN.
 
-## Quick Install (Manual)
+## Community Applications
 
-If slskdn isn't in the official Community Apps yet, you can add it manually:
+The repository-level profile required by the current Community Applications submission portal is at [`ca_profile.xml`](../../ca_profile.xml). Submit the public GitHub repository through [Community Applications](https://ca.unraid.net/submit/new) after reviewing the [submission help](https://ca.unraid.net/submit/help).
 
-1. In Unraid, go to **Settings → Docker → Template Repositories**
-2. Add this URL:
-   ```
-   https://github.com/snapetech/slskdn
-   ```
-3. Click **Save**
-4. Go to **Apps** and search for "slskdn"
-5. Click **Install**
+Until the listing is approved, use the [raw template XML](https://raw.githubusercontent.com/snapetech/slskdn/main/packaging/unraid/slskdn.xml) as a local user template. Copy it to `/boot/config/plugins/dockerMan/templates-user/slskdn.xml` on the Unraid flash, then open **Docker → Add Container → User Templates** and select `slskdn`.
+
+The old **Settings → Docker → Template Repositories** instructions are obsolete on current Unraid releases.
 
 ## Default Paths
 
-| Setting | Container Path | Default Host Path |
+| Setting | Container Path | Default / Recommendation |
 |---------|---------------|-------------------|
 | App Data | `/app` | `/mnt/user/appdata/slskdn` |
-| Downloads | `/downloads` | `/mnt/user/downloads/slskdn` |
-| Music Library | `/music` | `/mnt/user/media/music` |
+| Downloads | `/downloads` | Choose a share and directory |
+| Music Library | `/music` | Optional; choose a read-only share and directory |
 
 ## Default Ports
 
@@ -54,8 +49,7 @@ If slskdn isn't in the official Community Apps yet, you can add it manually:
 
 - **Issues:** https://github.com/snapetech/slskdn/issues
 - **Documentation:** https://github.com/snapetech/slskdn
-
-
+- **Unraid submission help:** https://ca.unraid.net/submit/help
 
 
 

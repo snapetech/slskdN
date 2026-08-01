@@ -12421,3 +12421,4 @@ Code quality improvements were completed as part of Option A:
   return `feature=Dht disabled` for requests that do not explicitly enable
   DHT. No source changes were made to address that separate runtime/test
   alignment issue.
+[2026-08-01T16:19:02Z] Unraid Community Applications preparation: added the required root `ca_profile.xml`, moved template metadata to fork-owned icon/project/package links, removed redundant legacy template blocks, blanked share defaults to avoid guessed host-share creation, replaced obsolete Template Repositories guidance, and extended package smoke validation to the profile. XML validation, Unraid smoke, packaging metadata validation, `./bin/lint`, `dotnet test` (`74` application, `4985` unit, `284` integration), and diff checks passed. No forum post, portal submission, push, or release tag was created; those remain manual.

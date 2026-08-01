@@ -371,7 +371,11 @@ install_helm() {
 install_unraid() {
   have xmllint || die "xmllint is required for Unraid template smoke"
   run xmllint --noout "$repo_root/$UNRAID_TEMPLATE"
-  endpoint_status="unraid XML valid"
+  run xmllint --noout "$repo_root/$UNRAID_PROFILE"
+  local profile
+  profile="$(xmllint --xpath 'normalize-space(string(/CommunityApplications/Profile))' "$repo_root/$UNRAID_PROFILE")"
+  [[ -n "$profile" ]] || die "Unraid Community Apps profile must contain a non-empty Profile element"
+  endpoint_status="unraid template and Community Apps profile valid"
   uninstall_status="metadata only"
 }
 

@@ -2882,6 +2882,11 @@
   - Priority: Medium
   - Notes: `packaging/helm/slskdn/` — Chart.yaml, values.yaml, templates (_helpers, Deployment, Service, PVCs, Ingress). No TrueCharts; standard K8s, PVCs for config/downloads/shares/incomplete. appVersion 0.24.1-slskdn.40. README with install and main values.
 
+- [ ] **Unraid Community Applications listing**
+  - Status: repository preparation completed (2026-08-01); forum support-thread creation and portal submission remain manual.
+  - Priority: Medium
+  - Notes: Added the required root `ca_profile.xml`, fork-owned icon and registry links, current v2 Docker template metadata, blank share defaults, and XML/profile smoke validation. The remaining steps require the maintainer's Unraid forum account and Community Applications portal authentication.
+
 ---
 
 ## Completed Tasks
