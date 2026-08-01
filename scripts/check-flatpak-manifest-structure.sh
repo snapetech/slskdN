@@ -35,7 +35,7 @@ if ! awk '
   failed=1
 fi
 
-for asset in slskdn.desktop slskdn.metainfo.xml slskdn.svg; do
+for asset in slskdn.desktop slskdn.metainfo.xml.in slskdn.svg; do
   if ! grep -qF "path: $asset" "$manifest"; then
     printf 'Flatpak manifest is missing source asset %s\n' "$asset" >&2
     failed=1

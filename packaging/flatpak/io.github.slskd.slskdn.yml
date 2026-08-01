@@ -105,7 +105,7 @@ modules:
         chmod +x /app/bin/slskdn-wrapper
 
         install -Dm644 slskdn.desktop /app/share/applications/io.github.slskd.slskdn.desktop
-        install -Dm644 slskdn.metainfo.xml /app/share/metainfo/io.github.slskd.slskdn.metainfo.xml
+        install -Dm644 slskdn.metainfo.xml.in /app/share/metainfo/io.github.slskd.slskdn.metainfo.xml
         install -Dm644 slskdn.svg /app/share/icons/hicolor/scalable/apps/io.github.slskd.slskdn.svg
     sources:
       # slskdN 2026080115-slskdn.295 Linux glibc x64 (snapetech; asset slskdn-main-linux-glibc-x64.zip)
@@ -117,7 +117,7 @@ modules:
         path: slskdn.desktop
 
       - type: file
-        path: slskdn.metainfo.xml
+        path: slskdn.metainfo.xml.in
 
       - type: file
         path: slskdn.svg

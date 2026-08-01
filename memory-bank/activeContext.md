@@ -1,3 +1,21 @@
+## Update 2026-08-01 17:09:04Z
+
+- Current task: complete repository-side remediation for the Unraid Community
+  Applications scan.
+- Last activity:
+  - Traced `not_unraid_application: 1` to the unrelated Flatpak AppStream XML
+    file being recursively scanned as a second Unraid template candidate.
+  - Renamed that source to `slskdn.metainfo.xml.in`, updated the Flatpak
+    manifest/checker/docs, and recorded the scanner behavior in ADR-0001.
+- Validation:
+  - The only `.xml` candidates are now `ca_profile.xml` and the Unraid
+    template.
+  - Flatpak manifest structure, XML parsing, packaging metadata, Unraid smoke,
+    shell syntax, and diff checks pass.
+- Next steps:
+  1. Re-scan the public repository in the Community Applications portal.
+  2. Submit for review once the template warning is gone.
+
 ## Update 2026-08-01 16:52:00Z
 
 - Current task: complete. Vendored `slskNet.Runtime` now has an enforced

@@ -281,7 +281,7 @@ slskdN includes many advanced community service features:
 packaging/flatpak/
 ├── io.github.slskd.slskdn.yml    # Flatpak manifest
 ├── slskdn.desktop               # Desktop file
-├── slskdn.metainfo.xml          # App metadata
+├── slskdn.metainfo.xml.in       # App metadata source (the .in suffix keeps CA's XML scanner from treating it as an Unraid template)
 ├── slskdn.svg                   # Application icon
 └── README.md                    # This file
 ```

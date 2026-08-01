@@ -2895,9 +2895,9 @@
   - Notes: `packaging/helm/slskdn/` — Chart.yaml, values.yaml, templates (_helpers, Deployment, Service, PVCs, Ingress). No TrueCharts; standard K8s, PVCs for config/downloads/shares/incomplete. appVersion 0.24.1-slskdn.40. README with install and main values.
 
 - [ ] **Unraid Community Applications listing**
-  - Status: repository preparation completed (2026-08-01); forum support-thread creation and portal submission remain manual.
+  - Status: repository preparation and scan remediation completed (2026-08-01); forum support-thread creation and portal submission remain manual.
   - Priority: Medium
-  - Notes: Added the required root `ca_profile.xml`, fork-owned icon and registry links, current v2 Docker template metadata, all current public listeners (`5030`, `5031`, `50300`, `50305/tcp`, `50305/udp`, optional `50401/udp`), documented Docker environment overrides, blank optional values, a copy-ready support post, and XML/profile smoke validation. The remaining steps require the maintainer's Unraid forum account and Community Applications portal authentication.
+  - Notes: Added the required root `ca_profile.xml`, fork-owned icon and project/support links, a real GHCR `<Registry>`, current v2 Docker template metadata, all current public listeners (`5030`, `5031`, `50300`, `50305/tcp`, `50305/udp`, optional `50401/udp`), documented Docker environment overrides, blank optional values, copy-ready Markdown and plain-text forum posts, and XML/profile smoke validation. Renamed the unrelated Flatpak AppStream source to `slskdn.metainfo.xml.in` because the portal recursively scans `.xml` files and reports `not_unraid_application` for non-template XML. The remaining steps require the maintainer's Unraid forum account and Community Applications portal authentication.
 
 ---
 
