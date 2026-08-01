@@ -65,6 +65,23 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z807. Unraid Submission Scans Every XML File
+
+**The Bug**: The Community Applications submission scanner recursively treats
+every `.xml` file in the repository as a possible Unraid template. A non-
+Unraid XML asset, such as Flatpak AppStream metadata, produces a
+`not_unraid_application` warning even when the real Docker template is valid.
+
+**Files Affected**:
+- `packaging/flatpak/slskdn.metainfo.xml`
+- `packaging/unraid/slskdn.xml`
+
+**Prevention**: Keep non-Unraid XML assets out of the scanner's `.xml` file
+set. Use a non-XML source suffix such as `.xml.in` and update the consuming
+packager, or submit from a dedicated repository containing only the Unraid
+profile and template files. Re-run Validate and Scan after every XML layout
+change.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
