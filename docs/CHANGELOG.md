@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026080115-slskdn.295] — 2026-08-01
+
 - Gold Star Club is now strictly opt-in: reserved-pod creation, DHT
   publication, and automatic enrollment require `feature.Pods: true` plus the
   exact daemon environment value
