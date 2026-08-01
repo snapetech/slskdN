@@ -16,42 +16,42 @@ public class FeatureOptionsTests
     }
 
     [Fact]
-    public void Defaults_KeepNetworkedExperimentalFeatureGatesDisabled()
+    public void Defaults_KeepNetworkedExperimentalFeatureGatesEnabled()
     {
         var options = new slskd.Options();
 
         Assert.True(options.Feature.SongId);
-        Assert.False(options.Feature.Mesh);
-        Assert.False(options.Feature.Dht);
-        Assert.False(options.Feature.Pods);
-        Assert.False(options.Feature.SocialFederation);
-        Assert.False(options.Feature.VirtualSoulfind);
-        Assert.False(options.Feature.MultiSourceDownloads);
-        Assert.False(options.Feature.MeshParallelSearch);
-        Assert.False(options.Feature.MeshPublishAvailability);
-        Assert.False(options.Feature.IdentityFriends);
-        Assert.Equal(string.Empty, options.Soulseek.Description);
+        Assert.True(options.Feature.Mesh);
+        Assert.True(options.Feature.Dht);
+        Assert.True(options.Feature.Pods);
+        Assert.True(options.Feature.SocialFederation);
+        Assert.True(options.Feature.VirtualSoulfind);
+        Assert.True(options.Feature.MultiSourceDownloads);
+        Assert.True(options.Feature.MeshParallelSearch);
+        Assert.True(options.Feature.MeshPublishAvailability);
+        Assert.True(options.Feature.IdentityFriends);
+        Assert.NotEmpty(options.Soulseek.Description);
     }
 
     [Fact]
-    public void Defaults_KeepIndependentNetworkTransportsDormant()
+    public void Defaults_KeepIndependentNetworkTransportsEnabled()
     {
         var options = new slskd.Options();
         var mesh = new slskd.Mesh.MeshOptions();
         var overlay = new slskd.Mesh.Overlay.OverlayOptions();
 
-        Assert.False(options.DhtRendezvous.Enabled);
-        Assert.True(options.DhtRendezvous.LanOnly);
-        Assert.False(options.DhtRendezvous.EnableStun);
-        Assert.False(mesh.EnableDht);
-        Assert.False(mesh.EnableOverlay);
-        Assert.False(mesh.EnableStun);
-        Assert.False(mesh.EnableSoulseekCapabilityHandshake);
-        Assert.False(mesh.ProbeSoulseekRendezvousCapabilities);
-        Assert.False(overlay.Enable);
-        Assert.False(options.VirtualSoulfindV2.Enabled);
-        Assert.False(options.SignalSystem.Enabled);
-        Assert.False(options.SignalSystem.MeshChannel.Enabled);
-        Assert.False(options.SignalSystem.BtExtensionChannel.Enabled);
+        Assert.True(options.DhtRendezvous.Enabled);
+        Assert.False(options.DhtRendezvous.LanOnly);
+        Assert.True(options.DhtRendezvous.EnableStun);
+        Assert.True(mesh.EnableDht);
+        Assert.True(mesh.EnableOverlay);
+        Assert.True(mesh.EnableStun);
+        Assert.True(mesh.EnableSoulseekCapabilityHandshake);
+        Assert.True(mesh.ProbeSoulseekRendezvousCapabilities);
+        Assert.True(overlay.Enable);
+        Assert.True(options.VirtualSoulfindV2.Enabled);
+        Assert.True(options.SignalSystem.Enabled);
+        Assert.True(options.SignalSystem.MeshChannel.Enabled);
+        Assert.True(options.SignalSystem.BtExtensionChannel.Enabled);
     }
 }

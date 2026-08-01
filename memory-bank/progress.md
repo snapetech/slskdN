@@ -1,3 +1,14 @@
+## Update 2026-08-01 15:45:00Z
+
+- Restored all established feature, DHT, mesh, overlay, STUN, pod,
+  VirtualSoulfind, multi-source, signaling, mDNS, and Soulseek-description
+  defaults to enabled after an over-broad default-policy change.
+- Retained the substantive DHT correction: explicit false values stop hosted
+  services and router registration, the DHT API reads the bound runtime
+  options, and `dht.enabled: false` skips initialization waiting immediately.
+- Validation passes: application `74`, unit `4977`, integration `284`, focused
+  default/disable tests `103`, lint, configuration drift, and diff checks.
+
 ## Update 2026-08-01 15:05:00Z
 
 - Completed the privacy-safe defaults and lifecycle-gating correction from the

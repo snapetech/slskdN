@@ -1150,7 +1150,7 @@ public sealed class DhtRendezvousOptions
     /// <summary>
     /// Whether DHT rendezvous is enabled.
     /// </summary>
-    public bool Enabled { get; set; } = false;
+    public bool Enabled { get; set; } = true;
 
     /// <summary>
     /// Port for the overlay TCP listener.
@@ -1187,9 +1187,10 @@ public sealed class DhtRendezvousOptions
     /// bootstrap router list on engine start, so this node will not publish (ip, port) to any
     /// public rendezvous server — peer discovery is confined to whatever local / private
     /// transports (LAN multicast, locally-known peers, etc.) are still configured.
-    /// Default <c>true</c>; operators must explicitly opt into public DHT bootstrap.
+    /// Default <c>false</c>; operators who don't want their residential IP enumerable via the
+    /// public DHT should flip this to <c>true</c>.
     /// </summary>
-    public bool LanOnly { get; set; } = true;
+    public bool LanOnly { get; set; } = false;
 
     /// <summary>
     /// Interval between DHT announcements (seconds).
@@ -1236,7 +1237,7 @@ public sealed class DhtRendezvousOptions
     /// This is generally safe but does contact external servers.
     /// Default: true
     /// </summary>
-    public bool EnableStun { get; set; } = false;
+    public bool EnableStun { get; set; } = true;
 
     /// <summary>
     /// Enable Soulseek username verification for overlay peers.

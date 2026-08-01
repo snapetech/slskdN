@@ -165,8 +165,8 @@
 #    working_directory: "" # optional; defaults to the executable directory when omitted
 #    arguments: [] # optional configured-only args; the browser cannot supply launch args
 #dht:
-#  enabled: false # opt in to public BitTorrent DHT rendezvous; this discovers mesh endpoints, not file data
-#  lan_only: true # default blocks public BitTorrent DHT bootstrap/discoverability
+#  enabled: true # public BitTorrent DHT rendezvous; set false to stop DHT startup and dependent services
+#  lan_only: false # set true to block public BitTorrent DHT bootstrap/discoverability
 #  overlay_port: 50305 # TCP slskdN mesh overlay rendezvous. Can share the same numeric port as dht_port because TCP/UDP port spaces are separate.
 #  advertised_overlay_port: 0 # optional public TCP overlay port to announce when VPN/NAT rewrites overlay_port; 0 uses overlay_port
 #  vpn_port_sync: disabled # auto-follow VPN port forwarding for advertised_overlay_port; requires integration.vpn.enabled + port_forwarding
@@ -185,7 +185,7 @@
 #  cold_bootstrap_timeout_seconds: 180 # first startup or missing saved DHT node table
 #  lan_only_bootstrap_timeout_seconds: 30 # shorter because public bootstrap routers are disabled
 #  enable_upnp: false # opt in only; when true slskdn will try to map overlay/dht ports automatically
-#  enable_stun: false
+#  enable_stun: true
 #destinations:
 #  folders:
 #    # Paths must exist inside the host/container and be writable by slskdN.
@@ -319,13 +319,13 @@
 #    recoveryCheckIntervalMinutes: 5
 #    recoveryHealthyChecksRequired: 3
 #virtualSoulfindV2:
-#  enabled: false              # opt in to the v2 autonomous planning/processing engine
+#  enabled: true
 #signalSystem:
-#  enabled: false
+#  enabled: true
 #  meshChannel:
-#    enabled: false
+#    enabled: true
 #  btExtensionChannel:
-#    enabled: false            # opt in only; requires a configured BitTorrent extension sender
+#    enabled: true             # requires a configured BitTorrent extension sender
 #PodCore.Security (MessageSigner). Binds to PodCore:Security.
 #PodCore.Join binds to PodCore:Join. Off accepts legacy non-Ed25519 join/leave
 #signatures for compatibility; Warn logs legacy or missing signatures; Enforce
@@ -341,21 +341,21 @@
 #  CollectionsSharing: true   # Enable Collections, ShareGroups, ShareGrants APIs (default: true)
 #  Streaming: true            # Enable streaming API (/api/v0/streams/{contentId}) (default: true)
 #  StreamingRelayFallback: true  # Enable relay streaming fallback (controller proxies to agent) (default: true)
-#  MeshParallelSearch: false  # Opt in to mesh overlay search alongside Soulseek (default: false)
-#  MeshPublishAvailability: false  # Opt in to availability publication to the slskdN mesh DHT (default: false)
-#  IdentityFriends: false     # Opt in to Identity/Friends APIs and mDNS friend-code advertising (default: false)
+#  MeshParallelSearch: true   # Mesh overlay search alongside Soulseek (default: true)
+#  MeshPublishAvailability: true  # Availability publication to the slskdN mesh DHT (default: true)
+#  IdentityFriends: true      # Identity/Friends APIs and mDNS friend-code advertising (default: true)
 #  ScenePodBridge: false       # Opt in to experimental Scene ↔ Pod Bridging (default: false).
 #                               # When enabled, search results from both Pod/Mesh and Soulseek Scene are merged and deduplicated.
 #                               # Keep disabled if you want the proven upstream-compatible Soulseek search path.
 #                               # Pod results can be downloaded from remote mesh peers if not available locally.
 #                               # Scene results use the standard Soulseek download pipeline.
 #  SongId: true                # Experimental SongID analysis APIs (default: true).
-#  Mesh: false                 # Opt in to mesh APIs and mesh hosted services (default: false).
-#  Dht: false                  # Opt in to DHT APIs; dht.enabled must also be true (default: false).
-#  Pods: false                 # Opt in to pod APIs, Gold Star, and pod publishing services (default: false).
-#  SocialFederation: false     # Opt in to ActivityPub/social federation APIs (default: false).
-#  VirtualSoulfind: false      # Opt in to VirtualSoulfind APIs (default: false).
-#  MultiSourceDownloads: false # Opt in to multi-source/swarm download APIs (default: false).
+#  Mesh: true                  # Mesh APIs and mesh hosted services (default: true).
+#  Dht: true                   # DHT APIs; dht.enabled must also be true (default: true).
+#  Pods: true                  # Pod APIs, Gold Star, and pod publishing services (default: true).
+#  SocialFederation: true      # ActivityPub/social federation APIs (default: true).
+#  VirtualSoulfind: true       # VirtualSoulfind APIs (default: true).
+#  MultiSourceDownloads: true  # Multi-source/swarm download APIs (default: true).
 #  ScenePodBridgeOptions:
 #    ProxyTransfers: false     # Proxy scene downloads through pod (future feature, intentionally disabled)
 #    ExportPodAvailability: false  # Export pod availability to scene (future feature, intentionally disabled)
@@ -411,7 +411,7 @@
 #  port: 2271
 #  username: ~
 #  password: ~
-#  description: "" # quiet default; set explicitly if you want a public Soulseek profile description
+#  description: "A slskdN user. Unofficial fork of slskd: https://github.com/snapetech/slskdn"
 #  picture: path/to/slsk-profile-picture.jpg
 #  listen_ip_address: 0.0.0.0  # do not use 127.0.0.1/::1 for live peer traffic; remote peers will not be able to connect back
 #  listen_port: 50300
@@ -607,12 +607,12 @@
 #metadata; file and chunk bytes travel over the slskdN mesh overlay, not DHT or BitTorrent.
 #Mesh.Security (PR-01, §8). Binds to Mesh:Security when Mesh section is used.
 #mesh:
-#  enable_dht: false                             # opt in to slskdN mesh-DHT descriptor/content metadata publishing and refresh
-#  enable_overlay: false                         # opt in to slskdN mesh overlay availability and data paths
-#  enable_stun: false                            # opt in to external STUN address discovery
-#  enable_soulseek_capability_handshake: false     # opt in to signed slskdN runtime capabilities over Soulseek peer messages
+#  enable_dht: true                              # slskdN mesh-DHT descriptor/content metadata publishing and refresh
+#  enable_overlay: true                          # slskdN mesh overlay availability and data paths
+#  enable_stun: true                             # external STUN address discovery
+#  enable_soulseek_capability_handshake: true      # signed slskdN runtime capabilities over Soulseek peer messages
 #  enable_soulseek_rendezvous: false              # opt-in only; publishes the public slskdn-mesh-v1 Soulseek interest tag
-#  probe_soulseek_rendezvous_capabilities: false  # probe rendezvous candidates for runtime capability descriptors
+#  probe_soulseek_rendezvous_capabilities: true   # probe rendezvous candidates for runtime capability descriptors
 #  dht:
 #    bootstrap_nodes: 60
 #  overlay:

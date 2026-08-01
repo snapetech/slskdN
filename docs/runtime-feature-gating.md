@@ -1,8 +1,9 @@
 # Runtime Feature Gates and Network Defaults
 
-slskdN-specific network features are opt-in. The upstream Soulseek client,
-shares, search, transfers, and Gluetun integration continue to operate when all
-experimental flags are false.
+slskdN-specific network features are enabled by default. Operators can disable
+them individually or use the reduction profile below. The upstream Soulseek
+client, shares, search, transfers, and Gluetun integration continue to operate
+when all experimental flags are false.
 
 ## Feature and service lifecycle gates
 
@@ -24,10 +25,10 @@ start DHT rendezvous, and does not start VirtualSoulfind or pod workers.
 gate availability publication and parallel mesh search. `feature.IdentityFriends`
 gates Identity/Friends APIs and startup mDNS friend-code advertising.
 
-## Quiet default profile
+## Explicit reduction profile
 
-The shipped defaults are equivalent to the following privacy-sensitive
-settings:
+Use the following settings when an operator wants the upstream Soulseek path
+without slskdN's DHT, mesh, pod, federation, or VirtualSoulfind services:
 
 ```yaml
 feature:
@@ -96,10 +97,19 @@ With pods enabled and auto-join disabled, the reserved pod is created locally
 but the Soulseek username is not enrolled. Leaving an existing membership
 writes a local revocation marker and prevents later automatic rejoin.
 
-## Explicit public DHT opt-in
+## DHT controls
 
-To join the public BitTorrent DHT, enable both the feature and rendezvous
-service and explicitly turn off LAN-only mode:
+The public BitTorrent DHT is enabled by default. Three controls have distinct
+effects:
+
+- `feature.Dht: false` disables DHT APIs and prevents DHT hosted-service and
+  service-router activation.
+- `dht.enabled: false` prevents DHT initialization, publication, refresh, and
+  the initialization wait even if the feature flag remains true.
+- `dht.lan_only: true` keeps DHT enabled while suppressing public bootstrap
+  routers.
+
+The normal enabled configuration is:
 
 ```yaml
 feature:
@@ -111,12 +121,12 @@ dht:
 ```
 
 This contacts the configured public bootstrap routers and makes the configured
-DHT endpoint discoverable. Keep `lan_only: true` for private/LAN-only use.
+DHT endpoint discoverable. To disable DHT cleanly, set both `feature.Dht` and
+`dht.enabled` to false. Keep `lan_only: true` when DHT should remain active but
+public bootstrap must be suppressed.
 
 ## Existing configurations
 
-Explicit values in an existing configuration continue to win over the new
-defaults. Operators upgrading from a network-forward release should review
-their `feature`, `dht`, `mesh`, `overlay`, `virtualSoulfindV2`, `signalSystem`,
-and `soulseek.description` sections rather than assuming prior implicit
-enablement remains active.
+Explicit values in an existing configuration override defaults. Operators who
+want a reduced surface should set the relevant feature and service controls
+explicitly rather than relying on implicit defaults.

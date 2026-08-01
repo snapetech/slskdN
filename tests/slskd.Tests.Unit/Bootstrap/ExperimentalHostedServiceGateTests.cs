@@ -17,7 +17,7 @@ public sealed class ExperimentalHostedServiceGateTests
     {
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder().Build();
-        var options = new slskd.Options();
+        var options = DisabledNetworkOptions();
 
         services.AddSlskdExperimentalMeshServices(configuration, options);
 
@@ -28,7 +28,7 @@ public sealed class ExperimentalHostedServiceGateTests
     public void CapabilitiesAndRendezvous_AllNetworkFlagsDisabled_RegisterNoHostedServices()
     {
         var services = new ServiceCollection();
-        var options = new slskd.Options();
+        var options = DisabledNetworkOptions();
 
         services.AddSlskdCapabilitiesAndRendezvousServices(options);
 
@@ -39,10 +39,26 @@ public sealed class ExperimentalHostedServiceGateTests
     public void VirtualSoulfindDisabled_RegistersNoHostedServices()
     {
         var services = new ServiceCollection();
-        var options = new slskd.Options();
+        var options = DisabledNetworkOptions();
 
         services.AddSlskdVirtualSoulfindServices(options);
 
         Assert.DoesNotContain(services, descriptor => descriptor.ServiceType == typeof(IHostedService));
     }
+
+    private static slskd.Options DisabledNetworkOptions() => new()
+    {
+        Feature = new()
+        {
+            Mesh = false,
+            Dht = false,
+            Pods = false,
+            VirtualSoulfind = false,
+            MeshPublishAvailability = false,
+            IdentityFriends = false,
+            MultiSourceDownloads = false,
+        },
+        DhtRendezvous = new() { Enabled = false },
+        VirtualSoulfindV2 = new() { Enabled = false },
+    };
 }

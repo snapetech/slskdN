@@ -19,7 +19,7 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Configuration
             var options = new VirtualSoulfindOptions();
 
             // Assert
-            Assert.False(options.Enabled);
+            Assert.True(options.Enabled);
             Assert.Equal(PlanningMode.SoulseekFriendly, options.DefaultMode);
             Assert.Equal(3, options.MaxConcurrentExecutions);
             Assert.Equal(10, options.ProcessorBatchSize);

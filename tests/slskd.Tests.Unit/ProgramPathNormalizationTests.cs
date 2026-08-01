@@ -492,12 +492,12 @@ public class ProgramPathNormalizationTests
     }
 
     [Fact]
-    public void OverlayOptions_DefaultToDormantQuicConfiguration()
+    public void OverlayOptions_DefaultToEnabledQuicConfiguration()
     {
         var overlay = new slskd.Mesh.Overlay.OverlayOptions();
         var dataOverlay = new slskd.Mesh.Overlay.DataOverlayOptions();
 
-        Assert.False(overlay.Enable);
+        Assert.True(overlay.Enable);
         Assert.Equal(50305, overlay.ListenPort);
         Assert.True(overlay.EnableQuic);
         Assert.True(overlay.ShareQuicWithDhtPort);

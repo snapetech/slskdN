@@ -1,3 +1,17 @@
+## Update 2026-08-01 15:45:00Z
+
+- Current task: complete. All established features remain enabled by default;
+  explicit disable settings now stop their runtime services correctly.
+- Last activity:
+  - Restored public DHT and all other feature/transport defaults to enabled.
+  - Kept lifecycle gates, the immediate disabled-DHT return, consistent bound
+    DHT API options, pod enrollment gating, and safe YAML uncommenting.
+  - Passed full application, unit, integration, lint, configuration, and diff
+    validation.
+- Next steps:
+  1. Tester can verify `feature.Dht: false` plus `dht.enabled: false` produces
+     no DHT startup wait while default installations continue using DHT.
+
 ## Update 2026-08-01 15:05:00Z
 
 - Current task: complete. Experimental network features are dormant when their

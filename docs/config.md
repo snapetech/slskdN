@@ -830,7 +830,7 @@ so formats .JPG/.JPEG, .GIF, and .BMP are advised.
 #### **YAML**
 ```yaml
 soulseek:
-  description: "" # quiet default; set explicitly if you want a public Soulseek profile description
+  description: "A slskdN user. Unofficial fork of slskd: https://github.com/snapetech/slskdn"
   picture: path/to/slsk-profile-picture.jpg
 ```
 
@@ -1443,7 +1443,8 @@ The slskdN-specific `feature.Mesh`, `feature.Dht`, `feature.Pods`,
 `feature.SocialFederation`, `feature.VirtualSoulfind`, and
 `feature.MultiSourceDownloads` values gate their controllers/APIs and related
 hosted-service activation. `feature.IdentityFriends` also controls startup mDNS
-advertising. These networked experimental flags default to false.
+advertising. These networked experimental flags default to true and can be
+disabled independently.
 
 There is no `mesh.enabled` option. Use the actual independent settings such as
 `mesh.enable_dht`, `mesh.enable_overlay`, `dht.enabled`, `overlay.enable`, and
@@ -1452,7 +1453,7 @@ publication, and enrollment. When pods are enabled, set
 `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false` before startup to prevent automatic
 enrollment.
 See [Runtime Feature Gates and Network Defaults](runtime-feature-gating.md) for
-the current lifecycle boundary, quiet defaults, and explicit opt-in examples.
+the current lifecycle boundary, enabled defaults, and explicit reduction examples.
 
 These settings expose separate layers: public BitTorrent DHT rendezvous finds
 mesh overlay endpoints, the slskdN mesh DHT stores bounded metadata, and the

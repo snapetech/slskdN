@@ -42,15 +42,15 @@ public class YamlConfigurationSourceTests
         var examplePath = FindRepositoryFile("config", "slskd.example.yml");
         var yaml = File.ReadAllText(examplePath)
             .Replace("#feature:", "feature:", StringComparison.Ordinal)
-            .Replace("#  Mesh: false", "  Mesh: false", StringComparison.Ordinal)
-            .Replace("#  Dht: false", "  Dht: false", StringComparison.Ordinal)
-            .Replace("#  Pods: false", "  Pods: false", StringComparison.Ordinal);
+            .Replace("#  Mesh: true", "  Mesh: true", StringComparison.Ordinal)
+            .Replace("#  Dht: true", "  Dht: true", StringComparison.Ordinal)
+            .Replace("#  Pods: true", "  Pods: true", StringComparison.Ordinal);
 
         var options = ReadOptions(yaml);
 
-        Assert.False(options.Feature.Mesh);
-        Assert.False(options.Feature.Dht);
-        Assert.False(options.Feature.Pods);
+        Assert.True(options.Feature.Mesh);
+        Assert.True(options.Feature.Dht);
+        Assert.True(options.Feature.Pods);
     }
 
     [Fact]

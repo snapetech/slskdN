@@ -8,7 +8,7 @@ namespace slskd.Mesh.Overlay;
 /// </summary>
 public class OverlayOptions
 {
-    public bool Enable { get; set; } = false;
+    public bool Enable { get; set; } = true;
     public int ListenPort { get; set; } = 50305;
     public bool EnableQuic { get; set; } = true;
 

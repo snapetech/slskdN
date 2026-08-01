@@ -84,9 +84,9 @@ sudo systemctl restart slskd
 
 **Original fix:** `TryAutoJoinAsync` and `ExecuteAsync` originally short-circuited unless `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=true` was set in the environment.
 
-**Current policy:** Pods default off. `feature.Pods: false` prevents Gold Star
+**Current policy:** Pods default on. `feature.Pods: false` prevents Gold Star
 service startup, reserved-pod creation, publication, and enrollment. Operators
-who explicitly enable pods can still disable enrollment before startup with
+can disable enrollment before startup with
 `SLSKDN_POD_GOLD_STAR_CLUB_AUTOJOIN=false`. Users can leave the pod later from
 the Web UI, which records a local revocation marker so restart does not
 auto-join them again.

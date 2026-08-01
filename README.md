@@ -751,11 +751,11 @@ security:
   profile: Standard  # Minimal, Standard, Maximum, or Custom
 
 mesh:
-  enable_dht: false
-  enable_overlay: false
-  enable_soulseek_capability_handshake: false
+  enable_dht: true
+  enable_overlay: true
+  enable_soulseek_capability_handshake: true
   enable_soulseek_rendezvous: false
-  probe_soulseek_rendezvous_capabilities: false
+  probe_soulseek_rendezvous_capabilities: true
   dht:
     bootstrap_nodes: 60
   overlay:
@@ -765,11 +765,11 @@ mesh:
 
 `mesh.enable_soulseek_rendezvous` intentionally defaults off because enabling it publishes the recognizable `slskdn-mesh-v1` interest tag on the configured Soulseek account. Runtime capability handshakes are separate and do not publish that interest by themselves.
 
-The networked `feature.*` defaults gate both APIs and their corresponding
-hosted-service activation. Independent DHT, mesh, overlay, VirtualSoulfind,
-signal-system, mDNS, and identifying Soulseek-description defaults are also
-off. See [Runtime Feature Gates and Network Defaults](docs/runtime-feature-gating.md)
-for explicit opt-in combinations and upgrade behavior.
+The networked `feature.*` defaults are enabled. Setting a feature false gates
+both its APIs and corresponding hosted-service activation; `dht.enabled: false`
+also skips DHT initialization and its startup wait. See [Runtime Feature Gates
+and Network Defaults](docs/runtime-feature-gating.md) for explicit reduction
+profiles and DHT controls.
 
 Detailed documentation for configuration options can be found in [docs/config.md](docs/config.md), and an example of the YAML configuration file can be reviewed in [config/slskd.example.yml](config/slskd.example.yml).
 

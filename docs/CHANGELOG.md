@@ -21,11 +21,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ---
 
 ## [Unreleased]
-- Networked experimental features now default dormant and gate their hosted
-  services as well as APIs. Disabled mesh/DHT/pod/VirtualSoulfind settings no
+- Networked experimental feature defaults remain enabled, while explicit
+  disable settings now gate hosted services as well as APIs. Disabled
+  mesh/DHT/pod/VirtualSoulfind settings no
   longer publish descriptors, register mesh RPCs, create or auto-join Gold
-  Star, start mDNS, or wait for disabled DHT initialization; public DHT, STUN,
-  BT signaling, and identifying Soulseek description defaults are opt-in.
+  Star, start mDNS, or wait for disabled DHT initialization.
 - The shipped YAML template now preserves intended indentation when operators
   remove one comment marker, preventing misleading `expected <document end>`
   errors when enabled sections are followed by additional root keys.

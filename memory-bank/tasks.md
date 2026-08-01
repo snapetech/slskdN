@@ -9,14 +9,14 @@
 
 ### High Priority
 
-- [x] Make disabled experimental features dormant and privacy-safe by default.
+- [x] Make explicitly disabled experimental features dormant.
   - Status: completed (2026-08-01)
   - Priority: P1
   - Notes: Feature flags now gate hosted workers and router registration;
     disabled pods cannot create or auto-enroll Gold Star; disabled DHT skips
-    its initialization wait; public DHT, mesh/overlay/STUN, VirtualSoulfind,
-    signal channels, mDNS, and the identifying Soulseek description default
-    off. The shipped YAML template is safe to uncomment by removing one `#`;
+    its initialization wait. Established DHT, mesh/overlay/STUN,
+    VirtualSoulfind, signaling, mDNS, and feature defaults remain enabled. The
+    shipped YAML template is safe to uncomment by removing one `#`;
     the DHT API gate now reads the same bound options graph as the runtime.
 
 - [x] Align feature-gating and network-default documentation with runtime.

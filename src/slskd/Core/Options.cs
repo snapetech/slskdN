@@ -1751,13 +1751,13 @@ namespace slskd
             public bool StreamingRelayFallback { get; init; } = true;
 
             /// <summary>Run mesh overlay search in parallel with Soulseek and merge results. Can align with VirtualSoulfind.MeshSearch.Enabled.</summary>
-            public bool MeshParallelSearch { get; init; } = false;
+            public bool MeshParallelSearch { get; init; } = true;
 
             /// <summary>Publish availability to mesh/DHT. Defer.</summary>
-            public bool MeshPublishAvailability { get; init; } = false;
+            public bool MeshPublishAvailability { get; init; } = true;
 
             /// <summary>Identity and friends (profiles, contacts, LAN discovery, invites). When false, related APIs return 404.</summary>
-            public bool IdentityFriends { get; init; } = false;
+            public bool IdentityFriends { get; init; } = true;
 
             /// <summary>
             /// Enable Solid / WebID / Solid-OIDC integration. When false, Solid APIs return 404.
@@ -1772,22 +1772,22 @@ namespace slskd
             public bool SongId { get; init; } = true;
 
             /// <summary>Mesh overlay/hash gossip APIs. Experimental and gated.</summary>
-            public bool Mesh { get; init; } = false;
+            public bool Mesh { get; init; } = true;
 
             /// <summary>DHT rendezvous and overlay discovery APIs. Experimental and gated.</summary>
-            public bool Dht { get; init; } = false;
+            public bool Dht { get; init; } = true;
 
             /// <summary>Pod community APIs. Experimental and gated.</summary>
-            public bool Pods { get; init; } = false;
+            public bool Pods { get; init; } = true;
 
             /// <summary>Social federation APIs. Experimental and gated.</summary>
-            public bool SocialFederation { get; init; } = false;
+            public bool SocialFederation { get; init; } = true;
 
             /// <summary>VirtualSoulfind APIs. Experimental and gated.</summary>
-            public bool VirtualSoulfind { get; init; } = false;
+            public bool VirtualSoulfind { get; init; } = true;
 
             /// <summary>Multi-source/swarm download APIs. Experimental and gated.</summary>
-            public bool MultiSourceDownloads { get; init; } = false;
+            public bool MultiSourceDownloads { get; init; } = true;
 
             /// <summary>Scene ↔ Pod Bridging options.</summary>
             public ScenePodBridgeOptions ScenePodBridgeOptions { get; init; } = new ScenePodBridgeOptions();
@@ -2537,7 +2537,7 @@ namespace slskd
             [Argument(default, "slsk-description")]
             [EnvironmentVariable("SLSK_DESCRIPTION")]
             [Description("user description for the Soulseek network")]
-            public string Description { get; init; } = string.Empty;
+            public string Description { get; init; } = "A slskdN user. Unofficial fork of slskd: https://github.com/snapetech/slskdn";
 
             /// <summary>
             ///     Gets the file path for the user's profile picture.

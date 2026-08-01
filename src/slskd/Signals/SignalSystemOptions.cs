@@ -14,7 +14,7 @@ public class SignalSystemOptions
     /// <summary>
     /// Enable the signal system.
     /// </summary>
-    public bool Enabled { get; set; } = false;
+    public bool Enabled { get; set; } = true;
 
     /// <summary>
     /// Maximum size of the deduplication cache (LRU).
@@ -31,7 +31,7 @@ public class SignalSystemOptions
     /// </summary>
     public SignalChannelOptions MeshChannel { get; set; } = new()
     {
-        Enabled = false,
+        Enabled = true,
         Priority = 1
     };
 
@@ -40,7 +40,7 @@ public class SignalSystemOptions
     /// </summary>
     public SignalChannelOptions BtExtensionChannel { get; set; } = new()
     {
-        Enabled = false,
+        Enabled = true,
         Priority = 2,
         RequireActiveSession = true
     };
