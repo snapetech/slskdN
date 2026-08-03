@@ -106,6 +106,28 @@ await WishlistService.UpdateAsync(item);
 but Wishlist persistence is owned by `IWishlistService`; reconciliation must
 explicitly call `UpdateAsync` after changing an existing item.
 
+### 0z809. Type Nullable Conditional Values Explicitly
+
+**The Bug**: A conditional expression assigning either an integer or `null`
+through `var` failed compilation because the compiler could not infer a common
+type.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Wrong**:
+```csharp
+var maxDownloads = isTrack ? 1 : null;
+```
+
+**Correct**:
+```csharp
+int? maxDownloads = isTrack ? 1 : null;
+```
+
+**Why This Keeps Happening**: Nullable value-type intent is easy to miss in a
+short conditional; declare the target type when one branch is `null`.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
