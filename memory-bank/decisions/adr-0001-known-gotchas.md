@@ -27191,3 +27191,19 @@ that no source actually advertised.
 **Prevention**: Select codec and its bitrate as one variant tuple. Only compare
 bitrate values when the codec matches, and retain bitrate as unknown when no
 codec-compatible value exists.
+
+### 0z825. Preserve Legacy Canonical Payloads For Optional Metadata
+
+**The Bug**: Adding nullable bitrate metadata to the shared content descriptor
+changed serialized checksums and descriptor version hashes even when the field
+was null. Existing content with no new metadata therefore appeared changed and
+failed legacy checksum/version regression tests.
+
+**Files Affected**:
+- `src/slskd/MediaCore/ContentDescriptor.cs`
+- `src/slskd/MediaCore/ContentDescriptorPublisher.cs`
+
+**Prevention**: Optional descriptor fields must be omitted from legacy JSON
+when unset, and version/hash canonicalization must append new material only when
+the field has a real value. Test both null legacy descriptors and populated new
+descriptors.
