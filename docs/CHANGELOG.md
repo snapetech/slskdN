@@ -22,22 +22,24 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+
+## [2026080320-slskdn.298] — 2026-08-03
+
 - Wishlist filters now preserve structured multi-format/bitrate alternatives
-  such as `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256`, apply exclusions globally, and
-  reject unknown metadata for strict bitrate branches. Same-branch format
-  alternatives rank by the actual file extension.
+  such as `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256`, apply exclusions
+  globally, reject unknown metadata for strict bitrate branches, and rank
+  same-branch alternatives by the actual file extension.
 - Wishlist auto-download now deduplicates track copies, prefers album coverage
   within the requested limit, and ranks lossless/lossy formats with codec-aware
-  quality instead of raw bitrate alone. Mesh bitrate metadata remains nullable
-  and is never fabricated.
+  quality instead of raw bitrate alone. Mesh bitrate metadata remains nullable,
+  truthful, and is never fabricated.
 - Wishlist bulk filter edits now use one atomic backend operation, preserving
   all other row fields and rolling back when any selected ID is missing.
 - Lidarr quality-profile mapping now handles multiple allowed formats, broad
   Lossless/Any profiles, and ignores sample-rate/bit-depth numbers as bitrates;
-  explicit `Any`/`All` profiles override the configured fallback with an empty
-  filter.
-  Both manual-import panels report candidate counts and explicit disabled/skipped
-  reasons while retaining clean-candidate safety checks.
+  explicit `Any`/`All` profiles override the configured fallback. Both manual
+  import panels report candidate counts and explicit disabled/skipped reasons
+  while retaining clean-candidate safety checks.
 
 ## [2026080316-slskdn.297] — 2026-08-03
 
