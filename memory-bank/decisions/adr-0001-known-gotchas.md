@@ -27114,3 +27114,18 @@ causing duplicate-type compiler errors.
 
 **Prevention**: Search for the existing nested type before adding a declaration;
 extend or move the existing record instead of creating a second definition.
+
+### 0z820. Keep Metadata Filters File-Typed At Every Call Site
+
+**The Bug**: A Wishlist filter was changed from a filename predicate to a
+`Soulseek.File` predicate so metadata directives such as `minbr:320` could be
+enforced, but two existing runtime paths still passed only `file.Filename`.
+The result was a compile-time type error before the new filter could run.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+
+**Prevention**: When changing a predicate's input type, search every call site
+and update each runtime path together. Keep a separate filename-only helper for
+callers that intentionally lack file metadata, and compile the affected
+project before adding further changes.
