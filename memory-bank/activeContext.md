@@ -12948,3 +12948,14 @@ rollback.
 - Next steps: run the full backend and lint gates, inspect the final diff,
   commit/push the implementation and documentation, and leave release tagging
   to an explicit follow-up because the prior stable tag predates these fixes.
+
+## Update 2026-08-03 16:40:00Z
+
+- Tester remediation is complete and published on `main`. The release gate
+  passed the application suite (`74/74`), unit suite (`5001/5001`), release
+  integration smoke suite (`40/40`), frontend checks, lint, and release smoke.
+- Created and pushed stable tag `build-main-2026080316-slskdn.297` to the
+  fork target `snapetech/slskdN`. GitHub `Build on Tag` run `30833134388` is
+  queued and will publish the platform packages.
+- Next steps: monitor the hosted tag build and inspect any package-channel
+  failures, especially AUR, if the workflow reports one.
