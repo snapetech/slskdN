@@ -12929,3 +12929,22 @@ rollback.
   1. Run focused mesh/search tests, full `dotnet test`, and `./bin/lint`.
   2. Commit and push this post-release documentation/test update if validation
      remains clean; do not create another release tag without explicit request.
+
+## Update 2026-08-03 16:25:30Z
+
+- Current task: complete tester remediation for integration-save validation and
+  downloads that resume old failed work after restart.
+- Root causes confirmed: the Integrations editor wrote an empty required
+  MusicBrainz user-agent into otherwise valid YAML; auto-replace retained failed
+  rows while ignoring its configured retry budget; and download auto-retry
+  reset its in-memory budget at every process restart.
+- Implemented the fixes: omit/delete the empty MusicBrainz key; persist
+  auto-replace cycle counts on transfers with an idempotent migration; carry
+  request identity and retry history across auto-retry source changes; and
+  enforce both retry budgets from persisted records. Added focused regressions,
+  configuration docs, and the required gotchas `0z816`--`0z818`.
+- Validation so far: frontend Integrations test `11 passed, 4 skipped`; focused
+  AutoReplace tests `15/15`; download/database tests `52/52`.
+- Next steps: run the full backend and lint gates, inspect the final diff,
+  commit/push the implementation and documentation, and leave release tagging
+  to an explicit follow-up because the prior stable tag predates these fixes.

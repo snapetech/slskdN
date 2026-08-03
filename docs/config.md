@@ -359,8 +359,9 @@ transfers:
 The older `global` key is still accepted so existing deployments can upgrade without an immediate edit. New configuration should use `transfers`.
 
 Download auto-retry is enabled by default, and `max_attempts: 5` bounds retry
-churn per username and filename for the current process. Set `max_attempts: 0`
-only when you explicitly want unlimited automatic retries. The loop is
+churn per persisted download request across process restarts. Existing legacy
+transfers without a request identity fall back to the process-lifetime guard.
+Set `max_attempts: 0` only when you explicitly want unlimited automatic retries. The loop is
 intentionally conservative for Soulseek network health: retries are delayed
 after a failure, scans are bounded globally, and each scan only contacts a small
 number of files per peer with a peer cooldown between attempts. When alternate
@@ -370,6 +371,22 @@ searches per scan before falling back to the original
 peer. Mesh/swarm retry policies can be more aggressive because those paths use
 slskdN-controlled transport budgets; direct Soulseek retry should stay
 respectful of remote client queue, file, and megabyte limits.
+
+#### Auto-replace stuck downloads
+
+```yaml
+auto_replace:
+  interval_seconds: 300
+  size_threshold_percent: 0 # exact-size alternatives; raise this to allow a difference
+  max_retries: 3 # persisted replacement attempts per download request; 0 = unlimited
+```
+
+Auto-replace is a separate background feature from download auto-retry. It
+searches for an alternative source for terminal timeout/error/rejection states,
+then preserves the stable download-request identity when it swaps sources. The
+retry budget is persisted with the transfer history, and failed rows remain
+available for manual review. The legacy `transfers.download.auto_replace_*`
+aliases remain accepted for existing configurations.
 
 ## Global Upload Limits
 

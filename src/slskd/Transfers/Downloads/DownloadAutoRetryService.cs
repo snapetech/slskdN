@@ -174,7 +174,14 @@ namespace slskd.Transfers.Downloads
 
                 try
                 {
-                    var files = eligible.Select(t => (t.Filename, t.Size)).ToList();
+                    var files = eligible
+                        .Select(target => new DownloadEnqueueRequest
+                        {
+                            Filename = target.Filename,
+                            Size = target.Size,
+                            RequestId = target.Source.RequestId,
+                        })
+                        .ToList();
                     await downloadService.EnqueueAsync(username, files, ct);
 
                     foreach (var target in eligible)

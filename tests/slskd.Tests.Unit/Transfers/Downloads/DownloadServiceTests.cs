@@ -880,6 +880,62 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task StreamAutoRetryCandidatesAsync_ExcludesRequestsAtPersistedRetryLimit()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        var now = DateTime.UtcNow;
+        var requestId = Guid.NewGuid();
+        var first = CreateFailedDownload("alice", "track.flac", now.AddHours(-3));
+        first.RequestId = requestId;
+        first.Removed = true;
+        var second = CreateFailedDownload("alice", "track.flac", now.AddHours(-2));
+        second.RequestId = requestId;
+        second.Removed = true;
+        var current = CreateFailedDownload("alice", "track.flac", now.AddHours(-1));
+        current.RequestId = requestId;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.AddRange(first, second, current);
+            await context.SaveChangesAsync();
+        }
+
+        var configuredOptions = new slskd.Options
+        {
+            Global = new slskd.Options.GlobalOptions
+            {
+                Download = new slskd.Options.GlobalOptions.GlobalDownloadOptions
+                {
+                    AutoRetry = new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions
+                    {
+                        MaxAttempts = 2,
+                    },
+                },
+            },
+        };
+
+        try
+        {
+            using var service = CreateDownloadService(options, new Mock<ISoulseekClient>(), configuredOptions);
+            var candidates = new List<slskd.Transfers.Transfer>();
+            await foreach (var candidate in service.StreamAutoRetryCandidatesAsync(now.AddMinutes(-30)))
+            {
+                candidates.Add(candidate);
+            }
+
+            Assert.Empty(candidates);
+        }
+        finally
+        {
+            System.IO.File.Delete(databasePath);
+        }
+    }
+
+    [Fact]
     public async Task ResolveRetryTargetAsync_PrefersCooledDownHashDbAlternate()
     {
         var now = DateTime.UtcNow;
@@ -1694,9 +1750,10 @@ public class DownloadServiceTests
 
     private static DownloadService CreateDownloadService(
         DbContextOptions<TransfersDbContext> options,
-        Mock<ISoulseekClient> soulseekClient)
+        Mock<ISoulseekClient> soulseekClient,
+        slskd.Options? configuredOptions = null)
     {
-        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(new slskd.Options());
+        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(configuredOptions ?? new slskd.Options());
         var eventService = new Mock<EventService>(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>());
         eventService.Setup(service => service.Add(It.IsAny<EventRecord>()));
 

@@ -228,6 +228,17 @@ const MetadataSettingsPanel = ({ options }) => {
       enabled: form.acoustIdEnabled,
     };
 
+    const musicBrainzPatch = {
+      baseUrl: form.musicBrainzBaseUrl.trim(),
+      retryAttempts: toNumber(form.musicBrainzRetryAttempts, 2),
+      timeoutSeconds: Number.parseFloat(form.musicBrainzTimeoutSeconds) || 20,
+    };
+
+    const musicBrainzUserAgent = form.musicBrainzUserAgent.trim();
+    if (musicBrainzUserAgent) {
+      musicBrainzPatch.userAgent = musicBrainzUserAgent;
+    }
+
     if (form.acoustIdClientId.trim()) {
       acoustIdPatch.clientId = form.acoustIdClientId.trim();
     }
@@ -243,12 +254,7 @@ const MetadataSettingsPanel = ({ options }) => {
         sampleRate: toNumber(form.chromaprintSampleRate, 44100),
       },
       lidarr: lidarrPatch,
-      musicBrainz: {
-        baseUrl: form.musicBrainzBaseUrl.trim(),
-        retryAttempts: toNumber(form.musicBrainzRetryAttempts, 2),
-        timeoutSeconds: Number.parseFloat(form.musicBrainzTimeoutSeconds) || 20,
-        userAgent: form.musicBrainzUserAgent.trim(),
-      },
+      musicBrainz: musicBrainzPatch,
     };
   };
 
@@ -297,10 +303,14 @@ const MetadataSettingsPanel = ({ options }) => {
       }
 
       set(['integrations', 'musicbrainz', 'base_url'], patch.musicBrainz.baseUrl);
-      set(
-        ['integrations', 'musicbrainz', 'user_agent'],
-        patch.musicBrainz.userAgent,
-      );
+      if (patch.musicBrainz.userAgent) {
+        set(
+          ['integrations', 'musicbrainz', 'user_agent'],
+          patch.musicBrainz.userAgent,
+        );
+      } else {
+        document.deleteIn(['integrations', 'musicbrainz', 'user_agent']);
+      }
       set(
         ['integrations', 'musicbrainz', 'timeout_seconds'],
         patch.musicBrainz.timeoutSeconds,

@@ -305,8 +305,51 @@ namespace slskd.Transfers.AutoReplace
         /// <inheritdoc/>
         public IEnumerable<SlskdTransfer> GetStuckDownloads()
         {
-            return Transfers.Downloads.List(t =>
+            var stuckDownloads = Transfers.Downloads.List(t =>
                 StuckStates.Any(s => t.State == s));
+
+            var maxRetries = OptionsMonitor.CurrentValue?.AutoReplace.MaxRetries ?? 0;
+            if (maxRetries == 0)
+            {
+                return stuckDownloads;
+            }
+
+            var downloads = stuckDownloads.ToList();
+            var requestIds = downloads
+                .Where(download => download.RequestId.HasValue)
+                .Select(download => download.RequestId!.Value)
+                .Distinct()
+                .ToArray();
+
+            var attemptsByRequest = requestIds.Length == 0
+                ? new Dictionary<Guid, int>()
+                : Transfers.Downloads
+                    .List(
+                        transfer => transfer.RequestId.HasValue && requestIds.Contains(transfer.RequestId.Value),
+                        includeRemoved: true)
+                    .GroupBy(transfer => transfer.RequestId!.Value)
+                    .ToDictionary(group => group.Key, group => group.Count());
+
+            return downloads.Where(download =>
+            {
+                var replacementCount = download.AutoReplaceAttempts;
+                if (download.RequestId.HasValue && attemptsByRequest.TryGetValue(download.RequestId.Value, out var attemptCount))
+                {
+                    replacementCount = Math.Max(replacementCount, Math.Max(0, attemptCount - 1));
+                }
+
+                if (replacementCount < maxRetries)
+                {
+                    return true;
+                }
+
+                Log.Information(
+                    "Auto-replace retry limit reached for {Filename} ({Attempts} replacement cycles, max retries {MaxRetries})",
+                    CleanTrackTitle(download.Filename),
+                    replacementCount,
+                    maxRetries);
+                return false;
+            });
         }
 
         /// <inheritdoc/>
@@ -542,6 +585,7 @@ namespace slskd.Transfers.AutoReplace
                             RequestId = original?.RequestId,
                             BatchId = original?.BatchId,
                             DestinationDirectory = original?.DestinationDirectory,
+                            AutoReplaceAttempts = original?.AutoReplaceAttempts ?? 0,
                         },
                     },
                     cancellationToken);
@@ -637,6 +681,8 @@ namespace slskd.Transfers.AutoReplace
                         break;
                     }
 
+                    RecordAutoReplaceAttempt(download);
+
                     // Find the best candidate within threshold
                     var bestCandidate = alternatives
                         .Where(c => c.SizeDiffPercent <= request.Threshold)
@@ -704,6 +750,12 @@ namespace slskd.Transfers.AutoReplace
                 result.Skipped);
 
             return result;
+        }
+
+        private void RecordAutoReplaceAttempt(SlskdTransfer download)
+        {
+            download.AutoReplaceAttempts++;
+            Transfers.Downloads.Update(download);
         }
 
         /// <summary>

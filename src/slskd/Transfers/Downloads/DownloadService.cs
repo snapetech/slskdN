@@ -666,6 +666,7 @@ namespace slskd.Transfers.Downloads
                                 BatchId = file.BatchId,
                                 DestinationDirectory = file.DestinationDirectory,
                                 StartOffset = 0, // todo: maybe implement resumeable downloads?
+                                AutoReplaceAttempts = file.AutoReplaceAttempts,
                                 RequestedAt = DateTime.UtcNow,
                                 State = TransferStates.Queued | TransferStates.Locally,
                                 BitRate = file.BitRate,
@@ -988,6 +989,7 @@ namespace slskd.Transfers.Downloads
                 .Select(transfer => new Transfer
                 {
                     Id = transfer.Id,
+                    RequestId = transfer.RequestId,
                     Username = transfer.Username,
                     Direction = transfer.Direction,
                     Filename = transfer.Filename,
@@ -995,6 +997,14 @@ namespace slskd.Transfers.Downloads
                     State = transfer.State,
                     EndedAt = transfer.EndedAt,
                 });
+
+            var maxAttempts = OptionsMonitor.CurrentValue?.Global?.Download?.AutoRetry?.MaxAttempts ?? 0;
+            if (maxAttempts > 0)
+            {
+                query = query.Where(transfer =>
+                    !transfer.RequestId.HasValue ||
+                    context.Transfers.Count(attempt => attempt.RequestId == transfer.RequestId.Value) <= maxAttempts);
+            }
 
             await foreach (var transfer in query.AsAsyncEnumerable().WithCancellation(cancellationToken))
             {

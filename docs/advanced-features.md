@@ -368,18 +368,37 @@ Automatically find alternatives when downloads get stuck.
 
 **Configuration:**
 ```yaml
+auto_replace:
+  interval_seconds: 300
+  size_threshold_percent: 0 # exact-size alternatives; raise this to allow a difference
+  max_retries: 3 # replacement attempts per download request; 0 = unlimited
+
 transfers:
   download:
-    auto_replace_stuck: true
-    auto_replace_threshold: 5.0
-    auto_replace_interval: 60
+    auto_retry:
+      enabled: true
+      max_attempts: 5 # persisted automatic retries per download request; 0 = unlimited
 ```
+
+The older `transfers.download.auto_replace_*` aliases are still accepted for
+compatibility, but new configuration should use the top-level `auto_replace`
+block. The Auto-Replace toggle is persisted separately from YAML, so disabling
+it stops future background replacement cycles; deleting the YAML file does not
+delete retained transfer history or that toggle state.
 
 ### Configuration Options
 
-- **Max Size Difference**: How much size can differ (default 5%)
+- **Max Size Difference**: How much size can differ (the canonical default is 0%, meaning exact size)
 - **Check Interval**: How often to check for stuck downloads
+- **Maximum Retries**: How many persisted replacement cycles a download request may receive (default 3; 0 means unlimited)
 - **File Extension Filter**: Only replace files with matching extensions
+
+Failed terminal transfers remain in the database for review and manual retry.
+They may be hidden by the normal completed-history view, but the persisted
+replacement and auto-retry budgets prevent a restart from resetting automatic
+retry limits. If old work should never be resumed automatically, disable both
+Auto-Replace and `transfers.download.auto_retry` before removing or manually
+retrying the failed rows.
 
 ## Smart Search Ranking
 

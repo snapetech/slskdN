@@ -59,6 +59,7 @@ public class Migrator
             { nameof(Z07152026_TransferHistoryIndexesMigration), new Z07152026_TransferHistoryIndexesMigration(connectionStrings: Databases) },
             { nameof(Z07162026_AutoRetryIndexMigration), new Z07162026_AutoRetryIndexMigration(connectionStrings: Databases) },
             { nameof(Z07162026_DownloadRequestSummaryIndexMigration), new Z07162026_DownloadRequestSummaryIndexMigration(connectionStrings: Databases) },
+            { nameof(Z08032026_AutoReplaceAttemptsMigration), new Z08032026_AutoReplaceAttemptsMigration(connectionStrings: Databases) },
         };
     }
 

@@ -51,6 +51,15 @@ namespace slskd.Transfers
         public string? DestinationDirectory { get; init; }
         public string? LocalFilename { get; set; }
         public int Attempts { get; set; } = 1;
+
+        /// <summary>
+        ///     Gets the number of persisted auto-replace cycles applied to this request.
+        ///     This is separate from <see cref="Attempts"/>, which counts direct Soulseek
+        ///     attempts within this transfer record.
+        /// </summary>
+        [JsonIgnore]
+        public int AutoReplaceAttempts { get; set; }
+
         public DateTime? NextAttemptAt { get; set; }
 
         public TransferStates State { get; set; } = TransferStates.None;

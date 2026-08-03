@@ -28,6 +28,219 @@ using SlskdOptions = slskd.Options;
 public class AutoReplaceServiceTests
 {
     [Fact]
+    public void GetStuckDownloads_StopsAfterPersistedReplacementBudget()
+    {
+        var requestId = Guid.NewGuid();
+        var currentAttempt = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            RequestId = requestId,
+            Username = "last-source",
+            Filename = "Artist - Track.flac",
+            State = TransferStates.Completed | TransferStates.TimedOut,
+        };
+        var attempts = new List<SlskdTransfer>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                RequestId = requestId,
+                Removed = true,
+                State = TransferStates.Completed | TransferStates.TimedOut,
+            },
+            currentAttempt,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns(new List<SlskdTransfer> { currentAttempt });
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true))
+            .Returns(attempts);
+
+        var transfers = new Mock<ITransferService>();
+        transfers.SetupGet(service => service.Downloads).Returns(downloads.Object);
+        var options = new Mock<IOptionsMonitor<SlskdOptions>>();
+        options.SetupGet(monitor => monitor.CurrentValue).Returns(new SlskdOptions
+        {
+            AutoReplace = new SlskdOptions.AutoReplaceOptions { MaxRetries = 1 },
+        });
+
+        using var service = new AutoReplaceService(
+            transfers.Object,
+            Mock.Of<ISearchService>(),
+            Mock.Of<ISoulseekClient>(),
+            options.Object,
+            Mock.Of<ISourceRankingService>());
+
+        Assert.Empty(service.GetStuckDownloads());
+        downloads.Verify(
+            downloadService => downloadService.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GetStuckDownloads_AllowsInitialAttemptWithinPersistedReplacementBudget()
+    {
+        var requestId = Guid.NewGuid();
+        var currentAttempt = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            RequestId = requestId,
+            Username = "last-source",
+            Filename = "Artist - Track.flac",
+            State = TransferStates.Completed | TransferStates.TimedOut,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns(new List<SlskdTransfer> { currentAttempt });
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true))
+            .Returns(new List<SlskdTransfer> { currentAttempt });
+
+        var transfers = new Mock<ITransferService>();
+        transfers.SetupGet(service => service.Downloads).Returns(downloads.Object);
+        var options = new Mock<IOptionsMonitor<SlskdOptions>>();
+        options.SetupGet(monitor => monitor.CurrentValue).Returns(new SlskdOptions
+        {
+            AutoReplace = new SlskdOptions.AutoReplaceOptions { MaxRetries = 1 },
+        });
+
+        using var service = new AutoReplaceService(
+            transfers.Object,
+            Mock.Of<ISearchService>(),
+            Mock.Of<ISoulseekClient>(),
+            options.Object,
+            Mock.Of<ISourceRankingService>());
+
+        Assert.Single(service.GetStuckDownloads());
+    }
+
+    [Fact]
+    public void GetStuckDownloads_StopsAfterRecordedAutoReplaceAttempt()
+    {
+        var requestId = Guid.NewGuid();
+        var currentAttempt = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            RequestId = requestId,
+            AutoReplaceAttempts = 1,
+            Username = "last-source",
+            Filename = "Artist - Track.flac",
+            State = TransferStates.Completed | TransferStates.TimedOut,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns(new List<SlskdTransfer> { currentAttempt });
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true))
+            .Returns(new List<SlskdTransfer> { currentAttempt });
+
+        var transfers = new Mock<ITransferService>();
+        transfers.SetupGet(service => service.Downloads).Returns(downloads.Object);
+        var options = new Mock<IOptionsMonitor<SlskdOptions>>();
+        options.SetupGet(monitor => monitor.CurrentValue).Returns(new SlskdOptions
+        {
+            AutoReplace = new SlskdOptions.AutoReplaceOptions { MaxRetries = 1 },
+        });
+
+        using var service = new AutoReplaceService(
+            transfers.Object,
+            Mock.Of<ISearchService>(),
+            Mock.Of<ISoulseekClient>(),
+            options.Object,
+            Mock.Of<ISourceRankingService>());
+
+        Assert.Empty(service.GetStuckDownloads());
+    }
+
+    [Fact]
+    public async Task ProcessStuckDownloadsAsync_PersistsAttemptWhenNoAlternativeExists()
+    {
+        var currentAttempt = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            RequestId = Guid.NewGuid(),
+            Username = "original-source",
+            Filename = "Artist - Track.flac",
+            Size = 1000,
+            State = TransferStates.Completed | TransferStates.TimedOut,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns(new List<SlskdTransfer> { currentAttempt });
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true))
+            .Returns(new List<SlskdTransfer> { currentAttempt });
+        downloads
+            .Setup(service => service.Update(It.IsAny<SlskdTransfer>()))
+            .Callback<SlskdTransfer>(transfer => Assert.Equal(1, transfer.AutoReplaceAttempts));
+
+        var transfers = new Mock<ITransferService>();
+        transfers.SetupGet(service => service.Downloads).Returns(downloads.Object);
+
+        var searchService = new Mock<ISearchService>();
+        searchService
+            .Setup(service => service.StartAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<SearchQuery>(),
+                SearchScope.Network,
+                It.IsAny<SearchOptions>(),
+                It.IsAny<List<string>>(),
+                "auto-replace",
+                It.IsAny<Guid?>()))
+            .ReturnsAsync((Guid id, SearchQuery _, SearchScope _, SearchOptions _, List<string> _, string _, Guid? _) => new SearchModel
+            {
+                Id = id,
+                State = SearchStates.Completed,
+            });
+        searchService
+            .Setup(service => service.FindAsync(
+                It.IsAny<Expression<Func<SearchModel, bool>>>(),
+                false))
+            .ReturnsAsync(new SearchModel { State = SearchStates.Completed });
+        searchService
+            .Setup(service => service.FindAsync(
+                It.IsAny<Expression<Func<SearchModel, bool>>>(),
+                true))
+            .ReturnsAsync(new SearchModel
+            {
+                State = SearchStates.Completed,
+                Responses = Array.Empty<Response>(),
+            });
+
+        var rankingService = new Mock<ISourceRankingService>();
+        rankingService
+            .Setup(service => service.RecordFailureAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var options = new Mock<IOptionsMonitor<SlskdOptions>>();
+        options.SetupGet(monitor => monitor.CurrentValue).Returns(new SlskdOptions
+        {
+            AutoReplace = new SlskdOptions.AutoReplaceOptions { MaxRetries = 3 },
+        });
+
+        using var service = new AutoReplaceService(
+            transfers.Object,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            options.Object,
+            rankingService.Object,
+            searchCompletionTimeout: TimeSpan.FromMilliseconds(10),
+            searchPollInterval: TimeSpan.FromMilliseconds(1),
+            minimumSearchInterval: TimeSpan.Zero);
+
+        var result = await service.ProcessStuckDownloadsAsync(new AutoReplaceRequest());
+
+        Assert.Equal(1, result.Failed);
+        downloads.Verify(service => service.Update(It.IsAny<SlskdTransfer>()), Times.Once);
+        Assert.Equal(1, currentAttempt.AutoReplaceAttempts);
+    }
+
+    [Fact]
     public async Task FindAlternativesAsync_WaitsForPersistedCompletedSearchResponses()
     {
         var searchService = new Mock<ISearchService>();
@@ -268,6 +481,7 @@ public class AutoReplaceServiceTests
             Direction = TransferDirection.Download,
             Filename = "Artist - Track.flac",
             Id = Guid.NewGuid(),
+            AutoReplaceAttempts = 2,
             RequestId = Guid.NewGuid(),
             Username = "original",
         };
@@ -278,7 +492,8 @@ public class AutoReplaceServiceTests
         downloads
             .Setup(service => service.EnqueueAsync(
                 "replacement",
-                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
+                It.Is<IEnumerable<DownloadEnqueueRequest>>(files =>
+                    files.Single().AutoReplaceAttempts == original.AutoReplaceAttempts),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<SlskdTransfer> { new() }, new List<string>()));
         var transfers = new Mock<ITransferService>();

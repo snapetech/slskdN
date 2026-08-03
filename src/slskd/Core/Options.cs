@@ -1396,7 +1396,7 @@ namespace slskd
                     public int CheckIntervalSeconds { get; init; } = 300;
 
                     /// <summary>
-                    ///     Gets the maximum number of automatic retry attempts per file per process lifetime. 0 means unlimited.
+                    ///     Gets the maximum number of automatic retry attempts per persisted download request. 0 means unlimited.
                     /// </summary>
                     [Range(0, 100)]
                     public int MaxAttempts { get; init; } = 5;

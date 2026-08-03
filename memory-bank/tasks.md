@@ -9,6 +9,17 @@
 
 ### High Priority
 
+- [x] Fix tester-reported integration YAML saves and restart retry churn.
+  - Status: completed (2026-08-03)
+  - Priority: P1
+  - Notes: The Integrations editor now omits/deletes an empty required
+    MusicBrainz user-agent instead of writing invalid YAML. Auto-replace now
+    persists cycle attempts, enforces `max_retries`, and carries its budget
+    across source swaps; download auto-retry preserves request identity and
+    enforces `max_attempts` from persisted request history across restarts.
+    Added the transfer schema migration, focused backend/frontend coverage,
+    configuration documentation, and gotchas `0z816` through `0z818`.
+
 - [x] Preserve Soulseek-independent mesh search terms.
   - Status: completed (2026-08-03)
   - Priority: P1

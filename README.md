@@ -136,12 +136,20 @@ Native identification pipeline that turns messy sources into ranked acquisition 
 Downloads get stuck. Users go offline. Transfers time out. Instead of manually searching for alternatives, slskdN does it automatically.
 - Toggle switch in Downloads header ("Auto-Replace")
 - Detects stuck downloads (timed out, errored, rejected, cancelled)
-- Searches network for alternatives, filters by extension and size (default 5%)
+- Searches network for alternatives, filters by extension and size (canonical default 0%; exact size)
 - Ranks by size match, free slots, queue depth, speed
 - Auto-cancels stuck download and enqueues best alternative
+- Persists a request-level replacement budget across restarts (`max_retries`, default 3; `0` means unlimited)
+- Keeps failed terminal rows available for review and manual retry instead of silently deleting them
 ```bash
 --auto-replace-enabled  --auto-replace-max-size-diff-percent 5.0  --auto-replace-interval 60
 ```
+
+Auto-replace and download auto-retry are separate controls. Auto-replace searches
+for a different source; `transfers.download.auto_retry` re-queues failed
+downloads and is enabled by default. Its `max_attempts` budget is also tracked
+against the persisted download request, so a daemon restart does not reset the
+same request's automatic retry budget.
 
 ### ⭐ Wishlist / Background Search
 Save searches that run automatically in the background. Never miss rare content again.
@@ -727,8 +735,13 @@ web:
     password: change_me
 
 # slskdN-specific features
+auto_replace:
+  interval_seconds: 300
+  size_threshold_percent: 0 # exact-size alternatives; raise this to allow a difference
+  max_retries: 3 # replacement attempts per download request; 0 = unlimited
 transfers:
   download:
+    # Legacy auto-replace aliases remain accepted; prefer the top-level block above.
     auto_replace_stuck: true
     auto_replace_threshold: 5.0
     auto_replace_interval: 60

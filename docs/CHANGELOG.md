@@ -25,6 +25,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Mesh search now has explicit regression coverage and documentation ensuring
   Soulseek server/operator term suppression and incoming-request filters do not
   remove mesh results; mesh merging remains limited to duplicate detection.
+- Integration YAML saves no longer serialize an empty required MusicBrainz
+  user-agent, so a fresh or partially populated configuration can be saved.
+- Auto-retry and auto-replace now retain request-level retry budgets across
+  restarts, carry stable request identity across alternate sources, and record
+  no-alternative replacement cycles so old failed rows cannot loop forever.
 
 ## [2026080315-slskdn.296] — 2026-08-03
 

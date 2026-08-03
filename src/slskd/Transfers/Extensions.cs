@@ -37,6 +37,7 @@ namespace slskd.Transfers
                 DestinationDirectory = transfer.DestinationDirectory,
                 LocalFilename = transfer.LocalFilename,
                 Attempts = transfer.Attempts,
+                AutoReplaceAttempts = transfer.AutoReplaceAttempts,
                 NextAttemptAt = transfer.NextAttemptAt,
                 State = t.State,
                 RequestedAt = transfer.RequestedAt,

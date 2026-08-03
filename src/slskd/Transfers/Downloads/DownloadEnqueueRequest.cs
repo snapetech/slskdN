@@ -35,5 +35,12 @@ namespace slskd.Transfers.Downloads
 
         /// <summary>Originating wishlist item, if any (only used when creating a new DownloadRequest).</summary>
         public Guid? WishlistItemId { get; init; }
+
+        /// <summary>
+        ///     Number of auto-replace cycles already spent by the owning request.
+        ///     This is carried onto replacement transfers so a failed search cannot
+        ///     restart the same request forever after a process restart.
+        /// </summary>
+        public int AutoReplaceAttempts { get; init; }
     }
 }

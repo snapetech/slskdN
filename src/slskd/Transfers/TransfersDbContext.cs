@@ -100,6 +100,11 @@ namespace slskd.Transfers
 
             modelBuilder
                 .Entity<Transfer>()
+                .Property(e => e.AutoReplaceAttempts)
+                .HasDefaultValue(0);
+
+            modelBuilder
+                .Entity<Transfer>()
                 .Property(d => d.Direction)
                 .HasConversion(new EnumToStringConverter<Soulseek.TransferDirection>());
 

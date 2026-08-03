@@ -92,13 +92,14 @@
 #      enabled: true # retry failed downloads conservatively; disable if you only want manual retries
 #      retry_delay_seconds: 1800 # wait this long after a failed transfer before retrying it
 #      check_interval_seconds: 300 # scan for failed transfers this often
-#      max_attempts: 5 # maximum automatic retries per username+filename per process lifetime; 0 means retry forever
+#      max_attempts: 5 # maximum automatic retries per persisted download request; 0 means retry forever
 #      max_files_per_cycle: 10 # global Soulseek retry budget per scan
 #      max_files_per_peer_per_cycle: 1 # avoid repeatedly hitting one remote peer in a scan
 #      peer_cooldown_seconds: 900 # wait this long before contacting the same peer again via auto-retry
 #      alternate_sources_enabled: true # prefer cooled-down alternate sources from local HashDb/search before retrying the same peer
 #      max_alternate_source_searches_per_cycle: 1 # bounded network searches per scan when local evidence has no alternate
 #      alternate_source_size_tolerance_percent: 5 # maximum size difference for alternate-source retry candidates
+#    # Legacy auto-replace aliases; prefer the top-level auto_replace block below.
 #    auto_replace_stuck: true
 #    auto_replace_threshold: 5.0
 #    auto_replace_interval: 60
@@ -157,6 +158,10 @@
 #        members:
 #          - alice
 #          - bob
+#auto_replace:
+#  interval_seconds: 300
+#  size_threshold_percent: 0 # exact-size alternatives; raise this to allow a difference
+#  max_retries: 3 # replacement attempts per download request; 0 = unlimited
 #player:
 #  external_visualizer:
 #    enabled: false # opt in only; launches on the slskdN host, not the browser device

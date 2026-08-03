@@ -383,6 +383,36 @@ describe('Integrations', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not write an empty required MusicBrainz user agent', async () => {
+    optionsApi.getYaml.mockResolvedValue('integrations: {}\n');
+    optionsApi.updateYaml.mockResolvedValue({});
+
+    render(
+      <Integrations
+        options={{
+          integration: {
+            musicbrainz: {
+              baseUrl: 'https://musicbrainz.org/ws/2',
+            },
+          },
+          remoteConfiguration: true,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByText('Save YAML')[0]);
+
+    await waitFor(() => {
+      expect(optionsApi.updateYaml).toHaveBeenCalled();
+    });
+
+    const yaml = optionsApi.updateYaml.mock.calls[0][0].yaml;
+    expect(yaml).not.toMatch(/user_agent:/i);
+    expect(
+      screen.getByText('Metadata and Servarr integration settings saved to YAML.'),
+    ).toBeInTheDocument();
+  });
+
   it('applies source-feed integration toggles without exposing secrets', async () => {
     optionsApi.applyOverlay.mockResolvedValue({});
 

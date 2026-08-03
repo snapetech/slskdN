@@ -408,6 +408,54 @@ public sealed class TransfersDbContextTests
             migrations[nameof(Z07162026_AutoRetryIndexMigration)]);
         Assert.IsType<Z07162026_DownloadRequestSummaryIndexMigration>(
             migrations[nameof(Z07162026_DownloadRequestSummaryIndexMigration)]);
+        Assert.IsType<Z08032026_AutoReplaceAttemptsMigration>(
+            migrations[nameof(Z08032026_AutoReplaceAttemptsMigration)]);
+    }
+
+    [Fact]
+    public void AutoReplaceAttemptsMigration_AddsIdempotentDefaultedColumn()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"slskdn-auto-replace-attempts-{Guid.NewGuid():N}.db");
+        var connectionString = $"Data Source={databasePath}";
+
+        try
+        {
+            using (var connection = new SqliteConnection(connectionString))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText =
+                    "CREATE TABLE Transfers (Id TEXT PRIMARY KEY, Filename TEXT NOT NULL)";
+                command.ExecuteNonQuery();
+            }
+
+            var migration = new Z08032026_AutoReplaceAttemptsMigration(
+                new ConnectionStringDictionary(new()
+                {
+                    [Database.Transfers] = connectionString,
+                }));
+
+            Assert.True(migration.NeedsToBeApplied());
+            migration.Apply();
+            Assert.False(migration.NeedsToBeApplied());
+
+            using (var connection = new SqliteConnection(connectionString))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText =
+                    "INSERT INTO Transfers (Id, Filename) VALUES ('transfer-1', 'track.flac'); " +
+                    "SELECT AutoReplaceAttempts FROM Transfers WHERE Id = 'transfer-1';";
+                Assert.Equal(0L, command.ExecuteScalar());
+            }
+
+            migration.Apply();
+            Assert.False(migration.NeedsToBeApplied());
+        }
+        finally
+        {
+            System.IO.File.Delete(databasePath);
+        }
     }
 
     [Fact]
