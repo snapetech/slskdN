@@ -27207,3 +27207,19 @@ failed legacy checksum/version regression tests.
 when unset, and version/hash canonicalization must append new material only when
 the field has a real value. Test both null legacy descriptors and populated new
 descriptors.
+
+### 0z826. Rank Only The Format Alternative That Matched
+
+**The Bug**: Wishlist positive terms within one branch are filename
+alternatives, but the quality scorer treated every audio-format token in that
+branch as if it matched the candidate. A filter such as `mp3 flac` could
+therefore rank an MP3 using the lossless branch of its quality tuple.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `tests/slskd.Tests.Unit/Wishlist/WishlistControllerTests.cs`
+
+**Prevention**: When positive terms retain alternative semantics, pass only
+the format terms that actually match the candidate into quality ranking. Keep
+filter acceptance and quality classification on the same matching boundary,
+and cover same-branch alternatives as well as explicit `OR` branches.
