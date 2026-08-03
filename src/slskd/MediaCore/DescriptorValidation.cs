@@ -39,6 +39,12 @@ public class DescriptorValidator : IDescriptorValidator
             return false;
         }
 
+        if (descriptor.BitrateKbps is <= 0 or > 10_000)
+        {
+            reason = "invalid bitrate";
+            return false;
+        }
+
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         if (now - descriptor.Signature.TimestampUnixMs > MaxAgeMs)
         {
@@ -64,7 +70,7 @@ public class DescriptorValidator : IDescriptorValidator
         var hashes = string.Join(",", d.Hashes.Select(h => $"{h.Algorithm}:{h.Hex}"));
         var phash = string.Join(",", d.PerceptualHashes.Select(h => $"{h.Algorithm}:{h.Hex}"));
         var sig = d.Signature is null ? string.Empty : $"{d.Signature.PublicKey}:{d.Signature.Signature}";
-        var payload = $"{d.ContentId}|{hashes}|{phash}|{d.SizeBytes}|{d.Codec}|{d.Confidence}|{sig}";
+        var payload = $"{d.ContentId}|{hashes}|{phash}|{d.SizeBytes}|{d.Codec}|{d.BitrateKbps}|{d.Confidence}|{sig}";
         return System.Text.Encoding.UTF8.GetByteCount(payload);
     }
 }

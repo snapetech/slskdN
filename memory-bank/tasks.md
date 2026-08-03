@@ -12,11 +12,16 @@
 - [x] Complete tester follow-up for bitrate-aware Wishlist selection and Lidarr manual import.
   - Status: completed (2026-08-03)
   - Priority: P1
-  - Notes: Added `minbr:`/`minbitrate:` metadata filters, Lidarr bitrate-profile
-    mapping, highest-known-bitrate auto-download ordering, selected-item bulk
-    filter editing, and manual Lidarr import retry/reporting independent of the
-    automatic-import gate. Added backend/frontend regressions and updated the
-    README, Wishlist/Lidarr guides, configuration example, and changelog.
+  - Notes: Completed the multi-format implementation: `OR` branches retain
+    independent bitrate floors, Lidarr profiles emit per-format branches,
+    sample-rate/bit-depth numbers are not misread as bitrate, and unknown mesh
+    metadata remains unknown. Auto-download now deduplicates track copies and
+    ranks codec-aware quality/coverage. Bulk filter edits are atomic, both
+    manual Lidarr panels report safe/rejected counts, and disabled integration
+    states are explicit. Explicit Lidarr `Any`/`All` profiles now override the
+    configured fallback with an unrestricted filter. Added backend/frontend
+    regressions and updated the README, Wishlist/Lidarr guides, configuration
+    example, and changelog.
 
 - [x] Fix tester-reported integration YAML saves and restart retry churn.
   - Status: completed (2026-08-03)

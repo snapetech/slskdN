@@ -1164,18 +1164,7 @@ namespace slskd.Search
 
                 foreach (var meshFile in peerResult.Files)
                 {
-                    var file = new File()
-                    {
-                        Code = 1, // Download code
-                        Filename = meshFile.Filename,
-                        Size = meshFile.Size,
-                        Extension = System.IO.Path.GetExtension(meshFile.Filename) ?? string.Empty,
-                        BitRate = 320, // Default bitrate
-                        Length = (int)(meshFile.Size / 320000), // Estimate duration in seconds
-                        IsLocked = false
-                    };
-
-                    files.Add(file);
+                    files.Add(ConvertMeshFile(meshFile));
                 }
 
                 if (files.Count > 0)
@@ -1199,5 +1188,18 @@ namespace slskd.Search
 
             return responses;
         }
+
+        internal static File ConvertMeshFile(
+            slskd.VirtualSoulfind.DisasterMode.MeshFileResult meshFile)
+            => new()
+            {
+                Code = 1, // Download code
+                Filename = meshFile.Filename,
+                Size = meshFile.Size,
+                Extension = System.IO.Path.GetExtension(meshFile.Filename) ?? string.Empty,
+                BitRate = meshFile.BitrateKbps,
+                Length = null,
+                IsLocked = false,
+            };
     }
 }

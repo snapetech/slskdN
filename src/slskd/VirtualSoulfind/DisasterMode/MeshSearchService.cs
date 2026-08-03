@@ -150,6 +150,7 @@ public class MeshSearchService : IMeshSearchService
                             Filename = GetDisplayFilename(content.ContentId, content.Codec),
                             Size = content.SizeBytes ?? 0,
                             Codec = content.Codec,
+                            BitrateKbps = content.BitrateKbps,
                             QualityScore = 0.5, // Default score
                         });
                     }
@@ -233,6 +234,7 @@ public class MeshSearchService : IMeshSearchService
                             Filename = GetDisplayFilename(c.ContentId, c.Codec),
                             Size = c.SizeBytes ?? 0,
                             Codec = c.Codec,
+                            BitrateKbps = c.BitrateKbps,
                             MbRecordingId = mbid,
                             QualityScore = 0.8, // Higher score for MBID matches
                         }).ToList();

@@ -313,6 +313,28 @@ namespace slskd.Tests.Unit.MediaCore
             }
         }
 
+        [Fact]
+        public void GenerateVersion_IncludesPopulatedBitrateWithoutChangingNullLegacyShape()
+        {
+            var legacy = ContentDescriptorPublisher.GenerateVersion(new ContentDescriptor
+            {
+                ContentId = "content:audio:track:bitrate",
+                Codec = "mp3",
+                SizeBytes = 123,
+            });
+            var withBitrate = ContentDescriptorPublisher.GenerateVersion(new ContentDescriptor
+            {
+                ContentId = "content:audio:track:bitrate",
+                Codec = "mp3",
+                SizeBytes = 123,
+                BitrateKbps = 320,
+            });
+
+            Assert.NotEqual(
+                legacy[(legacy.LastIndexOf('-') + 1)..],
+                withBitrate[(withBitrate.LastIndexOf('-') + 1)..]);
+        }
+
         private static string ComputeLegacyVersionHash(ContentDescriptor descriptor)
         {
             var content = $"{descriptor.ContentId}:{descriptor.Codec}:{descriptor.SizeBytes}";

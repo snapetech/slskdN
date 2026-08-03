@@ -106,7 +106,8 @@ public class MeshDirectory : IMeshDirectory
                 cid,
                 contentDescriptor.Hashes?.FirstOrDefault()?.Hex,
                 contentDescriptor.SizeBytes ?? 0,
-                contentDescriptor.Codec));
+                contentDescriptor.Codec,
+                contentDescriptor.BitrateKbps));
         }
 
         return results;

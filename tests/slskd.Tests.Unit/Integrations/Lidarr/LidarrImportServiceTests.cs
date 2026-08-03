@@ -74,6 +74,45 @@ public class LidarrImportServiceTests
     }
 
     [Fact]
+    public async Task ImportDirectoryAsync_WhenIntegrationIsDisabledExplainsWhyItSkipped()
+    {
+        var client = new FakeLidarrClient();
+        var service = CreateService(
+            client,
+            new Options.IntegrationOptions.LidarrOptions
+            {
+                Enabled = false,
+                AutoImportCompleted = true,
+            });
+
+        var result = await service.ImportDirectoryAsync("/downloads/music/Artist/Album");
+
+        Assert.False(result.Enabled);
+        Assert.Equal("Lidarr integration is disabled", result.SkippedReason);
+        Assert.Equal(0, client.CandidateRequestCount);
+    }
+
+    [Fact]
+    public async Task ImportCompletedDirectoryAsync_WhenAutomaticImportIsDisabledExplainsWhyItSkipped()
+    {
+        var client = new FakeLidarrClient();
+        var service = CreateService(
+            client,
+            new Options.IntegrationOptions.LidarrOptions
+            {
+                Enabled = true,
+                AutoImportCompleted = false,
+            });
+
+        var result = await service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album");
+
+        Assert.True(result.Enabled);
+        Assert.False(result.AutoImportEnabled);
+        Assert.Equal("Automatic completed-directory import is disabled", result.SkippedReason);
+        Assert.Equal(0, client.CandidateRequestCount);
+    }
+
+    [Fact]
     public async Task ImportCompletedDirectoryAsync_WithAmbiguousCandidate_SkipsImport()
     {
         var client = new FakeLidarrClient

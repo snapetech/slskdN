@@ -350,6 +350,72 @@ public sealed class WishlistServicePersistenceTests
     }
 
     [Fact]
+    public async Task UpdateFiltersAsync_UpdatesAllItemsAtomicallyAndPreservesTracking()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<WishlistDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var contextFactory = new TestDbContextFactory(options);
+        var firstId = Guid.NewGuid();
+        var secondId = Guid.NewGuid();
+        await using (var context = await contextFactory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.WishlistItems.AddRange(
+                new WishlistItem
+                {
+                    Id = firstId,
+                    SearchText = "first",
+                    Filter = "flac",
+                    LidarrAlbumId = 10,
+                },
+                new WishlistItem
+                {
+                    Id = secondId,
+                    SearchText = "second",
+                    Filter = "mp3",
+                    LidarrTrackId = 20,
+                });
+            await context.SaveChangesAsync();
+        }
+
+        var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+        optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
+        using var service = new WishlistService(
+            contextFactory,
+            Mock.Of<ISearchService>(),
+            Mock.Of<ISoulseekClient>(),
+            optionsMonitor.Object,
+            Mock.Of<ISourceRankingService>(),
+            Mock.Of<IDownloadService>());
+
+        var updated = await service.UpdateFiltersAsync([firstId, secondId], "mp3 minbr:320");
+
+        Assert.Equal(2, updated);
+        await using var verificationContext = await contextFactory.CreateDbContextAsync();
+        var stored = await verificationContext.WishlistItems
+            .Where(item => item.Id == firstId || item.Id == secondId)
+            .OrderBy(item => item.SearchText)
+            .ToListAsync();
+        Assert.Equal(
+            new[] { "mp3 minbr:320", "mp3 minbr:320" },
+            stored.Select(item => item.Filter).ToArray());
+        Assert.Equal(10, stored[0].LidarrAlbumId);
+        Assert.Equal(20, stored[1].LidarrTrackId);
+
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            service.UpdateFiltersAsync([firstId, Guid.NewGuid()], "flac"));
+        await using var afterFailureContext = await contextFactory.CreateDbContextAsync();
+        Assert.All(
+            await afterFailureContext.WishlistItems
+                .Where(item => item.Id == firstId || item.Id == secondId)
+                .ToListAsync(),
+            item => Assert.Equal("mp3 minbr:320", item.Filter));
+    }
+
+    [Fact]
     public async Task ImportCsvAsync_WithOneHundredTracks_UsesThreeMultiRowCommands()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

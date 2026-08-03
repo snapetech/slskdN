@@ -60,6 +60,14 @@ namespace slskd.Wishlist
         Task<WishlistItem> UpdateAsync(WishlistItem item);
 
         /// <summary>
+        ///     Updates the filter on multiple wishlist items atomically.
+        /// </summary>
+        Task<int> UpdateFiltersAsync(
+            IEnumerable<Guid> ids,
+            string filter,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Deletes a wishlist item.
         /// </summary>
         Task DeleteAsync(Guid id);
@@ -228,6 +236,40 @@ namespace slskd.Wishlist
 
             Log.Information("Updated wishlist item {Id}", item.Id);
             return existing;
+        }
+
+        /// <inheritdoc/>
+        public async Task<int> UpdateFiltersAsync(
+            IEnumerable<Guid> ids,
+            string filter,
+            CancellationToken cancellationToken = default)
+        {
+            var distinctIds = ids.Distinct().ToList();
+            if (distinctIds.Count == 0)
+            {
+                throw new ArgumentException("At least one wishlist item is required", nameof(ids));
+            }
+
+            using var context = ContextFactory.CreateDbContext();
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+            var items = await context.WishlistItems
+                .Where(item => distinctIds.Contains(item.Id))
+                .ToListAsync(cancellationToken);
+            if (items.Count != distinctIds.Count)
+            {
+                var missing = distinctIds.Except(items.Select(item => item.Id)).First();
+                throw new NotFoundException($"Wishlist item {missing} not found");
+            }
+
+            foreach (var item in items)
+            {
+                item.Filter = filter;
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            Log.Information("Updated filters for {Count} wishlist items", items.Count);
+            return items.Count;
         }
 
         /// <inheritdoc/>
@@ -920,27 +962,36 @@ namespace slskd.Wishlist
                     .GroupBy(c => (c.Username, Dir: GetParentDirectory(c.Filename)))
                     .ToList();
 
-                var groupBitRates = groups.ToDictionary(
-                    group => group.Key,
-                    group => group.Max(candidate => candidate.BitRate ?? 0));
-                var representatives = groups
-                    .Select(group => group.OrderByDescending(candidate => candidate.BitRate ?? 0).First())
+                var filterTerms = ParseFilterTerms(filter);
+                var groupPlans = groups
+                    .Select(group => BuildGroupPlan(group.Key, group, filterTerms, remainingDownloads))
+                    .ToList();
+                var representatives = groupPlans
+                    .Select(plan => plan.Representative)
                     .ToList();
                 var ranked = await RankingService.RankSourcesAsync(representatives, cancellationToken);
 
-                var bestRep = ranked
-                    .OrderByDescending(rep => groupBitRates[(rep.Username, GetParentDirectory(rep.Filename))])
-                    .ThenByDescending(rep => rep.SmartScore)
+                var groupPlansByKey = groupPlans.ToDictionary(plan => plan.Key);
+                var rankedPlans = ranked
+                    .Where(rep => groupPlansByKey.ContainsKey((rep.Username, GetParentDirectory(rep.Filename))))
+                    .Select(rep => new
+                    {
+                        Plan = groupPlansByKey[(rep.Username, GetParentDirectory(rep.Filename))],
+                        Ranked = rep,
+                    })
+                    .ToList();
+                var bestPlan = rankedPlans
+                    .OrderByDescending(candidate => candidate.Plan.Coverage)
+                    .ThenByDescending(candidate => candidate.Plan.WeakestQuality)
+                    .ThenByDescending(candidate => candidate.Plan.RepresentativeQuality)
+                    .ThenByDescending(candidate => candidate.Ranked.SmartScore)
                     .FirstOrDefault();
-                if (bestRep == null)
+                if (bestPlan == null)
                 {
                     return WishlistDownloadResult.Empty;
                 }
 
-                var bestDir = GetParentDirectory(bestRep.Filename);
-                var filesToDownload = groups
-                    .First(g => g.Key.Username == bestRep.Username && g.Key.Dir == bestDir)
-                    .OrderByDescending(candidate => candidate.BitRate ?? 0)
+                var filesToDownload = bestPlan.Plan.Files
                     .Select(c => new slskd.Transfers.Downloads.DownloadEnqueueRequest
                     {
                         Filename = c.Filename,
@@ -954,21 +1005,24 @@ namespace slskd.Wishlist
                     .Take(remainingDownloads)
                     .ToList();
 
-                Log.Information(
-                    "Auto-downloading {Count} file(s) from {Username} in {Directory} (score: {Score:F1})",
-                    filesToDownload.Count,
-                    bestRep.Username,
-                    bestDir,
-                    bestRep.SmartScore);
+                var bestDir = bestPlan.Plan.Key.Dir;
 
-                var (enqueued, failed) = await DownloadService.EnqueueAsync(bestRep.Username, filesToDownload, cancellationToken);
+                Log.Information(
+                    "Auto-downloading {Count} file(s) from {Username} in {Directory} (coverage: {Coverage}, score: {Score:F1})",
+                    filesToDownload.Count,
+                    bestPlan.Plan.Key.Username,
+                    bestDir,
+                    bestPlan.Plan.Coverage,
+                    bestPlan.Ranked.SmartScore);
+
+                var (enqueued, failed) = await DownloadService.EnqueueAsync(bestPlan.Plan.Key.Username, filesToDownload, cancellationToken);
                 if (failed.Count > 0)
                 {
                     Log.Warning(
                         "Wishlist auto-download could not enqueue {FailedCount}/{RequestedCount} file(s) from {Username}",
                         failed.Count,
                         filesToDownload.Count,
-                        bestRep.Username);
+                        bestPlan.Plan.Key.Username);
                 }
 
                 return new WishlistDownloadResult(enqueued.Count, failed.Count);
@@ -985,6 +1039,160 @@ namespace slskd.Wishlist
             var normalized = filename.Replace('\\', '/');
             var lastSlash = normalized.LastIndexOf('/');
             return lastSlash < 0 ? string.Empty : normalized[..lastSlash];
+        }
+
+        private static WishlistGroupPlan BuildGroupPlan(
+            (string Username, string Dir) key,
+            IEnumerable<SourceCandidate> candidates,
+            WishlistFilterTerms filterTerms,
+            int remainingDownloads)
+        {
+            var bestPerTrack = candidates
+                .GroupBy(GetTrackIdentity, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group
+                    .OrderByDescending(candidate => GetQualityKey(candidate, filterTerms))
+                    .First())
+                .ToList();
+            var files = bestPerTrack
+                .OrderByDescending(candidate => GetQualityKey(candidate, filterTerms))
+                .Take(remainingDownloads)
+                .ToList();
+
+            var qualityKeys = files
+                .Select(candidate => GetQualityKey(candidate, filterTerms))
+                .OrderBy(keyValue => keyValue)
+                .ToList();
+            var weakestQuality = qualityKeys.Count == 0
+                ? default
+                : qualityKeys[0];
+            var representativeQuality = files.Count == 0
+                ? default
+                : GetQualityKey(files[0], filterTerms);
+
+            return new WishlistGroupPlan(
+                key,
+                files,
+                Math.Min(bestPerTrack.Count, remainingDownloads),
+                weakestQuality,
+                representativeQuality,
+                files.FirstOrDefault() ?? candidates.First());
+        }
+
+        private static string GetTrackIdentity(SourceCandidate candidate)
+        {
+            var normalized = candidate.Filename.Replace('\\', '/');
+            var lastSlash = normalized.LastIndexOf('/');
+            var leaf = lastSlash < 0 ? normalized : normalized[(lastSlash + 1)..];
+            var extension = Path.GetExtension(leaf);
+            return (extension.Length > 0 ? leaf[..^extension.Length] : leaf)
+                .Trim()
+                .ToLowerInvariant();
+        }
+
+        private static (int Class, double EffectiveBitrate, int CodecPreference, int SampleRate, int BitDepth, int HasBitrate, long Size) GetQualityKey(
+            SourceCandidate candidate,
+            WishlistFilterTerms filterTerms)
+        {
+            var matchingHints = GetMatchingFormatHints(candidate, filterTerms).ToList();
+            if (matchingHints.Count == 0)
+            {
+                matchingHints.Add(Path.GetExtension(candidate.Filename).TrimStart('.'));
+            }
+
+            return matchingHints
+                .Select(format => GetQualityKey(candidate, format))
+                .OrderByDescending(key => key)
+                .First();
+        }
+
+        private static IEnumerable<string> GetMatchingFormatHints(
+            SourceCandidate candidate,
+            WishlistFilterTerms filterTerms)
+        {
+            var normalizedFilename = candidate.Filename.Replace('\\', '/').ToLowerInvariant();
+            var extension = Path.GetExtension(normalizedFilename).TrimStart('.');
+
+            foreach (var clause in filterTerms.Clauses)
+            {
+                var bitrateMatches = !clause.MinimumBitrate.HasValue ||
+                    (candidate.BitRate.HasValue && candidate.BitRate.Value >= clause.MinimumBitrate.Value);
+                if (!MatchesFilenameClause(normalizedFilename, extension, clause) || !bitrateMatches)
+                {
+                    continue;
+                }
+
+                var formatHints = clause.Include
+                    .Where(IsAudioFormatTerm)
+                    .Where(format => extension.Equals(format.TrimStart('.'), StringComparison.Ordinal))
+                    .ToList();
+                if (formatHints.Count == 0)
+                {
+                    yield return extension;
+                    continue;
+                }
+
+                foreach (var formatHint in formatHints)
+                {
+                    yield return formatHint;
+                }
+            }
+        }
+
+        private static bool IsAudioFormatTerm(string term)
+            => term.TrimStart('.') is "flac" or "alac" or "wav" or "ape" or "aiff" or "aif" or
+                "mp3" or "aac" or "m4a" or "ogg" or "oga" or "opus";
+
+        private static (int Class, double EffectiveBitrate, int CodecPreference, int SampleRate, int BitDepth, int HasBitrate, long Size) GetQualityKey(
+            SourceCandidate candidate,
+            string format)
+        {
+            var normalizedFormat = format.TrimStart('.').ToLowerInvariant();
+            var bitrate = candidate.BitRate.GetValueOrDefault();
+            var hasBitrate = candidate.BitRate.HasValue && bitrate > 0;
+
+            if (normalizedFormat is "flac" or "alac" or "wav" or "ape" or "aiff" or "aif")
+            {
+                var losslessPreference = normalizedFormat switch
+                {
+                    "flac" => 6,
+                    "alac" => 5,
+                    "wav" => 4,
+                    "ape" => 3,
+                    _ => 2,
+                };
+                return (
+                    2,
+                    0,
+                    losslessPreference,
+                    candidate.SampleRate.GetValueOrDefault(),
+                    candidate.BitDepth.GetValueOrDefault(),
+                    hasBitrate ? 1 : 0,
+                    candidate.Size);
+            }
+
+            var efficiency = normalizedFormat switch
+            {
+                "opus" => 2.0,
+                "aac" or "m4a" => 1.25,
+                "ogg" or "oga" => 1.1,
+                _ => 1.0,
+            };
+            var codecPreference = normalizedFormat switch
+            {
+                "opus" => 4,
+                "aac" or "m4a" => 3,
+                "ogg" or "oga" => 2,
+                "mp3" => 1,
+                _ => 0,
+            };
+            return (
+                hasBitrate ? 1 : 0,
+                bitrate * efficiency,
+                codecPreference,
+                candidate.SampleRate.GetValueOrDefault(),
+                candidate.BitDepth.GetValueOrDefault(),
+                hasBitrate ? 1 : 0,
+                candidate.Size);
         }
 
         private static WishlistHitStats CountWishlistHits(
@@ -1063,7 +1271,7 @@ namespace slskd.Wishlist
         internal static Func<Soulseek.File, bool> CreateFileFilter(string filter)
         {
             var terms = ParseFilterTerms(filter);
-            if (terms.Include.Count == 0 && terms.Exclude.Count == 0 && !terms.MinimumBitrate.HasValue)
+            if (IsUnfiltered(terms))
             {
                 return _ => true;
             }
@@ -1074,7 +1282,7 @@ namespace slskd.Wishlist
         internal static Func<slskd.Search.File, bool> CreateSearchResultFileFilter(string filter)
         {
             var terms = ParseFilterTerms(filter);
-            if (terms.Include.Count == 0 && terms.Exclude.Count == 0 && !terms.MinimumBitrate.HasValue)
+            if (IsUnfiltered(terms))
             {
                 return _ => true;
             }
@@ -1085,28 +1293,33 @@ namespace slskd.Wishlist
         internal static Func<string, bool> CreateSearchFileFilter(string filter)
         {
             var terms = ParseFilterTerms(filter);
-            if (terms.Include.Count == 0 && terms.Exclude.Count == 0)
+            if (IsUnfiltered(terms))
             {
                 return _ => true;
             }
 
-            return filename =>
-            {
-                return MatchesFilenameFilter(filename, terms);
-            };
+            return filename => MatchesFileFilter(filename, null, terms);
         }
 
         private static WishlistFilterTerms ParseFilterTerms(string filter)
         {
-            var include = new HashSet<string>(StringComparer.Ordinal);
+            var clauses = new List<WishlistFilterClause>();
             var exclude = new HashSet<string>(StringComparer.Ordinal);
-            var minimumBitrate = ParseMinimumBitrate(filter);
+            var include = new HashSet<string>(StringComparer.Ordinal);
+            int? minimumBitrate = null;
 
             foreach (Match match in Regex.Matches(filter, "-?\"[^\"]+\"|\\S+"))
             {
                 var rawTerm = match.Value;
-                if (rawTerm.Equals("OR", StringComparison.OrdinalIgnoreCase) || IsMinimumBitrateDirective(rawTerm))
+                if (rawTerm.Equals("OR", StringComparison.OrdinalIgnoreCase))
                 {
+                    AddClause();
+                    continue;
+                }
+
+                if (TryParseMinimumBitrate(rawTerm, out var parsedBitrate))
+                {
+                    minimumBitrate = Math.Max(minimumBitrate ?? 0, parsedBitrate);
                     continue;
                 }
 
@@ -1124,10 +1337,27 @@ namespace slskd.Wishlist
                 (isExclude ? exclude : include).Add(term.TrimStart('.'));
             }
 
-            return new WishlistFilterTerms(include, exclude, minimumBitrate);
+            AddClause();
+            if (clauses.Count == 0)
+            {
+                clauses.Add(new WishlistFilterClause(new HashSet<string>(StringComparer.Ordinal), null));
+            }
+
+            return new WishlistFilterTerms(clauses, exclude);
+
+            void AddClause()
+            {
+                if (include.Count > 0 || minimumBitrate.HasValue)
+                {
+                    clauses.Add(new WishlistFilterClause(include, minimumBitrate));
+                }
+
+                include = new HashSet<string>(StringComparer.Ordinal);
+                minimumBitrate = null;
+            }
         }
 
-        private static bool MatchesFilenameFilter(string filename, WishlistFilterTerms terms)
+        private static bool MatchesFileFilter(string filename, int? bitrate, WishlistFilterTerms terms)
         {
             var normalizedFilename = filename.Replace('\\', '/').ToLowerInvariant();
             var extension = Path.GetExtension(normalizedFilename).TrimStart('.');
@@ -1137,39 +1367,57 @@ namespace slskd.Wishlist
                 return false;
             }
 
-            return terms.Include.Count == 0
-                || terms.Include.Any(term =>
-                    extension.Equals(term.TrimStart('.'), StringComparison.Ordinal)
-                    || normalizedFilename.Contains(term, StringComparison.Ordinal));
+            return terms.Clauses.Any(clause =>
+                MatchesFilenameClause(normalizedFilename, extension, clause) &&
+                (!clause.MinimumBitrate.HasValue ||
+                    (bitrate.HasValue && bitrate.Value >= clause.MinimumBitrate.Value)));
         }
 
-        private static bool MatchesFileFilter(string filename, int? bitrate, WishlistFilterTerms terms)
-            => MatchesFilenameFilter(filename, terms)
-                && (!terms.MinimumBitrate.HasValue || (bitrate ?? 0) >= terms.MinimumBitrate.Value);
-
-        private static int? ParseMinimumBitrate(string filter)
+        private static bool MatchesFilenameClause(
+            string normalizedFilename,
+            string extension,
+            WishlistFilterClause clause)
         {
-            var matches = Regex.Matches(
-                filter,
-                @"(?<!\S)(?:minbr|minbitrate):(?<value>\d+)(?!\S)",
-                RegexOptions.IgnoreCase);
-            var values = matches
-                .Select(match => int.TryParse(match.Groups["value"].Value, out var value) ? value : 0)
-                .Where(value => value > 0)
-                .ToList();
-            return values.Count == 0 ? null : values.Max();
+            return clause.Include.Count == 0 || clause.Include.Any(term =>
+                extension.Equals(term.TrimStart('.'), StringComparison.Ordinal)
+                || normalizedFilename.Contains(term, StringComparison.Ordinal));
         }
 
-        private static bool IsMinimumBitrateDirective(string term)
-            => term.StartsWith("minbr:", StringComparison.OrdinalIgnoreCase)
-                || term.StartsWith("minbitrate:", StringComparison.OrdinalIgnoreCase);
+        private static bool TryParseMinimumBitrate(string term, out int bitrate)
+        {
+            bitrate = 0;
+            var match = Regex.Match(
+                term,
+                @"^(?:minbr|minbitrate):(?<value>\d+)$",
+                RegexOptions.IgnoreCase);
+            return match.Success &&
+                int.TryParse(match.Groups["value"].Value, out bitrate) &&
+                bitrate > 0;
+        }
 
-        private readonly record struct WishlistFilterTerms(
+        private static bool IsUnfiltered(WishlistFilterTerms terms)
+            => terms.Exclude.Count == 0 &&
+                terms.Clauses.Count == 1 &&
+                terms.Clauses[0].Include.Count == 0 &&
+                !terms.Clauses[0].MinimumBitrate.HasValue;
+
+        private readonly record struct WishlistFilterClause(
             HashSet<string> Include,
-            HashSet<string> Exclude,
             int? MinimumBitrate);
 
+        private readonly record struct WishlistFilterTerms(
+            List<WishlistFilterClause> Clauses,
+            HashSet<string> Exclude);
+
         private readonly record struct WishlistHitStats(int Visible, int HiddenLocked, int FilteredOut, int Ignored);
+
+        private readonly record struct WishlistGroupPlan(
+            (string Username, string Dir) Key,
+            IReadOnlyList<SourceCandidate> Files,
+            int Coverage,
+            (int Class, double EffectiveBitrate, int CodecPreference, int SampleRate, int BitDepth, int HasBitrate, long Size) WeakestQuality,
+            (int Class, double EffectiveBitrate, int CodecPreference, int SampleRate, int BitDepth, int HasBitrate, long Size) RepresentativeQuality,
+            SourceCandidate Representative);
 
         private bool IsClientSearchReady()
         {

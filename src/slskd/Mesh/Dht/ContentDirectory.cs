@@ -73,7 +73,12 @@ public class ContentDirectory : IMeshDirectory
             var descriptor = await GetContentDescriptorAsync(cid, ct);
             if (descriptor != null)
             {
-                results.Add(new slskd.Mesh.MeshContentDescriptor(cid, descriptor.Hashes?.FirstOrDefault()?.Hex, descriptor.SizeBytes ?? 0, descriptor.Codec));
+                results.Add(new slskd.Mesh.MeshContentDescriptor(
+                    cid,
+                    descriptor.Hashes?.FirstOrDefault()?.Hex,
+                    descriptor.SizeBytes ?? 0,
+                    descriptor.Codec,
+                    descriptor.BitrateKbps));
             }
         }
 

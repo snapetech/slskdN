@@ -15,6 +15,7 @@ vi.mock('../../lib/wishlist', () => ({
   remove: vi.fn(),
   runSearch: vi.fn(),
   update: vi.fn(),
+  updateFilters: vi.fn(),
 }));
 
 vi.mock('../../lib/spotifyIntegration', () => ({
@@ -231,7 +232,7 @@ describe('Wishlist', () => {
   });
 
   it('bulk-edits filters for selected wishlist items', async () => {
-    wishlistAPI.update.mockResolvedValue({});
+    wishlistAPI.updateFilters.mockResolvedValue({ updatedCount: 2 });
 
     renderWishlist();
 
@@ -245,17 +246,11 @@ describe('Wishlist', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply Filter' }));
 
     await waitFor(() => {
-      expect(wishlistAPI.update).toHaveBeenCalledTimes(2);
+      expect(wishlistAPI.updateFilters).toHaveBeenCalledTimes(1);
     });
-    expect(wishlistAPI.update).toHaveBeenNthCalledWith(
-      1,
-      'wish-1',
-      expect.objectContaining({ filter: 'mp3 minbr:320' }),
-    );
-    expect(wishlistAPI.update).toHaveBeenNthCalledWith(
-      2,
-      'wish-2',
-      expect.objectContaining({ filter: 'mp3 minbr:320' }),
+    expect(wishlistAPI.updateFilters).toHaveBeenCalledWith(
+      expect.arrayContaining(['wish-1', 'wish-2']),
+      'mp3 minbr:320',
     );
   });
 });

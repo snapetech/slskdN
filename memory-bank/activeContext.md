@@ -12978,3 +12978,40 @@ rollback.
 - Next steps: tester validation of an MP3-320 profile, bulk filter editing, and
   manual import reporting. Do not create another tag unless explicitly
   requested; the existing `.297` tag predates this follow-up.
+## Update 2026-08-03 13:45:00Z
+
+- Current task: complete. Finished the tester follow-up implementation for
+  multi-format Wishlist/Lidarr quality handling.
+- Last activity:
+  - Replaced flattened Wishlist `OR` parsing with branch-local bitrate floors,
+    added fail-closed unknown-metadata behavior, and made auto-download
+    selection codec-aware, coverage-aware, and duplicate-track safe.
+  - Propagated optional truthful bitrate metadata through mesh descriptors,
+    DHT/IPLD, MBID search, and stored search results; removed the hard-coded
+    320-kbps mesh default and fabricated duration.
+  - Added atomic bulk filter updates and completed both Lidarr manual-import UI
+    paths with tooltips, clear success/skipped counts, and explicit disabled
+    reasons.
+  - Recorded gotchas `0z822` through `0z824` in ADR-0001 and committed each
+    documentation correction before continuing source changes.
+- Validation so far: focused backend `63/63` and focused Web `11/11` pass.
+- Next steps:
+  1. Run full backend/Web tests, lint, release/remediation checks, and identity
+     gates.
+  2. Commit and push the implementation. Do not create a release tag unless
+     the user explicitly requests this follow-up release.
+
+## Update 2026-08-03 20:20:00Z
+
+- Final implementation review found and fixed three multi-format ranking/parser
+  edges: same-branch alternatives now rank by the candidate's actual extension,
+  lossy quality names such as `OGG 24-bit` cannot turn bit depth into a
+  bitrate floor, and explicit `Any`/`All` profiles override the fallback.
+  Added gotchas `0z826` through `0z828` with focused regressions.
+- Validation is complete: application `74/74`, unit `5035/5035`, integration
+  `284/284`, Web `904` passed with `4` skipped, `./bin/lint`, Web lint (zero
+  errors; four existing disabled-test warnings), target/identity/config gates,
+  and diff checks all pass.
+- The implementation and documentation are ready to commit and push. The
+  existing stable `.297` release tag remains unchanged; no new tag is created
+  in this follow-up.

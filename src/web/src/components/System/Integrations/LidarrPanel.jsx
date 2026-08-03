@@ -261,20 +261,30 @@ const LidarrPanel = ({ options }) => {
         <Segment className="integration-manual-import">
           <Header as="h4">Manual Import</Header>
           <Input
-            action={{
-              content: 'Import',
-              disabled: !importDirectory.trim(),
-              icon: 'download',
-              loading: loading === 'import',
-              onClick: () =>
-                run('import', async () =>
-                  setImportResult(
-                    await lidarrImportCompletedDirectory({
-                      directory: importDirectory.trim(),
-                    }),
-                  ),
-                ),
-            }}
+            action={(
+              <Popup
+                content="Ask Lidarr to scan this completed directory now. This manual action works even when automatic import is disabled and can be retried immediately."
+                position="top center"
+                trigger={(
+                  <Button
+                    content="Import"
+                    disabled={!importDirectory.trim()}
+                    icon="download"
+                    loading={loading === 'import'}
+                    onClick={() =>
+                      run('import', async () => {
+                        const result = await lidarrImportCompletedDirectory({
+                          directory: importDirectory.trim(),
+                        });
+                        setImportResult(result);
+                        if (result?.commandId || result?.CommandId) {
+                          setImportDirectory('');
+                        }
+                      })}
+                  />
+                )}
+              />
+            )}
             fluid
             onChange={(_, { value }) => setImportDirectory(value)}
             placeholder="Completed download directory visible to slskdN..."
@@ -282,12 +292,19 @@ const LidarrPanel = ({ options }) => {
           />
           {importResult && (
             <Message
+              positive={Boolean(importResult.commandId || importResult.CommandId)}
               size="small"
               warning={Boolean(importResult.skippedReason || importResult.SkippedReason)}
             >
-              {importResult.skippedReason || importResult.SkippedReason
-                ? `Skipped: ${importResult.skippedReason || importResult.SkippedReason}`
-                : `Queued Lidarr command ${importResult.commandId || importResult.CommandId || '-'}`}
+              {importResult.skippedReason || importResult.SkippedReason ? (
+                `Skipped: ${importResult.skippedReason || importResult.SkippedReason} ` +
+                `(${importResult.candidateCount ?? importResult.CandidateCount ?? 0} candidate(s), ` +
+                `${importResult.safeCandidateCount ?? importResult.SafeCandidateCount ?? 0} safe, ` +
+                `${importResult.rejectedCandidateCount ?? importResult.RejectedCandidateCount ?? 0} rejected)`
+              ) : (
+                `Queued Lidarr command ${importResult.commandId || importResult.CommandId || '-'} ` +
+                `(${importResult.safeCandidateCount ?? importResult.SafeCandidateCount ?? 0} safe candidate(s))`
+              )}
             </Message>
           )}
         </Segment>

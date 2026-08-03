@@ -155,7 +155,7 @@ same request's automatic retry budget.
 Save searches that run automatically in the background. Never miss rare content again.
 - New **Wishlist** item in navigation sidebar
 - Add searches with custom filters and max results
-- Use metadata filters such as `mp3 minbr:320`; bulk-edit filters on selected existing items without re-adding them
+- Use structured metadata filters such as `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256`; bulk-edit filters on selected existing items atomically without re-adding them
 - Toggle auto-download, configurable interval, track matches and run history
 - Manual "Run Now" button for each search
 - **Discography Concierge handoff** — missing tracks from an artist coverage map can be promoted into conservative Wishlist searches without starting immediate searches or downloads
@@ -447,11 +447,11 @@ Optional metadata enrichment and library quality checks.
 ### 🎛️ Built-in Lidarr Integration
 Lidarr is a first-class slskdN integration. No Lidarr plugin is required: slskdN talks to Lidarr's supported HTTP API, turns Wanted/Missing albums and tracks into quality-aware Wishlist searches, downloads through the normal Soulseek queue, and can hand completed files back to Lidarr for safe import.
 - **Wanted sync** — pulls Lidarr Wanted/Missing albums into slskdN Wishlist searches
-- **Quality-aware searches** — derives each Wishlist filter from the Lidarr quality profile, including bitrate thresholds such as `mp3 minbr:320`; automatic selection prefers the highest known bitrate source, and the configured filter remains the fallback
+- **Quality-aware searches** — derives independent multi-format/bitrate Wishlist branches from the Lidarr quality profile, such as `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256 OR flac`; automatic selection uses codec-aware quality and album coverage, and the configured filter remains the fallback
 - **Partial-album reconciliation** — tracks albums with existing files and creates one bounded Wishlist target per missing track instead of searching the complete album again
 - **Durable tracking** — remembers Lidarr album and track IDs, updates existing targets, and disables stale targets during later syncs
 - **Optional auto-download** — Lidarr-created Wishlist items can immediately enter the normal slskdN download flow
-- **Safe post-download import** — completed directories are submitted to Lidarr's manual-import command only when Lidarr returns clean, unambiguous matches; the UI/API manual action can retry even when automatic import is disabled
+- **Safe post-download import** — completed directories are submitted to Lidarr's manual-import command only when Lidarr returns clean, unambiguous matches; both UI manual actions report candidate/safe/rejected counts and can retry even when automatic import is disabled
 - **Manual fallback** — ambiguous or rejected candidates are intentionally left for Lidarr's interactive Manual Import screen
 - **Path mapping** — rewrite slskdN download paths to the path Lidarr sees in Docker, host, or split-volume setups
 - **Operator API** — verify status, run wanted sync, and trigger import from `/api/v0/integrations/lidarr/*`

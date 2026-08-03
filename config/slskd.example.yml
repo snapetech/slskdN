@@ -492,7 +492,7 @@
 #    sync_interval_seconds: 3600
 #    max_items_per_sync: 100
 #    auto_download: false # applies only to Wishlist items created by Lidarr sync
-#    wishlist_filter: "" # fallback; profile names such as MP3-320KBPS become `mp3 minbr:320` per entry
+#    wishlist_filter: "" # fallback; allowed profile entries become independent branches, e.g. `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256 OR flac`
 #    wishlist_max_results: 100
 #    auto_import_completed: false # automatic completed-directory handoff; UI/API manual import remains available when integration is enabled
 #    import_mode: "move" # move or copy

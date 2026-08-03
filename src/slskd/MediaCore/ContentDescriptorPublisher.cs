@@ -386,6 +386,11 @@ public class ContentDescriptorPublisher : IContentDescriptorPublisher
         incrementalHash.AppendData(":"u8);
         AppendUtf8(incrementalHash, descriptor.Codec ?? string.Empty);
         incrementalHash.AppendData(":"u8);
+        if (descriptor.BitrateKbps.HasValue)
+        {
+            AppendUtf8(incrementalHash, descriptor.BitrateKbps.Value.ToString(CultureInfo.InvariantCulture));
+            incrementalHash.AppendData(":"u8);
+        }
 
         Span<char> sizeChars = stackalloc char[32];
         if (descriptor.SizeBytes.HasValue)

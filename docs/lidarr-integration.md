@@ -9,8 +9,10 @@ Soulseek queue, and can submit completed files back to Lidarr for safe import.
 
 - Read Lidarr's wanted/missing album list from `/api/v1/wanted/missing`.
 - Use each album's Lidarr quality profile to derive an entry-specific audio
-  filter when the profile exposes recognizable formats such as MP3 or FLAC,
-  including a `minbr:<kbps>` threshold for names such as `MP3-320KBPS`.
+  filter when the profile exposes recognizable formats such as MP3 or FLAC.
+  Every allowed format/quality is emitted as its own Wishlist branch, so a
+  profile can safely produce combinations such as
+  `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256 OR flac`.
 - Keep a genuinely empty album as one album-level Wishlist search. For a partial
   album, read `/api/v1/track?albumId=...` and create one Wishlist search per
   missing track instead of searching the complete album again.
@@ -80,12 +82,23 @@ Lidarr has acquired.
 
 The `wishlist_filter` setting is the fallback for entries without a usable
 quality profile mapping. When Lidarr's profile contains allowed recognizable
-audio formats, those formats replace the fallback for that entry. Recognizable
-bitrate names become metadata thresholds too: `MP3-320KBPS` produces
-`mp3 minbr:320`, so 128-kbps hits cannot satisfy that Wishlist item even when
-they share the `.mp3` extension. When a Wishlist item has more than one
-eligible bitrate, automatic selection prefers the highest known bitrate source
-before source-ranking tie-breakers.
+audio formats, those formats replace the fallback for that entry. Each allowed
+quality remains an independent branch: `MP3-320KBPS` plus `AAC-256` produces
+`mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256`, so AAC's `.aac` and `.m4a`
+containers have the same floor. 128-kbps MP3 and 192-kbps AAC hits cannot
+satisfy the item. `FLAC 24-bit 96kHz`
+produces `flac`, not a mistaken `minbr:96`; sample rate and bit depth are not
+bitrate. Broad `Lossless` profiles expand to FLAC, ALAC/M4A, WAV, APE, and
+AIFF variants. An allowed `Any` or `All` quality leaves the filter
+unrestricted, including when `wishlist_filter` contains a fallback value.
+
+For automatic downloads, Wishlist selection evaluates the matching branch and
+then uses codec-aware quality ordering. Lossless files rank above lossy files;
+within lossy formats, effective bitrate and codec preference are compared, and
+unknown bitrate never beats known metadata. A peer directory is also
+deduplicated by track name and ranked for coverage up to the remaining download
+limit, preventing a high-bitrate duplicate from causing a second copy of the
+same track to be queued.
 
 For a partial album, slskdN creates one track-level Wishlist item per missing
 track and limits each one to a single automatic enqueue. A peer
@@ -253,6 +266,10 @@ curl -X POST -H "X-API-Key: <slskdn-api-key>" \
   -d '{"directory":"/downloads/music/Artist/Album"}' \
   http://127.0.0.1:5030/api/v0/integrations/lidarr/manualimport
 ```
+
+Both Lidarr UI panels display the safe and rejected candidate counts. If the
+integration is disabled, or if only automatic import is disabled, the response
+states that explicitly instead of looking like an empty Lidarr result.
 
 The manual fallback flow is:
 

@@ -405,6 +405,7 @@ public class MetadataPortability : IMetadataPortability
         string? contentId = null;
         long? sizeBytes = null;
         string? codec = null;
+        int? bitrateKbps = null;
         var confidenceTotal = 0.0;
         var confidenceCount = 0;
         var sourceCount = 0;
@@ -447,9 +448,24 @@ public class MetadataPortability : IMetadataPortability
                 sizeBytes = descriptor.SizeBytes;
             }
 
-            if (codec == null && !string.IsNullOrWhiteSpace(descriptor.Codec))
+            if (!string.IsNullOrWhiteSpace(descriptor.Codec))
             {
-                codec = descriptor.Codec;
+                if (codec == null)
+                {
+                    codec = descriptor.Codec;
+                    bitrateKbps = descriptor.BitrateKbps;
+                }
+                else if (codec.Equals(descriptor.Codec, StringComparison.OrdinalIgnoreCase) &&
+                    descriptor.BitrateKbps.HasValue &&
+                    (!bitrateKbps.HasValue || descriptor.BitrateKbps.Value > bitrateKbps.Value))
+                {
+                    bitrateKbps = descriptor.BitrateKbps;
+                }
+            }
+            else if (codec == null && descriptor.BitrateKbps.HasValue &&
+                (!bitrateKbps.HasValue || descriptor.BitrateKbps.Value > bitrateKbps.Value))
+            {
+                bitrateKbps = descriptor.BitrateKbps;
             }
 
             if (descriptor.Confidence.HasValue)
@@ -469,6 +485,7 @@ public class MetadataPortability : IMetadataPortability
             PerceptualHashes = perceptualHashes,
             SizeBytes = sizeBytes,
             Codec = codec,
+            BitrateKbps = bitrateKbps,
             Confidence = confidenceCount > 0 ? confidenceTotal / confidenceCount : null,
         };
 

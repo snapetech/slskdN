@@ -19,6 +19,11 @@ public interface IMeshDirectory
 public record MeshPeerDescriptor(string PeerId, string? Address = null, int? Port = null, string? Transport = null);
 
 /// <summary>
-/// Descriptor for mesh content (ID, hashes, size).
+/// Descriptor for mesh content (ID, hashes, size, and verified audio metadata).
 /// </summary>
-public record MeshContentDescriptor(string ContentId, string? Hash = null, long? SizeBytes = null, string? Codec = null);
+public record MeshContentDescriptor(
+    string ContentId,
+    string? Hash = null,
+    long? SizeBytes = null,
+    string? Codec = null,
+    int? BitrateKbps = null);

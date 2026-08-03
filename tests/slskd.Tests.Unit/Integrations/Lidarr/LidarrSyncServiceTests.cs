@@ -173,6 +173,46 @@ public class LidarrSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncWantedToWishlist_UsesEmptyFilterForExplicitAnyQuality()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 7,
+                    ProfileId = 12,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                },
+            ],
+            QualityProfiles =
+            [
+                new LidarrQualityProfile
+                {
+                    Id = 12,
+                    Items =
+                    [
+                        new LidarrQualityProfileItem
+                        {
+                            Allowed = true,
+                            Quality = new LidarrQuality { Name = "Any" },
+                        },
+                    ],
+                },
+            ],
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac");
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        Assert.Equal(1, result.CreatedCount);
+        Assert.Empty(Assert.Single(wishlist.Created).Filter);
+    }
+
+    [Fact]
     public async Task SyncWantedToWishlist_ClaimsLegacyAlbumItemWhenQualityFilterChanges()
     {
         var legacyItem = new WishlistItem
@@ -237,6 +277,115 @@ public class LidarrSyncServiceTests
         });
 
         Assert.Equal("mp3 minbr:320", filter);
+    }
+
+    [Fact]
+    public void BuildQualityFilter_PreservesIndependentFormatBitrateBranches()
+    {
+        var filter = LidarrSyncService.BuildQualityFilter(new LidarrQualityProfile
+        {
+            Items =
+            [
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "MP3-320KBPS" },
+                },
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "AAC-256" },
+                },
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "FLAC" },
+                },
+            ],
+        });
+
+        Assert.Equal("mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256 OR flac", filter);
+    }
+
+    [Fact]
+    public void BuildQualityFilter_DoesNotTreatSampleRateOrBitDepthAsBitrate()
+    {
+        var filter = LidarrSyncService.BuildQualityFilter(new LidarrQualityProfile
+        {
+            Items =
+            [
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "FLAC 24-bit 96kHz" },
+                },
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "OGG Vorbis 96kHz" },
+                },
+            ],
+        });
+
+        Assert.Equal("flac OR ogg OR oga", filter);
+    }
+
+    [Fact]
+    public void BuildQualityFilter_MapsLossyBitrateUnitsAndBareNumbers()
+    {
+        var filter = LidarrSyncService.BuildQualityFilter(new LidarrQualityProfile
+        {
+            Items =
+            [
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "MP3 320 kbps" },
+                },
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "AAC-HE-256" },
+                },
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "OGG Vorbis 192 kbit/s" },
+                },
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "Opus 128k" },
+                },
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "OGG Vorbis 24-bit" },
+                },
+            ],
+        });
+
+        Assert.Equal(
+            "mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256 OR ogg minbr:192 OR oga minbr:192 OR opus minbr:128 OR ogg OR oga",
+            filter);
+    }
+
+    [Fact]
+    public void BuildQualityFilter_MapsBroadLosslessQualityToEverySupportedFormat()
+    {
+        var filter = LidarrSyncService.BuildQualityFilter(new LidarrQualityProfile
+        {
+            Items =
+            [
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "Lossless" },
+                },
+            ],
+        });
+
+        Assert.Equal("flac OR alac OR m4a OR wav OR ape OR aiff OR aif", filter);
     }
 
     [Fact]
@@ -485,6 +634,12 @@ public class LidarrSyncServiceTests
             Updated.Add(item);
             return Task.FromResult(item);
         }
+
+        public Task<int> UpdateFiltersAsync(
+            IEnumerable<Guid> ids,
+            string filter,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(ids.Distinct().Count());
 
         public Task DeleteAsync(Guid id) => Task.CompletedTask;
 

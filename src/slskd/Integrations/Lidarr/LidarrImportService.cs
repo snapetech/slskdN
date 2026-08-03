@@ -71,9 +71,24 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         CancellationToken cancellationToken)
     {
         var options = OptionsMonitor.CurrentValue.Integration.Lidarr;
-        if (!options.Enabled || (requireAutoImportEnabled && !options.AutoImportCompleted))
+        if (!options.Enabled)
         {
-            return new LidarrImportResult { Enabled = options.Enabled, AutoImportEnabled = options.AutoImportCompleted };
+            return new LidarrImportResult
+            {
+                Enabled = false,
+                AutoImportEnabled = options.AutoImportCompleted,
+                SkippedReason = "Lidarr integration is disabled",
+            };
+        }
+
+        if (requireAutoImportEnabled && !options.AutoImportCompleted)
+        {
+            return new LidarrImportResult
+            {
+                Enabled = true,
+                AutoImportEnabled = false,
+                SkippedReason = "Automatic completed-directory import is disabled",
+            };
         }
 
         if (string.IsNullOrWhiteSpace(localDirectory))

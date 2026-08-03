@@ -28,6 +28,8 @@ public class ContentDescriptor
     public List<PerceptualHash> PerceptualHashes { get; set; } = new();
     public long? SizeBytes { get; set; }
     public string? Codec { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? BitrateKbps { get; set; }
     public double? Confidence { get; set; } // for fuzzy matches (local-only)
     public DescriptorSignature? Signature { get; set; }
 

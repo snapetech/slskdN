@@ -169,6 +169,44 @@ namespace slskd.Wishlist.API
         }
 
         /// <summary>
+        ///     Updates the filter on multiple wishlist items atomically.
+        /// </summary>
+        /// <param name="request">The bulk filter update request.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The number of updated wishlist items.</returns>
+        /// <response code="200">The filters were updated successfully.</response>
+        /// <response code="400">The request did not contain any item IDs.</response>
+        /// <response code="404">A requested wishlist item was not found.</response>
+        [HttpPut("bulk-filter")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+        [ProducesResponseType(typeof(BulkWishlistFilterResult), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> UpdateFilters(
+            [FromBody, Required] BulkWishlistFilterRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            if (request == null || request.Ids == null || request.Ids.Count == 0)
+            {
+                return BadRequest("At least one wishlist item ID is required");
+            }
+
+            request.Filter = string.IsNullOrWhiteSpace(request.Filter) ? string.Empty : request.Filter.Trim();
+            try
+            {
+                var count = await WishlistService.UpdateFiltersAsync(
+                    request.Ids,
+                    request.Filter,
+                    cancellationToken);
+                return Ok(new BulkWishlistFilterResult { UpdatedCount = count });
+            }
+            catch (NotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
+        /// <summary>
         ///     Deletes a wishlist item.
         /// </summary>
         /// <param name="id">The wishlist item ID.</param>
@@ -459,6 +497,31 @@ namespace slskd.Wishlist.API
         ///     Maximum successful downloads before auto-disable.
         /// </summary>
         public int? MaxDownloads { get; set; }
+    }
+
+    /// <summary>
+    ///     Request to update a shared filter on multiple wishlist items.
+    /// </summary>
+    public class BulkWishlistFilterRequest
+    {
+        /// <summary>
+        ///     Wishlist item IDs to update.
+        /// </summary>
+        [Required]
+        public List<Guid> Ids { get; set; } = new();
+
+        /// <summary>
+        ///     Filter expression to apply to every selected item.
+        /// </summary>
+        public string Filter { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    ///     Result of a bulk Wishlist filter update.
+    /// </summary>
+    public class BulkWishlistFilterResult
+    {
+        public int UpdatedCount { get; init; }
     }
 
     /// <summary>

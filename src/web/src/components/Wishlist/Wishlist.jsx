@@ -1633,11 +1633,10 @@ const Wishlist = () => {
   };
 
   const handleBulkFilterSave = async (filter) => {
-    const selectedItems = items.filter((item) => selectedIds.has(item.id));
-    for (const item of selectedItems) {
-      await wishlistAPI.update(item.id, { ...item, filter });
-    }
-    toast.success(`Updated filters for ${selectedItems.length} item(s)`);
+    const ids = [...selectedIds];
+    const result = await wishlistAPI.updateFilters(ids, filter);
+    const updatedCount = result?.updatedCount ?? result?.UpdatedCount ?? ids.length;
+    toast.success(`Updated filters for ${updatedCount} item(s)`);
     setSelectedIds(new Set());
     await loadItems();
   };

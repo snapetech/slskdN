@@ -48,6 +48,7 @@ public class IpldMapper : IIpldMapper
             phash = descriptor.PerceptualHashes,
             size = descriptor.SizeBytes,
             codec = descriptor.Codec,
+            bitrateKbps = descriptor.BitrateKbps,
             confidence = descriptor.Confidence,
             sig = descriptor.Signature,
             links = descriptor.Links?.AllLinks.Select(link => new

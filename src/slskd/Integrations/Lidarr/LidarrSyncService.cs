@@ -113,7 +113,11 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                 if (qualityProfiles.TryGetValue(qualityProfileId, out var qualityProfile))
                 {
                     var qualityFilter = BuildQualityFilter(qualityProfile);
-                    if (!string.IsNullOrWhiteSpace(qualityFilter))
+                    if (HasUnrestrictedQuality(qualityProfile))
+                    {
+                        filter = string.Empty;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(qualityFilter))
                     {
                         filter = qualityFilter;
                     }
@@ -389,7 +393,8 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
     internal static string BuildQualityFilter(LidarrQualityProfile profile)
     {
-        var filters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var filters = new List<string>();
+        var seenFilters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (profile.Items == null)
         {
             return string.Empty;
@@ -397,99 +402,187 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
         foreach (var item in profile.Items)
         {
-            AddQualityFilters(item, filters);
+            if (AddQualityFilters(item, filters, seenFilters))
+            {
+                return string.Empty;
+            }
         }
 
-        return string.Join(" OR ", filters.OrderBy(filter => filter, StringComparer.OrdinalIgnoreCase));
+        return string.Join(" OR ", filters);
     }
 
-    private static void AddQualityFilters(LidarrQualityProfileItem item, ISet<string> filters)
+    private static bool HasUnrestrictedQuality(LidarrQualityProfile profile)
+        => profile.Items?.Any(HasUnrestrictedQuality) == true;
+
+    private static bool HasUnrestrictedQuality(LidarrQualityProfileItem item)
+    {
+        var qualityName = item.Quality?.Name ?? item.Name;
+        if (item.Allowed &&
+            GetFileFormats(qualityName).Count == 0 &&
+            IsUnrestrictedQualityName(qualityName))
+        {
+            return true;
+        }
+
+        return item.Items?.Any(HasUnrestrictedQuality) == true;
+    }
+
+    private static bool AddQualityFilters(
+        LidarrQualityProfileItem item,
+        ICollection<string> filters,
+        ISet<string> seenFilters)
     {
         if (item.Allowed)
         {
             var qualityName = item.Quality?.Name ?? item.Name;
             var minimumBitrate = GetMinimumBitrate(qualityName);
-            foreach (var format in GetFileFormats(qualityName))
+            var formats = GetFileFormats(qualityName);
+            if (formats.Count == 0 && IsUnrestrictedQualityName(qualityName))
             {
-                filters.Add(minimumBitrate.HasValue ? $"{format} minbr:{minimumBitrate.Value}" : format);
+                return true;
+            }
+
+            foreach (var format in formats)
+            {
+                var filter = minimumBitrate.HasValue ? $"{format} minbr:{minimumBitrate.Value}" : format;
+                if (seenFilters.Add(filter))
+                {
+                    filters.Add(filter);
+                }
             }
         }
 
         if (item.Items == null)
         {
-            return;
+            return false;
         }
 
         foreach (var child in item.Items)
         {
-            AddQualityFilters(child, filters);
+            if (AddQualityFilters(child, filters, seenFilters))
+            {
+                return true;
+            }
         }
+
+        return false;
     }
 
     private static int? GetMinimumBitrate(string qualityName)
     {
-        var match = Regex.Match(
+        var explicitMatches = Regex.Matches(
             qualityName,
-            @"(?<![A-Za-z0-9])(?<bitrate>\d{2,4})\s*(?:kbps?|kbit(?:/s)?|kb)?(?![A-Za-z0-9])",
+            @"(?<![A-Za-z0-9])(?<bitrate>\d{2,4})\s*(?:kbps?|kb/s|kbit(?:/s)?|kb|k)(?![A-Za-z0-9])",
             RegexOptions.IgnoreCase);
-        if (!int.TryParse(match.Groups["bitrate"].Value, out var bitrate) || bitrate < 32 || bitrate > 1_000)
+        var explicitBitrates = explicitMatches
+            .Select(match => ParseValidBitrate(match.Groups["bitrate"].Value))
+            .Where(bitrate => bitrate.HasValue)
+            .Select(bitrate => bitrate!.Value)
+            .ToList();
+        if (explicitBitrates.Count > 0)
         {
-            return null;
+            return explicitBitrates.Max();
         }
 
-        return bitrate;
+        // Lidarr commonly serializes built-in lossy qualities as MP3-320 or
+        // AAC 256 without a unit. Restrict bare-number parsing to lossy codecs
+        // so values such as FLAC 24-bit and OGG 96kHz are never bitrates.
+        var bareMatch = Regex.Match(
+            qualityName,
+            @"(?<![A-Za-z0-9])(?:mp3|aac|m4a|opus|ogg|vorbis)(?:[\s_-]+[A-Za-z]+)*[\s_-]+(?<bitrate>\d{2,4})(?!\d)(?!\s*[-_ ]*(?:k?hz|bits?)\b)",
+            RegexOptions.IgnoreCase);
+        return ParseValidBitrate(bareMatch.Groups["bitrate"].Value);
     }
+
+    private static int? ParseValidBitrate(string value)
+    {
+        return int.TryParse(value, out var bitrate) && bitrate is >= 32 and <= 1_000
+            ? bitrate
+            : null;
+    }
+
+    private static bool IsUnrestrictedQualityName(string qualityName)
+        => qualityName.Contains("any", StringComparison.OrdinalIgnoreCase) ||
+            qualityName.Contains("all", StringComparison.OrdinalIgnoreCase);
 
     private static IReadOnlyList<string> GetFileFormats(string qualityName)
     {
+        var formats = new List<string>();
+
+        void Add(params string[] values)
+        {
+            foreach (var value in values)
+            {
+                if (!formats.Contains(value, StringComparer.OrdinalIgnoreCase))
+                {
+                    formats.Add(value);
+                }
+            }
+        }
+
+        if (qualityName.Contains("lossless", StringComparison.OrdinalIgnoreCase))
+        {
+            Add("flac", "alac", "m4a", "wav", "ape", "aiff", "aif");
+        }
+
+        if (qualityName.Contains("lossy", StringComparison.OrdinalIgnoreCase))
+        {
+            Add("mp3", "aac", "m4a", "ogg", "oga", "opus");
+        }
+
         if (qualityName.Contains("mp3", StringComparison.OrdinalIgnoreCase))
         {
-            return ["mp3"];
+            Add("mp3");
         }
 
         if (qualityName.Contains("flac", StringComparison.OrdinalIgnoreCase))
         {
-            return ["flac"];
+            Add("flac");
         }
 
         if (qualityName.Contains("alac", StringComparison.OrdinalIgnoreCase))
         {
-            return ["alac", "m4a"];
+            Add("alac", "m4a");
         }
 
         if (qualityName.Contains("aac", StringComparison.OrdinalIgnoreCase))
         {
-            return ["aac", "m4a"];
+            Add("aac", "m4a");
         }
 
         if (qualityName.Contains("vorbis", StringComparison.OrdinalIgnoreCase) ||
             qualityName.Contains("ogg", StringComparison.OrdinalIgnoreCase))
         {
-            return ["ogg"];
+            Add("ogg", "oga");
         }
 
         if (qualityName.Contains("opus", StringComparison.OrdinalIgnoreCase))
         {
-            return ["opus"];
+            Add("opus");
         }
 
         if (qualityName.Contains("ape", StringComparison.OrdinalIgnoreCase))
         {
-            return ["ape"];
+            Add("ape");
         }
 
         if (qualityName.Contains("wav", StringComparison.OrdinalIgnoreCase))
         {
-            return ["wav"];
+            Add("wav");
         }
 
         if (qualityName.Contains("aiff", StringComparison.OrdinalIgnoreCase) ||
             qualityName.Contains("aif", StringComparison.OrdinalIgnoreCase))
         {
-            return ["aiff", "aif"];
+            Add("aiff", "aif");
         }
 
-        return [];
+        if (qualityName.Contains("m4a", StringComparison.OrdinalIgnoreCase))
+        {
+            Add("m4a");
+        }
+
+        return formats;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

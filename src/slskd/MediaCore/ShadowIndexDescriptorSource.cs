@@ -131,6 +131,7 @@ public class ShadowIndexDescriptorSource : IContentDescriptorSource
             Hashes = hashes,
             SizeBytes = bestVariant.SizeBytes > 0 ? bestVariant.SizeBytes : null,
             Codec = string.IsNullOrWhiteSpace(bestVariant.Codec) ? null : bestVariant.Codec,
+            BitrateKbps = bestVariant.BitrateKbps > 0 ? bestVariant.BitrateKbps : null,
             Confidence = confidence,
             IsAdvertisable = true,
         };

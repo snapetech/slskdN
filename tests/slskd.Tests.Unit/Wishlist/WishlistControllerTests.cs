@@ -117,6 +117,48 @@ public class WishlistControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateFilters_TrimsFilterAndReturnsUpdatedCount()
+    {
+        var service = new Mock<IWishlistService>();
+        var ids = new[] { Guid.NewGuid(), Guid.NewGuid() };
+        service
+            .Setup(x => x.UpdateFiltersAsync(
+                It.Is<IEnumerable<Guid>>(values => values.SequenceEqual(ids)),
+                "mp3 minbr:320",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+        var controller = new WishlistController(service.Object);
+
+        var result = await controller.UpdateFilters(
+            new BulkWishlistFilterRequest
+            {
+                Ids = ids.ToList(),
+                Filter = " mp3 minbr:320 ",
+            });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var body = Assert.IsType<BulkWishlistFilterResult>(ok.Value);
+        Assert.Equal(2, body.UpdatedCount);
+        service.Verify(
+            x => x.UpdateFiltersAsync(
+                It.Is<IEnumerable<Guid>>(values => values.SequenceEqual(ids)),
+                "mp3 minbr:320",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateFilters_WithNoIds_ReturnsBadRequest()
+    {
+        var controller = new WishlistController(Mock.Of<IWishlistService>());
+
+        var result = await controller.UpdateFilters(new BulkWishlistFilterRequest());
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("At least one wishlist item ID is required", bad.Value);
+    }
+
+    [Fact]
     public async Task ImportCsv_TrimsFilterAndPassesOptions()
     {
         var service = new Mock<IWishlistService>();
@@ -257,6 +299,65 @@ public class WishlistControllerTests : IDisposable
     }
 
     [Fact]
+    public void CreateFileFilter_PreservesFormatAndBitrateAlternatives()
+    {
+        var filter = WishlistService.CreateFileFilter("mp3 minbr:320 OR aac minbr:256");
+
+        Assert.True(filter(CreateSoulseekFile("01 Song.mp3", 320)));
+        Assert.False(filter(CreateSoulseekFile("02 Song.mp3", 256)));
+        Assert.True(filter(CreateSoulseekFile("03 Song.aac", 256)));
+        Assert.False(filter(CreateSoulseekFile("04 Song.aac", 192)));
+        Assert.False(filter(CreateSoulseekFile("05 Song.flac", 1_000)));
+    }
+
+    [Fact]
+    public void CreateSearchResultFileFilter_AppliesGlobalExclusionsToEveryAlternative()
+    {
+        var filter = WishlistService.CreateSearchResultFileFilter("mp3 minbr:320 OR aac minbr:256 -demo");
+
+        Assert.True(filter(new slskd.Search.File { Filename = "01 Song.mp3", BitRate = 320 }));
+        Assert.True(filter(new slskd.Search.File { Filename = "02 Song.aac", BitRate = 256 }));
+        Assert.False(filter(new slskd.Search.File { Filename = "03 Demo.aac", BitRate = 256 }));
+        Assert.False(filter(new slskd.Search.File { Filename = "04 Song.aac", BitRate = 192 }));
+    }
+
+    [Fact]
+    public void CreateSearchFileFilter_DoesNotAcceptUnknownBitrateForMetadataDirective()
+    {
+        var filter = WishlistService.CreateSearchFileFilter("mp3 minbr:320");
+
+        Assert.False(filter("Music\\Album\\01 Song.mp3"));
+    }
+
+    [Theory]
+    [InlineData("flac", "Song.flac", null, true)]
+    [InlineData("alac", "Song.alac", null, true)]
+    [InlineData("wav", "Song.wav", null, true)]
+    [InlineData("ape", "Song.ape", null, true)]
+    [InlineData("aiff", "Song.aiff", null, true)]
+    [InlineData("aif", "Song.aif", null, true)]
+    [InlineData("ogg minbr:192", "Song.ogg", 192, true)]
+    [InlineData("oga minbr:192", "Song.oga", 191, false)]
+    [InlineData("opus minbr:128", "Song.opus", 128, true)]
+    [InlineData("m4a minbr:256", "Song.m4a", 256, true)]
+    [InlineData("aac minbr:256", "Song.m4a", 256, false)]
+    [InlineData("mp3 minbr:320", "Song.mp3", null, false)]
+    public void CreateSearchResultFileFilter_HandlesSupportedFormatAndMetadataCombinations(
+        string filterText,
+        string filename,
+        int? bitrate,
+        bool expected)
+    {
+        var filter = WishlistService.CreateSearchResultFileFilter(filterText);
+
+        Assert.Equal(expected, filter(new slskd.Search.File
+        {
+            Filename = filename,
+            BitRate = bitrate,
+        }));
+    }
+
+    [Fact]
     public async Task Update_PersistsMaxDownloads()
     {
         var itemId = Guid.NewGuid();
@@ -293,6 +394,14 @@ public class WishlistControllerTests : IDisposable
         Assert.NotNull(item);
         Assert.Equal(5, item.MaxDownloads);
     }
+
+    private static Soulseek.File CreateSoulseekFile(string filename, int bitrate)
+        => new(
+            1,
+            $"Music\\Album\\{filename}",
+            100,
+            Path.GetExtension(filename),
+            [new FileAttribute(FileAttributeType.BitRate, bitrate)]);
 
     [Fact]
     public void SearchSourceMigration_BackfillsExistingNullSources()
@@ -797,6 +906,90 @@ public class WishlistControllerTests : IDisposable
             "high-quality-peer",
             It.Is<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(requests =>
                 requests.Single().BitRate == 320),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunSearch_WhenSameBranchFormatsShareTrack_PrefersActualLosslessCopy()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title track",
+                Filter = "mp3 flac",
+                AutoDownload = true,
+                Enabled = true,
+                MaxResults = 25,
+                MaxDownloads = 1,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var searchService = CreateCompletedSearchService(
+            itemId,
+            [
+                new Response
+                {
+                    Username = "peer",
+                    HasFreeUploadSlot = true,
+                    QueueLength = 0,
+                    UploadSpeed = 1000,
+                    Files =
+                    [
+                        new slskd.Search.File
+                        {
+                            Filename = @"Music\Album\01 Song.mp3",
+                            Size = 1_000,
+                            BitRate = 320,
+                        },
+                        new slskd.Search.File
+                        {
+                            Filename = @"Music\Album\01 Song.flac",
+                            Size = 100,
+                        },
+                    ],
+                },
+            ]);
+        var rankingService = new Mock<ISourceRankingService>();
+        rankingService
+            .Setup(service => service.RankSourcesAsync(It.IsAny<IEnumerable<SourceCandidate>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<SourceCandidate> candidates, CancellationToken cancellationToken) =>
+                candidates.Select(candidate => new RankedSource
+                {
+                    Filename = candidate.Filename,
+                    SmartScore = 10,
+                    Username = candidate.Username,
+                }));
+        var downloadService = new Mock<IDownloadService>();
+        downloadService
+            .Setup(service => service.EnqueueAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                new List<slskd.Transfers.Transfer>
+                {
+                    new() { Id = Guid.NewGuid(), Username = "peer", Filename = @"Music\Album\01 Song.flac" },
+                },
+                new List<string>()));
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            rankingService.Object,
+            downloadService.Object);
+
+        await service.RunSearchAsync(itemId);
+
+        downloadService.Verify(service => service.EnqueueAsync(
+            "peer",
+            It.Is<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(requests =>
+                requests.Single().Filename.EndsWith(".flac", StringComparison.OrdinalIgnoreCase)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

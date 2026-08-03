@@ -9,7 +9,7 @@ The Wishlist feature lets you save searches that run automatically on a schedule
 Each wishlist item has the following properties:
 
 - **Search Text**: The search query (same format as the Search page)
-- **Filter**: Optional filename/path, extension, or metadata filter (for example `flac`, `flac OR mp3`, `mp3 minbr:320`, or `flac -"Inner Space Vol. 2"`)
+- **Filter**: Optional filename/path, extension, or metadata filter (for example `flac`, `flac OR mp3`, `mp3 minbr:320`, `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256`, or `flac -"Inner Space Vol. 2"`)
 - **Enabled**: When enabled, the item is searched automatically on each scheduler cycle
 - **Auto-download**: When enabled, best-matching files are downloaded automatically
 - **Max Results**: Maximum number of responses to accept per search
@@ -60,9 +60,10 @@ Select multiple items using checkboxes, then use the action bar to:
 - **Disable** all selected items
 - **Delete** all selected items
 
-The bulk filter action updates existing Wishlist rows in place; it does not
-require deleting and re-adding them. A later Lidarr wanted sync can refresh a
-Lidarr-owned row back to the quality profile's filter.
+The bulk filter action updates existing Wishlist rows in one atomic request; it
+does not require deleting and re-adding them, and a missing ID causes the whole
+operation to roll back. A later Lidarr wanted sync can refresh a Lidarr-owned
+row back to the quality profile's filter.
 
 ## Filter Presets
 
@@ -78,14 +79,36 @@ The wishlist modal provides quick-select filter buttons:
 | Lossless | `flac OR alac OR wav OR ape` | All common lossless formats |
 | Any | *(empty)* | Accept any file format |
 
-Positive terms are alternatives. Prefix a word with `-` to reject paths containing it, or quote a phrase to keep its words together. For example, `flac -"Inner Space Vol. 2"` accepts FLAC paths except that specific release title.
+Positive terms within one branch are filename alternatives. `OR` starts a new
+branch, so each branch keeps its own metadata constraints. Prefix a word with
+`-` to reject paths containing it globally, or quote a phrase to keep its words
+together. For example:
+
+```text
+mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256
+```
+
+accepts MP3 files at 320 kbps or higher, or AAC/M4A files at 256 kbps or
+higher. It does not accept MP3 at 256 kbps, AAC at 192 kbps, or a FLAC file.
+This form is different from `mp3 OR aac minbr:256`: the first branch has no
+bitrate floor, while the second branch does. A global exclusion applies to
+every branch, for example `flac minbr:800 OR mp3 minbr:320 -demo`.
 
 `minbr:<kbps>` (also accepted as `minbitrate:<kbps>`) checks the bitrate
 reported in search-result metadata. A value of `minbr:320` rejects a 128-kbps
-MP3 even when its filename has the right extension. Wishlist auto-download
-selection prefers the highest known bitrate source group first; source
-availability and ranking break ties, and files in the selected group are
-queued from highest to lowest known bitrate.
+MP3 even when its filename has the right extension. A missing bitrate never
+satisfies a bitrate floor, including for mesh-derived results. Mesh discovery
+does not apply Soulseek operator/server term suppression; the user's local
+format, bitrate, path, and peer-ignore filters still apply.
+
+For automatic downloads, slskdN first keeps only files that satisfy one
+complete branch, groups them by peer and directory, and chooses the best copy
+of each track name so an album does not enqueue duplicate MP3/FLAC copies. It
+prefers coverage up to the item's remaining download limit, then compares
+quality: lossless formats rank above lossy formats, and lossy codecs use a
+codec-aware effective bitrate rather than comparing AAC/Opus/MP3 numbers as if
+they were identical. Known metadata beats unknown metadata; source availability
+and ranking break quality ties.
 
 ## Ignoring One Persistent False Positive
 
@@ -126,6 +149,7 @@ Use the source filter on the Searches page to view only searches from a specific
 | GET | `/api/v0/wishlist` | List all wishlist items |
 | POST | `/api/v0/wishlist` | Create a new wishlist item |
 | PUT | `/api/v0/wishlist/{id}` | Update a wishlist item |
+| PUT | `/api/v0/wishlist/bulk-filter` | Atomically apply one filter to selected wishlist item IDs |
 | DELETE | `/api/v0/wishlist/{id}` | Delete a wishlist item |
 | POST | `/api/v0/wishlist/{id}/run` | Run a wishlist search now |
 | GET | `/api/v0/wishlist/{id}/searches` | Get search history for an item |
@@ -137,3 +161,12 @@ Use the source filter on the Searches page to view only searches from a specific
 | POST | `/api/v0/wishlist/import/csv` | Import wishlist items from CSV |
 | POST | `/api/v0/searches/cleanup` | Run search retention cleanup |
 | DELETE | `/api/v0/searches` | Delete all completed searches |
+
+Bulk filter updates send the selected IDs and one filter expression together:
+
+```json
+{
+  "ids": ["<wishlist-id-1>", "<wishlist-id-2>"],
+  "filter": "mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256"
+}
+```

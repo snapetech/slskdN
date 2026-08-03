@@ -627,6 +627,7 @@ public class DescriptorRetriever : IDescriptorRetriever
         }
 
         size += (descriptor.Codec?.Length ?? 0) * 2;
+        size += descriptor.BitrateKbps.HasValue ? 8 : 0;
         size += 100; // Overhead for object structure
 
         return size;
