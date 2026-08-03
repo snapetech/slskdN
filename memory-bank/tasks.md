@@ -9,6 +9,15 @@
 
 ### High Priority
 
+- [x] Complete tester follow-up for bitrate-aware Wishlist selection and Lidarr manual import.
+  - Status: completed (2026-08-03)
+  - Priority: P1
+  - Notes: Added `minbr:`/`minbitrate:` metadata filters, Lidarr bitrate-profile
+    mapping, highest-known-bitrate auto-download ordering, selected-item bulk
+    filter editing, and manual Lidarr import retry/reporting independent of the
+    automatic-import gate. Added backend/frontend regressions and updated the
+    README, Wishlist/Lidarr guides, configuration example, and changelog.
+
 - [x] Fix tester-reported integration YAML saves and restart retry churn.
   - Status: completed (2026-08-03)
   - Priority: P1

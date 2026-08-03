@@ -215,6 +215,48 @@ public class WishlistControllerTests : IDisposable
     }
 
     [Fact]
+    public void CreateFileFilter_EnforcesMinimumBitrateFromMetadata()
+    {
+        var filter = WishlistService.CreateFileFilter("mp3 minbr:320");
+
+        Assert.False(filter(new Soulseek.File(
+            1,
+            "Music\\Album\\01 Song.mp3",
+            100,
+            ".mp3",
+            [new FileAttribute(FileAttributeType.BitRate, 128)])));
+        Assert.True(filter(new Soulseek.File(
+            2,
+            "Music\\Album\\02 Song.mp3",
+            100,
+            ".mp3",
+            [new FileAttribute(FileAttributeType.BitRate, 320)])));
+        Assert.False(filter(new Soulseek.File(3, "Music\\Album\\03 Song.flac", 100, ".flac")));
+    }
+
+    [Fact]
+    public void CreateSearchResultFileFilter_EnforcesMinimumBitrateFromStoredMetadata()
+    {
+        var filter = WishlistService.CreateSearchResultFileFilter("mp3 minbitrate:320");
+
+        Assert.False(filter(new slskd.Search.File
+        {
+            Filename = "Music\\Album\\01 Song.mp3",
+            BitRate = 128,
+        }));
+        Assert.True(filter(new slskd.Search.File
+        {
+            Filename = "Music\\Album\\02 Song.mp3",
+            BitRate = 320,
+        }));
+        Assert.False(filter(new slskd.Search.File
+        {
+            Filename = "Music\\Album\\03 Song.flac",
+            BitRate = 1000,
+        }));
+    }
+
+    [Fact]
     public async Task Update_PersistsMaxDownloads()
     {
         var itemId = Guid.NewGuid();
@@ -663,7 +705,104 @@ public class WishlistControllerTests : IDisposable
             Times.Once);
     }
 
-    private static Mock<ISearchService> CreateCompletedSearchService(Guid searchId)
+    [Fact]
+    public async Task RunSearch_WhenAutoDownloadHasMultipleBitrates_PrefersHighestBitrateGroup()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title track",
+                Filter = "mp3",
+                AutoDownload = true,
+                Enabled = true,
+                MaxResults = 25,
+                MaxDownloads = 1,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var searchService = CreateCompletedSearchService(
+            itemId,
+            [
+                new Response
+                {
+                    Username = "low-quality-peer",
+                    HasFreeUploadSlot = true,
+                    QueueLength = 0,
+                    UploadSpeed = 1000,
+                    Files =
+                    [
+                        new slskd.Search.File
+                        {
+                            BitRate = 128,
+                            Filename = @"Music\Album\128\01 Song.mp3",
+                            Size = 100,
+                        },
+                    ],
+                },
+                new Response
+                {
+                    Username = "high-quality-peer",
+                    HasFreeUploadSlot = true,
+                    QueueLength = 0,
+                    UploadSpeed = 1000,
+                    Files =
+                    [
+                        new slskd.Search.File
+                        {
+                            BitRate = 320,
+                            Filename = @"Music\Album\320\01 Song.mp3",
+                            Size = 100,
+                        },
+                    ],
+                },
+            ]);
+        var rankingService = new Mock<ISourceRankingService>();
+        rankingService
+            .Setup(service => service.RankSourcesAsync(It.IsAny<IEnumerable<SourceCandidate>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<SourceCandidate> candidates, CancellationToken cancellationToken) =>
+                candidates.Select(candidate => new RankedSource
+                {
+                    Filename = candidate.Filename,
+                    SmartScore = 10,
+                    Username = candidate.Username,
+                }));
+        var downloadService = new Mock<IDownloadService>();
+        downloadService
+            .Setup(service => service.EnqueueAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                new List<slskd.Transfers.Transfer>
+                {
+                    new() { Id = Guid.NewGuid(), Username = "high-quality-peer", Filename = @"Music\Album\320\01 Song.mp3" },
+                },
+                new List<string>()));
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            rankingService.Object,
+            downloadService.Object);
+
+        await service.RunSearchAsync(itemId);
+
+        downloadService.Verify(service => service.EnqueueAsync(
+            "high-quality-peer",
+            It.Is<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(requests =>
+                requests.Single().BitRate == 320),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private static Mock<ISearchService> CreateCompletedSearchService(
+        Guid searchId,
+        IReadOnlyList<Response>? responses = null)
     {
         var searchService = new Mock<ISearchService>();
         searchService
@@ -693,7 +832,7 @@ public class WishlistControllerTests : IDisposable
                 SearchText = "artist title",
                 State = SearchStates.Completed,
                 ResponseCount = 1,
-                Responses =
+                Responses = responses ??
                 [
                     new Response
                     {

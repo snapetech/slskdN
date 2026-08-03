@@ -73,7 +73,7 @@ public sealed class LidarrController : ControllerBase
             return BadRequest("Directory is required");
         }
 
-        var result = await LidarrImportService.ImportCompletedDirectoryAsync(request.Directory, cancellationToken).ConfigureAwait(false);
+        var result = await LidarrImportService.ImportDirectoryAsync(request.Directory, cancellationToken).ConfigureAwait(false);
         return Ok(result);
     }
 }

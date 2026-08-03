@@ -146,6 +146,7 @@ const WishlistItemRow = ({
             position="top center"
             trigger={
               <Checkbox
+                aria-label={`Select ${item.searchText} for bulk actions`}
                 checked={selected}
                 onChange={(_, { checked }) => onSelect(item.id, checked)}
               />
@@ -529,6 +530,7 @@ const WishlistItemCard = ({
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75em' }}>
           <Checkbox
+            aria-label={`Select ${item.searchText} for bulk actions`}
             checked={selected}
             onChange={(_, { checked }) => onSelect(item.id, checked)}
             style={{ marginTop: '0.3em' }}
@@ -838,6 +840,7 @@ const WishlistItemCard = ({
 const FILTER_PRESETS = [
   { label: 'FLAC', value: 'flac' },
   { label: 'MP3', value: 'mp3' },
+  { label: 'MP3 320+', value: 'mp3 minbr:320' },
   { label: 'FLAC + MP3', value: 'flac OR mp3' },
   { label: 'FLAC + ALAC', value: 'flac OR alac' },
   { label: 'Lossless', value: 'flac OR alac OR wav OR ape' },
@@ -887,13 +890,40 @@ const saveWishlistViewState = (state) => {
 
 const validateFilter = (filter) => {
   if (!filter || !filter.trim()) return null;
-  const invalid = filter.match(/[^\w.\-\s"]/);
+  const invalid = filter.match(/[^\w.:\-\s"]/);
   if (invalid) {
-    return 'Filter may only contain words, quoted phrases, extensions, exclusions prefixed with -, and OR';
+    return 'Filter may contain words, quoted phrases, extensions, minbr:/minbitrate: directives, exclusions prefixed with -, and OR';
   }
   if ((filter.match(/"/g) || []).length % 2 !== 0) return 'Quoted filter phrases must have a closing quote';
   return null;
 };
+
+const FilterPresetButtons = ({ filter, onChange }) => (
+  <div style={{ marginTop: '0.5em' }}>
+    {FILTER_PRESETS.map((preset) => (
+      <Popup
+        key={preset.value}
+        content={
+          preset.value
+            ? `Filter to ${preset.label} files`
+            : 'Accept any file format'
+        }
+        trigger={
+          <Button
+            active={filter === preset.value}
+            compact
+            onClick={() => onChange(preset.value)}
+            size="mini"
+            style={{ marginRight: '0.25em', marginBottom: '0.25em' }}
+            toggle={!!preset.value}
+          >
+            {preset.label}
+          </Button>
+        }
+      />
+    ))}
+  </div>
+);
 
 const WishlistModal = ({ item, onClose, onSave }) => {
   const [searchText, setSearchText] = useState(item?.searchText || '');
@@ -1013,30 +1043,7 @@ const WishlistModal = ({ item, onClose, onSave }) => {
                 {filterError}
               </Label>
             )}
-            <div style={{ marginTop: '0.5em' }}>
-              {FILTER_PRESETS.map((preset) => (
-                <Popup
-                  key={preset.value}
-                  content={
-                    preset.value
-                      ? `Filter to ${preset.label} files`
-                      : 'Accept any file format'
-                  }
-                  trigger={
-                    <Button
-                      active={filter === preset.value}
-                      compact
-                      onClick={() => handleFilterChange(preset.value)}
-                      size="mini"
-                      style={{ marginRight: '0.25em', marginBottom: '0.25em' }}
-                      toggle={!!preset.value}
-                    >
-                      {preset.label}
-                    </Button>
-                  }
-                />
-              ))}
-            </div>
+            <FilterPresetButtons filter={filter} onChange={handleFilterChange} />
           </Form.Field>
           {isEdit && (
             <Segment>
@@ -1137,6 +1144,79 @@ const WishlistModal = ({ item, onClose, onSave }) => {
           primary
         >
           {isEdit ? 'Save' : 'Add'}
+        </Button>
+      </Modal.Actions>
+    </Modal>
+  );
+};
+
+const BulkFilterModal = ({ count, onClose, onSave }) => {
+  const [filter, setFilter] = useState('');
+  const [filterError, setFilterError] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleFilterChange = (value) => {
+    setFilter(value);
+    setFilterError(validateFilter(value));
+  };
+
+  const handleSave = async () => {
+    if (filterError) {
+      toast.error('Please fix the filter error before saving');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave(filter.trim());
+      onClose();
+    } catch (error) {
+      toast.error(`Failed to update filters: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose} open size="small">
+      <Modal.Header>
+        <Icon name="filter" />
+        Edit Filter for {count} Wishlist Item{count === 1 ? '' : 's'}
+      </Modal.Header>
+      <Modal.Content>
+        <p>
+          Apply one filter to every selected item. Leave it blank to clear
+          existing filters. Lidarr-synced filters may be refreshed by the next
+          Lidarr wanted sync.
+        </p>
+        <Form>
+          <Form.Field>
+            <label>Filter (optional)</label>
+            <Popup
+              content="Use extensions or terms such as flac, mp3, or mp3 minbr:320. Prefix a term with - to exclude it."
+              position="top center"
+              trigger={
+                <Form.Input
+                  error={!!filterError}
+                  onChange={(event) => handleFilterChange(event.target.value)}
+                  placeholder="e.g., mp3 minbr:320"
+                  value={filter}
+                />
+              }
+            />
+            {filterError && (
+              <Label basic color="red" pointing>
+                {filterError}
+              </Label>
+            )}
+            <FilterPresetButtons filter={filter} onChange={handleFilterChange} />
+          </Form.Field>
+        </Form>
+      </Modal.Content>
+      <Modal.Actions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button loading={saving} onClick={handleSave} primary>
+          Apply Filter
         </Button>
       </Modal.Actions>
     </Modal>
@@ -1278,6 +1358,7 @@ const Wishlist = () => {
   const [loading, setLoading] = useState(true);
   const [modalItem, setModalItem] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showBulkFilterModal, setShowBulkFilterModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [requestCopyStatus, setRequestCopyStatus] = useState('');
   const [bulkRunning, setBulkRunning] = useState(false);
@@ -1551,6 +1632,16 @@ const Wishlist = () => {
     await loadItems();
   };
 
+  const handleBulkFilterSave = async (filter) => {
+    const selectedItems = items.filter((item) => selectedIds.has(item.id));
+    for (const item of selectedItems) {
+      await wishlistAPI.update(item.id, { ...item, filter });
+    }
+    toast.success(`Updated filters for ${selectedItems.length} item(s)`);
+    setSelectedIds(new Set());
+    await loadItems();
+  };
+
   const handleBulkDelete = async () => {
     for (const id of selectedIds) {
       await wishlistAPI.remove(id);
@@ -1765,6 +1856,18 @@ const Wishlist = () => {
                 {selectedIds.size} item(s) selected
               </span>
               <Popup
+                content="Apply one filter to every selected wishlist item, or clear their filters."
+                trigger={
+                  <Button
+                    aria-label="Edit filters for selected wishlist items"
+                    compact
+                    icon="filter"
+                    onClick={() => setShowBulkFilterModal(true)}
+                    size="small"
+                  />
+                }
+              />
+              <Popup
                 content="Enable all selected wishlist items"
                 trigger={
                   <Button
@@ -1932,6 +2035,7 @@ const Wishlist = () => {
                       position="top center"
                       trigger={
                         <Checkbox
+                          aria-label="Select all wishlist items on this page for bulk actions"
                           checked={pageItems.length > 0 && pageItems.every((item) => selectedIds.has(item.id))}
                           indeterminate={pageItems.some((item) => selectedIds.has(item.id)) && !pageItems.every((item) => selectedIds.has(item.id))}
                           onChange={(_, { checked }) => handleSelectAll(checked)}
@@ -2006,6 +2110,14 @@ const Wishlist = () => {
           item={modalItem}
           onClose={() => setShowModal(false)}
           onSave={handleSave}
+        />
+      )}
+
+      {showBulkFilterModal && (
+        <BulkFilterModal
+          count={selectedIds.size}
+          onClose={() => setShowBulkFilterModal(false)}
+          onSave={handleBulkFilterSave}
         />
       )}
 

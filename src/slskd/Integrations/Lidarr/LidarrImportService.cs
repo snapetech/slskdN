@@ -22,6 +22,8 @@ using slskd.Wishlist;
 public interface ILidarrImportService
 {
     Task<LidarrImportResult> ImportCompletedDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default);
+
+    Task<LidarrImportResult> ImportDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default);
 }
 
 public sealed class LidarrImportService : BackgroundService, ILidarrImportService
@@ -57,22 +59,43 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
     private ILogger Log { get; } = Serilog.Log.ForContext<LidarrImportService>();
 
     public async Task<LidarrImportResult> ImportCompletedDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default)
+        => await ImportDirectoryAsync(localDirectory, requireAutoImportEnabled: true, bypassDebounce: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    public async Task<LidarrImportResult> ImportDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default)
+        => await ImportDirectoryAsync(localDirectory, requireAutoImportEnabled: false, bypassDebounce: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    private async Task<LidarrImportResult> ImportDirectoryAsync(
+        string localDirectory,
+        bool requireAutoImportEnabled,
+        bool bypassDebounce,
+        CancellationToken cancellationToken)
     {
         var options = OptionsMonitor.CurrentValue.Integration.Lidarr;
-        if (!options.Enabled || !options.AutoImportCompleted)
+        if (!options.Enabled || (requireAutoImportEnabled && !options.AutoImportCompleted))
         {
             return new LidarrImportResult { Enabled = options.Enabled, AutoImportEnabled = options.AutoImportCompleted };
         }
 
         if (string.IsNullOrWhiteSpace(localDirectory))
         {
-            return new LidarrImportResult { Enabled = true, AutoImportEnabled = true, SkippedReason = "Directory is empty" };
+            return new LidarrImportResult
+            {
+                Enabled = options.Enabled,
+                AutoImportEnabled = options.AutoImportCompleted,
+                SkippedReason = "Directory is empty",
+            };
         }
 
         var lidarrDirectory = MapPath(localDirectory, options.ImportPathFrom, options.ImportPathTo);
-        if (!TryBeginProcessing(lidarrDirectory))
+        if (!bypassDebounce && !TryBeginProcessing(lidarrDirectory))
         {
-            return new LidarrImportResult { Enabled = true, AutoImportEnabled = true, Directory = lidarrDirectory, SkippedReason = "Recently processed" };
+            return new LidarrImportResult
+            {
+                Enabled = options.Enabled,
+                AutoImportEnabled = options.AutoImportCompleted,
+                Directory = lidarrDirectory,
+                SkippedReason = "Recently processed",
+            };
         }
 
         await ImportGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -97,8 +120,8 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
 
             var result = new LidarrImportResult
             {
-                Enabled = true,
-                AutoImportEnabled = true,
+                Enabled = options.Enabled,
+                AutoImportEnabled = options.AutoImportCompleted,
                 Directory = lidarrDirectory,
                 CandidateCount = candidates.Count,
                 SafeCandidateCount = safeCandidates.Count,

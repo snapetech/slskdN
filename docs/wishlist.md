@@ -9,7 +9,7 @@ The Wishlist feature lets you save searches that run automatically on a schedule
 Each wishlist item has the following properties:
 
 - **Search Text**: The search query (same format as the Search page)
-- **Filter**: Optional filename/path or extension filter (for example `flac`, `flac OR mp3`, or `flac -"Inner Space Vol. 2"`)
+- **Filter**: Optional filename/path, extension, or metadata filter (for example `flac`, `flac OR mp3`, `mp3 minbr:320`, or `flac -"Inner Space Vol. 2"`)
 - **Enabled**: When enabled, the item is searched automatically on each scheduler cycle
 - **Auto-download**: When enabled, best-matching files are downloaded automatically
 - **Max Results**: Maximum number of responses to accept per search
@@ -54,9 +54,15 @@ The toolbar can filter the page to matching text, new results only, enabled item
 
 Select multiple items using checkboxes, then use the action bar to:
 
+- **Edit filters** for all selected items, including applying `mp3 minbr:320`
+  or clearing filters by leaving the field blank
 - **Enable** all selected items
 - **Disable** all selected items
 - **Delete** all selected items
+
+The bulk filter action updates existing Wishlist rows in place; it does not
+require deleting and re-adding them. A later Lidarr wanted sync can refresh a
+Lidarr-owned row back to the quality profile's filter.
 
 ## Filter Presets
 
@@ -66,12 +72,20 @@ The wishlist modal provides quick-select filter buttons:
 |--------|--------------|-------------|
 | FLAC | `flac` | FLAC only |
 | MP3 | `mp3` | MP3 only |
+| MP3 320+ | `mp3 minbr:320` | MP3 at 320 kbps or higher |
 | FLAC + MP3 | `flac OR mp3` | Either format |
 | FLAC + ALAC | `flac OR alac` | Apple Lossless or FLAC |
 | Lossless | `flac OR alac OR wav OR ape` | All common lossless formats |
 | Any | *(empty)* | Accept any file format |
 
 Positive terms are alternatives. Prefix a word with `-` to reject paths containing it, or quote a phrase to keep its words together. For example, `flac -"Inner Space Vol. 2"` accepts FLAC paths except that specific release title.
+
+`minbr:<kbps>` (also accepted as `minbitrate:<kbps>`) checks the bitrate
+reported in search-result metadata. A value of `minbr:320` rejects a 128-kbps
+MP3 even when its filename has the right extension. Wishlist auto-download
+selection prefers the highest known bitrate source group first; source
+availability and ranking break ties, and files in the selected group are
+queued from highest to lowest known bitrate.
 
 ## Ignoring One Persistent False Positive
 

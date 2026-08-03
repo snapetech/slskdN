@@ -12959,3 +12959,22 @@ rollback.
   queued and will publish the platform packages.
 - Next steps: monitor the hosted tag build and inspect any package-channel
   failures, especially AUR, if the workflow reports one.
+
+## Update 2026-08-03 18:54:14Z
+
+- Current task: complete the tester follow-up for bitrate-aware Wishlist and
+  Lidarr behavior.
+- Last activity:
+  - Added `minbr:`/`minbitrate:` metadata filtering for live and persisted
+    search files, Lidarr quality-profile bitrate mapping, and highest-known-
+    bitrate auto-download ordering.
+  - Added selected-item Wishlist bulk filter editing, including clearing an
+    existing filter, and made the Lidarr manual import UI/API path independent
+    of automatic-import gating and retry debounce while preserving safe-candidate
+    checks and accurate result reporting.
+  - Updated the README, Wishlist/Lidarr guides, configuration example, and
+    Unreleased changelog; added backend and frontend regression coverage.
+- Validation so far: focused backend `44/44`; focused Web `17/17`.
+- Next steps: run the full backend/Web/lint gates, push the implementation and
+  documentation commits to `snapetech/slskdN`, and do not create another tag
+  unless explicitly requested.

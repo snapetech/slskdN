@@ -9,7 +9,8 @@ Soulseek queue, and can submit completed files back to Lidarr for safe import.
 
 - Read Lidarr's wanted/missing album list from `/api/v1/wanted/missing`.
 - Use each album's Lidarr quality profile to derive an entry-specific audio
-  filter when the profile exposes recognizable formats such as MP3 or FLAC.
+  filter when the profile exposes recognizable formats such as MP3 or FLAC,
+  including a `minbr:<kbps>` threshold for names such as `MP3-320KBPS`.
 - Keep a genuinely empty album as one album-level Wishlist search. For a partial
   album, read `/api/v1/track?albumId=...` and create one Wishlist search per
   missing track instead of searching the complete album again.
@@ -79,9 +80,12 @@ Lidarr has acquired.
 
 The `wishlist_filter` setting is the fallback for entries without a usable
 quality profile mapping. When Lidarr's profile contains allowed recognizable
-audio formats, those formats replace the fallback for that entry. For example,
-an MP3-only profile produces an `mp3` Wishlist filter even if the global
-`wishlist_filter` is `flac`.
+audio formats, those formats replace the fallback for that entry. Recognizable
+bitrate names become metadata thresholds too: `MP3-320KBPS` produces
+`mp3 minbr:320`, so 128-kbps hits cannot satisfy that Wishlist item even when
+they share the `.mp3` extension. When a Wishlist item has more than one
+eligible bitrate, automatic selection prefers the highest known bitrate source
+before source-ranking tie-breakers.
 
 For a partial album, slskdN creates one track-level Wishlist item per missing
 track and limits each one to a single automatic enqueue. A peer
@@ -182,6 +186,10 @@ curl -X POST -H "X-API-Key: <slskdn-api-key>" \
 
 When `auto_import_completed` is enabled, slskdN listens for completed download
 directories and asks Lidarr for manual-import candidates for that directory.
+The Web UI **Run Manual Import** button and the manual-import API endpoint are
+separate operator actions: they bypass the automatic-import setting and the
+normal recent-directory debounce, but still require the Lidarr integration to
+be enabled and only submit clean, unambiguous candidates.
 slskdN only submits candidates that Lidarr has already matched cleanly:
 
 - no rejection reasons
@@ -234,7 +242,10 @@ curl -X POST -H "X-API-Key: <slskdn-api-key>" \
   http://127.0.0.1:5030/api/v0/integrations/lidarr/wanted/sync
 ```
 
-Ask slskdN to import a completed directory through Lidarr:
+Ask slskdN to import a completed directory through Lidarr. This manual action
+is available while `auto_import_completed` is false, can be retried immediately,
+and returns `candidateCount`, `safeCandidateCount`, `commandId`, and
+`skippedReason` fields describing what happened:
 
 ```bash
 curl -X POST -H "X-API-Key: <slskdn-api-key>" \

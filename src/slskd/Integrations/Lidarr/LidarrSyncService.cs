@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -388,7 +389,7 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
     internal static string BuildQualityFilter(LidarrQualityProfile profile)
     {
-        var formats = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var filters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (profile.Items == null)
         {
             return string.Empty;
@@ -396,20 +397,21 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
         foreach (var item in profile.Items)
         {
-            AddQualityFormats(item, formats);
+            AddQualityFilters(item, filters);
         }
 
-        return string.Join(" OR ", formats.OrderBy(format => format, StringComparer.OrdinalIgnoreCase));
+        return string.Join(" OR ", filters.OrderBy(filter => filter, StringComparer.OrdinalIgnoreCase));
     }
 
-    private static void AddQualityFormats(LidarrQualityProfileItem item, ISet<string> formats)
+    private static void AddQualityFilters(LidarrQualityProfileItem item, ISet<string> filters)
     {
         if (item.Allowed)
         {
             var qualityName = item.Quality?.Name ?? item.Name;
+            var minimumBitrate = GetMinimumBitrate(qualityName);
             foreach (var format in GetFileFormats(qualityName))
             {
-                formats.Add(format);
+                filters.Add(minimumBitrate.HasValue ? $"{format} minbr:{minimumBitrate.Value}" : format);
             }
         }
 
@@ -420,8 +422,22 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
         foreach (var child in item.Items)
         {
-            AddQualityFormats(child, formats);
+            AddQualityFilters(child, filters);
         }
+    }
+
+    private static int? GetMinimumBitrate(string qualityName)
+    {
+        var match = Regex.Match(
+            qualityName,
+            @"(?<![A-Za-z0-9])(?<bitrate>\d{2,4})\s*(?:kbps?|kbit(?:/s)?|kb)?(?![A-Za-z0-9])",
+            RegexOptions.IgnoreCase);
+        if (!int.TryParse(match.Groups["bitrate"].Value, out var bitrate) || bitrate < 32 || bitrate > 1_000)
+        {
+            return null;
+        }
+
+        return bitrate;
     }
 
     private static IReadOnlyList<string> GetFileFormats(string qualityName)

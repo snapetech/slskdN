@@ -9,7 +9,8 @@ import Lidarr, {
   areLidarrSyncStatesEqual,
 } from './Lidarr';
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { toast } from 'react-toastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../lib/lidarr', () => ({
@@ -133,6 +134,28 @@ describe('Lidarr', () => {
     expect(
       screen.getByRole('button', { name: 'Next Lidarr wishlist page' }),
     ).toBeInTheDocument();
+  });
+
+  it('reports the queued file count for a manual import', async () => {
+    lidarrAPI.importCompletedDirectory.mockResolvedValue({
+      candidateCount: 3,
+      commandId: 42,
+      safeCandidateCount: 2,
+    });
+
+    render(<Lidarr />);
+
+    const input = await screen.findByPlaceholderText('/mnt/datapool_lvm_media/download/music/Artist/Album');
+    fireEvent.change(input, { target: { value: '/downloads/Artist/Album' } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Run Manual Import' }));
+
+    await waitFor(() => {
+      expect(lidarrAPI.importCompletedDirectory).toHaveBeenCalledWith({
+        directory: '/downloads/Artist/Album',
+      });
+    });
+    expect(toast.success).toHaveBeenCalledWith('Lidarr import queued: 2 file(s)');
+    expect(input).toHaveValue('');
   });
 
   it('does not overlap slow status polls', async () => {

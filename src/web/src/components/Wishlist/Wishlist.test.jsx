@@ -229,4 +229,33 @@ describe('Wishlist', () => {
 
     expect(wishlistAPI.markViewed).not.toHaveBeenCalled();
   });
+
+  it('bulk-edits filters for selected wishlist items', async () => {
+    wishlistAPI.update.mockResolvedValue({});
+
+    renderWishlist();
+
+    expect(await screen.findByText('rare album')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select rare album for bulk actions' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select auto track for bulk actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit filters for selected wishlist items' }));
+
+    expect(await screen.findByText('Edit Filter for 2 Wishlist Items')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'MP3 320+' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Filter' }));
+
+    await waitFor(() => {
+      expect(wishlistAPI.update).toHaveBeenCalledTimes(2);
+    });
+    expect(wishlistAPI.update).toHaveBeenNthCalledWith(
+      1,
+      'wish-1',
+      expect.objectContaining({ filter: 'mp3 minbr:320' }),
+    );
+    expect(wishlistAPI.update).toHaveBeenNthCalledWith(
+      2,
+      'wish-2',
+      expect.objectContaining({ filter: 'mp3 minbr:320' }),
+    );
+  });
 });

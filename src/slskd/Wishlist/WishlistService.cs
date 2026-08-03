@@ -881,14 +881,14 @@ namespace slskd.Wishlist
                     return WishlistDownloadResult.Empty;
                 }
 
-                var fileFilter = CreateSearchFileFilter(filter);
+                var fileFilter = CreateSearchResultFileFilter(filter);
 
                 var candidates = new List<SourceCandidate>();
                 foreach (var response in search.Responses)
                 {
                     foreach (var file in response.Files)
                     {
-                        if (!fileFilter(file.Filename) || IsIgnored(ignoredResults, response.Username, file.Filename))
+                        if (!fileFilter(file) || IsIgnored(ignoredResults, response.Username, file.Filename))
                         {
                             continue;
                         }
@@ -920,10 +920,18 @@ namespace slskd.Wishlist
                     .GroupBy(c => (c.Username, Dir: GetParentDirectory(c.Filename)))
                     .ToList();
 
-                var representatives = groups.Select(g => g.First()).ToList();
+                var groupBitRates = groups.ToDictionary(
+                    group => group.Key,
+                    group => group.Max(candidate => candidate.BitRate ?? 0));
+                var representatives = groups
+                    .Select(group => group.OrderByDescending(candidate => candidate.BitRate ?? 0).First())
+                    .ToList();
                 var ranked = await RankingService.RankSourcesAsync(representatives, cancellationToken);
 
-                var bestRep = ranked.FirstOrDefault();
+                var bestRep = ranked
+                    .OrderByDescending(rep => groupBitRates[(rep.Username, GetParentDirectory(rep.Filename))])
+                    .ThenByDescending(rep => rep.SmartScore)
+                    .FirstOrDefault();
                 if (bestRep == null)
                 {
                     return WishlistDownloadResult.Empty;
@@ -932,6 +940,7 @@ namespace slskd.Wishlist
                 var bestDir = GetParentDirectory(bestRep.Filename);
                 var filesToDownload = groups
                     .First(g => g.Key.Username == bestRep.Username && g.Key.Dir == bestDir)
+                    .OrderByDescending(candidate => candidate.BitRate ?? 0)
                     .Select(c => new slskd.Transfers.Downloads.DownloadEnqueueRequest
                     {
                         Filename = c.Filename,
@@ -988,7 +997,7 @@ namespace slskd.Wishlist
                 return new WishlistHitStats(0, 0, 0, 0);
             }
 
-            var fileFilter = CreateSearchFileFilter(filter);
+            var fileFilter = CreateSearchResultFileFilter(filter);
             var visible = 0;
             var hiddenLocked = 0;
             var filteredOut = 0;
@@ -998,7 +1007,7 @@ namespace slskd.Wishlist
             {
                 foreach (var file in response.Files)
                 {
-                    if (!fileFilter(file.Filename))
+                    if (!fileFilter(file))
                     {
                         filteredOut++;
                     }
@@ -1014,7 +1023,7 @@ namespace slskd.Wishlist
 
                 foreach (var file in response.LockedFiles)
                 {
-                    if (!fileFilter(file.Filename))
+                    if (!fileFilter(file))
                     {
                         filteredOut++;
                     }
@@ -1048,12 +1057,29 @@ namespace slskd.Wishlist
 
         /// <summary>
         ///     Creates a file filter function from a wishlist filter string. Positive terms match either a file extension
-        ///     or any filename/path substring; terms prefixed with '-' exclude filename/path substrings.
+        ///     or any filename/path substring; terms prefixed with '-' exclude filename/path substrings. Metadata
+        ///     directives such as minbr:320 are evaluated against the file attributes.
         /// </summary>
-        private static Func<Soulseek.File, bool> CreateFileFilter(string filter)
+        internal static Func<Soulseek.File, bool> CreateFileFilter(string filter)
         {
-            var filenameFilter = CreateSearchFileFilter(filter);
-            return file => filenameFilter(file.Filename);
+            var terms = ParseFilterTerms(filter);
+            if (terms.Include.Count == 0 && terms.Exclude.Count == 0 && !terms.MinimumBitrate.HasValue)
+            {
+                return _ => true;
+            }
+
+            return file => MatchesFileFilter(file.Filename, file.BitRate, terms);
+        }
+
+        internal static Func<slskd.Search.File, bool> CreateSearchResultFileFilter(string filter)
+        {
+            var terms = ParseFilterTerms(filter);
+            if (terms.Include.Count == 0 && terms.Exclude.Count == 0 && !terms.MinimumBitrate.HasValue)
+            {
+                return _ => true;
+            }
+
+            return file => MatchesFileFilter(file.Filename, file.BitRate, terms);
         }
 
         internal static Func<string, bool> CreateSearchFileFilter(string filter)
@@ -1066,18 +1092,7 @@ namespace slskd.Wishlist
 
             return filename =>
             {
-                var normalizedFilename = filename.Replace('\\', '/').ToLowerInvariant();
-                var extension = Path.GetExtension(normalizedFilename).TrimStart('.');
-
-                if (terms.Exclude.Any(term => normalizedFilename.Contains(term, StringComparison.Ordinal)))
-                {
-                    return false;
-                }
-
-                return terms.Include.Count == 0
-                    || terms.Include.Any(term =>
-                        extension.Equals(term.TrimStart('.'), StringComparison.Ordinal)
-                        || normalizedFilename.Contains(term, StringComparison.Ordinal));
+                return MatchesFilenameFilter(filename, terms);
             };
         }
 
@@ -1085,11 +1100,12 @@ namespace slskd.Wishlist
         {
             var include = new HashSet<string>(StringComparer.Ordinal);
             var exclude = new HashSet<string>(StringComparer.Ordinal);
+            var minimumBitrate = ParseMinimumBitrate(filter);
 
             foreach (Match match in Regex.Matches(filter, "-?\"[^\"]+\"|\\S+"))
             {
                 var rawTerm = match.Value;
-                if (rawTerm.Equals("OR", StringComparison.OrdinalIgnoreCase))
+                if (rawTerm.Equals("OR", StringComparison.OrdinalIgnoreCase) || IsMinimumBitrateDirective(rawTerm))
                 {
                     continue;
                 }
@@ -1108,8 +1124,52 @@ namespace slskd.Wishlist
                 (isExclude ? exclude : include).Add(term.TrimStart('.'));
             }
 
-            return new WishlistFilterTerms(include, exclude);
+            return new WishlistFilterTerms(include, exclude, minimumBitrate);
         }
+
+        private static bool MatchesFilenameFilter(string filename, WishlistFilterTerms terms)
+        {
+            var normalizedFilename = filename.Replace('\\', '/').ToLowerInvariant();
+            var extension = Path.GetExtension(normalizedFilename).TrimStart('.');
+
+            if (terms.Exclude.Any(term => normalizedFilename.Contains(term, StringComparison.Ordinal)))
+            {
+                return false;
+            }
+
+            return terms.Include.Count == 0
+                || terms.Include.Any(term =>
+                    extension.Equals(term.TrimStart('.'), StringComparison.Ordinal)
+                    || normalizedFilename.Contains(term, StringComparison.Ordinal));
+        }
+
+        private static bool MatchesFileFilter(string filename, int? bitrate, WishlistFilterTerms terms)
+            => MatchesFilenameFilter(filename, terms)
+                && (!terms.MinimumBitrate.HasValue || (bitrate ?? 0) >= terms.MinimumBitrate.Value);
+
+        private static int? ParseMinimumBitrate(string filter)
+        {
+            var matches = Regex.Matches(
+                filter,
+                @"(?<!\S)(?:minbr|minbitrate):(?<value>\d+)(?!\S)",
+                RegexOptions.IgnoreCase);
+            var values = matches
+                .Select(match => int.TryParse(match.Groups["value"].Value, out var value) ? value : 0)
+                .Where(value => value > 0)
+                .ToList();
+            return values.Count == 0 ? null : values.Max();
+        }
+
+        private static bool IsMinimumBitrateDirective(string term)
+            => term.StartsWith("minbr:", StringComparison.OrdinalIgnoreCase)
+                || term.StartsWith("minbitrate:", StringComparison.OrdinalIgnoreCase);
+
+        private readonly record struct WishlistFilterTerms(
+            HashSet<string> Include,
+            HashSet<string> Exclude,
+            int? MinimumBitrate);
+
+        private readonly record struct WishlistHitStats(int Visible, int HiddenLocked, int FilteredOut, int Ignored);
 
         private bool IsClientSearchReady()
         {
@@ -1138,8 +1198,5 @@ namespace slskd.Wishlist
             public static WishlistDownloadResult Empty { get; } = new(0, 0);
         }
 
-        private readonly record struct WishlistHitStats(int Visible, int HiddenLocked, int FilteredOut, int Ignored);
-
-        private readonly record struct WishlistFilterTerms(HashSet<string> Include, HashSet<string> Exclude);
     }
 }

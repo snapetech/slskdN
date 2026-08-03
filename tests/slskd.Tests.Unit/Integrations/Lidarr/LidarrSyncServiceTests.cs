@@ -166,7 +166,7 @@ public class LidarrSyncServiceTests
 
         var created = Assert.Single(wishlist.Created);
         Assert.Equal(1, result.CreatedCount);
-        Assert.Equal("mp3", created.Filter);
+        Assert.Equal("mp3 minbr:320", created.Filter);
         Assert.Equal(7, created.LidarrAlbumId);
         Assert.Null(created.LidarrTrackId);
         Assert.Equal(1, lidarr.QualityProfileCalls);
@@ -215,10 +215,28 @@ public class LidarrSyncServiceTests
         var result = await service.SyncWantedToWishlistAsync();
 
         Assert.Equal(0, result.CreatedCount);
-        Assert.Equal("mp3", legacyItem.Filter);
+        Assert.Equal("mp3 minbr:320", legacyItem.Filter);
         Assert.Equal(7, legacyItem.LidarrAlbumId);
         Assert.Null(legacyItem.LidarrTrackId);
         Assert.Contains(wishlist.Updated, item => item.Id == legacyItem.Id);
+    }
+
+    [Fact]
+    public void BuildQualityFilter_ExtractsBitrateFromQualityName()
+    {
+        var filter = LidarrSyncService.BuildQualityFilter(new LidarrQualityProfile
+        {
+            Items =
+            [
+                new LidarrQualityProfileItem
+                {
+                    Allowed = true,
+                    Quality = new LidarrQuality { Name = "MP3-320KBPS" },
+                },
+            ],
+        });
+
+        Assert.Equal("mp3 minbr:320", filter);
     }
 
     [Fact]

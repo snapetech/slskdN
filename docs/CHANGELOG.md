@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Wishlist filters now support bitrate directives such as `minbr:320`, Lidarr
+  quality-profile names preserve bitrate thresholds, and automatic selection
+  prefers the highest known bitrate source when a format is constrained.
+- Wishlist now supports bulk filter edits for selected existing items,
+  including clearing filters without deleting and recreating entries.
+- Lidarr manual import now bypasses the automatic-import gate and retry
+  debounce, reports queued/skipped candidate counts correctly, and remains
+  limited to clean, unambiguous candidates.
+
 ## [2026080316-slskdn.297] — 2026-08-03
 
 - Mesh search now has explicit regression coverage and documentation ensuring

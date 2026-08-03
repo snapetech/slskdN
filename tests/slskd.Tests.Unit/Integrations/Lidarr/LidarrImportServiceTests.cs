@@ -45,6 +45,35 @@ public class LidarrImportServiceTests
     }
 
     [Fact]
+    public async Task ImportDirectoryAsync_RunsWhenAutomaticImportIsDisabledAndCanRetryImmediately()
+    {
+        var client = new FakeLidarrClient
+        {
+            Candidates =
+            [
+                SafeCandidate(),
+            ],
+        };
+        var service = CreateService(
+            client,
+            new Options.IntegrationOptions.LidarrOptions
+            {
+                Enabled = true,
+                Url = "http://lidarr.test",
+                ApiKey = "key",
+                AutoImportCompleted = false,
+            });
+
+        var first = await service.ImportDirectoryAsync("/downloads/music/Artist/Album");
+        var second = await service.ImportDirectoryAsync("/downloads/music/Artist/Album");
+
+        Assert.Equal(42, first.CommandId);
+        Assert.Equal(42, second.CommandId);
+        Assert.Equal(2, client.CandidateRequestCount);
+        Assert.False(first.AutoImportEnabled);
+    }
+
+    [Fact]
     public async Task ImportCompletedDirectoryAsync_WithAmbiguousCandidate_SkipsImport()
     {
         var client = new FakeLidarrClient

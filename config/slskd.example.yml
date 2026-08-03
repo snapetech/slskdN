@@ -492,9 +492,9 @@
 #    sync_interval_seconds: 3600
 #    max_items_per_sync: 100
 #    auto_download: false # applies only to Wishlist items created by Lidarr sync
-#    wishlist_filter: "" # fallback; a recognizable Lidarr quality profile takes precedence per entry
+#    wishlist_filter: "" # fallback; profile names such as MP3-320KBPS become `mp3 minbr:320` per entry
 #    wishlist_max_results: 100
-#    auto_import_completed: false # when true, clean completed download directories are submitted to Lidarr manual import
+#    auto_import_completed: false # automatic completed-directory handoff; UI/API manual import remains available when integration is enabled
 #    import_mode: "move" # move or copy
 #    import_replace_existing_files: false
 #    delete_rejected_downloads: false # delete only exact files rejected by Lidarr; never recursively deletes the directory

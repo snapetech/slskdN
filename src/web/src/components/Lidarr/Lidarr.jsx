@@ -408,9 +408,16 @@ const ImportSection = ({ connected }) => {
     setImporting(true);
     try {
       const result = await lidarrAPI.importCompletedDirectory({ directory: directory.trim() });
-      const submitted = result?.submitted ?? result?.length ?? 0;
-      toast.success(`Import submitted: ${submitted} file(s) sent to Lidarr`);
-      setDirectory('');
+      const safeCandidates = result?.safeCandidateCount ?? 0;
+      if (result?.commandId) {
+        toast.success(`Lidarr import queued: ${safeCandidates} file(s)`);
+        setDirectory('');
+      } else {
+        toast.error(
+          result?.skippedReason ||
+          `Lidarr found ${result?.candidateCount ?? 0} candidate(s), but none were safe to import automatically`,
+        );
+      }
     } catch (err) {
       toast.error(`Import failed: ${err.message}`);
     } finally {
@@ -428,19 +435,26 @@ const ImportSection = ({ connected }) => {
       </div>
 
       <p style={{ color: '#aaa', marginBottom: '0.75em' }}>
-        Submit a completed download directory to Lidarr for import. Only
-        cleanly-matched files (artist + album + tracks resolved, no rejections)
-        are submitted automatically.
+        Run Lidarr&apos;s manual-import scan for a completed download directory.
+        This works even when automatic import is disabled and can be retried
+        immediately. Only cleanly-matched files (artist + album + tracks
+        resolved, no rejections) are submitted automatically.
       </p>
 
       <Input
         action={
-          <Button
-            color="blue"
-            content="Import"
-            disabled={!connected || !directory.trim() || importing}
-            loading={importing}
-            onClick={handleImport}
+          <Popup
+            content="Ask Lidarr to scan this directory now. Automatic-import settings and the normal retry debounce do not block this manual action."
+            position="top center"
+            trigger={
+              <Button
+                color="blue"
+                content="Run Manual Import"
+                disabled={!connected || !directory.trim() || importing}
+                loading={importing}
+                onClick={handleImport}
+              />
+            }
           />
         }
         disabled={!connected}
