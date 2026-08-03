@@ -128,6 +128,32 @@ int? maxDownloads = isTrack ? 1 : null;
 **Why This Keeps Happening**: Nullable value-type intent is easy to miss in a
 short conditional; declare the target type when one branch is `null`.
 
+### 0z810. Do Not Downgrade Unknown Lidarr Tracks to Albums
+
+**The Bug**: A partial-album track without a valid Lidarr ID was represented as
+a nullable track target, which made reconciliation treat it as a whole-album
+Wishlist entry.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Wrong**:
+```csharp
+targets.Add((trackSearchText, track.Id > 0 ? track.Id : null));
+```
+
+**Correct**:
+```csharp
+if (track.Id > 0 && !string.IsNullOrWhiteSpace(track.Title))
+{
+    targets.Add((trackSearchText, track.Id));
+}
+```
+
+**Why This Keeps Happening**: Nullable IDs are convenient for album and track
+targets, but `null` already means album-level reconciliation; invalid track
+records must be skipped instead of changing scope.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
