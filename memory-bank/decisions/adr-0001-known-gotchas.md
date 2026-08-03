@@ -27223,3 +27223,18 @@ therefore rank an MP3 using the lossless branch of its quality tuple.
 the format terms that actually match the candidate into quality ranking. Keep
 filter acceptance and quality classification on the same matching boundary,
 and cover same-branch alternatives as well as explicit `OR` branches.
+
+### 0z827. Do Not Parse Audio Bit Depth As Bitrate
+
+**The Bug**: Bare-number Lidarr bitrate parsing for lossy codecs rejected
+`96kHz` but could still interpret `OGG 24-bit` as a 24-kbps floor because the
+bit-depth separator was not part of the exclusion boundary.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrSyncServiceTests.cs`
+
+**Prevention**: Treat `kHz`, `Hz`, and `bit` with optional separators as
+sample-rate/bit-depth metadata, never bitrate. Only parse bare numbers when
+they are unambiguously attached to a recognized lossy quality name, and test
+unit-bearing, bare, sample-rate, and bit-depth combinations together.
