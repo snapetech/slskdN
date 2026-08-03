@@ -190,6 +190,22 @@ updates omit them; only an update carrying a tracking ID may assign them.
 deduplication by the new quality-derived filter sees them as unrelated entries
 unless the legacy row is explicitly claimed.
 
+### 0z813. Let Reconciliation Helpers Observe Dirty State
+
+**The Bug**: A caller changed an existing Wishlist item before passing the item
+to a helper that decides whether persistence is needed, causing the helper to
+miss the change and skip `UpdateAsync`.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Prevention**: Pass desired values, including the desired enabled state, into
+the reconciliation helper and let it compare, mutate, and persist the item in
+one place.
+
+**Why This Keeps Happening**: Mutating the model first feels natural, but it
+erases the before/after distinction used by change-detection code.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
