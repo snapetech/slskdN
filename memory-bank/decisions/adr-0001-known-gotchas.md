@@ -171,6 +171,25 @@ valid target.
 but it defeats the missing-track safety boundary and can redownload files that
 Lidarr already has.
 
+### 0z812. Claim Legacy Lidarr Wishlist Rows Before Creating Replacements
+
+**The Bug**: New quality-aware sync rows could coexist with older Lidarr rows
+created before origin IDs were stored, leaving the old global-filter search
+enabled and still downloading the wrong format.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+- `src/slskd/Wishlist/WishlistService.cs`
+
+**Prevention**: Match an unmarked row only when its album search text and the
+configured legacy fallback filter both match, then assign the Lidarr album ID
+and update that row in place. Preserve internal tracking IDs when ordinary API
+updates omit them; only an update carrying a tracking ID may assign them.
+
+**Why This Keeps Happening**: Origin metadata did not exist on older rows, so
+deduplication by the new quality-derived filter sees them as unrelated entries
+unless the legacy row is explicitly claimed.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
