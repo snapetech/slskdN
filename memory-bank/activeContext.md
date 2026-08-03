@@ -12962,8 +12962,8 @@ rollback.
 
 ## Update 2026-08-03 18:54:14Z
 
-- Current task: complete the tester follow-up for bitrate-aware Wishlist and
-  Lidarr behavior.
+- Current task: complete. The tester follow-up for bitrate-aware Wishlist and
+  Lidarr behavior is implemented, documented, validated, committed, and pushed.
 - Last activity:
   - Added `minbr:`/`minbitrate:` metadata filtering for live and persisted
     search files, Lidarr quality-profile bitrate mapping, and highest-known-
@@ -12975,6 +12975,6 @@ rollback.
   - Updated the README, Wishlist/Lidarr guides, configuration example, and
     Unreleased changelog; added backend and frontend regression coverage.
 - Validation so far: focused backend `44/44`; focused Web `17/17`.
-- Next steps: run the full backend/Web/lint gates, push the implementation and
-  documentation commits to `snapetech/slskdN`, and do not create another tag
-  unless explicitly requested.
+- Next steps: tester validation of an MP3-320 profile, bulk filter editing, and
+  manual import reporting. Do not create another tag unless explicitly
+  requested; the existing `.297` tag predates this follow-up.
