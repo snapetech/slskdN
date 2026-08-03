@@ -13015,3 +13015,14 @@ rollback.
 - The implementation and documentation are ready to commit and push. The
   existing stable `.297` release tag remains unchanged; no new tag is created
   in this follow-up.
+
+## Update 2026-08-03 20:21:00Z
+
+- Published the implementation and documentation to the verified
+  `snapetech/slskdN` `main` branch. Refreshed the generated API inventory and
+  active council candidate counts after the post-push remediation gate found
+  their expected drift from the new route/source shapes.
+- Final post-push remediation baseline, route inventory, active backlog,
+  target, identity, remote-tip, and clean-worktree checks all pass.
+- Next steps: none for this follow-up. The existing `.297` stable tag remains
+  the latest release; a new tag/build requires an explicit release decision.
