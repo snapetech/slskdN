@@ -27270,3 +27270,20 @@ valid change as stale API-surface documentation.
 docs/system-surfaces-current.md` after every controller route or authorization
 change, review the generated diff, and include the inventory in the same
 publication change.
+
+### 0z830. Refresh Active Council Counts With Source Changes
+
+**The Bug**: The active council backlog records exact candidate counts from
+repository-wide scanners. The multi-format implementation added source shapes,
+but the two affected counts were left at their previous values, so the
+remediation gate rejected the published branch even though behavior and tests
+were valid.
+
+**Files Affected**:
+- `docs/dev/bug-council-active-backlog.md`
+- `scripts/check-council-active-backlog.sh`
+
+**Prevention**: Run the active-backlog checker after source changes and update
+every changed section count in the durable ledger. Treat count drift as a
+documentation publication change, not as a reason to weaken or bypass the
+scanner.
