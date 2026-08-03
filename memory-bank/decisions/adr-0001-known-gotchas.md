@@ -27144,3 +27144,20 @@ errors and obscured the fact that the two paths have different data boundaries.
 **Prevention**: Keep protocol-search predicates and stored-result predicates
 separate, with both delegating to one filename/metadata matching helper. Test
 each representation when a filter begins using fields that survive persistence.
+
+### 0z822. Preserve Disjunctive Wishlist Filter Clauses
+
+**The Bug**: The Wishlist filter parser treated every positive term as one
+global alternative set and every `minbr:` directive as one global maximum. A
+Lidarr profile such as `mp3 minbr:320 OR aac minbr:256` therefore rejected valid
+256-kbps AAC files because the `OR` relationship between format and bitrate was
+lost.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Prevention**: Parse explicit `OR` branches into ordered clauses and evaluate
+each clause's format terms and metadata constraints together. Test every
+format/bitrate branch, a branch without a bitrate, global exclusions, and
+unknown metadata before changing quality ranking or integration mappings.
