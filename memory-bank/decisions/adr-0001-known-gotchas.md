@@ -65,6 +65,61 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z816. Do Not Serialize Empty Required Integration Values
+
+**The Bug**: The guided Integrations editor wrote an empty
+`integrations.musicbrainz.user_agent` value whenever the form did not contain
+one, so saving an otherwise valid YAML document failed validation.
+
+**Files Affected**:
+- `src/web/src/components/System/Integrations/MetadataSettingsPanel.jsx`
+- `src/slskd/Core/Options.cs`
+
+**Wrong**:
+```javascript
+set(['integrations', 'musicbrainz', 'user_agent'], '');
+```
+
+**Correct**:
+```javascript
+if (userAgent.trim()) {
+  set(['integrations', 'musicbrainz', 'user_agent'], userAgent.trim());
+}
+```
+
+**Why This Keeps Happening**: The server supplies a valid default for required
+values, but a form builder commonly represents an omitted value as an empty
+string. Saving a patch must preserve omission or delete an invalid blank key;
+it must not serialize the form's empty placeholder over the server default.
+
+### 0z817. Bound Auto-Replace by Persisted Request Attempts
+
+**The Bug**: Auto-replace declared `AutoReplaceOptions.MaxRetries` but never
+used it. A failed replacement remained a non-removed terminal transfer, so the
+next process restart rediscovered it and started another replacement cycle.
+
+**Files Affected**:
+- `src/slskd/Transfers/AutoReplace/AutoReplaceService.cs`
+- `src/slskd/Transfers/Types/DownloadRequest.cs`
+- `src/slskd/Transfers/Types/Transfer.cs`
+
+**Wrong**:
+```csharp
+return Transfers.Downloads.List(t => StuckStates.Any(s => t.State == s));
+```
+
+**Correct**:
+```csharp
+// Count all persisted attempts under the stable RequestId and stop once the
+// configured replacement budget is exhausted.
+```
+
+**Why This Keeps Happening**: The UI hides failed completed transfers from its
+active list, while the background service correctly retains them for possible
+retry. Without a request-level persisted attempt budget, hiding a row in the
+UI does not prevent the background worker from processing it again after a
+restart.
+
 ### 0z807. Unraid Submission Scans Every XML File
 
 **The Bug**: The Community Applications submission scanner recursively treats
