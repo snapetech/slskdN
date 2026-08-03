@@ -1234,9 +1234,10 @@ System-defined integrations are part of the application logic.  Users can config
 ### Lidarr
 
 Lidarr is a first-class slskdN integration for music acquisition. slskdN uses
-Lidarr's supported HTTP API to read Wanted/Missing albums, create Wishlist
-searches, optionally auto-download those searches, and safely submit completed
-directories back to Lidarr for import. No Lidarr plugin is required.
+Lidarr's supported HTTP API to read Wanted/Missing albums, apply per-entry
+quality-profile filters, create album or missing-track Wishlist searches,
+optionally auto-download those searches, and safely submit completed directories
+back to Lidarr for import. No Lidarr plugin is required.
 
 The safest rollout is to enable Lidarr, verify `/status`, preview
 `/wanted/missing`, run a small one-time `/wanted/sync`, then enable scheduled
@@ -1248,11 +1249,11 @@ sync and auto-download/import after the paths are confirmed.
 | `--lidarr-url`                       | `LIDARR_URL`                          | Lidarr base URL, such as `http://lidarr:8686`                      |
 | `--lidarr-api-key`                   | `LIDARR_API_KEY`                      | Lidarr API key from Settings, General, Security                    |
 | `--lidarr-timeout`                   | `LIDARR_TIMEOUT`                      | HTTP timeout for Lidarr requests, in seconds                       |
-| `--lidarr-sync-wanted`               | `LIDARR_SYNC_WANTED`                  | Sync Lidarr Wanted/Missing albums into slskdN Wishlist             |
+| `--lidarr-sync-wanted`               | `LIDARR_SYNC_WANTED`                  | Sync Lidarr Wanted/Missing albums and tracks into slskdN Wishlist  |
 | `--lidarr-sync-interval`             | `LIDARR_SYNC_INTERVAL`                | Interval between wanted syncs, in seconds                          |
 | `--lidarr-sync-max-items`            | `LIDARR_SYNC_MAX_ITEMS`               | Maximum wanted albums to sync per run                              |
 | `--lidarr-auto-download`             | `LIDARR_AUTO_DOWNLOAD`                | Auto-download Wishlist items created from Lidarr wanted albums     |
-| `--lidarr-wishlist-filter`           | `LIDARR_WISHLIST_FILTER`              | Optional Wishlist filter for Lidarr-created searches               |
+| `--lidarr-wishlist-filter`           | `LIDARR_WISHLIST_FILTER`              | Fallback filter when no recognizable Lidarr quality mapping exists  |
 | `--lidarr-wishlist-max-results`      | `LIDARR_WISHLIST_MAX_RESULTS`         | Maximum search results retained by Lidarr-created Wishlist items   |
 | `--lidarr-auto-import-completed`     | `LIDARR_AUTO_IMPORT_COMPLETED`        | Submit completed slskdN download directories to Lidarr for import  |
 | `--lidarr-import-path-from`          | `LIDARR_IMPORT_PATH_FROM`             | Local slskdN completed path prefix to rewrite before calling Lidarr |
@@ -1272,7 +1273,7 @@ integrations:
     sync_interval_seconds: 3600
     max_items_per_sync: 100
     auto_download: false
-    wishlist_filter: ""
+    wishlist_filter: "" # fallback; a recognizable Lidarr quality profile takes precedence per entry
     wishlist_max_results: 100
     auto_import_completed: false
     import_path_from: ""

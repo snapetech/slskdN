@@ -483,11 +483,11 @@
 #    url: "http://127.0.0.1:8686"
 #    api_key: ""
 #    timeout_seconds: 20
-#    sync_wanted_to_wishlist: false # when true, Lidarr Wanted/Missing albums become slskdN Wishlist searches
+#    sync_wanted_to_wishlist: false # when true, Lidarr Wanted/Missing albums and missing tracks become Wishlist searches
 #    sync_interval_seconds: 3600
 #    max_items_per_sync: 100
 #    auto_download: false # applies only to Wishlist items created by Lidarr sync
-#    wishlist_filter: ""
+#    wishlist_filter: "" # fallback; a recognizable Lidarr quality profile takes precedence per entry
 #    wishlist_max_results: 100
 #    auto_import_completed: false # when true, clean completed download directories are submitted to Lidarr manual import
 #    import_mode: "move" # move or copy

@@ -12895,3 +12895,24 @@ rollback.
   the runtime now rejects DHT-gated requests with `feature=Dht disabled` when
   the test does not explicitly enable DHT. This is outside the documentation
   task and remains part of the earlier runtime/defaults validation work.
+## Update 2026-08-03 14:55:04Z
+
+- Current task: complete. Lidarr Wanted/Missing sync now honors recognizable
+  per-album quality-profile formats and reconciles partial albums at track
+  level.
+- Last activity:
+  - Added Lidarr quality-profile and album-track API reads, per-entry Wishlist
+    filters, durable album/track origin IDs, and an idempotent Wishlist schema
+    migration.
+  - Reconciled partial albums into one bounded Wishlist target per missing
+    track, disabled stale album/track targets, capped each track item at one
+    automatic enqueue, and claimed matching legacy album rows so old global
+    filters do not remain active.
+  - Added focused regressions and updated Lidarr/configuration documentation.
+- Validation:
+  - `dotnet test --no-restore`: application `74`, unit `4992`, integration `284`.
+  - `./bin/lint` and `git diff --check` pass; application build is warning-free.
+- Next steps:
+  1. Tester can verify an MP3-only and partial-album Lidarr profile against a
+     fresh sync and an existing legacy Wishlist row.
+  2. Do not create a release tag unless explicitly requested.

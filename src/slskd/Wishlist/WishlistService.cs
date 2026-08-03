@@ -218,6 +218,11 @@ namespace slskd.Wishlist
             existing.AutoDownload = item.AutoDownload;
             existing.MaxResults = item.MaxResults;
             existing.MaxDownloads = item.MaxDownloads;
+            if (item.LidarrAlbumId.HasValue || item.LidarrTrackId.HasValue)
+            {
+                existing.LidarrAlbumId = item.LidarrAlbumId;
+                existing.LidarrTrackId = item.LidarrTrackId;
+            }
 
             await context.SaveChangesAsync();
 
@@ -420,7 +425,7 @@ namespace slskd.Wishlist
             foreach (var batch in items.Chunk(WishlistInsertBatchSize))
             {
                 var values = batch.Select((_, index) =>
-                    $"(@id{index}, @search_text{index}, @filter{index}, @enabled{index}, @auto_download{index}, @max_results{index}, @created_at{index}, @last_searched_at{index}, @last_match_count{index}, @last_visible_hit_count{index}, @last_hidden_locked_hit_count{index}, @last_filtered_out_hit_count{index}, @last_ignored_result_hit_count{index}, @last_response_count{index}, @total_search_count{index}, @total_download_count{index}, @max_downloads{index}, @last_search_id{index}, @last_viewed_at{index})");
+                    $"(@id{index}, @search_text{index}, @filter{index}, @enabled{index}, @auto_download{index}, @max_results{index}, @created_at{index}, @last_searched_at{index}, @last_match_count{index}, @last_visible_hit_count{index}, @last_hidden_locked_hit_count{index}, @last_filtered_out_hit_count{index}, @last_ignored_result_hit_count{index}, @last_response_count{index}, @total_search_count{index}, @total_download_count{index}, @max_downloads{index}, @last_search_id{index}, @last_viewed_at{index}, @lidarr_album_id{index}, @lidarr_track_id{index})");
                 var commandText = $"""
                     INSERT INTO WishlistItems (
                         Id,
@@ -441,10 +446,12 @@ namespace slskd.Wishlist
                         TotalDownloadCount,
                         MaxDownloads,
                         LastSearchId,
-                        LastViewedAt)
+                        LastViewedAt,
+                        LidarrAlbumId,
+                        LidarrTrackId)
                     VALUES {string.Join(", ", values)}
                     """;
-                var parameters = new List<object>(batch.Length * 19);
+                var parameters = new List<object>(batch.Length * 21);
 
                 for (var index = 0; index < batch.Length; index++)
                 {
@@ -468,6 +475,8 @@ namespace slskd.Wishlist
                     AddParameter(parameters, $"@max_downloads{index}", item.MaxDownloads);
                     AddParameter(parameters, $"@last_search_id{index}", item.LastSearchId);
                     AddParameter(parameters, $"@last_viewed_at{index}", item.LastViewedAt);
+                    AddParameter(parameters, $"@lidarr_album_id{index}", item.LidarrAlbumId);
+                    AddParameter(parameters, $"@lidarr_track_id{index}", item.LidarrTrackId);
                 }
 
                 await context.Database
@@ -806,7 +815,14 @@ namespace slskd.Wishlist
             // If auto-download is enabled and we have results, download the best ones
             if (item.AutoDownload && searchWithResponses?.Responses?.Any() == true)
             {
-                var downloadResult = await AutoDownloadBestResultsAsync(searchWithResponses, item.Id, item.Filter, ignoredResults, cancellationToken);
+                var downloadResult = await AutoDownloadBestResultsAsync(
+                    searchWithResponses,
+                    item.Id,
+                    item.Filter,
+                    item.TotalDownloadCount,
+                    item.MaxDownloads,
+                    ignoredResults,
+                    cancellationToken);
                 if (downloadResult.EnqueuedCount > 0)
                 {
                     item.TotalDownloadCount += downloadResult.EnqueuedCount;
@@ -850,11 +866,21 @@ namespace slskd.Wishlist
             SlskdSearch search,
             Guid wishlistItemId,
             string filter,
+            int totalDownloadCount,
+            int? maxDownloads,
             IReadOnlyCollection<WishlistIgnoredResult> ignoredResults,
             CancellationToken cancellationToken)
         {
             try
             {
+                var remainingDownloads = maxDownloads.HasValue
+                    ? maxDownloads.Value - totalDownloadCount
+                    : int.MaxValue;
+                if (remainingDownloads <= 0)
+                {
+                    return WishlistDownloadResult.Empty;
+                }
+
                 var fileFilter = CreateSearchFileFilter(filter);
 
                 var candidates = new List<SourceCandidate>();
@@ -916,6 +942,7 @@ namespace slskd.Wishlist
                         Length = c.Length,
                         WishlistItemId = wishlistItemId,
                     })
+                    .Take(remainingDownloads)
                     .ToList();
 
                 Log.Information(

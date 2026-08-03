@@ -19,6 +19,10 @@ public interface ILidarrClient
 {
     Task<LidarrSystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<LidarrQualityProfile>> GetQualityProfilesAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LidarrTrackResource>> GetAlbumTracksAsync(int albumId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default);
 
     Task<(IReadOnlyList<LidarrWantedAlbum> Records, int TotalRecords)> GetWantedMissingPageAsync(int page, int pageSize, CancellationToken cancellationToken = default);
@@ -61,6 +65,23 @@ public sealed class LidarrClient : ILidarrClient
         using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         return await ReadJsonAsync<LidarrSystemStatus>(response, cancellationToken).ConfigureAwait(false)
             ?? new LidarrSystemStatus();
+    }
+
+    public async Task<IReadOnlyList<LidarrQualityProfile>> GetQualityProfilesAsync(CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, "api/v1/qualityprofile");
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return await ReadJsonAsync<List<LidarrQualityProfile>>(response, cancellationToken).ConfigureAwait(false)
+            ?? [];
+    }
+
+    public async Task<IReadOnlyList<LidarrTrackResource>> GetAlbumTracksAsync(int albumId, CancellationToken cancellationToken = default)
+    {
+        var relative = $"api/v1/track?albumId={albumId.ToString(CultureInfo.InvariantCulture)}";
+        using var request = CreateRequest(HttpMethod.Get, relative);
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return await ReadJsonAsync<List<LidarrTrackResource>>(response, cancellationToken).ConfigureAwait(false)
+            ?? [];
     }
 
     public async Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)
@@ -214,6 +235,10 @@ public sealed record LidarrWantedAlbum
 
     public string ForeignAlbumId { get; init; } = string.Empty;
 
+    public int ProfileId { get; init; }
+
+    public LidarrAlbumStatistics? Statistics { get; init; }
+
     public LidarrArtistResource? Artist { get; init; }
 
     public string SearchText => string.Join(
@@ -228,6 +253,46 @@ public sealed record LidarrArtistResource
     public string ArtistName { get; init; } = string.Empty;
 
     public string ForeignArtistId { get; init; } = string.Empty;
+
+    public int QualityProfileId { get; init; }
+}
+
+public sealed record LidarrAlbumStatistics
+{
+    public int TrackFileCount { get; init; }
+
+    public int TrackCount { get; init; }
+
+    public int TotalTrackCount { get; init; }
+}
+
+public sealed record LidarrQualityProfile
+{
+    public int Id { get; init; }
+
+    public string Name { get; init; } = string.Empty;
+
+    public List<LidarrQualityProfileItem>? Items { get; init; }
+}
+
+public sealed record LidarrQualityProfileItem
+{
+    public int Id { get; init; }
+
+    public string Name { get; init; } = string.Empty;
+
+    public LidarrQuality? Quality { get; init; }
+
+    public List<LidarrQualityProfileItem>? Items { get; init; }
+
+    public bool Allowed { get; init; }
+}
+
+public sealed record LidarrQuality
+{
+    public int Id { get; init; }
+
+    public string Name { get; init; } = string.Empty;
 }
 
 public sealed record LidarrCommandResponse
@@ -304,4 +369,10 @@ public sealed record LidarrTrackResource
     public int Id { get; init; }
 
     public string Title { get; init; } = string.Empty;
+
+    public string TrackNumber { get; init; } = string.Empty;
+
+    public int TrackFileId { get; init; }
+
+    public bool HasFile { get; init; }
 }

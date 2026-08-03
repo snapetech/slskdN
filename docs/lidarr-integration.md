@@ -2,13 +2,17 @@
 
 Lidarr support is built into slskdN as a first-class music acquisition workflow.
 No Lidarr plugin is required. slskdN talks to Lidarr's supported HTTP API, pulls
-Wanted/Missing albums into Wishlist, downloads through the normal Soulseek queue,
-and can submit completed albums back to Lidarr for safe import.
+Wanted/Missing albums and tracks into Wishlist, downloads through the normal
+Soulseek queue, and can submit completed files back to Lidarr for safe import.
 
 ## What It Does
 
 - Read Lidarr's wanted/missing album list from `/api/v1/wanted/missing`.
-- Create slskdN Wishlist searches for those missing albums.
+- Use each album's Lidarr quality profile to derive an entry-specific audio
+  filter when the profile exposes recognizable formats such as MP3 or FLAC.
+- Keep a genuinely empty album as one album-level Wishlist search. For a partial
+  album, read `/api/v1/track?albumId=...` and create one Wishlist search per
+  missing track instead of searching the complete album again.
 - Optionally start those Wishlist searches in the normal slskdN download flow.
 - Save completed files into a folder that Lidarr can also read.
 - Use Lidarr's existing manual import and command APIs for safe post-download
@@ -65,6 +69,34 @@ The conservative default is `auto_download: false` and
 first test because it only creates Wishlist entries. After the synced searches
 look right, enable `auto_download`; after Lidarr can see completed files, enable
 `auto_import_completed`.
+
+## Wishlist Reconciliation
+
+Each Wishlist item created by the current Lidarr sync stores the Lidarr album
+ID, and track-level items also store the Lidarr track ID. The IDs let later syncs
+update the same item, disable stale targets, and stop searching for tracks that
+Lidarr has acquired.
+
+The `wishlist_filter` setting is the fallback for entries without a usable
+quality profile mapping. When Lidarr's profile contains allowed recognizable
+audio formats, those formats replace the fallback for that entry. For example,
+an MP3-only profile produces an `mp3` Wishlist filter even if the global
+`wishlist_filter` is `flac`.
+
+For a partial album, slskdN creates one track-level Wishlist item per missing
+track and limits each one to a single automatic enqueue. A peer
+directory may still contain other files in its search response, but the
+track-level limit prevents the Wishlist item from enqueueing the complete
+directory. Fully missing albums retain the existing album-level behavior so
+one good peer can supply the album efficiently.
+
+On the first sync after upgrading, an unmarked album row is claimed only when
+its search text and filter match the configured legacy fallback. Other manually
+created Wishlist rows are left alone.
+
+The sync remains bounded by `max_items_per_sync`. It does not scan peers or
+probe files beyond the Lidarr wanted list and the per-album track metadata
+needed to identify missing tracks.
 
 ## Docker Volume Pattern
 
@@ -215,5 +247,5 @@ The manual fallback flow is:
 
 1. Configure slskdN's completed download directory where Lidarr can read it.
 2. Run the wanted sync or enable `sync_wanted_to_wishlist`.
-3. Let Wishlist search and download the album.
+3. Let Wishlist search and download the album or its missing tracks.
 4. In Lidarr, use Wanted, Manual Import on the completed-download folder.

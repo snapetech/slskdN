@@ -435,8 +435,11 @@ Optional metadata enrichment and library quality checks.
 📖 **Design docs**: [Canonical scoring](docs/phase2-canonical-scoring-design.md) • [Library health](docs/phase2-library-health-design.md) • [Advanced fingerprinting](docs/phase2-advanced-fingerprinting-design.md) • [Music discovery federation plan](docs/design/music-discovery-federation-plan.md)
 
 ### 🎛️ Built-in Lidarr Integration
-Lidarr is a first-class slskdN integration. No Lidarr plugin is required: slskdN talks to Lidarr's supported HTTP API, turns Wanted/Missing albums into Wishlist searches, downloads through the normal Soulseek queue, and can hand completed albums back to Lidarr for safe import.
+Lidarr is a first-class slskdN integration. No Lidarr plugin is required: slskdN talks to Lidarr's supported HTTP API, turns Wanted/Missing albums and tracks into quality-aware Wishlist searches, downloads through the normal Soulseek queue, and can hand completed files back to Lidarr for safe import.
 - **Wanted sync** — pulls Lidarr Wanted/Missing albums into slskdN Wishlist searches
+- **Quality-aware searches** — derives each Wishlist filter from the Lidarr quality profile, so an MP3-only artist does not receive FLAC searches; the configured filter remains the fallback
+- **Partial-album reconciliation** — tracks albums with existing files and creates one bounded Wishlist target per missing track instead of searching the complete album again
+- **Durable tracking** — remembers Lidarr album and track IDs, updates existing targets, and disables stale targets during later syncs
 - **Optional auto-download** — Lidarr-created Wishlist items can immediately enter the normal slskdN download flow
 - **Safe post-download import** — completed directories are submitted to Lidarr's manual-import command only when Lidarr returns clean, unambiguous matches
 - **Manual fallback** — ambiguous or rejected candidates are intentionally left for Lidarr's interactive Manual Import screen

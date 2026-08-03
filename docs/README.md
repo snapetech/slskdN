@@ -26,7 +26,7 @@ completed workstream notes, and incident reports live under
 - [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md) - Default-on compatibility posture, mode semantics, runtime status, and safety caveats
 - [Soulseek Native Discovery](soulseek-native-discovery.md) - UI and API guide for native interests, recommendations, similar users, item branching, user-interest lookup, and batch private messages
 - [Pod Private Service Gateway](pod-vpn/vpn-user-guide.md) - Pod-scoped private service tunnels over mesh; not host VPN routing or internet egress
-- [Lidarr Integration](lidarr-integration.md) - Configure Lidarr wanted sync, auto-download, path mapping, and import behavior
+- [Lidarr Integration](lidarr-integration.md) - Configure quality-aware wanted sync, partial-album track recovery, auto-download, path mapping, and import behavior
 - [Listening Party and Player](listening-party.md) - Integrated player, streaming, visualizers, and listen-along behavior
 - [Virtual Soulfind User Guide](VIRTUAL_SOULFIND_USER_GUIDE.md) - Using Virtual Soulfind and Shadow Index
 - [Solid Integration User Guide](SOLID_USER_GUIDE.md) - Using Solid WebID and Solid-OIDC integration
@@ -48,7 +48,7 @@ completed workstream notes, and incident reports live under
 
 - [How It Works](HOW-IT-WORKS.md) - Technical architecture overview
 - [Features Overview](FEATURES.md) - Complete feature list and details
-- [Lidarr Integration](lidarr-integration.md) - First-class plugin-free Lidarr wanted sync, download handoff, and safe post-download import
+- [Lidarr Integration](lidarr-integration.md) - First-class plugin-free Lidarr quality-aware wanted sync, missing-track recovery, download handoff, and safe post-download import
 - [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md) - Peer/distributed-message obfuscation options and runtime activation plan
 - [Soulseek Native Discovery](soulseek-native-discovery.md) - Backend API and Web UI integration for native Soulseek discovery protocol features
 - [VPN Agent](../src/slskdN.VpnAgent/README.md) - Host-side fail-closed VPN routing and forwarded-port integration

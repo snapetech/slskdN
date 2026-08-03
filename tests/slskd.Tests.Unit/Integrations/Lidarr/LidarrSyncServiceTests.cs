@@ -124,6 +124,258 @@ public class LidarrSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncWantedToWishlist_UsesAlbumQualityProfileForFilter()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 7,
+                    ProfileId = 12,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                },
+            ],
+            QualityProfiles =
+            [
+                new LidarrQualityProfile
+                {
+                    Id = 12,
+                    Items =
+                    [
+                        new LidarrQualityProfileItem
+                        {
+                            Allowed = true,
+                            Quality = new LidarrQuality { Name = "MP3-320" },
+                        },
+                        new LidarrQualityProfileItem
+                        {
+                            Allowed = false,
+                            Quality = new LidarrQuality { Name = "FLAC" },
+                        },
+                    ],
+                },
+            ],
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac");
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        var created = Assert.Single(wishlist.Created);
+        Assert.Equal(1, result.CreatedCount);
+        Assert.Equal("mp3", created.Filter);
+        Assert.Equal(7, created.LidarrAlbumId);
+        Assert.Null(created.LidarrTrackId);
+        Assert.Equal(1, lidarr.QualityProfileCalls);
+    }
+
+    [Fact]
+    public async Task SyncWantedToWishlist_ClaimsLegacyAlbumItemWhenQualityFilterChanges()
+    {
+        var legacyItem = new WishlistItem
+        {
+            SearchText = "Artist Album",
+            Filter = "flac",
+            Enabled = true,
+        };
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 7,
+                    ProfileId = 12,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                },
+            ],
+            QualityProfiles =
+            [
+                new LidarrQualityProfile
+                {
+                    Id = 12,
+                    Items =
+                    [
+                        new LidarrQualityProfileItem
+                        {
+                            Allowed = true,
+                            Quality = new LidarrQuality { Name = "MP3-320" },
+                        },
+                    ],
+                },
+            ],
+        };
+        var wishlist = new FakeWishlistService { Items = [legacyItem] };
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac");
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        Assert.Equal(0, result.CreatedCount);
+        Assert.Equal("mp3", legacyItem.Filter);
+        Assert.Equal(7, legacyItem.LidarrAlbumId);
+        Assert.Null(legacyItem.LidarrTrackId);
+        Assert.Contains(wishlist.Updated, item => item.Id == legacyItem.Id);
+    }
+
+    [Fact]
+    public async Task SyncWantedToWishlist_CreatesEntriesForMissingTracksInPartialAlbum()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 21,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                    Statistics = new LidarrAlbumStatistics
+                    {
+                        TrackFileCount = 1,
+                        TrackCount = 3,
+                        TotalTrackCount = 3,
+                    },
+                },
+            ],
+            AlbumTracks = new Dictionary<int, IReadOnlyList<LidarrTrackResource>>
+            {
+                [21] =
+                [
+                    new LidarrTrackResource { Id = 101, TrackNumber = "01", Title = "Present", HasFile = true, TrackFileId = 1 },
+                    new LidarrTrackResource { Id = 102, TrackNumber = "02", Title = "Missing One" },
+                    new LidarrTrackResource { Id = 103, TrackNumber = "03", Title = "Missing One" },
+                ],
+            },
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "mp3");
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        Assert.Equal(2, result.CreatedCount);
+        Assert.Equal(1, lidarr.AlbumTrackCalls);
+        Assert.Collection(
+            wishlist.Created.OrderBy(item => item.LidarrTrackId),
+            first =>
+            {
+                Assert.Equal("Artist Album 02 Missing One", first.SearchText);
+                Assert.Equal(21, first.LidarrAlbumId);
+                Assert.Equal(102, first.LidarrTrackId);
+                Assert.Equal(1, first.MaxDownloads);
+            },
+            second =>
+            {
+                Assert.Equal("Artist Album 03 Missing One", second.SearchText);
+                Assert.Equal(21, second.LidarrAlbumId);
+                Assert.Equal(103, second.LidarrTrackId);
+                Assert.Equal(1, second.MaxDownloads);
+            });
+    }
+
+    [Fact]
+    public async Task SyncWantedToWishlist_DisablesStaleTrackedEntriesForPartialAlbum()
+    {
+        var albumItem = new WishlistItem
+        {
+            SearchText = "Artist Album",
+            Filter = "mp3",
+            Enabled = true,
+            LidarrAlbumId = 21,
+        };
+        var currentTrackItem = new WishlistItem
+        {
+            SearchText = "Artist Album Missing",
+            Filter = "mp3",
+            Enabled = true,
+            LidarrAlbumId = 21,
+            LidarrTrackId = 102,
+        };
+        var staleTrackItem = new WishlistItem
+        {
+            SearchText = "Artist Album Now Found",
+            Filter = "mp3",
+            Enabled = true,
+            LidarrAlbumId = 21,
+            LidarrTrackId = 103,
+        };
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 21,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                    Statistics = new LidarrAlbumStatistics
+                    {
+                        TrackFileCount = 1,
+                        TrackCount = 2,
+                    },
+                },
+            ],
+            AlbumTracks = new Dictionary<int, IReadOnlyList<LidarrTrackResource>>
+            {
+                [21] =
+                [
+                    new LidarrTrackResource { Id = 101, TrackNumber = "01", Title = "Present", HasFile = true, TrackFileId = 1 },
+                    new LidarrTrackResource { Id = 102, TrackNumber = "02", Title = "Missing" },
+                ],
+            },
+        };
+        var wishlist = new FakeWishlistService { Items = [albumItem, currentTrackItem, staleTrackItem] };
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "mp3");
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        Assert.Equal(0, result.CreatedCount);
+        Assert.False(albumItem.Enabled);
+        Assert.True(currentTrackItem.Enabled);
+        Assert.False(staleTrackItem.Enabled);
+        Assert.Contains(wishlist.Updated, item => item.Id == albumItem.Id);
+        Assert.Contains(wishlist.Updated, item => item.Id == staleTrackItem.Id);
+    }
+
+    [Fact]
+    public async Task SyncWantedToWishlist_DoesNotFallBackToAlbumWhenPartialTrackLookupHasNoTargets()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 21,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                    Statistics = new LidarrAlbumStatistics
+                    {
+                        TrackFileCount = 1,
+                        TrackCount = 2,
+                    },
+                },
+            ],
+            AlbumTracks = new Dictionary<int, IReadOnlyList<LidarrTrackResource>>
+            {
+                [21] = [],
+            },
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac");
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        Assert.Equal(0, result.CreatedCount);
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(1, lidarr.AlbumTrackCalls);
+        Assert.Empty(wishlist.Created);
+    }
+
+    [Fact]
     public void IsExpectedExternalHttpFailure_ReturnsTrue_ForHttpRequestException()
     {
         var ex = new HttpRequestException("Response status code does not indicate success: 500 (Internal Server Error).");
@@ -179,6 +431,8 @@ public class LidarrSyncServiceTests
 
         public List<int> CreateBatches { get; } = [];
 
+        public List<WishlistItem> Updated { get; } = [];
+
         public List<WishlistIgnoredResult> IgnoredResults { get; } = [];
 
         public Task<List<WishlistItem>> ListAsync() => Task.FromResult(Items);
@@ -208,7 +462,11 @@ public class LidarrSyncServiceTests
             return Task.FromResult(batch);
         }
 
-        public Task<WishlistItem> UpdateAsync(WishlistItem item) => Task.FromResult(item);
+        public Task<WishlistItem> UpdateAsync(WishlistItem item)
+        {
+            Updated.Add(item);
+            return Task.FromResult(item);
+        }
 
         public Task DeleteAsync(Guid id) => Task.CompletedTask;
 
@@ -254,10 +512,33 @@ public class LidarrSyncServiceTests
     {
         public IReadOnlyList<LidarrWantedAlbum> Wanted { get; init; } = [];
 
+        public IReadOnlyList<LidarrQualityProfile> QualityProfiles { get; init; } = [];
+
+        public IReadOnlyDictionary<int, IReadOnlyList<LidarrTrackResource>> AlbumTracks { get; init; } =
+            new Dictionary<int, IReadOnlyList<LidarrTrackResource>>();
+
         public int PageCalls { get; private set; }
+
+        public int QualityProfileCalls { get; private set; }
+
+        public int AlbumTrackCalls { get; private set; }
 
         public Task<LidarrSystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(new LidarrSystemStatus());
+
+        public Task<IReadOnlyList<LidarrQualityProfile>> GetQualityProfilesAsync(CancellationToken cancellationToken = default)
+        {
+            QualityProfileCalls++;
+            return Task.FromResult(QualityProfiles);
+        }
+
+        public Task<IReadOnlyList<LidarrTrackResource>> GetAlbumTracksAsync(int albumId, CancellationToken cancellationToken = default)
+        {
+            AlbumTrackCalls++;
+            return Task.FromResult(AlbumTracks.TryGetValue(albumId, out var tracks)
+                ? tracks
+                : (IReadOnlyList<LidarrTrackResource>)[]);
+        }
 
         public Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)
             => Task.FromResult(Wanted);

@@ -100,6 +100,16 @@ namespace slskd.Wishlist
         public int? MaxDownloads { get; set; }
 
         /// <summary>
+        ///     Gets or sets the Lidarr album ID that created this item, if any.
+        /// </summary>
+        public int? LidarrAlbumId { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the Lidarr track ID that created this item, if any.
+        /// </summary>
+        public int? LidarrTrackId { get; set; }
+
+        /// <summary>
         ///     Gets or sets the GUID of the most recent search.
         /// </summary>
         public Guid? LastSearchId { get; set; }

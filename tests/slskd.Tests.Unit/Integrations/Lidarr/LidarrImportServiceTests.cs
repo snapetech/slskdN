@@ -271,6 +271,12 @@ public class LidarrImportServiceTests
         public Task<LidarrSystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(new LidarrSystemStatus());
 
+        public Task<IReadOnlyList<LidarrQualityProfile>> GetQualityProfilesAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<LidarrQualityProfile>>([]);
+
+        public Task<IReadOnlyList<LidarrTrackResource>> GetAlbumTracksAsync(int albumId, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<LidarrTrackResource>>([]);
+
         public Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<LidarrWantedAlbum>>([]);
 

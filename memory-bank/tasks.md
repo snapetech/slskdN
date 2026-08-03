@@ -9,6 +9,17 @@
 
 ### High Priority
 
+- [x] Make Lidarr Wishlist sync honor per-entry quality profiles and reconcile
+  partial albums by missing track.
+  - Status: completed (2026-08-03)
+  - Priority: P1
+  - Notes: Lidarr quality profiles now derive per-entry format filters, partial
+    albums create durable track-level Wishlist items with one-file auto-download
+    limits, stale targets are disabled, and legacy unmarked album rows are
+    claimed when they match the configured fallback filter. Added the Wishlist
+    schema migration, persistence coverage, user documentation, and full test
+    and lint validation.
+
 - [x] Prevent slskNet.Runtime vendor drift and enforce the current fork head.
   - Status: completed (2026-08-01)
   - Priority: P1

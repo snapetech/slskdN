@@ -597,6 +597,72 @@ public class WishlistControllerTests : IDisposable
             It.IsAny<CancellationToken>()));
     }
 
+    [Fact]
+    public async Task RunSearch_WhenAutoDownloadLimitIsOne_EnqueuesOnlyOneFile()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title track",
+                Filter = "flac",
+                AutoDownload = true,
+                Enabled = true,
+                MaxResults = 25,
+                MaxDownloads = 1,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var searchService = CreateCompletedSearchService(itemId);
+        var rankingService = new Mock<ISourceRankingService>();
+        rankingService
+            .Setup(service => service.RankSourcesAsync(It.IsAny<IEnumerable<SourceCandidate>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<SourceCandidate> candidates, CancellationToken cancellationToken) =>
+                candidates.Select(candidate => new RankedSource
+                {
+                    Username = candidate.Username,
+                    Filename = candidate.Filename,
+                    Size = candidate.Size,
+                    SmartScore = 10,
+                }));
+        var downloadService = new Mock<IDownloadService>();
+        downloadService
+            .Setup(service => service.EnqueueAsync(
+                It.IsAny<string>(),
+                It.Is<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(requests => requests.Count() == 1),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                new List<slskd.Transfers.Transfer>
+                {
+                    new() { Id = Guid.NewGuid(), Username = "alice", Filename = @"Music\Album\01 Song.flac" },
+                },
+                new List<string>()));
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            rankingService.Object,
+            downloadService.Object);
+
+        await service.RunSearchAsync(itemId);
+
+        await using var verifyContext = _contextFactory.CreateDbContext();
+        var item = await verifyContext.WishlistItems.FindAsync(itemId);
+        Assert.NotNull(item);
+        Assert.False(item.Enabled);
+        Assert.Equal(1, item.TotalDownloadCount);
+        downloadService.Verify(service => service.EnqueueAsync(
+            "alice",
+            It.Is<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(requests => requests.Count() == 1),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private static Mock<ISearchService> CreateCompletedSearchService(Guid searchId)
     {
         var searchService = new Mock<ISearchService>();

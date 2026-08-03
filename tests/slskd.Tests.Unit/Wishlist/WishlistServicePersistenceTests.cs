@@ -21,6 +21,47 @@ using Xunit;
 public sealed class WishlistServicePersistenceTests
 {
     [Fact]
+    public void LidarrWishlistTrackingMigration_AddsColumnsIdempotently()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"wishlist-lidarr-tracking-{Guid.NewGuid():N}.db");
+        var connectionString = $"Data Source={databasePath}";
+        try
+        {
+            using (var connection = new SqliteConnection(connectionString))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = "CREATE TABLE WishlistItems (Id TEXT NOT NULL PRIMARY KEY, SearchText TEXT NOT NULL, Filter TEXT NOT NULL)";
+                command.ExecuteNonQuery();
+            }
+
+            var migration = new Z08032026_LidarrWishlistTrackingMigration(connectionString);
+            migration.Apply();
+            migration.Apply();
+
+            using var verificationConnection = new SqliteConnection(connectionString);
+            verificationConnection.Open();
+            using var verificationCommand = verificationConnection.CreateCommand();
+            verificationCommand.CommandText = "PRAGMA table_info(WishlistItems)";
+            using var reader = verificationCommand.ExecuteReader();
+            var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (reader.Read())
+            {
+                columns.Add(reader.GetString(1));
+            }
+
+            Assert.Contains("LidarrAlbumId", columns);
+            Assert.Contains("LidarrTrackId", columns);
+        }
+        finally
+        {
+            System.IO.File.Delete(databasePath);
+            System.IO.File.Delete(databasePath + "-shm");
+            System.IO.File.Delete(databasePath + "-wal");
+        }
+    }
+
+    [Fact]
     public async Task FindBySearchTextAsync_UsesCaseInsensitiveIndexAndHydratesOneRow()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"wishlist-lookup-{Guid.NewGuid():N}.db");
@@ -259,6 +300,8 @@ public sealed class WishlistServicePersistenceTests
         items[0].MaxDownloads = 9;
         items[0].LastSearchId = lastSearchId;
         items[0].LastViewedAt = lastActivityAt;
+        items[0].LidarrAlbumId = 42;
+        items[0].LidarrTrackId = 84;
 
         var created = await service.CreateManyAsync(items);
 
@@ -286,6 +329,24 @@ public sealed class WishlistServicePersistenceTests
         Assert.Equal(9, stored.MaxDownloads);
         Assert.Equal(lastSearchId, stored.LastSearchId);
         Assert.Equal(lastActivityAt, stored.LastViewedAt);
+        Assert.Equal(42, stored.LidarrAlbumId);
+        Assert.Equal(84, stored.LidarrTrackId);
+
+        await service.UpdateAsync(new WishlistItem
+        {
+            Id = stored.Id,
+            SearchText = stored.SearchText,
+            Filter = stored.Filter,
+            Enabled = stored.Enabled,
+            AutoDownload = stored.AutoDownload,
+            MaxResults = stored.MaxResults,
+            MaxDownloads = stored.MaxDownloads,
+        });
+
+        await using var updatedVerificationContext = await contextFactory.CreateDbContextAsync();
+        var updated = await updatedVerificationContext.WishlistItems.SingleAsync(item => item.Id == stored.Id);
+        Assert.Equal(42, updated.LidarrAlbumId);
+        Assert.Equal(84, updated.LidarrTrackId);
     }
 
     [Fact]

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Lidarr Wishlist synchronization now derives per-entry audio filters from
+  Lidarr quality profiles, so artist-specific format choices such as MP3-only
+  are respected instead of falling back to one global format.
+- Partial Lidarr albums now reconcile missing tracks individually, persist
+  album and track identity across syncs, and bound automatic Wishlist enqueue
+  work to one file per missing-track target instead of repeating a full-album
+  search.
 - Unraid Community Applications metadata now includes the required repository
   profile, fork-owned links, safer user-selected share paths, and package
   smoke validation for the template and profile.

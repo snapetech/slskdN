@@ -46,6 +46,7 @@ public static class IntegrationAndMediaServiceCollectionExtensions
         wishlistMigration.Apply();
         new Migrations.Z07142026_WishlistIgnoredResultsMigration($"Data Source={wishlistDbPath}").Apply();
         new Migrations.Z07162026_WishlistSearchTextIndexMigration($"Data Source={wishlistDbPath}").Apply();
+        new Migrations.Z08032026_LidarrWishlistTrackingMigration($"Data Source={wishlistDbPath}").Apply();
 
         services.AddSingleton<Wishlist.IWishlistService, Wishlist.WishlistService>();
         services.AddHostedService(provider => (Wishlist.WishlistService)provider.GetRequiredService<Wishlist.IWishlistService>());
