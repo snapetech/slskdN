@@ -82,6 +82,30 @@ packager, or submit from a dedicated repository containing only the Unraid
 profile and template files. Re-run Validate and Scan after every XML layout
 change.
 
+### 0z808. Persist Reconciled Wishlist Metadata
+
+**The Bug**: Lidarr reconciliation mutated an existing Wishlist item in memory
+but did not call the Wishlist service to persist the updated search metadata.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Wrong**:
+```csharp
+item.Filter = filter;
+await Task.CompletedTask;
+```
+
+**Correct**:
+```csharp
+item.Filter = filter;
+await WishlistService.UpdateAsync(item);
+```
+
+**Why This Keeps Happening**: `ListAsync` returns objects that look mutable,
+but Wishlist persistence is owned by `IWishlistService`; reconciliation must
+explicitly call `UpdateAsync` after changing an existing item.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
