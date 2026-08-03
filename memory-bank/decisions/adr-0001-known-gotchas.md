@@ -27102,3 +27102,15 @@ return string.Equals(value?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 "enabled unless someone objects," but network-visible membership and identity
 features require affirmative consent. Treat missing, malformed, and negative
 values as disabled, and test creation, publication, and enrollment separately.
+
+### 0z819. Extend Nested Records In Place
+
+**The Bug**: A Wishlist filter change added new nested record declarations near
+the modified parser but left the existing declarations at the end of the class,
+causing duplicate-type compiler errors.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+
+**Prevention**: Search for the existing nested type before adding a declaration;
+extend or move the existing record instead of creating a second definition.
