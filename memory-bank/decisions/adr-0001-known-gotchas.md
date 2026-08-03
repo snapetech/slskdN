@@ -27129,3 +27129,18 @@ The result was a compile-time type error before the new filter could run.
 and update each runtime path together. Keep a separate filename-only helper for
 callers that intentionally lack file metadata, and compile the affected
 project before adding further changes.
+
+### 0z821. Distinguish Protocol Files From Stored Search Files
+
+**The Bug**: A Wishlist metadata predicate accepted `Soulseek.File`, but
+completed searches expose the separately mapped `slskd.Search.File` DTO. Using
+the protocol predicate for candidate selection and hit counting produced type
+errors and obscured the fact that the two paths have different data boundaries.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `tests/slskd.Tests.Unit/Wishlist/WishlistControllerTests.cs`
+
+**Prevention**: Keep protocol-search predicates and stored-result predicates
+separate, with both delegating to one filename/metadata matching helper. Test
+each representation when a filter begins using fields that survive persistence.
