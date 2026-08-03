@@ -27177,3 +27177,17 @@ filter could therefore accept an unknown mesh file as verified 320-kbps audio.
 truthful metadata. Keep unknown values null through mesh search, response
 conversion, filtering, and ranking; never use a quality-looking default for a
 missing field.
+
+### 0z824. Keep Aggregated Codec And Bitrate From The Same Variant
+
+**The Bug**: Metadata portability selected the first non-empty codec and the
+largest bitrate independently. When sources described different encodings of
+one content ID, the merged descriptor could claim a codec/bitrate combination
+that no source actually advertised.
+
+**Files Affected**:
+- `src/slskd/MediaCore/MetadataPortability.cs`
+
+**Prevention**: Select codec and its bitrate as one variant tuple. Only compare
+bitrate values when the codec matches, and retain bitrate as unknown when no
+codec-compatible value exists.
