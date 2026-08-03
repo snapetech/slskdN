@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026080315-slskdn.296] — 2026-08-03
+
 - Lidarr Wishlist synchronization now derives per-entry audio filters from
   Lidarr quality profiles, so artist-specific format choices such as MP3-only
   are respected instead of falling back to one global format.
