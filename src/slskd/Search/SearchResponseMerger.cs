@@ -9,12 +9,14 @@ using System.Linq;
 
 /// <summary>
 /// Merges and deduplicates Soulseek and mesh search responses using normalized filename and size for deduplication.
+/// Mesh responses are not subject to Soulseek query/operator filters; this class only performs result identity deduplication.
 /// </summary>
 public static class SearchResponseMerger
 {
     /// <summary>
     /// Deduplicates Soulseek and mesh responses using (Username, normalized filename, size) as the deduplication key.
-    /// Keeps first occurrence of each unique file.
+    /// Keeps first occurrence of each unique file. No Soulseek term blacklist, excluded phrase list, or incoming-request
+    /// filter is applied to mesh responses here.
     /// </summary>
     public static List<Response> Deduplicate(IEnumerable<Response> soulseekResponses, IReadOnlyList<Response> meshResponses)
     {

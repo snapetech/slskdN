@@ -12916,3 +12916,16 @@ rollback.
   1. Tester can verify an MP3-only and partial-album Lidarr profile against a
      fresh sync and an existing legacy Wishlist row.
   2. Do not create a release tag unless explicitly requested.
+
+## Update 2026-08-03 15:30:00Z
+
+- Current task: lock in operator-independent mesh search behavior after tester
+  reported zero direct results for Linkin Park/Meteora.
+- Added regression coverage at the mesh RPC and response-merger boundaries and
+  documented that Soulseek term suppression, incoming-request filters, and
+  excluded phrases do not filter mesh results. No runtime behavior change was
+  required because the existing pipeline already had this separation.
+- Next steps:
+  1. Run focused mesh/search tests, full `dotnet test`, and `./bin/lint`.
+  2. Commit and push this post-release documentation/test update if validation
+     remains clean; do not create another release tag without explicit request.

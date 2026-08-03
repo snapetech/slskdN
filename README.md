@@ -359,6 +359,7 @@ then form a separate encrypted mesh overlay connection.
 - **Public DHT rendezvous** — standard BitTorrent DHT `get_peers`/`announce_peer` operations under well-known slskdN rendezvous infohashes; it discovers overlay endpoints but does not transfer files
 - **Mesh DHT** — slskdN Kademlia-style metadata and service discovery carried over the mesh overlay, separate from the public BitTorrent DHT
 - **Mesh overlay network** — TLS-protected slskdN peer connections for search, synchronization, service calls, and mesh file/chunk transfers
+- **Operator-independent mesh search** — mesh peers receive the raw search terms and search their own local indexes; Soulseek server/operator term suppression and this node's incoming `filters.search.request` rules are not applied to mesh results. User-selected file and peer filters still apply locally in the UI.
 - This mesh path is separate from the optional native Soulseek rendezvous path; normal Soulseek search, social, and origin-transfer paths remain available
 - **Private/obfuscated mesh transport selection** — mesh routing can prefer configured Tor/I2P or anti-DPI transports such as WebSocket, HTTP tunnel, obfs4, or meek while falling back to normal mesh routing when unavailable
 - **Hash database sync** — Epidemic protocol for content verification database

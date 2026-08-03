@@ -177,6 +177,37 @@ public class SearchResponseMergerTests
         Assert.Empty(result);
     }
 
+    [Fact]
+    public void Deduplicate_DoesNotApplySoulseekTermFilteringToMeshResults()
+    {
+        var meshResponses = new[]
+        {
+            new Response
+            {
+                Username = "mesh-peer",
+                PrimarySource = "pod",
+                SourceProviders = new List<string> { "pod" },
+                Files = new[]
+                {
+                    new File
+                    {
+                        Filename = "Linkin Park\\Meteora\\01 - Foreword.flac",
+                        Size = 1_024,
+                    },
+                },
+            },
+        };
+
+        var result = SearchResponseMerger.Deduplicate(
+            soulseekResponses: Array.Empty<Response>(),
+            meshResponses);
+
+        var response = Assert.Single(result);
+        Assert.Equal("mesh-peer", response.Username);
+        Assert.Equal("pod", response.PrimarySource);
+        Assert.Equal("Linkin Park\\Meteora\\01 - Foreword.flac", Assert.Single(response.Files).Filename);
+    }
+
     [Theory]
     [InlineData("  Music\\Song.FLAC\t", "music/song.flac")]
     [InlineData("ÄRTIST\\SONG.FLAC", "ärtist/song.flac")]

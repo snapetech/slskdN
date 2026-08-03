@@ -81,6 +81,24 @@ not mean that every slskdN feature is independent of Soulseek: the normal
 Soulseek search, social, and origin-transfer paths remain available, and the
 optional native Soulseek rendezvous path uses Soulseek explicitly.
 
+### Mesh search and Soulseek term filtering
+
+Hybrid search starts the mesh query alongside the normal Soulseek query. The
+mesh query is sent with the user's search text, and each receiving peer runs it
+against that peer's local share index. Mesh responses are merged without
+consulting Soulseek server/operator term suppression, the local
+`filters.search.request` rules, or the incoming Soulseek excluded-phrase list.
+The merge step only removes an exact duplicate identified by peer, normalized
+filename, and size.
+
+This means a term that produces no direct Soulseek results can still produce
+mesh results when a connected mesh peer has matching indexed content. The
+`feature.MeshParallelSearch` option is enabled by default, but a result still
+requires at least one connected outbound peer advertising the `mesh_search`
+capability. Local UI choices such as blocked peers, file-format filters, and
+quality filters remain user-controlled and can hide or exclude results after
+they arrive.
+
 For current configuration and privacy behavior, see [Runtime Feature Gates and
 Network Defaults](runtime-feature-gating.md) and [Configuration](config.md).
 

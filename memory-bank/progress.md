@@ -1,3 +1,13 @@
+## Update 2026-08-03 15:30:00Z
+
+- Verified the tester's Linkin Park/Metallica concern against the hybrid search
+  pipeline. Mesh fan-out forwards the raw query, peers search their local share
+  index, and response merging performs only peer/normalized-filename/size
+  deduplication; Soulseek operator suppression is not applied to mesh results.
+- Added explicit handler and merger regression coverage plus README and DHT
+  architecture documentation. A mesh result still requires an outbound,
+  handshake-complete peer advertising `mesh_search`.
+
 ## Update 2026-08-01 15:09:53Z
 
 - Made Gold Star Club a strict positive opt-in: reserved-pod creation, DHT

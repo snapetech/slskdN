@@ -70,6 +70,33 @@ public class MeshSearchRpcHandlerTests
         Assert.Equal("test.mp3", response.Files[0].Filename);
     }
 
+    [Theory]
+    [InlineData("Linkin Park Meteora")]
+    [InlineData("Metallica")]
+    public async Task HandleAsync_ForwardsTermsToLocalMeshIndexWithoutSoulseekFiltering(string searchText)
+    {
+        SearchQuery? capturedQuery = null;
+        var request = new MeshSearchRequestMessage
+        {
+            RequestId = "req-term-filter",
+            SearchText = searchText,
+            MaxResults = 10,
+        };
+        var file = new Soulseek.File(1, $"{searchText}\\track.flac", 1_000, ".flac", null);
+
+        _shareServiceMock
+            .Setup(x => x.SearchLocalAsync(It.IsAny<SearchQuery>()))
+            .Callback<SearchQuery>(query => capturedQuery = query)
+            .ReturnsAsync(new[] { file });
+
+        var response = await CreateHandler().HandleAsync(request, CancellationToken.None);
+
+        Assert.Null(response.Error);
+        Assert.Single(response.Files);
+        Assert.Equal(request.SearchText, capturedQuery?.SearchText);
+        Assert.Equal(file.Filename, response.Files[0].Filename);
+    }
+
     [Fact]
     public async Task HandleAsync_IncludesMediaKinds()
     {

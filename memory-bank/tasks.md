@@ -9,6 +9,15 @@
 
 ### High Priority
 
+- [x] Preserve Soulseek-independent mesh search terms.
+  - Status: completed (2026-08-03)
+  - Priority: P1
+  - Notes: Verified that mesh fan-out forwards the raw query, inbound mesh RPC
+    searches the local share index, and hybrid response merging only
+    deduplicates by peer/normalized filename/size. Added Linkin Park and
+    Metallica regression coverage and documented the required connected
+    `mesh_search` peer prerequisite. No runtime behavior change was necessary.
+
 - [x] Make Lidarr Wishlist sync honor per-entry quality profiles and reconcile
   partial albums by missing track.
   - Status: completed (2026-08-03)
