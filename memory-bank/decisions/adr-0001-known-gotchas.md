@@ -154,6 +154,23 @@ if (track.Id > 0 && !string.IsNullOrWhiteSpace(track.Title))
 targets, but `null` already means album-level reconciliation; invalid track
 records must be skipped instead of changing scope.
 
+### 0z811. Do Not Fall Back to Album Search After Partial Track Lookup
+
+**The Bug**: A partial Lidarr album whose track lookup returned no usable
+missing targets fell through to the legacy whole-album Wishlist search.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Prevention**: Once album statistics identify a partial album, keep it in the
+track-reconciliation path. Create a whole-album target only for albums that are
+not partial; skip a partial record when its track response cannot produce a
+valid target.
+
+**Why This Keeps Happening**: The legacy album target is a convenient fallback,
+but it defeats the missing-track safety boundary and can redownload files that
+Lidarr already has.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
