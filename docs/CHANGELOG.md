@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026080316-slskdn.297] — 2026-08-03
+
 - Mesh search now has explicit regression coverage and documentation ensuring
   Soulseek server/operator term suppression and incoming-request filters do not
   remove mesh results; mesh merging remains limited to duplicate detection.
