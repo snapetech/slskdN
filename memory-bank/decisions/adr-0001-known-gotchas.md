@@ -27161,3 +27161,19 @@ lost.
 each clause's format terms and metadata constraints together. Test every
 format/bitrate branch, a branch without a bitrate, global exclusions, and
 unknown metadata before changing quality ranking or integration mappings.
+
+### 0z823. Never Invent Mesh Audio Metadata
+
+**The Bug**: Mesh MBID results carried a nullable bitrate, but the search
+adapter replaced missing values with a hard-coded 320 kbps. A strict Wishlist
+filter could therefore accept an unknown mesh file as verified 320-kbps audio.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/DisasterMode/MeshSearchService.cs`
+- `src/slskd/Mesh/IMeshDirectory.cs`
+- `src/slskd/Search/SearchService.cs`
+
+**Prevention**: Propagate bitrate only when the originating descriptor has
+truthful metadata. Keep unknown values null through mesh search, response
+conversion, filtering, and ranking; never use a quality-looking default for a
+missing field.
