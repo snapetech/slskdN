@@ -120,6 +120,23 @@ retry. Without a request-level persisted attempt budget, hiding a row in the
 UI does not prevent the background worker from processing it again after a
 restart.
 
+### 0z818. Do Not Reset Automatic Retry Budgets At Process Boundaries
+
+**The Bug**: `DownloadAutoRetryService` tracked its retry count and already
+processed transfer IDs only in memory. Restarting the daemon therefore made old
+failed rows eligible again, even when the user had no active downloads visible.
+Alternate-source retries also created a new request identity, so a retry budget
+could not follow the file across source changes.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadAutoRetryService.cs`
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Prevention**: Keep the stable `DownloadRequest` identity when automatic retry
+changes peers or filenames, and enforce `max_attempts` from the persisted count
+of transfer records under that request. Keep the in-memory counters only as a
+same-process safety layer; they are not durable state.
+
 ### 0z807. Unraid Submission Scans Every XML File
 
 **The Bug**: The Community Applications submission scanner recursively treats
