@@ -27238,3 +27238,19 @@ bit-depth separator was not part of the exclusion boundary.
 sample-rate/bit-depth metadata, never bitrate. Only parse bare numbers when
 they are unambiguously attached to a recognized lossy quality name, and test
 unit-bearing, bare, sample-rate, and bit-depth combinations together.
+
+### 0z828. Distinguish Unrestricted Quality From Missing Mapping
+
+**The Bug**: Lidarr's `Any`/`All` quality profile correctly mapped to an empty
+Wishlist filter, but sync code interpreted every empty mapped filter as
+unrecognized and applied the configured fallback instead. An `Any` profile
+could therefore remain format-restricted.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrSyncServiceTests.cs`
+
+**Prevention**: Preserve a separate result for an explicit unrestricted
+quality entry versus a profile with no recognizable mapping. Test `Any`/`All`,
+empty profiles, unknown formats, and mixed allowed entries independently; do
+not use an empty filter as both a valid value and a missing sentinel.
