@@ -221,6 +221,17 @@ durable reconciliation key.
 **Why This Keeps Happening**: Human-readable track titles are not unique within
 multi-disc albums, remasters, or albums with repeated interludes.
 
+### 0z815. Qualify System.IO.File in Soulseek Test Namespaces
+
+**The Bug**: A test cleanup call to `File.Delete` was ambiguous because the
+test namespace imports both `slskd.Search.File` and `Soulseek.File`.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Wishlist/WishlistServicePersistenceTests.cs`
+
+**Prevention**: Use `System.IO.File` explicitly in tests that import Soulseek
+or search namespaces.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
