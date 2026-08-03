@@ -27254,3 +27254,19 @@ could therefore remain format-restricted.
 quality entry versus a profile with no recognizable mapping. Test `Any`/`All`,
 empty profiles, unknown formats, and mixed allowed entries independently; do
 not use an empty filter as both a valid value and a missing sentinel.
+
+### 0z829. Regenerate API Inventory When Adding A Route
+
+**The Bug**: Adding the Wishlist bulk-filter endpoint changed the controller
+route/authorization inventory, but the generated `docs/system-surfaces-current.md`
+was not refreshed. The post-push remediation gate then rejected the otherwise
+valid change as stale API-surface documentation.
+
+**Files Affected**:
+- `docs/system-surfaces-current.md`
+- `scripts/generate-route-inventory.sh`
+
+**Prevention**: Run `scripts/generate-route-inventory.sh
+docs/system-surfaces-current.md` after every controller route or authorization
+change, review the generated diff, and include the inventory in the same
+publication change.
