@@ -206,6 +206,21 @@ one place.
 **Why This Keeps Happening**: Mutating the model first feels natural, but it
 erases the before/after distinction used by change-detection code.
 
+### 0z814. Include Track Number in Track-Level Wishlist Searches
+
+**The Bug**: Track-level reconciliation used artist, album, and title only, so
+two Lidarr tracks with the same title collapsed under one Wishlist search key.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Prevention**: Include the Lidarr track number in the search text before
+deduplicating by search/filter, while retaining the Lidarr track ID as the
+durable reconciliation key.
+
+**Why This Keeps Happening**: Human-readable track titles are not unique within
+multi-disc albums, remasters, or albums with repeated interludes.
+
 ### 0z804. Unraid Templates Must Expose Optional Network and Docker Overrides
 
 **The Bug**: The initial Unraid Community Applications template exposed only
