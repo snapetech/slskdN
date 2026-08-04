@@ -43,6 +43,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Antiforgery-cookie deletion now follows the request scheme, preserving secure
   deletion for HTTPS responses without incorrectly adding the `Secure` flag to
   HTTP-only responses.
+- CI now keeps its build version in `BUILD_VERSION` so MSBuild does not import
+  a release label from the environment as an invalid `Version` property during
+  release-gate tests.
 
 
 ## [2026080415-slskdn.300] — 2026-08-04

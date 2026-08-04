@@ -69,9 +69,9 @@ jobs:
           else
             PATCH=65534
           fi
-          VERSION="${LATEST_TAG}.${PATCH}+$(git rev-parse --short HEAD)"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          BUILD_VERSION="${LATEST_TAG}.${PATCH}+$(git rev-parse --short HEAD)"
+          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
+          echo "version=$BUILD_VERSION" >> $GITHUB_OUTPUT
 
       - name: NuGet Vulnerability Scan
         run: |
@@ -162,7 +162,7 @@ jobs:
 
       - name: Set Environment Variables
         run: |
-          echo "VERSION=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
+          echo "BUILD_VERSION=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
 
       - name: Download Static Web Content
         uses: actions/download-artifact@v8
@@ -171,12 +171,12 @@ jobs:
           path: src/slskd/wwwroot
 
       - name: Build ${{ matrix.runtime }}
-        run: bin/publish --no-prebuild --runtime ${{ matrix.runtime }} --version ${{ env.VERSION }}
+        run: bin/publish --no-prebuild --runtime ${{ matrix.runtime }} --version ${{ env.BUILD_VERSION }}
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v7
         with:
-          name: slskdn-${{ env.VERSION }}-${{ matrix.runtime }}
+          name: slskdn-${{ env.BUILD_VERSION }}-${{ matrix.runtime }}
           path: dist/${{ matrix.runtime }}
   
   docker:
@@ -305,7 +305,7 @@ jobs:
       - name: Set Environment Variables
         run: |
           echo "TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-          echo "VERSION=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
+          echo "BUILD_VERSION=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
 
       - name: Download All Artifacts
         uses: actions/download-artifact@v8
@@ -317,7 +317,7 @@ jobs:
         run: |
           mkdir -p release
           for dir in artifacts/slskdn-*; do
-            runtime=$(basename "$dir" | sed "s/slskdn-${{ env.VERSION }}-//")
+            runtime=$(basename "$dir" | sed "s/slskdn-${{ env.BUILD_VERSION }}-//")
             echo "Processing $runtime..."
             cd "$dir"
             if [ -f "slskd" ]; then

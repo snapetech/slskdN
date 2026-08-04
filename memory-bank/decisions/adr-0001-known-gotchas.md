@@ -27463,3 +27463,18 @@ HTTP visit can collide with the HTTPS cookie and produce a login network error.
 requests and configure the framework cookie as `Secure` for that deployment.
 Keep scheme-appropriate deletion for stale cookies, and retain
 `SameAsRequest` behavior for intentionally HTTP-only deployments.
+
+### 0z838. Do Not Export Build Versions As `VERSION` In Dotnet Workflows
+
+**The Bug**: The CI workflow exported a build version as the `VERSION`
+environment variable. MSBuild imports environment variables as properties, so
+release-gate `dotnet test` commands interpreted the non-semver release string
+as `Version` and failed with errors such as `2026080316.0.0.0`.
+
+**Files Affected**:
+- `.github/workflows/ci.yml`
+
+**Prevention**: Use a task-specific environment name such as `BUILD_VERSION`
+for workflow artifact and release labels. Pass an explicit `-p:Version` when
+an MSBuild command must run in an environment that already contains a generic
+version variable.
