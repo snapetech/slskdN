@@ -27310,3 +27310,19 @@ term.StartsWith("-", StringComparison.Ordinal)
 **Why This Keeps Happening**: The string overload supports explicit comparison
 semantics while the convenient single-character overload does not. Use the
 string overload whenever a prefix check specifies a `StringComparison`.
+
+### 0z832. Preserve Synchronous Search Launch Failures
+
+**The Bug**: Wrapping the initial `ISoulseekClient.SearchAsync` invocation in
+an `async` fallback method converted synchronous launch exceptions into a
+faulted task. `SearchService.StartAsync` then returned a search record instead
+of preserving its existing immediate failure contract.
+
+**Files Affected**:
+- `src/slskd/Search/SearchService.cs`
+- `tests/slskd.Tests.Unit/Search/SearchServiceLifecycleTests.cs`
+
+**Prevention**: Invoke the initial client search from a non-async method (or
+before entering the async continuation), then await that task while handling
+fallback queries. Launch-time validation and connection failures must continue
+to escape `StartAsync` synchronously.
