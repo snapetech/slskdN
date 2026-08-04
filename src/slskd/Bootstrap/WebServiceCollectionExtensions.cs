@@ -341,6 +341,7 @@ public static class WebServiceCollectionExtensions
             options.Cookie.Name = $"XSRF-COOKIE-{optionsAtStartup.Web.Port}";
             options.HeaderName = "X-CSRF-TOKEN";
             options.Cookie.SameSite = SameSiteMode.Strict;
+
             // Keep the antiforgery cookie secure whenever HTTPS is enabled. Browsers scope cookies by
             // host, not port or scheme, so an HTTP response must not replace the HTTPS cookie.
             options.Cookie.SecurePolicy = optionsAtStartup.Web.Https.Disabled

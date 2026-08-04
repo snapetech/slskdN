@@ -40,6 +40,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   antiforgery cookies, while the optional HTTP listener does not mint them when
   HTTPS is enabled, so Firefox/LibreWolf no longer reject the HTTPS cookie after
   visiting HTTP. HTTP-only deployments retain scheme-appropriate cookies.
+- Antiforgery-cookie deletion now follows the request scheme, preserving secure
+  deletion for HTTPS responses without incorrectly adding the `Secure` flag to
+  HTTP-only responses.
 
 
 ## [2026080415-slskdn.300] — 2026-08-04

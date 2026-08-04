@@ -549,17 +549,26 @@ public class ProgramPathNormalizationTests
     }
 
     [Fact]
-    public void ClearKnownAntiforgeryCookies_UsesSecureDeletion_FromHttpRequests()
+    public void ClearKnownAntiforgeryCookies_UsesRequestSchemeForDeletion()
     {
         var port = new OptionsAtStartup().Web.Port;
-        var context = new DefaultHttpContext();
-        context.Request.Scheme = "http";
+        var httpsContext = new DefaultHttpContext();
+        httpsContext.Request.Scheme = "https";
 
-        AntiforgeryCookieRecovery.ClearKnownCookies(context, port);
+        AntiforgeryCookieRecovery.ClearKnownCookies(httpsContext, port);
 
         Assert.All(
-            context.Response.Headers.SetCookie,
+            httpsContext.Response.Headers.SetCookie,
             value => Assert.Contains("; secure", value, StringComparison.OrdinalIgnoreCase));
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Scheme = "http";
+
+        AntiforgeryCookieRecovery.ClearKnownCookies(httpContext, port);
+
+        Assert.All(
+            httpContext.Response.Headers.SetCookie,
+            value => Assert.DoesNotContain("; secure", value, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
