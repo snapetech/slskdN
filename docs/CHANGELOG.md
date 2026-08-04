@@ -43,11 +43,19 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Antiforgery-cookie deletion now follows the request scheme, preserving secure
   deletion for HTTPS responses without incorrectly adding the `Secure` flag to
   HTTP-only responses.
+- Fixed auto-replace requeueing user-cancelled downloads. Auto-replace now
+  handles only timeout, error, and peer-rejection states, and disabling it
+  cancels an active replacement cycle. Wishlist auto-download also normalizes
+  numeric duplicate suffixes and refuses peer directories with more than 50
+  unique tracks.
 - CI now keeps its build version in `BUILD_VERSION` so MSBuild does not import
   a release label from the environment as an invalid `Version` property during
   release-gate tests.
 - The vendored runtime patch now records the BouncyCastle 2.7.0 dependency
   bump, keeping the dependency update reproducible under the runtime sync gate.
+- The active council scanner now excludes dependency manifests and lockfiles,
+  so dependency-only updates do not perturb the durable security-candidate
+  counts or fail the remediation gate.
 
 
 ## [2026080415-slskdn.300] — 2026-08-04

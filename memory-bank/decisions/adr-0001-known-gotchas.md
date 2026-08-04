@@ -27540,3 +27540,18 @@ plus patch and correctly reported content drift.
 **Prevention**: Treat every dependency edit under the vendored runtime as a
 local patch change. Run the full sync check after updating the vendor tree and
 keep license/version notes aligned with the composed result.
+
+### 0z840. Do Not Count Dependency Metadata In Source Security Ledgers
+
+**The Bug**: The active council scanner included package manifests and lockfiles
+in its source-security candidate count. Dependabot-only edits therefore
+changed the durable ledger count and failed the remediation gate despite no
+application security boundary changing.
+
+**Files Affected**:
+- `scripts/run-council-active-bughunt.sh`
+- `docs/dev/bug-council-active-backlog.md`
+
+**Prevention**: Exclude dependency manifests and lockfiles from source-shape
+scanners. Regenerate the ledger after scanner changes, then verify that a
+dependency-only diff leaves the source candidate counts stable.

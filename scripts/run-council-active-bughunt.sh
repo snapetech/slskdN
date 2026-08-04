@@ -15,6 +15,17 @@ out_dir="${COUNCIL_OUT_DIR:-.council}"
 mkdir -p "$out_dir"
 report="$out_dir/active-bughunt.md"
 
+# Dependency manifests and lockfiles contain large amounts of URLs and field
+# names that are not application security boundaries. Excluding them keeps a
+# dependency-only update from changing the durable source-candidate counts.
+excluded_dependency_paths=(
+  ':(exclude)**/package.json'
+  ':(exclude)**/package-lock.json'
+  ':(exclude)**/*.lock'
+  ':(exclude)**/pnpm-lock.yaml'
+  ':(exclude)**/yarn.lock'
+)
+
 write_section() {
   local title="$1"
   local pattern="$2"
@@ -22,7 +33,7 @@ write_section() {
 
   {
     printf '\n## %s\n' "$title"
-    git ls-files -z -- "$@" |
+    git ls-files -z -- "$@" "${excluded_dependency_paths[@]}" |
       xargs -0 -r rg -n -U --with-filename --pcre2 -- "$pattern" || true
   } >>"$report"
 }
