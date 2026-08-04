@@ -27387,3 +27387,31 @@ exact attempt is below the result thresholds, defer its terminal state until
 the bounded fallback sequence has finished. Keep cancellation, limiter denial,
 fallback launch failure, and normal completion paths responsible for publishing
 the final state exactly once.
+
+### 0z835. Start Processes Before Accessing Redirected Streams
+
+**The Bug**: Chromaprint extraction accessed `Process.StandardError` before
+calling `Process.Start()`, so every fingerprint attempt failed with
+`StandardError has not been redirected` before ffmpeg could report the actual
+audio or decoder problem.
+
+**Files Affected**:
+- `src/slskd/Integrations/Chromaprint/FingerprintExtractionService.cs`
+- `tests/slskd.Tests.Unit/Integrations/Chromaprint/FingerprintExtractionServiceTests.cs`
+
+**Wrong**:
+```csharp
+var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+process.Start();
+```
+
+**Correct**:
+```csharp
+process.Start();
+var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+```
+
+**Why This Keeps Happening**: `ProcessStartInfo` configures redirection, but
+the redirected `StandardOutput` and `StandardError` streams are only available
+after the child process has started. Start the process first, then consume both
+streams concurrently so ffmpeg cannot block on a full stderr pipe.
