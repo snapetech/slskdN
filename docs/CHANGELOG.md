@@ -46,6 +46,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - CI now keeps its build version in `BUILD_VERSION` so MSBuild does not import
   a release label from the environment as an invalid `Version` property during
   release-gate tests.
+- The vendored runtime patch now records the BouncyCastle 2.7.0 dependency
+  bump, keeping the dependency update reproducible under the runtime sync gate.
 
 
 ## [2026080415-slskdn.300] — 2026-08-04

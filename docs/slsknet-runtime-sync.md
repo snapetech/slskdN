@@ -89,4 +89,4 @@ Trust rules:
 
 ## License Impact
 
-The sync adds `BouncyCastle.Cryptography` 2.6.2 to the vendored runtime. Its NuGet metadata declares `MIT`; its package README also notes a modified Bzip2 component under Apache-2.0. Those are permissive licenses and do not introduce copyleft obligations for slskdN.
+The sync adds `BouncyCastle.Cryptography` 2.7.0 to the vendored runtime. Its NuGet metadata declares `MIT`; its package README also notes a modified Bzip2 component under Apache-2.0. Those are permissive licenses and do not introduce copyleft obligations for slskdN.

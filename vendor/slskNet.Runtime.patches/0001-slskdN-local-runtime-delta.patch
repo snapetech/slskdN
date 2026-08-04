@@ -166,7 +166,8 @@ index b09f1e2..292fdbf 100644
      <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 -    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All" />
 +    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" />
-     <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+-    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
++    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
      <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
        <PrivateAssets>all</PrivateAssets>
 diff --git a/vendor/slskNet.Runtime/src/SoulseekClient.cs b/vendor/slskNet.Runtime/src/SoulseekClient.cs

@@ -27478,3 +27478,18 @@ as `Version` and failed with errors such as `2026080316.0.0.0`.
 for workflow artifact and release labels. Pass an explicit `-p:Version` when
 an MSBuild command must run in an environment that already contains a generic
 version variable.
+
+### 0z839. Keep Vendored Runtime Dependency Bumps In The Local Patch
+
+**The Bug**: A Dependabot update changed a package reference inside the
+vendored `slskNet.Runtime` tree, but the declared slskdN composition patch did
+not contain that change. The runtime sync gate reconstructed the source commit
+plus patch and correctly reported content drift.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime.patches/0001-slskdN-local-runtime-delta.patch`
+- `docs/slsknet-runtime-sync.md`
+
+**Prevention**: Treat every dependency edit under the vendored runtime as a
+local patch change. Run the full sync check after updating the vendor tree and
+keep license/version notes aligned with the composed result.
