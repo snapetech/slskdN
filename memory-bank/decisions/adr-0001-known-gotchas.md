@@ -27338,3 +27338,20 @@ persisted search model and file model.
 
 **Prevention**: Use explicit `Soulseek.Search` and `Soulseek.File` type names
 in tests that also import the fork search namespace.
+
+### 0z834. Do Not Publish A Low-Result Search As Complete Before Its Retry
+
+**The Bug**: The bounded Wishlist fallback waits for the exact Soulseek search
+to complete before deciding whether to retry. Publishing that exact terminal
+state immediately can make a one-second Wishlist poller hydrate the incomplete
+low-result payload before the fallback query has started or finished.
+
+**Files Affected**:
+- `src/slskd/Search/SearchService.cs`
+- `tests/slskd.Tests.Unit/Search/SearchServiceLifecycleTests.cs`
+
+**Prevention**: When a Wishlist query has eligible fallback variants and the
+exact attempt is below the result thresholds, defer its terminal state until
+the bounded fallback sequence has finished. Keep cancellation, limiter denial,
+fallback launch failure, and normal completion paths responsible for publishing
+the final state exactly once.
