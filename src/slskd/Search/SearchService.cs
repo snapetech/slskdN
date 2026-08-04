@@ -423,6 +423,8 @@ namespace slskd.Search
                 int soulseekLockedFileCount = 0;
 
                 options ??= new SearchOptions();
+                var smartFallbackMayStart = SmartSearchFallback.IsEnabledForSource(safetySource)
+                    && SmartSearchFallback.CreateQueries(query.SearchText).Count > 0;
                 options = options.WithActions(
                     stateChanged: (args) =>
                     {
@@ -430,10 +432,21 @@ namespace slskd.Search
                         // transition to Completed. if for some reason something goes wrong, we won't see the final Completed
                         // transition, we should instead see the task below throw, in which case it will become
                         // faulted and we'll set the Completed flag manually in the catch block
-                        search = search.WithSoulseekSearch(args.Search);
-                        Update(search);
+                        var deferLowResultCompletion = smartFallbackMayStart
+                            && args.Search.State.HasFlag(SearchStates.Completed)
+                            && SmartSearchFallback.NeedsFallback(
+                                args.Search.ResponseCount,
+                                args.Search.FileCount + args.Search.LockedFileCount,
+                                options.ResponseLimit,
+                                options.FileLimit);
 
-                        SearchHub.BroadcastUpdateAsync(search);
+                        if (!deferLowResultCompletion)
+                        {
+                            search = search.WithSoulseekSearch(args.Search);
+                            Update(search);
+
+                            SearchHub.BroadcastUpdateAsync(search);
+                        }
 
                         Log.Debug("Search for '{Query}' state changed: {State} (id: {Id})", query, search.State, id);
                     },
@@ -478,9 +491,12 @@ namespace slskd.Search
 
                 // initiate the search. this can throw at invocation if there's a problem with
                 // the client state (e.g. disconnected) or a problem with the search (e.g. no terms)
-                var soulseekSearchTask = Client.SearchAsync(
+                var soulseekSearchTask = RunSoulseekSearchAsync(
                     query,
-                    responseHandler: (response) =>
+                    scope,
+                    token,
+                    options,
+                    response =>
                     {
                         lock (responseLock)
                         {
@@ -490,10 +506,9 @@ namespace slskd.Search
                             soulseekLockedFileCount += response.LockedFileCount;
                         }
                     },
-                    scope,
-                    token,
-                    options,
-                    cancellationToken: searchCancellationToken);
+                    searchCancellationToken,
+                    safetySource,
+                    () => smartFallbackMayStart = false);
 
                 // search looks ok so far; let the rest of the logic run asynchronously
                 // on a background thread. this logic needs to clean up after itself and
@@ -722,6 +737,122 @@ namespace slskd.Search
         {
             return exception is OperationCanceledException
                 && (searchCancellationToken.IsCancellationRequested || applicationIsShuttingDown);
+        }
+
+        private Task<Soulseek.Search> RunSoulseekSearchAsync(
+            SearchQuery query,
+            SearchScope scope,
+            int token,
+            SearchOptions options,
+            Action<SearchResponse> responseHandler,
+            CancellationToken cancellationToken,
+            string safetySource,
+            Action fallbackStarted)
+        {
+            // Keep the initial invocation outside an async state machine so
+            // launch-time validation/connection failures preserve StartAsync's
+            // existing synchronous failure contract.
+            var initialSearchTask = Client.SearchAsync(
+                query,
+                responseHandler,
+                scope,
+                token,
+                options,
+                cancellationToken);
+
+            return ContinueSoulseekSearchAsync(
+                initialSearchTask,
+                query,
+                scope,
+                options,
+                responseHandler,
+                cancellationToken,
+                safetySource,
+                fallbackStarted);
+        }
+
+        private async Task<Soulseek.Search> ContinueSoulseekSearchAsync(
+            Task<Soulseek.Search> initialSearchTask,
+            SearchQuery query,
+            SearchScope scope,
+            SearchOptions options,
+            Action<SearchResponse> responseHandler,
+            CancellationToken cancellationToken,
+            string safetySource,
+            Action fallbackStarted)
+        {
+            var soulseekSearch = await initialSearchTask.ConfigureAwait(false);
+
+            if (!SmartSearchFallback.IsEnabledForSource(safetySource) ||
+                !SmartSearchFallback.NeedsFallback(
+                    soulseekSearch.ResponseCount,
+                    soulseekSearch.FileCount + soulseekSearch.LockedFileCount,
+                    options.ResponseLimit,
+                    options.FileLimit))
+            {
+                return soulseekSearch;
+            }
+
+            foreach (var fallbackText in SmartSearchFallback.CreateQueries(query.SearchText))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (!SafetyLimiter.TryConsumeSearch(safetySource))
+                {
+                    Log.Debug(
+                        "Smart Wishlist fallback stopped by the Soulseek safety limiter for '{Query}'",
+                        query.SearchText);
+                    break;
+                }
+
+                fallbackStarted();
+                var fallbackQuery = SearchQuery.FromText(fallbackText);
+                var fallbackOptions = options.WithSearchTimeout(
+                    Math.Min(options.SearchTimeout, SmartSearchFallback.FallbackTimeoutMilliseconds));
+
+                try
+                {
+                    Log.Information(
+                        "Smart Wishlist fallback searching '{FallbackQuery}' after low-result query '{Query}' ({ResponseCount} responses, {FileCount} files)",
+                        fallbackText,
+                        query.SearchText,
+                        soulseekSearch.ResponseCount,
+                        soulseekSearch.FileCount);
+
+                    soulseekSearch = await Client.SearchAsync(
+                        fallbackQuery,
+                        responseHandler,
+                        scope,
+                        Client.GetNextToken(),
+                        fallbackOptions,
+                        cancellationToken).ConfigureAwait(false);
+
+                    if (!SmartSearchFallback.NeedsFallback(
+                            soulseekSearch.ResponseCount,
+                            soulseekSearch.FileCount + soulseekSearch.LockedFileCount,
+                            options.ResponseLimit,
+                            options.FileLimit))
+                    {
+                        break;
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    Log.Debug(
+                        ex,
+                        "Smart Wishlist fallback '{FallbackQuery}' failed after '{Query}': {Message}",
+                        fallbackText,
+                        query.SearchText,
+                        ex.Message);
+                    break;
+                }
+            }
+
+            return soulseekSearch;
         }
 
         internal static bool IsSearchUnavailableDuringLogin(Exception exception)

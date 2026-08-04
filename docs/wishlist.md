@@ -101,6 +101,29 @@ satisfies a bitrate floor, including for mesh-derived results. Mesh discovery
 does not apply Soulseek operator/server term suppression; the user's local
 format, bitrate, path, and peer-ignore filters still apply.
 
+### Smart Low-Result Retry
+
+Wishlist/Lidarr searches keep the exact query as the first attempt. If that
+attempt returns fewer than 10 Soulseek peer responses **and** fewer than 10
+files, slskdN may make up to two additional, sequential Soulseek searches that
+remove only the first or second leading term. This handles operator-suppressed
+artist terms such as:
+
+~~~text
+Linkin Park Meteora
+  -> Park Meteora
+  -> Linkin Meteora
+~~~
+
+The fallback is restricted to Wishlist-originated searches, charges every
+additional search to the existing Soulseek safety limiter, uses a short
+per-query timeout, and stops as soon as a fallback produces enough results.
+Manual, auto-replace, and other search sources are never broadened
+automatically. Queries containing quotes, OR, exclusions, or other explicit
+syntax are also left unchanged. Mesh searches continue to receive the raw
+original query and do not inherit this Soulseek fallback or any Soulseek
+operator term suppression.
+
 For automatic downloads, slskdN first keeps only files that satisfy one
 complete branch, groups them by peer and directory, and chooses the best copy
 of each track name so an album does not enqueue duplicate MP3/FLAC copies. It

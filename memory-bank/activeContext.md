@@ -13026,3 +13026,35 @@ rollback.
   target, identity, remote-tip, and clean-worktree checks all pass.
 - Next steps: none for this follow-up. The existing `.297` stable tag remains
   the latest release; a new tag/build requires an explicit release decision.
+## Update 2026-08-04 14:39:46Z
+
+- Current task: complete. Implemented the tester-requested bounded
+  low-result Soulseek fallback for Wishlist/Lidarr searches.
+- Exact queries run first; only searches with fewer than 10 peer responses and
+  fewer than 10 files may try the first or second leading-term variant,
+  sequentially and through the existing safety limiter. Manual,
+  auto-replace, explicit query syntax, and mesh searches remain unchanged.
+- Added regression coverage for direct SearchService execution, bridged Scene
+  provider execution, candidate generation, search timeout copying, and
+  synchronous launch failure preservation. Updated README, Wishlist/Lidarr
+  guides, changelog, task list, progress log, and gotchas.
+- Next steps:
+  1. Run full backend/frontend validation and lint.
+  2. Commit and push the implementation if validation remains clean.
+  3. Cut a release only if the release action is still desired for this
+     tester follow-up.
+
+## Update 2026-08-04 14:59:21Z
+
+- Current task: complete. The bounded Wishlist/Lidarr low-result fallback now
+  preserves exact-first behavior, respects configured result caps, counts
+  locked files consistently, and defers a low-result terminal state until all
+  eligible retries finish. Mesh/Pod searches retain the raw original query.
+- Validation: focused fallback/lifecycle suite `17/17`; full backend
+  application `74/74`, unit `5052/5052`, integration `284/284`; `./bin/lint`;
+  Web lint with zero errors and four existing disabled-test warnings; target,
+  identity, diff, and active-backlog gates pass.
+- Next steps:
+  1. Commit and push the current implementation and documentation.
+  2. Do not create a new build/release tag without explicit authorization for
+     this follow-up.

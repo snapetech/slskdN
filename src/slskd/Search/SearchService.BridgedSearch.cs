@@ -70,7 +70,8 @@ public sealed partial class SearchService
                 SearchText = query.SearchText,
                 TimeoutSeconds = options?.SearchTimeout / 1000 ?? 15,
                 ResponseLimit = options?.ResponseLimit ?? 100,
-                FileLimit = options?.FileLimit ?? 10000
+                FileLimit = options?.FileLimit ?? 10000,
+                AllowSmartSoulseekFallback = SmartSearchFallback.IsEnabledForSource(safetySource)
             };
 
             // Aggregate results from requested providers (or all if not specified)

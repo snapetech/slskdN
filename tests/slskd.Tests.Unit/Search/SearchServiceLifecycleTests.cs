@@ -548,6 +548,221 @@ public class SearchServiceLifecycleTests
     }
 
     [Fact]
+    public async Task StartAsync_WishlistLowResult_UsesBoundedLeadingTermFallback()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<SearchDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using (var context = new SearchDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var queries = new List<string>();
+        var timeouts = new List<int>();
+        var nextToken = 41;
+        var client = new Mock<ISoulseekClient>();
+        client.Setup(candidate => candidate.GetNextToken()).Returns(() => nextToken++);
+        client
+            .Setup(candidate => candidate.SearchAsync(
+                It.IsAny<SearchQuery>(),
+                It.IsAny<Action<SearchResponse>>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<int?>(),
+                It.IsAny<SearchOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns((
+                SearchQuery searchQuery,
+                Action<SearchResponse> responseHandler,
+                SearchScope searchScope,
+                int? token,
+                SearchOptions searchOptions,
+                CancellationToken? _) =>
+            {
+                queries.Add(searchQuery.SearchText);
+                timeouts.Add(searchOptions.SearchTimeout);
+
+                if (searchQuery.SearchText == "Linkin Park Meteora")
+                {
+                    return Task.FromResult(new Soulseek.Search(
+                        searchQuery,
+                        searchScope,
+                        token ?? 0,
+                        SearchStates.Completed,
+                        responseCount: 0,
+                        fileCount: 0,
+                        lockedFileCount: 0));
+                }
+
+                responseHandler(new SearchResponse(
+                    "fallback-peer",
+                    token ?? 0,
+                    hasFreeUploadSlot: true,
+                    uploadSpeed: 1,
+                    queueLength: 0,
+                    [new Soulseek.File(1, "Linkin Park/Meteora/01.flac", 2_048, "flac")]));
+
+                return Task.FromResult(new Soulseek.Search(
+                    searchQuery,
+                    searchScope,
+                    token ?? 0,
+                    SearchStates.Completed,
+                    responseCount: 10,
+                    fileCount: 10,
+                    lockedFileCount: 0));
+            });
+
+        var safetyLimiter = new Mock<ISoulseekSafetyLimiter>();
+        safetyLimiter.Setup(limiter => limiter.TryConsumeSearch("wishlist")).Returns(true);
+        using var service = new SearchService(
+            CreateSearchHub().Object,
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            client.Object,
+            new SearchDbContextFactory(options),
+            safetyLimiter.Object);
+
+        var searchId = Guid.NewGuid();
+        await service.StartAsync(
+            searchId,
+            SearchQuery.FromText("Linkin Park Meteora"),
+            SearchScope.Network,
+            new SearchOptions(searchTimeout: 15_000),
+            requestedProviders: null,
+            safetySource: "wishlist");
+
+        Assert.True(await WaitUntilAsync(
+            () => GetCancellationTokens(service).IsEmpty,
+            attempts: 120,
+            delayMs: 25));
+
+        Assert.Equal(["Linkin Park Meteora", "Park Meteora"], queries);
+        Assert.Equal([15_000, SmartSearchFallback.FallbackTimeoutMilliseconds], timeouts);
+        safetyLimiter.Verify(limiter => limiter.TryConsumeSearch("wishlist"), Times.Exactly(2));
+
+        await using var verifyContext = new SearchDbContext(options);
+        var persisted = await verifyContext.Searches.AsNoTracking().SingleAsync();
+        Assert.True(persisted.State.HasFlag(SearchStates.Completed));
+        Assert.Equal(1, persisted.ResponseCount);
+        Assert.Equal(1, persisted.FileCount);
+        Assert.Single(persisted.Responses);
+    }
+
+    [Fact]
+    public async Task StartAsync_WishlistLowResult_DefersCompletedStateUntilFallbackFinishes()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<SearchDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using (var context = new SearchDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var fallbackCalled = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fallbackCompletion = new TaskCompletionSource<Soulseek.Search>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var nextToken = 50;
+        var client = new Mock<ISoulseekClient>();
+        client.Setup(candidate => candidate.GetNextToken()).Returns(() => nextToken++);
+        client
+            .Setup(candidate => candidate.SearchAsync(
+                It.IsAny<SearchQuery>(),
+                It.IsAny<Action<SearchResponse>>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<int?>(),
+                It.IsAny<SearchOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns((
+                SearchQuery searchQuery,
+                Action<SearchResponse> _,
+                SearchScope searchScope,
+                int? token,
+                SearchOptions searchOptions,
+                CancellationToken? _) =>
+            {
+                if (searchQuery.SearchText == "Linkin Park Meteora")
+                {
+                    searchOptions.StateChanged?.Invoke((
+                        SearchStates.InProgress,
+                        new Soulseek.Search(
+                            searchQuery,
+                            searchScope,
+                            token ?? 0,
+                            SearchStates.InProgress,
+                            responseCount: 0,
+                            fileCount: 0,
+                            lockedFileCount: 0)));
+                    searchOptions.StateChanged?.Invoke((
+                        SearchStates.InProgress,
+                        new Soulseek.Search(
+                            searchQuery,
+                            searchScope,
+                            token ?? 0,
+                            SearchStates.Completed,
+                            responseCount: 0,
+                            fileCount: 0,
+                            lockedFileCount: 0)));
+
+                    return Task.FromResult(new Soulseek.Search(
+                        searchQuery,
+                        searchScope,
+                        token ?? 0,
+                        SearchStates.Completed,
+                        responseCount: 0,
+                        fileCount: 0,
+                        lockedFileCount: 0));
+                }
+
+                fallbackCalled.TrySetResult(null);
+                return fallbackCompletion.Task;
+            });
+
+        var safetyLimiter = new Mock<ISoulseekSafetyLimiter>();
+        safetyLimiter.Setup(limiter => limiter.TryConsumeSearch("wishlist")).Returns(true);
+        using var service = new SearchService(
+            CreateSearchHub().Object,
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            client.Object,
+            new SearchDbContextFactory(options),
+            safetyLimiter.Object);
+
+        await service.StartAsync(
+            Guid.NewGuid(),
+            SearchQuery.FromText("Linkin Park Meteora"),
+            SearchScope.Network,
+            new SearchOptions(searchTimeout: 15_000),
+            requestedProviders: null,
+            safetySource: "wishlist");
+
+        await fallbackCalled.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await using (var verifyPendingContext = new SearchDbContext(options))
+        {
+            var pending = await verifyPendingContext.Searches.AsNoTracking().SingleAsync();
+            Assert.False(pending.State.HasFlag(SearchStates.Completed));
+        }
+
+        fallbackCompletion.SetResult(new Soulseek.Search(
+            SearchQuery.FromText("Park Meteora"),
+            SearchScope.Network,
+            nextToken,
+            SearchStates.Completed,
+            responseCount: 10,
+            fileCount: 10,
+            lockedFileCount: 0));
+
+        Assert.True(await WaitUntilAsync(
+            () => GetCancellationTokens(service).IsEmpty,
+            attempts: 200,
+            delayMs: 25));
+        await using var verifyContext = new SearchDbContext(options);
+        var completed = await verifyContext.Searches.AsNoTracking().SingleAsync();
+        Assert.True(completed.State.HasFlag(SearchStates.Completed));
+    }
+
+    [Fact]
     public async Task CleanupAsync_WithLargeExpiredSet_UsesBoundedSetBasedDeletesAndBroadcastsEachSearch()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

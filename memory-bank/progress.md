@@ -1,3 +1,25 @@
+## Update 2026-08-04 14:59:21Z
+
+- Completed the final smart-fallback audit: Wishlist/Lidarr low-result retries
+  now respect configured response/file caps, count locked files consistently,
+  and defer the exact low-result terminal state so Wishlist polling cannot
+  consume results before fallback completion.
+- Added lifecycle regression coverage for the deferred state and reran the
+  full backend suite (`74` application, `5052` unit, `284` integration),
+  repository lint, Web lint, target/identity checks, and active-backlog gate.
+
+## Update 2026-08-04 14:39:46Z
+
+- Implemented bounded low-result recovery for Soulseek terms that appear to be
+  operator-suppressed in Wishlist/Lidarr searches.
+- The exact query remains first. Only when both peer responses and files are
+  below 10 do up to two sequential leading-term variants run; each retry uses
+  the safety limiter and a short timeout. Manual, auto-replace, explicit
+  advanced syntax, and mesh queries are unchanged.
+- Added direct SearchService, bridged Scene provider, query-generation,
+  timeout-preservation, and launch-lifecycle regression coverage. Documentation
+  and the changelog now describe the behavior.
+
 ## Update 2026-08-03 15:30:00Z
 
 - Verified the tester's Linkin Park/Metallica concern against the hybrid search

@@ -806,7 +806,7 @@ namespace slskd.Wishlist
             var search = await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist", wishlistItemId: item.Id);
 
             // Poll for search completion (up to 20 seconds)
-            var maxWait = TimeSpan.FromSeconds(20);
+            var maxWait = TimeSpan.FromSeconds(20 + SmartSearchFallback.MaximumAdditionalWaitSeconds);
             var pollInterval = TimeSpan.FromSeconds(1);
             var waited = TimeSpan.Zero;
             slskd.Search.Search? searchState = null;

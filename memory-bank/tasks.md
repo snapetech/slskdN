@@ -9,6 +9,19 @@
 
 ### High Priority
 
+- [x] Add bounded low-result Soulseek fallback for Wishlist/Lidarr searches.
+  - Status: completed (2026-08-04)
+  - Priority: P1
+  - Notes: Exact Wishlist queries now run first; when both peer responses and
+    files remain below 10, up to two sequential variants remove only the first
+    or second leading artist term. The existing safety limiter charges each
+    retry, manual/auto-replace searches remain exact, explicit query syntax is
+    not rewritten, and mesh searches retain the raw query. Configured result
+    caps prevent unnecessary retries, locked files count consistently, and
+    low-result terminal state is deferred until fallback completion. Added
+    direct, bridged-provider, query-generation, timeout, and lifecycle
+    regressions.
+
 - [x] Complete tester follow-up for bitrate-aware Wishlist selection and Lidarr manual import.
   - Status: completed (2026-08-03)
   - Priority: P1

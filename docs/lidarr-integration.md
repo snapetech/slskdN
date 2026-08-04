@@ -100,6 +100,15 @@ deduplicated by track name and ranked for coverage up to the remaining download
 limit, preventing a high-bitrate duplicate from causing a second copy of the
 same track to be queued.
 
+Lidarr-created Wishlist searches also use the bounded low-result Soulseek
+retry. The exact artist/album or artist/album/track query is sent first; only
+when both peer responses and files remain below 10 does slskdN try up to two
+sequential variants that omit the first or second leading artist term. This
+helps recover albums such as Linkin Park Meteora when Soulseek suppresses one
+artist term, while the existing format/bitrate branch still filters the
+returned files. Explicit search syntax is not rewritten, and mesh results are
+not subjected to Soulseek's operator filtering.
+
 For a partial album, slskdN creates one track-level Wishlist item per missing
 track and limits each one to a single automatic enqueue. A peer
 directory may still contain other files in its search response, but the

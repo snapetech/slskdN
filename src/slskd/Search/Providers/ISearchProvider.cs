@@ -64,6 +64,11 @@ public class SearchRequest
     ///     Gets or sets the maximum number of files to accept.
     /// </summary>
     public int? FileLimit { get; set; }
+
+    /// <summary>
+    ///     Gets or sets a value indicating whether the provider may use the bounded Wishlist Soulseek fallback.
+    /// </summary>
+    public bool AllowSmartSoulseekFallback { get; set; }
 }
 
 /// <summary>

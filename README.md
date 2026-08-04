@@ -155,6 +155,7 @@ same request's automatic retry budget.
 Save searches that run automatically in the background. Never miss rare content again.
 - New **Wishlist** item in navigation sidebar
 - Add searches with custom filters and max results
+- Low-result Wishlist/Lidarr searches retry up to two bounded leading-artist-term variants when Soulseek returns fewer than 10 peers and files; manual and auto-replace searches stay exact, and mesh receives the raw query
 - Use structured metadata filters such as `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256`; bulk-edit filters on selected existing items atomically without re-adding them
 - Toggle auto-download, configurable interval, track matches and run history
 - Manual "Run Now" button for each search
@@ -447,6 +448,7 @@ Optional metadata enrichment and library quality checks.
 ### 🎛️ Built-in Lidarr Integration
 Lidarr is a first-class slskdN integration. No Lidarr plugin is required: slskdN talks to Lidarr's supported HTTP API, turns Wanted/Missing albums and tracks into quality-aware Wishlist searches, downloads through the normal Soulseek queue, and can hand completed files back to Lidarr for safe import.
 - **Wanted sync** — pulls Lidarr Wanted/Missing albums into slskdN Wishlist searches
+- **Suppressed-term recovery** — exact artist/album queries run first; low-result Wishlist searches can try up to two bounded leading-artist-term variants, while explicit query syntax and mesh searches remain untouched
 - **Quality-aware searches** — derives independent multi-format/bitrate Wishlist branches from the Lidarr quality profile, such as `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256 OR flac`; automatic selection uses codec-aware quality and album coverage, and the configured filter remains the fallback
 - **Partial-album reconciliation** — tracks albums with existing files and creates one bounded Wishlist target per missing track instead of searching the complete album again
 - **Durable tracking** — remembers Lidarr album and track IDs, updates existing targets, and disables stale targets during later syncs

@@ -129,6 +129,29 @@ namespace slskd.Search
         }
 
         /// <summary>
+        ///     Returns a copy of the specified <paramref name="options"/> with a different timeout.
+        /// </summary>
+        /// <param name="options">The search options to copy.</param>
+        /// <param name="searchTimeout">The timeout in milliseconds.</param>
+        /// <returns>The copied search options.</returns>
+        public static SearchOptions WithSearchTimeout(this SearchOptions options, int searchTimeout)
+        {
+            return new SearchOptions(
+                searchTimeout: searchTimeout,
+                responseLimit: options.ResponseLimit,
+                filterResponses: options.FilterResponses,
+                minimumResponseFileCount: options.MinimumResponseFileCount,
+                maximumPeerQueueLength: options.MaximumPeerQueueLength,
+                minimumPeerUploadSpeed: options.MinimumPeerUploadSpeed,
+                fileLimit: options.FileLimit,
+                removeSingleCharacterSearchTerms: options.RemoveSingleCharacterSearchTerms,
+                responseFilter: options.ResponseFilter,
+                fileFilter: options.FileFilter,
+                stateChanged: options.StateChanged,
+                responseReceived: options.ResponseReceived);
+        }
+
+        /// <summary>
         ///     Creates a projection over the specified <paramref name="query"/> which omits responses.
         /// </summary>
         /// <param name="query"></param>

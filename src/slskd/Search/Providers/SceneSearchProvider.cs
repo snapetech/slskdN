@@ -49,29 +49,71 @@ public class SceneSearchProvider : ISearchProvider
 
         try
         {
-            var query = SearchQuery.FromText(request.SearchText);
             var scope = SearchScope.Network;
-
-            var searchOptions = new SearchOptions(
-                searchTimeout: (request.TimeoutSeconds ?? 15) * 1000,
-                responseLimit: request.ResponseLimit ?? 100,
-                fileLimit: request.FileLimit ?? 10000,
-                filterResponses: true,
-                minimumResponseFileCount: 1);
-
             var responses = new List<Soulseek.SearchResponse>();
+            var timeoutMilliseconds = Math.Max(1, request.TimeoutSeconds ?? 15) * 1000;
+            var responseLimit = request.ResponseLimit ?? 100;
+            var fileLimit = request.FileLimit ?? 10000;
+            var queryTexts = request.AllowSmartSoulseekFallback
+                ? new[] { request.SearchText }.Concat(SmartSearchFallback.CreateQueries(request.SearchText))
+                : new[] { request.SearchText };
 
-            // Use timeout to prevent blocking pod provider
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(request.TimeoutSeconds ?? 15));
+            foreach (var (queryText, queryIndex) in queryTexts.Select((text, index) => (text, index)))
+            {
+                if (queryIndex > 0 && !_safetyLimiter.TryConsumeSearch("scene-provider"))
+                {
+                    _logger.LogDebug(
+                        "[SceneProvider] Smart Wishlist fallback stopped by the Soulseek safety limiter for '{Query}'",
+                        request.SearchText);
+                    break;
+                }
 
-            await _soulseekClient.SearchAsync(
-                query,
-                responseHandler: (response) => responses.Add(response),
-                scope,
-                token: _soulseekClient.GetNextToken(),
-                options: searchOptions,
-                cancellationToken: timeoutCts.Token);
+                var query = SearchQuery.FromText(queryText);
+                var queryResponses = new List<Soulseek.SearchResponse>();
+                var queryTimeout = queryIndex == 0
+                    ? timeoutMilliseconds
+                    : Math.Min(timeoutMilliseconds, SmartSearchFallback.FallbackTimeoutMilliseconds);
+
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeoutCts.CancelAfter(queryTimeout);
+
+                try
+                {
+                    await _soulseekClient.SearchAsync(
+                        query,
+                        responseHandler: response =>
+                        {
+                            queryResponses.Add(response);
+                            responses.Add(response);
+                        },
+                        scope,
+                        token: _soulseekClient.GetNextToken(),
+                        options: new SearchOptions(
+                            searchTimeout: queryTimeout,
+                            responseLimit: responseLimit,
+                            fileLimit: fileLimit,
+                            filterResponses: true,
+                            minimumResponseFileCount: 1),
+                        cancellationToken: timeoutCts.Token);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogDebug("[SceneProvider] Search timed out for '{Query}'", queryText);
+                }
+
+                if (!SmartSearchFallback.NeedsFallback(
+                        queryResponses.Count,
+                        queryResponses.Sum(response => response.FileCount + response.LockedFileCount),
+                        responseLimit,
+                        fileLimit))
+                {
+                    break;
+                }
+            }
 
             // Convert Soulseek responses to SearchResult with provenance
             // Group files by response to create one SearchResult per response
