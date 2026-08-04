@@ -27571,3 +27571,26 @@ completed results.
 current persisted `Enabled` and `AutoDownload` values with a fresh no-tracking
 projection. Treat the latest persisted state as authoritative over the stale
 entity captured when the search began.
+
+### 0z843. Match the Node Runtime To Major Frontend Test Dependencies
+
+**The Bug**: The jsdom 30 Dependabot update was tested on Node 20, although
+jsdom 30 and its undici dependency require Node 22.22.2 or newer. Vitest then
+failed every browser-environment worker with
+`webidl.util.markAsUncloneable is not a function`.
+
+**Files Affected**:
+- `.github/workflows/ci.yml`
+- `.github/workflows/e2e-tests.yml`
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-*.yml`
+- `.github/workflows/windows-smoke.yml`
+- `src/web/package.json`
+- `src/web/package-lock.json`
+- `docs/build.md`
+- `docs/dev/e2e-testing-guide.md`
+
+**Prevention**: Keep the Node version in CI, release workflows, frontend
+package metadata, lockfile root metadata, and build/test documentation aligned
+with the strictest supported frontend dependency engine range. Re-run the
+frontend tests after any major jsdom or undici update.

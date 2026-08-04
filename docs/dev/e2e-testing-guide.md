@@ -99,8 +99,8 @@ tests/e2e/
 ### Prerequisites
 
 ```bash
-# Node.js 18+ (for Playwright)
-node --version  # Should be 18+
+# Node.js 22.22.2+ (for the frontend and Playwright)
+node --version  # Should be 22.22.2+
 
 # .NET 10.0 SDK (for building slskdn)
 dotnet --version  # Should be 10.0.x
@@ -182,7 +182,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.22.2'
           cache: 'npm'
           cache-dependency-path: tests/e2e/package-lock.json
       

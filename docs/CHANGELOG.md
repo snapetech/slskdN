@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Raised the frontend build and test Node.js baseline to 22.22.2, required by
+  the jsdom 30 dependency update.
 - Empty `SLSKD_*` environment variables are now ignored by the configuration
   provider, allowing Docker and Unraid templates to expose blank optional
   fields without overriding YAML/default values or causing Boolean binding
