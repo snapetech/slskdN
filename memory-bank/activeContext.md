@@ -1,3 +1,39 @@
+## Update 2026-08-04 20:35:00Z
+
+- Current task: complete. Fixed tester-reported Chromaprint fingerprint failures
+  and improved decoder diagnostics.
+- Last activity:
+  - Corrected `FingerprintExtractionService` to start ffmpeg before reading its
+    redirected stderr stream, added child cleanup on bounded-read cancellation,
+    and retained useful ffmpeg diagnostics.
+  - Preserved exception detail in HashDb metadata activity and made SongID
+    capability checks honor custom absolute ffmpeg paths.
+  - Added configuration/troubleshooting documentation, focused regression tests,
+    changelog/task/progress updates, and ADR-0001 gotcha `0z835`.
+- Validation:
+  - Focused Chromaprint and SongID tests pass: `9` passed.
+  - `git diff --check` passes.
+- Next steps:
+  1. Run the full repository lint and test gates before merging this work with
+     the concurrent Docker/Unraid configuration changes.
+  2. Deploy/retest a failed audio file; the previous `StandardError` message
+     should be replaced by any real ffmpeg diagnostic or a successful fingerprint.
+
+## Update 2026-08-04 20:45:00Z
+
+- Current task: paused release commit to fix tester-reported HTTPS login errors.
+- Last activity:
+  - Confirmed Firefox/LibreWolf was rejecting HTTP's non-secure replacement of
+    the HTTPS `XSRF-COOKIE-{port}` because cookies are host-scoped rather than
+    port- or scheme-scoped.
+  - Changed antiforgery cookie issuance and cleanup to use `Secure` consistently
+    for mixed HTTP/HTTPS deployments, suppressing HTTP minting while preserving
+    HTTP-only behavior, added a regression test, and documented clearing old
+    site data plus trusting/configuring the HTTPS certificate.
+- Next steps:
+  1. Run focused/full tests and lint.
+  2. Resume the requested all-files commit/push after validation.
+
 ## Update 2026-08-01 17:09:04Z
 
 - Current task: complete repository-side remediation for the Unraid Community
@@ -13058,3 +13094,13 @@ rollback.
   1. Commit and push the current implementation and documentation.
   2. Do not create a new build/release tag without explicit authorization for
      this follow-up.
+## Update 2026-08-04 20:15:00Z
+
+- Current task: complete. Fixed the reported Docker/Unraid startup loop caused
+  by blank optional environment variables overriding Boolean configuration.
+- Empty `SLSKD_*` values are now omitted by the custom environment provider;
+  non-empty values still override YAML/defaults. Added focused regression tests,
+  Docker/Unraid/configuration docs, and ADR-0001 gotchas `0z836` through `0z837`.
+- Next steps:
+  1. No release/tag is part of this bug-fix request unless separately
+     authorized.

@@ -91,6 +91,30 @@ public sealed class SongIdCapabilityReporterTests
         AssertReasonContains(capabilities, "c2pa_provenance", "install-optional-media-tools");
     }
 
+    [Fact]
+    public async Task GetCapabilities_UsesConfiguredAbsoluteFfmpegPath()
+    {
+        var options = new slskd.Options
+        {
+            Integration = new slskd.Options.IntegrationOptions
+            {
+                Chromaprint = new slskd.Options.IntegrationOptions.ChromaprintOptions
+                {
+                    Enabled = true,
+                    FfmpegPath = "/opt/media/ffmpeg",
+                },
+            },
+        };
+        var reporter = new SongIdCapabilityReporter(
+            new TestOptionsMonitor<slskd.Options>(options),
+            (_, _) => Task.FromResult(false),
+            path => path == "/opt/media/ffmpeg");
+
+        var capabilities = await reporter.GetCapabilitiesAsync(CancellationToken.None);
+
+        AssertCapability(capabilities, "chromaprint_fingerprint", available: true, status: "experimental");
+    }
+
     private static void AssertCapability(
         IReadOnlyList<SongIdCapability> capabilities,
         string id,

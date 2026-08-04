@@ -254,6 +254,12 @@ shares:
     - /ebooks
 ```
 
+Optional Docker or Unraid template fields may appear in the container
+environment as empty variables, for example `SLSKD_HEADLESS=`. Empty
+`SLSKD_*` values are intentionally ignored, so they do not replace Boolean,
+numeric, or path values from `slskd.yml` or the image defaults. Set an explicit
+non-empty value when you want an environment variable override.
+
 You can achieve the same configuration by setting the `SLSKD_SHARED_DIR` environment variable in the `docker run` command:
 
 ```shell

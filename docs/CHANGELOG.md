@@ -22,6 +22,25 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Empty `SLSKD_*` environment variables are now ignored by the configuration
+  provider, allowing Docker and Unraid templates to expose blank optional
+  fields without overriding YAML/default values or causing Boolean binding
+  failures during startup.
+- Audited the Unraid template: stale Pushbullet/proxy variable names were
+  corrected, and the shares media-attribute environment mapping no longer
+  duplicates the `SLSKD_` prefix.
+- Unraid now keeps incomplete downloads under the writable `/app/incomplete`
+  directory instead of overriding them to `/downloads/incomplete`, which may
+  not exist when only the `/downloads` host share is mounted.
+- Fixed Chromaprint extraction failing before ffmpeg started because redirected
+  stderr was accessed too early. Fingerprint processing now starts ffmpeg before
+  consuming redirected streams, preserves decoder diagnostics in the metadata
+  activity panel, and correctly reports custom absolute ffmpeg paths.
+- Fixed HTTP/HTTPS antiforgery-cookie collisions. HTTPS now issues secure
+  antiforgery cookies, while the optional HTTP listener does not mint them when
+  HTTPS is enabled, so Firefox/LibreWolf no longer reject the HTTPS cookie after
+  visiting HTTP. HTTP-only deployments retain scheme-appropriate cookies.
+
 
 ## [2026080415-slskdn.300] — 2026-08-04
 

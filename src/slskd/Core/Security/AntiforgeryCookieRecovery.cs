@@ -91,11 +91,16 @@ public static class AntiforgeryCookieRecovery
             Secure = context.Request.IsHttps,
             SameSite = SameSiteMode.Strict,
         };
-
-        context.Response.Cookies.Delete($"XSRF-COOKIE-{webPort}", options);
-        context.Response.Cookies.Delete($"XSRF-TOKEN-{webPort}", options);
-        context.Response.Cookies.Delete("XSRF-COOKIE", options);
-        context.Response.Cookies.Delete("XSRF-TOKEN", options);
+        foreach (var cookieName in new[]
+        {
+            $"XSRF-COOKIE-{webPort}",
+            $"XSRF-TOKEN-{webPort}",
+            "XSRF-COOKIE",
+            "XSRF-TOKEN",
+        })
+        {
+            context.Response.Cookies.Delete(cookieName, options);
+        }
     }
 
     private static bool IsKnownCookieName(string cookieName, int webPort)

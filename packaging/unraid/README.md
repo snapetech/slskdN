@@ -15,7 +15,7 @@ The old **Settings → Docker → Template Repositories** instructions are obsol
 | Setting | Container Path | Default / Recommendation |
 |---------|---------------|-------------------|
 | App Data | `/app` | `/mnt/user/appdata/slskdn` |
-| Downloads | `/downloads` | Choose a share and directory |
+| Downloads | `/downloads` | Choose a share and directory before starting |
 | Music Library | `/music` | Optional; choose a read-only share and directory |
 
 ## Default Ports
@@ -62,6 +62,17 @@ metrics, notifications, logging, and integrations. The complete variable
 reference is in [`docs/config.md`](../../docs/config.md). Runtime-only
 `SLSKD_SCRIPT_DATA` and image metadata variables such as `SLSKD_DOCKER_TAG` are
 not user configuration fields.
+
+Blank optional variable fields may be passed by Unraid as variables such as
+`SLSKD_HEADLESS=`. slskdN treats empty `SLSKD_*` values as unset, so they do not
+cause Boolean or numeric configuration-binding errors and do not override the
+YAML or image default. Enter an explicit value when an override is wanted.
+
+Downloads is a required Unraid path field and must be filled with the share and
+directory you want to use before the container is started. Completed files use
+`/downloads`; incomplete files use `/app/incomplete`, which is created in the
+writable App Data mapping. Music Library remains optional; leave it unmounted
+when no read-only share should be exposed.
 
 Image-managed Docker runtime settings are also visible in the advanced section
 with their safe image defaults. Do not combine `PUID`/`PGID` with a Docker

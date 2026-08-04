@@ -65,7 +65,7 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
-### 0z817. Empty Optional Environment Variables Must Be Ignored
+### 0z836. Empty Optional Environment Variables Must Be Ignored
 
 **The Bug**: Docker/Unraid templates exposed optional `SLSKD_*` fields with
 blank values, and the custom environment configuration provider treated those
@@ -96,6 +96,36 @@ optional field as an environment variable whose value is `""`, but .NET
 configuration binding distinguishes an empty string from an absent key. Empty
 optional overrides must therefore be omitted so YAML and built-in defaults can
 remain authoritative.
+
+### 0z821. Unraid Required Paths And Prefixed Environment Names Must Match
+
+**The Bug**: Several Unraid template targets copied the attribute text instead
+of the application's effective environment names. This silently ignored
+settings such as Pushbullet tokens and proxy enablement.
+
+**Files Affected**:
+- `packaging/unraid/slskdn.xml`
+- `src/slskd/Core/Options.cs`
+- `docs/config.md`
+
+**Prevention**: Required `Type="Path"` entries must be marked required and
+documented as needing a user-selected host path before startup. The custom
+provider prepends `SLSKD_` to
+`EnvironmentVariable` attribute names, so source attributes should use the
+unprefixed option name and template/docs targets must use the resulting
+`SLSKD_*` name exactly.
+
+### 0z837. Unraid Incomplete Downloads Must Use A Prepared Writable Directory
+
+**The Bug**: The Unraid template set `SLSKD_INCOMPLETE_DIR=/downloads/incomplete`
+while only `/downloads` was mounted. The application validates configured
+directories before startup, and the container entrypoint does not create
+arbitrary subdirectories beneath user mounts, so the container could fail until
+the user deleted the override.
+
+**Prevention**: Keep completed downloads on the user-selected `/downloads`
+mount, but place incomplete files under `/app/incomplete`, which startup
+directory preparation creates and validates in the writable app-data mount.
 
 ### 0z816. Do Not Serialize Empty Required Integration Values
 
@@ -27415,3 +27445,21 @@ var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
 the redirected `StandardOutput` and `StandardError` streams are only available
 after the child process has started. Start the process first, then consume both
 streams concurrently so ffmpeg cannot block on a full stderr pipe.
+
+### 0z837. Do Not Mint Secure Cookies From HTTP
+
+**The Bug**: Making antiforgery cookies `Secure` unconditionally caused the
+HTTP listener to attempt to set a secure cookie. Browsers can reject secure
+cookies received over HTTP, while an existing non-secure cookie from an older
+HTTP visit can collide with the HTTPS cookie and produce a login network error.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+- `src/slskd/Bootstrap/WebApplicationPipelineExtensions.cs`
+- `src/slskd/Core/Security/AntiforgeryCookieRecovery.cs`
+- `tests/slskd.Tests.Unit/ProgramPathNormalizationTests.cs`
+
+**Prevention**: When HTTPS is enabled, mint antiforgery cookies only on HTTPS
+requests and configure the framework cookie as `Secure` for that deployment.
+Keep scheme-appropriate deletion for stale cookies, and retain
+`SameAsRequest` behavior for intentionally HTTP-only deployments.

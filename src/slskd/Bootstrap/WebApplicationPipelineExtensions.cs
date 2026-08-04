@@ -158,6 +158,14 @@ public static class WebApplicationPipelineExtensions
                         Core.Security.AntiforgeryCookieRecovery.ClearKnownCookies(context, optionsAtStartup.Web.Port);
                     }
 
+                    // When HTTPS is enabled, do not mint cookies from the optional HTTP listener. Browsers
+                    // may reject Secure cookies set over HTTP, and the JWT-based UI does not need CSRF tokens there.
+                    if (!context.Request.IsHttps && !optionsAtStartup.Web.Https.Disabled)
+                    {
+                        await next();
+                        return;
+                    }
+
                     // Only mint/store tokens on safe requests. Rotating them on the same unsafe request that
                     // later validates them can invalidate the frontend's header/cookie pair mid-flight.
                     var tokens = Core.Security.AntiforgeryCookieRecovery.TryGetAndStoreTokens(

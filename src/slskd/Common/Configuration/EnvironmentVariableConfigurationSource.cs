@@ -111,7 +111,7 @@ namespace slskd.Configuration
                             // retrieve the corresponding value from environment variables
                             var value = Environment.GetEnvironmentVariable(Prefix + name);
 
-                            if (value != null)
+                            if (!string.IsNullOrEmpty(value))
                             {
                                 // if the type of the backing property is an array,
                                 // split the retrieved value by semicolon and add the parts to

@@ -1,3 +1,38 @@
+## Update 2026-08-04 20:35:00Z
+
+- Fixed Chromaprint's `StandardError has not been redirected` failure by starting
+  ffmpeg before accessing redirected streams. Extraction now terminates the
+  child process if bounded PCM reading or waiting is cancelled/fails, and logs
+  a useful fallback when ffmpeg emits no diagnostics.
+- Metadata processing history now retains the exception message, including
+  ffmpeg decoder stderr. SongID capability reporting honors a custom absolute
+  `integration.chromaprint.ffmpeg_path`.
+- Added Chromaprint configuration/troubleshooting documentation, a YAML example,
+  focused process-order and custom-path tests, changelog entry, and ADR-0001
+  gotcha `0z835`.
+- Validation: focused unit tests pass (`9`), and `git diff --check` passes.
+
+## Update 2026-08-04 20:45:00Z
+
+- Fixed the tester-reported Firefox/LibreWolf HTTPS login symptom caused by
+  HTTP and HTTPS listeners competing over host-scoped `XSRF-COOKIE-{port}`
+  cookies. Antiforgery cookies and cleanup responses now use `Secure` on both
+  listeners, so HTTP cannot replace an established HTTPS cookie.
+- Added unit coverage for secure cookie deletion from an HTTP request and
+  documented browser site-data/certificate remediation.
+- Preserved the intentional HTTP-only configuration: it still uses
+  `SameAsRequest` cookies, while mixed HTTP/HTTPS deployments use secure cookie
+  configuration and mint tokens only from HTTPS.
+
+## Update 2026-08-04 20:15:00Z
+
+- Fixed Docker/Unraid startup failures caused by blank optional variables such
+  as `SLSKD_HEADLESS=` overriding YAML/default Boolean values with an empty
+  string. The custom environment configuration provider now ignores empty
+  values while preserving non-empty overrides.
+- Added focused configuration regression coverage, Docker/Unraid/configuration
+  documentation, and ADR-0001 gotchas `0z836` through `0z837`.
+
 ## Update 2026-08-04 14:59:21Z
 
 - Completed the final smart-fallback audit: Wishlist/Lidarr low-result retries

@@ -549,6 +549,20 @@ public class ProgramPathNormalizationTests
     }
 
     [Fact]
+    public void ClearKnownAntiforgeryCookies_UsesSecureDeletion_FromHttpRequests()
+    {
+        var port = new OptionsAtStartup().Web.Port;
+        var context = new DefaultHttpContext();
+        context.Request.Scheme = "http";
+
+        AntiforgeryCookieRecovery.ClearKnownCookies(context, port);
+
+        Assert.All(
+            context.Response.Headers.SetCookie,
+            value => Assert.Contains("; secure", value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void TryGetAndStoreAntiforgeryTokens_Retries_AfterClearingDirectCryptographicFailure()
     {
         var port = new OptionsAtStartup().Web.Port;

@@ -63,22 +63,36 @@ namespace slskd.Integrations.Chromaprint
             var psi = CreateProcessStartInfo(options, filePath);
             using var process = new Process { StartInfo = psi };
 
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
             process.Start();
+            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
             var maxPcmBytes = GetMaximumPcmBytes(options);
-            var bytes = await ReadBoundedPcmAsync(process.StandardOutput.BaseStream, maxPcmBytes, cancellationToken).ConfigureAwait(false);
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            byte[] bytes;
+            try
+            {
+                bytes = await ReadBoundedPcmAsync(process.StandardOutput.BaseStream, maxPcmBytes, cancellationToken).ConfigureAwait(false);
+                await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+
+                throw;
+            }
+
             var stderr = await stderrTask.ConfigureAwait(false);
 
             if (process.ExitCode != 0)
             {
-                log.LogWarning("ffmpeg exited with code {Code} ({Message}) while decoding {File}", process.ExitCode, stderr.Trim(), filePath);
+                log.LogWarning("ffmpeg exited with code {Code} ({Message}) while decoding {File}", process.ExitCode, FormatDiagnostic(stderr), filePath);
             }
 
             if (bytes.Length == 0)
             {
-                throw new InvalidOperationException($"ffmpeg produced no PCM output for {filePath}. ffmpeg stderr: {stderr}");
+                throw new InvalidOperationException($"ffmpeg produced no PCM output for {filePath}. ffmpeg stderr: {FormatDiagnostic(stderr)}");
             }
 
             if (bytes.Length % sizeof(short) != 0)
@@ -93,6 +107,12 @@ namespace slskd.Integrations.Chromaprint
             Buffer.BlockCopy(bytes, 0, samples, 0, bytes.Length);
 
             return chromaprint.GenerateFingerprint(samples, options.SampleRate, options.Channels);
+        }
+
+        internal static string FormatDiagnostic(string? diagnostic)
+        {
+            var trimmed = diagnostic?.Trim();
+            return string.IsNullOrEmpty(trimmed) ? "(no diagnostic output)" : trimmed;
         }
 
         internal static int GetMaximumPcmBytes(ChromaprintOptions options)

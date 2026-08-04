@@ -328,7 +328,7 @@ namespace slskd.HashDb
                     catch (Exception ex)
                     {
                         log.Warning(ex, "[HashDb] Fingerprint extraction failed for {Filename}", localFilename);
-                        FinishMetadataStage(fingerprintStage, "failed", $"Fingerprint extraction failed ({ex.GetType().Name})");
+                        FinishMetadataStage(fingerprintStage, "failed", $"Fingerprint extraction failed: {ex.GetType().Name}: {ex.Message}");
                     }
                 }
                 else

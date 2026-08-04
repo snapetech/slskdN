@@ -9,6 +9,32 @@
 
 ### High Priority
 
+- [x] Fix HTTP/HTTPS secure antiforgery-cookie collisions.
+  - Status: completed (2026-08-04)
+  - Priority: P1
+  - Notes: Both listeners now issue secure antiforgery cookies, preventing
+    browser rejection when the same host is accessed through HTTP and HTTPS.
+    HTTP does not mint cookies when HTTPS is enabled, HTTP-only deployments
+    retain their prior behavior, and cleanup regression coverage plus HTTPS
+    troubleshooting guidance were added. Gotcha `0z837`.
+
+- [x] Fix Chromaprint extraction failures and improve decoder diagnostics.
+  - Status: completed (2026-08-04)
+  - Priority: P1
+  - Notes: ffmpeg is now started before redirected stderr is consumed, bounded
+    extraction kills the child on cancellation/stream failure, metadata
+    activity preserves the exception and decoder detail, and capability checks
+    honor custom absolute ffmpeg paths. Added focused regression coverage,
+    configuration/troubleshooting guidance, and gotcha `0z835`.
+
+- [x] Fix empty optional Docker/Unraid environment overrides.
+  - Status: completed (2026-08-04)
+  - Priority: P1
+  - Notes: Empty values emitted by optional `SLSKD_*` template fields are now
+    ignored by the custom environment configuration provider, preserving YAML
+    and built-in defaults. Added Boolean binding regressions, Docker/Unraid
+    documentation, and gotchas `0z836` through `0z837`.
+
 - [x] Add bounded low-result Soulseek fallback for Wishlist/Lidarr searches.
   - Status: completed (2026-08-04)
   - Priority: P1

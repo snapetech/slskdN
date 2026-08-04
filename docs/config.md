@@ -28,6 +28,18 @@ Environment variables are loaded after defaults. Each environment variable name 
 
 Environment variables are ideal for use cases involving Docker where configuration is expected to be changed neither often nor remotely.
 
+An environment variable that is present with an empty value, such as
+`SLSKD_HEADLESS=`, is treated as unset. This is intentional for container
+templates that expose optional settings as blank fields: the YAML value or
+built-in default remains in effect. Set a non-empty value such as `true` or
+`false` when you want an environment variable to override a Boolean option.
+
+The same rule applies to empty numeric, path, array, and secret overrides.
+Required host bind mounts are different: Docker/Unraid templates must provide
+a valid host path before the container can start. In the Unraid template,
+`/downloads` is deliberately a required user-selected path rather than a
+guessed host share.
+
 Some options are backed by arrays or lists and allow multiple options to be set via a single environment variable. To achieve this, separate each list item by a semicolon `;` in the value:
 
 ```
@@ -916,7 +928,7 @@ An address and port must also be specified if the proxy is enabled.
 
 | Command-Line            | Environment Variable        | Description                              |
 | ----------------------- | --------------------------- | ---------------------------------------- |
-| `--slsk-proxy`          | `SLSKD_SLSK_PROXY`          | Determines whether a proxy is to be used |
+| `--slsk-proxy`          | `SLSKD_SLSK_PROXY_ENABLED`  | Determines whether a proxy is to be used |
 | `--slsk-proxy-address`  | `SLSKD_SLSK_PROXY_ADDRESS`  | The proxy address                        |
 | `--slsk-proxy-port`     | `SLSKD_SLSK_PROXY_PORT`     | The proxy port                           |
 | `--slsk-proxy-username` | `SLSKD_SLSK_PROXY_USERNAME` | The proxy username, if applicable        |
@@ -1248,6 +1260,42 @@ integrations:
 
 System-defined integrations are part of the application logic.  Users can configure settings, but don't have any control over behavior.
 
+### Chromaprint and AcoustID
+
+Chromaprint fingerprinting is opt-in. When enabled, completed audio downloads
+are decoded with the configured `ffmpeg` executable, fingerprinted with the
+native `chromaprint` library, and stored in HashDb. AcoustID lookup is a
+separate opt-in step that uses the resulting fingerprint and requires an
+AcoustID client ID.
+
+```yaml
+integrations:
+  chromaprint:
+    enabled: true
+    ffmpeg_path: ffmpeg
+    sample_rate: 44100
+    channels: 2
+    duration_seconds: 120
+  acoustid:
+    enabled: true
+    client_id: "your-acoustid-client-id"
+```
+
+The `ffmpeg_path` value may be a command available on `PATH` or an absolute
+path. In Docker, the standard image includes `ffmpeg` and the native
+Chromaprint library. The System -> Integrations metadata-processing panel
+shows each fingerprint attempt and preserves the failure detail, including
+ffmpeg's diagnostic output when decoding fails.
+
+When both the built-in HTTP and HTTPS listeners are enabled, slskdN marks
+antiforgery cookies as `Secure` on HTTPS and does not mint them from HTTP.
+Browsers scope cookies by host rather than port or scheme; this prevents an HTTP
+response from trying to replace the HTTPS cookie and producing Firefox/LibreWolf errors such as
+`Cookie XSRF-COOKIE-5030 has been rejected because there is an existing secure
+cookie`. Authenticated UI requests use the JWT returned by login, so this does
+not prevent the optional HTTP listener from being used. When HTTPS is disabled,
+the HTTP-only deployment continues to use non-secure antiforgery cookies.
+
 ### Lidarr
 
 Lidarr is a first-class slskdN integration for music acquisition. slskdN uses
@@ -1362,8 +1410,8 @@ Notification API calls are made up to the maximum configured retry count and the
 | Command-Line                          | Environment Variable                         | Description                                                                                        |
 | ------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `--pushbullet`                        | `SLSKD_PUSHBULLET`                           | Determines whether Pushbullet integration is enabled                                               |
-| `--pushbullet-token`                  | `SLSKD_PUSHBULLET_TOKEN`                     | The Pushbullet API access token                                                                    |
-| `--pushbullet-prefix`                 | `SLSKD_PUSHBULLET_PREFIX`                    | The prefix for notification titles                                                                 |
+| `--pushbullet-token`                  | `SLSKD_PUSHBULLET_ACCESS_TOKEN`              | The Pushbullet API access token                                                                    |
+| `--pushbullet-prefix`                 | `SLSKD_PUSHBULLET_NOTIFICATION_PREFIX`      | The prefix for notification titles                                                                 |
 | `--pushbullet-notify-on-pm`           | `SLSKD_PUSHBULLET_NOTIFY_ON_PRIVATE_MESSAGE` | Determines whether to send a notification when a private message is received                       |
 | `--pushbullet-notify-on-room-mention` | `SLSKD_PUSHBULLET_NOTIFY_ON_ROOM_MENTION`    | Determines whether to send a notification when the current user's name is mentioned in a chat room |
 | `--pushbullet-retry-attempts`         | `SLSKD_PUSHBULLET_RETRY_ATTEMPTS`            | The number of times failing API calls will be retried                                              |

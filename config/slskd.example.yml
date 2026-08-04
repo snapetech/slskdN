@@ -474,6 +474,15 @@
 #  max_relay_duration_seconds: 300
 #  trusted_certificate_pins: {} # { "203.0.113.10:50401": ["base64-spki-sha256"] }; required for outbound data-plane QUIC.
 #integrations:
+#  chromaprint:
+#    enabled: false
+#    ffmpeg_path: ffmpeg          # executable used to decode audio for fingerprints
+#    sample_rate: 44100
+#    channels: 2
+#    duration_seconds: 120
+#  acoustid:
+#    enabled: false
+#    client_id: ""
 #  vpn:
 #    enabled: false
 #    port_forwarding: false

@@ -1043,7 +1043,7 @@ namespace slskd
             ///     Gets a value indicating whether share scans should probe audio files for bitrate, length, sample rate, and bit depth.
             /// </summary>
             [Argument(default, "shares-probe-media-attributes")]
-            [EnvironmentVariable("SLSKD_SHARES_PROBE_MEDIA_ATTRIBUTES")]
+            [EnvironmentVariable("SHARES_PROBE_MEDIA_ATTRIBUTES")]
             [Description("probe shared audio files for media attributes during share scans")]
             public bool ProbeMediaAttributes { get; init; } = true;
 

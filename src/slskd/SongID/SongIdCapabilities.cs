@@ -52,7 +52,8 @@ public sealed class SongIdCapabilityReporter : ISongIdCapabilityReporter
     {
         var currentOptions = options.CurrentValue;
         var ytDlp = await commandExists("yt-dlp", cancellationToken).ConfigureAwait(false);
-        var ffmpeg = await commandExists("ffmpeg", cancellationToken).ConfigureAwait(false);
+        var configuredFfmpegPath = currentOptions.Integration.Chromaprint.FfmpegPath;
+        var ffmpeg = await IsConfiguredCommandAvailableAsync(configuredFfmpegPath, cancellationToken).ConfigureAwait(false);
         var songrec = await commandExists("songrec", cancellationToken).ConfigureAwait(false);
         var whisper = await commandExists("whisper", cancellationToken).ConfigureAwait(false);
         var tesseract = await commandExists("tesseract", cancellationToken).ConfigureAwait(false);
@@ -74,7 +75,7 @@ public sealed class SongIdCapabilityReporter : ISongIdCapabilityReporter
             Capability("youtube_metadata", "YouTube metadata", "experimental", ytDlp, ytDlp ? "yt-dlp is available." : "yt-dlp was not found on PATH.", "yt-dlp"),
             Capability("youtube_audio", "YouTube audio extraction", "experimental", ytDlp && ffmpeg, ytDlp && ffmpeg ? "yt-dlp and ffmpeg are available." : "Requires yt-dlp and ffmpeg.", "yt-dlp", "ffmpeg"),
             Capability("local_file_intake", "Local file intake", "experimental", true, "Local files are accepted when they are under configured safe directories."),
-            Capability("chromaprint_fingerprint", "Chromaprint fingerprinting", "experimental", chromaprintConfigured && ffmpeg, chromaprintConfigured && ffmpeg ? "Chromaprint is enabled and ffmpeg is available." : "Requires integration.chromaprint.enabled and ffmpeg.", "integration.chromaprint.enabled", "ffmpeg", "libchromaprint"),
+            Capability("chromaprint_fingerprint", "Chromaprint fingerprinting", "experimental", chromaprintConfigured && ffmpeg, chromaprintConfigured && ffmpeg ? "Chromaprint is enabled and the configured ffmpeg executable is available." : "Requires integration.chromaprint.enabled and the configured ffmpeg executable.", "integration.chromaprint.enabled", "ffmpeg", "libchromaprint"),
             Capability("acoustid_lookup", "AcoustID lookup", "experimental", acoustIdConfigured, acoustIdConfigured ? "AcoustID is enabled with a client id." : "Requires integration.acoustid.enabled and a client id.", "integration.acoustid.enabled", "integration.acoustid.client_id"),
             Capability("songrec", "SongRec recognition", "experimental", songrec, songrec ? "songrec is available." : MissingCommandReason("songrec"), "songrec"),
             Capability("panako", "Panako local corpus matching", "experimental", !string.IsNullOrWhiteSpace(panakoJar), !string.IsNullOrWhiteSpace(panakoJar) ? $"Panako jar found at {panakoJar}." : MissingFileReason("panako.jar", "panako"), "java", "panako.jar"),
@@ -104,6 +105,18 @@ public sealed class SongIdCapabilityReporter : ISongIdCapabilityReporter
     private static string MissingFileReason(string fileName, string profile)
     {
         return $"{fileName} was not found in known locations or PATH. For Docker, run install-optional-media-tools {profile} or mount the file into one of the documented lookup paths.";
+    }
+
+    private async Task<bool> IsConfiguredCommandAvailableAsync(string configuredPath, CancellationToken cancellationToken)
+    {
+        if (Path.IsPathRooted(configuredPath) ||
+            configuredPath.Contains(Path.DirectorySeparatorChar) ||
+            configuredPath.Contains(Path.AltDirectorySeparatorChar))
+        {
+            return fileExists(configuredPath);
+        }
+
+        return await commandExists(configuredPath, cancellationToken).ConfigureAwait(false);
     }
 
     private static SongIdCapability Capability(

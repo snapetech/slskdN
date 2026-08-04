@@ -432,6 +432,62 @@ Common issues and solutions for slskdN.
 
 ## Feature-Specific Issues
 
+### Chromaprint Fingerprint Attempts Fail
+
+**Symptoms:**
+- Metadata processing shows `chromaprint` as failed after a completed audio download
+- Logs contain `Fingerprint extraction failed`
+- AcoustID lookups do not occur for the affected file
+
+**Diagnosis:**
+1. Open System -> Integrations and inspect the metadata-processing result. The
+   failure detail includes the exception and, for decoder failures, ffmpeg's
+   stderr output.
+2. Confirm that Chromaprint is enabled only if fingerprinting is wanted:
+   ```yaml
+   integrations:
+     chromaprint:
+       enabled: true
+       ffmpeg_path: ffmpeg
+   ```
+3. Test the configured decoder from the same environment that runs slskdN:
+   ```bash
+   ffmpeg -hide_banner -version
+   ```
+4. If the configured path is not `ffmpeg`, verify that exact path is executable
+   and that the slskdN process can read the completed audio file.
+5. Check that the native Chromaprint library is installed. Docker's standard
+   image includes it; host installations must provide `libchromaprint`,
+   `chromaprint.dll`, or `libchromaprint.dylib` on the native library path.
+
+The common error `StandardError has not been redirected` is an application
+ordering error from older builds, not evidence that the audio release is bad.
+Current builds start ffmpeg before opening its redirected streams and retain
+the actual decoder diagnostic when a file cannot be decoded.
+
+### HTTPS Login Shows a Network Error
+
+If Firefox or LibreWolf reports repeated messages such as:
+
+```text
+Cookie XSRF-COOKIE-5030 has been rejected because there is an existing secure cookie
+```
+
+the same host has usually been opened through both HTTP and HTTPS. Cookies are
+host-scoped, not port-scoped or scheme-scoped, so the two listeners were
+competing over the same antiforgery cookie name. Current builds mark these
+cookies `Secure` on HTTPS and do not mint them from HTTP, preventing the HTTP
+listener from replacing the HTTPS cookie. If HTTPS is intentionally disabled,
+the HTTP-only deployment uses non-secure cookies as expected.
+
+For an existing browser profile, close the affected tabs and clear site data
+for the slskdN host once, then open the HTTPS URL directly. If login still
+shows a network error, use the browser's certificate warning page to trust the
+configured certificate, or configure a trusted PFX certificate under
+`web.https.certificate.pfx` and restart slskdN. A self-signed certificate can
+also be valid but still rejected by the browser for API requests until its
+exception is accepted.
+
 ### Swarm Downloads Not Working
 
 **Symptoms:**
