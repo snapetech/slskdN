@@ -27642,3 +27642,19 @@ still start an automatic download batch.
 **Prevention**: Re-read enablement and the persisted download budget after
 ranking and immediately before enqueue. Keep a regression that changes the
 row during ranking and asserts that no enqueue occurs.
+
+### 0z847. Exclude Immutable GitHub Co-Author Metadata From Identity Scans
+
+**The Bug**: GitHub's squash merge for a dependency PR added an immutable
+`Co-authored-by` trailer containing an operator name and email. Every later
+Dependabot branch rebase inherited that trailer, so the local-identity gate
+failed before any build or security job could run.
+
+**Files Affected**:
+- `scripts/check-local-identity-leaks.sh`
+
+**Prevention**: Exclude only `Co-authored-by` trailer lines from the recent
+commit-message scan because they are GitHub provenance metadata that cannot be
+edited safely after the merge. Continue scanning commit subjects, other body
+content, release-facing files, and changelog text; do not add local identity
+trailers manually.

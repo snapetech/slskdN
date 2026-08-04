@@ -28,6 +28,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - The Auto-Replace control now explains that failed-download auto-retry is a
   separate setting, so disabling one automation does not leave the other
   ambiguous.
+- Local-identity checks now exclude only immutable GitHub co-author trailers
+  while continuing to scan release-facing text and other commit content.
 
 - Raised the frontend build and test Node.js baseline to 22.22.2, required by
   the jsdom 30 dependency update.

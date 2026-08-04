@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The Auto-Replace control now explains that failed-download auto-retry is a
   separate setting, so disabling one automation does not leave the other
   ambiguous.
+- Local-identity checks now exclude only immutable GitHub co-author trailers
+  while continuing to scan release-facing text and other commit content.
 
 - Made configured download destinations functional end to end: the folder
   marked `default` now governs destination-less and automatic downloads, while
