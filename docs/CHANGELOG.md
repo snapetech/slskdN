@@ -65,6 +65,22 @@ For dev or build tags, use the same logical version string embedded in the tag.
   counts or fail the remediation gate.
 
 
+## [2026080415-slskdn.301] — 2026-08-04
+
+- Fixed unintended automatic downloads after cancellation. Auto-replace no
+  longer treats user-cancelled transfers as stuck, disabling it cancels an
+  active cycle, alternative searches retain release context and require all
+  identifying tokens, and Wishlist auto-download rejects peer directories
+  larger than 50 unique tracks while collapsing numeric duplicate suffixes.
+- Rechecked persisted Wishlist state immediately before auto-download so
+  disabling an item while its search is in flight cannot enqueue stale results.
+- Raised the frontend and release workflow Node.js baseline to 22.22.2 for the
+  current jsdom dependency set, and renamed the CI build environment variable
+  to `BUILD_VERSION` so MSBuild cannot interpret a release label as `Version`.
+- Preserved the earlier Docker/Unraid, Chromaprint, and HTTPS cookie fixes in
+  the complete build published from this branch.
+
+
 ## [2026080415-slskdn.300] — 2026-08-04
 
 - Added a `SuppressedTermRegistry` that tracks known Soulseek network-suppressed
