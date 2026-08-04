@@ -47,20 +47,59 @@ internal static class SmartSearchFallback
 
         var queries = new List<string>(MaximumFallbackQueries);
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var candidateCount = Math.Min(MaximumFallbackQueries, terms.Length - 1);
 
-        // Wishlist/Lidarr search text is deliberately ordered as artist first,
-        // followed by album/track context. Only relax the leading artist terms;
-        // removing title or album terms would make a low-result query noisier.
-        for (var removedIndex = 0; removedIndex < candidateCount; removedIndex++)
+        // Priority 1: Target known suppressed terms specifically.
+        // If we know which terms are blocked, remove those first regardless of position.
+        var suppressedTerms = SuppressedTermRegistry.FindSuppressedTermsInQuery(searchText);
+        foreach (var suppressedTerm in suppressedTerms)
         {
+            if (queries.Count >= MaximumFallbackQueries)
+            {
+                break;
+            }
+
             var fallback = string.Join(
                 ' ',
-                terms.Where((_, index) => index != removedIndex));
+                terms.Where(t => !string.Equals(t, suppressedTerm, StringComparison.OrdinalIgnoreCase)));
 
-            if (seen.Add(fallback))
+            if (fallback.Length > 0 && seen.Add(fallback))
             {
                 queries.Add(fallback);
+            }
+        }
+
+        // Priority 2: Generic leading-term removal for unknown suppressed terms.
+        // Only add these if we haven't already filled our quota with targeted fallbacks.
+        // Skip terms that are known suppressed (already handled in priority 1).
+        if (queries.Count < MaximumFallbackQueries)
+        {
+            var remainingSlots = MaximumFallbackQueries - queries.Count;
+            var candidateCount = Math.Min(remainingSlots + suppressedTerms.Count, terms.Length - 1);
+
+            // Wishlist/Lidarr search text is deliberately ordered as artist first,
+            // followed by album/track context. Only relax the leading artist terms;
+            // removing title or album terms would make a low-result query noisier.
+            for (var removedIndex = 0; removedIndex < candidateCount; removedIndex++)
+            {
+                if (queries.Count >= MaximumFallbackQueries)
+                {
+                    break;
+                }
+
+                // Skip if this term is already known suppressed (handled in priority 1)
+                if (SuppressedTermRegistry.IsSuppressed(terms[removedIndex]))
+                {
+                    continue;
+                }
+
+                var fallback = string.Join(
+                    ' ',
+                    terms.Where((_, index) => index != removedIndex));
+
+                if (seen.Add(fallback))
+                {
+                    queries.Add(fallback);
+                }
             }
         }
 

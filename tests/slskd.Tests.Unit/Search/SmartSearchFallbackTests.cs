@@ -12,9 +12,41 @@ public sealed class SmartSearchFallbackTests
     [Fact]
     public void CreateQueries_RelaxesOnlyLeadingTerms()
     {
+        var queries = SmartSearchFallback.CreateQueries("Park Meteora Album");
+
+        Assert.Equal(["Meteora Album", "Park Album"], queries);
+    }
+
+    [Fact]
+    public void CreateQueries_PrioritizesKnownSuppressedTerms()
+    {
+        // "Linkin" is a known suppressed term, so it should be removed first
         var queries = SmartSearchFallback.CreateQueries("Linkin Park Meteora");
 
+        // First fallback should remove "Linkin" (known suppressed), not "Park"
         Assert.Equal(["Park Meteora", "Linkin Meteora"], queries);
+    }
+
+    [Fact]
+    public void CreateQueries_RemovesSuppressedTermFromAnyPosition()
+    {
+        // Even if the suppressed term is not leading, it should be targeted
+        var queries = SmartSearchFallback.CreateQueries("Meteora Linkin Park");
+
+        // Should remove "Linkin" first (known suppressed), then fall back to generic
+        Assert.Contains("Meteora Park", queries);
+    }
+
+    [Fact]
+    public void CreateQueries_HandlesMultipleSuppressedTerms()
+    {
+        // If multiple suppressed terms exist, remove them in order
+        var queries = SmartSearchFallback.CreateQueries("Linkin Metallica Mashup");
+
+        // Should have fallbacks removing each suppressed term
+        Assert.True(queries.Count >= 1);
+        Assert.Contains("Metallica Mashup", queries); // Removed "Linkin"
+        Assert.Contains("Linkin Mashup", queries); // Removed "Metallica"
     }
 
     [Fact]

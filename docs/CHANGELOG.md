@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added a `SuppressedTermRegistry` that tracks known Soulseek network-suppressed
+  terms (currently `Linkin` and `Metallica`). Smart low-result fallback now
+  prioritizes removing known suppressed terms from any position in the query
+  before falling back to generic leading-term removal, so newly-discovered
+  blocked terms can be added to the registry without changing the fallback
+  algorithm.
+
 
 ## [2026080415-slskdn.299] — 2026-08-04
 

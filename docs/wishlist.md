@@ -106,14 +106,36 @@ format, bitrate, path, and peer-ignore filters still apply.
 Wishlist/Lidarr searches keep the exact query as the first attempt. If that
 attempt returns fewer than 10 Soulseek peer responses **and** fewer than 10
 files, slskdN may make up to two additional, sequential Soulseek searches that
-remove only the first or second leading term. This handles operator-suppressed
-artist terms such as:
+remove suppressed or leading terms. This handles operator-suppressed artist
+terms such as:
 
 ~~~text
 Linkin Park Meteora
-  -> Park Meteora
-  -> Linkin Meteora
+  -> Park Meteora          (removes known suppressed "Linkin")
+  -> Linkin Meteora        (generic fallback: removes leading "Park")
+
+Tate McRae greedy
+  -> McRae greedy          (generic fallback: removes leading "Tate")
+  -> Tate greedy           (generic fallback: removes second-leading "McRae")
 ~~~
+
+The fallback uses a two-tier strategy:
+
+1. **Known suppressed terms** — slskdN maintains a registry of terms confirmed
+   to be blocked by the Soulseek network operator (e.g., `Linkin`, `Metallica`).
+   When a query contains a known suppressed term, that term is removed first
+   regardless of its position in the query.
+2. **Generic leading-term removal** — for queries without known suppressed terms,
+   or as a secondary fallback, the first and second leading terms are removed
+   sequentially. This catches newly-suppressed terms before they are added to
+   the registry.
+
+The registry lives in `src/slskd/Search/SuppressedTermRegistry.cs` and is
+updated as new blocked terms are discovered through user reports or network
+testing. To add a newly-discovered blocked term, add an entry to the
+`KnownSuppressedTerms` dictionary with `null` as the value (removal is the
+workaround; alternate substitutions can be added later if a suitable one is
+found).
 
 The fallback is restricted to Wishlist-originated searches, charges every
 additional search to the existing Soulseek safety limiter, uses a short
