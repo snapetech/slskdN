@@ -28,4 +28,23 @@ public class WishlistFilterTests
         Assert.False(WishlistService.IsIgnored(rules, "peer", @"Music\Artist\Other\01.flac"));
         Assert.False(WishlistService.IsIgnored(rules, "other-peer", @"Music\Artist\Album\01.flac"));
     }
+
+    [Theory]
+    [InlineData("Music/Album/01 Song.flac", "Music/Album/01 Song.flac")]
+    [InlineData("Music/Album/01 Song (1).flac", "Music/Album/01 Song.flac")]
+    [InlineData("Music/Album/01 Song (2).flac", "Music/Album/01 Song.flac")]
+    public void Duplicate_release_suffixes_share_one_track_identity(string duplicate, string expected)
+    {
+        Assert.Equal(
+            WishlistService.GetTrackIdentity(duplicate),
+            WishlistService.GetTrackIdentity(expected));
+    }
+
+    [Fact]
+    public void Duplicate_release_suffixes_do_not_change_track_identity_case()
+    {
+        Assert.Equal(
+            WishlistService.GetTrackIdentity("Music/Album/01 Song (12).FLAC"),
+            WishlistService.GetTrackIdentity("Music/Album/01 Song.flac"));
+    }
 }

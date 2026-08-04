@@ -749,6 +749,133 @@ public class WishlistControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task RunSearch_WhenReleaseContainsTooManyTracks_SkipsAutomaticDownload()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title",
+                Filter = "flac",
+                AutoDownload = true,
+                Enabled = true,
+                MaxResults = 100,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var responses = new[]
+        {
+            new Response
+            {
+                Username = "peer",
+                Files = Enumerable.Range(1, 51)
+                    .Select(index => new slskd.Search.File
+                    {
+                        Filename = $@"Music\Album\{index:00} Track.flac",
+                        Size = index,
+                    })
+                    .ToList(),
+            },
+        };
+        var searchService = CreateCompletedSearchService(itemId, responses);
+        var rankingService = new Mock<ISourceRankingService>();
+        rankingService
+            .Setup(service => service.RankSourcesAsync(It.IsAny<IEnumerable<SourceCandidate>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<SourceCandidate> candidates, CancellationToken _) => candidates.Select(candidate => new RankedSource
+            {
+                Username = candidate.Username,
+                Filename = candidate.Filename,
+                Size = candidate.Size,
+                SmartScore = 10,
+            }));
+        var downloadService = new Mock<IDownloadService>();
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            rankingService.Object,
+            downloadService.Object);
+
+        await service.RunSearchAsync(itemId);
+
+        downloadService.Verify(
+            download => download.EnqueueAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task RunSearch_WhenItemIsDisabledDuringSearch_DoesNotAutoDownload()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title",
+                Filter = "flac",
+                AutoDownload = true,
+                Enabled = true,
+                MaxResults = 25,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var searchService = CreateCompletedSearchService(itemId);
+        searchService
+            .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), true))
+            .Callback(() =>
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var item = context.WishlistItems.Single(candidate => candidate.Id == itemId);
+                item.Enabled = false;
+                context.SaveChanges();
+            })
+            .ReturnsAsync(new SlskdSearch
+            {
+                Id = itemId,
+                SearchText = "artist title",
+                State = SearchStates.Completed,
+                ResponseCount = 1,
+                Responses =
+                [
+                    new Response
+                    {
+                        Username = "alice",
+                        Files = [new slskd.Search.File { Filename = @"Music\Album\01 Song.flac", Size = 100 }],
+                    },
+                ],
+            });
+        var rankingService = new Mock<ISourceRankingService>();
+        var downloadService = new Mock<IDownloadService>();
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            rankingService.Object,
+            downloadService.Object);
+
+        await service.RunSearchAsync(itemId);
+
+        downloadService.Verify(
+            download => download.EnqueueAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task RunSearch_WhenAutoDownloadLimitIsOne_EnqueuesOnlyOneFile()
     {
         var itemId = Guid.NewGuid();

@@ -1296,6 +1296,13 @@ cookie`. Authenticated UI requests use the JWT returned by login, so this does
 not prevent the optional HTTP listener from being used. When HTTPS is disabled,
 the HTTP-only deployment continues to use non-secure antiforgery cookies.
 
+Auto-replace does not act on user-cancelled downloads. It only considers
+timeouts, transfer errors, and peer rejections. Disabling Auto-replace also
+cancels an active replacement cycle. Wishlist automatic directory downloads
+are bounded at 50 unique track names; duplicate suffixes such as `(1)` and
+`(2)` are treated as the same track, and larger candidates are left for manual
+review.
+
 ### Lidarr
 
 Lidarr is a first-class slskdN integration for music acquisition. slskdN uses

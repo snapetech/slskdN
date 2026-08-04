@@ -488,6 +488,18 @@ configured certificate, or configure a trusted PFX certificate under
 also be valid but still rejected by the browser for API requests until its
 exception is accepted.
 
+### Automatic Downloads Continue After Cancellation
+
+Auto-replace is intended only for transfers that ended because of a timeout,
+error, or peer rejection. Current builds do not treat a user-cancelled transfer
+as stuck, and disabling Auto-replace cancels the active replacement cycle.
+
+Wishlist auto-download also refuses a single peer directory when it contains
+more than 50 unique track names. Numeric duplicate suffixes such as `(1)` and
+`(2)` are normalized to the same track identity. This prevents malformed or
+overly broad releases from enqueueing hundreds of files automatically. Use the
+manual search result to inspect unusually large releases.
+
 ### Swarm Downloads Not Working
 
 **Symptoms:**

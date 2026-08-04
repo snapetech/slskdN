@@ -113,6 +113,7 @@ namespace slskd.Wishlist
     public class WishlistService : BackgroundService, IWishlistService
     {
         private const int WishlistInsertBatchSize = 40;
+        private const int MaximumAutomaticDownloadsPerSearch = 50;
 
         public WishlistService(
             IDbContextFactory<WishlistDbContext> contextFactory,
@@ -854,8 +855,15 @@ namespace slskd.Wishlist
                 item.LastHiddenLockedHitCount,
                 item.LastFilteredOutHitCount);
 
-            // If auto-download is enabled and we have results, download the best ones
-            if (item.AutoDownload && searchWithResponses?.Responses?.Any() == true)
+            var autoDownloadState = await context.WishlistItems
+                .AsNoTracking()
+                .Where(candidate => candidate.Id == item.Id)
+                .Select(candidate => new { candidate.Enabled, candidate.AutoDownload })
+                .SingleAsync(cancellationToken);
+
+            // Re-read state after the search completes so disabling an item while
+            // the network search is in flight cannot enqueue stale results.
+            if (autoDownloadState.Enabled && autoDownloadState.AutoDownload && searchWithResponses?.Responses?.Any() == true)
             {
                 var downloadResult = await AutoDownloadBestResultsAsync(
                     searchWithResponses,
@@ -991,6 +999,17 @@ namespace slskd.Wishlist
                     return WishlistDownloadResult.Empty;
                 }
 
+                if (bestPlan.Plan.Files.Count > MaximumAutomaticDownloadsPerSearch)
+                {
+                    Log.Warning(
+                        "Skipping wishlist auto-download from {Username} in {Directory}: release candidate contains {Count} files, above the safety limit of {Limit}",
+                        bestPlan.Plan.Key.Username,
+                        bestPlan.Plan.Key.Dir,
+                        bestPlan.Plan.Files.Count,
+                        MaximumAutomaticDownloadsPerSearch);
+                    return WishlistDownloadResult.Empty;
+                }
+
                 var filesToDownload = bestPlan.Plan.Files
                     .Select(c => new slskd.Transfers.Downloads.DownloadEnqueueRequest
                     {
@@ -1002,7 +1021,7 @@ namespace slskd.Wishlist
                         Length = c.Length,
                         WishlistItemId = wishlistItemId,
                     })
-                    .Take(remainingDownloads)
+                    .Take(Math.Min(remainingDownloads, MaximumAutomaticDownloadsPerSearch))
                     .ToList();
 
                 var bestDir = bestPlan.Plan.Key.Dir;
@@ -1078,16 +1097,18 @@ namespace slskd.Wishlist
                 files.FirstOrDefault() ?? candidates.First());
         }
 
-        private static string GetTrackIdentity(SourceCandidate candidate)
+        internal static string GetTrackIdentity(string filename)
         {
-            var normalized = candidate.Filename.Replace('\\', '/');
+            var normalized = filename.Replace('\\', '/');
             var lastSlash = normalized.LastIndexOf('/');
             var leaf = lastSlash < 0 ? normalized : normalized[(lastSlash + 1)..];
             var extension = Path.GetExtension(leaf);
-            return (extension.Length > 0 ? leaf[..^extension.Length] : leaf)
-                .Trim()
-                .ToLowerInvariant();
+            var stem = extension.Length > 0 ? leaf[..^extension.Length] : leaf;
+            stem = Regex.Replace(stem, @"\s*\((?:\d+)\)\s*$", string.Empty);
+            return stem.Trim().ToLowerInvariant();
         }
+
+        private static string GetTrackIdentity(SourceCandidate candidate) => GetTrackIdentity(candidate.Filename);
 
         private static (int Class, double EffectiveBitrate, int CodecPreference, int SampleRate, int BitDepth, int HasBitrate, long Size) GetQualityKey(
             SourceCandidate candidate,

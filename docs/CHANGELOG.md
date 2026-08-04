@@ -53,6 +53,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - CI now keeps its build version in `BUILD_VERSION` so MSBuild does not import
   a release label from the environment as an invalid `Version` property during
   release-gate tests.
+- Fixed unintended automatic downloads after cancellation. Auto-replace no
+  longer treats user-cancelled transfers as stuck, disabling it cancels an
+  active cycle, alternative searches retain release context and require all
+  identifying tokens, and Wishlist auto-download rejects peer directories
+  larger than 50 unique tracks while collapsing numeric duplicate suffixes.
 - The vendored runtime patch now records the BouncyCastle 2.7.0 dependency
   bump, keeping the dependency update reproducible under the runtime sync gate.
 - The active council scanner now excludes dependency manifests and lockfiles,

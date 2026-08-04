@@ -240,7 +240,6 @@ namespace slskd.Transfers.AutoReplace
             TransferStates.Completed | TransferStates.TimedOut,
             TransferStates.Completed | TransferStates.Errored,
             TransferStates.Completed | TransferStates.Rejected,
-            TransferStates.Completed | TransferStates.Cancelled,
         };
 
         private static readonly TimeSpan DefaultSearchCompletionTimeout = TimeSpan.FromSeconds(45);
@@ -368,10 +367,17 @@ namespace slskd.Transfers.AutoReplace
             var candidates = new List<AlternativeCandidate>();
 
             // Build search query from filename
-            var searchText = CleanTrackTitle(request.Filename);
+            var searchText = BuildAlternativeSearchText(request.Filename);
             if (string.IsNullOrWhiteSpace(searchText))
             {
                 Log.Warning("Could not build search text from filename: {Filename}", request.Filename);
+                return (candidates, SearchBudgetExceeded: false);
+            }
+
+            var expectedMatchTokens = GetMatchTokens(searchText);
+            if (expectedMatchTokens.Count < 2)
+            {
+                Log.Information("Skipping unsafe alternative search with fewer than two identifying filename tokens: {Filename}", request.Filename);
                 return (candidates, SearchBudgetExceeded: false);
             }
 
@@ -427,8 +433,6 @@ namespace slskd.Transfers.AutoReplace
 
                 // Get expected extension
                 var expectedExt = GetExtension(request.Filename)?.ToLowerInvariant();
-                var expectedMatchTokens = GetMatchTokens(request.Filename);
-
                 foreach (var response in searchWithResponses.Responses)
                 {
                     // Skip the original source
@@ -819,8 +823,13 @@ namespace slskd.Transfers.AutoReplace
                 return false;
             }
 
-            var cleanCandidate = CleanTrackTitle(candidateFilename).ToLowerInvariant();
-            if (expected.Count <= 2)
+            var cleanCandidate = candidateFilename.ToLowerInvariant();
+            if (expected.Count < 2)
+            {
+                return false;
+            }
+
+            if (expected.Count == 2)
             {
                 foreach (var token in expected)
                 {
@@ -833,17 +842,16 @@ namespace slskd.Transfers.AutoReplace
                 return true;
             }
 
-            var requiredOverlap = Math.Max(2, (expected.Count + 1) / 2);
             var overlap = 0;
             foreach (var token in expected)
             {
-                if (ContainsMatchToken(cleanCandidate, token) && ++overlap >= requiredOverlap)
+                if (ContainsMatchToken(cleanCandidate, token))
                 {
-                    return true;
+                    overlap++;
                 }
             }
 
-            return false;
+            return overlap == expected.Count;
         }
 
         private static bool ContainsMatchToken(string candidate, string expectedToken)
@@ -879,7 +887,7 @@ namespace slskd.Transfers.AutoReplace
 
         internal static HashSet<string> GetMatchTokens(string filename)
         {
-            var clean = CleanTrackTitle(filename).ToLowerInvariant();
+            var clean = GetMatchText(filename).ToLowerInvariant();
             var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (Match match in Regex.Matches(clean, "[a-z0-9]+"))
             {
@@ -891,6 +899,35 @@ namespace slskd.Transfers.AutoReplace
             }
 
             return tokens;
+        }
+
+        internal static string BuildAlternativeSearchText(string filename)
+        {
+            var normalized = filename.Replace('\\', '/');
+            var segments = normalized
+                .Split('/', StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+            var leaf = segments.Count == 0 ? filename : segments[^1];
+            var context = segments
+                .SkipLast(1)
+                .Where(segment => !IsGenericPathSegment(segment))
+                .TakeLast(2)
+                .Select(CleanTrackTitle)
+                .Where(segment => !string.IsNullOrWhiteSpace(segment));
+
+            return string.Join(' ', context.Append(CleanTrackTitle(leaf)));
+        }
+
+        private static string GetMatchText(string filename)
+        {
+            return BuildAlternativeSearchText(filename);
+        }
+
+        private static bool IsGenericPathSegment(string segment)
+        {
+            var normalized = segment.Trim().ToLowerInvariant();
+            return normalized is "music" or "audio" or "media" or "library" or "share" or "shared" or
+                "download" or "downloads" or "downloaded" or "incomplete" or "files";
         }
 
         private static readonly HashSet<string> IgnoredMatchTokens = new(StringComparer.OrdinalIgnoreCase)

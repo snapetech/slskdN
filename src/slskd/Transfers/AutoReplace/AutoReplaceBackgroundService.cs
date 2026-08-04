@@ -20,6 +20,8 @@ namespace slskd.Transfers.AutoReplace
     public class AutoReplaceBackgroundService : BackgroundService
     {
         private static readonly string StateFileName = "auto-replace-state.json";
+        private readonly object stateGate = new();
+        private CancellationTokenSource? activeCycleCancellation;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="AutoReplaceBackgroundService"/> class.
@@ -71,7 +73,11 @@ namespace slskd.Transfers.AutoReplace
         /// </summary>
         public void Enable()
         {
-            IsEnabled = true;
+            lock (stateGate)
+            {
+                IsEnabled = true;
+            }
+
             SaveState();
             Log.Information("Auto-replace enabled");
         }
@@ -81,7 +87,14 @@ namespace slskd.Transfers.AutoReplace
         /// </summary>
         public void Disable()
         {
-            IsEnabled = false;
+            CancellationTokenSource? cycleCancellation;
+            lock (stateGate)
+            {
+                IsEnabled = false;
+                cycleCancellation = activeCycleCancellation;
+            }
+
+            cycleCancellation?.Cancel();
             SaveState();
             Log.Information("Auto-replace disabled");
         }
@@ -119,7 +132,22 @@ namespace slskd.Transfers.AutoReplace
                     {
                         if (IsEnabled && Client.State.HasFlag(SoulseekClientStates.Connected))
                         {
-                            await ProcessStuckDownloadsAsync(stoppingToken);
+                            using var cycleCancellation = BeginCycle(stoppingToken);
+                            if (cycleCancellation != null)
+                            {
+                                try
+                                {
+                                    await ProcessStuckDownloadsAsync(cycleCancellation.Token);
+                                }
+                                catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested && cycleCancellation.IsCancellationRequested)
+                                {
+                                    Log.Information("Auto-replace cycle cancelled because auto-replace was disabled");
+                                }
+                                finally
+                                {
+                                    EndCycle(cycleCancellation);
+                                }
+                            }
                         }
                     }
                     catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -170,6 +198,31 @@ namespace slskd.Transfers.AutoReplace
             else
             {
                 Log.Debug("Auto-replace cycle complete: no stuck downloads found");
+            }
+        }
+
+        private CancellationTokenSource? BeginCycle(CancellationToken stoppingToken)
+        {
+            lock (stateGate)
+            {
+                if (!IsEnabled)
+                {
+                    return null;
+                }
+
+                activeCycleCancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                return activeCycleCancellation;
+            }
+        }
+
+        private void EndCycle(CancellationTokenSource cycleCancellation)
+        {
+            lock (stateGate)
+            {
+                if (ReferenceEquals(activeCycleCancellation, cycleCancellation))
+                {
+                    activeCycleCancellation = null;
+                }
             }
         }
 

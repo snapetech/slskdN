@@ -157,6 +157,40 @@ public class AutoReplaceServiceTests
     }
 
     [Fact]
+    public void GetStuckDownloads_DoesNotTreatCancelledDownloadsAsStuck()
+    {
+        var cancelled = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "source",
+            Filename = "Artist - Track.flac",
+            State = TransferStates.Completed | TransferStates.Cancelled,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns((Expression<Func<SlskdTransfer, bool>> expression, bool _) =>
+                new[] { cancelled }.Where(expression.Compile()).ToList());
+
+        var transfers = new Mock<ITransferService>();
+        transfers.SetupGet(service => service.Downloads).Returns(downloads.Object);
+        var options = new Mock<IOptionsMonitor<SlskdOptions>>();
+        options.SetupGet(monitor => monitor.CurrentValue).Returns(new SlskdOptions
+        {
+            AutoReplace = new SlskdOptions.AutoReplaceOptions { MaxRetries = 3 },
+        });
+
+        using var service = new AutoReplaceService(
+            transfers.Object,
+            Mock.Of<ISearchService>(),
+            Mock.Of<ISoulseekClient>(),
+            options.Object,
+            Mock.Of<ISourceRankingService>());
+
+        Assert.Empty(service.GetStuckDownloads());
+    }
+
+    [Fact]
     public async Task ProcessStuckDownloadsAsync_PersistsAttemptWhenNoAlternativeExists()
     {
         var currentAttempt = new SlskdTransfer
@@ -427,6 +461,24 @@ public class AutoReplaceServiceTests
         Assert.False(AutoReplaceService.IsPlausibleFilenameMatch(
             "Artist - Track.flac",
             "/music/Other Artist/Album/01 - Different Song.flac"));
+    }
+
+    [Fact]
+    public void IsPlausibleFilenameMatch_RequiresAllIdentifyingTokens()
+    {
+        Assert.False(AutoReplaceService.IsPlausibleFilenameMatch(
+            "David Guetta Never Take Away My Freedom.flac",
+            "/music/David Guetta/Album/Never Take Away.flac"));
+        Assert.False(AutoReplaceService.IsPlausibleFilenameMatch("Swim.flac", "/music/Any/Swim.flac"));
+    }
+
+    [Fact]
+    public void BuildAlternativeSearchText_RetainsReleaseContext()
+    {
+        Assert.Equal(
+            "David Guetta Listen Never Take Away My Freedom",
+            AutoReplaceService.BuildAlternativeSearchText(
+                @"/music/David Guetta/Listen/01 - Never Take Away My Freedom.flac"));
     }
 
     [Theory]

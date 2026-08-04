@@ -9,6 +9,16 @@
 
 ### High Priority
 
+- [x] Stop unintended auto-replace and wishlist bulk downloads.
+  - Status: completed (2026-08-04)
+  - Priority: P1
+  - Notes: User-cancelled transfers are excluded from auto-replace, disabling
+    auto-replace cancels its active cycle, alternative searches require all
+    identifying filename tokens and retain release context, Wishlist duplicate
+    suffixes are collapsed, large peer directories are capped at 50 unique
+    tracks, and persisted Wishlist state is rechecked before enqueueing.
+    Regression coverage and gotchas `0z839` through `0z842` added.
+
 - [x] Fix HTTP/HTTPS secure antiforgery-cookie collisions.
   - Status: completed (2026-08-04)
   - Priority: P1

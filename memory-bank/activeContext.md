@@ -13104,3 +13104,24 @@ rollback.
 - Next steps:
   1. No release/tag is part of this bug-fix request unless separately
      authorized.
+## Update 2026-08-04 21:30:00Z
+
+- Current task: fix tester-reported auto-replace and Wishlist over-downloads
+  before release.
+- Last activity:
+  - Excluded explicit cancelled transfer states from auto-replace and made the
+    background cycle cancellable when the feature is disabled.
+  - Tightened alternative filename matching, retained meaningful path context,
+    and skipped ambiguous one-token searches.
+  - Collapsed numeric duplicate suffixes in Wishlist track identity, bounded
+    automatic peer-directory downloads at 50 unique tracks, and rechecked
+    persisted Wishlist state before enqueueing.
+  - Added regression coverage and updated docs/task/progress plus ADR-0001
+    gotchas `0z839` through `0z842`.
+- Validation:
+  - Focused safety tests pass: `63`; Wishlist race tests pass: `40`.
+  - Full repository gates still required before commit, push, and release.
+- Next steps:
+  1. Run full tests, lint, and diff review.
+  2. Commit/push all repository changes.
+  3. Create and verify the new build release tag only after the release gate.

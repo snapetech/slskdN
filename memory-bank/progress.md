@@ -12499,3 +12499,19 @@ Code quality improvements were completed as part of Option A:
 [2026-08-03T19:45:00Z] Completed the thorough multi-format tester follow-up: Wishlist filters now preserve branch-local `OR`/bitrate semantics and global exclusions; Lidarr maps all allowed quality branches, broad Lossless/Any profiles, and ignores FLAC sample-rate/bit-depth numbers as bitrate; auto-download selection is codec-aware, coverage-aware, and deduplicates track copies; mesh descriptors propagate optional verified bitrate without a 320-kbps default; bulk filter edits are atomic; both Lidarr manual-import UIs report safe/rejected/skipped state. Added gotchas `0z822`-`0z824`, backend/Web regressions, and updated README, Wishlist/Lidarr/config/changelog docs. Focused validation passed backend `63/63` and Web `11/11`; full validation and push remain.
 [2026-08-03T20:20:00Z] Final multi-format audit: fixed same-branch quality ranking to use only the candidate's actual extension, hardened Lidarr parsing against lossy bit-depth values such as `OGG 24-bit`, and made explicit `Any`/`All` profiles override the configured fallback. Added comprehensive format/container/unit matrix coverage plus gotchas `0z826` through `0z828`. Full validation passed application `74`, unit `5035`, integration `284`, Web `904` with `4` skipped, repository lint, Web lint with zero errors, target/identity/config gates, and diff checks. Push remains the final publication step; no new release tag was created.
 [2026-08-03T20:21:00Z] Publication closeout: pushed the implementation, generated API inventory, and active council count refreshes to `snapetech/slskdN` `main`; the remote tip matches the local clean worktree. The complete remediation baseline now passes, including route inventory, active backlog, council counts, negative-space gates, target verification, and identity-leak checks. Existing stable tag `.297` remains unchanged.
+## Update 2026-08-04 21:30:00Z
+
+- Fixed tester-reported unintended automatic downloads. Auto-replace no longer
+  treats `Completed | Cancelled` as stuck, and disabling it cancels the active
+  replacement search cycle.
+- Tightened alternative search identity: ambiguous one-token filenames are not
+  searched, queries retain up to two meaningful release-directory segments,
+  and candidates must contain every identifying token.
+- Bounded Wishlist peer-directory auto-downloads at 50 unique tracks and
+  normalized trailing numeric duplicate suffixes such as `(1)` and `(2)`.
+  Wishlist state is re-read after search hydration so a disabled item cannot
+  enqueue stale results.
+- Added focused regressions, troubleshooting/configuration/changelog guidance,
+  task tracking, and ADR-0001 gotchas `0z839` through `0z842`.
+- Focused validation passes: `63` auto-replace/Wishlist tests plus `40`
+  Wishlist tests after the state-race coverage.
