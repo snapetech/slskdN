@@ -27510,6 +27510,22 @@ identity and refuse automatic directory plans above the bounded safety limit.
 Keep manual search results available so the operator can inspect an unusually
 large release before downloading it.
 
+### 0z841. Do Not Rebuild Candidate Path Context During Filename Matching
+
+**The Bug**: The stricter auto-replace matcher initially normalized each
+candidate path through the full search-text builder. Large result sets then
+allocated roughly 17 MB for a 10,000-candidate match pass and failed the
+existing allocation guard.
+
+**Files Affected**:
+- `src/slskd/Transfers/AutoReplace/AutoReplaceService.cs`
+- `tests/slskd.Tests.Unit/Transfers/AutoReplace/AutoReplaceServiceTests.cs`
+
+**Prevention**: Build the expected search context once. For candidates, match
+the already available filename/path string directly after one cheap case
+normalization; do not run path splitting, regex cleanup, or query construction
+per candidate.
+
 ### 0z839. Keep Vendored Runtime Dependency Bumps In The Local Patch
 
 **The Bug**: A Dependabot update changed a package reference inside the
