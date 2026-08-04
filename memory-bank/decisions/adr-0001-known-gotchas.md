@@ -27287,3 +27287,26 @@ were valid.
 every changed section count in the durable ledger. Treat count drift as a
 documentation publication change, not as a reason to weaken or bypass the
 scanner.
+
+### 0z831. Use String Overloads When Comparing Prefixes With StringComparison
+
+**The Bug**: The smart Wishlist query fallback used
+`term.StartsWith('-', StringComparison.Ordinal)`, but the `char` overload does
+not accept a `StringComparison` argument and failed the backend compilation.
+
+**Files Affected**:
+- `src/slskd/Search/SmartSearchFallback.cs`
+
+**Wrong**:
+```csharp
+term.StartsWith('-', StringComparison.Ordinal)
+```
+
+**Correct**:
+```csharp
+term.StartsWith("-", StringComparison.Ordinal)
+```
+
+**Why This Keeps Happening**: The string overload supports explicit comparison
+semantics while the convenient single-character overload does not. Use the
+string overload whenever a prefix check specifies a `StringComparison`.
