@@ -27611,3 +27611,19 @@ ignoring the failed checks did not address the test-harness defect.
 **Prevention**: Keep the frontend test timeout at 15 seconds for the shared
 runner profile. Preserve the test assertions and investigate any failure that
 exceeds that budget rather than muting the workflow or deleting the coverage.
+
+### 0z845. Align Testing Library Waits With Frontend Test Budgets
+
+**The Bug**: Raising Vitest's test timeout did not raise Testing Library's
+`waitFor` timeout. Lazy-loaded `Searches` assertions therefore still failed
+after one second on the shared runners, even though the enclosing test had a
+15-second budget.
+
+**Files Affected**:
+- `src/web/src/components/App.test.jsx`
+- `src/web/vite.config.js`
+
+**Prevention**: When a test waits for a lazy-loaded route, set the
+Testing Library async timeout explicitly to the same bounded budget as the
+Vitest test timeout. Do not replace the assertion with a fixed sleep or remove
+the readiness check.

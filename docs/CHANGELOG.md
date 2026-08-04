@@ -65,6 +65,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   counts or fail the remediation gate.
 - Frontend unit tests now allow 15 seconds for lazy-loaded routes and large
   jsdom trees on shared CI runners while retaining their existing assertions.
+- Lazy-loaded search-route assertions now use the same 15-second async wait
+  budget instead of Testing Library's one-second default.
 
 
 ## [2026080415-slskdn.301] — 2026-08-04

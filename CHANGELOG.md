@@ -76,6 +76,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   startup applies it to existing transfer databases.
 - Raised the frontend unit-test timeout to accommodate lazy-loaded routes and
   large jsdom components on shared CI runners without masking test failures.
+- Extended the matching Testing Library wait for lazy-loaded search routes so
+  the assertion timeout tracks the frontend test budget on shared CI runners.
 
 ### Changed
 

@@ -190,7 +190,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Searches')).toBeInTheDocument();
-    });
+    }, { timeout: 15_000 });
 
     expect(document.title).toBe('slskdN');
   });
@@ -324,7 +324,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Searches')).toBeInTheDocument();
-    });
+    }, { timeout: 15_000 });
     expect(screen.queryByTestId('nav-chat-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('nav-rooms-alert')).not.toBeInTheDocument();
   });
@@ -338,7 +338,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Searches')).toBeInTheDocument();
-    });
+    }, { timeout: 15_000 });
 
     hubHandlers.state({
       server: { isConnected: true },
@@ -404,7 +404,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Searches')).toBeInTheDocument();
-    });
+    }, { timeout: 15_000 });
 
     hubHandlers.state({
       server: { isConnected: true },
@@ -445,7 +445,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Searches')).toBeInTheDocument();
-    });
+    }, { timeout: 15_000 });
 
     hubHandlers.options({
       dht: {
