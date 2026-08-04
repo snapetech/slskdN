@@ -27326,3 +27326,15 @@ of preserving its existing immediate failure contract.
 before entering the async continuation), then await that task while handling
 fallback queries. Launch-time validation and connection failures must continue
 to escape `StartAsync` synchronously.
+
+### 0z833. Qualify Soulseek Types In Search Provider Tests
+
+**The Bug**: A provider test imported both `slskd.Search` and `Soulseek`, so
+unqualified `Search` and `File` references became ambiguous with the fork's
+persisted search model and file model.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Search/Providers/SceneSearchProviderTests.cs`
+
+**Prevention**: Use explicit `Soulseek.Search` and `Soulseek.File` type names
+in tests that also import the fork search namespace.
