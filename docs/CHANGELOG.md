@@ -22,11 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+
+## [2026080415-slskdn.299] — 2026-08-04
+
 - Wishlist/Lidarr searches now keep the exact Soulseek query first and, only for
   low-result Wishlist searches, try up to two sequential leading-artist-term
   variants to recover operator-suppressed terms without broadening manual or
   auto-replace searches; mesh searches continue to receive the raw query.
-
 
 ## [2026080320-slskdn.298] — 2026-08-03
 
