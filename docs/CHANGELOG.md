@@ -30,7 +30,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   ambiguous.
 - Local-identity checks now exclude only immutable GitHub co-author trailers
   while continuing to scan release-facing text and other commit content.
-
+- Updated the NuGet dependency baseline, including AngleSharp, BouncyCastle,
+  AWS S3, API versioning, and SQLitePCLRaw.
 - Raised the frontend build and test Node.js baseline to 22.22.2, required by
   the jsdom 30 dependency update.
 - Empty `SLSKD_*` environment variables are now ignored by the configuration
