@@ -63,6 +63,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - The active council scanner now excludes dependency manifests and lockfiles,
   so dependency-only updates do not perturb the durable security-candidate
   counts or fail the remediation gate.
+- Frontend unit tests now allow 15 seconds for lazy-loaded routes and large
+  jsdom trees on shared CI runners while retaining their existing assertions.
 
 
 ## [2026080415-slskdn.301] — 2026-08-04
