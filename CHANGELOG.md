@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   ambiguous.
 - Local-identity checks now exclude only immutable GitHub co-author trailers
   while continuing to scan release-facing text and other commit content.
+- Stabilized the proof-of-storage allocation budget for shared CI runners while
+  retaining a bounded 4 KB-per-response regression check.
 
 - Made configured download destinations functional end to end: the folder
   marked `default` now governs destination-less and automatic downloads, while

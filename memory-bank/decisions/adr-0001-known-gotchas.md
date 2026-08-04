@@ -27689,3 +27689,17 @@ was reworded.
 changes. Keep incidental scanner keywords out of comments when they do not
 describe a finding; change the scanner only when the new match is an intended
 candidate category.
+### 0z850. Keep Async File-Read Allocation Budgets Runner-Stable
+
+**The Bug**: The proof-of-storage allocation regression used a 2,000,000-byte
+process-wide budget for 1,000 asynchronous file reads. The shared Release
+runner measured 3,241,360 bytes while an isolated local Release run measured
+1,221,416 bytes, so the benchmark rejected a valid bounded implementation.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/ProofOfStorageTests.cs`
+
+**Prevention**: Keep the warm-up invocation, correctness assertion, and
+4,000,000-byte total budget, which remains a 4 KB-per-response bound. Do not
+mute the allocation regression or remove the measurement when runner setup
+adds one-time asynchronous file-stream allocations.
