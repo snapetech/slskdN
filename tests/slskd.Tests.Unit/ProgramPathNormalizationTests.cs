@@ -557,6 +557,7 @@ public class ProgramPathNormalizationTests
 
         AntiforgeryCookieRecovery.ClearKnownCookies(httpsContext, port);
 
+        Assert.Equal(4, httpsContext.Response.Headers.SetCookie.Count);
         Assert.All(
             httpsContext.Response.Headers.SetCookie,
             value => Assert.Contains("; secure", value, StringComparison.OrdinalIgnoreCase));
@@ -566,6 +567,7 @@ public class ProgramPathNormalizationTests
 
         AntiforgeryCookieRecovery.ClearKnownCookies(httpContext, port);
 
+        Assert.Equal(4, httpContext.Response.Headers.SetCookie.Count);
         Assert.All(
             httpContext.Response.Headers.SetCookie,
             value => Assert.DoesNotContain("; secure", value, StringComparison.OrdinalIgnoreCase));
