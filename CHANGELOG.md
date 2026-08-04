@@ -74,6 +74,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   member admission encounters a database constraint failure.
 - Registered the ordered download auto-retry index migration so application
   startup applies it to existing transfer databases.
+- Raised the frontend unit-test timeout to accommodate lazy-loaded routes and
+  large jsdom components on shared CI runners without masking test failures.
 
 ### Changed
 

@@ -27594,3 +27594,20 @@ failed every browser-environment worker with
 package metadata, lockfile root metadata, and build/test documentation aligned
 with the strictest supported frontend dependency engine range. Re-run the
 frontend tests after any major jsdom or undici update.
+
+### 0z844. Allow Heavy Frontend Tests Time To Load On Shared Runners
+
+**The Bug**: The full Vitest suite repeatedly failed on shared self-hosted CI
+workers when lazy-loaded App routes or the large MediaCore jsdom tree took
+longer than Vitest's five-second test timeout. The same suite passed locally,
+and the failures occurred on unrelated dependency PRs, so rerunning or
+ignoring the failed checks did not address the test-harness defect.
+
+**Files Affected**:
+- `src/web/vite.config.js`
+- `src/web/src/components/App.test.jsx`
+- `src/web/src/components/System/MediaCore/index.test.jsx`
+
+**Prevention**: Keep the frontend test timeout at 15 seconds for the shared
+runner profile. Preserve the test assertions and investigate any failure that
+exceeds that budget rather than muting the workflow or deleting the coverage.

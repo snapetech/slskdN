@@ -118,5 +118,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.js'],
     exclude: ['e2e/**', 'node_modules/**'],
+    // Lazy-loaded route modules and large jsdom components can exceed five
+    // seconds on the shared self-hosted CI runners while remaining healthy.
+    testTimeout: 15_000,
   },
 });
