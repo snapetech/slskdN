@@ -247,7 +247,7 @@ const TransfersHeader = ({
         />
         <Nbsp />
         <Popup
-          content={`Automatically find and replace stuck downloads with alternative sources. Replacements must be within ${autoReplaceThreshold}% file size.`}
+          content={`Automatically find and replace stuck downloads with alternative sources. Replacements must be within ${autoReplaceThreshold}% file size. This is separate from automatic retry of failed downloads; disable transfers.download.auto_retry.enabled to stop those retries.`}
           position="bottom right"
           trigger={
             <Checkbox

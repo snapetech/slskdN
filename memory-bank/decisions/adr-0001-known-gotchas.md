@@ -27627,3 +27627,18 @@ after one second on the shared runners, even though the enclosing test had a
 Testing Library async timeout explicitly to the same bounded budget as the
 Vitest test timeout. Do not replace the assertion with a fixed sleep or remove
 the readiness check.
+
+### 0z846. Recheck Wishlist State Immediately Before Enqueue
+
+**The Bug**: Wishlist search completion checked `Enabled` and `AutoDownload`
+before candidate ranking, then enqueued the ranked batch without reading the
+row again. Disabling an item while ranking was in progress could therefore
+still start an automatic download batch.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `tests/slskd.Tests.Unit/Wishlist/WishlistControllerTests.cs`
+
+**Prevention**: Re-read enablement and the persisted download budget after
+ranking and immediately before enqueue. Keep a regression that changes the
+row during ranking and asserts that no enqueue occurs.

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Wishlist auto-download now rechecks the persisted enablement and download
+  budget immediately before enqueueing ranked results, so disabling an item
+  during ranking cannot start a stale batch.
+- The Auto-Replace control now explains that failed-download auto-retry is a
+  separate setting, so disabling one automation does not leave the other
+  ambiguous.
+
 - Raised the frontend build and test Node.js baseline to 22.22.2, required by
   the jsdom 30 dependency update.
 - Empty `SLSKD_*` environment variables are now ignored by the configuration

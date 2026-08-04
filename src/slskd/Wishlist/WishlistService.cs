@@ -1010,6 +1010,35 @@ namespace slskd.Wishlist
                     return WishlistDownloadResult.Empty;
                 }
 
+                using var latestContext = ContextFactory.CreateDbContext();
+                var latestState = await latestContext.WishlistItems
+                    .AsNoTracking()
+                    .Where(candidate => candidate.Id == wishlistItemId)
+                    .Select(candidate => new
+                    {
+                        candidate.Enabled,
+                        candidate.AutoDownload,
+                        candidate.TotalDownloadCount,
+                        candidate.MaxDownloads,
+                    })
+                    .SingleAsync(cancellationToken);
+
+                if (!latestState.Enabled || !latestState.AutoDownload)
+                {
+                    Log.Information(
+                        "Skipping wishlist auto-download for {WishlistItemId}: automatic downloads were disabled before enqueue",
+                        wishlistItemId);
+                    return WishlistDownloadResult.Empty;
+                }
+
+                var finalRemainingDownloads = latestState.MaxDownloads.HasValue
+                    ? latestState.MaxDownloads.Value - latestState.TotalDownloadCount
+                    : int.MaxValue;
+                if (finalRemainingDownloads <= 0)
+                {
+                    return WishlistDownloadResult.Empty;
+                }
+
                 var filesToDownload = bestPlan.Plan.Files
                     .Select(c => new slskd.Transfers.Downloads.DownloadEnqueueRequest
                     {
@@ -1021,7 +1050,7 @@ namespace slskd.Wishlist
                         Length = c.Length,
                         WishlistItemId = wishlistItemId,
                     })
-                    .Take(Math.Min(remainingDownloads, MaximumAutomaticDownloadsPerSearch))
+                    .Take(Math.Min(finalRemainingDownloads, MaximumAutomaticDownloadsPerSearch))
                     .ToList();
 
                 var bestDir = bestPlan.Plan.Key.Dir;

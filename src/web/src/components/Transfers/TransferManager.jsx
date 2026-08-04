@@ -562,7 +562,9 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
       } else {
         await autoReplaceLibrary.disableAutoReplace();
         setAutoReplaceEnabled(false);
-        toast.info('Auto-replace disabled');
+        toast.info(
+          'Auto-replace disabled. Automatic retry is separate; disable transfers.download.auto_retry.enabled to stop retries of failed downloads.',
+        );
       }
     } catch (error) {
       console.error('Failed to toggle auto-replace:', error);

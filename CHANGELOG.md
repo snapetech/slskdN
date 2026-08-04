@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Wishlist auto-download now rechecks the persisted enablement and download
+  budget immediately before enqueueing ranked results, so disabling an item
+  during ranking cannot start a stale batch.
+- The Auto-Replace control now explains that failed-download auto-retry is a
+  separate setting, so disabling one automation does not leave the other
+  ambiguous.
+
 - Made configured download destinations functional end to end: the folder
   marked `default` now governs destination-less and automatic downloads, while
   Search Results and Browse expose a persistent **Download to** selector for
