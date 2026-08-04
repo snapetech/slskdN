@@ -27479,6 +27479,37 @@ for workflow artifact and release labels. Pass an explicit `-p:Version` when
 an MSBuild command must run in an environment that already contains a generic
 version variable.
 
+### 0z839. User-Cancelled Downloads Must Not Enter Auto-Replace
+
+**The Bug**: Auto-replace classified `Completed | Cancelled` transfers as
+stuck. Cancelling a download therefore launched a new network search and could
+enqueue a replacement even after the user had disabled the original download.
+
+**Files Affected**:
+- `src/slskd/Transfers/AutoReplace/AutoReplaceService.cs`
+- `src/slskd/Transfers/AutoReplace/AutoReplaceBackgroundService.cs`
+
+**Prevention**: Automatic replacement may handle timeout, error, and peer
+rejection states, but never the explicit cancelled state. Disabling the feature
+must also cancel the currently running replacement cycle so it cannot finish a
+search and enqueue after the operator toggles it off.
+
+### 0z840. Bound Wishlist Directory Auto-Downloads
+
+**The Bug**: Wishlist auto-download grouped every matching file returned from a
+peer directory and treated numeric duplicate suffixes such as `(1)` and `(2)`
+as distinct tracks. A malformed or broad release could therefore enqueue
+hundreds of files for a single wishlist item.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `tests/slskd.Tests.Unit/Wishlist/WishlistFilterTests.cs`
+
+**Prevention**: Normalize trailing numeric duplicate suffixes into one track
+identity and refuse automatic directory plans above the bounded safety limit.
+Keep manual search results available so the operator can inspect an unusually
+large release before downloading it.
+
 ### 0z839. Keep Vendored Runtime Dependency Bumps In The Local Patch
 
 **The Bug**: A Dependabot update changed a package reference inside the
