@@ -65,6 +65,38 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z817. Empty Optional Environment Variables Must Be Ignored
+
+**The Bug**: Docker/Unraid templates exposed optional `SLSKD_*` fields with
+blank values, and the custom environment configuration provider treated those
+empty strings as real overrides. Boolean binding then failed at startup with
+errors such as `Failed to convert configuration value '' at 'slskd:Headless'`.
+
+**Files Affected**:
+- `src/slskd/Common/Configuration/EnvironmentVariableConfigurationSource.cs`
+
+**Wrong**:
+```csharp
+if (value != null)
+{
+    Data[key] = value;
+}
+```
+
+**Correct**:
+```csharp
+if (!string.IsNullOrEmpty(value))
+{
+    Data[key] = value;
+}
+```
+
+**Why This Keeps Happening**: Container template systems commonly represent an
+optional field as an environment variable whose value is `""`, but .NET
+configuration binding distinguishes an empty string from an absent key. Empty
+optional overrides must therefore be omitted so YAML and built-in defaults can
+remain authoritative.
+
 ### 0z816. Do Not Serialize Empty Required Integration Values
 
 **The Bug**: The guided Integrations editor wrote an empty
