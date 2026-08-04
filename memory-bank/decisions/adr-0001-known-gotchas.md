@@ -27555,3 +27555,19 @@ application security boundary changing.
 **Prevention**: Exclude dependency manifests and lockfiles from source-shape
 scanners. Regenerate the ledger after scanner changes, then verify that a
 dependency-only diff leaves the source candidate counts stable.
+
+### 0z842. Recheck Wishlist State Before Auto-Downloading Search Results
+
+**The Bug**: Wishlist search completion used the entity loaded before the
+network search. If an operator disabled the item while that search was in
+flight, the stale entity still had `AutoDownload = true` and could enqueue the
+completed results.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `tests/slskd.Tests.Unit/Wishlist/WishlistControllerTests.cs`
+
+**Prevention**: After response hydration and before auto-download, query the
+current persisted `Enabled` and `AutoDownload` values with a fresh no-tracking
+projection. Treat the latest persisted state as authoritative over the stale
+entity captured when the search began.
