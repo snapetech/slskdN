@@ -488,6 +488,16 @@ configured certificate, or configure a trusted PFX certificate under
 also be valid but still rejected by the browser for API requests until its
 exception is accepted.
 
+### Live UI Shows Disconnected With an API Key
+
+If REST API calls work with `X-API-Key` but the browser shows `Disconnected`
+and the console reports 401 responses from `/hub/application/negotiate`,
+`/hub/search/negotiate`, or `/hub/transfers/negotiate`, the server is likely an
+older build that does not promote SignalR query tokens. Current builds support
+the API key in both REST headers and SignalR's `access_token` query parameter.
+Verify the running version under System -> Info and upgrade to the current
+release. Do not put an API key in a normal URL or share it in browser history.
+
 ### Automatic Downloads Continue After Cancellation
 
 Auto-replace is intended only for transfers that ended because of a timeout,

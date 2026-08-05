@@ -12547,3 +12547,26 @@ all five attempts. Chocolatey rebuilt
 the public package lookup remains 404. Both channels remain explicitly blocked
 by external service availability, not muted or ignored findings. Windows Smoke
 and the tracked React Router RSC advisory remain the only separate follow-ups.
+## Update 2026-08-05 18:45:00Z
+
+- Verified kspls0 was running an old dirty manual image and deployed the
+  published `2026080501-slskdn.302` image, including its pending
+  `Z08032026_AutoReplaceAttemptsMigration` database migration.
+- Inspected 24 hours of host logs. Confirmed the old image emitted broad
+  one-token auto-replace searches returning 800-1,334 files, plus disconnected
+  Wishlist attempts and expected peer/VPN failures.
+- Headless live sweep found and reproduced API-key SignalR authentication
+  failure: REST calls accepted `X-API-Key`, but `/hub/*` query-token negotiation
+  returned 401. Fixed JWT bearer `OnMessageReceived` to promote API keys from
+  SignalR `access_token` values while preserving scoped claims.
+- Added `WebServiceCollectionExtensionsTests` regression coverage and ADR-0001
+  gotchas `0z843` through `0z845`.
+- Built and deployed temporary patched amd64 image
+  `slskdn:live-signalr-fix-0.0.1.302` to kspls0 for validation.
+- Live validation after patch: 24/24 declared routes returned 200; 143 internal
+  links loaded; no page errors; no hub 401s; direct SignalR query-token
+  negotiation returned 200; safe visible controls exercised without server 5xx.
+- Remaining link-sweep noise is expected: missing user notes return 404 and
+  rapid browsing hit the configured Soulseek browse rate limit (429).
+- Local validation: 5082 backend unit tests, 904 frontend tests, lint, and diff
+  checks pass.

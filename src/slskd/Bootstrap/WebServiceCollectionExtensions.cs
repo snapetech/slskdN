@@ -249,7 +249,17 @@ public static class WebServiceCollectionExtensions
                                 // https://docs.microsoft.com/en-us/aspnet/core/signalr/authn-and-authz?view=aspnetcore-5.0
                                 if (context.Request.Query.TryGetValue("access_token", out var accessToken))
                                 {
-                                    context.Token = accessToken;
+                                    var token = accessToken.ToString();
+
+                                    try
+                                    {
+                                        context.Token = PromoteApiKeyToJwt(context.HttpContext, token);
+                                    }
+                                    catch
+                                    {
+                                        // The token may already be a JWT. Let JWT bearer validation handle it.
+                                        context.Token = token;
+                                    }
                                 }
                                 else if (context.Request.Headers.ContainsKey("Authorization")
                                     && context.Request.Headers.TryGetValue("Authorization", out var authorization)
@@ -261,19 +271,7 @@ public static class WebServiceCollectionExtensions
                                     try
                                     {
                                         // check to see if the provided value is a valid API key
-                                        var service = context.HttpContext.RequestServices.GetRequiredService<ISecurityService>();
-                                        var remoteIpAddress = context.HttpContext.Connection.RemoteIpAddress;
-                                        if (string.IsNullOrWhiteSpace(token) || remoteIpAddress == null)
-                                        {
-                                            throw new InvalidOperationException("API key token or caller IP address was unavailable.");
-                                        }
-
-                                        var (name, role, scopes) = service.AuthenticateWithApiKey(token, callerIpAddress: remoteIpAddress);
-
-                                        // the API key is valid. create a new, short lived jwt for the key name and role.
-                                        // HARDENING-2026-04-20 H13: propagate the key's scopes onto the promoted JWT so
-                                        // RequireScopeAttribute works whether the caller presented an API key or a JWT.
-                                        context.Token = service.GenerateJwt(name, role, ttl: 1000, scopes: scopes).Serialize();
+                                        context.Token = PromoteApiKeyToJwt(context.HttpContext, token ?? string.Empty);
                                     }
                                     catch
                                     {
@@ -557,6 +555,21 @@ public static class WebServiceCollectionExtensions
         }
 
         return services;
+    }
+
+    internal static string PromoteApiKeyToJwt(HttpContext context, string token)
+    {
+        var service = context.RequestServices.GetRequiredService<ISecurityService>();
+        var remoteIpAddress = context.Connection.RemoteIpAddress;
+        if (string.IsNullOrWhiteSpace(token) || remoteIpAddress == null)
+        {
+            throw new InvalidOperationException("API key token or caller IP address was unavailable.");
+        }
+
+        var (name, role, scopes) = service.AuthenticateWithApiKey(token, callerIpAddress: remoteIpAddress);
+
+        // The API key is valid. Create a short-lived JWT while preserving its scopes.
+        return service.GenerateJwt(name, role, ttl: 1000, scopes: scopes).Serialize();
     }
 
     internal static string SelectAuthenticationScheme(HttpContext context)

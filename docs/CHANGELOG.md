@@ -22,6 +22,22 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed API-key-only browser sessions showing `Disconnected`. SignalR hub query
+  tokens are now promoted from configured API keys to scoped short-lived JWTs,
+  matching REST API-key authentication and restoring live application, search,
+  transfer, and log updates.
+
+## [2026080512-slskdn.303] — 2026-08-05
+
+- Fixed API-key-only browser sessions showing `Disconnected`. SignalR hub query
+  tokens are now promoted from configured API keys to scoped short-lived JWTs,
+  matching REST API-key authentication and restoring live application, search,
+  transfer, and log updates.
+- Validated the release against a live kspls0 deployment: all 24 declared UI
+  routes returned 200, 143 rendered internal links loaded, SignalR negotiation
+  succeeded, no page errors occurred, and safe visible controls completed
+  without server 5xx responses.
+
 - Wishlist auto-download now rechecks the persisted enablement and download
   budget immediately before enqueueing ranked results, so disabling an item
   during ranking cannot start a stale batch.
@@ -67,6 +83,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   cancels an active replacement cycle. Wishlist auto-download also normalizes
   numeric duplicate suffixes and refuses peer directories with more than 50
   unique tracks.
+- Fixed API-key-only browser sessions showing `Disconnected`. SignalR hub query
+  tokens are now promoted from configured API keys to scoped short-lived JWTs,
+  matching REST API-key authentication and restoring live application, search,
+  transfer, and log updates.
 - CI now keeps its build version in `BUILD_VERSION` so MSBuild does not import
   a release label from the environment as an invalid `Version` property during
   release-gate tests.

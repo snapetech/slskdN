@@ -13221,3 +13221,24 @@ rollback.
   1. Run full tests, lint, and diff review.
   2. Commit/push all repository changes.
   3. Create and verify the new build release tag only after the release gate.
+## Update 2026-08-05 18:45:00Z
+
+- Current task: fix live API-key SignalR authentication before publishing a
+  patch release.
+- Last activity:
+  - Deployed release `2026080501-slskdn.302` to kspls0 and verified health,
+    migration completion, and runtime version.
+  - Ran headless route/link/control sweeps. Found API-key REST auth worked but
+    SignalR hub query tokens returned 401, leaving the UI disconnected.
+  - Fixed hub `access_token` API-key promotion, added regression tests,
+    documentation, and ADR-0001 gotchas `0z843` through `0z845`.
+  - Built/deployed temporary image `slskdn:live-signalr-fix-0.0.1.302` and
+    validated all 24 routes, 143 links, SignalR negotiation, and safe controls.
+- Validation:
+  - Backend unit tests: 5082 passed.
+  - Frontend tests: 904 passed, 4 skipped.
+  - Lint and diff checks pass.
+  - Post-fix kspls0 logs have no hub 401s or application fatal errors.
+- Next steps:
+  1. Commit/push the SignalR fix and cut the next stable release.
+  2. Replace the temporary kspls0 image with the published patch image.

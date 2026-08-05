@@ -9,6 +9,14 @@
 
 ### High Priority
 
+- [x] Fix API-key-only SignalR hub authentication.
+  - Status: completed (2026-08-05)
+  - Priority: P1
+  - Notes: SignalR `access_token` query values are now promoted from configured
+    API keys to scoped short-lived JWTs, matching REST API-key auth. Live
+    kspls0 route/link/control sweeps pass with no hub 401s. Added regression
+    coverage and gotchas `0z843` through `0z845`.
+
 - [x] Action the open pull requests and current security findings.
   - Status: completed (2026-08-05)
   - Priority: P1
