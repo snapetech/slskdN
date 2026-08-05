@@ -1,3 +1,28 @@
+## Update 2026-08-05 02:53:32Z
+
+- Current task: stable release `2026080501-slskdn.302` is published and its
+  core artifacts are verified. The bounded recovery retry has now completed.
+- Final package-channel status:
+  - AUR failed again because the AUR service reported maintenance during all
+    five push attempts.
+  - Chocolatey rebuilt `slskdn.2026080501.0.0-slskdn.302.nupkg`, but all five
+    pushes to its public endpoint returned HTTP 504. A public package lookup
+    still returns 404, so it was not published.
+  - Docker multi-architecture publication and Launchpad PPA publication
+    completed successfully; Nix, COPR, Homebrew, Discord/Matrix, and the core
+    GitHub release assets are also complete.
+- No repository or security finding was muted. AUR and Chocolatey are blocked
+  by confirmed external service failures; retry them after service recovery.
+- Remaining blockers are unchanged: Windows Smoke has no matching registered
+  runner, and npm audit retains the tracked React Router RSC advisory pending a
+  compatible patched DOM release or the React Router 8/React 19 migration.
+- Next steps:
+  1. Retry AUR and Chocolatey after their services recover; do not create a
+     replacement release tag for this package-publication retry.
+  2. Register a matching Windows runner and rerun Windows Smoke.
+  3. Revisit the React Router migration when a compatible patched DOM release
+     exists.
+
 ## Update 2026-08-05 02:02:32Z
 
 - Current task: release `2026080501-slskdn.302` is published and its core

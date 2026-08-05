@@ -12536,3 +12536,14 @@ its maintenance window and Chocolatey by repeated HTTP 504 responses; Docker
 multi-architecture publication and Launchpad PPA publication were still in
 progress at this update. The flaky fragmented SOCKS test was fixed and its
 readiness gotcha was recorded as `0z852`, not suppressed.
+
+[2026-08-05T02:53:32Z] Completed the bounded recovery retry for stable release
+`2026080501-slskdn.302`. Docker multi-architecture publication and Launchpad
+PPA publication completed successfully, joining the already-published six
+runtime archives, Nix, COPR, Homebrew, announcements, and verified GitHub
+release assets. AUR was retried and again returned its maintenance response on
+all five attempts. Chocolatey rebuilt
+`slskdn.2026080501.0.0-slskdn.302.nupkg`, but all five pushes returned HTTP 504;
+the public package lookup remains 404. Both channels remain explicitly blocked
+by external service availability, not muted or ignored findings. Windows Smoke
+and the tracked React Router RSC advisory remain the only separate follow-ups.

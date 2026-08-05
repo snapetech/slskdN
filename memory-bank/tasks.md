@@ -30,10 +30,12 @@
   - Notes: Local and hosted release gates passed. The GitHub release contains
     verified Linux, macOS, and Windows archives with matching SHA256 sums;
     Nix, COPR, Homebrew, and release announcements completed.
-  - Follow-up: Docker multi-architecture and Launchpad PPA jobs were still
-    running at closeout. AUR was unavailable for maintenance and Chocolatey
-    returned HTTP 504 after its built-package retries; retry those channels
-    when their external services recover.
+  - Follow-up: Docker multi-architecture and Launchpad PPA publication later
+    completed successfully. AUR was retried and again returned its maintenance
+    response on all five attempts. Chocolatey rebuilt the package but returned
+    HTTP 504 on all five push attempts, and the public package lookup remains
+    404. Retry both channels after their external services recover; neither
+    finding was muted or ignored.
 
 - [x] Stop unintended auto-replace and wishlist bulk downloads.
   - Status: completed (2026-08-04)
