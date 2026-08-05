@@ -86,6 +86,34 @@ For dev or build tags, use the same logical version string embedded in the tag.
   budget instead of Testing Library's one-second default.
 
 
+## [2026080501-slskdn.302] — 2026-08-05
+
+- Fixed unintended automatic downloads: completed and user-cancelled transfers
+  are no longer treated as Auto-Replace candidates, disabling Auto-Replace
+  cancels its active replacement cycle, and alternative searches retain
+  release context while requiring every identifying token.
+- Rechecked persisted Wishlist enablement and download budgets immediately
+  before enqueueing ranked results, normalized numeric duplicate suffixes such
+  as `(1)` and `(2)`, and capped automatic peer-directory downloads at 50
+  unique tracks.
+- Added a bounded low-result Soulseek fallback through a registry of known
+  server-suppressed terms while keeping manual, Auto-Replace, and mesh queries
+  exact or raw as appropriate.
+- Clarified in the Transfers UI that Auto-Replace and failed-download
+  Auto-Retry are separate controls.
+- Updated frontend dependencies, including TypeScript 7, jsdom 30,
+  `@testing-library/jest-dom` 7, undici 7.29, PostCSS 8.5.25, and the grouped
+  npm updates; updated the grouped NuGet baseline as well.
+- Raised the frontend and release workflow Node.js baseline to 22.22.2 and
+  kept the CI build label isolated in `BUILD_VERSION` so MSBuild cannot read it
+  as an invalid application version.
+- Patched all locked `brace-expansion` paths to 1.1.18 or 5.0.9 to address the
+  current high-severity resource-exhaustion advisories.
+- Stabilized shared-runner proof-of-storage allocation assertions and
+  hardened the fragmented SOCKS test server so EOF and teardown close active
+  clients instead of hanging the backend test host.
+
+
 ## [2026080415-slskdn.301] — 2026-08-04
 
 - Fixed unintended automatic downloads after cancellation. Auto-replace no
