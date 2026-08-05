@@ -66,7 +66,7 @@ The script will:
 You can pin a specific release tag with `SLSKDN_VERSION`:
 
 ```bash
-SLSKDN_VERSION=2026080501-slskdn.302 ./setup-inside-ct.sh
+SLSKDN_VERSION=2026080512-slskdn.303 ./setup-inside-ct.sh
 ```
 
 If `SLSKDN_VERSION` is not set, the script resolves the latest release tag from GitHub automatically.
