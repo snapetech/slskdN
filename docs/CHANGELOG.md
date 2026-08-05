@@ -36,6 +36,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   retaining a bounded 4 KB-per-response regression check.
 - Hardened the fragmented SOCKS test server so EOF and teardown close active
   clients instead of hanging the backend test host.
+- Patched transitive `brace-expansion` packages to 1.1.18 and 5.0.9 to close
+  the current high-severity resource-exhaustion advisories.
 
 - Raised the frontend build and test Node.js baseline to 22.22.2, required by
   the jsdom 30 dependency update.

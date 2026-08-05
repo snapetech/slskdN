@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   retaining a bounded 4 KB-per-response regression check.
 - Hardened the fragmented SOCKS test server so EOF and teardown close active
   clients instead of hanging the backend test host.
+- Patched transitive `brace-expansion` packages to 1.1.18 and 5.0.9 to close
+  the current high-severity resource-exhaustion advisories.
 
 - Made configured download destinations functional end to end: the folder
   marked `default` now governs destination-less and automatic downloads, while
