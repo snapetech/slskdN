@@ -193,6 +193,7 @@ public class DnsLeakPreventionVerifierTests
     {
         private readonly ConcurrentDictionary<TcpClient, byte> _clients = new();
         private readonly CancellationTokenSource _cts = new();
+        private readonly TaskCompletionSource<bool> _serverStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private Task? _serverTask;
         private TcpListener? _listener;
 
@@ -211,31 +212,42 @@ public class DnsLeakPreventionVerifierTests
             // pool — critical for correctness under thread-pool saturation in parallel test runs.
             _serverTask = Task.Factory.StartNew(() =>
             {
-                while (!_cts.Token.IsCancellationRequested)
+                try
                 {
-                    try
+                    _serverStarted.TrySetResult(true);
+                    while (!_cts.Token.IsCancellationRequested)
                     {
-                        var client = _listener!.AcceptTcpClient();
-                        _clients.TryAdd(client, 0);
                         try
                         {
-                            HandleClientSync(client);
+                            var client = _listener!.AcceptTcpClient();
+                            _clients.TryAdd(client, 0);
+                            try
+                            {
+                                HandleClientSync(client);
+                            }
+                            finally
+                            {
+                                _clients.TryRemove(client, out _);
+                            }
                         }
-                        finally
+                        catch (SocketException)
                         {
-                            _clients.TryRemove(client, out _);
+                            break;
                         }
-                    }
-                    catch (SocketException)
-                    {
-                        break;
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        break;
+                        catch (ObjectDisposedException)
+                        {
+                            break;
+                        }
                     }
                 }
-            }, _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                catch (Exception ex)
+                {
+                    _serverStarted.TrySetException(ex);
+                    throw;
+                }
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+            await _serverStarted.Task;
         }
 
         private void HandleClientSync(TcpClient client)
