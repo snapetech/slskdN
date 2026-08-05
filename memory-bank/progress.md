@@ -12515,3 +12515,13 @@ Code quality improvements were completed as part of Option A:
   task tracking, and ADR-0001 gotchas `0z839` through `0z842`.
 - Focused validation passes: `63` auto-replace/Wishlist tests plus `40`
   Wishlist tests after the state-race coverage.
+[2026-08-05T01:09:26Z] Completed the open PR and security sweep: rebased and
+merged PRs `#284`, `#285`, `#288`-`#291`, and security PR `#292` after green
+build, E2E, performance, load, dependency, Trivy, identity, Nix, and NuGet
+checks. Patched all locked `brace-expansion` paths to `1.1.18` or `5.0.9`.
+GitHub reports zero open PRs, Dependabot alerts, CodeQL alerts, and secret
+alerts. Final validation passed `dotnet test` (`74` application, `5081` unit,
+`284` integration), Web (`904` passed, `4` skipped), `./bin/lint`, active
+backlog, runtime sync, workflow YAML, and identity checks. Windows Smoke remains
+an infrastructure follow-up because no matching Windows runner is registered;
+React Router's RSC-only advisory remains an explicit upstream/migration blocker.

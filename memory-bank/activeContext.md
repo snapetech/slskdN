@@ -1,3 +1,36 @@
+## Update 2026-08-05 01:09:26Z
+
+- Current task: complete. The open Dependabot PR and security remediation
+  sweep is merged and validated on `main`.
+- Last activity:
+  - Rebased and merged PRs `#284`, `#285`, `#288`-`#291`, and security PR
+    `#292`; PR `#286` was already merged before this sweep.
+  - Fixed the Wishlist enqueue state race and clarified Auto-Replace versus
+    independent Auto-Retry behavior, including the exact
+    `transfers.download.auto_retry.enabled: false` setting for users who want
+    failed-download retries disabled.
+  - Stabilized shared-runner allocation assertions and synchronous mock-server
+    teardown, recording the new gotchas in ADR-0001.
+  - Patched every locked `brace-expansion` path to `1.1.18` or `5.0.9`.
+- Validation:
+  - `dotnet test`: application `74`, unit `5081`, integration `284`, all pass.
+  - Web: `157` test files, `904` passed, `4` skipped; `./bin/lint` passes.
+  - Active backlog, runtime sync, workflow YAML, and local-identity checks
+    pass.
+  - GitHub reports zero open PRs, Dependabot alerts, CodeQL alerts, and
+    secret-scanning alerts.
+- Remaining blockers:
+  - Windows Smoke was not executable because no runner has the required
+    `Windows`, `X64`, and `packer-windows` labels; no check was dismissed.
+  - npm audit retains only the React Router RSC advisory. The app does not use
+    unstable RSC/server-action APIs; the supported patched core requires a
+    React Router 8/React 19 migration, and no matching patched DOM package is
+    published. The existing P2 task tracks this explicitly.
+- Next steps:
+  1. Register a matching Windows runner and rerun Windows Smoke.
+  2. Revisit the React Router migration when a compatible patched DOM release
+     exists; do not create a tag or release without explicit authorization.
+
 ## Update 2026-08-04 20:35:00Z
 
 - Current task: complete. Fixed tester-reported Chromaprint fingerprint failures

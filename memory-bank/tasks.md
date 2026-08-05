@@ -9,6 +9,21 @@
 
 ### High Priority
 
+- [x] Action the open pull requests and current security findings.
+  - Status: completed (2026-08-05)
+  - Priority: P1
+  - Notes: Rebased and merged the open Dependabot set through PRs `#284`,
+    `#285`, `#288`-`#291`, plus security PR `#292`; the earlier TypeScript PR
+    `#286` was already merged. Fixed the shared-runner allocation and mock
+    server teardown regressions exposed during validation, and patched all
+    locked `brace-expansion` paths to `1.1.18` or `5.0.9`. GitHub reports zero
+    open pull requests, Dependabot alerts, CodeQL alerts, and secret-scanning
+    alerts. No security finding was dismissed in this sweep.
+  - Follow-up: Windows Smoke remains unvalidated because the repository has no
+    runner matching its `Windows`, `X64`, and `packer-windows` labels. Keep the
+    React Router RSC advisory task below open until a compatible patched DOM
+    release or the React Router 8/React 19 migration is available.
+
 - [x] Stop unintended auto-replace and wishlist bulk downloads.
   - Status: completed (2026-08-04)
   - Priority: P1
@@ -271,15 +286,17 @@
     with `4` skipped), together with the production build and zero-error lint.
 
 - [ ] Upgrade React Router after the server-action CSRF advisory is patched.
-  - Status: blocked on an upstream patched release (2026-07-24)
+  - Status: blocked on a compatible upstream patched DOM release (2026-08-05)
   - Priority: P2
-  - Notes: `react-router-dom` `7.18.1` is the newest published version and the
-    app uses its client-only routing APIs. Its transitive `react-router` package
-    reports `GHSA-qwww-vcr4-c8h2` for RSC/server-action mode. Patched core
-    `react-router` `8.3.0` requires React `19.2.7` and Node `22.22`, while a
-    matching `react-router-dom` package is not published. The registry's
-    suggested downgrade restores several older high-severity advisories, so no
-    currently compatible version produces a clean audit.
+  - Notes: `react-router-dom` `7.18.2` is the newest published DOM package and
+    the app uses only its client-side `BrowserRouter`/`Routes` APIs. The
+    transitive `react-router` package reports `GHSA-qwww-vcr4-c8h2` only for
+    unstable RSC/server-action mode. Patched core `react-router` `8.3.0`
+    requires React `19.2.7` and Node `22.22`, while a matching
+    `react-router-dom` 8.3.0 package is not published. The registry's suggested
+    downgrade to `7.11.0` restores several older high-severity advisories, so
+    no currently compatible version produces a clean audit. This is recorded
+    as a concrete upstream/migration blocker, not suppressed in the lockfile.
 
 - [x] Publish and verify the multiple-download-destinations release.
   - Status: completed in stable release `2026072416-slskdn.288` (2026-07-24)
