@@ -27718,3 +27718,37 @@ so the release unit-test host could hang until the blame timeout.
 clients, and dispose those clients before waiting for the server thread. Do
 not leave synchronous test doubles dependent on an unbounded peer read during
 cleanup.
+
+### 0z852. Long-Running Synchronous Test Servers Need Readiness Confirmation
+
+**The Bug**: Converting the fragmented SOCKS test double to a dedicated
+synchronous accept loop still allowed `StartAsync` to return before that loop
+had entered its accept phase. Under the full Release suite the client could
+race the unobserved server task and fail the handshake even though the focused
+test passed.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Mesh/Transport/DnsLeakPreventionVerifierTests.cs`
+
+**Wrong**:
+```csharp
+_serverTask = Task.Factory.StartNew(() =>
+{
+    AcceptAndHandleClients();
+}, _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+```
+
+**Correct**:
+```csharp
+_serverTask = Task.Factory.StartNew(() =>
+{
+    _serverStarted.TrySetResult(true);
+    AcceptAndHandleClients();
+}, _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+await _serverStarted.Task;
+```
+
+**Why This Keeps Happening**: `TaskCreationOptions.LongRunning` requests a
+dedicated thread but does not make task scheduling synchronous. A test helper
+that starts a background listener must publish readiness and propagate startup
+failure; otherwise a green focused run can hide a parallel-suite race.
