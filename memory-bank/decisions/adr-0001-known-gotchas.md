@@ -27572,6 +27572,23 @@ current persisted `Enabled` and `AutoDownload` values with a fresh no-tracking
 projection. Treat the latest persisted state as authoritative over the stale
 entity captured when the search began.
 
+### 0z843. Promote API Keys From SignalR Query Tokens
+
+**The Bug**: REST API calls authenticated with `X-API-Key`, but browser
+SignalR connections supplied the same key through `access_token` in the hub
+query string. The JWT bearer handler treated that query value only as a JWT,
+so every hub negotiation returned 401 and live UI updates failed for API-key
+operators.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+- `tests/slskd.Tests.Unit/Bootstrap/WebServiceCollectionExtensionsTests.cs`
+
+**Prevention**: In JWT bearer `OnMessageReceived`, attempt the configured API-key
+authentication and short-lived JWT promotion for both the `access_token` query
+path used by SignalR and the `Bearer` header path. If promotion fails, retain
+the supplied value so normal JWT validation can handle it.
+
 ### 0z843. Match the Node Runtime To Major Frontend Test Dependencies
 
 **The Bug**: The jsdom 30 Dependabot update was tested on Node 20, although
