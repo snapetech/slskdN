@@ -27703,3 +27703,18 @@ runner measured 3,241,360 bytes while an isolated local Release run measured
 4,000,000-byte total budget, which remains a 4 KB-per-response bound. Do not
 mute the allocation regression or remove the measurement when runner setup
 adds one-time asynchronous file-stream allocations.
+
+### 0z851. Synchronous Mock Servers Must Close Active Clients During Teardown
+
+**The Bug**: The fragmented SOCKS test server used a synchronous accept/read
+loop after thread-pool saturation fixes. A zero-byte read was treated as no
+progress, and stopping the listener did not close an already accepted client,
+so the release unit-test host could hang until the blame timeout.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Mesh/Transport/DnsLeakPreventionVerifierTests.cs`
+
+**Prevention**: Treat EOF as terminal, bound synchronous reads, track active
+clients, and dispose those clients before waiting for the server thread. Do
+not leave synchronous test doubles dependent on an unbounded peer read during
+cleanup.

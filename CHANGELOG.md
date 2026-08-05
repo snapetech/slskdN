@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   while continuing to scan release-facing text and other commit content.
 - Stabilized the proof-of-storage allocation budget for shared CI runners while
   retaining a bounded 4 KB-per-response regression check.
+- Hardened the fragmented SOCKS test server so EOF and teardown close active
+  clients instead of hanging the backend test host.
 
 - Made configured download destinations functional end to end: the folder
   marked `default` now governs destination-less and automatic downloads, while

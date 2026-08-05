@@ -34,6 +34,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   AWS S3, API versioning, and SQLitePCLRaw.
 - Stabilized the proof-of-storage allocation budget for shared CI runners while
   retaining a bounded 4 KB-per-response regression check.
+- Hardened the fragmented SOCKS test server so EOF and teardown close active
+  clients instead of hanging the backend test host.
 
 - Raised the frontend build and test Node.js baseline to 22.22.2, required by
   the jsdom 30 dependency update.
