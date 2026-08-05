@@ -27658,3 +27658,34 @@ commit-message scan because they are GitHub provenance metadata that cannot be
 edited safely after the merge. Continue scanning commit subjects, other body
 content, release-facing files, and changelog text; do not add local identity
 trailers manually.
+### 0z848. Warm Async Allocation Paths Before Measuring Them
+
+**The Bug**: The probabilistic-verification allocation test measured the first
+async file-read invocation. JIT and one-time `FileStream`/hashing setup
+allocations were therefore charged to the steady-state operation, producing a
+current CI failure of 213,904 bytes against a 100,000-byte budget while local
+runs passed.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/ProbabilisticVerificationTests.cs`
+
+**Prevention**: Execute the exact async path once before collecting the
+allocation baseline, then retain the bounded allocation assertion for the
+warmed operation. Do not fix this class of failure by muting the test or
+loosening its budget without measuring the steady-state path.
+
+### 0z849. Keep Scanner-Sensitive Test Comments Out Of Durable Counts
+
+**The Bug**: The allocation-test fix added the word `path` to a test comment.
+The active council scanner examines test text, so that comment increased the
+red-team candidate count by one and failed the release gate until the comment
+was reworded.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/ProbabilisticVerificationTests.cs`
+- `scripts/run-council-active-bughunt.sh`
+
+**Prevention**: Run the council backlog check after test and documentation
+changes. Keep incidental scanner keywords out of comments when they do not
+describe a finding; change the scanner only when the new match is an intended
+candidate category.

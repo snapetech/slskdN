@@ -36,6 +36,14 @@ public class ProbabilisticVerificationTests
             using var verification = new ProbabilisticVerification(
                 NullLogger<ProbabilisticVerification>.Instance);
 
+            // Warm the async file-read and hashing operation before measuring steady-state allocation.
+            var warmup = await verification.SpotCheckFileAsync(
+                filePath,
+                chunkSize,
+                expectedHashes,
+                sampleRate: 1);
+            Assert.Equal(verification.MaximumChunksToVerify, warmup.VerifiedChunks);
+
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
