@@ -24,6 +24,17 @@
     React Router RSC advisory task below open until a compatible patched DOM
     release or the React Router 8/React 19 migration is available.
 
+- [x] Publish the validated stable release `2026080501-slskdn.302`.
+  - Status: core release completed (2026-08-05)
+  - Priority: P1
+  - Notes: Local and hosted release gates passed. The GitHub release contains
+    verified Linux, macOS, and Windows archives with matching SHA256 sums;
+    Nix, COPR, Homebrew, and release announcements completed.
+  - Follow-up: Docker multi-architecture and Launchpad PPA jobs were still
+    running at closeout. AUR was unavailable for maintenance and Chocolatey
+    returned HTTP 504 after its built-package retries; retry those channels
+    when their external services recover.
+
 - [x] Stop unintended auto-replace and wishlist bulk downloads.
   - Status: completed (2026-08-04)
   - Priority: P1

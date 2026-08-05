@@ -12525,3 +12525,14 @@ alerts. Final validation passed `dotnet test` (`74` application, `5081` unit,
 backlog, runtime sync, workflow YAML, and identity checks. Windows Smoke remains
 an infrastructure follow-up because no matching Windows runner is registered;
 React Router's RSC-only advisory remains an explicit upstream/migration blocker.
+
+[2026-08-05T02:02:32Z] Published stable release `2026080501-slskdn.302` after
+the full local release gate passed: Web (`904` passed, `4` skipped), backend
+unit (`5081`), integration smoke (`40`), release smoke, lint, remediation, and
+security gates. GitHub Build on Tag run `30966790609` passed the hosted release
+gate, all six runtime publishes, release creation, and artifact verification.
+Nix, COPR, Homebrew, and release announcements completed. AUR was blocked by
+its maintenance window and Chocolatey by repeated HTTP 504 responses; Docker
+multi-architecture publication and Launchpad PPA publication were still in
+progress at this update. The flaky fragmented SOCKS test was fixed and its
+readiness gotcha was recorded as `0z852`, not suppressed.

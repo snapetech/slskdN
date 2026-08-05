@@ -1,3 +1,41 @@
+## Update 2026-08-05 02:02:32Z
+
+- Current task: release `2026080501-slskdn.302` is published and its core
+  artifacts are verified.
+- Last activity:
+  - Local release gate passed after making the fragmented SOCKS handshake test
+    startup deterministic and recording gotcha `0z852`.
+  - GitHub Build on Tag run `30966790609` passed the hosted release gate, all
+    six runtime publishes, release creation, and artifact publication.
+  - `scripts/verify-release-artifacts.sh` passed all six archive checksums,
+    package metadata checks, binary version checks, VPN helper presence, and
+    bundled Web asset checks.
+  - The Nix release metadata workflow fast-forwarded `main` to its generated
+    stable metadata commit.
+- Package-channel status:
+  - Nix, COPR, Homebrew, Discord/Matrix, and core GitHub release assets passed.
+  - AUR failed because the AUR service reported maintenance during all five
+    push attempts.
+  - Chocolatey built the package but its public push endpoint returned HTTP 504
+    on all five retries.
+  - Docker multi-architecture publishing and Launchpad PPA publication are
+    still running in the hosted workflow.
+- Remaining blockers:
+  - Retry AUR and Chocolatey only after the external services recover; no
+    repository defect was found in either job.
+  - Windows Smoke remains unvalidated because no runner has the required
+    `Windows`, `X64`, and `packer-windows` labels; no check was dismissed.
+  - npm audit retains only the React Router RSC advisory. The app does not use
+    unstable RSC/server-action APIs; the supported patched core requires a
+    React Router 8/React 19 migration, and no matching patched DOM package is
+    published. The existing P2 task tracks this explicitly.
+- Next steps:
+  1. Let Docker and Launchpad finish, then retry failed AUR/Chocolatey jobs if
+     their services are available.
+  2. Register a matching Windows runner and rerun Windows Smoke.
+  3. Revisit the React Router migration when a compatible patched DOM release
+     exists.
+
 ## Update 2026-08-05 01:09:26Z
 
 - Current task: complete. The open Dependabot PR and security remediation
