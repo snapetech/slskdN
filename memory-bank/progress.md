@@ -12570,3 +12570,13 @@ and the tracked React Router RSC advisory remain the only separate follow-ups.
   rapid browsing hit the configured Soulseek browse rate limit (429).
 - Local validation: 5082 backend unit tests, 904 frontend tests, lint, and diff
   checks pass.
+
+## Update 2026-08-05 19:05:00Z
+
+- Release gate passed for the SignalR API-key patch: backend unit `5082`,
+  application `74`, integration smoke `40`, frontend `904` with `4` skipped,
+  build/subpath checks, remediation baseline, and lint all passed.
+- Pushed stable tag `build-main-2026080512-slskdn.303` at `4b6920040`.
+- Hosted tag build `31036765754` remains in progress; no GitHub release/GHCR
+  image exists yet. kspls0 stays on the healthy temporary patched image until
+  the published image is available.

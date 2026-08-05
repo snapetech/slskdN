@@ -13242,3 +13242,14 @@ rollback.
 - Next steps:
   1. Commit/push the SignalR fix and cut the next stable release.
   2. Replace the temporary kspls0 image with the published patch image.
+
+## Update 2026-08-05 19:05:00Z
+
+- SignalR API-key fix committed/pushed and release gate passed.
+- Stable tag `build-main-2026080512-slskdn.303` was created and pushed at
+  commit `4b6920040`. Hosted Build on Tag run `31036765754` is still in
+  progress; GitHub release and GHCR image are not available yet.
+- kspls0 remains healthy on temporary image
+  `slskdn:live-signalr-fix-0.0.1.302`, which contains the exact source fix and
+  passed the live headless route/link/SignalR/control validation. Replace it
+  with the published `303` image once the hosted build publishes GHCR assets.

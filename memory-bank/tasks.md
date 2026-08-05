@@ -17,6 +17,13 @@
     kspls0 route/link/control sweeps pass with no hub 401s. Added regression
     coverage and gotchas `0z843` through `0z845`.
 
+- [ ] Replace kspls0 temporary SignalR-fix image after release `303` publishes.
+  - Status: waiting on hosted tag build `31036765754` (2026-08-05)
+  - Priority: P1
+  - Notes: Host is healthy on `slskdn:live-signalr-fix-0.0.1.302`; switch to
+    `ghcr.io/snapetech/slskdn:2026080512-slskdn.303` and verify runtime version
+    and health after GHCR publication.
+
 - [x] Action the open pull requests and current security findings.
   - Status: completed (2026-08-05)
   - Priority: P1
