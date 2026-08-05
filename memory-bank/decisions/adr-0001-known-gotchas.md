@@ -27602,6 +27602,20 @@ and fails because an issuer string is not a three- or five-segment token.
 and signing credentials. Reserve the string constructor for already encoded
 JWT values.
 
+### 0z845. Treat ASP.NET StringValues As Structs
+
+**The Bug**: The SignalR query-token fix attempted to use the null-conditional
+operator on ASP.NET `StringValues`. `StringValues` is a struct, so the code did
+not compile; header token extraction also needed an explicit empty fallback for
+nullable `LastOrDefault()` output.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+
+**Prevention**: Convert `StringValues` directly with `ToString()` and use
+`?? string.Empty` only where a nullable string-producing LINQ operation is
+involved.
+
 ### 0z843. Match the Node Runtime To Major Frontend Test Dependencies
 
 **The Bug**: The jsdom 30 Dependabot update was tested on Node 20, although
