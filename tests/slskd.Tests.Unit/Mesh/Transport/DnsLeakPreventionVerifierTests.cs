@@ -1,6 +1,7 @@
 // <copyright file="DnsLeakPreventionVerifierTests.cs" company="slskdN Team">
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -190,6 +191,7 @@ public class DnsLeakPreventionVerifierTests
 
     private sealed class FragmentedSocksServer : IDisposable
     {
+        private readonly ConcurrentDictionary<TcpClient, byte> _clients = new();
         private readonly CancellationTokenSource _cts = new();
         private Task? _serverTask;
         private TcpListener? _listener;
@@ -214,7 +216,15 @@ public class DnsLeakPreventionVerifierTests
                     try
                     {
                         var client = _listener!.AcceptTcpClient();
-                        HandleClientSync(client);
+                        _clients.TryAdd(client, 0);
+                        try
+                        {
+                            HandleClientSync(client);
+                        }
+                        finally
+                        {
+                            _clients.TryRemove(client, out _);
+                        }
                     }
                     catch (SocketException)
                     {
@@ -234,12 +244,21 @@ public class DnsLeakPreventionVerifierTests
             try
             {
                 var stream = c.GetStream();
+                stream.ReadTimeout = 5_000;
 
                 // Read the SOCKS5 handshake from the client.
                 var handshake = new byte[3];
                 var read = 0;
                 while (read < handshake.Length)
-                    read += stream.Read(handshake, read, handshake.Length - read);
+                {
+                    var bytesRead = stream.Read(handshake, read, handshake.Length - read);
+                    if (bytesRead == 0)
+                    {
+                        return;
+                    }
+
+                    read += bytesRead;
+                }
 
                 var response = new byte[] { 0x05, 0x00 };
                 if (FragmentHandshakeResponse && response.Length > 1)
@@ -263,6 +282,10 @@ public class DnsLeakPreventionVerifierTests
         {
             _cts.Cancel();
             _listener?.Stop();
+            foreach (var client in _clients.Keys)
+            {
+                client.Dispose();
+            }
 
             try
             {
