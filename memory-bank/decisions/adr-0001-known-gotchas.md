@@ -27589,6 +27589,19 @@ authentication and short-lived JWT promotion for both the `access_token` query
 path used by SignalR and the `Bearer` header path. If promotion fails, retain
 the supplied value so normal JWT validation can handle it.
 
+### 0z844. Use a Well-Formed JWT Fixture in Authentication Tests
+
+**The Bug**: The SignalR API-key promotion regression used
+`new JwtSecurityToken("issuer")`, which parses its argument as an encoded JWT
+and fails because an issuer string is not a three- or five-segment token.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Bootstrap/WebServiceCollectionExtensionsTests.cs`
+
+**Prevention**: Construct test JWTs with issuer, audience, claims, lifetime,
+and signing credentials. Reserve the string constructor for already encoded
+JWT values.
+
 ### 0z843. Match the Node Runtime To Major Frontend Test Dependencies
 
 **The Bug**: The jsdom 30 Dependabot update was tested on Node 20, although
