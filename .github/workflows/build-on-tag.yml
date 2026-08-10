@@ -229,7 +229,7 @@ jobs:
       # Creates release under VERSION tag (e.g., 0.24.1-slskdn.35) for backward compatibility
       # Build was triggered by build-main-VERSION tag, but release uses traditional format
       - name: Create Main Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.parse.outputs.version }}
           name: "🔋 slskdN ${{ needs.parse.outputs.version }} - The Batteries-Included Fork"
