@@ -1069,7 +1069,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push Main Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           platforms: linux/amd64,linux/arm64
           push: true
@@ -1114,7 +1114,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Omnibus Testers Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: packaging/docker/Dockerfile.all-tools
