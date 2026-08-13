@@ -27,6 +27,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
   matching REST API-key authentication and restoring live application, search,
   transfer, and log updates.
 
+## [2026081323-slskdn.304] — 2026-08-13
+
+- Added a global `filters.download.exclude` policy for literal,
+  case-insensitive filename and path exclusions.
+- Blocked downloads are rejected before peer contact across normal, automated,
+  peer-preview, pod, backfill, capability-probe, bridge, and multi-source
+  transfer paths; active transfers are cancelled when a newly changed policy
+  matches them.
+- Added structured API rejection details, System > Policies editing, and
+  regression coverage for the shared policy boundary.
+
 ## [2026080512-slskdn.303] — 2026-08-05
 
 - Fixed API-key-only browser sessions showing `Disconnected`. SignalR hub query

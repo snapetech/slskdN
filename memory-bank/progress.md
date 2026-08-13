@@ -12580,3 +12580,20 @@ and the tracked React Router RSC advisory remain the only separate follow-ups.
 - Hosted tag build `31036765754` remains in progress; no GitHub release/GHCR
   image exists yet. kspls0 stays on the healthy temporary patched image until
   the published image is available.
+
+## Update 2026-08-13 22:35:00Z
+
+- Built `filters.download.exclude` as a shared literal, case-insensitive
+  outbound policy with normalized path separators and bounded validation.
+- Enforced it before enqueue/peer contact and again at direct transfer
+  boundaries across normal downloads, retries/resumes, wishlist and
+  auto-replacement, search/pod actions, multi-source/swarm, backfill,
+  capability probes, bridge, peer previews, and filename-bearing v2 backends.
+- Added live active-transfer cancellation, structured API rejection details,
+  System > Policies editing, configuration/docs/ADR/release-note coverage, and
+  regression tests.
+- Validation passed: production build, `dotnet test` (5,091 unit, 74
+  application, 284 integration), `./bin/lint`, `git diff --check`, and 904
+  frontend tests with 4 skips. The standalone frontend ESLint command remains
+  blocked by the repository's existing TypeScript 7 / typescript-eslint parser
+  compatibility error before source analysis.

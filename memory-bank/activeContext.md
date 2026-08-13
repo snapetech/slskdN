@@ -13253,3 +13253,18 @@ rollback.
   `slskdn:live-signalr-fix-0.0.1.302`, which contains the exact source fix and
   passed the live headless route/link/SignalR/control validation. Replace it
   with the published `303` image once the hosted build publishes GHCR assets.
+
+## Update 2026-08-13 22:35:00Z
+
+- Current task: completed the global outbound download exclusion feature.
+- Implemented `filters.download.exclude` with a shared matcher, bounded
+  validation, live option-change cancellation, structured API responses, and
+  System > Policies editing. Covered normal, retry/resume, wishlist,
+  auto-replace, search/pod, multi-source/swarm, probes, bridge, peer-preview,
+  and filename-bearing VirtualSoulfind v2 transfers.
+- Validation: production build passed; `dotnet test` passed with 5,091 unit,
+  74 application, and 284 integration tests; `./bin/lint`, diff checks, and
+  904 frontend tests (4 skipped) passed. `npm run lint` is blocked before
+  analysis by the existing TypeScript 7 / typescript-eslint incompatibility.
+- Next steps: create the explicitly requested stable release tag
+  `build-main-2026081323-slskdn.304`; do not create additional tags.
