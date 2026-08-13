@@ -115,6 +115,23 @@ provider prepends `SLSKD_` to
 unprefixed option name and template/docs targets must use the resulting
 `SLSKD_*` name exactly.
 
+### 0z842. New Environment-Backed Options Must Be Mirrored In Unraid Metadata
+
+**The Bug**: The global download exclusion option was added to the application,
+configuration docs, and example YAML, but the Unraid template did not expose
+its `SLSKD_DOWNLOAD_FILTER_EXCLUDE` environment override. The packaging release
+gate caught the omission before a tag was created.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `packaging/unraid/slskdn.xml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Prevention**: Every new `[EnvironmentVariable("...")]` option must be checked
+against the generated `SLSKD_*` name in the Unraid template and the packaging
+metadata validator before release. Configuration implementation and user docs
+are not complete until container-template exposure is covered too.
+
 ### 0z837. Unraid Incomplete Downloads Must Use A Prepared Writable Directory
 
 **The Bug**: The Unraid template set `SLSKD_INCOMPLETE_DIR=/downloads/incomplete`
