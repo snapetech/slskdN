@@ -1108,7 +1108,7 @@ entry; use a phrase such as `a cappella` when the spaces are part of the match.
 
 | Command Line                  | Environment Variable              | Description |
 | ----------------------------- | ---------------------------------- | ----------- |
-| `--download-filter-exclude`   | `SLSKD_DOWNLOAD_FILTER_EXCLUDE`   | Literal terms that block outbound downloads when present in a remote filename or path |
+| `--download-filter-exclude`   | `SLSKD_DOWNLOAD_FILTER_EXCLUDE`   | Literal terms that block outbound downloads when present in a remote filename or path; separate environment-variable entries with semicolons |
 
 #### **YAML**
 ```yaml

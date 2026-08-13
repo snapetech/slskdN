@@ -37,6 +37,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   matches them.
 - Added structured API rejection details, System > Policies editing, and
   regression coverage for the shared policy boundary.
+- Added the `SLSKD_DOWNLOAD_FILTER_EXCLUDE` mapping to the Unraid template,
+  including its semicolon-separated environment-variable format.
 
 ## [2026080512-slskdn.303] — 2026-08-05
 
