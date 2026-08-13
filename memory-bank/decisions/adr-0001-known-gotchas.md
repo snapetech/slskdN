@@ -127,6 +127,34 @@ the user deleted the override.
 mount, but place incomplete files under `/app/incomplete`, which startup
 directory preparation creates and validates in the writable app-data mount.
 
+### 0z838. Do Not Put Custom Policy Methods Inside EF Query Expressions
+
+**The Bug**: A download-policy matcher was initially placed inside the
+expression passed to `Transfers.Downloads.List`. Entity Framework must
+translate that expression to SQL, so the custom matcher would fail at runtime
+instead of filtering active transfers.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+
+**Wrong**:
+```csharp
+Transfers.Downloads.List(download =>
+    !download.State.HasFlag(TransferStates.Completed) &&
+    DownloadFilter.IsExcluded(download.Filename, exclusions));
+```
+
+**Correct**:
+```csharp
+Transfers.Downloads.List(download => !download.State.HasFlag(TransferStates.Completed))
+    .Where(download => DownloadFilter.IsExcluded(download.Filename, exclusions));
+```
+
+**Why This Keeps Happening**: The service API accepts LINQ expressions that look
+like ordinary in-memory predicates, but the database provider owns their
+execution. Fetch with provider-translatable conditions first, then apply custom
+policy logic in memory.
+
 ### 0z816. Do Not Serialize Empty Required Integration Values
 
 **The Bug**: The guided Integrations editor wrote an empty

@@ -55,6 +55,7 @@ namespace slskd
     using slskd.Telemetry;
     using slskd.Transfers;
     using slskd.Transfers.API;
+    using slskd.Transfers.Downloads;
     using slskd.Users;
     using Soulseek;
     using Soulseek.Diagnostics;
@@ -1542,6 +1543,26 @@ namespace slskd
             // the user doesn't want those transfers anymore and we don't want to add them back.
             var resumableDownloads = Transfers.Downloads.List(t => !t.Removed && ActiveDownloadIdsAtPreviousShutdown.Contains(t.Id));
 
+            var blockedResumableDownloads = resumableDownloads
+                .Where(download => DownloadFilter.IsExcluded(
+                    download.Filename,
+                    OptionsMonitor.CurrentValue.Filters.Download.Exclude))
+                .ToList();
+            foreach (var blockedDownload in blockedResumableDownloads)
+            {
+                Transfers.Downloads.TryCancel(blockedDownload.Id);
+            }
+
+            if (blockedResumableDownloads.Count > 0)
+            {
+                Log.Information(
+                    "Skipped {Count} previously active download(s) blocked by the global download policy",
+                    blockedResumableDownloads.Count);
+                resumableDownloads = resumableDownloads
+                    .Except(blockedResumableDownloads)
+                    .ToList();
+            }
+
             if (resumableDownloads.Any())
             {
                 Log.Information("Attempting to re-enqueue previously active downloads...");
@@ -2374,6 +2395,26 @@ namespace slskd
                         Flags.CaseSensitiveRegEx);
 
                     Log.Information("Updated and re-compiled search response filters");
+                }
+
+                var previousDownloadExclusions = PreviousOptions.Filters.Download.Exclude ?? Array.Empty<string>();
+                var newDownloadExclusions = newOptions.Filters.Download.Exclude ?? Array.Empty<string>();
+                if (previousDownloadExclusions.Except(newDownloadExclusions, StringComparer.OrdinalIgnoreCase).Any()
+                    || newDownloadExclusions.Except(previousDownloadExclusions, StringComparer.OrdinalIgnoreCase).Any())
+                {
+                    var newlyBlockedDownloads = Transfers.Downloads
+                        .List(download => !download.State.HasFlag(TransferStates.Completed))
+                        .Where(download => DownloadFilter.IsExcluded(download.Filename, newDownloadExclusions))
+                        .ToList();
+
+                    foreach (var download in newlyBlockedDownloads)
+                    {
+                        Transfers.Downloads.TryCancel(download.Id);
+                    }
+
+                    Log.Information(
+                        "Updated global download exclusions; cancelled {Count} active download(s) now blocked by policy",
+                        newlyBlockedDownloads.Count);
                 }
 
                 if (PreviousOptions.Rooms.Except(newOptions.Rooms).Any()
