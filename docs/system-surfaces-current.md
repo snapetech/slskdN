@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-08-03T20:17:03Z
+Generated: 2026-08-13T23:51:48Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -248,9 +248,9 @@ None found.
   - 77:    [HttpGet("{ticket}")]
   - 78:    [AllowAnonymous]
 - src/slskd/Streaming/PeerStreamsController.cs
-  - 42:    [HttpPost("tickets")]
-  - 75:    [HttpGet("{ticket}")]
-  - 76:    [AllowAnonymous]
+  - 43:    [HttpPost("tickets")]
+  - 85:    [HttpGet("{ticket}")]
+  - 86:    [AllowAnonymous]
 - src/slskd/Streaming/StreamsController.cs
   - 58:    [HttpPost("{contentId}/ticket")]
   - 87:    [HttpPost("{contentId}/share-ticket")]
