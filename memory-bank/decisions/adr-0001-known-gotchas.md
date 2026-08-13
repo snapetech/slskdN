@@ -204,6 +204,23 @@ source locations must be followed by
 `scripts/generate-route-inventory.sh docs/system-surfaces-current.md`, then the
 remediation baseline must be rerun before release.
 
+### 0z844. Refresh The Active Council Backlog After Source Changes
+
+**The Bug**: The download-policy implementation changed source-code findings
+used by the active council scanner, but the checked-in backlog counts were not
+refreshed. The remediation baseline rejected the release candidate because
+three tracked categories no longer matched the scanner output.
+
+**Files Affected**:
+- `docs/dev/bug-council-active-backlog.md`
+- `scripts/run-council-active-bughunt.sh`
+- source files included in the scanner inventory
+
+**Prevention**: After source changes, run
+`scripts/run-council-active-bughunt.sh`, review the generated category counts,
+update `docs/dev/bug-council-active-backlog.md`, and rerun the remediation
+baseline before release.
+
 ### 0z840. Literal Filter Fixtures Must Match Literal Filter Semantics
 
 **The Bug**: A matcher test used `acappella` as the exclusion for a fixture
