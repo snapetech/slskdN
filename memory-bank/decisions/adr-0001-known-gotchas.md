@@ -187,6 +187,23 @@ handler with the action's distinctive surrounding response or inspect the full
 method afterward. Exception-to-status mapping must be adjacent to the operation
 that can throw it.
 
+### 0z843. Regenerate The Checked-In API Route Inventory After Controller Changes
+
+**The Bug**: The download-policy enforcement added controller code before the
+existing `PeerStreamsController` routes, changing their line numbers while the
+checked-in route inventory still contained the old positions. The remediation
+baseline therefore rejected the release candidate before packaging tests ran.
+
+**Files Affected**:
+- `src/slskd/Streaming/PeerStreamsController.cs`
+- `docs/system-surfaces-current.md`
+- `scripts/generate-route-inventory.sh`
+
+**Prevention**: Any controller edit that can change route declarations or their
+source locations must be followed by
+`scripts/generate-route-inventory.sh docs/system-surfaces-current.md`, then the
+remediation baseline must be rerun before release.
+
 ### 0z840. Literal Filter Fixtures Must Match Literal Filter Semantics
 
 **The Bug**: A matcher test used `acappella` as the exclusion for a fixture
