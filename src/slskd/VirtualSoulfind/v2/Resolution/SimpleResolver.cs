@@ -15,6 +15,7 @@ namespace slskd.VirtualSoulfind.v2.Resolution
     using slskd.Configuration;
     using slskd.Mesh.ServiceFabric;
     using slskd.Signals.Swarm;
+    using slskd.Transfers.Downloads;
     using slskd.VirtualSoulfind.v2.Backends;
     using slskd.VirtualSoulfind.v2.Execution;
     using slskd.VirtualSoulfind.v2.Planning;
@@ -31,6 +32,7 @@ namespace slskd.VirtualSoulfind.v2.Resolution
     public sealed class SimpleResolver : IResolver
     {
         private readonly IOptionsMonitor<ResolverOptions> _options;
+        private readonly IOptionsMonitor<slskd.Options> _downloadOptions;
         private readonly IContentBackend[] _backends;
         private readonly IBitTorrentBackend? _btBackend;
         private readonly IMeshServiceClient? _meshClient;
@@ -40,12 +42,14 @@ namespace slskd.VirtualSoulfind.v2.Resolution
         public SimpleResolver(
             IOptionsMonitor<ResolverOptions> options,
             IEnumerable<IContentBackend> backends,
+            IOptionsMonitor<slskd.Options> downloadOptions,
             IBitTorrentBackend? btBackend = null,
             IMeshServiceClient? meshClient = null,
             ILogger<SimpleResolver>? logger = null)
         {
             _options = options;
             _backends = backends.ToArray();
+            _downloadOptions = downloadOptions;
             _btBackend = btBackend;
             _meshClient = meshClient;
             _logger = logger;
@@ -336,6 +340,16 @@ namespace slskd.VirtualSoulfind.v2.Resolution
         {
             try
             {
+                var policyExclusion = GetCandidatePolicyExclusion(candidate);
+                if (policyExclusion is not null)
+                {
+                    _logger?.LogInformation(
+                        "VirtualSoulfind v2 candidate {CandidateRef} blocked by global download exclusion {Exclusion}",
+                        candidate.BackendRef,
+                        policyExclusion);
+                    return StepResult.Failure($"Blocked by global download exclusion '{policyExclusion}'");
+                }
+
                 var validationResult = await backend.ValidateCandidateAsync(candidate, cancellationToken);
                 if (!validationResult.IsValid)
                 {
@@ -378,6 +392,18 @@ namespace slskd.VirtualSoulfind.v2.Resolution
                     candidate.BackendRef);
                 return StepResult.Failure($"{backendType} fetch failed");
             }
+        }
+
+        private string? GetCandidatePolicyExclusion(SourceCandidate candidate)
+        {
+            if (candidate.Backend is not (ContentBackendType.Http or ContentBackendType.WebDav or ContentBackendType.S3 or ContentBackendType.Lan))
+            {
+                return null;
+            }
+
+            return DownloadFilter.GetMatchingExclusion(
+                candidate.BackendRef,
+                _downloadOptions.CurrentValue.Filters.Download.Exclude);
         }
 
         private PlanExecutionState UpdateState(PlanExecutionState newState)

@@ -177,6 +177,11 @@ namespace slskd.Transfers.MultiSource
         public string Error { get; set; } = string.Empty;
 
         /// <summary>
+        ///     Gets or sets a value indicating whether the download was rejected by the global download policy.
+        /// </summary>
+        public bool BlockedByPolicy { get; set; }
+
+        /// <summary>
         ///     Gets or sets the verified content hash of the downloaded file.
         /// </summary>
         public string FinalHash { get; set; } = string.Empty;

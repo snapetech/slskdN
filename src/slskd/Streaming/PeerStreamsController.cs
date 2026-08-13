@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using slskd.Authentication;
 using slskd.Core.Security;
+using slskd.Transfers.Downloads;
 
 /// <summary>Manual peer-to-browser audio preview streams. Does not persist files or use mesh fanout.</summary>
 [ApiController]
@@ -43,12 +44,21 @@ public sealed class PeerStreamsController : ControllerBase
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(403)]
     [ProducesResponseType(404)]
     public IActionResult CreateTicket([FromBody] PeerStreamTicketRequest request)
     {
         if (!StreamingEnabled)
         {
             return NotFound();
+        }
+
+        var policyExclusion = DownloadFilter.GetMatchingExclusion(
+            request.Filename,
+            _options.CurrentValue.Filters.Download.Exclude);
+        if (policyExclusion is not null)
+        {
+            return DownloadBlocked(request.Filename, policyExclusion);
         }
 
         try
@@ -75,6 +85,7 @@ public sealed class PeerStreamsController : ControllerBase
     [HttpGet("{ticket}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
+    [ProducesResponseType(403)]
     [ProducesResponseType(404)]
     [ProducesResponseType(429)]
     public async Task<IActionResult> Get([FromRoute] string ticket, CancellationToken cancellationToken)
@@ -100,6 +111,10 @@ public sealed class PeerStreamsController : ControllerBase
         {
             return StatusCode(429, "Peer stream limit reached.");
         }
+        catch (DownloadBlockedByPolicyException ex)
+        {
+            return DownloadBlocked(ex.Filename, ex.Exclusion);
+        }
     }
 
     private string GetAuthenticatedOwnerKey()
@@ -116,4 +131,17 @@ public sealed class PeerStreamsController : ControllerBase
             "Only audio files can be preview streamed from peers." => "Only audio files can be preview streamed from peers.",
             _ => "Invalid peer stream ticket request.",
         };
+
+    private IActionResult DownloadBlocked(string filename, string exclusion)
+    {
+        var problem = new ProblemDetails
+        {
+            Type = "download_blocked",
+            Title = "Download blocked",
+            Detail = $"The remote path matched the configured global download exclusion '{exclusion}'.",
+        };
+        problem.Extensions["filename"] = filename;
+        problem.Extensions["exclusion"] = exclusion;
+        return StatusCode(StatusCodes.Status403Forbidden, problem);
+    }
 }

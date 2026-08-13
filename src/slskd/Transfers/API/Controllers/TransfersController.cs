@@ -475,6 +475,34 @@ namespace slskd.Transfers.API
                 return BadRequest("Each file requires a non-empty filename");
             }
 
+            var blockedDownloads = normalizedRequests
+                .Select(request => new
+                {
+                    request.Filename,
+                    Exclusion = DownloadFilter.GetMatchingExclusion(
+                        request.Filename,
+                        OptionsSnapshot.Value.Filters.Download.Exclude),
+                })
+                .Where(request => request.Exclusion is not null)
+                .ToList();
+
+            if (blockedDownloads.Count == normalizedRequests.Count)
+            {
+                Log.Information(
+                    "Rejected download request for {Username}; all {Count} file(s) matched the global download policy",
+                    username,
+                    blockedDownloads.Count);
+                return StatusCode(
+                    403,
+                    new
+                    {
+                        type = "download_blocked",
+                        title = "Download blocked",
+                        detail = "Every requested file matched a configured global download exclusion.",
+                        blocked = blockedDownloads,
+                    });
+            }
+
             var destinationDirectory = Destinations.DownloadDestinationResolver.NormalizeExplicitPath(OptionsSnapshot.Value, destination);
             if (!string.IsNullOrWhiteSpace(destination) && destinationDirectory == null)
             {
@@ -506,7 +534,7 @@ namespace slskd.Transfers.API
                         Length = r.Length,
                     }));
 
-                return StatusCode(201, new { Enqueued = enqueued, Failed = failed });
+                return StatusCode(201, new { Enqueued = enqueued, Failed = failed, Blocked = blockedDownloads });
             }
             catch (Exception ex)
             {

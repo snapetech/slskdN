@@ -79,6 +79,7 @@ public class SearchActionsController : ControllerBase
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(403)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
     public async Task<IActionResult> DownloadItem(
@@ -148,6 +149,22 @@ public class SearchActionsController : ControllerBase
                 Title = "File not found",
                 Detail = "Search result file not found"
             });
+        }
+
+        var policyFilename = response.SceneContentRef?.Filename ?? file.Filename;
+        var policyExclusion = DownloadFilter.GetMatchingExclusion(
+            file.Filename,
+            _optionsMonitor.CurrentValue.Filters.Download.Exclude)
+            ?? DownloadFilter.GetMatchingExclusion(
+                policyFilename,
+                _optionsMonitor.CurrentValue.Filters.Download.Exclude);
+        if (policyExclusion is not null)
+        {
+            _logger.LogInformation(
+                "[SearchActions] Blocked download of {Filename} by global exclusion {Exclusion}",
+                policyFilename,
+                policyExclusion);
+            return DownloadBlocked(policyFilename, policyExclusion);
         }
 
         // Route based on primary source
@@ -298,6 +315,14 @@ public class SearchActionsController : ControllerBase
         string? destination,
         CancellationToken ct)
     {
+        var policyExclusion = DownloadFilter.GetMatchingExclusion(
+            file.Filename,
+            _optionsMonitor.CurrentValue.Filters.Download.Exclude);
+        if (policyExclusion is not null)
+        {
+            return DownloadBlocked(file.Filename, policyExclusion);
+        }
+
         _logger.LogInformation("[SearchActions] Pod download: contentId={ContentId}, filename={Filename}, peerId={PeerId}", contentId, file.Filename, peerId);
 
         try
@@ -451,6 +476,14 @@ public class SearchActionsController : ControllerBase
         string? destination,
         CancellationToken ct)
     {
+        var policyExclusion = DownloadFilter.GetMatchingExclusion(
+            sceneRef.Filename,
+            _optionsMonitor.CurrentValue.Filters.Download.Exclude);
+        if (policyExclusion is not null)
+        {
+            return DownloadBlocked(sceneRef.Filename, policyExclusion);
+        }
+
         _logger.LogInformation("[SearchActions] Scene download: username={Username}, filename={Filename}",
             sceneRef.Username, sceneRef.Filename);
 
@@ -506,6 +539,19 @@ public class SearchActionsController : ControllerBase
                 Detail = "Scene download failed"
             });
         }
+    }
+
+    private IActionResult DownloadBlocked(string filename, string exclusion)
+    {
+        var problem = new ProblemDetails
+        {
+            Type = "download_blocked",
+            Title = "Download blocked",
+            Detail = $"The remote path matched the configured global download exclusion '{exclusion}'.",
+        };
+        problem.Extensions["filename"] = filename;
+        problem.Extensions["exclusion"] = exclusion;
+        return StatusCode(StatusCodes.Status403Forbidden, problem);
     }
 
     private static bool TryParseItemId(string itemId, out int responseIndex, out int fileIndex)

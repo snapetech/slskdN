@@ -10,7 +10,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Transfers.Downloads;
 
 /// <summary>
 /// Opens manual peer preview streams without creating transfer records or local files.
@@ -25,17 +27,20 @@ public sealed class PeerStreamService : IPeerStreamService
     private readonly IStreamSessionLimiter _limiter;
     private readonly ISoulseekClient _client;
     private readonly ILogger<PeerStreamService> _logger;
+    private readonly IOptionsMonitor<slskd.Options> _optionsMonitor;
 
     public PeerStreamService(
         IPeerStreamTicketService tickets,
         IStreamSessionLimiter limiter,
         ISoulseekClient client,
-        ILogger<PeerStreamService> logger)
+        ILogger<PeerStreamService> logger,
+        IOptionsMonitor<slskd.Options> optionsMonitor)
     {
         _tickets = tickets;
         _limiter = limiter;
         _client = client;
         _logger = logger;
+        _optionsMonitor = optionsMonitor;
     }
 
     public Task<PeerStreamLease?> OpenAsync(string ticket, CancellationToken cancellationToken)
@@ -44,6 +49,14 @@ public sealed class PeerStreamService : IPeerStreamService
         if (claims == null)
         {
             return Task.FromResult<PeerStreamLease?>(null);
+        }
+
+        var policyExclusion = DownloadFilter.GetMatchingExclusion(
+            claims.Filename,
+            _optionsMonitor.CurrentValue.Filters.Download.Exclude);
+        if (policyExclusion is not null)
+        {
+            throw new DownloadBlockedByPolicyException(claims.Filename, policyExclusion);
         }
 
         if (!_limiter.TryAcquire(claims.OwnerKey, MaxConcurrentPeerStreamsPerOwner))

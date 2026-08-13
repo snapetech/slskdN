@@ -8,6 +8,6 @@ namespace slskd.Swarm;
 /// </summary>
 public record SwarmJob(string JobId, SwarmFile File, IReadOnlyList<SwarmSource> Sources);
 
-public record SwarmFile(string ContentId, string Hash, long SizeBytes, string? Codec = null);
+public record SwarmFile(string ContentId, string Hash, long SizeBytes, string? Codec = null, string? Filename = null);
 
 public record SwarmSource(string PeerId, string Transport, string? Address = null, int? Port = null);

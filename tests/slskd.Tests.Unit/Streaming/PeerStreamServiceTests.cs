@@ -8,7 +8,9 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Soulseek;
 using slskd.Streaming;
+using slskd.Transfers.Downloads;
 using Xunit;
+using TestOptionsMonitor = slskd.Tests.Unit.TestOptionsMonitor<slskd.Options>;
 
 public class PeerStreamServiceTests
 {
@@ -48,7 +50,12 @@ public class PeerStreamServiceTests
                 return null!;
             });
 
-        var service = new PeerStreamService(tickets.Object, limiter.Object, client.Object, Mock.Of<ILogger<PeerStreamService>>());
+        var service = new PeerStreamService(
+            tickets.Object,
+            limiter.Object,
+            client.Object,
+            Mock.Of<ILogger<PeerStreamService>>(),
+            new TestOptionsMonitor(new slskd.Options()));
 
         var lease = await service.OpenAsync("ticket-1", CancellationToken.None);
 
@@ -74,9 +81,56 @@ public class PeerStreamServiceTests
             .Returns(new PeerStreamTicket("ticket-1", "remote-user", "track.mp3", 10, "user:alice", DateTimeOffset.UtcNow.AddMinutes(1), "audio/mpeg"));
         limiter.Setup(x => x.TryAcquire("user:alice", 1)).Returns(false);
 
-        var service = new PeerStreamService(tickets.Object, limiter.Object, client.Object, Mock.Of<ILogger<PeerStreamService>>());
+        var service = new PeerStreamService(
+            tickets.Object,
+            limiter.Object,
+            client.Object,
+            Mock.Of<ILogger<PeerStreamService>>(),
+            new TestOptionsMonitor(new slskd.Options()));
 
         await Assert.ThrowsAsync<PeerStreamLimitException>(() => service.OpenAsync("ticket-1", CancellationToken.None));
+        client.Verify(x => x.DownloadAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<Func<Task<Stream>>>(),
+            It.IsAny<long?>(),
+            It.IsAny<long>(),
+            It.IsAny<int?>(),
+            It.IsAny<TransferOptions>(),
+            It.IsAny<CancellationToken?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task OpenAsync_GlobalDownloadExclusion_DoesNotStartSoulseekDownload()
+    {
+        var tickets = new Mock<IPeerStreamTicketService>();
+        var limiter = new Mock<IStreamSessionLimiter>();
+        var client = new Mock<ISoulseekClient>();
+
+        tickets.Setup(x => x.Validate("ticket-1"))
+            .Returns(new PeerStreamTicket("ticket-1", "remote-user", "Music/instrumental.flac", 10, "user:alice", DateTimeOffset.UtcNow.AddMinutes(1), "audio/flac"));
+
+        var service = new PeerStreamService(
+            tickets.Object,
+            limiter.Object,
+            client.Object,
+            Mock.Of<ILogger<PeerStreamService>>(),
+            new TestOptionsMonitor(new slskd.Options
+            {
+                Filters = new slskd.Options.FiltersOptions
+                {
+                    Download = new slskd.Options.FiltersOptions.DownloadFilterOptions
+                    {
+                        Exclude = new[] { "instrumental" },
+                    },
+                },
+            }));
+
+        var exception = await Assert.ThrowsAsync<DownloadBlockedByPolicyException>(
+            () => service.OpenAsync("ticket-1", CancellationToken.None));
+
+        Assert.Equal("Music/instrumental.flac", exception.Filename);
+        limiter.Verify(x => x.TryAcquire(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
         client.Verify(x => x.DownloadAsync(
             It.IsAny<string>(),
             It.IsAny<string>(),

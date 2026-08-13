@@ -71,6 +71,29 @@ public class PeerStreamsControllerTests
     }
 
     [Fact]
+    public void CreateTicket_GlobalDownloadExclusion_ReturnsForbidden()
+    {
+        _options = new TestOptionsMonitor(new slskd.Options
+        {
+            Feature = new slskd.Options.FeatureOptions { Streaming = true },
+            Filters = new slskd.Options.FiltersOptions
+            {
+                Download = new slskd.Options.FiltersOptions.DownloadFilterOptions
+                {
+                    Exclude = new[] { "instrumental" },
+                },
+            },
+        });
+        var controller = CreateController();
+
+        var result = controller.CreateTicket(new PeerStreamTicketRequest("peer", "Music/instrumental.mp3", 10));
+
+        var forbidden = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, forbidden.StatusCode);
+        _tickets.Verify(x => x.Create(It.IsAny<PeerStreamTicketRequest>(), It.IsAny<string>(), It.IsAny<TimeSpan>()), Times.Never);
+    }
+
+    [Fact]
     public void CreateTicket_InvalidRequest_ReturnsBadRequest()
     {
         var controller = CreateController();

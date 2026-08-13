@@ -1093,6 +1093,33 @@ filters:
       - ^(\.?pdf|\.?docx|\.?xlsx)$ # discard any requests that might be looking for sensitive documents
 ```
 
+## Download Exclusions
+
+Download exclusions prevent outbound transfers when a literal term appears in
+the remote filename or path. Matching is case-insensitive and covers the
+normal download queue, retries, wishlist automation, auto-replacements,
+search-action downloads, peer-preview streams, pod downloads, multi-source
+transfers, and direct probe/bridge paths. A policy update also cancels active
+transfers that become blocked.
+
+These are literal substring matches, not regular expressions, and the policy
+does not inspect audio tags or infer the contents of a file. Add one term per
+entry; use a phrase such as `a cappella` when the spaces are part of the match.
+
+| Command Line                  | Environment Variable              | Description |
+| ----------------------------- | ---------------------------------- | ----------- |
+| `--download-filter-exclude`   | `SLSKD_DOWNLOAD_FILTER_EXCLUDE`   | Literal terms that block outbound downloads when present in a remote filename or path |
+
+#### **YAML**
+```yaml
+filters:
+  download:
+    exclude:
+      - acapella
+      - instrumental
+      - a cappella
+```
+
 # Data Retention
 
 By default, most things created by the application are retained indefinitely; they have to be removed manually by the user.  Users can optionally configure certain things to be removed or deleted automatically after a period of time.

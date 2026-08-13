@@ -112,6 +112,9 @@ describe('AdminPolicies', () => {
     fireEvent.click(screen.getByLabelText('Enable auto replace stuck downloads'));
     fireEvent.click(screen.getByLabelText('Use LAN-only DHT rendezvous'));
     fireEvent.click(screen.getByLabelText('Probe share media attributes'));
+    fireEvent.change(screen.getByLabelText('Global download exclusions'), {
+      target: { value: 'acapella\ninstrumental\na cappella' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Save YAML' }));
 
@@ -137,6 +140,11 @@ describe('AdminPolicies', () => {
     expect(saved.filters.search_retention.max_age_days).toBe(30);
     expect(saved.filters.search_retention.max_count).toBe(1000);
     expect(saved.filters.search_retention.cleanup_interval_seconds).toBe(86400);
+    expect(saved.filters.download.exclude).toEqual([
+      'acapella',
+      'instrumental',
+      'a cappella',
+    ]);
     expect(saved.features).toBeUndefined();
     expect(saved.feature.scene_pod_bridge).toBe(false);
     expect(saved.web.enforce_security).toBe(true);
@@ -158,4 +166,3 @@ describe('AdminPolicies', () => {
     expect(screen.getByRole('button', { name: 'Save YAML' })).toBeDisabled();
   });
 });
-

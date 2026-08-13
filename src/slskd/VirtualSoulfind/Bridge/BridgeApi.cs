@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Common.Security;
 using slskd.Integrations.MusicBrainz;
+using slskd.Transfers.Downloads;
 using slskd.VirtualSoulfind.DisasterMode;
 using slskd.VirtualSoulfind.Scenes;
 using slskd.VirtualSoulfind.ShadowIndex;
@@ -238,6 +239,18 @@ public class BridgeApi : IBridgeApi
     /// </summary>
     public async Task<string> DownloadAsync(string username, string filename, string? targetPath, CancellationToken ct = default)
     {
+        var policyExclusion = DownloadFilter.GetMatchingExclusion(
+            filename,
+            optionsMonitor.CurrentValue.Filters.Download.Exclude);
+        if (policyExclusion is not null)
+        {
+            logger.LogInformation(
+                "[VSF-BRIDGE] Blocked download of {Filename} by global exclusion {Exclusion}",
+                filename,
+                policyExclusion);
+            throw new DownloadBlockedByPolicyException(filename, policyExclusion);
+        }
+
         logger.LogInformation("[VSF-BRIDGE] Download: {Username}/{Filename}", username, filename);
 
         try

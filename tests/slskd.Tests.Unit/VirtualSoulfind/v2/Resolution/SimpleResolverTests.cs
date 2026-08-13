@@ -30,7 +30,8 @@ public class SimpleResolverTests
 
         var resolver = new SimpleResolver(
             CreateOptionsMonitor(),
-            new[] { backend.Object });
+            new[] { backend.Object },
+            CreateDownloadOptionsMonitor());
 
         var plan = new TrackAcquisitionPlan
         {
@@ -76,7 +77,8 @@ public class SimpleResolverTests
             var backend = new RecordingFetchBackend();
             var resolver = new SimpleResolver(
                 CreateOptionsMonitor(new ResolverOptions { DownloadDirectory = "resolver-downloads" }),
-                new[] { backend });
+                new[] { backend },
+                CreateDownloadOptionsMonitor());
 
             var plan = new TrackAcquisitionPlan
             {
@@ -120,10 +122,63 @@ public class SimpleResolverTests
         }
     }
 
+    [Fact]
+    public async Task ExecutePlanAsync_BlockedFilenameBearingCandidate_DoesNotValidateOrFetch()
+    {
+        var backend = new Mock<IContentBackend>();
+        backend.SetupGet(value => value.Type).Returns(ContentBackendType.Http);
+
+        var resolver = new SimpleResolver(
+            CreateOptionsMonitor(),
+            new[] { backend.Object },
+            CreateDownloadOptionsMonitor(new slskd.Options.FiltersOptions.DownloadFilterOptions
+            {
+                Exclude = new[] { "instrumental" },
+            }));
+
+        var result = await resolver.ExecutePlanAsync(new TrackAcquisitionPlan
+        {
+            TrackId = Guid.NewGuid().ToString(),
+            Steps = new[]
+            {
+                new PlanStep
+                {
+                    Backend = ContentBackendType.Http,
+                    Candidates = new[]
+                    {
+                        new SourceCandidate
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            ItemId = ContentItemId.NewId(),
+                            Backend = ContentBackendType.Http,
+                            BackendRef = "https://allowed.example/music/instrumental.flac",
+                        },
+                    },
+                },
+            },
+        });
+
+        Assert.Equal(PlanExecutionStatus.Failed, result.Status);
+        backend.Verify(value => value.ValidateCandidateAsync(It.IsAny<SourceCandidate>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private static IOptionsMonitor<ResolverOptions> CreateOptionsMonitor(ResolverOptions? value = null)
     {
         return Mock.Of<IOptionsMonitor<ResolverOptions>>(options =>
             options.CurrentValue == (value ?? new ResolverOptions()));
+    }
+
+    private static IOptionsMonitor<slskd.Options> CreateDownloadOptionsMonitor(
+        slskd.Options.FiltersOptions.DownloadFilterOptions? filterOptions = null)
+    {
+        return Mock.Of<IOptionsMonitor<slskd.Options>>(options =>
+            options.CurrentValue == new slskd.Options
+            {
+                Filters = new slskd.Options.FiltersOptions
+                {
+                    Download = filterOptions ?? new slskd.Options.FiltersOptions.DownloadFilterOptions(),
+                },
+            });
     }
 
     private static void SetAppDirectory(string? value)

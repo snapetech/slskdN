@@ -1992,6 +1992,12 @@ namespace slskd
             public SearchOptions Search { get; init; } = new SearchOptions();
 
             /// <summary>
+            ///     Gets outbound download filter options.
+            /// </summary>
+            [Validate]
+            public DownloadFilterOptions Download { get; init; } = new DownloadFilterOptions();
+
+            /// <summary>
             ///     Gets search retention options.
             /// </summary>
             public SearchRetentionOptions SearchRetention { get; init; } = new SearchRetentionOptions();
@@ -2023,6 +2029,54 @@ namespace slskd
                         if (!filter.IsValidRegex())
                         {
                             results.Add(new ValidationResult($"Search request filter '{filter}' is not a valid regular expression"));
+                        }
+                    }
+
+                    return results;
+                }
+            }
+
+            /// <summary>
+            ///     Outbound download filter options.
+            /// </summary>
+            public class DownloadFilterOptions : IValidatableObject
+            {
+                private const int MaximumExclusionCount = 100;
+                private const int MaximumExclusionLength = 256;
+
+                /// <summary>
+                ///     Gets literal, case-insensitive terms that block outbound downloads when present in a remote path.
+                /// </summary>
+                [Argument(default, "download-filter-exclude")]
+                [EnvironmentVariable("DOWNLOAD_FILTER_EXCLUDE")]
+                [Description("literal terms that block outbound downloads when present in a remote filename or path")]
+                public string[] Exclude { get; init; } = Array.Empty<string>();
+
+                /// <summary>
+                ///     Validates configured download exclusions.
+                /// </summary>
+                /// <param name="validationContext">The validation context.</param>
+                /// <returns>Validation errors, if any.</returns>
+                public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+                {
+                    var results = new List<ValidationResult>();
+                    var exclusions = Exclude ?? Array.Empty<string>();
+
+                    if (exclusions.Length > MaximumExclusionCount)
+                    {
+                        results.Add(new ValidationResult($"Download filter supports at most {MaximumExclusionCount} exclusions"));
+                    }
+
+                    for (var index = 0; index < exclusions.Length; index++)
+                    {
+                        var exclusion = exclusions[index]?.Trim();
+                        if (string.IsNullOrWhiteSpace(exclusion))
+                        {
+                            results.Add(new ValidationResult($"Download filter exclusion at index {index} must not be blank"));
+                        }
+                        else if (exclusion.Length > MaximumExclusionLength)
+                        {
+                            results.Add(new ValidationResult($"Download filter exclusion '{exclusion}' exceeds the maximum length of {MaximumExclusionLength} characters"));
                         }
                     }
 
