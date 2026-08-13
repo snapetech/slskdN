@@ -183,6 +183,16 @@ space as optional, so the test described a different policy than the feature.
 spacing or punctuation should be optional, that is a separate feature decision
 and must not be implied by a literal-term policy.
 
+### 0z841. Dispose Database-Backed Test Services Before Deleting Their Files
+
+**The Bug**: A new download-service test used a declaration-scoped `using`
+variable but deleted its SQLite file in an earlier `finally` block. The service
+could still hold the database connection when cleanup ran.
+
+**Prevention**: For tests that delete a database path in `finally`, explicitly
+dispose the service before deleting the path, or scope the `using` block outside
+the cleanup block.
+
 ### 0z816. Do Not Serialize Empty Required Integration Values
 
 **The Bug**: The guided Integrations editor wrote an empty

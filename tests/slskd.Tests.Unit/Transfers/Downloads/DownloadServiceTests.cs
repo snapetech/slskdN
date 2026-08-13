@@ -31,6 +31,65 @@ using Xunit;
 public class DownloadServiceTests
 {
     [Fact]
+    public async Task EnqueueAsync_GlobalDownloadExclusionRejectsBeforeCreatingTransfer()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+        var configuredOptions = new slskd.Options
+        {
+            Filters = new slskd.Options.FiltersOptions
+            {
+                Download = new slskd.Options.FiltersOptions.DownloadFilterOptions
+                {
+                    Exclude = new[] { "instrumental" },
+                },
+            },
+        };
+
+        var service = CreateDownloadService(options, soulseekClient, configuredOptions);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\Instrumental\track.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Empty(enqueued);
+            Assert.Equal(new[] { @"Music\Instrumental\track.flac" }, failed);
+            soulseekClient.Verify(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()), Times.Never);
+
+            await using var context = new TransfersDbContext(options);
+            Assert.Empty(context.Transfers);
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
     public async Task EnqueueAsync_ExistingInProgressTransfer_IsRejectedWithoutStartingDownload()
     {
         var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
