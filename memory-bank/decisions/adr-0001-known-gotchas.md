@@ -27862,3 +27862,8 @@ await _serverStarted.Task;
 dedicated thread but does not make task scheduling synchronous. A test helper
 that starts a background listener must publish readiness and propagate startup
 failure; otherwise a green focused run can hide a parallel-suite race.
+### 0z842: New cross-namespace policy code must import the shared implementation and preserve nullable monitor access
+
+- **What went wrong:** The first build of the global download policy failed because `MultiSourceDownloadService` referenced `DownloadFilter` without importing `slskd.Transfers.Downloads`; the same change also dereferenced the options monitor without preserving its nullable contract in the auto-retry path.
+- **Why:** The policy spans several existing namespaces with different file-scoped/block-scoped conventions, making it easy to add the call site without the corresponding import or to assume the monitor is always present in a test/service construction.
+- **Prevention:** After adding a shared policy call to an existing service, compile the production project immediately and match the target file's namespace/import style. Preserve nullable monitor access at every optional-injection call site, even when the normal DI graph supplies the monitor.

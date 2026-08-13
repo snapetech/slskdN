@@ -12,6 +12,7 @@ namespace slskd.Transfers.MultiSource
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Options;
     using Serilog;
     using Soulseek;
     using slskd.Common.IO;
@@ -19,6 +20,7 @@ namespace slskd.Transfers.MultiSource
     using slskd.HashDb.Models;
     using slskd.Mesh;
     using slskd.Telemetry;
+    using slskd.Transfers.Downloads;
 
     /// <summary>
     ///     Service for verifying file content identity across multiple Soulseek sources.
@@ -139,19 +141,23 @@ namespace slskd.Transfers.MultiSource
         /// <param name="soulseekClient">The Soulseek client.</param>
         /// <param name="hashDb">The hash database service (optional).</param>
         /// <param name="meshSync">The mesh sync service (optional).</param>
+        /// <param name="optionsMonitor">The options monitor (optional).</param>
         public ContentVerificationService(
             ISoulseekClient soulseekClient,
             IHashDbService? hashDb = null,
-            IMeshSyncService? meshSync = null)
+            IMeshSyncService? meshSync = null,
+            IOptionsMonitor<slskd.Options>? optionsMonitor = null)
         {
             Client = soulseekClient;
             HashDb = hashDb;
             MeshSync = meshSync;
+            OptionsMonitor = optionsMonitor;
         }
 
         private ISoulseekClient Client { get; }
         private IHashDbService? HashDb { get; }
         private IMeshSyncService? MeshSync { get; }
+        private IOptionsMonitor<slskd.Options>? OptionsMonitor { get; }
         private ILogger Log { get; } = Serilog.Log.ForContext<ContentVerificationService>();
 
         /// <summary>
@@ -452,6 +458,14 @@ namespace slskd.Transfers.MultiSource
             CancellationToken cancellationToken)
         {
             var stopwatch = Stopwatch.StartNew();
+
+            var policyExclusion = DownloadFilter.GetMatchingExclusion(
+                filename,
+                OptionsMonitor?.CurrentValue.Filters.Download.Exclude);
+            if (policyExclusion is not null)
+            {
+                return (username, null, default, stopwatch.ElapsedMilliseconds, $"Blocked by global download exclusion '{policyExclusion}'");
+            }
 
             try
             {

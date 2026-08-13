@@ -466,6 +466,42 @@ namespace slskd.Transfers.Downloads
             List<Transfer> enqueued = [];
             List<string> failed = [];
 
+            var policyBlockedFiles = fileList
+                .Select(file => new
+                {
+                    file.Filename,
+                    Exclusion = DownloadFilter.GetMatchingExclusion(
+                        file.Filename,
+                        OptionsMonitor.CurrentValue.Filters.Download.Exclude),
+                })
+                .Where(file => file.Exclusion is not null)
+                .ToList();
+
+            if (policyBlockedFiles.Count > 0)
+            {
+                foreach (var blockedFile in policyBlockedFiles)
+                {
+                    failed.Add(blockedFile.Filename);
+                    Log.Information(
+                        "Blocked download enqueue for {Filename} from {Username} by global exclusion {Exclusion}",
+                        blockedFile.Filename,
+                        username,
+                        blockedFile.Exclusion);
+                }
+
+                var blockedFilenames = policyBlockedFiles
+                    .Select(file => file.Filename)
+                    .ToHashSet(StringComparer.Ordinal);
+                fileList = fileList
+                    .Where(file => !blockedFilenames.Contains(file.Filename))
+                    .ToList();
+
+                if (fileList.Count == 0)
+                {
+                    return (enqueued, failed);
+                }
+            }
+
             SemaphoreSlim userSemaphore;
             Task userSemaphoreWaitTask;
             SemaphoreSlim? enqueueSemaphore = null;
@@ -1008,6 +1044,14 @@ namespace slskd.Transfers.Downloads
 
             await foreach (var transfer in query.AsAsyncEnumerable().WithCancellation(cancellationToken))
             {
+                if (DownloadFilter.IsExcluded(
+                    transfer.Filename,
+                    OptionsMonitor.CurrentValue?.Filters.Download.Exclude ?? Array.Empty<string>()))
+                {
+                    Log.Debug("Skipping auto-retry candidate {Filename}; blocked by global download policy", transfer.Filename);
+                    continue;
+                }
+
                 yield return transfer;
             }
         }
@@ -1275,6 +1319,7 @@ namespace slskd.Transfers.Downloads
                 {
                     _ when IsCancellationException(exception) => TransferStates.Cancelled,
                     _ when IsDownloadTimeout(exception) => TransferStates.TimedOut,
+                    _ when exception is DownloadBlockedByPolicyException => TransferStates.Rejected,
                     _ => TransferStates.Errored,
                 };
             }
@@ -1376,6 +1421,18 @@ namespace slskd.Transfers.Downloads
             cancellationToken = cts.Token;
 
             using var updateSyncRoot = new SemaphoreSlim(1, 1);
+
+            var policyExclusion = DownloadFilter.GetMatchingExclusion(
+                transfer.Filename,
+                OptionsMonitor.CurrentValue.Filters.Download.Exclude);
+            if (policyExclusion is not null)
+            {
+                var policyException = new DownloadBlockedByPolicyException(transfer.Filename, policyExclusion);
+                TryFail(transfer.Id, policyException);
+                transfer = Find(t => t.Id == transfer.Id) ?? transfer;
+                stateChanged?.Invoke(transfer);
+                throw policyException;
+            }
 
             // Track bytes for throughput calculation
             long lastBytesTransferred = 0;
@@ -2195,6 +2252,7 @@ namespace slskd.Transfers.Downloads
         private static bool IsDirectDownloadRetryable(Exception exception)
             => exception is not OperationCanceledException
                 && !IsLocalFilesystemFailure(exception)
+                && exception is not DownloadBlockedByPolicyException
                 && exception is not TransferRejectedException
                 && exception is not DuplicateTransferException
                 && exception is not TransferSizeMismatchException;

@@ -25,6 +25,7 @@ using slskd.Integrations.AutoTagging;
 using slskd.Integrations.Chromaprint;
 using slskd.Mesh;
 using slskd.Telemetry;
+using slskd.Transfers.Downloads;
 using slskd.Transfers.MultiSource.Playback;
 using static slskd.Telemetry.SwarmMetrics;
 using FileAccess = System.IO.FileAccess;
@@ -331,6 +332,21 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         string? excludeUsername = null,
         CancellationToken cancellationToken = default)
     {
+        var exclusions = optionsMonitor?.CurrentValue.Filters.Download.Exclude ?? Array.Empty<string>();
+        var targetExclusion = DownloadFilter.GetMatchingExclusion(filename, exclusions);
+        if (targetExclusion is not null)
+        {
+            _logger.LogInformation(
+                "[SWARM] Skipping source discovery for {Filename}; blocked by global exclusion {Exclusion}",
+                filename,
+                targetExclusion);
+            return new ContentVerificationResult
+            {
+                Filename = filename,
+                FileSize = fileSize,
+            };
+        }
+
         // Extract just the filename for searching
         var searchTerm = IOPath.GetFileNameWithoutExtension(filename);
 
@@ -401,6 +417,11 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
             foreach (var file in response.Files)
             {
+                if (DownloadFilter.IsExcluded(file.Filename, exclusions))
+                {
+                    continue;
+                }
+
                 var responseFilename = IOPath.GetFileName(file.Filename);
                 var isExactMatch = responseFilename.Equals(originalFilename, StringComparison.OrdinalIgnoreCase) &&
                                  file.Size == fileSize;
@@ -453,6 +474,61 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         MultiSourceDownloadRequest request,
         CancellationToken cancellationToken = default)
     {
+        var result = new MultiSourceDownloadResult
+        {
+            Id = request.Id,
+            Filename = request.Filename,
+            OutputPath = request.OutputPath,
+        };
+        var exclusions = optionsMonitor?.CurrentValue.Filters.Download.Exclude ?? Array.Empty<string>();
+        var filenameExclusion = DownloadFilter.GetMatchingExclusion(request.Filename, exclusions);
+        if (filenameExclusion is not null)
+        {
+            result.BlockedByPolicy = true;
+            result.Error = $"Download blocked by global exclusion '{filenameExclusion}'";
+            _logger.LogInformation(
+                "[SWARM] Blocked multi-source download of {Filename} by global exclusion {Exclusion}",
+                request.Filename,
+                filenameExclusion);
+            return result;
+        }
+
+        var allowedSources = request.Sources
+            .Where(source => !DownloadFilter.IsExcluded(source.FullPath, exclusions))
+            .ToList();
+        if (allowedSources.Count == 0 && request.Sources.Count > 0)
+        {
+            result.BlockedByPolicy = true;
+            result.Error = "Download blocked because every source path matched a global exclusion";
+            _logger.LogInformation(
+                "[SWARM] Blocked multi-source download of {Filename}; all {Count} source paths matched policy",
+                request.Filename,
+                request.Sources.Count);
+            return result;
+        }
+
+        if (allowedSources.Count != request.Sources.Count)
+        {
+            _logger.LogInformation(
+                "[SWARM] Removed {BlockedCount} policy-blocked source(s) from multi-source download of {Filename}",
+                request.Sources.Count - allowedSources.Count,
+                request.Filename);
+            request = new MultiSourceDownloadRequest
+            {
+                Id = request.Id,
+                Filename = request.Filename,
+                FileSize = request.FileSize,
+                ExpectedHash = request.ExpectedHash,
+                Sources = allowedSources,
+                OutputPath = request.OutputPath,
+                ChunkSize = request.ChunkSize,
+                TargetSemanticKey = request.TargetSemanticKey,
+                TargetMusicBrainzRecordingId = request.TargetMusicBrainzRecordingId,
+                TargetFingerprint = request.TargetFingerprint,
+                TargetDurationMs = request.TargetDurationMs,
+            };
+        }
+
         Activity? activity = MultiSourceActivitySource.Source.StartActivity("swarm.download");
         activity?.SetTag("swarm.download.id", request.Id);
         activity?.SetTag("swarm.download.filename", request.Filename);
@@ -462,13 +538,6 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         // Update Prometheus metrics
         Telemetry.SwarmMetrics.SwarmDownloadsActive.Inc();
         Telemetry.SwarmMetrics.SwarmDownloadsTotal.WithLabels("started").Inc();
-
-        var result = new MultiSourceDownloadResult
-        {
-            Id = request.Id,
-            Filename = request.Filename,
-            OutputPath = request.OutputPath,
-        };
 
         if (!IsAllowedOutputPath(request.OutputPath))
         {
