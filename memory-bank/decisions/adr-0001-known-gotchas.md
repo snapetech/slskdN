@@ -170,6 +170,19 @@ handler with the action's distinctive surrounding response or inspect the full
 method afterward. Exception-to-status mapping must be adjacent to the operation
 that can throw it.
 
+### 0z840. Literal Filter Fixtures Must Match Literal Filter Semantics
+
+**The Bug**: A matcher test used `acappella` as the exclusion for a fixture
+containing `A Cappella`. Literal substring matching correctly did not treat the
+space as optional, so the test described a different policy than the feature.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Transfers/Downloads/DownloadFilterTests.cs`
+
+**Prevention**: Test the exact configured phrase the user intends to block. If
+spacing or punctuation should be optional, that is a separate feature decision
+and must not be implied by a literal-term policy.
+
 ### 0z816. Do Not Serialize Empty Required Integration Values
 
 **The Bug**: The guided Integrations editor wrote an empty
