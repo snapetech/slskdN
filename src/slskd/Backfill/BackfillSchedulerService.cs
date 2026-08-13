@@ -12,11 +12,13 @@ namespace slskd.Backfill
     using System.Threading.Tasks;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Options;
     using Soulseek;
     using slskd.HashDb;
     using slskd.HashDb.Models;
     using slskd.Mesh;
     using slskd.Capabilities;
+    using slskd.Transfers.Downloads;
     using slskd.Transfers.MultiSource;
 
     /// <summary>
@@ -29,6 +31,7 @@ namespace slskd.Backfill
         private readonly ISoulseekClient soulseekClient;
         private readonly ICapabilityService? capabilityService;
         private readonly ILogger<BackfillSchedulerService> logger;
+        private readonly IOptionsMonitor<slskd.Options>? optionsMonitor;
 
         private readonly BackfillConfig config = new();
         private readonly BackfillStats stats = new();
@@ -46,13 +49,15 @@ namespace slskd.Backfill
             IMeshSyncService meshSync,
             ISoulseekClient soulseekClient,
             ICapabilityService? capabilityService,
-            ILogger<BackfillSchedulerService> logger)
+            ILogger<BackfillSchedulerService> logger,
+            IOptionsMonitor<slskd.Options>? optionsMonitor = null)
         {
             this.hashDb = hashDb;
             this.meshSync = meshSync;
             this.soulseekClient = soulseekClient;
             this.capabilityService = capabilityService;
             this.logger = logger;
+            this.optionsMonitor = optionsMonitor;
         }
 
         /// <inheritdoc/>
@@ -249,6 +254,20 @@ namespace slskd.Backfill
                 PeerId = peerId,
                 Path = path,
             };
+
+            var policyExclusion = DownloadFilter.GetMatchingExclusion(
+                path,
+                optionsMonitor?.CurrentValue?.Filters.Download.Exclude);
+            if (policyExclusion is not null)
+            {
+                result.Error = $"Blocked by global download exclusion '{policyExclusion}'";
+                logger.LogInformation(
+                    "[BACKFILL] Skipping {Peer}/{Path}; blocked by global exclusion {Exclusion}",
+                    peerId,
+                    path,
+                    policyExclusion);
+                return result;
+            }
 
             // Generate file ID for tracking
             var fileId = FlacInventoryEntry.GenerateFileId(peerId, path, size);

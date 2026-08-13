@@ -11,7 +11,9 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Transfers.Downloads;
 using slskd.Transfers.MultiSource;
 
 /// <summary>
@@ -23,6 +25,7 @@ public sealed class CapabilityFileService
     private readonly ILogger<CapabilityFileService> _logger;
     private readonly ICapabilityService _capabilityService;
     private readonly ISoulseekClient _soulseekClient;
+    private readonly IOptionsMonitor<slskd.Options>? _optionsMonitor;
     private readonly ConcurrentDictionary<string, CachedCapabilityFile> _cache = new();
     private readonly TimeSpan _cacheExpiry = TimeSpan.FromHours(1);
 
@@ -44,11 +47,13 @@ public sealed class CapabilityFileService
     public CapabilityFileService(
         ILogger<CapabilityFileService> logger,
         ICapabilityService capabilityService,
-        ISoulseekClient soulseekClient)
+        ISoulseekClient soulseekClient,
+        IOptionsMonitor<slskd.Options>? optionsMonitor = null)
     {
         _logger = logger;
         _capabilityService = capabilityService;
         _soulseekClient = soulseekClient;
+        _optionsMonitor = optionsMonitor;
     }
 
     /// <summary>
@@ -443,6 +448,19 @@ public sealed class CapabilityFileService
             if (remoteFile.Size <= 0 || remoteFile.Size > maxBytes)
             {
                 _logger.LogDebug("Capability file {Path} from {Username} has unsupported size {Size}", filename, username, remoteFile.Size);
+                return null;
+            }
+
+            var policyExclusion = DownloadFilter.GetMatchingExclusion(
+                remoteFile.RemoteFilename,
+                _optionsMonitor?.CurrentValue?.Filters.Download.Exclude);
+            if (policyExclusion is not null)
+            {
+                _logger.LogInformation(
+                    "Blocked capability-file fetch {Path} from {Username} by global exclusion {Exclusion}",
+                    remoteFile.RemoteFilename,
+                    username,
+                    policyExclusion);
                 return null;
             }
 

@@ -332,7 +332,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         string? excludeUsername = null,
         CancellationToken cancellationToken = default)
     {
-        var exclusions = optionsMonitor?.CurrentValue.Filters.Download.Exclude ?? Array.Empty<string>();
+        var exclusions = optionsMonitor?.CurrentValue?.Filters.Download.Exclude ?? Array.Empty<string>();
         var targetExclusion = DownloadFilter.GetMatchingExclusion(filename, exclusions);
         if (targetExclusion is not null)
         {
@@ -480,7 +480,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             Filename = request.Filename,
             OutputPath = request.OutputPath,
         };
-        var exclusions = optionsMonitor?.CurrentValue.Filters.Download.Exclude ?? Array.Empty<string>();
+        var exclusions = optionsMonitor?.CurrentValue?.Filters.Download.Exclude ?? Array.Empty<string>();
         var filenameExclusion = DownloadFilter.GetMatchingExclusion(request.Filename, exclusions);
         if (filenameExclusion is not null)
         {

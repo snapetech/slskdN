@@ -11,7 +11,9 @@ using System.Threading.Tasks;
 using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Transfers.Downloads;
 using slskd.Transfers.MultiSource;
 using slskd.Transfers.MultiSource.Scheduling;
 using System.Collections.Generic;
@@ -31,6 +33,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
     private readonly IVerificationEngine verifier;
     private readonly IChunkScheduler chunkScheduler;
     private readonly ISoulseekClient soulseekClient;
+    private readonly IOptionsMonitor<slskd.Options>? optionsMonitor;
     private readonly Channel<SwarmJob> jobs = Channel.CreateBounded<SwarmJob>(new BoundedChannelOptions(1024)
     {
         FullMode = BoundedChannelFullMode.DropWrite,
@@ -43,12 +46,14 @@ public class SwarmDownloadOrchestrator : BackgroundService
         ILogger<SwarmDownloadOrchestrator> logger,
         IVerificationEngine verifier,
         IChunkScheduler chunkScheduler,
-        ISoulseekClient soulseekClient)
+        ISoulseekClient soulseekClient,
+        IOptionsMonitor<slskd.Options>? optionsMonitor = null)
     {
         this.logger = logger;
         this.verifier = verifier;
         this.chunkScheduler = chunkScheduler;
         this.soulseekClient = soulseekClient;
+        this.optionsMonitor = optionsMonitor;
     }
 
     public bool Enqueue(SwarmJob job)
@@ -83,6 +88,22 @@ public class SwarmDownloadOrchestrator : BackgroundService
 
     private async Task ProcessJob(SwarmJob job, CancellationToken ct)
     {
+        var remoteFilename = string.IsNullOrWhiteSpace(job.File.Filename)
+            ? job.File.ContentId
+            : job.File.Filename;
+        var policyExclusion = DownloadFilter.GetMatchingExclusion(
+            remoteFilename,
+            optionsMonitor?.CurrentValue?.Filters.Download.Exclude);
+        if (policyExclusion is not null)
+        {
+            logger.LogInformation(
+                "[SwarmOrchestrator] Skipping job {JobId} for {Filename}; blocked by global exclusion {Exclusion}",
+                job.JobId,
+                remoteFilename,
+                policyExclusion);
+            return;
+        }
+
         logger.LogInformation("[SwarmOrchestrator] Processing job {JobId}: {ContentId} ({Size} bytes) from {SourceCount} sources",
             job.JobId, job.File.ContentId, job.File.SizeBytes, job.Sources.Count);
 
@@ -383,6 +404,22 @@ public class SwarmDownloadOrchestrator : BackgroundService
             // For Soulseek transport, use Soulseek client with LimitedWriteStream
             if (source.Transport == "soulseek")
             {
+                var remoteFilename = string.IsNullOrWhiteSpace(job.File.Filename)
+                    ? job.File.ContentId
+                    : job.File.Filename;
+                var policyExclusion = DownloadFilter.GetMatchingExclusion(
+                    remoteFilename,
+                    optionsMonitor?.CurrentValue?.Filters.Download.Exclude);
+                if (policyExclusion is not null)
+                {
+                    return new ChunkResult
+                    {
+                        ChunkIndex = chunk.Index,
+                        Success = false,
+                        Error = $"Blocked by global download exclusion '{policyExclusion}'",
+                    };
+                }
+
                 logger.LogDebug("[SwarmOrchestrator] Downloading chunk {ChunkIndex} from {PeerId} (offset {Start}-{End}, size {Size})",
                     chunk.Index, peerId, chunk.StartOffset, chunk.EndOffset, chunkSize);
 
@@ -399,10 +436,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 {
                     // Download from the start offset, limited stream will stop after chunkSize bytes
                     // Use ContentId as filename if source doesn't have a specific path
-                    var filename = job.File.ContentId;
                     await soulseekClient.DownloadAsync(
                         username: peerId,
-                        remoteFilename: filename,
+                        remoteFilename: remoteFilename,
                         outputStreamFactory: () => Task.FromResult<System.IO.Stream>(limitedStream),
                         size: job.File.SizeBytes,
                         startOffset: chunk.StartOffset,

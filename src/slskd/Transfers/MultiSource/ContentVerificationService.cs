@@ -461,7 +461,7 @@ namespace slskd.Transfers.MultiSource
 
             var policyExclusion = DownloadFilter.GetMatchingExclusion(
                 filename,
-                OptionsMonitor?.CurrentValue.Filters.Download.Exclude);
+                OptionsMonitor?.CurrentValue?.Filters.Download.Exclude);
             if (policyExclusion is not null)
             {
                 return (username, null, default, stopwatch.ElapsedMilliseconds, $"Blocked by global download exclusion '{policyExclusion}'");

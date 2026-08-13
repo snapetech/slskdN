@@ -14,6 +14,7 @@ namespace slskd.Transfers.AutoReplace
     using Serilog;
     using slskd.Search;
     using slskd.Transfers.API;
+    using slskd.Transfers.Downloads;
     using slskd.Transfers.Ranking;
     using Soulseek;
     using SlskdTransfer = slskd.Transfers.Transfer;
@@ -306,6 +307,10 @@ namespace slskd.Transfers.AutoReplace
         {
             var stuckDownloads = Transfers.Downloads.List(t =>
                 StuckStates.Any(s => t.State == s));
+            var exclusions = OptionsMonitor.CurrentValue?.Filters.Download.Exclude ?? Array.Empty<string>();
+            stuckDownloads = stuckDownloads
+                .Where(download => !DownloadFilter.IsExcluded(download.Filename, exclusions))
+                .ToList();
 
             var maxRetries = OptionsMonitor.CurrentValue?.AutoReplace.MaxRetries ?? 0;
             if (maxRetries == 0)
@@ -365,6 +370,18 @@ namespace slskd.Transfers.AutoReplace
             CancellationToken cancellationToken = default)
         {
             var candidates = new List<AlternativeCandidate>();
+
+            var targetExclusion = DownloadFilter.GetMatchingExclusion(
+                request.Filename,
+                OptionsMonitor.CurrentValue?.Filters.Download.Exclude);
+            if (targetExclusion is not null)
+            {
+                Log.Information(
+                    "Skipping alternative-source search for {Filename}; blocked by global exclusion {Exclusion}",
+                    request.Filename,
+                    targetExclusion);
+                return (candidates, SearchBudgetExceeded: false);
+            }
 
             // Build search query from filename
             var searchText = BuildAlternativeSearchText(request.Filename);
@@ -444,6 +461,13 @@ namespace slskd.Transfers.AutoReplace
 
                     foreach (var file in response.Files)
                     {
+                        if (DownloadFilter.IsExcluded(
+                            file.Filename,
+                            OptionsMonitor.CurrentValue?.Filters.Download.Exclude))
+                        {
+                            continue;
+                        }
+
                         // Check extension match
                         var fileExt = GetExtension(file.Filename)?.ToLowerInvariant();
                         if (!string.IsNullOrEmpty(expectedExt) && !string.IsNullOrEmpty(fileExt) && fileExt != expectedExt)
@@ -546,6 +570,18 @@ namespace slskd.Transfers.AutoReplace
         {
             try
             {
+                var policyExclusion = DownloadFilter.GetMatchingExclusion(
+                    request.NewFilename,
+                    OptionsMonitor.CurrentValue?.Filters.Download.Exclude);
+                if (policyExclusion is not null)
+                {
+                    Log.Information(
+                        "Blocked replacement download of {Filename} by global exclusion {Exclusion}",
+                        request.NewFilename,
+                        policyExclusion);
+                    return false;
+                }
+
                 if (!Guid.TryParse(request.OriginalId, out var originalGuid))
                 {
                     Log.Warning("Invalid original download ID: {Id}", request.OriginalId);

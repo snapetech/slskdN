@@ -12,8 +12,10 @@ namespace slskd.Transfers.MultiSource.API
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Extensions.Options;
     using Serilog;
     using slskd.Core.Security;
+    using slskd.Transfers.Downloads;
     using slskd.Transfers.MultiSource.Discovery;
     using Soulseek;
     using IOPath = System.IO.Path;
@@ -39,13 +41,15 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="discoveryService">The source discovery service.</param>
         /// <param name="contentVerificationService">The content verification service.</param>
         /// <param name="soulseekSafetyLimiter">The Soulseek network safety limiter.</param>
+        /// <param name="optionsMonitor">The options monitor.</param>
         public MultiSourceController(
             IMultiSourceDownloadService multiSourceService,
             ISoulseekClient soulseekClient,
             ITransferService transferService,
             ISourceDiscoveryService discoveryService,
             IContentVerificationService contentVerificationService,
-            slskd.Common.Security.ISoulseekSafetyLimiter? soulseekSafetyLimiter = null)
+            slskd.Common.Security.ISoulseekSafetyLimiter? soulseekSafetyLimiter = null,
+            IOptionsMonitor<slskd.Options>? optionsMonitor = null)
         {
             MultiSource = multiSourceService;
             Client = soulseekClient;
@@ -53,6 +57,7 @@ namespace slskd.Transfers.MultiSource.API
             Discovery = discoveryService;
             ContentVerification = contentVerificationService;
             SoulseekSafetyLimiter = soulseekSafetyLimiter;
+            OptionsMonitor = optionsMonitor;
         }
 
         private IMultiSourceDownloadService MultiSource { get; }
@@ -61,11 +66,30 @@ namespace slskd.Transfers.MultiSource.API
         private ISourceDiscoveryService Discovery { get; }
         private IContentVerificationService ContentVerification { get; }
         private slskd.Common.Security.ISoulseekSafetyLimiter? SoulseekSafetyLimiter { get; }
+        private IOptionsMonitor<slskd.Options>? OptionsMonitor { get; }
         private ILogger Log { get; } = Serilog.Log.ForContext<MultiSourceController>();
 
         // Store last search results for drill-down
         private static List<SearchResponse> LastSearchResults { get; set; } = new();
         private static string LastSearchQuery { get; set; } = string.Empty;
+
+        private string? GetDownloadExclusion(string filename)
+            => DownloadFilter.GetMatchingExclusion(
+                filename,
+                OptionsMonitor?.CurrentValue?.Filters.Download.Exclude);
+
+        private IActionResult DownloadBlocked(string filename, string exclusion)
+        {
+            var problem = new ProblemDetails
+            {
+                Type = "download_blocked",
+                Title = "Download blocked",
+                Detail = $"The remote path matched the configured global download exclusion '{exclusion}'.",
+            };
+            problem.Extensions["filename"] = filename;
+            problem.Extensions["exclusion"] = exclusion;
+            return StatusCode(StatusCodes.Status403Forbidden, problem);
+        }
 
         private bool TryConsumeSearchBudget(string source, out IActionResult? result)
         {
@@ -262,6 +286,12 @@ namespace slskd.Transfers.MultiSource.API
 
             request.Filename = request.Filename.Trim();
 
+            var requestedExclusion = GetDownloadExclusion(request.Filename);
+            if (requestedExclusion is not null)
+            {
+                return DownloadBlocked(request.Filename, requestedExclusion);
+            }
+
             var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
 
             var searchTerm = IOPath.GetFileNameWithoutExtension(request.Filename);
@@ -377,6 +407,12 @@ namespace slskd.Transfers.MultiSource.API
 
             request.Filename = request.Filename.Trim();
 
+            var requestedExclusion = GetDownloadExclusion(request.Filename);
+            if (requestedExclusion is not null)
+            {
+                return DownloadBlocked(request.Filename, requestedExclusion);
+            }
+
             var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
 
             // First find sources with wide search
@@ -410,11 +446,19 @@ namespace slskd.Transfers.MultiSource.API
             // Find exact matches with same size
             var targetFilename = IOPath.GetFileName(request.Filename);
             var sources = new List<(string Username, string FullPath)>();
+            string? blockedSourceExclusion = null;
 
             foreach (var response in searchResults)
             {
                 foreach (var file in response.Files)
                 {
+                    var sourceExclusion = GetDownloadExclusion(file.Filename);
+                    if (sourceExclusion is not null)
+                    {
+                        blockedSourceExclusion ??= sourceExclusion;
+                        continue;
+                    }
+
                     var filename = IOPath.GetFileName(file.Filename);
                     if (filename.Equals(targetFilename, StringComparison.OrdinalIgnoreCase) && file.Size == request.Size)
                     {
@@ -425,6 +469,11 @@ namespace slskd.Transfers.MultiSource.API
 
             if (sources.Count < 2)
             {
+                if (blockedSourceExclusion is not null)
+                {
+                    return DownloadBlocked(request.Filename, blockedSourceExclusion);
+                }
+
                 return BadRequest("Not enough sources for multi-source download");
             }
 
@@ -487,11 +536,18 @@ namespace slskd.Transfers.MultiSource.API
                 return BadRequest("Size is required (exact file size in bytes).");
             }
 
+            var requestedExclusion = GetDownloadExclusion(request.Filename);
+            if (requestedExclusion is not null)
+            {
+                return DownloadBlocked(request.Filename, requestedExclusion);
+            }
+
             var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
 
             Log.Information("[SWARM] Starting swarm download: {Filename} ({Size} bytes, useDb={UseDb})", request.Filename, request.Size, request.UseDiscoveryDb);
 
             var allSources = new List<(string Username, string FullPath, int Speed)>();
+            string? blockedSourceExclusion = null;
 
             // Option 1: Use pre-built discovery database (much faster, more sources)
             if (request.UseDiscoveryDb)
@@ -501,6 +557,13 @@ namespace slskd.Transfers.MultiSource.API
 
                 foreach (var src in dbSources)
                 {
+                    var sourceExclusion = GetDownloadExclusion(src.Filename);
+                    if (sourceExclusion is not null)
+                    {
+                        blockedSourceExclusion ??= sourceExclusion;
+                        continue;
+                    }
+
                     if (!allSources.Any(s => s.Username.Equals(src.Username, StringComparison.OrdinalIgnoreCase)))
                     {
                         allSources.Add((src.Username, src.Filename, src.UploadSpeed));
@@ -547,6 +610,13 @@ namespace slskd.Transfers.MultiSource.API
                 {
                     foreach (var file in response.Files)
                     {
+                        var sourceExclusion = GetDownloadExclusion(file.Filename);
+                        if (sourceExclusion is not null)
+                        {
+                            blockedSourceExclusion ??= sourceExclusion;
+                            continue;
+                        }
+
                         if (file.Size == request.Size)
                         {
                             if (!allSources.Any(s => s.Username.Equals(response.Username, StringComparison.OrdinalIgnoreCase)))
@@ -565,6 +635,11 @@ namespace slskd.Transfers.MultiSource.API
 
             if (allSources.Count < 2)
             {
+                if (blockedSourceExclusion is not null)
+                {
+                    return DownloadBlocked(request.Filename, blockedSourceExclusion);
+                }
+
                 return BadRequest("Not enough sources for swarm download");
             }
 
@@ -702,7 +777,14 @@ namespace slskd.Transfers.MultiSource.API
                 return BadRequest("Size is required (exact file size in bytes).");
             }
 
+            var requestedExclusion = GetDownloadExclusion(request.Filename);
+            if (requestedExclusion is not null)
+            {
+                return DownloadBlocked(request.Filename, requestedExclusion);
+            }
+
             var allSources = new List<(string Username, string FullPath, int Speed)>();
+            string? blockedSourceExclusion = null;
             var chunkSize = request.ChunkSize > 0 ? request.ChunkSize : 512 * 1024;
 
             if (request.UseDiscoveryDb)
@@ -710,6 +792,13 @@ namespace slskd.Transfers.MultiSource.API
                 var dbSources = Discovery.GetSourcesBySize(request.Size, 100);
                 foreach (var src in dbSources)
                 {
+                    var sourceExclusion = GetDownloadExclusion(src.Filename);
+                    if (sourceExclusion is not null)
+                    {
+                        blockedSourceExclusion ??= sourceExclusion;
+                        continue;
+                    }
+
                     if (!allSources.Any(s => s.Username.Equals(src.Username, StringComparison.OrdinalIgnoreCase)))
                     {
                         allSources.Add((src.Username, src.Filename, src.UploadSpeed));
@@ -719,6 +808,11 @@ namespace slskd.Transfers.MultiSource.API
 
             if (allSources.Count < 2)
             {
+                if (blockedSourceExclusion is not null)
+                {
+                    return DownloadBlocked(request.Filename, blockedSourceExclusion);
+                }
+
                 return BadRequest("Not enough sources for swarm download");
             }
 
@@ -1023,6 +1117,12 @@ namespace slskd.Transfers.MultiSource.API
             request.Filename = request.Filename.Trim();
             request.ExpectedHash = string.IsNullOrWhiteSpace(request.ExpectedHash) ? null : request.ExpectedHash.Trim();
 
+            var requestedExclusion = GetDownloadExclusion(request.Filename);
+            if (requestedExclusion is not null)
+            {
+                return DownloadBlocked(request.Filename, requestedExclusion);
+            }
+
             if (request.Sources == null || request.Sources.Count < 2)
             {
                 return BadRequest("At least 2 verified sources are required");
@@ -1039,8 +1139,20 @@ namespace slskd.Transfers.MultiSource.API
                 .Where(source => !string.IsNullOrWhiteSpace(source.Username))
                 .ToList();
 
+            var blockedSourceExclusion = request.Sources
+                .Select(source => GetDownloadExclusion(source.FullPath))
+                .FirstOrDefault(exclusion => exclusion is not null);
+            request.Sources = request.Sources
+                .Where(source => GetDownloadExclusion(source.FullPath) is null)
+                .ToList();
+
             if (request.Sources.Count < 2)
             {
+                if (blockedSourceExclusion is not null)
+                {
+                    return DownloadBlocked(request.Filename, blockedSourceExclusion);
+                }
+
                 return BadRequest("At least 2 verified sources are required");
             }
 
@@ -1095,6 +1207,12 @@ namespace slskd.Transfers.MultiSource.API
 
             request.SearchText = request.SearchText.Trim();
 
+            var requestedExclusion = GetDownloadExclusion(request.SearchText);
+            if (requestedExclusion is not null)
+            {
+                return DownloadBlocked(request.SearchText, requestedExclusion);
+            }
+
             var testResult = new TestResult
             {
                 SearchText = request.SearchText,
@@ -1139,6 +1257,11 @@ namespace slskd.Transfers.MultiSource.API
             {
                 foreach (var file in response.Files)
                 {
+                    if (GetDownloadExclusion(file.Filename) is not null)
+                    {
+                        continue;
+                    }
+
                     var fname = IOPath.GetFileName(file.Filename);
                     var key = $"{fname}|{file.Size}";
 

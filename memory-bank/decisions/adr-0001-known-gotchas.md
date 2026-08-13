@@ -27867,3 +27867,8 @@ failure; otherwise a green focused run can hide a parallel-suite race.
 - **What went wrong:** The first build of the global download policy failed because `MultiSourceDownloadService` referenced `DownloadFilter` without importing `slskd.Transfers.Downloads`; the same change also dereferenced the options monitor without preserving its nullable contract in the auto-retry path.
 - **Why:** The policy spans several existing namespaces with different file-scoped/block-scoped conventions, making it easy to add the call site without the corresponding import or to assume the monitor is always present in a test/service construction.
 - **Prevention:** After adding a shared policy call to an existing service, compile the production project immediately and match the target file's namespace/import style. Preserve nullable monitor access at every optional-injection call site, even when the normal DI graph supplies the monitor.
+### 0z843: Optional or mocked options monitors can return a null current value
+
+- **What went wrong:** The new auto-replace download-policy checks dereferenced `IOptionsMonitor<Options>.CurrentValue.Filters` directly, causing existing unit tests that use an unconfigured mock monitor to throw `NullReferenceException` before their intended behavior ran.
+- **Why:** `CurrentValue` is declared non-nullable for normal DI, but an optional dependency or a mock can still return null at runtime; the surrounding auto-replace code already treated its current options as nullable.
+- **Prevention:** Preserve the established `CurrentValue?.Filters.Download.Exclude ?? Array.Empty<string>()` pattern anywhere the monitor is optional or mocked, and run the affected existing service tests after adding a policy read.
