@@ -9,6 +9,7 @@ using slskd.Core.Security;
 
 using Microsoft.AspNetCore.Mvc;
 using slskd.VirtualSoulfind.Bridge;
+using slskd.Transfers.Downloads;
 
 /// <summary>
 /// Bridge API controller for legacy client compatibility.
@@ -103,6 +104,17 @@ public class BridgeController : ControllerBase
                 ct);
 
             return Ok(new { transfer_id = transferId });
+        }
+        catch (DownloadBlockedByPolicyException ex)
+        {
+            return StatusCode(403, new
+            {
+                type = "download_blocked",
+                title = "Download blocked",
+                detail = ex.Message,
+                filename = ex.Filename,
+                exclusion = ex.Exclusion,
+            });
         }
         catch (Exception ex)
         {

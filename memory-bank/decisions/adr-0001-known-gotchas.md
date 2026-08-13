@@ -155,6 +155,21 @@ like ordinary in-memory predicates, but the database provider owns their
 execution. Fetch with provider-translatable conditions first, then apply custom
 policy logic in memory.
 
+### 0z839. Repeated Controller Catch Blocks Need Method-Specific Context
+
+**The Bug**: A policy-specific exception handler was inserted into the first
+matching `catch` block in a controller, which belonged to the search action
+instead of the download action. The download still returned the generic 500
+response.
+
+**Files Affected**:
+- `src/slskd/API/VirtualSoulfind/BridgeController.cs`
+
+**Prevention**: When a controller has repeated `try`/`catch` shapes, patch the
+handler with the action's distinctive surrounding response or inspect the full
+method afterward. Exception-to-status mapping must be adjacent to the operation
+that can throw it.
+
 ### 0z816. Do Not Serialize Empty Required Integration Values
 
 **The Bug**: The guided Integrations editor wrote an empty
