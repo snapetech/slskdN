@@ -1,0 +1,40 @@
+name: Release-note contract
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  release-notes:
+    name: Validate release-note fragment or explicit opt-out
+    if: github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pull-request base
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Fetch the pull-request head
+        env:
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git fetch --no-tags --depth=1 "https://github.com/${HEAD_REPOSITORY}.git" "${HEAD_SHA}"
+
+      - name: Validate and preview release notes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          python3 scripts/release_notes.py check \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --pr-body-env PR_BODY \
+            --summary-file "$GITHUB_STEP_SUMMARY"

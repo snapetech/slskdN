@@ -1,3 +1,19 @@
+## Update 2026-08-12
+
+- Current task: complete. Added the structured release-note contract and wired
+  it into slskdN release generation and Discord announcements.
+- Added append-only fragment validation, explicit internal-only opt-out support,
+  category-grouped previews, pull-request capture metadata, and release-body
+  assembly without changing the existing tag conventions or versioned
+  `docs/CHANGELOG.md` process.
+- Validation: release-note unit tests, Python syntax, shell syntax, workflow
+  YAML/shell parsing, the existing release-note generator/validator, workflow
+  policy checks, and `dotnet test` (74 application, 5,081 unit, 284
+  integration; one existing probabilistic-allocation unit test failed once in
+  the full run and passed in an isolated rerun) were executed. `./bin/lint`
+  stopped on the same existing xUnit1003 test-data diagnostics and did not
+  modify the tree.
+
 ## Update 2026-08-04 20:35:00Z
 
 - Fixed Chromaprint's `StandardError has not been redirected` failure by starting

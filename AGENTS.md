@@ -20,6 +20,15 @@ These interaction rules are standard for all model interfaces used with this rep
 - Optimize for accuracy, not approval.
 - If you do not know, say so. Never fabricate.
 
+## Release-note contract
+
+Do not let user-facing behavior, security changes, operational changes, or
+user-facing documentation changes reach a release without a new validated
+fragment under `release-notes/`. Fragments are append-only and must capture the
+audience, product area, required action (or `none`), and breaking-change status.
+Internal-only work must be explicitly marked in the pull request. Preview the
+range with `python3 scripts/release_notes.py preview --base <base> --head <head>`.
+
 ## 🚨 CRITICAL: Document Bugs You Fix
 
 **If you fix a bug caused by your own implementation (or any implementation), IMMEDIATELY add it to `memory-bank/decisions/adr-0001-known-gotchas.md`.**

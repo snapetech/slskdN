@@ -83,6 +83,25 @@ the notes again from the tagged source and validates them immediately before
 the GitHub release write. Both paths fail closed on missing titles/dates,
 missing or short highlights, and placeholder wording.
 
+## Release-note contract
+
+User-facing, security, operational, and user-facing documentation changes add
+one new validated fragment under `release-notes/`. The pull-request workflow
+requires that fragment or an explicit internal-only selection. Fragments are
+append-only and carry category, audience, area, action, and breaking-change
+metadata.
+
+Preview the grouped release text with:
+
+```bash
+python3 scripts/release_notes.py preview --base <base> --head <head>
+```
+
+The tag workflow assembles the same grouped `### User-facing changes` section
+into `release/RELEASE_NOTES.md`, uses that file for the GitHub release, and
+passes the exact body to the Discord embed. Pull-request summaries also show a
+capture-metadata table for auditing the fragment fields.
+
 ## Recommended extra checks for risky changes
 
 Run these when the change touches the relevant surface:

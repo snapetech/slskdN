@@ -1,3 +1,16 @@
+## Update 2026-08-12
+
+- Current task: complete. Release-note and changelog publication enforcement
+  is implemented for slskdN.
+- Last activity: added append-only structured fragments, PR validation and
+  capture metadata, grouped release previews, shared GitHub/Discord release
+  bodies, and repository-local tests and documentation.
+- Next steps:
+  1. Add one new validated `release-notes/*.md` fragment for each future
+     user-facing, security, operational, or user-facing documentation change.
+  2. Use `python3 scripts/release_notes.py preview --base <base> --head <head>`
+     before cutting a release.
+
 ## Update 2026-08-05 02:53:32Z
 
 - Current task: stable release `2026080501-slskdn.302` is published and its

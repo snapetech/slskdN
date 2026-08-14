@@ -477,4 +477,14 @@ mkdir -p "$(dirname "$OUT_PATH")"
   fi
 } >"$OUT_PATH"
 
+release_notes_base="${PREV_TAG:-}"
+if [[ -z "$release_notes_base" ]]; then
+  release_notes_base="$(git hash-object -t tree /dev/null)"
+fi
+python3 scripts/release_notes.py assemble \
+  --base "$release_notes_base" \
+  --head "$GIT_REF" \
+  --input "$OUT_PATH" \
+  --output "$OUT_PATH"
+
 printf 'Wrote %s\n' "$OUT_PATH"

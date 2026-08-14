@@ -102,6 +102,9 @@ jobs:
             "origin/${{ github.base_ref }}" \
             "${{ github.sha }}"
 
+      - name: Release-note tooling tests
+        run: python3 scripts/test_release_notes.py
+
       - name: Release Gate
         env:
           LOCAL_IDENTITY_DENYLIST: ${{ secrets.LOCAL_IDENTITY_DENYLIST }}

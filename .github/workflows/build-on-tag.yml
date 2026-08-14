@@ -187,6 +187,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      release_body: ${{ steps.release-body.outputs.release_body }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -237,6 +239,18 @@ jobs:
           prerelease: false
           files: release/*
 
+      - name: Export release body
+        id: release-body
+        shell: bash
+        run: |
+          set -euo pipefail
+          delimiter="release_body_${GITHUB_RUN_ID}"
+          {
+            echo "release_body<<${delimiter}"
+            cat release/RELEASE_NOTES.md
+            echo "${delimiter}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Trigger Package Workflows
         if: success()
         run: |
@@ -257,28 +271,48 @@ jobs:
           RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.parse.outputs.version }}
           VERSION: ${{ needs.parse.outputs.version }}
           TRIGGER_TAG: ${{ github.ref_name }}
+          RELEASE_BODY: ${{ needs.release-main.outputs.release_body }}
         run: |
           if [ -z "$DISCORD_RELEASE_WEBHOOK" ]; then
             echo "DISCORD_RELEASE_WEBHOOK is not configured; skipping Discord announcement."
             exit 0
           fi
 
-          payload=$(cat <<EOF
-          {
-            "content": "🔋 **slskdN stable release published**\nVersion: \`${VERSION}\`\nBuild tag: \`${TRIGGER_TAG}\`\nRelease: ${RELEASE_URL}"
-          }
-          EOF
-          )
-
-          if ! curl --fail --silent --show-error \
+          if ! python3 - <<'PY' | curl --fail --silent --show-error \
             --retry 3 \
             --retry-all-errors \
             --retry-delay 5 \
             --connect-timeout 10 \
             --max-time 60 \
             -H "Content-Type: application/json" \
-            -d "$payload" \
-            "$DISCORD_RELEASE_WEBHOOK"; then
+            -d @- \
+            "$DISCORD_RELEASE_WEBHOOK"
+          import json
+          import os
+
+          version = os.environ["VERSION"]
+          trigger_tag = os.environ["TRIGGER_TAG"]
+          release_url = os.environ["RELEASE_URL"]
+          body = os.environ["RELEASE_BODY"] + "\n\nRelease artifacts are available on GitHub."
+          if len(body) > 3800:
+              body = body[:3797] + "…"
+          payload = {
+              "username": "slskdN Releases",
+              "embeds": [
+                  {
+                      "title": f"slskdN {version} is live",
+                      "url": release_url,
+                      "description": body,
+                      "fields": [
+                          {"name": "Build tag", "value": trigger_tag, "inline": True},
+                          {"name": "Workflow", "value": os.environ.get("GITHUB_SERVER_URL", "https://github.com") + "/" + os.environ["GITHUB_REPOSITORY"] + "/actions/runs/" + os.environ["GITHUB_RUN_ID"], "inline": True},
+                      ],
+                  }
+              ],
+          }
+          print(json.dumps(payload))
+          PY
+          then
             echo "Discord announcement failed; release artifacts are already published, continuing."
           fi
 

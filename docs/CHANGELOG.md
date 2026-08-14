@@ -26,6 +26,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   tokens are now promoted from configured API keys to scoped short-lived JWTs,
   matching REST API-key authentication and restoring live application, search,
   transfer, and log updates.
+- Added a validated release-note contract with append-only fragments, pull
+  request capture metadata, grouped previews, and a shared curated body for
+  GitHub Releases and Discord announcements.
 
 ## [2026081323-slskdn.304] — 2026-08-13
 

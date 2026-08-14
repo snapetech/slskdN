@@ -9,6 +9,15 @@
 
 ### High Priority
 
+- [x] Add structured release-note, changelog, and Discord publication gates.
+  - Status: completed (2026-08-12)
+  - Priority: P1
+  - Notes: Added append-only `release-notes/` fragments with validated
+    audience, area, action, and breaking metadata; pull-request enforcement;
+    grouped release-body assembly; capture metadata in CI summaries; and a
+    single curated body shared by GitHub Releases and Discord. Existing
+    versioned changelog generation remains the release source of truth.
+
 - [x] Fix API-key-only SignalR hub authentication.
   - Status: completed (2026-08-05)
   - Priority: P1
