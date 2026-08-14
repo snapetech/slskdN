@@ -21,7 +21,7 @@ helm install slskdn ./packaging/helm/slskdn -f my-values.yaml
 helm install slskdn ./packaging/helm/slskdn \
   --set env.SLSKD_SLSK_USERNAME=myuser \
   --set env.SLSKD_SLSK_PASSWORD=mypass \
-  --set image.tag=2026080512-slskdn.303
+  --set image.tag=2026081323-slskdn.304
 ```
 
 ## Main values
