@@ -33,6 +33,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
   global filename/path exclusions remain available in System > Policies as an
   advanced YAML editor.
 
+## [2026081400-slskdn.305] — 2026-08-14
+
+- Added structured release-note capture and validation, grouped previews, and
+  a shared curated release summary for GitHub Releases and Discord.
+- Added a user-facing Download filters control to the Downloads view. The same
+  global filename/path exclusions remain available in System > Policies as an
+  advanced YAML editor.
+
 ## [2026081323-slskdn.304] — 2026-08-13
 
 - Added a global `filters.download.exclude` policy for literal,
