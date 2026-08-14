@@ -13281,3 +13281,17 @@ rollback.
   analysis by the existing TypeScript 7 / typescript-eslint incompatibility.
 - Next steps: create the explicitly requested stable release tag
   `build-main-2026081323-slskdn.304`; do not create additional tags.
+## Update 2026-08-13 23:00:00Z
+
+- Current task: complete the user-facing placement correction for global
+  download exclusions.
+- Last activity: added an always-visible **Download filters** control to the
+  Downloads header, a modal editor with remote-configuration handling and
+  backend-aligned validation, shared the field and YAML helpers with System >
+  Policies, and updated user/admin documentation plus release notes.
+- Validation so far: focused frontend tests and the production frontend build
+  pass. The standalone frontend ESLint command remains blocked before source
+  analysis by the existing TypeScript 7 / typescript-eslint parser mismatch.
+- Next steps: run the full relevant test/release-note checks, commit and push
+  the UI correction on `main`, and leave tag creation for an explicit release
+  request.

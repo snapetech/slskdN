@@ -10,8 +10,10 @@ import {
   readStoredHumanChallengeAutoResponse,
   writeStoredHumanChallengeAutoResponse,
 } from '../../lib/humanChallengeAutoResponse';
+import { getDownloadExclusions } from '../../lib/downloadFilters';
 import AppContext from '../AppContext';
-import { Div, Nbsp } from '../Shared';
+import { Div, Nbsp, TooltipButton } from '../Shared';
+import DownloadExclusionsModal from './DownloadExclusionsModal';
 import ShrinkableDropdownButton from '../Shared/ShrinkableDropdownButton';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Checkbox, Icon, Popup, Segment } from 'semantic-ui-react';
@@ -104,7 +106,15 @@ const TransfersHeader = ({
     );
   const [humanCheckSaving, setHumanCheckSaving] = useState(false);
   const [humanCheckError, setHumanCheckError] = useState(false);
+  const [downloadFilterOpen, setDownloadFilterOpen] = useState(false);
+  const [downloadExclusions, setDownloadExclusions] = useState(() =>
+    getDownloadExclusions(options),
+  );
   const canApplyHumanCheck = canApplyHumanChallengeAutoResponse(options);
+
+  useEffect(() => {
+    setDownloadExclusions(getDownloadExclusions(options));
+  }, [options]);
 
   useEffect(() => {
     setHumanCheckAutoResponseEnabled(
@@ -135,6 +145,9 @@ const TransfersHeader = ({
   const useBulkClear =
     removeOption === 'Completed' || removeOption === 'Succeeded';
   const hasRemovableFiles = useBulkClear ? !empty : removableFiles.length > 0;
+  const downloadFilterCount = downloadExclusions.filter((term) =>
+    String(term).trim(),
+  ).length;
 
   const setHumanCheckAutoResponse = async (enabled) => {
     setHumanCheckAutoResponseEnabled(enabled);
@@ -157,19 +170,36 @@ const TransfersHeader = ({
   };
 
   return (
-    <Segment
-      className="transfers-header-segment"
-    >
-      <div className="transfers-segment-icon">
-        <Icon
-          name={direction}
-          size="large"
-        />
-      </div>
-      <Div
-        className="transfers-header-buttons"
-        hidden={empty}
+    <>
+      <Segment
+        className="transfers-header-segment"
       >
+        <div className="transfers-segment-icon">
+          <Icon
+            name={direction}
+            size="large"
+          />
+        </div>
+        <div className="transfers-header-actions">
+          {direction === 'download' && (
+            <TooltipButton
+              aria-label="Open download filters"
+              className="download-filter-button"
+              icon="filter"
+              onClick={() => setDownloadFilterOpen(true)}
+              size="small"
+              title="Download filters"
+              tooltip="Block unwanted downloads by matching literal terms anywhere in remote filenames or folder paths."
+            >
+              {downloadFilterCount > 0
+                ? `Download filters (${downloadFilterCount})`
+                : 'Download filters'}
+            </TooltipButton>
+          )}
+          <Div
+            className="transfers-header-buttons"
+            hidden={empty}
+          >
         <ShrinkableDropdownButton
           color="green"
           disabled={retrying || retryableFiles.length === 0 || !server.isConnected}
@@ -295,8 +325,16 @@ const TransfersHeader = ({
             />
           }
         />
-      </Div>
-    </Segment>
+          </Div>
+        </div>
+      </Segment>
+      <DownloadExclusionsModal
+        onClose={() => setDownloadFilterOpen(false)}
+        onSaved={setDownloadExclusions}
+        open={downloadFilterOpen}
+        options={options}
+      />
+    </>
   );
 };
 

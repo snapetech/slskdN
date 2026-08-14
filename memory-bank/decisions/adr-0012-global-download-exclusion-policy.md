@@ -38,9 +38,11 @@ retry, and auto-replace planning.
 
 Expose blocked normal API requests as structured `download_blocked` responses
 when the whole request is rejected, and include blocked items in mixed-batch
-responses. The System > Policies screen edits the same YAML path and explains
-that matching is literal, path-wide, case-insensitive, and applied before peer
-contact.
+responses. The primary user-facing editor is **Download filters** in the
+Downloads header, where the policy is used. System > Policies retains the same
+field as an advanced operator/YAML editor; both surfaces share the same field
+copy, validation limits, and YAML path. Both explain that matching is literal,
+path-wide, case-insensitive, and applied before peer contact.
 
 ## Consequences
 
@@ -53,6 +55,8 @@ contact.
 - Runtime configuration changes are effective without a restart and do not
   allow queued/racing transfers to bypass the policy.
 - Alternate and experimental download paths share the same safety behavior.
+- Users can discover and change the policy from the Downloads workflow without
+  navigating through administrator settings.
 
 ### Negative
 

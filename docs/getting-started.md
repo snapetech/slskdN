@@ -198,6 +198,9 @@ Click the **⚙️ Advanced Filters** button to access:
 4. **Files are saved** to the selected destination; the browser remembers the
    choice for later manual downloads
 
+To prevent unwanted categories from being downloaded, open **Download filters**
+in the Downloads header and add one literal filename or path term per line.
+
 Wishlist and other automatic downloads use the folder marked `default: true`.
 If none is marked, they use `directories.downloads`. See
 [Multiple Download Destinations](advanced-features.md#multiple-download-destinations)

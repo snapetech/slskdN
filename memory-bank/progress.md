@@ -12613,3 +12613,10 @@ and the tracked React Router RSC advisory remain the only separate follow-ups.
   frontend tests with 4 skips. The standalone frontend ESLint command remains
   blocked by the repository's existing TypeScript 7 / typescript-eslint parser
   compatibility error before source analysis.
+[2026-08-13T23:00:00Z] Moved global download exclusions into the user-facing
+Downloads workflow. Added an always-visible Downloads-header button and modal,
+shared the editor field and YAML/validation helpers with the advanced System >
+Policies surface, added focused frontend coverage, and documented the revised
+information architecture. Focused tests and production frontend build pass;
+standalone frontend ESLint remains blocked by the existing TypeScript 7 /
+typescript-eslint compatibility error before source analysis.

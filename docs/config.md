@@ -1105,6 +1105,9 @@ transfers that become blocked.
 These are literal substring matches, not regular expressions, and the policy
 does not inspect audio tags or infer the contents of a file. Add one term per
 entry; use a phrase such as `a cappella` when the spaces are part of the match.
+For day-to-day changes, open **Download filters** in the Downloads header. The
+same setting is also available in **System -> Policies** for advanced YAML
+administration.
 
 | Command Line                  | Environment Variable              | Description |
 | ----------------------------- | ---------------------------------- | ----------- |

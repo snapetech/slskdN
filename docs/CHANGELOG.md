@@ -29,6 +29,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added a validated release-note contract with append-only fragments, pull
   request capture metadata, grouped previews, and a shared curated body for
   GitHub Releases and Discord announcements.
+- Added a user-facing Download filters control to the Downloads view. The same
+  global filename/path exclusions remain available in System > Policies as an
+  advanced YAML editor.
 
 ## [2026081323-slskdn.304] — 2026-08-13
 

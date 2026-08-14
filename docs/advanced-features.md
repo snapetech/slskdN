@@ -244,6 +244,8 @@ The System section is the operator control center.
 
 - Webhooks and scripts.
 - Upload/download slots, speed limits, retry, schedules, and auto-replace.
+- The global download exclusion list; day-to-day editing is also available from
+  **Download filters** in the Downloads header.
 - Authentication, API keys, JWT, passthrough CIDRs, HTTPS, and rate limits.
 - Search filters, blacklist, DHT, Scene Pod Bridge, and rescue mode.
 - Retention, share cache workers/retention, and media-attribute probing.

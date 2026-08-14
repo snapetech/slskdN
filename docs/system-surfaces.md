@@ -44,12 +44,17 @@ page:
 **System -> Policies** is the guided YAML editor for operator settings that used
 to be easy to miss.
 
+Global download exclusions are primarily managed from **Download filters** in
+the Downloads header, where users are already reviewing transfers. The Policies
+panel retains the same editor as an advanced operator/YAML surface.
+
 It covers:
 
 - Webhooks and scripts: names, events, target URL/command, timeout, retry count,
   and certificate-error posture.
 - Transfer policy: upload/download slots, speed ceilings, direct retry policy,
-  auto-replace, and scheduled-limit enablement.
+  auto-replace, scheduled-limit enablement, and the advanced global download
+  exclusion editor.
 - Security and access: auth disablement, explicit no-auth CIDRs, JWT key/TTL,
   API keys, HTTPS certificate settings, force HTTPS, and HTTP rate limits.
 - Search/network policy: incoming search filters, search throttles, managed

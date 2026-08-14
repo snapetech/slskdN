@@ -66,9 +66,17 @@
   word-wrap: break-word !important;
 }
 
-.transfers-header-buttons {
+.transfers-header-actions {
   display: inline-flex;
   margin-left: auto;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.transfers-header-buttons {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
 }

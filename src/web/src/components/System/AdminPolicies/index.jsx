@@ -1,5 +1,11 @@
 import * as optionsApi from '../../../lib/options';
+import {
+  formatDownloadExclusions,
+  getDownloadExclusions,
+  setDownloadExclusionsInYaml,
+} from '../../../lib/downloadFilters';
 import * as YAML from 'yaml';
+import DownloadExclusionsField from '../../Shared/DownloadExclusionsField';
 import React, { useEffect, useState } from 'react';
 import {
   Button,
@@ -89,7 +95,6 @@ const buildForm = (options = {}) => {
     getOption(options, 'scheduledLimits', 'scheduled_limits', 'ScheduledLimits') || {};
   const filters = getOption(options, 'filters', 'Filters') || {};
   const searchFilters = getOption(filters, 'search', 'Search') || {};
-  const downloadFilters = getOption(filters, 'download', 'Download') || {};
   const blacklist = getOption(options, 'blacklist', 'Blacklist') || {};
   const throttling = getOption(options, 'throttling', 'Throttling') || {};
   const incoming =
@@ -163,7 +168,7 @@ const buildForm = (options = {}) => {
     downloadRetryDelay: String(getOption(retry, 'delay', 'Delay') ?? 5000),
     downloadRetryIncomplete: getOption(retry, 'incomplete', 'Incomplete') || 'resume',
     downloadRetryMaxDelay: String(getOption(retry, 'maxDelay', 'max_delay', 'MaxDelay') ?? 60000),
-    downloadFilterExclude: toLines(getOption(downloadFilters, 'exclude', 'Exclude') || []),
+    downloadFilterExclude: formatDownloadExclusions(getDownloadExclusions(options)),
     downloadScheduledLimitsEnabled: Boolean(getOption(downloadScheduledLimits, 'enabled', 'Enabled')),
     dhtAnnounceIntervalSeconds: String(getOption(dht, 'announceIntervalSeconds', 'announce_interval_seconds', 'AnnounceIntervalSeconds') ?? 900),
     dhtBootstrapRouters: toLines(getOption(dht, 'bootstrapRouters', 'bootstrap_routers', 'BootstrapRouters') || []),
@@ -424,7 +429,7 @@ const AdminPolicies = ({ options = {} }) => {
       );
 
       document.setIn(['filters', 'search', 'request'], parseLines(form.searchFilterRequest));
-      document.setIn(['filters', 'download', 'exclude'], parseLines(form.downloadFilterExclude));
+      setDownloadExclusionsInYaml(document, form.downloadFilterExclude);
       document.setIn(['filters', 'search_retention', 'max_age_days'], toNumber(form.searchRetentionMaxAgeDays, 30));
       document.setIn(['filters', 'search_retention', 'max_count'], toNumber(form.searchRetentionMaxCount, 1000));
       document.setIn(['filters', 'search_retention', 'cleanup_interval_seconds'], toNumber(form.searchRetentionCleanupInterval, 86400));
@@ -727,28 +732,15 @@ const AdminPolicies = ({ options = {} }) => {
                 Global download exclusions
               </Header>
               <p>
-                Stop outbound transfers before they reach a peer when a literal
-                term appears anywhere in the remote filename or folder path.
-                This policy also covers retries, replacements, wishlist
-                downloads, peer previews, pod downloads, and multi-source
-                transfers.
+                Advanced operator view of the same global filter available from
+                the Downloads view. Use it when managing YAML policy alongside
+                the rest of the daemon configuration.
               </p>
-              <Form.TextArea
-                aria-label="Global download exclusions"
+              <DownloadExclusionsField
                 disabled={!remoteConfiguration || saving}
-                label="Blocked filename/path terms"
-                onChange={(_, { value }) => update('downloadFilterExclude', value)}
-                placeholder={'acapella\ninstrumental\na cappella'}
+                onChange={(value) => update('downloadFilterExclude', value)}
                 value={form.downloadFilterExclude}
               />
-              <Message
-                info
-                size="small"
-              >
-                One literal term per line. Matching is case-insensitive and
-                live policy changes cancel active transfers that become
-                blocked.
-              </Message>
             </Segment>
             <Form>
               <Form.Group widths="equal">
