@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026081618-slskdn.306] — 2026-08-16
+
 - Added Lidarr edition matching: Wishlist auto-download now validates a
   candidate's track count, duration, and edition against the release Lidarr
   actually monitors before downloading, configurable via
