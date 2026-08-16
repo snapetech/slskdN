@@ -108,6 +108,7 @@ public sealed class WishlistServicePersistenceTests
             optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
             using var service = new WishlistService(
                 contextFactory,
+                Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
                 Mock.Of<ISearchService>(),
                 Mock.Of<ISoulseekClient>(),
                 optionsMonitor.Object,
@@ -194,6 +195,7 @@ public sealed class WishlistServicePersistenceTests
             optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
             using var service = new WishlistService(
                 contextFactory,
+                Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
                 Mock.Of<ISearchService>(),
                 Mock.Of<ISoulseekClient>(),
                 optionsMonitor.Object,
@@ -269,6 +271,7 @@ public sealed class WishlistServicePersistenceTests
         optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
         using var service = new WishlistService(
             contextFactory,
+                Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             Mock.Of<ISearchService>(),
             Mock.Of<ISoulseekClient>(),
             optionsMonitor.Object,
@@ -385,6 +388,7 @@ public sealed class WishlistServicePersistenceTests
         optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
         using var service = new WishlistService(
             contextFactory,
+                Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             Mock.Of<ISearchService>(),
             Mock.Of<ISoulseekClient>(),
             optionsMonitor.Object,
@@ -435,6 +439,7 @@ public sealed class WishlistServicePersistenceTests
         optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
         using var service = new WishlistService(
             contextFactory,
+                Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             Mock.Of<ISearchService>(),
             Mock.Of<ISoulseekClient>(),
             optionsMonitor.Object,
@@ -488,6 +493,7 @@ public sealed class WishlistServicePersistenceTests
         optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
         using var service = new WishlistService(
             contextFactory,
+                Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             Mock.Of<ISearchService>(),
             Mock.Of<ISoulseekClient>(),
             optionsMonitor.Object,

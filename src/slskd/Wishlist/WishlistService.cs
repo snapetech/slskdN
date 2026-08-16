@@ -117,6 +117,7 @@ namespace slskd.Wishlist
 
         public WishlistService(
             IDbContextFactory<WishlistDbContext> contextFactory,
+            IDbContextFactory<slskd.Transfers.TransfersDbContext> transfersContextFactory,
             ISearchService searchService,
             ISoulseekClient soulseekClient,
             IOptionsMonitor<slskd.Options> optionsMonitor,
@@ -124,6 +125,7 @@ namespace slskd.Wishlist
             IDownloadService downloadService)
         {
             ContextFactory = contextFactory;
+            TransfersContextFactory = transfersContextFactory;
             SearchService = searchService;
             Client = soulseekClient;
             OptionsMonitor = optionsMonitor;
@@ -132,6 +134,7 @@ namespace slskd.Wishlist
         }
 
         private IDbContextFactory<WishlistDbContext> ContextFactory { get; }
+        private IDbContextFactory<slskd.Transfers.TransfersDbContext> TransfersContextFactory { get; }
         private ISearchService SearchService { get; }
         private ISoulseekClient Client { get; }
         private IOptionsMonitor<slskd.Options> OptionsMonitor { get; }
@@ -231,6 +234,9 @@ namespace slskd.Wishlist
             {
                 existing.LidarrAlbumId = item.LidarrAlbumId;
                 existing.LidarrTrackId = item.LidarrTrackId;
+                existing.LidarrTrackCount = item.LidarrTrackCount;
+                existing.LidarrDurationSeconds = item.LidarrDurationSeconds;
+                existing.LidarrReleaseDisambiguation = item.LidarrReleaseDisambiguation;
             }
 
             await context.SaveChangesAsync();
@@ -468,7 +474,7 @@ namespace slskd.Wishlist
             foreach (var batch in items.Chunk(WishlistInsertBatchSize))
             {
                 var values = batch.Select((_, index) =>
-                    $"(@id{index}, @search_text{index}, @filter{index}, @enabled{index}, @auto_download{index}, @max_results{index}, @created_at{index}, @last_searched_at{index}, @last_match_count{index}, @last_visible_hit_count{index}, @last_hidden_locked_hit_count{index}, @last_filtered_out_hit_count{index}, @last_ignored_result_hit_count{index}, @last_response_count{index}, @total_search_count{index}, @total_download_count{index}, @max_downloads{index}, @last_search_id{index}, @last_viewed_at{index}, @lidarr_album_id{index}, @lidarr_track_id{index})");
+                    $"(@id{index}, @search_text{index}, @filter{index}, @enabled{index}, @auto_download{index}, @max_results{index}, @created_at{index}, @last_searched_at{index}, @last_match_count{index}, @last_visible_hit_count{index}, @last_hidden_locked_hit_count{index}, @last_filtered_out_hit_count{index}, @last_ignored_result_hit_count{index}, @last_response_count{index}, @total_search_count{index}, @total_download_count{index}, @max_downloads{index}, @last_search_id{index}, @last_viewed_at{index}, @lidarr_album_id{index}, @lidarr_track_id{index}, @lidarr_track_count{index}, @lidarr_duration_seconds{index}, @lidarr_release_disambiguation{index})");
                 var commandText = $"""
                     INSERT INTO WishlistItems (
                         Id,
@@ -491,10 +497,13 @@ namespace slskd.Wishlist
                         LastSearchId,
                         LastViewedAt,
                         LidarrAlbumId,
-                        LidarrTrackId)
+                        LidarrTrackId,
+                        LidarrTrackCount,
+                        LidarrDurationSeconds,
+                        LidarrReleaseDisambiguation)
                     VALUES {string.Join(", ", values)}
                     """;
-                var parameters = new List<object>(batch.Length * 21);
+                var parameters = new List<object>(batch.Length * 24);
 
                 for (var index = 0; index < batch.Length; index++)
                 {
@@ -520,6 +529,9 @@ namespace slskd.Wishlist
                     AddParameter(parameters, $"@last_viewed_at{index}", item.LastViewedAt);
                     AddParameter(parameters, $"@lidarr_album_id{index}", item.LidarrAlbumId);
                     AddParameter(parameters, $"@lidarr_track_id{index}", item.LidarrTrackId);
+                    AddParameter(parameters, $"@lidarr_track_count{index}", item.LidarrTrackCount);
+                    AddParameter(parameters, $"@lidarr_duration_seconds{index}", item.LidarrDurationSeconds);
+                    AddParameter(parameters, $"@lidarr_release_disambiguation{index}", item.LidarrReleaseDisambiguation);
                 }
 
                 await context.Database
@@ -867,10 +879,7 @@ namespace slskd.Wishlist
             {
                 var downloadResult = await AutoDownloadBestResultsAsync(
                     searchWithResponses,
-                    item.Id,
-                    item.Filter,
-                    item.TotalDownloadCount,
-                    item.MaxDownloads,
+                    item,
                     ignoredResults,
                     cancellationToken);
                 if (downloadResult.EnqueuedCount > 0)
@@ -914,17 +923,16 @@ namespace slskd.Wishlist
 
         private async Task<WishlistDownloadResult> AutoDownloadBestResultsAsync(
             SlskdSearch search,
-            Guid wishlistItemId,
-            string filter,
-            int totalDownloadCount,
-            int? maxDownloads,
+            WishlistItem item,
             IReadOnlyCollection<WishlistIgnoredResult> ignoredResults,
             CancellationToken cancellationToken)
         {
             try
             {
-                var remainingDownloads = maxDownloads.HasValue
-                    ? maxDownloads.Value - totalDownloadCount
+                var wishlistItemId = item.Id;
+                var filter = item.Filter;
+                var remainingDownloads = item.MaxDownloads.HasValue
+                    ? item.MaxDownloads.Value - item.TotalDownloadCount
                     : int.MaxValue;
                 if (remainingDownloads <= 0)
                 {
@@ -932,13 +940,17 @@ namespace slskd.Wishlist
                 }
 
                 var fileFilter = CreateSearchResultFileFilter(filter);
+                var alreadyDownloaded = await GetRecentlyCompletedTrackKeysAsync(item.SearchText, cancellationToken)
+                    .ConfigureAwait(false);
 
                 var candidates = new List<SourceCandidate>();
                 foreach (var response in search.Responses)
                 {
                     foreach (var file in response.Files)
                     {
-                        if (!fileFilter(file) || IsIgnored(ignoredResults, response.Username, file.Filename))
+                        if (!fileFilter(file) ||
+                            IsIgnored(ignoredResults, response.Username, file.Filename) ||
+                            IsAlreadyDownloadedElsewhere(alreadyDownloaded, file.Filename, file.Length))
                         {
                             continue;
                         }
@@ -971,8 +983,9 @@ namespace slskd.Wishlist
                     .ToList();
 
                 var filterTerms = ParseFilterTerms(filter);
+                var editionExpectation = BuildEditionExpectation(item);
                 var groupPlans = groups
-                    .Select(group => BuildGroupPlan(group.Key, group, filterTerms, remainingDownloads))
+                    .Select(group => BuildGroupPlan(group.Key, group, filterTerms, remainingDownloads, editionExpectation))
                     .ToList();
                 var representatives = groupPlans
                     .Select(plan => plan.Representative)
@@ -988,14 +1001,31 @@ namespace slskd.Wishlist
                         Ranked = rep,
                     })
                     .ToList();
+
+                var editionMode = OptionsMonitor.CurrentValue.Integration.Lidarr.EditionMatchMode;
+                var excludeMismatches = editionExpectation.HasValue &&
+                    string.Equals(editionMode, "exclude", StringComparison.OrdinalIgnoreCase);
+                var preferMatchingEdition = editionExpectation.HasValue &&
+                    !string.Equals(editionMode, "off", StringComparison.OrdinalIgnoreCase);
+
                 var bestPlan = rankedPlans
-                    .OrderByDescending(candidate => candidate.Plan.Coverage)
+                    .Where(candidate => !excludeMismatches || !candidate.Plan.EditionMismatch)
+                    .OrderBy(candidate => preferMatchingEdition && candidate.Plan.EditionMismatch ? 1 : 0)
+                    .ThenByDescending(candidate => candidate.Plan.Coverage)
                     .ThenByDescending(candidate => candidate.Plan.WeakestQuality)
                     .ThenByDescending(candidate => candidate.Plan.RepresentativeQuality)
                     .ThenByDescending(candidate => candidate.Ranked.SmartScore)
                     .FirstOrDefault();
                 if (bestPlan == null)
                 {
+                    if (excludeMismatches && rankedPlans.Count > 0)
+                    {
+                        Log.Information(
+                            "Skipping wishlist auto-download for {WishlistItemId}: no candidate matched Lidarr's expected track count/duration/edition ({Count} candidate(s) rejected)",
+                            wishlistItemId,
+                            rankedPlans.Count);
+                    }
+
                     return WishlistDownloadResult.Empty;
                 }
 
@@ -1093,7 +1123,8 @@ namespace slskd.Wishlist
             (string Username, string Dir) key,
             IEnumerable<SourceCandidate> candidates,
             WishlistFilterTerms filterTerms,
-            int remainingDownloads)
+            int remainingDownloads,
+            WishlistEditionExpectation? edition)
         {
             var bestPerTrack = candidates
                 .GroupBy(GetTrackIdentity, StringComparer.OrdinalIgnoreCase)
@@ -1117,13 +1148,100 @@ namespace slskd.Wishlist
                 ? default
                 : GetQualityKey(files[0], filterTerms);
 
+            var editionMismatch = false;
+            if (edition.HasValue)
+            {
+                int? totalLengthSeconds = edition.Value.IsTrackLevel
+                    ? files.FirstOrDefault()?.Length
+                    : (bestPerTrack.Count > 0 && bestPerTrack.All(c => c.Length.HasValue)
+                        ? bestPerTrack.Sum(c => c.Length!.Value)
+                        : (int?)null);
+
+                editionMismatch = IsEditionMismatch(edition.Value, key.Dir, bestPerTrack.Count, totalLengthSeconds);
+            }
+
             return new WishlistGroupPlan(
                 key,
                 files,
                 Math.Min(bestPerTrack.Count, remainingDownloads),
                 weakestQuality,
                 representativeQuality,
-                files.FirstOrDefault() ?? candidates.First());
+                files.FirstOrDefault() ?? candidates.First(),
+                editionMismatch);
+        }
+
+        /// <summary>
+        ///     The facts slskdN knows about the Lidarr release/track a Wishlist item targets,
+        ///     used to reject or down-rank Soulseek candidates that don't actually match
+        ///     (e.g. a "Sessions" edition with a similar name to the wanted studio album).
+        /// </summary>
+        internal readonly record struct WishlistEditionExpectation(
+            bool IsTrackLevel,
+            int? TrackCount,
+            int? DurationSeconds,
+            string? ReleaseDisambiguation,
+            string SearchText);
+
+        private static WishlistEditionExpectation? BuildEditionExpectation(WishlistItem item)
+        {
+            if (!item.LidarrTrackCount.HasValue && !item.LidarrDurationSeconds.HasValue)
+            {
+                return null;
+            }
+
+            return new WishlistEditionExpectation(
+                IsTrackLevel: item.LidarrTrackId.HasValue,
+                TrackCount: item.LidarrTrackCount,
+                DurationSeconds: item.LidarrDurationSeconds,
+                ReleaseDisambiguation: item.LidarrReleaseDisambiguation,
+                SearchText: item.SearchText);
+        }
+
+        // Version/edition markers that make a candidate suspect unless Lidarr's own release
+        // title/disambiguation (or the Wishlist search text) already carries the same term.
+        private static readonly string[] EditionMismatchMarkers =
+        [
+            "session", "sessions", "live", "acoustic", "unplugged", "remix", "remixes",
+            "karaoke", "instrumental", "instrumentals", "demo", "demos", "rehearsal",
+            "interview", "radio edit", "bootleg", "commentary",
+        ];
+
+        internal static bool IsEditionMismatch(
+            WishlistEditionExpectation expectation,
+            string directory,
+            int matchedTrackCount,
+            int? totalLengthSeconds)
+        {
+            if (!expectation.IsTrackLevel && expectation.TrackCount.HasValue &&
+                Math.Abs(matchedTrackCount - expectation.TrackCount.Value) > 1)
+            {
+                return true;
+            }
+
+            if (expectation.DurationSeconds.HasValue && totalLengthSeconds is > 0)
+            {
+                var tolerance = Math.Max(20, (int)(expectation.DurationSeconds.Value * 0.05));
+                if (Math.Abs(totalLengthSeconds.Value - expectation.DurationSeconds.Value) > tolerance)
+                {
+                    return true;
+                }
+            }
+
+            var normalizedDirectory = directory.Replace('\\', '/');
+            var lastSlash = normalizedDirectory.LastIndexOf('/');
+            var folderName = lastSlash < 0 ? normalizedDirectory : normalizedDirectory[(lastSlash + 1)..];
+
+            foreach (var marker in EditionMismatchMarkers)
+            {
+                if (folderName.Contains(marker, StringComparison.OrdinalIgnoreCase) &&
+                    !(expectation.ReleaseDisambiguation ?? string.Empty).Contains(marker, StringComparison.OrdinalIgnoreCase) &&
+                    !expectation.SearchText.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         internal static string GetTrackIdentity(string filename)
@@ -1138,6 +1256,127 @@ namespace slskd.Wishlist
         }
 
         private static string GetTrackIdentity(SourceCandidate candidate) => GetTrackIdentity(candidate.Filename);
+
+        /// <summary>
+        ///     Normalizes a remote filename (or a plain track title) into a title-only comparison
+        ///     key: strips directory, extension, leading track/disc numbering, and punctuation.
+        ///     Unlike <see cref="GetTrackIdentity(string)"/>, this is meant to recognize the same
+        ///     song across different peers/directories, not just within one search's results.
+        /// </summary>
+        internal static string GetNormalizedTrackKey(string filename)
+        {
+            var normalized = filename.Replace('\\', '/');
+            var lastSlash = normalized.LastIndexOf('/');
+            var leaf = lastSlash < 0 ? normalized : normalized[(lastSlash + 1)..];
+            var extension = Path.GetExtension(leaf);
+            var stem = extension.Length > 0 ? leaf[..^extension.Length] : leaf;
+
+            stem = Regex.Replace(stem, @"^\s*(?:disc\s*\d+[\s.\-_]*)?[A-Za-z]?\d{1,3}[\s.\-_)]+", string.Empty, RegexOptions.IgnoreCase);
+            stem = Regex.Replace(stem, @"[^\p{L}\p{N}]+", " ");
+            return stem.Trim().ToLowerInvariant();
+        }
+
+        internal readonly record struct CompletedTrackKey(string Key, int? LengthSeconds);
+
+        /// <summary>
+        ///     Looks up recently completed downloads (any peer, any Wishlist item) whose filename
+        ///     or parsed title shares a significant token with the search text, as a cheap
+        ///     backstop against re-downloading the same song into a different folder. Bounded by
+        ///     an unindexed <c>Contains</c> prefilter; acceptable at the existing background
+        ///     cadence, but worth a dedicated index if it proves slow on very large histories.
+        /// </summary>
+        private async Task<List<CompletedTrackKey>> GetRecentlyCompletedTrackKeysAsync(
+            string searchText,
+            CancellationToken cancellationToken)
+        {
+            var token = searchText
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault(part => part.Length >= 3);
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return [];
+            }
+
+            // Defensive: this is a best-effort backstop, not a gate. Any failure here (including
+            // an unconfigured Transfers context in tests) should skip the check, not block the
+            // Wishlist auto-download it's guarding.
+            try
+            {
+                await using var context = TransfersContextFactory.CreateDbContext();
+
+                var rows = await context.Transfers
+                    .Where(t => t.Direction == TransferDirection.Download)
+                    .Where(t => t.State.HasFlag(TransferStates.Completed) && t.State.HasFlag(TransferStates.Succeeded))
+                    .Where(t => EF.Functions.Like(t.Filename, $"%{token}%") || (t.Artist != null && EF.Functions.Like(t.Artist, $"%{token}%")))
+                    .Select(t => new { t.Filename, t.Title, t.Length })
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                return rows
+                    .Select(row => new CompletedTrackKey(
+                        !string.IsNullOrWhiteSpace(row.Title) ? NormalizeTitleKey(row.Title!) : GetNormalizedTrackKey(row.Filename),
+                        row.Length))
+                    .Where(key => !string.IsNullOrWhiteSpace(key.Key))
+                    .ToList();
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Could not look up recently completed downloads for duplicate check: {Message}", ex.Message);
+                return [];
+            }
+        }
+
+        private static string NormalizeTitleKey(string title)
+        {
+            var normalized = Regex.Replace(title, @"[^\p{L}\p{N}]+", " ");
+            return normalized.Trim().ToLowerInvariant();
+        }
+
+        /// <summary>
+        ///     True when a candidate file's normalized title matches something already downloaded
+        ///     elsewhere and, if both durations are known, they're within a few seconds of each
+        ///     other. Guards only the automatic Wishlist download path; manual downloads from the
+        ///     Search tab are never silently skipped.
+        /// </summary>
+        internal static bool IsAlreadyDownloadedElsewhere(
+            IReadOnlyCollection<CompletedTrackKey> alreadyDownloaded,
+            string filename,
+            int? lengthSeconds)
+        {
+            if (alreadyDownloaded.Count == 0)
+            {
+                return false;
+            }
+
+            var key = GetNormalizedTrackKey(filename);
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                return false;
+            }
+
+            foreach (var entry in alreadyDownloaded)
+            {
+                if (!string.Equals(entry.Key, key, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (entry.LengthSeconds.HasValue && lengthSeconds.HasValue &&
+                    Math.Abs(entry.LengthSeconds.Value - lengthSeconds.Value) > 5)
+                {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
 
         private static (int Class, double EffectiveBitrate, int CodecPreference, int SampleRate, int BitDepth, int HasBitrate, long Size) GetQualityKey(
             SourceCandidate candidate,
@@ -1467,7 +1706,8 @@ namespace slskd.Wishlist
             int Coverage,
             (int Class, double EffectiveBitrate, int CodecPreference, int SampleRate, int BitDepth, int HasBitrate, long Size) WeakestQuality,
             (int Class, double EffectiveBitrate, int CodecPreference, int SampleRate, int BitDepth, int HasBitrate, long Size) RepresentativeQuality,
-            SourceCandidate Representative);
+            SourceCandidate Representative,
+            bool EditionMismatch);
 
         private bool IsClientSearchReady()
         {

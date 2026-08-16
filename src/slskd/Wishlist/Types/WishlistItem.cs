@@ -110,6 +110,26 @@ namespace slskd.Wishlist
         public int? LidarrTrackId { get; set; }
 
         /// <summary>
+        ///     Gets or sets the track count Lidarr expects for the monitored release, if known.
+        ///     Only meaningful for album-level items; used to reject Soulseek candidates whose
+        ///     track count doesn't match the wanted edition (e.g. a "Sessions" release).
+        /// </summary>
+        public int? LidarrTrackCount { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the duration, in seconds, Lidarr expects for the monitored release
+        ///     (album-level items) or the specific track (track-level items), if known.
+        /// </summary>
+        public int? LidarrDurationSeconds { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the disambiguation/title text of the Lidarr release this item targets,
+        ///     if known. Used so a candidate whose folder name matches Lidarr's own release title
+        ///     (e.g. Lidarr genuinely wants the "Live" edition) is not penalized as a mismatch.
+        /// </summary>
+        public string? LidarrReleaseDisambiguation { get; set; }
+
+        /// <summary>
         ///     Gets or sets the GUID of the most recent search.
         /// </summary>
         public Guid? LastSearchId { get; set; }

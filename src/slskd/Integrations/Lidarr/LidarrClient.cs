@@ -23,6 +23,8 @@ public interface ILidarrClient
 
     Task<IReadOnlyList<LidarrTrackResource>> GetAlbumTracksAsync(int albumId, CancellationToken cancellationToken = default);
 
+    Task<LidarrAlbumDetail?> GetAlbumAsync(int albumId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default);
 
     Task<(IReadOnlyList<LidarrWantedAlbum> Records, int TotalRecords)> GetWantedMissingPageAsync(int page, int pageSize, CancellationToken cancellationToken = default);
@@ -82,6 +84,14 @@ public sealed class LidarrClient : ILidarrClient
         using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         return await ReadJsonAsync<List<LidarrTrackResource>>(response, cancellationToken).ConfigureAwait(false)
             ?? [];
+    }
+
+    public async Task<LidarrAlbumDetail?> GetAlbumAsync(int albumId, CancellationToken cancellationToken = default)
+    {
+        var relative = $"api/v1/album/{albumId.ToString(CultureInfo.InvariantCulture)}";
+        using var request = CreateRequest(HttpMethod.Get, relative);
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return await ReadJsonAsync<LidarrAlbumDetail>(response, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)
@@ -375,4 +385,40 @@ public sealed record LidarrTrackResource
     public int TrackFileId { get; init; }
 
     public bool HasFile { get; init; }
+
+    /// <summary>
+    ///     Track duration in milliseconds, as reported by Lidarr.
+    /// </summary>
+    public int Duration { get; init; }
+}
+
+/// <summary>
+///     The full album resource returned by <c>GET api/v1/album/{id}</c>, including all known
+///     releases (editions) so the monitored one can be used to validate Soulseek candidates.
+/// </summary>
+public sealed record LidarrAlbumDetail
+{
+    public int Id { get; init; }
+
+    public string Title { get; init; } = string.Empty;
+
+    public List<LidarrAlbumRelease>? Releases { get; init; }
+}
+
+public sealed record LidarrAlbumRelease
+{
+    public int Id { get; init; }
+
+    public string Title { get; init; } = string.Empty;
+
+    public string Disambiguation { get; init; } = string.Empty;
+
+    public int TrackCount { get; init; }
+
+    /// <summary>
+    ///     Release duration in milliseconds, as reported by Lidarr.
+    /// </summary>
+    public int Duration { get; init; }
+
+    public bool Monitored { get; init; }
 }

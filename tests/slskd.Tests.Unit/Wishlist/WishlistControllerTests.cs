@@ -375,6 +375,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             Mock.Of<ISearchService>(),
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -520,6 +521,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -609,6 +611,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -667,6 +670,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -728,6 +732,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -795,6 +800,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -859,6 +865,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -915,6 +922,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -988,6 +996,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -1088,6 +1097,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
@@ -1172,6 +1182,7 @@ public class WishlistControllerTests : IDisposable
 
         var service = new WishlistService(
             _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
             searchService.Object,
             Mock.Of<ISoulseekClient>(),
             new TestOptionsMonitor<slskd.Options>(new slskd.Options()),

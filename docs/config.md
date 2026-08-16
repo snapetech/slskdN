@@ -1363,6 +1363,7 @@ sync and auto-download/import after the paths are confirmed.
 | `--lidarr-auto-download`             | `LIDARR_AUTO_DOWNLOAD`                | Auto-download Wishlist items created from Lidarr wanted albums     |
 | `--lidarr-wishlist-filter`           | `LIDARR_WISHLIST_FILTER`              | Fallback filter when no recognizable Lidarr quality mapping exists  |
 | `--lidarr-wishlist-max-results`      | `LIDARR_WISHLIST_MAX_RESULTS`         | Maximum search results retained by Lidarr-created Wishlist items   |
+| `--lidarr-edition-match-mode`        | `LIDARR_EDITION_MATCH_MODE`           | Handling for candidates that don't match Lidarr's monitored release's track count/duration/edition: `exclude`, `prefer`, or `off` |
 | `--lidarr-auto-import-completed`     | `LIDARR_AUTO_IMPORT_COMPLETED`        | Submit completed slskdN download directories to Lidarr for import  |
 | `--lidarr-import-path-from`          | `LIDARR_IMPORT_PATH_FROM`             | Local slskdN completed path prefix to rewrite before calling Lidarr |
 | `--lidarr-import-path-to`            | `LIDARR_IMPORT_PATH_TO`               | Lidarr-visible completed path prefix                               |
@@ -1383,6 +1384,7 @@ integrations:
     auto_download: false
     wishlist_filter: "" # fallback; a recognizable Lidarr quality profile takes precedence per entry
     wishlist_max_results: 100
+    edition_match_mode: "exclude" # exclude, prefer, or off
     auto_import_completed: false
     import_path_from: ""
     import_path_to: ""

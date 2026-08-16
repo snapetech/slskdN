@@ -38,7 +38,7 @@ public class WishlistServiceTests
             await context.SaveChangesAsync();
         }
 
-        var service = new WishlistService(factory, new CompletingSearchService(), null!, null!, null!, null!);
+        var service = new WishlistService(factory, null!, new CompletingSearchService(), null!, null!, null!, null!);
         var first = await service.IgnoreResultAsync(wishlistItemId, "peer", @"Music\Artist\Album\");
         var duplicate = await service.IgnoreResultAsync(wishlistItemId, "peer", "Music/Artist/Album");
         var rules = await service.ListIgnoredResultsAsync(wishlistItemId);
@@ -79,7 +79,7 @@ public class WishlistServiceTests
         }
 
         var searchService = new CompletingSearchService();
-        var service = new WishlistService(factory, searchService, null!, null!, null!, null!);
+        var service = new WishlistService(factory, null!, searchService, null!, null!, null!, null!);
         var runSearch = service.RunSearchAsync(Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
         await searchService.Started.Task;

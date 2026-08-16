@@ -125,6 +125,8 @@ DHT, and the mesh overlay transfer path, see [DHT and Mesh Architecture](DHT_MES
 - First-class Lidarr workflow without installing a Lidarr plugin
 - Uses Lidarr's supported HTTP API for status, Wanted/Missing reads, manual-import decisions, and import commands
 - Syncs Lidarr Wanted/Missing albums into slskdN Wishlist searches
+- Edition matching: validates each candidate's track count, duration, and edition against the release Lidarr actually monitors before auto-download; `integrations.lidarr.edition_match_mode` controls whether mismatches are excluded (default), down-ranked, or ignored
+- Duplicate-download prevention: skips candidates matching a recently completed download elsewhere by normalized title/duration
 - Optional auto-download for Lidarr-created Wishlist items through the normal slskdN queue
 - Safe post-download import: slskdN only asks Lidarr to import candidates with clean artist, album, release, track, and quality matches
 - Leaves rejected or ambiguous candidates for Lidarr's Manual Import screen

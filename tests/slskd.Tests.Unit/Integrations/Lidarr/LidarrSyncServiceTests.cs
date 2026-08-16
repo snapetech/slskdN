@@ -41,6 +41,111 @@ public class LidarrSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncWantedToWishlist_PopulatesEditionFactsFromMonitoredRelease()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 42,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                    Statistics = new LidarrAlbumStatistics { TrackCount = 9 },
+                },
+            ],
+            AlbumDetails = new Dictionary<int, LidarrAlbumDetail>
+            {
+                [42] = new LidarrAlbumDetail
+                {
+                    Id = 42,
+                    Releases =
+                    [
+                        new LidarrAlbumRelease { Id = 1, Monitored = false, TrackCount = 20, Duration = 9_999_000 },
+                        new LidarrAlbumRelease
+                        {
+                            Id = 2,
+                            Monitored = true,
+                            TrackCount = 12,
+                            Duration = 2_400_000,
+                            Disambiguation = "Deluxe Edition",
+                        },
+                    ],
+                },
+            },
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac");
+
+        await service.SyncWantedToWishlistAsync();
+
+        var created = Assert.Single(wishlist.Created);
+        Assert.Equal(12, created.LidarrTrackCount);
+        Assert.Equal(2_400, created.LidarrDurationSeconds);
+        Assert.Equal("Deluxe Edition", created.LidarrReleaseDisambiguation);
+    }
+
+    [Fact]
+    public async Task SyncWantedToWishlist_FallsBackToStatisticsWhenNoReleaseMonitored()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 42,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                    Statistics = new LidarrAlbumStatistics { TrackCount = 9 },
+                },
+            ],
+            AlbumDetails = new Dictionary<int, LidarrAlbumDetail>
+            {
+                [42] = new LidarrAlbumDetail { Id = 42, Releases = [] },
+            },
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac");
+
+        await service.SyncWantedToWishlistAsync();
+
+        var created = Assert.Single(wishlist.Created);
+        Assert.Equal(9, created.LidarrTrackCount);
+        Assert.Null(created.LidarrDurationSeconds);
+        Assert.Null(created.LidarrReleaseDisambiguation);
+    }
+
+    [Fact]
+    public async Task SyncWantedToWishlist_ContinuesWhenAlbumDetailFetchThrows()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Id = 42,
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                    Statistics = new LidarrAlbumStatistics { TrackCount = 9 },
+                },
+            ],
+            AlbumDetailException = new HttpRequestException("Lidarr unavailable"),
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac");
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        Assert.Equal(1, result.CreatedCount);
+        var created = Assert.Single(wishlist.Created);
+        Assert.Equal(9, created.LidarrTrackCount);
+        Assert.Null(created.LidarrDurationSeconds);
+    }
+
+    [Fact]
     public async Task SyncWantedToWishlist_SkipsDuplicateWhenFilterMatches()
     {
         var lidarr = new FakeLidarrClient
@@ -690,11 +795,18 @@ public class LidarrSyncServiceTests
         public IReadOnlyDictionary<int, IReadOnlyList<LidarrTrackResource>> AlbumTracks { get; init; } =
             new Dictionary<int, IReadOnlyList<LidarrTrackResource>>();
 
+        public IReadOnlyDictionary<int, LidarrAlbumDetail> AlbumDetails { get; init; } =
+            new Dictionary<int, LidarrAlbumDetail>();
+
+        public Exception? AlbumDetailException { get; init; }
+
         public int PageCalls { get; private set; }
 
         public int QualityProfileCalls { get; private set; }
 
         public int AlbumTrackCalls { get; private set; }
+
+        public int AlbumDetailCalls { get; private set; }
 
         public Task<LidarrSystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(new LidarrSystemStatus());
@@ -711,6 +823,17 @@ public class LidarrSyncServiceTests
             return Task.FromResult(AlbumTracks.TryGetValue(albumId, out var tracks)
                 ? tracks
                 : (IReadOnlyList<LidarrTrackResource>)[]);
+        }
+
+        public Task<LidarrAlbumDetail?> GetAlbumAsync(int albumId, CancellationToken cancellationToken = default)
+        {
+            AlbumDetailCalls++;
+            if (AlbumDetailException != null)
+            {
+                throw AlbumDetailException;
+            }
+
+            return Task.FromResult(AlbumDetails.TryGetValue(albumId, out var detail) ? detail : null);
         }
 
         public Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)

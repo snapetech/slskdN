@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Wishlist auto-download now validates Lidarr-synced candidates against the
+  monitored release's track count, duration, and edition before downloading,
+  configurable via `integrations.lidarr.edition_match_mode` (`exclude` by
+  default, or `prefer`/`off`), and skips candidates matching a recently
+  completed download elsewhere to avoid duplicate copies in different
+  folders.
+
 ### Fixed
 
 - Wishlist auto-download now rechecks the persisted enablement and download

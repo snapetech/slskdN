@@ -345,6 +345,9 @@ public class LidarrImportServiceTests
         public Task<IReadOnlyList<LidarrTrackResource>> GetAlbumTracksAsync(int albumId, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<LidarrTrackResource>>([]);
 
+        public Task<LidarrAlbumDetail?> GetAlbumAsync(int albumId, CancellationToken cancellationToken = default)
+            => Task.FromResult<LidarrAlbumDetail?>(null);
+
         public Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<LidarrWantedAlbum>>([]);
 

@@ -69,6 +69,7 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
         var qualityProfiles = new Dictionary<int, LidarrQualityProfile>();
         var qualityProfilesLoaded = false;
         var seenTrackIds = new HashSet<int>();
+        var monitoredReleases = new Dictionary<int, LidarrAlbumRelease?>();
 
         const int lidarrPageSize = 250;
         var page = 1;
@@ -132,7 +133,24 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                     }
                 }
 
-                var targets = new List<(string SearchText, int? TrackId)>();
+                // Fetch the monitored release (edition) so downstream Wishlist selection can
+                // validate candidate track count/duration/edition against what Lidarr actually
+                // wants, instead of accepting any same-named result (see docs/lidarr-integration.md).
+                var monitoredRelease = album.Id > 0
+                    ? await GetMonitoredReleaseAsync(album.Id, monitoredReleases, cancellationToken).ConfigureAwait(false)
+                    : null;
+                var albumTrackCount = monitoredRelease?.TrackCount > 0
+                    ? monitoredRelease.TrackCount
+                    : GetTotalTrackCount(album);
+                int? expectedTrackCount = albumTrackCount > 0 ? albumTrackCount : null;
+                int? albumDurationSeconds = monitoredRelease?.Duration > 0
+                    ? monitoredRelease.Duration / 1000
+                    : null;
+                var releaseDisambiguation = !string.IsNullOrWhiteSpace(monitoredRelease?.Disambiguation)
+                    ? monitoredRelease!.Disambiguation
+                    : monitoredRelease?.Title;
+
+                var targets = new List<(string SearchText, int? TrackId, int? DurationSeconds)>();
                 var expandedPartialAlbum = IsPartiallyMissing(album) && album.Id > 0;
                 if (expandedPartialAlbum)
                 {
@@ -153,6 +171,9 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                                 album.Id,
                                 trackId: null,
                                 isTrack: false,
+                                trackCount: expectedTrackCount,
+                                durationSeconds: albumDurationSeconds,
+                                releaseDisambiguation: releaseDisambiguation,
                                 enabled: false).ConfigureAwait(false);
                         }
 
@@ -181,7 +202,8 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                             var trackSearchText = BuildTrackSearchText(album, track);
                             if (!string.IsNullOrWhiteSpace(trackSearchText))
                             {
-                                targets.Add((trackSearchText, track.Id));
+                                var trackDurationSeconds = track.Duration > 0 ? track.Duration / 1000 : (int?)null;
+                                targets.Add((trackSearchText, track.Id, trackDurationSeconds));
                             }
                         }
                     }
@@ -197,6 +219,9 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                                 album.Id,
                                 trackId: null,
                                 isTrack: false,
+                                trackCount: expectedTrackCount,
+                                durationSeconds: albumDurationSeconds,
+                                releaseDisambiguation: releaseDisambiguation,
                                 enabled: false).ConfigureAwait(false);
                         }
 
@@ -223,7 +248,7 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                         }
                     }
 
-                    targets.Add((searchText, null));
+                    targets.Add((searchText, null, albumDurationSeconds));
                 }
                 else if (targets.Count == 0)
                 {
@@ -251,7 +276,10 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                             options,
                             album.Id,
                             target.TrackId,
-                            isTrack: true).ConfigureAwait(false);
+                            isTrack: true,
+                            trackCount: null,
+                            durationSeconds: target.DurationSeconds,
+                            releaseDisambiguation: releaseDisambiguation).ConfigureAwait(false);
                         continue;
                     }
 
@@ -264,7 +292,10 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                             options,
                             album.Id,
                             trackId: null,
-                            isTrack: false).ConfigureAwait(false);
+                            isTrack: false,
+                            trackCount: expectedTrackCount,
+                            durationSeconds: target.DurationSeconds,
+                            releaseDisambiguation: releaseDisambiguation).ConfigureAwait(false);
                         continue;
                     }
 
@@ -285,6 +316,9 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                         MaxDownloads = target.TrackId.HasValue ? 1 : null,
                         LidarrAlbumId = album.Id > 0 ? album.Id : null,
                         LidarrTrackId = target.TrackId,
+                        LidarrTrackCount = target.TrackId.HasValue ? null : expectedTrackCount,
+                        LidarrDurationSeconds = target.DurationSeconds,
+                        LidarrReleaseDisambiguation = releaseDisambiguation,
                     });
 
                     existingSearches.Add(wishlistKey);
@@ -364,6 +398,9 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
         int albumId,
         int? trackId,
         bool isTrack,
+        int? trackCount,
+        int? durationSeconds,
+        string? releaseDisambiguation,
         bool? enabled = null)
     {
         int? maxDownloads = isTrack ? 1 : null;
@@ -375,7 +412,10 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             item.MaxDownloads == maxDownloads &&
             item.Enabled == desiredEnabled &&
             item.LidarrAlbumId == albumId &&
-            item.LidarrTrackId == trackId)
+            item.LidarrTrackId == trackId &&
+            item.LidarrTrackCount == trackCount &&
+            item.LidarrDurationSeconds == durationSeconds &&
+            item.LidarrReleaseDisambiguation == releaseDisambiguation)
         {
             return;
         }
@@ -388,7 +428,44 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
         item.Enabled = desiredEnabled;
         item.LidarrAlbumId = albumId;
         item.LidarrTrackId = trackId;
+        item.LidarrTrackCount = trackCount;
+        item.LidarrDurationSeconds = durationSeconds;
+        item.LidarrReleaseDisambiguation = releaseDisambiguation;
         await WishlistService.UpdateAsync(item).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Fetches and caches the release Lidarr currently monitors for an album, used to validate
+    ///     Soulseek candidates by track count/duration/edition before they can be auto-downloaded.
+    ///     Failures are non-fatal: the caller falls back to statistics-only matching.
+    /// </summary>
+    private async Task<LidarrAlbumRelease?> GetMonitoredReleaseAsync(
+        int albumId,
+        Dictionary<int, LidarrAlbumRelease?> cache,
+        CancellationToken cancellationToken)
+    {
+        if (cache.TryGetValue(albumId, out var cached))
+        {
+            return cached;
+        }
+
+        LidarrAlbumRelease? release = null;
+        try
+        {
+            var detail = await LidarrClient.GetAlbumAsync(albumId, cancellationToken).ConfigureAwait(false);
+            release = detail?.Releases?.FirstOrDefault(r => r.Monitored) ?? detail?.Releases?.FirstOrDefault();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "Could not fetch Lidarr release detail for album {AlbumId}: {Message}", albumId, ex.Message);
+        }
+
+        cache[albumId] = release;
+        return release;
     }
 
     internal static string BuildQualityFilter(LidarrQualityProfile profile)

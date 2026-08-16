@@ -4417,6 +4417,15 @@ namespace slskd
                 [Description("exclude a rejected Wishlist peer and directory from future automatic downloads")]
                 public bool BlacklistRejectedDownloads { get; init; } = false;
 
+                /// <summary>
+                ///     Gets how Wishlist auto-download selection treats candidates whose track
+                ///     count/duration/edition don't match Lidarr's monitored release.
+                /// </summary>
+                [Argument(default, "lidarr-edition-match-mode")]
+                [EnvironmentVariable("LIDARR_EDITION_MATCH_MODE")]
+                [Description("how to treat candidates that don't match Lidarr's monitored release: exclude, prefer, or off")]
+                public string EditionMatchMode { get; init; } = "exclude";
+
                 public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
                 {
                     if (!Enabled)
@@ -4443,6 +4452,13 @@ namespace slskd
                     if (ImportMode is not ("move" or "copy" or "Move" or "Copy"))
                     {
                         yield return new ValidationResult("Lidarr import_mode must be 'move' or 'copy'.", new[] { nameof(ImportMode) });
+                    }
+
+                    if (!string.Equals(EditionMatchMode, "exclude", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(EditionMatchMode, "prefer", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(EditionMatchMode, "off", StringComparison.OrdinalIgnoreCase))
+                    {
+                        yield return new ValidationResult("Lidarr edition_match_mode must be 'exclude', 'prefer', or 'off'.", new[] { nameof(EditionMatchMode) });
                     }
                 }
             }

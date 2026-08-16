@@ -56,6 +56,7 @@ integrations:
     auto_download: false
     wishlist_filter: ""
     wishlist_max_results: 100
+    edition_match_mode: "exclude"
     auto_import_completed: true
     import_mode: "move"
     import_replace_existing_files: false
@@ -123,6 +124,62 @@ created Wishlist rows are left alone.
 The sync remains bounded by `max_items_per_sync`. It does not scan peers or
 probe files beyond the Lidarr wanted list and the per-album track metadata
 needed to identify missing tracks.
+
+## Edition Matching
+
+Lidarr rejects an auto-import when the downloaded files don't match the
+release it actually wants — most commonly a track-count/track-listing
+mismatch. This happens when a Soulseek result with a similar artist/album
+name turns out to be a different edition, such as a "Sessions", live,
+deluxe, or remix release instead of the studio album Lidarr is tracking.
+
+For each Lidarr-synced Wishlist item, slskdN also fetches the album's
+currently-monitored release (`GET api/v1/album/{id}`) and stores its track
+count, duration, and disambiguation/title alongside the item. Wishlist
+selection then checks each candidate peer directory against those facts
+before it can be auto-downloaded:
+
+- **Track count** (album-level items): the directory's matched track count
+  must be within one of Lidarr's expected count.
+- **Duration**: summed (album-level) or single-file (track-level) length
+  must be within 5%, or 20 seconds, of what Lidarr expects — whichever
+  tolerance is larger.
+- **Edition markers**: a candidate directory named with terms like
+  "session(s)", "live", "acoustic", "remix", "karaoke", "instrumental",
+  "demo", "radio edit", or "bootleg" is flagged unless that same term
+  already appears in Lidarr's own release title/disambiguation or in the
+  Wishlist search text — so a release Lidarr genuinely wants (e.g. an actual
+  live album) is never penalized.
+
+The `integrations.lidarr.edition_match_mode` setting controls what happens
+to a flagged candidate:
+
+- `exclude` (default): flagged candidates are never auto-downloaded. If
+  every candidate in a search is flagged, slskdN skips that cycle and tries
+  again on the next sync rather than guessing.
+- `prefer`: an unflagged candidate is chosen over a flagged one, but a
+  flagged candidate can still be picked if nothing better is available.
+- `off`: restores the previous behavior (coverage/quality ranking only, no
+  edition awareness).
+
+This only applies to Lidarr-created Wishlist items — manually created or
+CSV-imported searches have no expected release to compare against and are
+unaffected. Because it depends on the monitored-release lookup, edition
+matching adds one Lidarr API call per album per sync cycle; this is a fixed
+per-album cost bounded by the size of Lidarr's wanted/missing list.
+
+## Duplicate-Download Prevention
+
+Independently of edition matching, Wishlist auto-download also checks
+recently completed downloads (any peer, any Wishlist item) before enqueuing
+a new file. A candidate whose normalized title matches something already
+downloaded — and whose duration, when known on both sides, is within a few
+seconds — is skipped rather than downloaded again into a different local
+folder. This is a backstop for cases like a rejected Lidarr import leaving a
+track "missing" so a later sync re-searches and finds it on a different
+peer; fixing the underlying import rejection (see Edition Matching above)
+is the more direct fix. It only guards automatic Wishlist downloads —
+manual downloads started from the Search tab are never silently skipped.
 
 ## Docker Volume Pattern
 

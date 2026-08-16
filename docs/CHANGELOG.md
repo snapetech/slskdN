@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added Lidarr edition matching: Wishlist auto-download now validates a
+  candidate's track count, duration, and edition against the release Lidarr
+  actually monitors before downloading, configurable via
+  `integrations.lidarr.edition_match_mode` (`exclude` by default, or
+  `prefer`/`off`), and skips candidates matching a recently completed
+  download elsewhere to avoid duplicate copies in different folders.
 - Fixed API-key-only browser sessions showing `Disconnected`. SignalR hub query
   tokens are now promoted from configured API keys to scoped short-lived JWTs,
   matching REST API-key authentication and restoring live application, search,
