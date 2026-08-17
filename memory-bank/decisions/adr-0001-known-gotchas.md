@@ -155,10 +155,12 @@ invalid version before the container could be published.
 - `Dockerfile`
 - `bin/build`
 
-**Prevention**: Use a four-part numeric temporary version such as
-`0.0.1.20260817` when invoking the container build, or use the repository's
-validated release-tag version conversion. Keep human-readable timestamps in
-the image tag or revision metadata, not in the assembly version field.
+**Prevention**: Use a four-part numeric temporary version whose components fit
+the assembly-version limits, such as `0.0.2026.817`, when invoking the
+container build, or use the repository's validated release-tag version
+conversion. Keep human-readable timestamps in the image tag or revision
+metadata, not in the assembly version field; a date value like `20260817` is
+too large for the final numeric component.
 
 ### 0z836. Empty Optional Environment Variables Must Be Ignored
 
