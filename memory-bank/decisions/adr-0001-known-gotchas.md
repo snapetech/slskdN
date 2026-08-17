@@ -423,6 +423,39 @@ values, but a form builder commonly represents an omitted value as an empty
 string. Saving a patch must preserve omission or delete an invalid blank key;
 it must not serialize the form's empty placeholder over the server default.
 
+### 0z860. Validate UI YAML Saves Against Runtime Compatibility Shapes
+
+**The Bug**: The options save endpoint validated the entire YAML document with
+direct `YamlDotNet` deserialization, while the runtime YAML provider accepts
+legacy compatibility shapes such as top-level `global` and `integration`, a
+sequence-valued `shares`, and nested `transfers.upload.limits`. A settings
+editor that changed an unrelated key could therefore return `Invalid YAML
+configuration` for a configuration that was already running successfully.
+
+**Files Affected**:
+- `src/slskd/Core/API/Controllers/OptionsController.cs`
+- `tests/slskd.Tests.Unit/Core/API/OptionsControllerTests.cs`
+
+**Wrong**:
+```csharp
+var options = yaml.FromYaml<Options>();
+```
+
+**Correct**:
+```csharp
+var options = NormalizeCompatibilityYaml(yaml).FromYaml<Options>();
+```
+
+The normalization must cover every compatibility shape accepted by the
+runtime provider before direct options validation runs, while preserving the
+canonical value when both old and new keys are present.
+
+**Why This Keeps Happening**: Whole-document UI saves exercise the validator
+even when the user edits one unrelated setting. Runtime configuration binding
+and direct YAML deserialization do not automatically share aliases or
+compatibility transforms, so a validator can reject a live configuration
+unless that boundary is explicitly kept in sync.
+
 ### 0z817. Bound Auto-Replace by Persisted Request Attempts
 
 **The Bug**: Auto-replace declared `AutoReplaceOptions.MaxRetries` but never
