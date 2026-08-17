@@ -61,6 +61,36 @@ literal separators and failed even though the mapper emitted the correct path.
 `@"C:\\Media\\Downloads"`; doubled backslashes are only needed in ordinary
 escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
+### 0z859. Translate Shared Obfuscation Port Sentinels Before Server Advertisement
+
+**The Bug**: When obfuscation was configured to share the regular listener,
+the runtime passed the internal `ListenPort: 0` sentinel to the Soulseek
+server, so peers received an unusable advertised obfuscated port.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/SoulseekClient.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs`
+
+**Wrong**:
+```csharp
+new SetListenPortCommand(
+    Options.ListenPort,
+    Options.PeerObfuscationOptions.Type,
+    Options.PeerObfuscationOptions.ListenPort);
+```
+
+**Correct**:
+```csharp
+var obfuscatedPort = Options.PeerObfuscationOptions.ListenPort == 0
+    ? Options.ListenPort
+    : Options.PeerObfuscationOptions.ListenPort;
+```
+
+**Why This Keeps Happening**: Configuration sentinels are valid inside the
+application but are not necessarily valid wire values. Resolve the shared
+listener sentinel to the concrete regular port at the protocol boundary, and
+keep a regression test that verifies the encoded server command.
+
 ---
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
