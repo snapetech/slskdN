@@ -27,6 +27,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed malformed inbound Soulseek initialization frames surfacing as fatal
   unobserved-task logs from the listener event boundary. Rejected peer frames
   are now explicitly observed and cleaned up without destabilizing the service.
+- Hardened rejected inbound connection cleanup so unsolicited sockets do not
+  fault an unobserved disconnect waiter.
 
 ## [2026081719-slskdn.309] — 2026-08-17
 

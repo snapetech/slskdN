@@ -317,7 +317,9 @@ namespace Soulseek.Network
 
             try
             {
-                connection.Disconnect(exception: exception);
+                // Incoming listener connections are unsolicited and have no caller awaiting
+                // WaitForDisconnect; preserve the reason without faulting that completion source.
+                connection.Disconnect(message: exception?.Message);
             }
             catch (Exception)
             {

@@ -65,7 +65,7 @@ index e1ad166..f721e52 100644
              }
  
 diff --git a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
-index 7038299..76097db 100644
+index 7038299..a7c5880 100644
 --- a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
 +++ b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
 @@ -22,6 +22,7 @@
@@ -194,7 +194,18 @@ index 7038299..76097db 100644
          private static void DisconnectAndDispose(IConnection connection, Exception exception)
          {
              if (connection == null)
-@@ -290,9 +351,7 @@ namespace Soulseek.Network
+@@ -256,7 +317,9 @@ namespace Soulseek.Network
+ 
+             try
+             {
+-                connection.Disconnect(exception: exception);
++                // Incoming listener connections are unsolicited and have no caller awaiting
++                // WaitForDisconnect; preserve the reason without faulting that completion source.
++                connection.Disconnect(message: exception?.Message);
+             }
+             catch (Exception)
+             {
+@@ -290,9 +353,7 @@ namespace Soulseek.Network
              }
          }
  
@@ -1055,7 +1066,7 @@ index 13523ec..00fdda3 100644
      }
  }
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
-index 20cf63a..c52c789 100644
+index 20cf63a..aa2aca0 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
 @@ -23,6 +23,8 @@ namespace Soulseek.Tests.Unit.Network
@@ -1085,6 +1096,24 @@ index 20cf63a..c52c789 100644
          [Trait("Category", "Diagnostic")]
          [Theory(DisplayName = "Creates diagnostic on connection"), AutoData]
          public void Creates_Diagnostic_On_Connection(IPEndPoint endpoint)
+@@ -159,7 +172,7 @@ namespace Soulseek.Tests.Unit.Network
+ 
+             var compare = StringComparison.InvariantCultureIgnoreCase;
+             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", compare) && s.Contains("mark failed", compare))), Times.Once);
+-            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<InvalidOperationException>()), Times.Once);
++            mocks.Connection.Verify(m => m.Disconnect(It.Is<string>(s => s.Contains("mark failed", StringComparison.InvariantCultureIgnoreCase)), null), Times.Once);
+             mocks.Connection.Verify(m => m.Dispose(), Times.Once);
+         }
+ 
+@@ -171,7 +184,7 @@ namespace Soulseek.Tests.Unit.Network
+ 
+             mocks.Connection.Setup(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
+                 .Throws(new InvalidOperationException("read failed"));
+-            mocks.Connection.Setup(m => m.Disconnect(It.IsAny<string>(), It.IsAny<Exception>()))
++            mocks.Connection.Setup(m => m.Disconnect(It.IsAny<string>(), null))
+                 .Throws(new InvalidOperationException("disconnect failed"));
+             mocks.Connection.Setup(m => m.Dispose())
+                 .Throws(new InvalidOperationException("dispose failed"));
 @@ -588,6 +601,106 @@ namespace Soulseek.Tests.Unit.Network
              mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid obfuscated initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
          }
@@ -1105,7 +1134,7 @@ index 20cf63a..c52c789 100644
 +            Assert.Null(exception);
 +            mocks.Connection.Verify(m => m.ReadAsync(invalidLength, It.IsAny<CancellationToken?>()), Times.Never);
 +            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
-+            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<Exception>()), Times.Once);
++            mocks.Connection.Verify(m => m.Disconnect(It.Is<string>(s => s.Contains("Invalid initialization message length", StringComparison.InvariantCultureIgnoreCase)), null), Times.Once);
 +        }
 +
 +        [Trait("Category", "SharedObfuscationSniffing")]
@@ -1186,7 +1215,7 @@ index 20cf63a..c52c789 100644
 +
 +            var compare = StringComparison.InvariantCultureIgnoreCase;
 +            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", compare) && s.Contains("Invalid obfuscated initialization message length", compare))), Times.Once);
-+            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<Exception>()), Times.Once);
++            mocks.Connection.Verify(m => m.Disconnect(It.Is<string>(s => s.Contains("Invalid obfuscated initialization message length", StringComparison.InvariantCultureIgnoreCase)), null), Times.Once);
 +        }
 +
          [Trait("Category", "PierceFirewall")]

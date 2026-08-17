@@ -172,7 +172,7 @@ namespace Soulseek.Tests.Unit.Network
 
             var compare = StringComparison.InvariantCultureIgnoreCase;
             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", compare) && s.Contains("mark failed", compare))), Times.Once);
-            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<InvalidOperationException>()), Times.Once);
+            mocks.Connection.Verify(m => m.Disconnect(It.Is<string>(s => s.Contains("mark failed", StringComparison.InvariantCultureIgnoreCase)), null), Times.Once);
             mocks.Connection.Verify(m => m.Dispose(), Times.Once);
         }
 
@@ -184,7 +184,7 @@ namespace Soulseek.Tests.Unit.Network
 
             mocks.Connection.Setup(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
                 .Throws(new InvalidOperationException("read failed"));
-            mocks.Connection.Setup(m => m.Disconnect(It.IsAny<string>(), It.IsAny<Exception>()))
+            mocks.Connection.Setup(m => m.Disconnect(It.IsAny<string>(), null))
                 .Throws(new InvalidOperationException("disconnect failed"));
             mocks.Connection.Setup(m => m.Dispose())
                 .Throws(new InvalidOperationException("dispose failed"));
@@ -617,7 +617,7 @@ namespace Soulseek.Tests.Unit.Network
             Assert.Null(exception);
             mocks.Connection.Verify(m => m.ReadAsync(invalidLength, It.IsAny<CancellationToken?>()), Times.Never);
             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
-            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<Exception>()), Times.Once);
+            mocks.Connection.Verify(m => m.Disconnect(It.Is<string>(s => s.Contains("Invalid initialization message length", StringComparison.InvariantCultureIgnoreCase)), null), Times.Once);
         }
 
         [Trait("Category", "SharedObfuscationSniffing")]
@@ -698,7 +698,7 @@ namespace Soulseek.Tests.Unit.Network
 
             var compare = StringComparison.InvariantCultureIgnoreCase;
             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", compare) && s.Contains("Invalid obfuscated initialization message length", compare))), Times.Once);
-            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<Exception>()), Times.Once);
+            mocks.Connection.Verify(m => m.Disconnect(It.Is<string>(s => s.Contains("Invalid obfuscated initialization message length", StringComparison.InvariantCultureIgnoreCase)), null), Times.Once);
         }
 
         [Trait("Category", "PierceFirewall")]
