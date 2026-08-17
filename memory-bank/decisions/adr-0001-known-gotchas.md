@@ -162,6 +162,31 @@ conversion. Keep human-readable timestamps in the image tag or revision
 metadata, not in the assembly version field; a date value like `20260817` is
 too large for the final numeric component.
 
+### 0z858. Fully Qualify Shared Interface Types In DI Registrations
+
+**The Bug**: An unqualified `IWaiter` in the `slskd.Bootstrap` namespace was
+resolved to the imported `Soulseek.IWaiter` instead of the application's
+`slskd.IWaiter`, so `RelayService` failed during startup because its required
+service was never registered.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/CoreApplicationServiceCollectionExtensions.cs`
+
+**Wrong**:
+```csharp
+services.AddSingleton<IWaiter, Waiter>();
+```
+
+**Correct**:
+```csharp
+services.AddSingleton<slskd.IWaiter, slskd.Waiter>();
+```
+
+**Why This Keeps Happening**: The application and the vendored Soulseek
+runtime both define an `IWaiter`. A `using Soulseek;` directive makes the
+unqualified name compile while silently selecting the wrong contract. DI
+registration sites must fully qualify names shared with imported runtimes.
+
 ### 0z836. Empty Optional Environment Variables Must Be Ignored
 
 **The Bug**: Docker/Unraid templates exposed optional `SLSKD_*` fields with
