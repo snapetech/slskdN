@@ -28334,3 +28334,34 @@ connection.Disconnect(message: exception?.Message);
 connections and fire-and-forget inbound sockets. Rejecting an unsolicited
 socket must retain the human-readable reason without faulting a completion
 source that no caller will observe.
+
+### 0z868. VPN Watchdog Must Verify Each Ingress Namespace
+
+**The Bug**: The NAT-PMP renewal timer reported a dead `pf0` WireGuard
+namespace, but the watchdog continued to report healthy because verification
+only checked the primary VPN interface. The mapping lease then expired and the
+public forwarded port became unreachable while the service still appeared
+healthy.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+- `src/slskdN.VpnAgent/tests/`
+
+**Wrong**:
+```text
+verify primary VPN handshake only
+renew-ingress fails for pf0
+watchdog reports healthy and never reconciles ingress
+```
+
+**Correct**:
+```text
+verify every recorded WireGuard ingress namespace
+let repeated per-slot failures reach the watchdog recovery path
+reconcile ingress before the provider lease expires
+```
+
+**Why This Keeps Happening**: The primary egress tunnel and the per-port
+ingress tunnels have independent WireGuard state and failure modes. A green
+primary interface cannot prove that a forwarded port's namespace is alive;
+health checks must inspect every active ingress slot separately.
