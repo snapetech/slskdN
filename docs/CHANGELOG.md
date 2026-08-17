@@ -32,6 +32,20 @@ For dev or build tags, use the same logical version string embedded in the tag.
   connection by its first bytes (TLS ClientHello for the mesh overlay vs.
   Soulseek peer framing, which the Soulseek listener further sniffs on its
   own for plain vs. obfuscated) before handing it off.
+- Consolidated the Soulseek TCP listen port and public DHT/mesh-overlay/QUIC
+  UDP traffic onto one port number by default (`50300`); `dht.dht_port` and
+  `overlay.listen_port`/`overlay.quic_listen_port` now default to match
+  `soulseek.listen_port` instead of `50305`.
+- Added QUIC data-plane traffic (`overlay_data`) to the shared public UDP
+  socket by default, routed by inspecting the TLS ClientHello ALPN in each
+  QUIC Initial packet.
+- Type-1 obfuscated Soulseek peer connections now share the regular Soulseek
+  listen port by default, distinguished per connection.
+- Fixed Lidarr manual imports failing after queuing with `Artist with ID 0
+  does not exist` by sending the flat identifiers required by Lidarr's
+  `ManualImport` command.
+- Added Lidarr import history to the dashboard, including status, file counts,
+  failure details, and retry actions for failed or skipped attempts.
 
 ## [2026081715-slskdn.307] — 2026-08-17
 
