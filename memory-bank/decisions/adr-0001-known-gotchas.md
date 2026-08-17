@@ -28307,3 +28307,30 @@ if (!TryValidateInitMessageLength(length))
 observer are not enough evidence for a live socket boundary. Invalid peer
 lengths must fail closed without throwing from the frame-dispatch path, and
 the held-open malformed-frame probe must be part of release validation.
+
+### 0z867. Do Not Fault the Disconnect Waiter for Unsolicited Rejections
+
+**The Bug**: Listener cleanup passed a malformed-peer exception into
+`Connection.Disconnect`. The connection stores that exception in its
+`DisconnectTaskCompletionSource`; unsolicited inbound connections have no
+waiter, so finalization later reported the exception as unobserved.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Network/ListenerHandler.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs`
+- `vendor/slskNet.Runtime.patches/0001-slskdN-local-runtime-delta.patch`
+
+**Wrong**:
+```csharp
+connection.Disconnect(exception: exception);
+```
+
+**Correct**:
+```csharp
+connection.Disconnect(message: exception?.Message);
+```
+
+**Why This Keeps Happening**: The disconnect API serves both awaited outbound
+connections and fire-and-forget inbound sockets. Rejecting an unsolicited
+socket must retain the human-readable reason without faulting a completion
+source that no caller will observe.
