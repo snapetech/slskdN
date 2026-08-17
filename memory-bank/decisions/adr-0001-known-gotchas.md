@@ -130,6 +130,20 @@ DateTime? completed = isTerminal ? DateTime.UtcNow : null;
 conditional expression whose alternatives are a non-nullable value and null.
 Declare the nullable target explicitly whenever a timestamp can be absent.
 
+### 0z856. Test HTTP Handlers Must Allow Bodyless Requests
+
+**The Bug**: A Lidarr client test handler assumed every request had a content
+body. Adding coverage for the bodyless `GET /command/{id}` request therefore
+caused the test to throw `NullReferenceException` before it could inspect the
+response.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrClientTests.cs`
+
+**Prevention**: Treat `HttpRequestMessage.Content` as optional in test
+handlers. Capture an empty body for GET/DELETE requests and only read content
+when it is present.
+
 ### 0z836. Empty Optional Environment Variables Must Be Ignored
 
 **The Bug**: Docker/Unraid templates exposed optional `SLSKD_*` fields with
