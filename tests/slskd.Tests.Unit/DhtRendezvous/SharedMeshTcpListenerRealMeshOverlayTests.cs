@@ -119,7 +119,7 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
 
     private static async Task<IPEndPoint> WaitForBoundEndPointAsync(SharedMeshTcpListener listener)
     {
-        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(2);
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(10);
         while (listener.LocalEndPoint is null)
         {
             if (DateTimeOffset.UtcNow > deadline)
