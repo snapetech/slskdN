@@ -1,21 +1,21 @@
-## Update 2026-08-17 19:00:25Z
+## Update 2026-08-17 19:26:00Z
 
-- Current task: fix and validate public VPN ingress before release; release
-  tagging remains paused.
-- Root causes fixed: the host-side veth DNAT path now has a managed native
-  nftables input-chain jump, and the renewal timer refreshes existing NAT-PMP
-  leases without restarting the ingress namespace/veth.
-- Live proof: an independent VPN egress completed a Soulseek direct `UserInfo`
-  exchange through the public forwarded endpoint. The ingress veth remained
-  present across renewal cycles and after a full cleanup/rebuild. A second VPN
-  egress could establish a raw TCP connection but sent no payload to the
-  ingress path, consistent with its provider-side hairpin/ACL limitation.
-- Documentation and release-note coverage has been added for the one shared
-  TCP forward, optional shared UDP forward, public/local port separation,
-  native nftables handling, and non-disruptive renewal.
-- Next steps: run repository tests/lint/release-note and identity checks, then
-  commit and push all current tracked and untracked work. Do not create a
-  release tag until release authorization is given again.
+- Current task: final validation and release of the public VPN ingress fix;
+  release tagging is authorized after the gates pass.
+- Built and deployed the exact `107c2bb6e` tree to the validation service. The
+  container reports the matching revision, remains healthy, keeps the existing
+  local Soulseek TCP/UDP listeners, and logs VPN readiness, public-port
+  advertisement, Soulseek login, and DHT readiness.
+- Headless HTTP/Chromium inspection rendered the current `slskdN` login UI and
+  current hashed assets. Four independent VPN profiles completed direct public
+  Soulseek `UserInfo` exchanges. Manual NAT-PMP renewal preserved the mapping,
+  ingress veth, nftables chain, and application listeners; one immediate
+  post-renew probe timed out once and passed on retry.
+- Release documentation covers the one shared TCP forward, optional shared
+  UDP forward, public/local port separation, native nftables handling, and
+  non-disruptive renewal.
+- Next steps: run the final release gates, commit and push all work, then cut
+  `build-main-2026081719-slskdn.309`.
 
 ## Update 2026-08-17 17:41:34Z
 

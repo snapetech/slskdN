@@ -1,4 +1,4 @@
-## Update 2026-08-17 19:00:25Z
+## Update 2026-08-17 19:26:00Z
 
 - Fixed public WireGuard ingress on native nftables hosts by managing a narrow
   input-chain jump for DNATed host-veth traffic; the existing iptables forward
@@ -7,15 +7,15 @@
   `renew-ingress` command. NAT-PMP mappings now renew in place, preserving the
   live namespace/veth/DNAT path; lost mappings can be reclaimed and exposed via
   the compatibility API.
-- Live validation completed through an independent VPN egress: TCP reached the
-  public forward and a Soulseek direct `UserInfo` exchange returned the target
-  description. Cleanup/rebuild restored the nftables chain and ingress path,
-  and subsequent external validation passed. A second VPN path's raw-connect
-  success without ingress packets remains classified as provider hairpin/ACL
-  behavior, not an application firewall failure.
+- Built and deployed the exact current tree, verified the matching container
+  revision and healthy application, rendered the Web UI headlessly, and passed
+  direct public Soulseek `UserInfo` probes through four independent VPN
+  profiles. Manual renewal preserved the mapping, veth, nftables chain, and
+  application listeners; one immediate post-renew probe timed out once and
+  passed on retry.
 - Added user/operator documentation and a release-note fragment covering the
-  reduced port budget and public/local port separation. Release tagging remains
-  paused; commit and push are the remaining requested repository actions.
+  reduced port budget and public/local port separation. Release authorization
+  is active; final gates, commit/push, and the `.309` tag remain.
 
 ## Update 2026-08-17 17:41:34Z
 
