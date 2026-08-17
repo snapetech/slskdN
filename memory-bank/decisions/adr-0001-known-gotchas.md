@@ -65,6 +65,34 @@ escaped strings such as `"C:\\\\Media\\\\Downloads"`.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z853. Project Lidarr GET Resources Into Manual-Import Command Files
+
+**The Bug**: The Lidarr integration posted `ManualImportResource` objects from
+the candidate GET response directly as `ManualImport` command files. Lidarr's
+command model expects flat `artistId`, `albumId`, `albumReleaseId`, and
+`trackIds` fields, so the missing `artistId` bound as zero and the queued
+command failed with `Artist with ID 0 does not exist`.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrClient.cs`
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrClientTests.cs`
+
+**Wrong**:
+```csharp
+Files = files,
+```
+
+**Correct**:
+```csharp
+Files = files.Select(ToManualImportFile).ToList(),
+```
+
+**Why This Keeps Happening**: Lidarr's GET manual-import resource is a
+display-oriented object with nested artist, album, and track resources, while
+the asynchronous command endpoint consumes a separate flat file model. Never
+reuse the GET resource as the command payload; project it explicitly and test
+the serialized JSON shape.
+
 ### 0z836. Empty Optional Environment Variables Must Be Ignored
 
 **The Bug**: Docker/Unraid templates exposed optional `SLSKD_*` fields with
