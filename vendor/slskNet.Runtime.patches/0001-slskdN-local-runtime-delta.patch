@@ -65,7 +65,7 @@ index e1ad166..f721e52 100644
              }
  
 diff --git a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
-index 7038299..743adb7 100644
+index 7038299..76097db 100644
 --- a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
 +++ b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
 @@ -22,6 +22,7 @@
@@ -114,7 +114,7 @@ index 7038299..743adb7 100644
 +                    var firstFour = await connection.ReadAsync(4).ConfigureAwait(false);
 +                    var candidateLength = BitConverter.ToInt32(firstFour, 0);
 +
-+                    if (TryValidateInitMessageLength(candidateLength, "initialization message", out _))
++                    if (MessageFrameValidator.IsValidInitMessageLength(candidateLength))
 +                    {
 +                        obfuscated = false;
 +
@@ -130,9 +130,9 @@ index 7038299..743adb7 100644
 +                        var firstBlock = firstFour.Concat(remainingHeaderBytes).ToArray();
 +                        var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
 +                        var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
-+                        if (!TryValidateInitMessageLength(length, "obfuscated initialization message", out var obfuscatedException))
++                        if (!MessageFrameValidator.IsValidInitMessageLength(length))
 +                        {
-+                            RejectConnection(connection, obfuscatedException);
++                            RejectConnection(connection, CreateInvalidInitMessageException(length, "obfuscated initialization message"));
 +                            return;
 +                        }
 +
@@ -154,9 +154,9 @@ index 7038299..743adb7 100644
                      var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
                      var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
 -                    ValidateObfuscatedMessageLength(length);
-+                    if (!TryValidateInitMessageLength(length, "obfuscated initialization message", out var obfuscatedException))
++                    if (!MessageFrameValidator.IsValidInitMessageLength(length))
 +                    {
-+                        RejectConnection(connection, obfuscatedException);
++                        RejectConnection(connection, CreateInvalidInitMessageException(length, "obfuscated initialization message"));
 +                        return;
 +                    }
  
@@ -167,9 +167,9 @@ index 7038299..743adb7 100644
                      var lengthBytes = await connection.ReadAsync(4).ConfigureAwait(false);
                      var length = BitConverter.ToInt32(lengthBytes, 0);
 -                    MessageFrameValidator.ValidateInitMessageLength(length);
-+                    if (!TryValidateInitMessageLength(length, "initialization message", out var exception))
++                    if (!MessageFrameValidator.IsValidInitMessageLength(length))
 +                    {
-+                        RejectConnection(connection, exception);
++                        RejectConnection(connection, CreateInvalidInitMessageException(length, "initialization message"));
 +                        return;
 +                    }
  
@@ -194,38 +194,46 @@ index 7038299..743adb7 100644
          private static void DisconnectAndDispose(IConnection connection, Exception exception)
          {
              if (connection == null)
-@@ -290,9 +351,29 @@ namespace Soulseek.Network
+@@ -290,9 +351,7 @@ namespace Soulseek.Network
              }
          }
  
 -        private static void ValidateObfuscatedMessageLength(int length)
-+        /// <summary>
-+        ///     Determines whether <paramref name="length"/> is a plausible plain (non-obfuscated) init frame length, i.e.
-+        ///     whether it would pass <see cref="MessageFrameValidator.ValidateInitMessageLength(int, string)"/>. Used only when
-+        ///     sniffing a shared plain/obfuscated listener port, where the first four bytes read from the socket could be
-+        ///     either a plain length prefix or the leading bytes of a random obfuscation key.
-+        /// </summary>
-+        /// <param name="length">The candidate length, interpreted from the first four bytes read from the socket.</param>
-+        /// <param name="frameName">The diagnostic name used when validating the frame.</param>
-+        /// <param name="exception">The validation exception when the length is invalid; otherwise <see langword="null"/>.</param>
-+        /// <returns>true if the length is within the bounds enforced for plain init frames; otherwise, false.</returns>
-+        private static bool TryValidateInitMessageLength(int length, string frameName, out MessageReadException exception)
-         {
+-        {
 -            MessageFrameValidator.ValidateInitMessageLength(length, "obfuscated initialization message");
-+            try
-+            {
-+                MessageFrameValidator.ValidateInitMessageLength(length, frameName);
-+                exception = null;
-+                return true;
-+            }
-+            catch (MessageReadException ex)
-+            {
-+                exception = ex;
-+                return false;
-+            }
-         }
+-        }
++        private static MessageReadException CreateInvalidInitMessageException(int length, string frameName)
++            => new MessageReadException($"Invalid {frameName} length: {length}");
      }
  }
+diff --git a/vendor/slskNet.Runtime/src/Network/MessageFrameValidator.cs b/vendor/slskNet.Runtime/src/Network/MessageFrameValidator.cs
+index 5b6f66a..17796b1 100644
+--- a/vendor/slskNet.Runtime/src/Network/MessageFrameValidator.cs
++++ b/vendor/slskNet.Runtime/src/Network/MessageFrameValidator.cs
+@@ -45,6 +45,14 @@ namespace Soulseek.Network
+             }
+         }
+ 
++        /// <summary>
++        ///     Determines whether an initialization frame length is within the protocol bounds.
++        /// </summary>
++        /// <param name="length">The declared initialization body length, including the message code.</param>
++        /// <returns>true when the length is valid; otherwise, false.</returns>
++        public static bool IsValidInitMessageLength(int length)
++            => length >= 4 && length <= RotatedObfuscation.MaxInitMessageLength;
++
+         /// <summary>
+         ///     Validates an initialization frame length.
+         /// </summary>
+@@ -52,7 +60,7 @@ namespace Soulseek.Network
+         /// <param name="frameName">The diagnostic frame name.</param>
+         public static void ValidateInitMessageLength(int length, string frameName = "initialization message")
+         {
+-            if (length < 4 || length > RotatedObfuscation.MaxInitMessageLength)
++            if (!IsValidInitMessageLength(length))
+             {
+                 throw new MessageReadException($"Invalid {frameName} length: {length}");
+             }
 diff --git a/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs b/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs
 index 2cd986a..b3e23ca 100644
 --- a/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs

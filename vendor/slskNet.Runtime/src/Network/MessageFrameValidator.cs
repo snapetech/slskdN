@@ -46,13 +46,21 @@ namespace Soulseek.Network
         }
 
         /// <summary>
+        ///     Determines whether an initialization frame length is within the protocol bounds.
+        /// </summary>
+        /// <param name="length">The declared initialization body length, including the message code.</param>
+        /// <returns>true when the length is valid; otherwise, false.</returns>
+        public static bool IsValidInitMessageLength(int length)
+            => length >= 4 && length <= RotatedObfuscation.MaxInitMessageLength;
+
+        /// <summary>
         ///     Validates an initialization frame length.
         /// </summary>
         /// <param name="length">The declared initialization body length, including the message code.</param>
         /// <param name="frameName">The diagnostic frame name.</param>
         public static void ValidateInitMessageLength(int length, string frameName = "initialization message")
         {
-            if (length < 4 || length > RotatedObfuscation.MaxInitMessageLength)
+            if (!IsValidInitMessageLength(length))
             {
                 throw new MessageReadException($"Invalid {frameName} length: {length}");
             }

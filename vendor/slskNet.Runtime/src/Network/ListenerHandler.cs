@@ -104,7 +104,7 @@ namespace Soulseek.Network
                     var firstFour = await connection.ReadAsync(4).ConfigureAwait(false);
                     var candidateLength = BitConverter.ToInt32(firstFour, 0);
 
-                    if (TryValidateInitMessageLength(candidateLength, "initialization message", out _))
+                    if (MessageFrameValidator.IsValidInitMessageLength(candidateLength))
                     {
                         obfuscated = false;
 
@@ -120,9 +120,9 @@ namespace Soulseek.Network
                         var firstBlock = firstFour.Concat(remainingHeaderBytes).ToArray();
                         var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
                         var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
-                        if (!TryValidateInitMessageLength(length, "obfuscated initialization message", out var obfuscatedException))
+                        if (!MessageFrameValidator.IsValidInitMessageLength(length))
                         {
-                            RejectConnection(connection, obfuscatedException);
+                            RejectConnection(connection, CreateInvalidInitMessageException(length, "obfuscated initialization message"));
                             return;
                         }
 
@@ -143,9 +143,9 @@ namespace Soulseek.Network
                     var firstBlock = await connection.ReadAsync(8).ConfigureAwait(false);
                     var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
                     var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
-                    if (!TryValidateInitMessageLength(length, "obfuscated initialization message", out var obfuscatedException))
+                    if (!MessageFrameValidator.IsValidInitMessageLength(length))
                     {
-                        RejectConnection(connection, obfuscatedException);
+                        RejectConnection(connection, CreateInvalidInitMessageException(length, "obfuscated initialization message"));
                         return;
                     }
 
@@ -164,9 +164,9 @@ namespace Soulseek.Network
                 {
                     var lengthBytes = await connection.ReadAsync(4).ConfigureAwait(false);
                     var length = BitConverter.ToInt32(lengthBytes, 0);
-                    if (!TryValidateInitMessageLength(length, "initialization message", out var exception))
+                    if (!MessageFrameValidator.IsValidInitMessageLength(length))
                     {
-                        RejectConnection(connection, exception);
+                        RejectConnection(connection, CreateInvalidInitMessageException(length, "initialization message"));
                         return;
                     }
 
@@ -351,29 +351,7 @@ namespace Soulseek.Network
             }
         }
 
-        /// <summary>
-        ///     Determines whether <paramref name="length"/> is a plausible plain (non-obfuscated) init frame length, i.e.
-        ///     whether it would pass <see cref="MessageFrameValidator.ValidateInitMessageLength(int, string)"/>. Used only when
-        ///     sniffing a shared plain/obfuscated listener port, where the first four bytes read from the socket could be
-        ///     either a plain length prefix or the leading bytes of a random obfuscation key.
-        /// </summary>
-        /// <param name="length">The candidate length, interpreted from the first four bytes read from the socket.</param>
-        /// <param name="frameName">The diagnostic name used when validating the frame.</param>
-        /// <param name="exception">The validation exception when the length is invalid; otherwise <see langword="null"/>.</param>
-        /// <returns>true if the length is within the bounds enforced for plain init frames; otherwise, false.</returns>
-        private static bool TryValidateInitMessageLength(int length, string frameName, out MessageReadException exception)
-        {
-            try
-            {
-                MessageFrameValidator.ValidateInitMessageLength(length, frameName);
-                exception = null;
-                return true;
-            }
-            catch (MessageReadException ex)
-            {
-                exception = ex;
-                return false;
-            }
-        }
+        private static MessageReadException CreateInvalidInitMessageException(int length, string frameName)
+            => new MessageReadException($"Invalid {frameName} length: {length}");
     }
 }
