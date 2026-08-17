@@ -1,3 +1,16 @@
+## Update 2026-08-17 21:12:42Z
+
+- Current task: complete. The YAML save compatibility fix and the authorized
+  concurrent VPN/runtime changes are committed and pushed to `snapetech/slskdN`.
+- Full release validation passed: frontend `911 passed / 4 skipped`, release
+  unit `5138/5138`, application `74/74`, smoke unit `104/104`, integration
+  smoke `40/40`, packaging metadata, remediation, and release-note gates.
+- Stable hotfix tag `build-main-2026081719-slskdn.310` is created and pushed.
+- The release note covers supported legacy YAML layouts; no user action is
+  required. The external same-ISP hairpin limitation remains documented as an
+  infrastructure boundary, not an application success claim.
+- Next steps: monitor the tag-only hosted build and verify published artifacts.
+
 ## Update 2026-08-17 21:03:59Z
 
 - Validation candidate is release-ready pending the final commit, push, and

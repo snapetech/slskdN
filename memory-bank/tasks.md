@@ -4566,3 +4566,4 @@
 - [2026-08-17T19:26:00Z] Completed: deploy and validate the exact current tree, headlessly inspect the Web UI, pass public Soulseek probes through four independent VPN profiles, verify renewal preserves ingress, and prepare the authorized `build-main-2026081719-slskdn.309` release.
 - [2026-08-17T21:01:16Z] Completed: fix whole-document Web UI YAML saves rejecting runtime-supported legacy `global`, `integration`, `shares: []`, and nested upload-limit layouts; add validator regressions and prepare the hotfix release.
 - [2026-08-17T21:03:59Z] Completed: finish release-candidate validation, document the external same-ISP hairpin limitation, and prepare the combined `.310` commit/push/tag.
+- [2026-08-17T21:12:42Z] Completed: pass the full hotfix release gate, push `main`, and create/push `build-main-2026081719-slskdn.310` with the YAML save fix and all authorized concurrent changes.

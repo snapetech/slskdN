@@ -12689,3 +12689,10 @@ the login surface; real public Soulseek traffic reached the shared listener;
 and three independent VPN origins completed direct probes. Same-ISP hairpin
 attempts remained intermittent before the host veth, so that external path is
 documented as a limitation rather than attributed to the application.
+
+[2026-08-17T21:12:42Z] Completed the combined hotfix release. Full release
+validation passed, including frontend `911 passed / 4 skipped`, release unit
+`5138/5138`, application `74/74`, smoke unit `104/104`, integration smoke
+`40/40`, packaging, remediation, and release-note gates. Pushed `main` and
+tagged `build-main-2026081719-slskdn.310`; all authorized concurrent worktree
+changes were retained.
