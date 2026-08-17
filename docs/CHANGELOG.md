@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026081715-slskdn.307] — 2026-08-17
+
 - Consolidated the Soulseek TCP listen port and public DHT/mesh-overlay/QUIC
   UDP traffic onto one port number by default (`50300`); `dht.dht_port` and
   `overlay.listen_port`/`overlay.quic_listen_port` now default to match
