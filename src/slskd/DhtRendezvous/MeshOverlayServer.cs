@@ -48,6 +48,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
     private DateTimeOffset? _startedAt;
     private long _totalAccepted;
     private long _totalRejected;
+    private bool _sharedTcpPortMode;
 
     private string LocalUsername => _optionsMonitor.CurrentValue?.Soulseek?.Username ?? "unknown";
     private int ListenPortConfig => _dhtOptions.OverlayPort;
@@ -83,7 +84,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         _serviceRouter = serviceRouter;
     }
 
-    public bool IsListening => _listener is not null;
+    public bool IsListening => _listener is not null || _sharedTcpPortMode;
     public int ListenPort => ListenPortConfig;
     public int ActiveConnections => _registry.Count;
     public long TotalConnectionsAccepted => _totalAccepted;
@@ -91,9 +92,22 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_listener is not null)
+        if (_listener is not null || _sharedTcpPortMode)
         {
             _logger.LogWarning("Server already running");
+            return Task.CompletedTask;
+        }
+
+        if (_dhtOptions.ShareOverlayTcpPortWithSoulseek)
+        {
+            // The real public socket is owned by SharedMeshTcpListener, which feeds us
+            // already-accepted, already-classified connections via
+            // HandleExternallyAcceptedConnectionAsync. Nothing to bind here.
+            _sharedTcpPortMode = true;
+            _startedAt = DateTimeOffset.UtcNow;
+            _logger.LogInformation(
+                "Mesh overlay server ready in shared-TCP-port mode on port {Port} (owned by SharedMeshTcpListener)",
+                ListenPortConfig);
             return Task.CompletedTask;
         }
 
@@ -132,6 +146,14 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
 
     public async Task StopAsync()
     {
+        if (_sharedTcpPortMode)
+        {
+            _sharedTcpPortMode = false;
+            _startedAt = null;
+            _logger.LogInformation("Mesh overlay server stopped (shared-TCP-port mode)");
+            return;
+        }
+
         if (_listener is null)
         {
             return;
@@ -163,6 +185,17 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         _cts = null;
         _acceptLoopTask = null;
         _startedAt = null;
+    }
+
+    public Task HandleExternallyAcceptedConnectionAsync(TcpClient tcpClient, CancellationToken cancellationToken = default)
+    {
+        if (!_sharedTcpPortMode)
+        {
+            tcpClient.Dispose();
+            return Task.CompletedTask;
+        }
+
+        return HandleConnectionAsync(tcpClient, cancellationToken);
     }
 
     private async Task AcceptLoopAsync(CancellationToken cancellationToken)

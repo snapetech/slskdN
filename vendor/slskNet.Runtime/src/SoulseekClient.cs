@@ -616,6 +616,15 @@ namespace Soulseek
         internal virtual ConcurrentDictionary<int, TransferInternal> DownloadDictionary { get; set; } = new ConcurrentDictionary<int, TransferInternal>();
         internal virtual IListener Listener { get; private set; }
         internal virtual IListener ObfuscatedListener { get; private set; }
+
+        /// <summary>
+        ///     Gets or sets the <see cref="ITcpListener"/> override for the primary listener. When set (by an
+        ///     internals-visible caller, e.g. slskd) before the primary listener is constructed, the primary
+        ///     <see cref="Listener"/> uses this <see cref="ITcpListener"/> instead of binding its own socket. Used to let the
+        ///     Soulseek peer listener share a single public TCP port with other application-level protocols via an
+        ///     externally-owned accept loop that classifies and feeds connections in.
+        /// </summary>
+        internal ITcpListener PrimaryListenerTcpListenerOverride { get; set; }
         internal virtual IListenerHandler ListenerHandler { get; }
         internal virtual IPeerConnectionManager PeerConnectionManager { get; }
         internal virtual IPeerMessageHandler PeerMessageHandler { get; }
@@ -939,10 +948,12 @@ namespace Soulseek
                 Listener obfuscatedListener = null;
 
                 // probe to see if we can listen on the configured port and address. if this throws, something is either already
-                // listening on this port, or the user has specified a bad interface IP
+                // listening on this port, or the user has specified a bad interface IP. when PrimaryListenerTcpListenerOverride
+                // is set, the real public socket is owned externally (e.g. a shared TCP demux), so this probe is a no-op by
+                // construction rather than a real bind attempt.
                 try
                 {
-                    listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions);
+                    listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions, PrimaryListenerTcpListenerOverride);
                     listener.Start();
 
                     // a dedicated obfuscation listen port of 0 means obfuscated connections share the regular listener's
@@ -3553,6 +3564,7 @@ namespace Soulseek
                             Options.ListenIPAddress,
                             Options.ListenPort,
                             connectionOptions: Options.IncomingConnectionOptions,
+                            tcpListener: PrimaryListenerTcpListenerOverride,
                             obfuscationSniffingEnabled: sharedObfuscation);
                         Listener.Accepted += ListenerHandler.HandleConnection;
                         Listener.Start();
@@ -4660,6 +4672,7 @@ namespace Soulseek
                             Options.ListenIPAddress,
                             Options.ListenPort,
                             Options.IncomingConnectionOptions,
+                            tcpListener: PrimaryListenerTcpListenerOverride,
                             obfuscationSniffingEnabled: sharedObfuscation);
                         Listener.Accepted += ListenerHandler.HandleConnection;
                         Listener.Start();

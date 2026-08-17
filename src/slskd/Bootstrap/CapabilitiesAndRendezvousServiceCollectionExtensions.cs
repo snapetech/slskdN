@@ -35,7 +35,24 @@ public static class CapabilitiesAndRendezvousServiceCollectionExtensions
         }
 
         // DhtRendezvous services (BitTorrent DHT peer discovery)
+        var shareOverlayTcpPort = SharedMeshTcpListener.ShouldRun(optionsAtStartup);
+        if (shareOverlayTcpPort)
+        {
+            // The mesh TCP overlay handshake will arrive on the Soulseek listen port instead of
+            // its own OverlayPort; mutate the shared options instance once, at startup, so every
+            // existing consumer (UPnP mapping, VPN port-forward sync, peer advertisement) reads
+            // the correct port without individual changes.
+            optionsAtStartup.DhtRendezvous.OverlayPort = optionsAtStartup.Soulseek.ListenPort;
+        }
+
         services.AddSingleton(optionsAtStartup.DhtRendezvous);
+
+        if (shareOverlayTcpPort)
+        {
+            services.AddSingleton<slskd.SoulseekRuntime.FedTcpListener>();
+            services.AddHostedService<SharedMeshTcpListener>();
+        }
+
         services.AddSingleton<CertificateManager>(sp => new CertificateManager(sp.GetRequiredService<ILogger<CertificateManager>>(), Program.AppDirectory));
         services.AddSingleton<CertificatePinStore>(sp => new CertificatePinStore(sp.GetRequiredService<ILogger<CertificatePinStore>>(), Program.AppDirectory));
         services.AddSingleton<OverlayRateLimiter>();

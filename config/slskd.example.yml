@@ -172,7 +172,13 @@
 #dht:
 #  enabled: true # public BitTorrent DHT rendezvous; set false to stop DHT startup and dependent services
 #  lan_only: false # set true to block public BitTorrent DHT bootstrap/discoverability
-#  overlay_port: 50305 # TCP slskdN mesh overlay rendezvous; a distinct number from soulseek.listen_port because both are TCP and can't share one.
+#  overlay_port: 50305 # TCP slskdN mesh overlay rendezvous; a distinct number from soulseek.listen_port because both are TCP and can't share one, unless share_overlay_tcp_port_with_soulseek is true (see below).
+#  share_overlay_tcp_port_with_soulseek: false # EXPERIMENTAL. When true, the mesh TCP overlay handshake shares soulseek.listen_port instead
+#                                               # of binding overlay_port: a SharedMeshTcpListener owns that socket and classifies each accepted
+#                                               # connection by its first bytes (TLS ClientHello vs. Soulseek peer framing) before handing it to
+#                                               # the mesh overlay server or the Soulseek listener (which further sniffs plain vs. obfuscated on
+#                                               # its own). overlay_port is set to match soulseek.listen_port automatically when this is true.
+#                                               # Off by default: unlike dht_port sharing, this bridges two independently lifecycled components.
 #  advertised_overlay_port: 0 # optional public TCP overlay port to announce when VPN/NAT rewrites overlay_port; 0 uses overlay_port
 #  vpn_port_sync: disabled # auto-follow VPN port forwarding for advertised_overlay_port; requires integration.vpn.enabled + port_forwarding
 #                          # disabled   - no sync; advertised_overlay_port is used as-is (default)

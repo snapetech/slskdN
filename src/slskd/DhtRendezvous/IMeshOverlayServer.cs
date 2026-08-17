@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.DhtRendezvous;
 
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -49,4 +50,15 @@ public interface IMeshOverlayServer
     /// </summary>
     /// <returns>Server statistics.</returns>
     MeshOverlayServerStats GetStats();
+
+    /// <summary>
+    /// Handles a connection that was accepted and classified as a mesh overlay handshake by an
+    /// external demultiplexer (<see cref="SharedMeshTcpListener"/>) rather than by this server's
+    /// own listener. Only meaningful when the server is running in shared-TCP-port mode
+    /// (<see cref="DhtRendezvousOptions.ShareOverlayTcpPortWithSoulseek"/>); the connection is
+    /// disposed without further handling otherwise.
+    /// </summary>
+    /// <param name="tcpClient">The already-accepted, unconsumed connection.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task HandleExternallyAcceptedConnectionAsync(TcpClient tcpClient, CancellationToken cancellationToken = default);
 }

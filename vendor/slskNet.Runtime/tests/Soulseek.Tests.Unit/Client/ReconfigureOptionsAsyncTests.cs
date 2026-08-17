@@ -83,6 +83,57 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "ReconfigureOptions")]
+        [Fact(DisplayName = "Uses PrimaryListenerTcpListenerOverride instead of binding a real socket when set")]
+        public async Task Uses_PrimaryListenerTcpListenerOverride_Instead_Of_Binding_A_Real_Socket_When_Set()
+        {
+            var port = GetAvailablePort();
+
+            // Change something that forces the listener to be rebuilt (peer obfuscation options)
+            // WITHOUT changing the listen address or port, so the earlier, un-overridden real-port
+            // probe in ReconfigureOptionsAsync (which only runs when the address/port changes) is
+            // not exercised -- this isolates the internal reconstruction path that
+            // PrimaryListenerTcpListenerOverride actually affects.
+            var (client, mocks) = GetFixture(new SoulseekClientOptions(
+                enableListener: true,
+                listenPort: port,
+                peerObfuscationOptions: new PeerObfuscationOptions(enabled: false)));
+
+            mocks.Listener.Setup(m => m.Listening).Returns(true);
+
+            var patch = new SoulseekClientOptionsPatch(
+                peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 0));
+
+            Listener occupyingListener = null;
+
+            try
+            {
+                // Occupy the port for real. Without the override, rebuilding the listener on this
+                // port throws ListenException (see the preceding test's scenario); with it, the
+                // vendored Listener never attempts a real bind, so no conflict occurs.
+                occupyingListener = new Listener(IPAddress.Any, port, new ConnectionOptions());
+                occupyingListener.Start();
+
+                var overrideTcpListener = new Mock<ITcpListener>();
+                overrideTcpListener.Setup(m => m.AcceptTcpClientAsync()).Returns(new TaskCompletionSource<TcpClient>().Task);
+                client.PrimaryListenerTcpListenerOverride = overrideTcpListener.Object;
+
+                using (client)
+                {
+                    var ex = await Record.ExceptionAsync(() => client.ReconfigureOptionsAsync(patch));
+
+                    Assert.Null(ex);
+                    Assert.Equal(port, client.Listener.Port);
+                }
+
+                overrideTcpListener.Verify(m => m.Start(), Times.AtLeastOnce);
+            }
+            finally
+            {
+                occupyingListener?.Stop();
+            }
+        }
+
+        [Trait("Category", "ReconfigureOptions")]
         [Fact(DisplayName = "Does not throw given empty patch")]
         public async Task Does_Not_Throw_Given_Empty_Patch()
         {

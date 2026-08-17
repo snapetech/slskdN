@@ -124,7 +124,7 @@ See [Building from Source](build.md) for detailed instructions.
 | Web UI / API | `5030/tcp` | Keep local or behind your own reverse proxy unless intentionally exposed. |
 | HTTPS Web UI | `5031/tcp` | Configure certificate settings before forcing HTTPS. |
 | Soulseek listen | `50300/tcp` | Forward or allow-list this when accepting inbound Soulseek transfers. Plain and type-1 obfuscated peer connections share this one port by default (`soulseek.obfuscation.listen_port: 0`). |
-| Mesh TCP overlay rendezvous | `50305/tcp` | Disabled by default. A distinct port from the Soulseek listen port because both are TCP and can't share a number. |
+| Mesh TCP overlay rendezvous | `50305/tcp` | Disabled by default. A distinct port from the Soulseek listen port because both are TCP and can't share a number -- unless `dht.share_overlay_tcp_port_with_soulseek` is enabled (EXPERIMENTAL, off by default), in which case it shares `50300/tcp` instead, classified per-connection by a TLS-vs-Soulseek byte sniff. |
 | Public DHT rendezvous / mesh overlay / QUIC | `50300/udp` | Disabled by default. Shares the same port number as the Soulseek listen port (TCP and UDP are separate port spaces, so this doesn't collide). Carries public BitTorrent DHT rendezvous, the UDP overlay control channel, and QUIC control- and data-plane traffic, demultiplexed on one socket. Mesh DHT metadata and file bytes stay on the overlay. Public DHT also requires `dht.lan_only: false`. |
 
 ### Essential Settings

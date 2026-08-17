@@ -26,3 +26,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Soulseek.Tests.Unit")]
 [assembly: InternalsVisibleTo("Soulseek.Tests.Integration")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")] // Moq
+[assembly: InternalsVisibleTo("slskd")] // slskdN Team: lets slskd supply a shared ITcpListener (see SoulseekClient.PrimaryListenerTcpListenerOverride)

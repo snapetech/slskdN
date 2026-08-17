@@ -86,8 +86,20 @@ public static class ApplicationHostServiceCollectionExtensions
 
         // add a partially configured instance of SoulseekClient. the Application instance will
         // complete configuration at startup.
-        services.AddSingleton<ISoulseekClient, SoulseekClient>(_ =>
-            new SoulseekClient(soulseekMinorVersion, options: SoulseekClientOptionsFactory.CreateInitial(optionsAtStartup)));
+        services.AddSingleton<ISoulseekClient, SoulseekClient>(sp =>
+        {
+            var client = new SoulseekClient(soulseekMinorVersion, options: SoulseekClientOptionsFactory.CreateInitial(optionsAtStartup));
+
+            if (DhtRendezvous.SharedMeshTcpListener.ShouldRun(optionsAtStartup))
+            {
+                // Set before any connect/reconnect constructs the primary listener: it then binds
+                // this fed listener instead of its own socket, so the Soulseek peer listener can
+                // share the public TCP port with the mesh overlay handshake via SharedMeshTcpListener.
+                client.PrimaryListenerTcpListenerOverride = sp.GetRequiredService<FedTcpListener>();
+            }
+
+            return client;
+        });
 
         // add the core application service to DI as well as a hosted service so that other services can
         // access instance methods

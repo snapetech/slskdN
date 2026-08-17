@@ -1196,6 +1196,18 @@ public sealed class DhtRendezvousOptions
     public int EffectiveOverlayPort => AdvertisedOverlayPort > 0 ? AdvertisedOverlayPort : OverlayPort;
 
     /// <summary>
+    /// EXPERIMENTAL, off by default. When true, the mesh TCP overlay handshake shares the Soulseek
+    /// TCP listen port (<see cref="slskd.Options.SoulseekOptions.ListenPort"/>) instead of binding
+    /// its own <see cref="OverlayPort"/>. A <see cref="SharedMeshTcpListener"/> owns the real public
+    /// socket and classifies each accepted connection by its first bytes (TLS ClientHello for the
+    /// mesh overlay vs. Soulseek peer framing) before handing it to <see cref="MeshOverlayServer"/>
+    /// or the vendored Soulseek listener. When enabled, <see cref="OverlayPort"/> is set to match
+    /// the Soulseek listen port at startup so every existing consumer (UPnP mapping, VPN
+    /// port-forward sync, advertisement) stays correct without individual changes.
+    /// </summary>
+    public bool ShareOverlayTcpPortWithSoulseek { get; set; }
+
+    /// <summary>
     /// UDP port for DHT. Shares a public UDP socket with the mesh overlay control channel and
     /// QUIC (control- and data-plane) when their listen ports are configured to match this value
     /// (the default). Intentionally matches <see cref="slskd.Options.SoulseekOptions.ListenPort"/>'s
