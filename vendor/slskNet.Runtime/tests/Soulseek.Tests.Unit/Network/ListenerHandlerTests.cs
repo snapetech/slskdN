@@ -601,6 +601,25 @@ namespace Soulseek.Tests.Unit.Network
             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid obfuscated initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
         }
 
+        [Trait("Category", "Message")]
+        [Theory(DisplayName = "Rejects oversized plain init without faulting the listener task"), AutoData]
+        public async Task Rejects_Oversized_Plain_Init_Without_Faulting_The_Listener_Task(IPEndPoint endpoint)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var invalidLength = RotatedObfuscation.MaxInitMessageLength + 1;
+            mocks.Connection.Setup(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(BitConverter.GetBytes(invalidLength)));
+            mocks.Diagnostic.Setup(m => m.Debug(It.IsAny<string>()));
+
+            var exception = await Record.ExceptionAsync(() => handler.HandleConnectionAsync(null, mocks.Connection.Object));
+
+            Assert.Null(exception);
+            mocks.Connection.Verify(m => m.ReadAsync(invalidLength, It.IsAny<CancellationToken?>()), Times.Never);
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
+            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<Exception>()), Times.Once);
+        }
+
         [Trait("Category", "SharedObfuscationSniffing")]
         [Theory(DisplayName = "Shared listener classifies plain PeerInit connection as plain"), AutoData]
         public async Task Shared_Listener_Classifies_Plain_PeerInit_Connection_As_Plain(IPEndPoint endpoint, string username, int token)

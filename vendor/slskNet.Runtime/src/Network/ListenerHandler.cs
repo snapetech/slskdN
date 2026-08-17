@@ -104,7 +104,7 @@ namespace Soulseek.Network
                     var firstFour = await connection.ReadAsync(4).ConfigureAwait(false);
                     var candidateLength = BitConverter.ToInt32(firstFour, 0);
 
-                    if (TryValidateInitMessageLength(candidateLength))
+                    if (TryValidateInitMessageLength(candidateLength, "initialization message", out _))
                     {
                         obfuscated = false;
 
@@ -120,7 +120,11 @@ namespace Soulseek.Network
                         var firstBlock = firstFour.Concat(remainingHeaderBytes).ToArray();
                         var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
                         var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
-                        ValidateObfuscatedMessageLength(length);
+                        if (!TryValidateInitMessageLength(length, "obfuscated initialization message", out var obfuscatedException))
+                        {
+                            RejectConnection(connection, obfuscatedException);
+                            return;
+                        }
 
                         var obfuscatedMessage = new byte[8 + length];
                         Buffer.BlockCopy(firstBlock, 0, obfuscatedMessage, 0, firstBlock.Length);
@@ -139,7 +143,11 @@ namespace Soulseek.Network
                     var firstBlock = await connection.ReadAsync(8).ConfigureAwait(false);
                     var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
                     var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
-                    ValidateObfuscatedMessageLength(length);
+                    if (!TryValidateInitMessageLength(length, "obfuscated initialization message", out var obfuscatedException))
+                    {
+                        RejectConnection(connection, obfuscatedException);
+                        return;
+                    }
 
                     var obfuscatedMessage = new byte[8 + length];
                     Buffer.BlockCopy(firstBlock, 0, obfuscatedMessage, 0, firstBlock.Length);
@@ -156,7 +164,11 @@ namespace Soulseek.Network
                 {
                     var lengthBytes = await connection.ReadAsync(4).ConfigureAwait(false);
                     var length = BitConverter.ToInt32(lengthBytes, 0);
-                    MessageFrameValidator.ValidateInitMessageLength(length);
+                    if (!TryValidateInitMessageLength(length, "initialization message", out var exception))
+                    {
+                        RejectConnection(connection, exception);
+                        return;
+                    }
 
                     var bodyBytes = await connection.ReadAsync(length).ConfigureAwait(false);
                     message = lengthBytes.Concat(bodyBytes).ToArray();
@@ -286,9 +298,14 @@ namespace Soulseek.Network
             }
             catch (Exception ex)
             {
-                Diagnostic.Debug($"Failed to initialize direct connection from {GetConnectionDescription(connection)}: {ex.Message}");
-                DisconnectAndDispose(connection, ex);
+                RejectConnection(connection, ex);
             }
+        }
+
+        private void RejectConnection(IConnection connection, Exception exception)
+        {
+            Diagnostic.Debug($"Failed to initialize direct connection from {GetConnectionDescription(connection)}: {exception.Message}");
+            DisconnectAndDispose(connection, exception);
         }
 
         private static void DisconnectAndDispose(IConnection connection, Exception exception)
@@ -334,11 +351,6 @@ namespace Soulseek.Network
             }
         }
 
-        private static void ValidateObfuscatedMessageLength(int length)
-        {
-            MessageFrameValidator.ValidateInitMessageLength(length, "obfuscated initialization message");
-        }
-
         /// <summary>
         ///     Determines whether <paramref name="length"/> is a plausible plain (non-obfuscated) init frame length, i.e.
         ///     whether it would pass <see cref="MessageFrameValidator.ValidateInitMessageLength(int, string)"/>. Used only when
@@ -346,16 +358,20 @@ namespace Soulseek.Network
         ///     either a plain length prefix or the leading bytes of a random obfuscation key.
         /// </summary>
         /// <param name="length">The candidate length, interpreted from the first four bytes read from the socket.</param>
+        /// <param name="frameName">The diagnostic name used when validating the frame.</param>
+        /// <param name="exception">The validation exception when the length is invalid; otherwise <see langword="null"/>.</param>
         /// <returns>true if the length is within the bounds enforced for plain init frames; otherwise, false.</returns>
-        private static bool TryValidateInitMessageLength(int length)
+        private static bool TryValidateInitMessageLength(int length, string frameName, out MessageReadException exception)
         {
             try
             {
-                MessageFrameValidator.ValidateInitMessageLength(length);
+                MessageFrameValidator.ValidateInitMessageLength(length, frameName);
+                exception = null;
                 return true;
             }
-            catch (MessageReadException)
+            catch (MessageReadException ex)
             {
+                exception = ex;
                 return false;
             }
         }

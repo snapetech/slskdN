@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026081719-slskdn.310] — 2026-08-17
+
+- Fixed malformed inbound Soulseek initialization frames surfacing as fatal
+  unobserved-task logs from the listener event boundary. Rejected peer frames
+  are now explicitly observed and cleaned up without destabilizing the service.
+
 ## [2026081719-slskdn.309] — 2026-08-17
 
 - Fixed VPN ingress through native nftables input policies and changed dynamic
