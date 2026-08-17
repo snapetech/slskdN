@@ -2,20 +2,20 @@ class Slskdn < Formula
   desc "Unofficial slskd fork with batteries-included Soulseek features"
   homepage "https://github.com/snapetech/slskdn"
   license "AGPL-3.0-or-later"
-  version "2026081618-slskdn.306"
+  version "2026081719-slskdn.309"
   on_macos do
     on_arm do
-      url "https://github.com/snapetech/slskdn/releases/download/2026081618-slskdn.306/slskdn-main-osx-arm64.zip"
-      sha256 "8daae6373bf46d2361e418401294c80547a76a17a5f42fc6e02e048e097e85ee"
+      url "https://github.com/snapetech/slskdn/releases/download/2026081719-slskdn.309/slskdn-main-osx-arm64.zip"
+      sha256 "40b60bda1fc2757b911d35f8d1719fb2769a9db44138c8652d719976d6597822"
     end
     on_intel do
-      url "https://github.com/snapetech/slskdn/releases/download/2026081618-slskdn.306/slskdn-main-osx-x64.zip"
-      sha256 "34b2af1ce0f57e2da8845ae52e5163b035ae8d3ab0d893bcc5e542fcd1742389"
+      url "https://github.com/snapetech/slskdn/releases/download/2026081719-slskdn.309/slskdn-main-osx-x64.zip"
+      sha256 "ff79cce5a2864d5a8d828b988befe9ee0dcfa6a17ea0843c44180091a0a13c1f"
     end
   end
   on_linux do
-    url "https://github.com/snapetech/slskdn/releases/download/2026081618-slskdn.306/slskdn-main-linux-glibc-x64.zip"
-    sha256 "b386d7e51285916fcebff31c09e778d0a1c86cc98d4ed82c500ac57f7b22a9c8"
+    url "https://github.com/snapetech/slskdn/releases/download/2026081719-slskdn.309/slskdn-main-linux-glibc-x64.zip"
+    sha256 "23c5c230a639af01ed1c49df961184879cf182f9fe8261bcfcdf96e093370f4a"
   end
   def install
     libexec.install Dir["*"]
