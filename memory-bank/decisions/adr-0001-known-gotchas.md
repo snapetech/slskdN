@@ -28111,3 +28111,31 @@ failure; otherwise a green focused run can hide a parallel-suite race.
 - **What went wrong:** The new auto-replace download-policy checks dereferenced `IOptionsMonitor<Options>.CurrentValue.Filters` directly, causing existing unit tests that use an unconfigured mock monitor to throw `NullReferenceException` before their intended behavior ran.
 - **Why:** `CurrentValue` is declared non-nullable for normal DI, but an optional dependency or a mock can still return null at runtime; the surrounding auto-replace code already treated its current options as nullable.
 - **Prevention:** Preserve the established `CurrentValue?.Filters.Download.Exclude ?? Array.Empty<string>()` pattern anywhere the monitor is optional or mocked, and run the affected existing service tests after adding a policy read.
+
+### 0z860. Separate VPN Public Port Advertisement From The Local Listener
+
+**The Bug**: A VPN port-forward integration exposed a public forwarded port
+different from the local listener, but the Soulseek server was told the local
+port, so peers were directed to the wrong endpoint.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs`
+- `vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs`
+- `vendor/slskNet.Runtime/src/SoulseekClient.cs`
+- `src/slskd/Integrations/VPN/VPNService.cs`
+
+**Wrong**:
+```csharp
+new SetListenPortCommand(Options.ListenPort);
+```
+
+**Correct**:
+```csharp
+var advertisedPort = Options.AdvertisedListenPort ?? Options.ListenPort;
+new SetListenPortCommand(advertisedPort);
+```
+
+**Why This Keeps Happening**: A transparent NAT or VPN forward can map a
+random public port to a stable local port. Keep binding and advertised
+endpoints separate, and update the wire advertisement when the provider
+changes the mapping without rebinding the local listener.
