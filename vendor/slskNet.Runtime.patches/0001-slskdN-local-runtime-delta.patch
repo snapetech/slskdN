@@ -284,6 +284,19 @@ index 4805f63..b679897 100644
          /// </summary>
          public int ListenPort { get; }
  
+diff --git a/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs b/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs
+index ecfe5d7..2245153 100644
+--- a/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs
++++ b/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs
+@@ -25,4 +25,5 @@ using System.Runtime.CompilerServices;
+ 
+ [assembly: InternalsVisibleTo("Soulseek.Tests.Unit")]
+ [assembly: InternalsVisibleTo("Soulseek.Tests.Integration")]
+-[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")] // Moq
+\ No newline at end of file
++[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")] // Moq
++[assembly: InternalsVisibleTo("slskd")] // slskdN Team: lets slskd supply a shared ITcpListener (see SoulseekClient.PrimaryListenerTcpListenerOverride)
+\ No newline at end of file
 diff --git a/vendor/slskNet.Runtime/src/SearchInternal.cs b/vendor/slskNet.Runtime/src/SearchInternal.cs
 index 870d18d..a290c7b 100644
 --- a/vendor/slskNet.Runtime/src/SearchInternal.cs
@@ -392,11 +405,37 @@ index b09f1e2..692a979 100644
        <PrivateAssets>all</PrivateAssets>
        <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 diff --git a/vendor/slskNet.Runtime/src/SoulseekClient.cs b/vendor/slskNet.Runtime/src/SoulseekClient.cs
-index c50d252..122abbc 100644
+index c50d252..16d6285 100644
 --- a/vendor/slskNet.Runtime/src/SoulseekClient.cs
 +++ b/vendor/slskNet.Runtime/src/SoulseekClient.cs
-@@ -945,7 +945,9 @@ namespace Soulseek
-                     listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions);
+@@ -616,6 +616,15 @@ namespace Soulseek
+         internal virtual ConcurrentDictionary<int, TransferInternal> DownloadDictionary { get; set; } = new ConcurrentDictionary<int, TransferInternal>();
+         internal virtual IListener Listener { get; private set; }
+         internal virtual IListener ObfuscatedListener { get; private set; }
++
++        /// <summary>
++        ///     Gets or sets the <see cref="ITcpListener"/> override for the primary listener. When set (by an
++        ///     internals-visible caller, e.g. slskd) before the primary listener is constructed, the primary
++        ///     <see cref="Listener"/> uses this <see cref="ITcpListener"/> instead of binding its own socket. Used to let the
++        ///     Soulseek peer listener share a single public TCP port with other application-level protocols via an
++        ///     externally-owned accept loop that classifies and feeds connections in.
++        /// </summary>
++        internal ITcpListener PrimaryListenerTcpListenerOverride { get; set; }
+         internal virtual IListenerHandler ListenerHandler { get; }
+         internal virtual IPeerConnectionManager PeerConnectionManager { get; }
+         internal virtual IPeerMessageHandler PeerMessageHandler { get; }
+@@ -939,13 +948,17 @@ namespace Soulseek
+                 Listener obfuscatedListener = null;
+ 
+                 // probe to see if we can listen on the configured port and address. if this throws, something is either already
+-                // listening on this port, or the user has specified a bad interface IP
++                // listening on this port, or the user has specified a bad interface IP. when PrimaryListenerTcpListenerOverride
++                // is set, the real public socket is owned externally (e.g. a shared TCP demux), so this probe is a no-op by
++                // construction rather than a real bind attempt.
+                 try
+                 {
+-                    listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions);
++                    listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions, PrimaryListenerTcpListenerOverride);
                      listener.Start();
  
 -                    if (Options.PeerObfuscationOptions.Enabled)
@@ -406,7 +445,7 @@ index c50d252..122abbc 100644
                      {
                          obfuscatedListener = new Listener(
                              Options.ListenIPAddress,
-@@ -3542,11 +3544,20 @@ namespace Soulseek
+@@ -3542,11 +3555,21 @@ namespace Soulseek
  
                      if (Options.EnableListener)
                      {
@@ -420,6 +459,7 @@ index c50d252..122abbc 100644
 +                            Options.ListenIPAddress,
 +                            Options.ListenPort,
 +                            connectionOptions: Options.IncomingConnectionOptions,
++                            tcpListener: PrimaryListenerTcpListenerOverride,
 +                            obfuscationSniffingEnabled: sharedObfuscation);
                          Listener.Accepted += ListenerHandler.HandleConnection;
                          Listener.Start();
@@ -429,7 +469,7 @@ index c50d252..122abbc 100644
                          {
                              ObfuscatedListener = new Listener(
                                  Options.ListenIPAddress,
-@@ -3941,6 +3952,12 @@ namespace Soulseek
+@@ -3941,6 +3964,12 @@ namespace Soulseek
                      },
                      cancellationToken: linkedCancellationToken);
  
@@ -442,7 +482,7 @@ index c50d252..122abbc 100644
                  var firstTask = await Task.WhenAny(
                      readTask, // we successfully read all of the data
                      disconnectedTaskCancellationSource.Task, // the connection is disconnected
-@@ -4606,8 +4623,17 @@ namespace Soulseek
+@@ -4606,8 +4635,17 @@ namespace Soulseek
                  var listenAddressChanged = patch.ListenIPAddress != null && !patch.ListenIPAddress.Equals(Options.ListenIPAddress);
                  var listenPortChanged = patch.ListenPort.HasValue && patch.ListenPort.Value != Options.ListenPort;
                  var incomingConnectionOptionsChanged = patch.IncomingConnectionOptions != null && patch.IncomingConnectionOptions != Options.IncomingConnectionOptions;
@@ -462,7 +502,7 @@ index c50d252..122abbc 100644
                  {
                      var wasListening = Listener?.Listening ?? false;
  
-@@ -4620,15 +4646,25 @@ namespace Soulseek
+@@ -4620,15 +4658,26 @@ namespace Soulseek
                          enableListener: patch.EnableListener,
                          listenIPAddress: patch.ListenIPAddress,
                          listenPort: patch.ListenPort,
@@ -482,6 +522,7 @@ index c50d252..122abbc 100644
 +                            Options.ListenIPAddress,
 +                            Options.ListenPort,
 +                            Options.IncomingConnectionOptions,
++                            tcpListener: PrimaryListenerTcpListenerOverride,
 +                            obfuscationSniffingEnabled: sharedObfuscation);
                          Listener.Accepted += ListenerHandler.HandleConnection;
                          Listener.Start();
@@ -491,7 +532,7 @@ index c50d252..122abbc 100644
                          {
                              ObfuscatedListener = new Listener(
                                  Options.ListenIPAddress,
-@@ -4658,6 +4694,7 @@ namespace Soulseek
+@@ -4658,6 +4707,7 @@ namespace Soulseek
                      peerConnectionOptions: patch.PeerConnectionOptions,
                      transferConnectionOptions: patch.TransferConnectionOptions,
                      incomingConnectionOptions: patch.IncomingConnectionOptions,
@@ -499,7 +540,7 @@ index c50d252..122abbc 100644
                      distributedConnectionOptions: patch.DistributedConnectionOptions,
                      userEndPointCache: patch.UserEndPointCache,
                      searchResponseResolver: patch.SearchResponseResolver,
-@@ -5436,6 +5473,11 @@ namespace Soulseek
+@@ -5436,6 +5486,11 @@ namespace Soulseek
                      writeTask = Task.CompletedTask;
                  }
  
@@ -512,10 +553,68 @@ index c50d252..122abbc 100644
                      writeTask,
                      disconnectedTaskCancellationSource.Task).ConfigureAwait(false);
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs
-index 3a23376..47b4c39 100644
+index 3a23376..23a5da7 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs
-@@ -318,6 +318,53 @@ namespace Soulseek.Tests.Unit.Client
+@@ -82,6 +82,57 @@ namespace Soulseek.Tests.Unit.Client
+             }
+         }
+ 
++        [Trait("Category", "ReconfigureOptions")]
++        [Fact(DisplayName = "Uses PrimaryListenerTcpListenerOverride instead of binding a real socket when set")]
++        public async Task Uses_PrimaryListenerTcpListenerOverride_Instead_Of_Binding_A_Real_Socket_When_Set()
++        {
++            var port = GetAvailablePort();
++
++            // Change something that forces the listener to be rebuilt (peer obfuscation options)
++            // WITHOUT changing the listen address or port, so the earlier, un-overridden real-port
++            // probe in ReconfigureOptionsAsync (which only runs when the address/port changes) is
++            // not exercised -- this isolates the internal reconstruction path that
++            // PrimaryListenerTcpListenerOverride actually affects.
++            var (client, mocks) = GetFixture(new SoulseekClientOptions(
++                enableListener: true,
++                listenPort: port,
++                peerObfuscationOptions: new PeerObfuscationOptions(enabled: false)));
++
++            mocks.Listener.Setup(m => m.Listening).Returns(true);
++
++            var patch = new SoulseekClientOptionsPatch(
++                peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 0));
++
++            Listener occupyingListener = null;
++
++            try
++            {
++                // Occupy the port for real. Without the override, rebuilding the listener on this
++                // port throws ListenException (see the preceding test's scenario); with it, the
++                // vendored Listener never attempts a real bind, so no conflict occurs.
++                occupyingListener = new Listener(IPAddress.Any, port, new ConnectionOptions());
++                occupyingListener.Start();
++
++                var overrideTcpListener = new Mock<ITcpListener>();
++                overrideTcpListener.Setup(m => m.AcceptTcpClientAsync()).Returns(new TaskCompletionSource<TcpClient>().Task);
++                client.PrimaryListenerTcpListenerOverride = overrideTcpListener.Object;
++
++                using (client)
++                {
++                    var ex = await Record.ExceptionAsync(() => client.ReconfigureOptionsAsync(patch));
++
++                    Assert.Null(ex);
++                    Assert.Equal(port, client.Listener.Port);
++                }
++
++                overrideTcpListener.Verify(m => m.Start(), Times.AtLeastOnce);
++            }
++            finally
++            {
++                occupyingListener?.Stop();
++            }
++        }
++
+         [Trait("Category", "ReconfigureOptions")]
+         [Fact(DisplayName = "Does not throw given empty patch")]
+         public async Task Does_Not_Throw_Given_Empty_Patch()
+@@ -318,6 +369,53 @@ namespace Soulseek.Tests.Unit.Client
              }
          }
  
