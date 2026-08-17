@@ -28139,3 +28139,28 @@ new SetListenPortCommand(advertisedPort);
 random public port to a stable local port. Keep binding and advertised
 endpoints separate, and update the wire advertisement when the provider
 changes the mapping without rebinding the local listener.
+
+### 0z861. VPN Ingress DNAT To A Host Veth Needs Native Input-Firewall Access
+
+**The Bug**: The WireGuard ingress namespace DNATed a public connection to a
+host-side veth address, but the host firewall only allowed the agent's
+iptables `FORWARD` path. A native nftables input policy then rejected the
+packet before the Soulseek listener could receive it.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+
+**Wrong**:
+```text
+public VPN port -> ingress namespace DNAT -> host veth -> native input policy
+```
+
+**Correct**:
+```text
+public VPN port -> ingress namespace DNAT -> host veth -> managed nft input accept -> listener
+```
+
+**Prevention**: When an ingress namespace DNATs to an address owned by the
+host namespace, manage a narrowly scoped native input rule for each target
+protocol and port. Forward-chain rules alone do not cover locally delivered
+packets, and an nftables policy can run independently of iptables-nft rules.
