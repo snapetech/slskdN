@@ -27780,6 +27780,26 @@ plus patch and correctly reported content drift.
 local patch change. Run the full sync check after updating the vendor tree and
 keep license/version notes aligned with the composed result.
 
+### 0z845. Record Vendored Runtime Code Deltas In The Local Patch
+
+**The Bug**: The shared Soulseek listener integration added code and a test
+directly to the vendored runtime mirror, but the declared slskdN composition
+patch was not regenerated. The runtime sync gate reconstructed the upstream
+revision plus the old patch and rejected the release candidate with content
+drift.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs`
+- `vendor/slskNet.Runtime/src/SoulseekClient.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs`
+- `vendor/slskNet.Runtime.patches/0001-slskdN-local-runtime-delta.patch`
+
+**Prevention**: Treat every tracked code or test change under the vendored
+runtime as part of the declared local patch. Regenerate or update the patch,
+then run `scripts/check-slsknet-runtime-sync.sh` before committing and before
+running a release gate. Copy only tracked runtime files when composing a
+baseline so ignored build outputs never enter the patch.
+
 ### 0z840. Do Not Count Dependency Metadata In Source Security Ledgers
 
 **The Bug**: The active council scanner included package manifests and lockfiles
