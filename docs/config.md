@@ -767,8 +767,11 @@ incoming traffic is properly routed.
 If your VPN provider assigns dynamic forwarded ports, use the
 [slskdN VPN Agent](../src/slskdN.VpnAgent/README.md) rather than hard-coding a
 stale listen port. The Web UI/API can usually remain local or LAN-bound while
-Soulseek traffic uses VPN egress. When VPN integration is enabled, the agent can
-update `soulseek.listen_port` from the active provider mapping.
+Soulseek traffic uses VPN egress. When VPN integration is enabled, the agent
+keeps the configured local `soulseek.listen_port` bound and advertises the
+active provider mapping as the public Soulseek port. The public and local ports
+may therefore differ, while plain/type-1 Soulseek and mesh TCP still share one
+TCP forward by default.
 
 For a home instance behind CGNAT, the
 [self-hosted relay mode](../src/slskdN.VpnAgent/self-hosted-relay.md) uses a

@@ -84,6 +84,10 @@ namespace Soulseek
         /// <param name="placeInQueueResolver">
         ///     The delegate used to resolve the <see cref="int"/> response for an incoming request.
         /// </param>
+        /// <param name="advertisedListenPort">
+        ///     The port to advertise to the Soulseek server, or <see langword="null"/> to leave the
+        ///     existing advertised port unchanged. This does not rebind the local listener.
+        /// </param>
         /// <exception cref="ArgumentOutOfRangeException">
         ///     Thrown when the value supplied for <paramref name="listenPort"/> is not between 1024 and 65535.
         /// </exception>
@@ -116,7 +120,8 @@ namespace Soulseek
             Func<string, IPEndPoint, int, string, Task<IEnumerable<Directory>>> directoryContentsResolver = null,
             Func<string, IPEndPoint, Task<UserInfo>> userInfoResolver = null,
             Func<string, IPEndPoint, string, Task> enqueueDownload = null,
-            Func<string, IPEndPoint, string, Task<int?>> placeInQueueResolver = null)
+            Func<string, IPEndPoint, string, Task<int?>> placeInQueueResolver = null,
+            int? advertisedListenPort = null)
         {
             EnableListener = enableListener;
             this.listenIPAddress = listenIPAddress.Snapshot();
@@ -126,6 +131,13 @@ namespace Soulseek
             if (ListenPort < 1024 || ListenPort > IPEndPoint.MaxPort)
             {
                 throw new ArgumentOutOfRangeException(nameof(listenPort), "Must be between 1024 and 65535");
+            }
+
+            AdvertisedListenPort = advertisedListenPort;
+
+            if (AdvertisedListenPort is < 1024 or > IPEndPoint.MaxPort)
+            {
+                throw new ArgumentOutOfRangeException(nameof(advertisedListenPort), "Must be between 1024 and 65535");
             }
 
             EnableDistributedNetwork = enableDistributedNetwork;
@@ -255,6 +267,12 @@ namespace Soulseek
         ///     Gets the port on which to listen for incoming connections.
         /// </summary>
         public int? ListenPort { get; }
+
+        /// <summary>
+        ///     Gets the port to advertise to the Soulseek server, or <see langword="null"/> when no
+        ///     advertisement change was requested. This does not rebind the local listener.
+        /// </summary>
+        public int? AdvertisedListenPort { get; }
 
         /// <summary>
         ///     Gets the total maximum allowable download speed, in kibibytes per second.

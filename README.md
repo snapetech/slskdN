@@ -637,6 +637,13 @@ docker run -d \
 _Add `-p 50300:50300/udp` if you enable mesh/DHT rendezvous (off by default) — it shares the
 Soulseek listen port's number for DHT, mesh overlay control, and QUIC traffic._
 
+For the default consolidated setup, the public port budget is one TCP forward:
+regular Soulseek, type-1 obfuscated traffic, and mesh TCP rendezvous share it.
+If public DHT/mesh/QUIC rendezvous is enabled, add one UDP forward using the
+same port number. A VPN provider may map a different public port to the local
+listener; the VPN integration advertises that public port without rebinding the
+local Soulseek socket.
+
 ### With Docker Compose
 ```yaml
 version: "3"
@@ -652,7 +659,8 @@ services:
       - SLSKD_SLSK_PASSWORD=your_password
     # If you enable mesh/DHT rendezvous (off by default), also publish 50300/udp: it shares
     # the same port number as the Soulseek TCP listen port for DHT, mesh overlay control, and
-    # QUIC traffic. See docs/getting-started.md#first-run-ports.
+    # QUIC traffic. A provider may use a different public forwarded port while the app keeps
+    # its local listener on 50300. See docs/getting-started.md#first-run-ports.
     volumes:
       - ./app:/app
       - ./downloads:/downloads

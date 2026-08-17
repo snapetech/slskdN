@@ -41,6 +41,8 @@ slskdN-vpn-agent <command>
 - `api`: serve compatibility and slskdN-specific status endpoints.
 - `ingress`: discover slskdN listener ports, claim/write forwarded-port state,
   and reconcile ingress rules.
+- `renew-ingress`: renew existing NAT-PMP mappings and update state without
+  rebuilding ingress namespaces or veth links.
 - `cleanup-ingress`: remove ingress namespaces, veth links, rules, and route
   tables.
 - `split`: configure Linux UID policy routing and fail-closed table.

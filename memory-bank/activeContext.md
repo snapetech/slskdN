@@ -1,3 +1,45 @@
+## Update 2026-08-17 19:00:25Z
+
+- Current task: fix and validate public VPN ingress before release; release
+  tagging remains paused.
+- Root causes fixed: the host-side veth DNAT path now has a managed native
+  nftables input-chain jump, and the renewal timer refreshes existing NAT-PMP
+  leases without restarting the ingress namespace/veth.
+- Live proof: an independent VPN egress completed a Soulseek direct `UserInfo`
+  exchange through the public forwarded endpoint. The ingress veth remained
+  present across renewal cycles and after a full cleanup/rebuild. A second VPN
+  egress could establish a raw TCP connection but sent no payload to the
+  ingress path, consistent with its provider-side hairpin/ACL limitation.
+- Documentation and release-note coverage has been added for the one shared
+  TCP forward, optional shared UDP forward, public/local port separation,
+  native nftables handling, and non-disruptive renewal.
+- Next steps: run repository tests/lint/release-note and identity checks, then
+  commit and push all current tracked and untracked work. Do not create a
+  release tag until release authorization is given again.
+
+## Update 2026-08-17 17:41:34Z
+
+- Current task: live port/interop validation complete; release remains paused
+  while port merging is being tested.
+- Validation: the current build passed the full `61/61` cross-client matrix
+  locally and through a second isolated VPN profile, plus raw Soulseek.NET,
+  upstream slskd, and two full-instance mesh/search checks. Offline validation
+  passed application `74`, unit `5135`, integration `284`, vendor Connect
+  `57`, `./bin/lint`, and diff checks.
+- Deployment: the validation service is healthy and listening on the existing
+  shared TCP/mesh target `44508`. No switch to `50305` was made; that is a
+  separate mapping, not the current TCP listener.
+- Known boundary: external public-forward reachability is not proven from the
+  available test paths; one reverse VPN transfer hit the provider's public
+  endpoint hairpin/ACL limitation. The local application and VPN-side paths
+  passed.
+- Next steps:
+  1. Preserve the two dirty vendor runtime source/test files for review.
+  2. Add and validate the required release-note fragment, then preview the
+     release range when release work is authorized.
+  3. Only after explicit authorization, commit/push the intended work and
+     create a release tag.
+
 ## Update 2026-08-17 15:20:52Z
 
 - Current task: complete. Added Lidarr manual/automatic import history with

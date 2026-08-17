@@ -27,7 +27,7 @@ ingress tunnel.
 Install prerequisites:
 
 ```bash
-sudo dnf install -y dotnet-sdk-10.0 wireguard-tools natpmpc jq curl iptables iproute
+sudo dnf install -y dotnet-sdk-10.0 wireguard-tools natpmpc jq curl iptables iproute nftables
 ```
 
 Install VPN configs:
@@ -104,4 +104,10 @@ sudo cat /var/lib/slskdN-vpn/summary.env
 ```
 
 The Web UI/API should remain reachable on local/LAN addresses. Soulseek TCP
-should advertise the forwarded public port reported by the compatibility API.
+should advertise the forwarded public port reported by the compatibility API,
+even when that differs from the local listener port. The default consolidated
+port budget is one TCP forward for regular/type-1 Soulseek and mesh TCP, plus
+one optional UDP forward for DHT/mesh/QUIC. The renewal timer refreshes leases
+without rebuilding the ingress namespace or veth. On hosts with a native
+nftables input policy, `nftables` is required so the agent can allow DNATed
+packets delivered to the host-side veth.

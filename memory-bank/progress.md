@@ -1,3 +1,42 @@
+## Update 2026-08-17 19:00:25Z
+
+- Fixed public WireGuard ingress on native nftables hosts by managing a narrow
+  input-chain jump for DNATed host-veth traffic; the existing iptables forward
+  rules did not cover locally delivered packets.
+- Replaced the renewal timer's full ingress-service restart with the dedicated
+  `renew-ingress` command. NAT-PMP mappings now renew in place, preserving the
+  live namespace/veth/DNAT path; lost mappings can be reclaimed and exposed via
+  the compatibility API.
+- Live validation completed through an independent VPN egress: TCP reached the
+  public forward and a Soulseek direct `UserInfo` exchange returned the target
+  description. Cleanup/rebuild restored the nftables chain and ingress path,
+  and subsequent external validation passed. A second VPN path's raw-connect
+  success without ingress packets remains classified as provider hairpin/ACL
+  behavior, not an application firewall failure.
+- Added user/operator documentation and a release-note fragment covering the
+  reduced port budget and public/local port separation. Release tagging remains
+  paused; commit and push are the remaining requested repository actions.
+
+## Update 2026-08-17 17:41:34Z
+
+- Completed live interoperability validation for the current slskdN build
+  against slskR and upstream slskd. The shared-port matrix passed `61/61`
+  checks locally and `61/61` through a second isolated WireGuard profile,
+  including login, browse, search, user watch, distributed ping, exact-byte
+  transfers in both directions, messages, rooms, mesh descriptors, DHT,
+  pods, private gateway echo, stream tickets, and post-transfer soak.
+- Raw Soulseek.NET browse/download and current slskdN-to-upstream slskd
+  download compatibility tests passed. Two current full-instance mesh/search
+  tests passed. The frozen `.307` binary failed before Soulseek login in both
+  comparison attempts, so its peer-transfer behavior remains unclassified.
+- The validation deployment continues to use the existing shared TCP listener
+  and forward target `44508`; the separate `50305` mapping is not the current
+  TCP listener. No test namespaces or child processes remain.
+- The shared obfuscation-port sentinel fix is covered by the vendor runtime
+  regression test and recorded in ADR-0001. Release, push, and `.309` tagging
+  remain paused pending explicit authorization and external public-forward
+  reachability follow-up.
+
 ## Update 2026-08-12
 
 - Current task: complete. Added the structured release-note contract and wired

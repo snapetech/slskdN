@@ -328,6 +328,57 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "Connect")]
+        [Theory(DisplayName = "Advertises the regular listen port as the obfuscated port to the server when obfuscation shares it"), AutoData]
+        public async Task Advertises_Regular_Port_As_Obfuscated_Port_When_Shared(string username, string password)
+        {
+            // ListenPort 0 means obfuscated connections share the regular listen port (see
+            // PeerObfuscationOptions remarks). The server still needs a concrete, in-range port
+            // number to advertise to other peers -- it must never see the raw 0 sentinel, which
+            // SetListenPortCommand itself rejects as out of range.
+            var options = new SoulseekClientOptions(
+                enableListener: false,
+                listenPort: 12345,
+                peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 0));
+            var (client, mocks) = GetFixture(options);
+
+            using (client)
+            {
+                await client.ConnectAsync(username, password);
+            }
+
+            var expectedBytes = new LoginRequest(minorVersion: 9999, username, password).ToByteArray()
+                .Concat(new SetListenPortCommand(12345, 1, 12345).ToByteArray())
+                .ToArray();
+
+            mocks.ServerConnection.Verify(m => m.WriteAsync(It.Is<byte[]>(msg => msg.Matches(expectedBytes)), It.IsAny<CancellationToken?>()));
+        }
+
+        [Trait("Category", "Connect")]
+        [Theory(DisplayName = "Advertises the forwarded public port without rebinding the local listener"), AutoData]
+        public async Task Advertises_Forwarded_Public_Port_Without_Rebinding_Listener(string username, string password)
+        {
+            var options = new SoulseekClientOptions(
+                enableListener: false,
+                listenPort: 12345,
+                advertisedListenPort: 45678,
+                peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 0));
+            var (client, mocks) = GetFixture(options);
+
+            using (client)
+            {
+                await client.ConnectAsync(username, password);
+            }
+
+            var expectedBytes = new LoginRequest(minorVersion: 9999, username, password).ToByteArray()
+                .Concat(new SetListenPortCommand(45678, 1, 45678).ToByteArray())
+                .ToArray();
+
+            Assert.Equal(12345, client.Options.ListenPort);
+            Assert.Equal(45678, client.Options.AdvertisedListenPort);
+            mocks.ServerConnection.Verify(m => m.WriteAsync(It.Is<byte[]>(msg => msg.Matches(expectedBytes)), It.IsAny<CancellationToken?>()));
+        }
+
+        [Trait("Category", "Connect")]
         [Fact(DisplayName = "Sets state to Connected | LoggedIn on success")]
         public async Task Sets_State_To_Connected_LoggedIn_On_Success()
         {

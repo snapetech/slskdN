@@ -127,6 +127,14 @@ See [Building from Source](build.md) for detailed instructions.
 | Mesh TCP overlay rendezvous | `50300/tcp` | When DHT rendezvous is enabled, it shares the Soulseek listen port and is classified per connection by a TLS-vs-Soulseek byte sniff; no separate TCP overlay port is required. |
 | Public DHT rendezvous / mesh overlay / QUIC | `50300/udp` | Disabled by default. Shares the same port number as the Soulseek listen port (TCP and UDP are separate port spaces, so this doesn't collide). Carries public BitTorrent DHT rendezvous, the UDP overlay control channel, and QUIC control- and data-plane traffic, demultiplexed on one socket. Mesh DHT metadata and file bytes stay on the overlay. Public DHT also requires `dht.lan_only: false`. |
 
+For the usual consolidated configuration, forward one TCP port and optionally
+one UDP port if public DHT/mesh/QUIC rendezvous is enabled. Plain Soulseek,
+type-1 obfuscated traffic, and mesh TCP use the shared TCP listener unless you
+explicitly configure a dedicated obfuscation port. With the VPN agent, the
+provider's public forwarded port may differ from the local listener port; the
+agent keeps the local socket bound and advertises the public port to Soulseek.
+Lease renewal refreshes the mapping without rebuilding the live ingress path.
+
 ### Essential Settings
 
 #### 1. Change Default Password

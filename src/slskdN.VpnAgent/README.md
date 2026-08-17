@@ -67,10 +67,11 @@ The setup has three layers:
    same runtime state without changing the routing layer.
 3. Custom glue:
    some providers return short-lived, random public ports. slskdN can consume a
-   Gluetun control API and dynamically advertise the forwarded port, but this
-   setup does not require a real Gluetun instance. The local compatibility
-   service exposes just enough of the Gluetun API for slskdN, and the agent keeps
-   transparent DNAT rules in sync with slskdN's current listener.
+   Gluetun control API and dynamically advertise the forwarded port without
+   rebinding its local listener, but this setup does not require a real Gluetun
+   instance. The local compatibility service exposes just enough of the Gluetun
+   API for slskdN, and the agent keeps transparent DNAT rules in sync with the
+   current listener.
 
 So: not a one-off shell hack, but also not stock slskdN. The repeatable part is
 in this directory. The non-repeatable part is only the private VPN config
@@ -112,7 +113,8 @@ other tunnel that exposes a Linux network interface:
 - fail-closed blackhole route in the VPN routing table
 - excluding local web UI/API traffic from the VPN route
 - the local Gluetun-compatible API consumed by slskdN
-- slskdN dynamically changing `soulseek.listenPort` to the forwarded public port
+- the public Soulseek port advertisement following the forwarded public port
+  while the local `soulseek.listen_port` remains bound to its configured port
 
 WireGuard has the deepest checked-in support:
 
@@ -430,6 +432,26 @@ compatibility. Slot `pf0` is the Soulseek TCP slot and is the port slskdN
 advertises today. Additional slots let slskdN inspect DHT/overlay mappings
 without requiring every VPN provider to mimic Gluetun.
 
+### Port Budget and Renewal
+
+The consolidated default needs one public TCP forward for regular Soulseek,
+type-1 obfuscated peer traffic, and mesh TCP rendezvous. Public DHT, mesh UDP,
+and QUIC rendezvous use one optional UDP forward on the same port number. A
+dedicated obfuscation TCP forward is only needed when
+`soulseek.obfuscation.listen_port` is explicitly nonzero.
+
+`pfN.env` records both `public_port` and the local `local_port`/`target_port`.
+They may differ: the provider-facing public port is what slskdN advertises,
+while DNAT still delivers to the stable local listener. The renewal timer calls
+`renew-ingress` to refresh NAT-PMP leases without tearing down the existing
+namespace, veth, or DNAT path. A full `ingress` reconciliation is reserved for
+startup or recovery.
+
+For WireGuard ingress, DNAT terminates on a host-side veth address. On Linux
+hosts with a native nftables input policy, the agent also manages a narrow input
+chain/jump for the configured target ports; iptables `FORWARD` rules alone do
+not permit packets that are locally delivered to the host veth.
+
 ## Install
 
 From this repo:
@@ -483,7 +505,10 @@ sudo SLSKDN_SERVICE_USER=slskdN \
   slskdN-vpn-agent platform-split
 ```
 
-The timer renews NAT-PMP mappings every 30 seconds by default. Keep the timer shorter than the provider lease lifetime.
+The timer renews NAT-PMP mappings every 30 seconds by default without
+restarting the ingress service. Keep the timer shorter than the provider lease
+lifetime. If a mapping is lost, the renewal command can claim a replacement and
+the compatibility API exposes the new public port for slskdN to advertise.
 
 ## Service User and UID
 
@@ -523,6 +548,7 @@ Commands:
 
 - `slskdN-vpn-agent api`: serve the Gluetun-compatible control API
 - `slskdN-vpn-agent ingress`: discover slskdN listener ports, create VPN ingress namespaces, and claim/write forwarded port state
+- `slskdN-vpn-agent renew-ingress`: renew existing NAT-PMP mappings without rebuilding ingress namespaces or veth links
 - `slskdN-vpn-agent cleanup-ingress`: remove ingress namespaces, veth links, rules, and route tables
 - `slskdN-vpn-agent split`: configure UID policy routing and fail-closed table
 - `slskdN-vpn-agent platform-split`: configure Windows/macOS native firewall

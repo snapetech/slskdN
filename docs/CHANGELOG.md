@@ -24,6 +24,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Added automatic shared TCP-port support for the DHT mesh overlay and Soulseek
   peer listener whenever DHT rendezvous is enabled.
+- Fixed VPN ingress through native nftables input policies and changed dynamic
+  port-forward renewal to preserve the live ingress namespace and veth. The
+  provider's public port is advertised separately from the local listener, so
+  the consolidated default needs one TCP forward plus an optional shared UDP
+  forward for DHT/mesh/QUIC rendezvous.
 
 ## [2026081715-slskdn.308] — 2026-08-17
 

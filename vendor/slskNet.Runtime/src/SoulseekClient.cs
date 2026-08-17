@@ -4716,7 +4716,8 @@ namespace Soulseek
                     directoryContentsResolver: patch.DirectoryContentsResolver,
                     userInfoResolver: patch.UserInfoResolver,
                     enqueueDownload: patch.EnqueueDownload,
-                    placeInQueueResolver: patch.PlaceInQueueResolver);
+                    placeInQueueResolver: patch.PlaceInQueueResolver,
+                    advertisedListenPort: patch.AdvertisedListenPort);
 
                 if (maximumUploadSpeedChanged)
                 {
@@ -5178,15 +5179,24 @@ namespace Soulseek
 
         private SetListenPortCommand CreateSetListenPortCommand()
         {
+            var advertisedListenPort = Options.AdvertisedListenPort ?? Options.ListenPort;
+
             if (!Options.PeerObfuscationOptions.Enabled)
             {
-                return new SetListenPortCommand(Options.ListenPort);
+                return new SetListenPortCommand(advertisedListenPort);
             }
 
+            // A configured obfuscation listen port of 0 means obfuscated connections share the
+            // regular listen port (see PeerObfuscationOptions remarks); the server needs the
+            // actual reachable port number to advertise to other peers, not the sentinel.
+            var obfuscatedPort = Options.PeerObfuscationOptions.ListenPort == 0
+                ? advertisedListenPort
+                : Options.PeerObfuscationOptions.ListenPort;
+
             return new SetListenPortCommand(
-                Options.ListenPort,
+                advertisedListenPort,
                 Options.PeerObfuscationOptions.Type,
-                Options.PeerObfuscationOptions.ListenPort);
+                obfuscatedPort);
         }
 
         private async Task SendRoomMessageInternalAsync(string roomName, string message, CancellationToken cancellationToken)

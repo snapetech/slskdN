@@ -113,6 +113,7 @@ public class VPNService : IDisposable
     private SemaphoreSlim TimerElapsedLock { get; } = new SemaphoreSlim(1, 1);
     private Dictionary<int, int> LastPortForwardPublicPorts { get; } = new();
     private int? LastPrimaryForwardedPort { get; set; }
+    private int? LastAdvertisedSoulseekPort { get; set; }
 
     /// <summary>
     ///     Starts polling the configured VPN client for status updates.
@@ -254,6 +255,9 @@ public class VPNService : IDisposable
             IsReady = isReadyNow;
             Status = status ?? new VPNStatus();
 
+            await SynchronizeAdvertisedSoulseekPortAsync(
+                isReadyNow ? Status.ForwardedPort : null);
+
             foreach (var forward in Status.PortForwards)
             {
                 if (!LastPortForwardPublicPorts.TryGetValue(forward.TargetPort, out var prev) || prev != forward.PublicPort)
@@ -299,6 +303,28 @@ public class VPNService : IDisposable
         {
             TimerElapsedLock.Release();
         }
+    }
+
+    private async Task SynchronizeAdvertisedSoulseekPortAsync(int? forwardedPort)
+    {
+        if (forwardedPort is not > 0)
+        {
+            LastAdvertisedSoulseekPort = null;
+            return;
+        }
+
+        if (forwardedPort == LastAdvertisedSoulseekPort)
+        {
+            return;
+        }
+
+        await SoulseekClient.ReconfigureOptionsAsync(
+            new SoulseekClientOptionsPatch(advertisedListenPort: forwardedPort));
+
+        LastAdvertisedSoulseekPort = forwardedPort;
+        Log.Information(
+            "Updated Soulseek public listen-port advertisement to VPN forwarded port {Port}; local listener was not rebound",
+            forwardedPort);
     }
 
     private async Task ObserveCheckConnectionAsync()

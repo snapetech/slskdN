@@ -7,6 +7,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using slskd.Integrations.VPN;
@@ -16,7 +17,7 @@ using Xunit;
 public class VPNServiceTests
 {
     [Fact]
-    public async Task PollingObserver_WhenPortForwardingIsReady_DoesNotRewriteSoulseekListenPort()
+    public async Task PollingObserver_WhenPortForwardingIsReady_UpdatesPublicAdvertisementWithoutRebindingListener()
     {
         Program.ApplyConfigurationOverlay(new OptionsOverlay());
 
@@ -51,11 +52,19 @@ public class VPNServiceTests
             },
         };
 
+        var soulseek = new Mock<ISoulseekClient>();
+        soulseek.SetupGet(client => client.Options)
+            .Returns(new SoulseekClientOptions(listenPort: 50300));
+        soulseek.Setup(client => client.ReconfigureOptionsAsync(
+                It.IsAny<SoulseekClientOptionsPatch>(),
+                It.IsAny<CancellationToken?>()))
+            .ReturnsAsync(false);
+
         var service = new VPNService(
             optionsAtStartup,
             new TestOptionsMonitor<Options>(options),
             Mock.Of<IStateMutator<State>>(),
-            Mock.Of<ISoulseekClient>(),
+            soulseek.Object,
             Mock.Of<IHttpClientFactory>());
 
         SetVpnClient(service, Mock.Of<IVPNClient>(client =>
@@ -71,6 +80,10 @@ public class VPNServiceTests
         Assert.True(service.IsReady);
         Assert.Equal(38325, service.Status.ForwardedPort);
         Assert.Null(Program.ConfigurationOverlay?.Soulseek?.ListenPort);
+        Assert.Equal(50300, soulseek.Object.Options.ListenPort);
+        soulseek.Verify(client => client.ReconfigureOptionsAsync(
+            It.Is<SoulseekClientOptionsPatch>(patch => patch.AdvertisedListenPort == 38325),
+            It.IsAny<CancellationToken?>()), Times.Once);
     }
 
     [Fact]

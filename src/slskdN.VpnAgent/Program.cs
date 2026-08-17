@@ -22,6 +22,7 @@ try
         "api" => await Commands.Api(args.Skip(1).ToArray()),
         "cleanup-ingress" => await Commands.CleanupIngress(),
         "ingress" => await Commands.Ingress(),
+        "renew-ingress" => await Commands.RenewIngress(),
         "split" => await Commands.Split(),
         "platform-split" => await Commands.PlatformSplit(),
         "relay-apply" => await Commands.RelayApply(),
@@ -56,6 +57,8 @@ static void Usage()
       cleanup-ingress
                  Remove transparent VPN ingress network namespaces/routes
       ingress    Configure transparent VPN ingress forwards
+      renew-ingress
+                 Renew existing VPN port mappings without rebuilding ingress
       split      Configure UID policy routing through the VPN table
       platform-split
                  Configure platform-native fail-closed routing/firewall
@@ -71,6 +74,9 @@ static void Usage()
 
 static class Commands
 {
+    private const string NftIngressTable = "filter";
+    private const string NftIngressChain = "slskdn_vpn_ingress";
+    private const string NftInputChain = "input";
     private static readonly SemaphoreSlim RelayTransportStatusLock = new(1, 1);
     private static RelayTransportStatus? CachedRelayTransportStatus;
     private static DateTimeOffset CachedRelayTransportStatusAt;
@@ -575,6 +581,7 @@ static class Commands
 
         if (ports.Count == 0)
         {
+            await CleanupNftablesInputRules();
             Console.Error.WriteLine("No slskdN listener ports found");
             return 2;
         }
@@ -605,6 +612,8 @@ static class Commands
             }
         }
 
+        await ConfigureNftablesInputRules(ports.Take(limit));
+
         for (var i = limit; i < AppConfig.MaxIngressSlots; i++)
         {
             await CleanupIngressSlot(i);
@@ -624,12 +633,129 @@ static class Commands
         return ok > 0 ? 0 : 4;
     }
 
+    public static async Task<int> RenewIngress()
+    {
+        if (AppConfig.PortForwardBackend != "natpmp")
+        {
+            return 0;
+        }
+
+        await RequireCommand("natpmpc");
+
+        var forwards = ReadPortForwards();
+        if (forwards.Count == 0)
+        {
+            Console.Error.WriteLine("No existing ingress mappings found to renew");
+            return 0;
+        }
+
+        var renewed = 0;
+        foreach (var forward in forwards)
+        {
+            var port = new IngressPort(forward.LocalPort, forward.TargetPort, forward.Proto);
+            var state = await NatPmp(forward.Slot, forward.Namespace, forward.PublicPort.ToString(), port);
+            if (string.IsNullOrWhiteSpace(state.PublicPort))
+            {
+                state = await NatPmp(forward.Slot, forward.Namespace, "0", port);
+            }
+
+            if (string.IsNullOrWhiteSpace(state.PublicPort))
+            {
+                Console.Error.WriteLine($"pf{forward.Slot}: failed to renew {forward.Proto} mapping on {forward.Namespace}");
+                continue;
+            }
+
+            await WriteIngressState(forward.Slot, port, state.PublicPort, state.PublicIp);
+            Console.Error.WriteLine($"pf{forward.Slot}: renewed {forward.Proto} public {state.PublicPort} -> private {port.PrivatePort} -> target {port.TargetPort}");
+            renewed++;
+        }
+
+        return renewed == forwards.Count ? 0 : 1;
+    }
+
+    private static async Task ConfigureNftablesInputRules(IEnumerable<IngressPort> ports)
+    {
+        if (!OperatingSystem.IsLinux() || AppConfig.TunnelType != "wireguard" || !await ProcessUtil.CommandExists("nft"))
+        {
+            return;
+        }
+
+        var input = await ProcessUtil.Run("nft", "-a", "list", "chain", "inet", NftIngressTable, NftInputChain);
+        if (input.ExitCode != 0)
+        {
+            return;
+        }
+
+        var chain = await ProcessUtil.Run("nft", "list", "chain", "inet", NftIngressTable, NftIngressChain);
+        if (chain.ExitCode != 0)
+        {
+            await MustRun("nft", "add", "chain", "inet", NftIngressTable, NftIngressChain);
+        }
+        await MustRun("nft", "flush", "chain", "inet", NftIngressTable, NftIngressChain);
+        foreach (var port in ports.DistinctBy(port => (port.Protocol, port.TargetPort)))
+        {
+            await MustRun(
+                "nft",
+                "add",
+                "rule",
+                "inet",
+                NftIngressTable,
+                NftIngressChain,
+                "ip",
+                "daddr",
+                $"{AppConfig.IngressHostPrefix}.0.0/16",
+                port.Protocol,
+                "dport",
+                port.TargetPort.ToString(),
+                "accept");
+        }
+
+        if (!input.Stdout.Contains($"jump {NftIngressChain}", StringComparison.Ordinal))
+        {
+            await MustRun("nft", "insert", "rule", "inet", NftIngressTable, NftInputChain, "jump", NftIngressChain);
+        }
+    }
+
+    private static async Task CleanupNftablesInputRules()
+    {
+        if (!OperatingSystem.IsLinux() || !await ProcessUtil.CommandExists("nft"))
+        {
+            return;
+        }
+
+        var input = await ProcessUtil.Run("nft", "-a", "list", "chain", "inet", NftIngressTable, NftInputChain);
+        if (input.ExitCode == 0)
+        {
+            foreach (var line in input.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!line.Contains($"jump {NftIngressChain}", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var match = Regex.Match(line, @"# handle (\d+)");
+                if (match.Success)
+                {
+                    await MustRun("nft", "delete", "rule", "inet", NftIngressTable, NftInputChain, "handle", match.Groups[1].Value);
+                }
+            }
+
+            var chain = await ProcessUtil.Run("nft", "list", "chain", "inet", NftIngressTable, NftIngressChain);
+            if (chain.ExitCode == 0)
+            {
+                await MustRun("nft", "delete", "chain", "inet", NftIngressTable, NftIngressChain);
+            }
+        }
+    }
+
     public static async Task<int> CleanupIngress()
     {
         for (var i = 0; i < AppConfig.MaxIngressSlots; i++)
         {
             await CleanupIngressSlot(i);
         }
+
+        await CleanupNftablesInputRules();
 
         return 0;
     }
