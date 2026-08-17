@@ -1,3 +1,18 @@
+## Update 2026-08-17 14:40:03Z
+
+- Current task: complete. Fixed Lidarr manual-import commands failing after
+  queuing with `Artist with ID 0 does not exist`.
+- Last activity: projected Lidarr's nested manual-import GET resources into
+  the flat command payload required by Lidarr, added captured-JSON regression
+  coverage, recorded gotchas `0z853` and `0z854`, and added the release-note and
+  changelog entries.
+- Validation: focused Lidarr tests `35/35`, full application tests `74/74`,
+  unit tests `5112/5112`, integration tests `284/284`, `./bin/lint`, and
+  `git diff --check` pass.
+- Next steps:
+  1. Publish through the normal release workflow when explicitly authorized;
+     no release tag was created for this fix.
+
 ## Update 2026-08-12
 
 - Current task: complete. Release-note and changelog publication enforcement

@@ -9,6 +9,14 @@
 
 ### High Priority
 
+- [x] Fix Lidarr manual-import command payload identifiers.
+  - Status: completed (2026-08-17)
+  - Priority: P1
+  - Notes: The manual-import client now projects Lidarr's nested GET candidate
+    resources into the flat `artistId`, `albumId`, `albumReleaseId`, and
+    `trackIds` command format. Added serialized-payload regression coverage and
+    recorded gotchas `0z853` and `0z854`.
+
 - [x] Add structured release-note, changelog, and Discord publication gates.
   - Status: completed (2026-08-12)
   - Priority: P1

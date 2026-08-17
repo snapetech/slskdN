@@ -164,7 +164,7 @@ public sealed class LidarrClient : ILidarrClient
             "ManualImport",
             new
             {
-                Files = files,
+                Files = files.Select(ToManualImportFile).ToList(),
                 ImportMode = importMode,
                 ReplaceExistingFiles = replaceExistingFiles,
             },
@@ -202,6 +202,20 @@ public sealed class LidarrClient : ILidarrClient
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
     }
+
+    private static LidarrManualImportFile ToManualImportFile(LidarrManualImportResource file)
+        => new()
+        {
+            Path = file.Path!,
+            ArtistId = file.Artist!.Id,
+            AlbumId = file.Album!.Id,
+            AlbumReleaseId = file.AlbumReleaseId,
+            TrackIds = file.Tracks!.Select(track => track.Id).ToList(),
+            Quality = file.Quality,
+            IndexerFlags = file.IndexerFlags,
+            DownloadId = file.DownloadId,
+            DisableReleaseSwitching = file.DisableReleaseSwitching,
+        };
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string relativePath)
     {
@@ -357,6 +371,7 @@ public sealed class LidarrManualImportResource
         Album?.Id > 0 &&
         AlbumReleaseId > 0 &&
         Tracks?.Count > 0 &&
+        Tracks.All(track => track.Id > 0) &&
         Quality.HasValue &&
         Quality.Value.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined &&
         AdditionalFile == false &&
@@ -365,6 +380,27 @@ public sealed class LidarrManualImportResource
             var reason = r.TryGetProperty("reason", out var p) ? p.GetString() ?? string.Empty : string.Empty;
             return reason.Contains("missing tracks", StringComparison.OrdinalIgnoreCase);
         }));
+}
+
+public sealed record LidarrManualImportFile
+{
+    public string Path { get; init; } = string.Empty;
+
+    public int ArtistId { get; init; }
+
+    public int AlbumId { get; init; }
+
+    public int AlbumReleaseId { get; init; }
+
+    public List<int> TrackIds { get; init; } = [];
+
+    public JsonElement? Quality { get; init; }
+
+    public int IndexerFlags { get; init; }
+
+    public string? DownloadId { get; init; }
+
+    public bool DisableReleaseSwitching { get; init; }
 }
 
 public sealed record LidarrAlbumResource

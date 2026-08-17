@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Lidarr manual imports failing after queuing with `Artist with ID 0
+  does not exist`; slskdN now sends the flat artist, album, release, and track
+  identifiers required by Lidarr's `ManualImport` command.
+
 ## [2026081618-slskdn.306] — 2026-08-16
 
 - Added Lidarr edition matching: Wishlist auto-download now validates a

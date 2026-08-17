@@ -12620,3 +12620,9 @@ Policies surface, added focused frontend coverage, and documented the revised
 information architecture. Focused tests and production frontend build pass;
 standalone frontend ESLint remains blocked by the existing TypeScript 7 /
 typescript-eslint compatibility error before source analysis.
+
+[2026-08-17T14:40:03Z] Fixed Lidarr manual-import command serialization. The
+client now converts nested GET candidate resources into Lidarr's flat command
+file identifiers, preventing queued imports from binding `artistId` as zero.
+Added a captured-JSON regression test, release-note fragment, and ADR-0001
+gotchas `0z853` and `0z854`. The focused Lidarr suite passes (`35` tests).
