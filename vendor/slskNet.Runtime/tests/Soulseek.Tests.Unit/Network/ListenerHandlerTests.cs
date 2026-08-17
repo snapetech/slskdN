@@ -23,6 +23,8 @@ namespace Soulseek.Tests.Unit.Network
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Net;
+    using System.Reflection;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using AutoFixture.Xunit2;
@@ -93,6 +95,17 @@ namespace Soulseek.Tests.Unit.Network
 
                 Assert.Null(ex);
             }
+        }
+
+        [Trait("Category", "Diagnostic")]
+        [Fact(DisplayName = "Dispatches connection handling without an async-void boundary")]
+        public void Dispatches_Connection_Handling_Without_An_Async_Void_Boundary()
+        {
+            var method = typeof(ListenerHandler).GetMethod(nameof(ListenerHandler.HandleConnection), BindingFlags.Public | BindingFlags.Instance);
+
+            Assert.NotNull(method);
+            Assert.Equal(typeof(void), method.ReturnType);
+            Assert.Empty(method.GetCustomAttributes(typeof(AsyncStateMachineAttribute), inherit: false));
         }
 
         [Trait("Category", "Diagnostic")]

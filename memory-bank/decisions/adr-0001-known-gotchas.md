@@ -28247,3 +28247,32 @@ scripts/check-council-active-backlog.sh
 ignored, while the backlog is tracked for handoff. Any source or documentation
 change can alter a broad candidate count, so the tracked row must be refreshed
 in the same release-preparation change.
+
+### 0z865. Observe Async Work From Runtime Event Handlers
+
+**The Bug**: The Soulseek listener exposed an `async void` event callback, and
+malformed inbound initialization frames could later surface as repeated fatal
+unobserved-task logs even though the connection cleanup path rejected them.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Network/ListenerHandler.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs`
+- `vendor/slskNet.Runtime.patches/0001-slskdN-local-runtime-delta.patch`
+
+**Wrong**:
+```csharp
+public async void HandleConnection(object sender, IConnection connection)
+    => await HandleConnectionAsync(sender, connection).ConfigureAwait(false);
+```
+
+**Correct**:
+```csharp
+public void HandleConnection(object sender, IConnection connection)
+    => HandleConnectionAsync(sender, connection).Forget();
+```
+
+**Why This Keeps Happening**: .NET event contracts are synchronous and cannot
+return the task they start. An `async void` callback gives the runtime no task
+to observe at the event boundary; use the runtime's explicit observation helper
+and keep protocol-frame rejection inside the asynchronous handler's cleanup
+boundary.

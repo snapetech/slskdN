@@ -66,8 +66,10 @@ namespace Soulseek.Network
         /// </summary>
         /// <param name="sender">The originating <see cref="IListener"/> instance.</param>
         /// <param name="connection">The accepted connection.</param>
-        public async void HandleConnection(object sender, IConnection connection)
-            => await HandleConnectionAsync(sender, connection).ConfigureAwait(false);
+        // EventHandler cannot await this asynchronous path; explicitly observe the task so a
+        // malformed peer frame cannot surface later as an unobserved task exception.
+        public void HandleConnection(object sender, IConnection connection)
+            => HandleConnectionAsync(sender, connection).Forget();
 
         internal async System.Threading.Tasks.Task HandleConnectionAsync(object sender, IConnection connection)
         {

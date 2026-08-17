@@ -65,7 +65,7 @@ index e1ad166..f721e52 100644
              }
  
 diff --git a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
-index 7038299..d53fce2 100644
+index 7038299..d3a5d1b 100644
 --- a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
 +++ b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
 @@ -22,6 +22,7 @@
@@ -76,7 +76,20 @@ index 7038299..d53fce2 100644
  // </copyright>
  
  namespace Soulseek.Network
-@@ -80,7 +81,8 @@ namespace Soulseek.Network
+@@ -65,8 +66,10 @@ namespace Soulseek.Network
+         /// </summary>
+         /// <param name="sender">The originating <see cref="IListener"/> instance.</param>
+         /// <param name="connection">The accepted connection.</param>
+-        public async void HandleConnection(object sender, IConnection connection)
+-            => await HandleConnectionAsync(sender, connection).ConfigureAwait(false);
++        // EventHandler cannot await this asynchronous path; explicitly observe the task so a
++        // malformed peer frame cannot surface later as an unobserved task exception.
++        public void HandleConnection(object sender, IConnection connection)
++            => HandleConnectionAsync(sender, connection).Forget();
+ 
+         internal async System.Threading.Tasks.Task HandleConnectionAsync(object sender, IConnection connection)
+         {
+@@ -80,7 +83,8 @@ namespace Soulseek.Network
                  var listener = sender as IListener;
                  var listenerPort = listener?.Port ?? SoulseekClient.Listener?.Port ?? 0;
                  var listenerAddress = listener?.IPAddress ?? SoulseekClient.Listener?.IPAddress;
@@ -86,7 +99,7 @@ index 7038299..d53fce2 100644
                  if (obfuscated)
                  {
                      connection.MarkObfuscated();
-@@ -90,7 +92,47 @@ namespace Soulseek.Network
+@@ -90,7 +94,47 @@ namespace Soulseek.Network
  
                  byte[] message;
  
@@ -135,7 +148,7 @@ index 7038299..d53fce2 100644
                  {
                      var firstBlock = await connection.ReadAsync(8).ConfigureAwait(false);
                      var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
-@@ -294,5 +336,26 @@ namespace Soulseek.Network
+@@ -294,5 +338,26 @@ namespace Soulseek.Network
          {
              MessageFrameValidator.ValidateInitMessageLength(length, "obfuscated initialization message");
          }
@@ -983,10 +996,37 @@ index 13523ec..00fdda3 100644
      }
  }
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
-index 20cf63a..f7286b5 100644
+index 20cf63a..7437480 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
-@@ -588,6 +588,87 @@ namespace Soulseek.Tests.Unit.Network
+@@ -23,6 +23,8 @@ namespace Soulseek.Tests.Unit.Network
+     using System.Collections.Concurrent;
+     using System.Collections.Generic;
+     using System.Net;
++    using System.Reflection;
++    using System.Runtime.CompilerServices;
+     using System.Threading;
+     using System.Threading.Tasks;
+     using AutoFixture.Xunit2;
+@@ -95,6 +97,17 @@ namespace Soulseek.Tests.Unit.Network
+             }
+         }
+ 
++        [Trait("Category", "Diagnostic")]
++        [Fact(DisplayName = "Dispatches connection handling without an async-void boundary")]
++        public void Dispatches_Connection_Handling_Without_An_Async_Void_Boundary()
++        {
++            var method = typeof(ListenerHandler).GetMethod(nameof(ListenerHandler.HandleConnection), BindingFlags.Public | BindingFlags.Instance);
++
++            Assert.NotNull(method);
++            Assert.Equal(typeof(void), method.ReturnType);
++            Assert.Empty(method.GetCustomAttributes(typeof(AsyncStateMachineAttribute), inherit: false));
++        }
++
+         [Trait("Category", "Diagnostic")]
+         [Theory(DisplayName = "Creates diagnostic on connection"), AutoData]
+         public void Creates_Diagnostic_On_Connection(IPEndPoint endpoint)
+@@ -588,6 +601,87 @@ namespace Soulseek.Tests.Unit.Network
              mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid obfuscated initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
          }
  
