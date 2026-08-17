@@ -28365,3 +28365,31 @@ reconcile ingress before the provider lease expires
 ingress tunnels have independent WireGuard state and failure modes. A green
 primary interface cannot prove that a forwarded port's namespace is alive;
 health checks must inspect every active ingress slot separately.
+
+### 0z869. Do Not Treat a Short WireGuard Handshake Age as Ingress Failure
+
+**The Bug**: The first per-slot watchdog check used a 120-second latest
+handshake limit. The provider continued to accept NAT-PMP renewals, but did
+not refresh the WireGuard handshake timestamp within that interval, so the
+watchdog tore down a healthy ingress namespace and briefly removed its public
+path.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+- `src/slskdN.VpnAgent/README.md`
+
+**Wrong**:
+```text
+latest handshake older than 120 seconds => rebuild ingress
+```
+
+**Correct**:
+```text
+failed renewal service => recover ingress immediately
+older handshake => secondary stale-tunnel signal with a conservative bound
+```
+
+**Why This Keeps Happening**: WireGuard keepalive traffic can keep a tunnel
+usable without updating the latest-handshake timestamp as often as the port
+forward lease. Provider mapping renewal is the stronger liveness signal for an
+active forwarded port; handshake age must not be used as a short lease timer.
