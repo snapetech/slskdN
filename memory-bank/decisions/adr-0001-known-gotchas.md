@@ -107,6 +107,29 @@ to compile.
 elements, or give both operands an explicitly shared collection type instead
 of relying on collection-expression overload inference.
 
+### 0z855. Make Nullable DateTime Conditionals Explicit
+
+**The Bug**: A Lidarr history implementation used a conditional expression
+with a `DateTime` branch and a null branch, so the production project failed to
+compile because the compiler could not infer the nullable result type.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrImportService.cs`
+
+**Wrong**:
+```csharp
+var completed = isTerminal ? DateTime.UtcNow : null;
+```
+
+**Correct**:
+```csharp
+DateTime? completed = isTerminal ? DateTime.UtcNow : null;
+```
+
+**Why This Keeps Happening**: C# does not always infer `DateTime?` from a
+conditional expression whose alternatives are a non-nullable value and null.
+Declare the nullable target explicitly whenever a timestamp can be absent.
+
 ### 0z836. Empty Optional Environment Variables Must Be Ignored
 
 **The Bug**: Docker/Unraid templates exposed optional `SLSKD_*` fields with
