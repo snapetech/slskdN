@@ -28276,3 +28276,34 @@ return the task they start. An `async void` callback gives the runtime no task
 to observe at the event boundary; use the runtime's explicit observation helper
 and keep protocol-frame rejection inside the asynchronous handler's cleanup
 boundary.
+
+### 0z866. Make Malformed Listener Frames Non-Throwing at the Network Boundary
+
+**The Bug**: Changing the listener event callback to use `Forget()` did not
+pass the live validation. A held-open malformed four-byte frame still produced
+an unobserved-task fatal log from the initialization-length validator in the
+deployed runtime.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Network/ListenerHandler.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs`
+- `vendor/slskNet.Runtime.patches/0001-slskdN-local-runtime-delta.patch`
+
+**Wrong**:
+```csharp
+MessageFrameValidator.ValidateInitMessageLength(length);
+```
+
+**Correct**:
+```csharp
+if (!TryValidateInitMessageLength(length))
+{
+    DisconnectAndDispose(connection, new MessageReadException(...));
+    return;
+}
+```
+
+**Why This Keeps Happening**: A broad asynchronous catch and a fire-and-forget
+observer are not enough evidence for a live socket boundary. Invalid peer
+lengths must fail closed without throwing from the frame-dispatch path, and
+the held-open malformed-frame probe must be part of release validation.
