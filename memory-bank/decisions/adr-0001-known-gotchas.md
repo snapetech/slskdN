@@ -28219,3 +28219,31 @@ scripts/check-slsknet-runtime-sync.sh
 the release gate reconstructs that mirror from the upstream revision plus the
 declared patch. Both representations must be updated together whenever a
 vendored runtime file changes.
+
+### 0z864. Refresh Council Backlog Counts Before Release
+
+**The Bug**: The generated council candidate report had a current `Red-team
+abuse lens` count, but the durable active-backlog row still held the previous
+count, so the release gate rejected an otherwise valid release.
+
+**Files Affected**:
+- `scripts/run-council-active-bughunt.sh`
+- `scripts/check-council-active-backlog.sh`
+- `docs/dev/bug-council-active-backlog.md`
+
+**Wrong**:
+```text
+run the candidate scan and leave the durable count from the previous scan
+```
+
+**Correct**:
+```text
+scripts/run-council-active-bughunt.sh
+update docs/dev/bug-council-active-backlog.md with every emitted section count
+scripts/check-council-active-backlog.sh
+```
+
+**Why This Keeps Happening**: The active report is intentionally generated and
+ignored, while the backlog is tracked for handoff. Any source or documentation
+change can alter a broad candidate count, so the tracked row must be refreshed
+in the same release-preparation change.
