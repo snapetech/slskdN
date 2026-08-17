@@ -28164,3 +28164,30 @@ public VPN port -> ingress namespace DNAT -> host veth -> managed nft input acce
 host namespace, manage a narrowly scoped native input rule for each target
 protocol and port. Forward-chain rules alone do not cover locally delivered
 packets, and an nftables policy can run independently of iptables-nft rules.
+
+### 0z862. Port-Forward Renewal Must Not Rebuild Live Ingress
+
+**The Bug**: The dynamic port-forward renewal timer restarted the complete
+ingress service instead of renewing the existing provider mappings. Every
+restart briefly removed the ingress namespace and veth, causing external
+connections to race teardown and making a reachable public port appear
+intermittently closed.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+- `src/slskdN.VpnAgent/systemd/slskdN-vpn-ingress-renew.service`
+
+**Wrong**:
+```ini
+ExecStart=/usr/bin/systemctl restart slskdN-vpn-ingress.service
+```
+
+**Correct**:
+```ini
+ExecStart=/usr/local/bin/slskdN-vpn-agent renew-ingress
+```
+
+**Prevention**: Keep namespace/veth setup and provider lease renewal as
+separate operations. The periodic renewal path may update mapping state, but
+must leave the established ingress network path in place; topology recovery
+belongs to the watchdog or an explicit ingress reconciliation.
