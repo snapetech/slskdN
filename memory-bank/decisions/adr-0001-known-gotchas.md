@@ -28191,3 +28191,31 @@ ExecStart=/usr/local/bin/slskdN-vpn-agent renew-ingress
 separate operations. The periodic renewal path may update mapping state, but
 must leave the established ingress network path in place; topology recovery
 belongs to the watchdog or an explicit ingress reconciliation.
+
+### 0z863. Refresh the Vendored Runtime Patch With Every Mirror Change
+
+**The Bug**: The vendored runtime contained the new public-port advertisement
+implementation, but the declared `slskNet.Runtime` patch did not include the
+same files, so the build succeeded while the reproducibility gate rejected the
+release.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/`
+- `vendor/slskNet.Runtime.patches/0001-slskdN-local-runtime-delta.patch`
+- `scripts/check-slsknet-runtime-sync.sh`
+
+**Wrong**:
+```text
+edit tracked files under vendor/slskNet.Runtime and leave the local patch unchanged
+```
+
+**Correct**:
+```text
+regenerate the local patch from the declared source revision and the complete tracked mirror
+scripts/check-slsknet-runtime-sync.sh
+```
+
+**Why This Keeps Happening**: The application compiles from the mirror, while
+the release gate reconstructs that mirror from the upstream revision plus the
+declared patch. Both representations must be updated together whenever a
+vendored runtime file changes.

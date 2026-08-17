@@ -284,6 +284,153 @@ index 4805f63..b679897 100644
          /// </summary>
          public int ListenPort { get; }
  
+diff --git a/vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs b/vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs
+index 327a532..03dc4d6 100644
+--- a/vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs
++++ b/vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs
+@@ -107,6 +107,11 @@ namespace Soulseek
+         ///     The delegate used to resolve the <see cref="int"/> response for an incoming request.
+         /// </param>
+         /// <param name="raiseEventsAsynchronously">(Experimental!) Raise events asynchronously to improve parallelism.</param>
++        /// <param name="advertisedListenPort">
++        ///     The port to advertise to the Soulseek server, or <see langword="null"/> to advertise
++        ///     <paramref name="listenPort"/>. This is useful when a transparent NAT or VPN forward
++        ///     maps a public port to a different local listener port.
++        /// </param>
+         /// <exception cref="ArgumentOutOfRangeException">
+         ///     Thrown when the value supplied for <paramref name="listenPort"/> is not between 1024 and 65535.
+         /// </exception>
+@@ -146,7 +151,8 @@ namespace Soulseek
+             Func<string, IPEndPoint, Task<UserInfo>> userInfoResolver = null,
+             Func<string, IPEndPoint, string, Task> enqueueDownload = null,
+             Func<string, IPEndPoint, string, Task<int?>> placeInQueueResolver = null,
+-            bool raiseEventsAsynchronously = false)
++            bool raiseEventsAsynchronously = false,
++            int? advertisedListenPort = null)
+         {
+             EnableListener = enableListener;
+             this.listenIPAddress = (listenIPAddress ?? IPAddress.Any).Snapshot();
+@@ -158,6 +164,13 @@ namespace Soulseek
+                 throw new ArgumentOutOfRangeException(nameof(listenPort), $"Must be between 1024 and {IPEndPoint.MaxPort}");
+             }
+ 
++            AdvertisedListenPort = advertisedListenPort;
++
++            if (AdvertisedListenPort is < 1024 or > IPEndPoint.MaxPort)
++            {
++                throw new ArgumentOutOfRangeException(nameof(advertisedListenPort), $"Must be between 1024 and {IPEndPoint.MaxPort}");
++            }
++
+             EnableDistributedNetwork = enableDistributedNetwork;
+             AcceptDistributedChildren = acceptDistributedChildren;
+             DistributedChildLimit = distributedChildLimit;
+@@ -326,6 +339,13 @@ namespace Soulseek
+         /// </summary>
+         public int ListenPort { get; }
+ 
++        /// <summary>
++        ///     Gets the port advertised to the Soulseek server, or <see langword="null"/> when the
++        ///     local <see cref="ListenPort"/> is advertised. The local listener is not rebound when
++        ///     this value differs.
++        /// </summary>
++        public int? AdvertisedListenPort { get; }
++
+         /// <summary>
+         ///     Gets the number of allowed concurrent downloads. (Default = int.MaxValue).
+         /// </summary>
+@@ -464,7 +484,8 @@ namespace Soulseek
+                 directoryContentsResolver: patch.DirectoryContentsResolver,
+                 userInfoResolver: patch.UserInfoResolver,
+                 enqueueDownload: patch.EnqueueDownload,
+-                placeInQueueResolver: patch.PlaceInQueueResolver);
++                placeInQueueResolver: patch.PlaceInQueueResolver,
++                advertisedListenPort: patch.AdvertisedListenPort);
+         }
+ 
+         /// <summary>
+@@ -512,6 +533,10 @@ namespace Soulseek
+         /// <param name="placeInQueueResolver">
+         ///     The delegate used to resolve the <see cref="int"/> response for an incoming request.
+         /// </param>
++        /// <param name="advertisedListenPort">
++        ///     The port to advertise to the Soulseek server, or <see langword="null"/> to retain the
++        ///     current advertised port.
++        /// </param>
+         /// <returns>The cloned instance.</returns>
+         internal SoulseekClientOptions With(
+             bool? enableListener = null,
+@@ -539,7 +564,8 @@ namespace Soulseek
+             Func<string, IPEndPoint, int, string, Task<IEnumerable<Directory>>> directoryContentsResolver = null,
+             Func<string, IPEndPoint, Task<UserInfo>> userInfoResolver = null,
+             Func<string, IPEndPoint, string, Task> enqueueDownload = null,
+-            Func<string, IPEndPoint, string, Task<int?>> placeInQueueResolver = null)
++            Func<string, IPEndPoint, string, Task<int?>> placeInQueueResolver = null,
++            int? advertisedListenPort = null)
+         {
+             return new SoulseekClientOptions(
+                 enableListener: enableListener ?? EnableListener,
+@@ -572,7 +598,8 @@ namespace Soulseek
+                 directoryContentsResolver: directoryContentsResolver ?? DirectoryContentsResolver,
+                 userInfoResolver: userInfoResolver ?? UserInfoResolver,
+                 enqueueDownload: enqueueDownload ?? EnqueueDownload,
+-                placeInQueueResolver: placeInQueueResolver ?? PlaceInQueueResolver);
++                placeInQueueResolver: placeInQueueResolver ?? PlaceInQueueResolver,
++                advertisedListenPort: advertisedListenPort ?? AdvertisedListenPort);
+         }
+     }
+ }
+diff --git a/vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs b/vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs
+index 3f91912..ad19bbd 100644
+--- a/vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs
++++ b/vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs
+@@ -84,6 +84,10 @@ namespace Soulseek
+         /// <param name="placeInQueueResolver">
+         ///     The delegate used to resolve the <see cref="int"/> response for an incoming request.
+         /// </param>
++        /// <param name="advertisedListenPort">
++        ///     The port to advertise to the Soulseek server, or <see langword="null"/> to leave the
++        ///     existing advertised port unchanged. This does not rebind the local listener.
++        /// </param>
+         /// <exception cref="ArgumentOutOfRangeException">
+         ///     Thrown when the value supplied for <paramref name="listenPort"/> is not between 1024 and 65535.
+         /// </exception>
+@@ -116,7 +120,8 @@ namespace Soulseek
+             Func<string, IPEndPoint, int, string, Task<IEnumerable<Directory>>> directoryContentsResolver = null,
+             Func<string, IPEndPoint, Task<UserInfo>> userInfoResolver = null,
+             Func<string, IPEndPoint, string, Task> enqueueDownload = null,
+-            Func<string, IPEndPoint, string, Task<int?>> placeInQueueResolver = null)
++            Func<string, IPEndPoint, string, Task<int?>> placeInQueueResolver = null,
++            int? advertisedListenPort = null)
+         {
+             EnableListener = enableListener;
+             this.listenIPAddress = listenIPAddress.Snapshot();
+@@ -128,6 +133,13 @@ namespace Soulseek
+                 throw new ArgumentOutOfRangeException(nameof(listenPort), "Must be between 1024 and 65535");
+             }
+ 
++            AdvertisedListenPort = advertisedListenPort;
++
++            if (AdvertisedListenPort is < 1024 or > IPEndPoint.MaxPort)
++            {
++                throw new ArgumentOutOfRangeException(nameof(advertisedListenPort), "Must be between 1024 and 65535");
++            }
++
+             EnableDistributedNetwork = enableDistributedNetwork;
+             AcceptDistributedChildren = acceptDistributedChildren;
+             DistributedChildLimit = distributedChildLimit;
+@@ -256,6 +268,12 @@ namespace Soulseek
+         /// </summary>
+         public int? ListenPort { get; }
+ 
++        /// <summary>
++        ///     Gets the port to advertise to the Soulseek server, or <see langword="null"/> when no
++        ///     advertisement change was requested. This does not rebind the local listener.
++        /// </summary>
++        public int? AdvertisedListenPort { get; }
++
+         /// <summary>
+         ///     Gets the total maximum allowable download speed, in kibibytes per second.
+         /// </summary>
 diff --git a/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs b/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs
 index ecfe5d7..2245153 100644
 --- a/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs
@@ -405,7 +552,7 @@ index b09f1e2..692a979 100644
        <PrivateAssets>all</PrivateAssets>
        <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 diff --git a/vendor/slskNet.Runtime/src/SoulseekClient.cs b/vendor/slskNet.Runtime/src/SoulseekClient.cs
-index c50d252..16d6285 100644
+index c50d252..0a0e3d7 100644
 --- a/vendor/slskNet.Runtime/src/SoulseekClient.cs
 +++ b/vendor/slskNet.Runtime/src/SoulseekClient.cs
 @@ -616,6 +616,15 @@ namespace Soulseek
@@ -540,7 +687,45 @@ index c50d252..16d6285 100644
                      distributedConnectionOptions: patch.DistributedConnectionOptions,
                      userEndPointCache: patch.UserEndPointCache,
                      searchResponseResolver: patch.SearchResponseResolver,
-@@ -5436,6 +5486,11 @@ namespace Soulseek
+@@ -4666,7 +4716,8 @@ namespace Soulseek
+                     directoryContentsResolver: patch.DirectoryContentsResolver,
+                     userInfoResolver: patch.UserInfoResolver,
+                     enqueueDownload: patch.EnqueueDownload,
+-                    placeInQueueResolver: patch.PlaceInQueueResolver);
++                    placeInQueueResolver: patch.PlaceInQueueResolver,
++                    advertisedListenPort: patch.AdvertisedListenPort);
+ 
+                 if (maximumUploadSpeedChanged)
+                 {
+@@ -5128,15 +5179,24 @@ namespace Soulseek
+ 
+         private SetListenPortCommand CreateSetListenPortCommand()
+         {
++            var advertisedListenPort = Options.AdvertisedListenPort ?? Options.ListenPort;
++
+             if (!Options.PeerObfuscationOptions.Enabled)
+             {
+-                return new SetListenPortCommand(Options.ListenPort);
++                return new SetListenPortCommand(advertisedListenPort);
+             }
+ 
++            // A configured obfuscation listen port of 0 means obfuscated connections share the
++            // regular listen port (see PeerObfuscationOptions remarks); the server needs the
++            // actual reachable port number to advertise to other peers, not the sentinel.
++            var obfuscatedPort = Options.PeerObfuscationOptions.ListenPort == 0
++                ? advertisedListenPort
++                : Options.PeerObfuscationOptions.ListenPort;
++
+             return new SetListenPortCommand(
+-                Options.ListenPort,
++                advertisedListenPort,
+                 Options.PeerObfuscationOptions.Type,
+-                Options.PeerObfuscationOptions.ListenPort);
++                obfuscatedPort);
+         }
+ 
+         private async Task SendRoomMessageInternalAsync(string roomName, string message, CancellationToken cancellationToken)
+@@ -5436,6 +5496,11 @@ namespace Soulseek
                      writeTask = Task.CompletedTask;
                  }
  
@@ -552,6 +737,68 @@ index c50d252..16d6285 100644
                  var firstTask = await Task.WhenAny(
                      writeTask,
                      disconnectedTaskCancellationSource.Task).ConfigureAwait(false);
+diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs
+index 5dcf1ea..b8780e1 100644
+--- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs
++++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs
+@@ -327,6 +327,57 @@ namespace Soulseek.Tests.Unit.Client
+             mocks.ServerConnection.Verify(m => m.WriteAsync(It.Is<byte[]>(msg => msg.Matches(expectedBytes)), It.IsAny<CancellationToken?>()));
+         }
+ 
++        [Trait("Category", "Connect")]
++        [Theory(DisplayName = "Advertises the regular listen port as the obfuscated port to the server when obfuscation shares it"), AutoData]
++        public async Task Advertises_Regular_Port_As_Obfuscated_Port_When_Shared(string username, string password)
++        {
++            // ListenPort 0 means obfuscated connections share the regular listen port (see
++            // PeerObfuscationOptions remarks). The server still needs a concrete, in-range port
++            // number to advertise to other peers -- it must never see the raw 0 sentinel, which
++            // SetListenPortCommand itself rejects as out of range.
++            var options = new SoulseekClientOptions(
++                enableListener: false,
++                listenPort: 12345,
++                peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 0));
++            var (client, mocks) = GetFixture(options);
++
++            using (client)
++            {
++                await client.ConnectAsync(username, password);
++            }
++
++            var expectedBytes = new LoginRequest(minorVersion: 9999, username, password).ToByteArray()
++                .Concat(new SetListenPortCommand(12345, 1, 12345).ToByteArray())
++                .ToArray();
++
++            mocks.ServerConnection.Verify(m => m.WriteAsync(It.Is<byte[]>(msg => msg.Matches(expectedBytes)), It.IsAny<CancellationToken?>()));
++        }
++
++        [Trait("Category", "Connect")]
++        [Theory(DisplayName = "Advertises the forwarded public port without rebinding the local listener"), AutoData]
++        public async Task Advertises_Forwarded_Public_Port_Without_Rebinding_Listener(string username, string password)
++        {
++            var options = new SoulseekClientOptions(
++                enableListener: false,
++                listenPort: 12345,
++                advertisedListenPort: 45678,
++                peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 0));
++            var (client, mocks) = GetFixture(options);
++
++            using (client)
++            {
++                await client.ConnectAsync(username, password);
++            }
++
++            var expectedBytes = new LoginRequest(minorVersion: 9999, username, password).ToByteArray()
++                .Concat(new SetListenPortCommand(45678, 1, 45678).ToByteArray())
++                .ToArray();
++
++            Assert.Equal(12345, client.Options.ListenPort);
++            Assert.Equal(45678, client.Options.AdvertisedListenPort);
++            mocks.ServerConnection.Verify(m => m.WriteAsync(It.Is<byte[]>(msg => msg.Matches(expectedBytes)), It.IsAny<CancellationToken?>()));
++        }
++
+         [Trait("Category", "Connect")]
+         [Fact(DisplayName = "Sets state to Connected | LoggedIn on success")]
+         public async Task Sets_State_To_Connected_LoggedIn_On_Success()
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs
 index 3a23376..23a5da7 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs
