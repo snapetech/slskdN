@@ -27800,6 +27800,22 @@ then run `scripts/check-slsknet-runtime-sync.sh` before committing and before
 running a release gate. Copy only tracked runtime files when composing a
 baseline so ignored build outputs never enter the patch.
 
+### 0z846. Allow Background Services A Bounded Readiness Window In Tests
+
+**The Bug**: The shared TCP listener integration test waited only two seconds
+for a `BackgroundService` to finish its asynchronous bind. A clean hosted
+runner reached the same code after that narrow window, so the release gate
+reported a false failure even though the listener bound and the focused test
+passed repeatedly locally.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/DhtRendezvous/SharedMeshTcpListenerTests.cs`
+- `tests/slskd.Tests.Unit/DhtRendezvous/SharedMeshTcpListenerRealMeshOverlayTests.cs`
+
+**Prevention**: Treat background-service startup as asynchronous in tests and
+use a bounded readiness timeout long enough for a clean runner to schedule the
+service. Keep the timeout finite so a genuine bind failure still fails clearly.
+
 ### 0z840. Do Not Count Dependency Metadata In Source Security Ledgers
 
 **The Bug**: The active council scanner included package manifests and lockfiles
