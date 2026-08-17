@@ -144,6 +144,22 @@ response.
 handlers. Capture an empty body for GET/DELETE requests and only read content
 when it is present.
 
+### 0z857. Use Four-Part Numeric Versions For Container Builds
+
+**The Bug**: A temporary Docker build passed a timestamp-style version with
+two dot-separated components to `bin/build`. Assembly metadata appended its
+own components, producing `20260817.1510.0.0`, which .NET rejected as an
+invalid version before the container could be published.
+
+**Files Affected**:
+- `Dockerfile`
+- `bin/build`
+
+**Prevention**: Use a four-part numeric temporary version such as
+`0.0.1.20260817` when invoking the container build, or use the repository's
+validated release-tag version conversion. Keep human-readable timestamps in
+the image tag or revision metadata, not in the assembly version field.
+
 ### 0z836. Empty Optional Environment Variables Must Be Ignored
 
 **The Bug**: Docker/Unraid templates exposed optional `SLSKD_*` fields with
