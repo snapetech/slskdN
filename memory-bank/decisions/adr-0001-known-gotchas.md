@@ -93,6 +93,20 @@ the asynchronous command endpoint consumes a separate flat file model. Never
 reuse the GET resource as the command payload; project it explicitly and test
 the serialized JSON shape.
 
+### 0z854. Avoid Ambiguous xUnit Array Equality Overloads
+
+**The Bug**: A regression assertion compared a collection expression directly
+with an integer array. The current xUnit/compiler combination could not choose
+between its array and `ReadOnlySpan<T>` overloads, so the test project failed
+to compile.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrClientTests.cs`
+
+**Prevention**: For small array assertions, assert the length and individual
+elements, or give both operands an explicitly shared collection type instead
+of relying on collection-expression overload inference.
+
 ### 0z836. Empty Optional Environment Variables Must Be Ignored
 
 **The Bug**: Docker/Unraid templates exposed optional `SLSKD_*` fields with
