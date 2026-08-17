@@ -47,8 +47,6 @@ For dev or build tags, use the same logical version string embedded in the tag.
   mappings are not rebuilt from a short-lived handshake timestamp.
 - Fixed Web UI whole-document YAML saves for supported legacy `global`,
   `integration`, share-list, and nested upload-limit layouts.
-- Fixed Web UI whole-document YAML saves for supported legacy `global`,
-  `integration`, share-list, and nested upload-limit layouts.
 
 ## [2026081719-slskdn.309] — 2026-08-17
 
