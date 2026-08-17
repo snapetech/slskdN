@@ -203,6 +203,71 @@ public class OptionsControllerTests
     }
 
     [Fact]
+    public void ValidateYamlFile_AcceptsLegacyGlobalAndShareListConfiguration()
+    {
+        var controller = CreateController();
+        var yaml = $$"""
+            global:
+              download:
+                auto_replace_stuck: false
+                auto_replace_threshold: 5
+                auto_replace_interval: 60
+            shares: []
+            directories:
+              incomplete: '{{Path.GetTempPath()}}'
+              downloads: '{{Path.GetTempPath()}}'
+            web:
+              content_path: .
+            """;
+
+        var result = controller.ValidateYamlFile(yaml);
+
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
+    public void ValidateYamlFile_AcceptsLegacyIntegrationAlias()
+    {
+        var controller = CreateController();
+        var yaml = $$"""
+            integration:
+              acoustid:
+                enabled: false
+            directories:
+              incomplete: '{{Path.GetTempPath()}}'
+              downloads: '{{Path.GetTempPath()}}'
+            web:
+              content_path: .
+            """;
+
+        var result = controller.ValidateYamlFile(yaml);
+
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
+    public void ValidateYamlFile_AcceptsNestedGlobalUploadLimits()
+    {
+        var controller = CreateController();
+        var yaml = $$"""
+            transfers:
+              upload:
+                limits:
+                  queued:
+                    files: 5
+            directories:
+              incomplete: '{{Path.GetTempPath()}}'
+              downloads: '{{Path.GetTempPath()}}'
+            web:
+              content_path: .
+            """;
+
+        var result = controller.ValidateYamlFile(yaml);
+
+        Assert.IsType<OkResult>(result);
+    }
+
+    [Fact]
     public void ValidateYamlFile_ValidatesPatternsUnderTransfersGroupsPlacement()
     {
         var controller = CreateController();

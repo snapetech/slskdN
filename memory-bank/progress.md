@@ -12674,3 +12674,18 @@ client now converts nested GET candidate resources into Lidarr's flat command
 file identifiers, preventing queued imports from binding `artistId` as zero.
 Added a captured-JSON regression test, release-note fragment, and ADR-0001
 gotchas `0z853` and `0z854`. The focused Lidarr suite passes (`35` tests).
+
+[2026-08-17T21:01:16Z] Fixed options validation for whole-document Web UI YAML
+saves. The validator now normalizes the legacy configuration shapes accepted by
+the runtime provider before direct options validation; focused backend coverage
+passes (`18/18`), and a live PUT of the exact legacy filter-save document
+returns HTTP 200. Added ADR-0001 gotcha `0z860` and the configuration release
+note; hotfix release packaging remains.
+
+[2026-08-17T21:03:59Z] Completed release-candidate validation. The deployed
+self-contained VPN agent passed the ingress watchdog soak; the application
+remained healthy through malformed-frame probing; headless UI inspection loaded
+the login surface; real public Soulseek traffic reached the shared listener;
+and three independent VPN origins completed direct probes. Same-ISP hairpin
+attempts remained intermittent before the host veth, so that external path is
+documented as a limitation rather than attributed to the application.

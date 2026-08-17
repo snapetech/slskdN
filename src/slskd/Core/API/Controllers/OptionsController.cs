@@ -305,12 +305,99 @@ namespace slskd.Core.API
                 stream.Load(reader);
             }
 
-            if (stream.Documents.Count == 0 || stream.Documents[0].RootNode is not YamlMappingNode root ||
-                !TryGetMappingChild(root, "transfers", out _, out var transfersNode) ||
+            if (stream.Documents.Count == 0 || stream.Documents[0].RootNode is not YamlMappingNode root)
+            {
+                return yaml;
+            }
+
+            var changed = false;
+            changed |= NormalizeTopLevelAlias(root, "global", "transfers");
+            changed |= NormalizeTopLevelAlias(root, "integration", "integrations");
+            changed |= NormalizeLegacyShares(root);
+            changed |= NormalizeNestedGlobalLimits(root);
+            changed |= NormalizeTransfersGroups(root);
+
+            if (!changed)
+            {
+                return yaml;
+            }
+
+            using var writer = new StringWriter();
+            stream.Save(writer, assignAnchors: false);
+            return writer.ToString();
+        }
+
+        private static bool NormalizeTopLevelAlias(YamlMappingNode root, string legacyName, string canonicalName)
+        {
+            if (!TryGetMappingChild(root, legacyName, out var legacyKey, out var legacyValue))
+            {
+                return false;
+            }
+
+            if (TryGetMappingChild(root, canonicalName, out _, out var canonicalValue))
+            {
+                if (canonicalValue is YamlMappingNode canonicalMap && legacyValue is YamlMappingNode legacyMap)
+                {
+                    MergeMissingYamlChildren(canonicalMap, legacyMap);
+                }
+
+                root.Children.Remove(legacyKey);
+                return true;
+            }
+
+            root.Children.Remove(legacyKey);
+            root.Children.Add(new YamlScalarNode(canonicalName), legacyValue);
+            return true;
+        }
+
+        private static bool NormalizeLegacyShares(YamlMappingNode root)
+        {
+            if (!TryGetMappingChild(root, "shares", out var sharesKey, out var sharesValue) ||
+                sharesValue is not YamlSequenceNode)
+            {
+                return false;
+            }
+
+            var shares = new YamlMappingNode();
+            shares.Children.Add(new YamlScalarNode("directories"), sharesValue);
+            root.Children.Remove(sharesKey);
+            root.Children.Add(sharesKey, shares);
+            return true;
+        }
+
+        private static bool NormalizeNestedGlobalLimits(YamlMappingNode root)
+        {
+            if (!TryGetMappingChild(root, "transfers", out _, out var transfersNode) ||
+                transfersNode is not YamlMappingNode transfers ||
+                !TryGetMappingChild(transfers, "upload", out _, out var uploadNode) ||
+                uploadNode is not YamlMappingNode upload ||
+                !TryGetMappingChild(upload, "limits", out var uploadLimitsKey, out var uploadLimitsNode))
+            {
+                return false;
+            }
+
+            if (TryGetMappingChild(transfers, "limits", out _, out var limitsNode) &&
+                limitsNode is YamlMappingNode limits &&
+                uploadLimitsNode is YamlMappingNode uploadLimits)
+            {
+                MergeMissingYamlChildren(limits, uploadLimits);
+            }
+            else if (!TryGetMappingChild(transfers, "limits", out _, out _))
+            {
+                transfers.Children.Add(new YamlScalarNode("limits"), uploadLimitsNode);
+            }
+
+            upload.Children.Remove(uploadLimitsKey);
+            return true;
+        }
+
+        private static bool NormalizeTransfersGroups(YamlMappingNode root)
+        {
+            if (!TryGetMappingChild(root, "transfers", out _, out var transfersNode) ||
                 transfersNode is not YamlMappingNode transfers ||
                 !TryGetMappingChild(transfers, "groups", out var transfersGroupsKey, out var transfersGroupsNode))
             {
-                return yaml;
+                return false;
             }
 
             transfers.Children.Remove(transfersGroupsKey);
@@ -327,9 +414,7 @@ namespace slskd.Core.API
                 root.Children.Add(new YamlScalarNode("groups"), transfersGroupsNode);
             }
 
-            using var writer = new StringWriter();
-            stream.Save(writer, assignAnchors: false);
-            return writer.ToString();
+            return true;
         }
 
         private static void MergeMissingYamlChildren(YamlMappingNode target, YamlMappingNode source)

@@ -52,6 +52,12 @@ slskdN-vpn-agent <command>
 - `status`: print a human status check.
 - `watchdog`: run one verification pass and recover ingress after repeated
   failures.
+
+The watchdog also checks each active WireGuard ingress namespace separately.
+If a slot's latest handshake is missing or older than
+`SLSKDN_VPN_INGRESS_HANDSHAKE_MAX_AGE` (300 seconds by default), it reconciles
+the ingress service immediately so the public mapping can be reclaimed before
+its lease expires.
 - `relay-apply`: install the bounded VPS forwarding, egress, and limit rules.
 - `relay-api`: serve the authenticated Tailscale/WireGuard relay status API.
 - `relay-run`: apply relay networking and then serve the status API.

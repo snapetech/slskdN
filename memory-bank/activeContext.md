@@ -1,3 +1,34 @@
+## Update 2026-08-17 21:03:59Z
+
+- Validation candidate is release-ready pending the final commit, push, and
+  stable tag. The current tree includes the public-peer listener hardening, the
+  per-ingress WireGuard/NAT-PMP watchdog recovery, and the Web UI YAML save
+  compatibility fix.
+- The validation host is running the final self-contained VPN agent build; the
+  application health endpoint, headless login UI, malformed-frame probe, live
+  Soulseek traffic, and independent VPN-origin public probes are clean.
+- Same-provider/ISP hairpin behavior remains intermittent before host ingress;
+  packet captures show failed attempts never reach the application. Treat that
+  as an external path limitation, not a product success claim.
+- Next steps: rerun final gates, commit and push all worktree changes, then cut
+  the authorized stable hotfix tag.
+
+## Update 2026-08-17 21:01:16Z
+
+- Current task: hotfix the Web UI's whole-document YAML save failure and publish
+  it after the required gates pass.
+- Root cause: `OptionsController` used direct `YamlDotNet` deserialization for
+  save validation while the runtime YAML provider accepted legacy `global`,
+  `integration`, sequence-valued `shares`, and nested upload-limit layouts.
+- Fix: normalize those compatibility shapes, preserve canonical values when old
+  and new keys coexist, and retain the existing `transfers.groups` handling.
+- Validation so far: focused OptionsController backend tests pass `18/18`; a
+  live PUT of the exact legacy filter-save document returned HTTP 200; gotcha
+  `0z860` and release-note fragment are recorded.
+- Next steps: run full tests/lint/release checks, commit and push all current
+  tracked and untracked worktree changes as authorized, then create and push a
+  stable hotfix tag through `scripts/create-release-tag.sh`.
+
 ## Update 2026-08-17 19:26:00Z
 
 - Current task: final validation and release of the public VPN ingress fix;

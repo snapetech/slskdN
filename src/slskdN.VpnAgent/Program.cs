@@ -207,6 +207,17 @@ static class Commands
             verifier.Check(active, $"unit active: {unit}", $"unit not active: {unit}");
         }
 
+        if (AppConfig.PortForwardBackend == "natpmp")
+        {
+            var renewalLoaded = await IsSystemdUnitLoaded(AppConfig.IngressRenewService);
+            verifier.Check(renewalLoaded, $"unit loaded: {AppConfig.IngressRenewService}", $"unit not loaded: {AppConfig.IngressRenewService}");
+            if (renewalLoaded)
+            {
+                var renewalFailed = (await ProcessUtil.Run("systemctl", "is-failed", "--quiet", AppConfig.IngressRenewService)).ExitCode == 0;
+                verifier.Check(!renewalFailed, $"unit healthy: {AppConfig.IngressRenewService}", $"unit failed: {AppConfig.IngressRenewService}");
+            }
+        }
+
         var apiKey = Slskd.ApiKey();
         verifier.Check(!string.IsNullOrWhiteSpace(apiKey), "slskdN API key found", $"could not find slskdN API key in {AppConfig.SlskdConfig}; set SLSKD_API_KEY");
 
@@ -277,6 +288,7 @@ static class Commands
                 .Select(line => line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
                 .Any(parts => parts.Length >= 2 && long.TryParse(parts[1], out var ts) && ts > 0);
             verifier.Check(hasHandshake, $"WireGuard handshake present on {AppConfig.VpnIface}", $"no WireGuard handshake on {AppConfig.VpnIface}");
+            await IngressWireGuardHandshakesHealthy(verifier);
         }
         else
         {
@@ -764,6 +776,14 @@ static class Commands
     {
         Directory.CreateDirectory(AppConfig.StateDir.FullName);
         var failFile = AppConfig.StateFile("watchdog.failures");
+        if (await IngressRenewalFailed() || !await IngressWireGuardHandshakesHealthy())
+        {
+            await ProcessUtil.Run("logger", "-t", AppConfig.WatchdogLogTag, $"ingress renewal or WireGuard namespace health failed; restarting {AppConfig.IngressService}");
+            await ProcessUtil.Run("systemctl", "restart", AppConfig.IngressService);
+            await File.WriteAllTextAsync(failFile.FullName, "0\n");
+            return 0;
+        }
+
         var result = await Verify(quiet: true);
         if (result == 0)
         {
@@ -792,6 +812,74 @@ static class Commands
         }
 
         return 0;
+    }
+
+    private static async Task<bool> IngressRenewalFailed()
+    {
+        return AppConfig.PortForwardBackend == "natpmp" &&
+            (!await IsSystemdUnitLoaded(AppConfig.IngressRenewService) ||
+             (await ProcessUtil.Run("systemctl", "is-failed", "--quiet", AppConfig.IngressRenewService)).ExitCode == 0);
+    }
+
+    private static async Task<bool> IsSystemdUnitLoaded(string unit)
+    {
+        if (string.IsNullOrWhiteSpace(unit))
+        {
+            return false;
+        }
+
+        var result = await ProcessUtil.Run("systemctl", "show", unit, "-p", "LoadState", "--value");
+        return result.ExitCode == 0 && result.Stdout.Trim().Equals("loaded", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task<bool> IngressWireGuardHandshakesHealthy(Verifier? verifier = null)
+    {
+        if (AppConfig.TunnelType != "wireguard")
+        {
+            return true;
+        }
+
+        var forwards = ReadPortForwards()
+            .Where(forward => !string.IsNullOrWhiteSpace(forward.Namespace))
+            .ToArray();
+        var healthy = true;
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        foreach (var forward in forwards)
+        {
+            var result = await ProcessUtil.Run(
+                "ip",
+                "netns",
+                "exec",
+                forward.Namespace,
+                "wg",
+                "show",
+                $"pf{forward.Slot}",
+                "latest-handshakes");
+            var latestHandshake = result.Stdout
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                .Where(parts => parts.Length >= 2 && long.TryParse(parts[1], out _))
+                .Select(parts => long.Parse(parts[1]))
+                .DefaultIfEmpty(0)
+                .Max();
+            var age = latestHandshake > 0 ? now - latestHandshake : long.MaxValue;
+            var slotHealthy = result.ExitCode == 0 &&
+                latestHandshake > 0 &&
+                age >= 0 &&
+                age <= AppConfig.IngressHandshakeMaxAgeSeconds;
+            healthy &= slotHealthy;
+
+            if (verifier is not null)
+            {
+                var ageText = latestHandshake > 0 ? $"{age}s old" : "missing";
+                verifier.Check(
+                    slotHealthy,
+                    $"ingress pf{forward.Slot} WireGuard handshake present ({ageText})",
+                    $"ingress pf{forward.Slot} WireGuard handshake missing or stale ({ageText})");
+            }
+        }
+
+        return healthy;
     }
 
     private static async Task HandleApiRequest(HttpListenerContext context)
@@ -1610,6 +1698,7 @@ static class AppConfig
     public static string ExcludePortRegex { get; } = Env.Get("PF_EXCLUDE_RE", "^(5030|5031|5353)$");
     public static int PortForwardLifetime { get; } = Env.GetInt("PF_LIFETIME", 60);
     public static int PortForwardAttempts { get; } = Env.GetInt("PF_ATTEMPTS", 90);
+    public static int IngressHandshakeMaxAgeSeconds { get; } = Env.GetInt("SLSKDN_VPN_INGRESS_HANDSHAKE_MAX_AGE", 300);
     public static int SoulseekPrivatePort { get; } = Env.GetInt("SOULSEEK_PRIVATE_PORT", 50300);
     public static int MaxIngressSlots { get; } = Env.GetInt("SLSKDN_VPN_MAX_INGRESS_SLOTS", 20);
     public static string Country { get; } = Env.Get("SLSKDN_VPN_INGRESS_REGION", "");
@@ -1618,6 +1707,7 @@ static class AppConfig
     public static string SplitService { get; } = Env.Get("SLSKDN_VPN_SPLIT_SERVICE", "slskdN-vpn-split");
     public static string ApiService { get; } = Env.Get("SLSKDN_VPN_API_SERVICE", "slskdN-vpn-gluetun-compat");
     public static string IngressService { get; } = Env.GetAny(["SLSKDN_VPN_INGRESS_SERVICE", "SLSKD_VPN_INGRESS_SERVICE"], "slskdN-vpn-ingress.service");
+    public static string IngressRenewService { get; } = Env.Get("SLSKDN_VPN_INGRESS_RENEW_SERVICE", "slskdN-vpn-ingress-renew.service");
     public static string IngressRenewTimer { get; } = Env.Get("SLSKDN_VPN_INGRESS_RENEW_TIMER", "slskdN-vpn-ingress-renew.timer");
     public static string WatchdogLogTag { get; } = Env.Get("SLSKDN_VPN_WATCHDOG_LOG_TAG", "slskdN-vpn-watchdog");
     public static string PfAnchorName { get; } = Env.Get("SLSKDN_VPN_PF_ANCHOR", "slskdN/vpn");

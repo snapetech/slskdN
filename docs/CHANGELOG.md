@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed malformed inbound Soulseek initialization frames surfacing as fatal
+  unobserved-task logs from the listener event boundary. Rejected peer frames
+  are now explicitly observed and cleaned up without destabilizing the service.
+- Hardened rejected inbound connection cleanup so unsolicited sockets do not
+  fault an unobserved disconnect waiter.
+- Hardened the VPN ingress watchdog to inspect each forwarded WireGuard
+  namespace and the NAT-PMP renewal unit independently. A stale ingress tunnel
+  is now reconciled before its public lease silently expires, while healthy
+  mappings are not rebuilt from a short-lived handshake timestamp.
+- Fixed Web UI whole-document YAML saves for supported legacy `global`,
+  `integration`, share-list, and nested upload-limit layouts.
+
 ## [2026081719-slskdn.310] — 2026-08-17
 
 - Fixed malformed inbound Soulseek initialization frames surfacing as fatal
@@ -29,6 +41,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
   are now explicitly observed and cleaned up without destabilizing the service.
 - Hardened rejected inbound connection cleanup so unsolicited sockets do not
   fault an unobserved disconnect waiter.
+- Hardened the VPN ingress watchdog to inspect each forwarded WireGuard
+  namespace and the NAT-PMP renewal unit independently. A stale ingress tunnel
+  is now reconciled before its public lease silently expires, while healthy
+  mappings are not rebuilt from a short-lived handshake timestamp.
+- Fixed Web UI whole-document YAML saves for supported legacy `global`,
+  `integration`, share-list, and nested upload-limit layouts.
+- Fixed Web UI whole-document YAML saves for supported legacy `global`,
+  `integration`, share-list, and nested upload-limit layouts.
 
 ## [2026081719-slskdn.309] — 2026-08-17
 

@@ -445,7 +445,11 @@ They may differ: the provider-facing public port is what slskdN advertises,
 while DNAT still delivers to the stable local listener. The renewal timer calls
 `renew-ingress` to refresh NAT-PMP leases without tearing down the existing
 namespace, veth, or DNAT path. A full `ingress` reconciliation is reserved for
-startup or recovery.
+startup or recovery. The watchdog checks every active ingress namespace's
+WireGuard handshake independently of the primary VPN tunnel; if an ingress
+slot goes stale, it immediately reconciles the ingress service so the provider
+lease can be reclaimed before the public port expires. Keep
+`slskdN-vpn-watchdog.timer` enabled for this recovery path.
 
 For WireGuard ingress, DNAT terminates on a host-side veth address. On Linux
 hosts with a native nftables input policy, the agent also manages a narrow input
@@ -913,7 +917,9 @@ for f in /var/lib/slskdN-vpn/pf*.env; do echo "--$(basename "$f")"; sudo cat "$f
 and records consecutive failures in
 `/var/lib/slskdN-vpn/watchdog.failures`.
 
-After three consecutive failures it restarts
+An active ingress WireGuard namespace with a missing or stale handshake, or a
+failed NAT-PMP renewal unit, is reconciled immediately. Other verification failures use the configured
+consecutive-failure threshold (three by default) before restarting
 `slskdN-vpn-ingress.service`. It does not restart slskdN by default.
 That keeps recovery focused on the most common failure: stale or missing port
 forwarding state.
@@ -930,6 +936,12 @@ Check watchdog logs:
 ```bash
 journalctl -t slskdN-vpn-watchdog -n 100 --no-pager
 ```
+
+The per-slot handshake age limit defaults to 300 seconds and can be adjusted
+with `SLSKDN_VPN_INGRESS_HANDSHAKE_MAX_AGE`. This is a liveness check for the
+WireGuard ingress namespaces, not a requirement that a provider reuse the same
+public port after a restart; always read the current `public_port` from
+`/v1/slskdn/portforwards` or `pfN.env`.
 
 ## Systemd Hardening
 
