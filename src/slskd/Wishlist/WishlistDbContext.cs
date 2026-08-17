@@ -5,6 +5,7 @@ namespace slskd.Wishlist
 {
     using System;
     using Microsoft.EntityFrameworkCore;
+    using slskd.Integrations.Lidarr;
 
     public class WishlistDbContext : DbContext
     {
@@ -15,6 +16,7 @@ namespace slskd.Wishlist
 
         public DbSet<WishlistItem> WishlistItems { get; set; }
         public DbSet<WishlistIgnoredResult> WishlistIgnoredResults { get; set; }
+        public DbSet<LidarrImportHistoryRecord> LidarrImportHistory { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,6 +50,18 @@ namespace slskd.Wishlist
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.Property(e => e.CreatedAt)
                     .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+            });
+
+            modelBuilder.Entity<LidarrImportHistoryRecord>(entity =>
+            {
+                entity.ToTable("LidarrImportHistory");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.StartedAt)
+                    .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+                entity.Property(e => e.CompletedAt)
+                    .HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null);
+                entity.HasIndex(e => e.StartedAt);
+                entity.HasIndex(e => new { e.Status, e.CommandId });
             });
         }
     }

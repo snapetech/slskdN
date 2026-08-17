@@ -541,7 +541,7 @@ listener ports without hiding required TCP services.
 ```ini
 [Service]
 Environment=SLSKDN_VPN_INGRESS_MODE=core
-Environment=SLSKDN_VPN_COMPACT_UDP_PORT=50305
+Environment=SLSKDN_VPN_COMPACT_UDP_PORT=50300
 ```
 
 Use `compact` only when you intentionally want to hold just the Soulseek TCP
@@ -550,7 +550,7 @@ forward plus one UDP forward:
 ```ini
 [Service]
 Environment=SLSKDN_VPN_INGRESS_MODE=compact
-Environment=SLSKDN_VPN_COMPACT_UDP_PORT=50305
+Environment=SLSKDN_VPN_COMPACT_UDP_PORT=50300
 ```
 
 Use `all` when you want every discovered public slskdN listener to get its own
@@ -577,20 +577,28 @@ The companion exposes all claimed mappings through `/v1/slskdn/portforwards`;
 older slskdN builds only consume the `pf0` Soulseek mapping through the
 Gluetun-compatible API.
 
-The currently safe reduction is to reuse the same numeric port for DHT TCP
-rendezvous and DHT UDP, because TCP and UDP port spaces are separate:
+slskdN now defaults `dht.dht_port` to the same numeric value as
+`soulseek.listen_port` (`50300`), since TCP and UDP port spaces are separate
+and don't collide. `dht.overlay_port` (the mesh TCP overlay handshake port)
+stays a distinct number (`50305`) because it's TCP like the Soulseek listen
+port and can't share a number with it:
 
 ```yaml
 dht:
-  overlay_port: 50305  # TCP
-  dht_port: 50305      # UDP, same number is OK
+  overlay_port: 50305  # TCP, distinct from soulseek.listen_port (also TCP)
+  dht_port: 50300      # UDP, shares soulseek.listen_port's number
 ```
 
-That still counts as two protocol mappings for most VPN providers: one TCP and
-one UDP. Getting to one TCP total would require slskdN to add a TCP protocol
-multiplexer in front of Soulseek peer traffic and mesh overlay traffic. Getting
-to one UDP total requires one UDP owner inside slskdN that can demultiplex DHT
-and overlay packets before dispatching them.
+That's two protocol mappings for most VPN providers: one TCP for the Soulseek
+listen port (which also now carries type-1 obfuscated connections by default,
+sharing that same TCP port -- see `docs/soulseek-type1-obfuscation.md`) and
+one UDP. `SharedMeshUdpListener` is the "one UDP owner inside slskdN that
+demultiplexes DHT and overlay packets before dispatching them" this section
+used to describe as future work -- it's implemented now, and also demuxes
+QUIC control- and data-plane traffic onto that same UDP port by ALPN. Getting
+to one TCP total for Soulseek peer traffic *and* mesh overlay traffic (still
+two separate TCP ports, `50300` and `50305`) would require slskdN to add a
+TCP protocol multiplexer in front of both; that remains unimplemented.
 
 ## Manual Install
 
@@ -915,7 +923,7 @@ At the time this was codified, slskdN exposed:
 - Web UI/API: TCP `5030`, `5031` locally, excluded from VPN ingress
 - Soulseek TCP listener: dynamic public forwarded port from the VPN provider
 - DHT rendezvous TCP: `50305`
-- DHT UDP: `50306` on the current deployed app; new slskdN defaults use UDP `50305`
+- DHT UDP: `50306` on the current deployed app; current slskdN defaults use UDP `50300` (shares the Soulseek TCP listen port's number)
 - Overlay UDP: `50400`, intentionally not forwarded in `core` mode
 
 The ingress command discovers active slskdN ports with `ss`, excludes web/mDNS

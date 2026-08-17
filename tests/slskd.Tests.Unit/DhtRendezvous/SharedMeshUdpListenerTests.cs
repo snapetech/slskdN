@@ -6,6 +6,7 @@ namespace slskd.Tests.Unit.DhtRendezvous;
 using System.Net;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using System.Threading;
 using MessagePack;
 using Microsoft.Extensions.Logging;
@@ -85,6 +86,37 @@ public class SharedMeshUdpListenerTests
         var shortHeaderBackendResult = await backend.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal(quicShortHeaderPacket, shortHeaderBackendResult.Buffer);
+    }
+
+    [Fact]
+    public async Task SharedListener_RoutesQuicByAlpn_ToControlOrDataBackend()
+    {
+        using var controlBackend = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        using var dataBackend = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        using var listener = new SharedMeshUdpListener(
+            new IPEndPoint(IPAddress.Loopback, 0),
+            (IPEndPoint)controlBackend.Client.LocalEndPoint!,
+            NullLogger<SharedMeshUdpListener>.Instance,
+            overlayDispatcher: null,
+            connectionThrottler: null,
+            overlayOptions: null,
+            meshOptions: null,
+            quicDataBackendEndPoint: (IPEndPoint)dataBackend.Client.LocalEndPoint!);
+        listener.Start();
+
+        var publicEndpoint = listener.LocalEndPoint;
+
+        using var controlClient = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        var controlPacket = QuicTestPacketBuilder.BuildClientInitialPacket(RandomNumberGenerator.GetBytes(8), "slskdn-overlay");
+        await controlClient.SendAsync(controlPacket, publicEndpoint);
+        var controlResult = await controlBackend.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(controlPacket, controlResult.Buffer);
+
+        using var dataClient = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        var dataPacket = QuicTestPacketBuilder.BuildClientInitialPacket(RandomNumberGenerator.GetBytes(8), "slskdn-overlay-data");
+        await dataClient.SendAsync(dataPacket, publicEndpoint);
+        var dataResult = await dataBackend.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(dataPacket, dataResult.Buffer);
     }
 
     [Fact]

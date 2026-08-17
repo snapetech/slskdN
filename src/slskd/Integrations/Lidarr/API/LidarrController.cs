@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Integrations.Lidarr.API;
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Asp.Versioning;
@@ -75,6 +76,22 @@ public sealed class LidarrController : ControllerBase
 
         var result = await LidarrImportService.ImportDirectoryAsync(request.Directory, cancellationToken).ConfigureAwait(false);
         return Ok(result);
+    }
+
+    [HttpGet("manualimport/history")]
+    [Authorize(Policy = AuthPolicy.Any)]
+    public async Task<IActionResult> GetImportHistory([FromQuery] int limit = 50, CancellationToken cancellationToken = default)
+    {
+        var history = await LidarrImportService.GetHistoryAsync(limit, cancellationToken).ConfigureAwait(false);
+        return Ok(history);
+    }
+
+    [HttpPost("manualimport/history/{historyId:guid}/retry")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    public async Task<IActionResult> RetryImport(Guid historyId, CancellationToken cancellationToken = default)
+    {
+        var result = await LidarrImportService.RetryImportAsync(historyId, cancellationToken).ConfigureAwait(false);
+        return result is null ? NotFound() : Ok(result);
     }
 }
 

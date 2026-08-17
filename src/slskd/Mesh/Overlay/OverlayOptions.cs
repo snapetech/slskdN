@@ -9,12 +9,16 @@ namespace slskd.Mesh.Overlay;
 public class OverlayOptions
 {
     public bool Enable { get; set; } = true;
-    public int ListenPort { get; set; } = 50305;
+
+    // Matches DhtRendezvousOptions.DhtPort and Soulseek.ListenPort by default: UDP and TCP are
+    // independent port namespaces at the OS level, so all three can share one numeric port
+    // without colliding, giving operators a single number to forward for both protocols.
+    public int ListenPort { get; set; } = 50300;
     public bool EnableQuic { get; set; } = true;
 
     // Public QUIC overlay port. When ShareQuicWithDhtPort is true, DHT owns the public
     // UDP socket and routes DHT, UDP overlay, and QUIC datagrams on one public port.
-    public int QuicListenPort { get; set; } = 50305;
+    public int QuicListenPort { get; set; } = 50300;
     public bool ShareQuicWithDhtPort { get; set; } = true;
     public int QuicBackendListenPort { get; set; } = 55305;
 

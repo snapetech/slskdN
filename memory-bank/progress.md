@@ -12621,6 +12621,15 @@ information architecture. Focused tests and production frontend build pass;
 standalone frontend ESLint remains blocked by the existing TypeScript 7 /
 typescript-eslint compatibility error before source analysis.
 
+[2026-08-17T15:20:52Z] Fixed Lidarr manual-import command serialization and added
+persistent manual/automatic import history with status, candidate counts,
+command tracking, failure/skip details, and dashboard retry support. The
+history migration, API endpoints, retry linkage, and no-file skipped-import
+flow were exercised on the live validation host. Backend and frontend suites,
+lint, Docker build, and diff checks pass; standalone frontend ESLint remains
+blocked by the existing TypeScript 7/typescript-eslint parser compatibility
+error before source analysis.
+
 [2026-08-17T14:40:03Z] Fixed Lidarr manual-import command serialization. The
 client now converts nested GET candidate resources into Lidarr's flat command
 file identifiers, preventing queued imports from binding `artistId` as zero.

@@ -22,6 +22,7 @@
 //
 //     Modified by slskdN Team.
 //     Modified: Added obfuscated listener identity.
+//     Modified: Added per-connection obfuscation sniffing for shared single-port listeners.
 // </copyright>
 
 namespace Soulseek.Network.Tcp
@@ -55,7 +56,12 @@ namespace Soulseek.Network.Tcp
         /// <param name="connectionOptions">The optional options to use when creating <see cref="IConnection"/> instances.</param>
         /// <param name="tcpListener">The optional TcpClient instance to use.</param>
         /// <param name="obfuscated">A value indicating whether accepted peer-message handshakes use type-1 obfuscation.</param>
-        public Listener(IPAddress ipAddress, int port, ConnectionOptions connectionOptions, ITcpListener tcpListener = null, bool obfuscated = false)
+        /// <param name="obfuscationSniffingEnabled">
+        ///     A value indicating whether plain-vs-obfuscated status should be determined per accepted connection by
+        ///     inspecting the first bytes read from the socket, rather than assuming the static <paramref name="obfuscated"/>
+        ///     value. Used when plain and obfuscated peer connections share this listener's single bound port.
+        /// </param>
+        public Listener(IPAddress ipAddress, int port, ConnectionOptions connectionOptions, ITcpListener tcpListener = null, bool obfuscated = false, bool obfuscationSniffingEnabled = false)
         {
             var address = ipAddress.Snapshot();
 
@@ -64,6 +70,7 @@ namespace Soulseek.Network.Tcp
             ConnectionOptions = connectionOptions ?? new ConnectionOptions();
             TcpListener = tcpListener ?? new TcpListenerAdapter(new TcpListener(address, port));
             Obfuscated = obfuscated;
+            ObfuscationSniffingEnabled = obfuscationSniffingEnabled;
         }
 
         /// <summary>
@@ -90,6 +97,12 @@ namespace Soulseek.Network.Tcp
         ///     Gets a value indicating whether accepted init frames are type-1 obfuscated.
         /// </summary>
         public bool Obfuscated { get; }
+
+        /// <summary>
+        ///     Gets a value indicating whether this listener determines, per accepted connection, whether the init frame is
+        ///     type-1 obfuscated by inspecting the first bytes read from the socket.
+        /// </summary>
+        public bool ObfuscationSniffingEnabled { get; }
 
         /// <summary>
         ///     Gets the port of the listener.

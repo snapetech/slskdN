@@ -39,3 +39,9 @@ export const syncWanted = async () =>
 
 export const importCompletedDirectory = async ({ directory }) =>
   (await api.post('/integrations/lidarr/manualimport', { directory })).data;
+
+export const getImportHistory = async ({ limit = 50 } = {}) =>
+  (await api.get(`/integrations/lidarr/manualimport/history?limit=${limit}`)).data;
+
+export const retryImport = async (historyId) =>
+  (await api.post(`/integrations/lidarr/manualimport/history/${historyId}/retry`)).data;

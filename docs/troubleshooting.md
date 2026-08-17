@@ -83,7 +83,7 @@ Common issues and solutions for slskdN.
 
 2. **Check Firewall for Mesh:**
    - Ensure mesh ports are not blocked
-   - Check UDP ports for DHT (if enabled)
+   - Check UDP port for DHT (if enabled) — by default this is `50300/udp`, the same port number as the Soulseek listen port (TCP and UDP don't collide). It also carries mesh overlay control and QUIC traffic; see `docs/getting-started.md#first-run-ports`.
 
 3. **Verify Mesh Gateway:**
    - Settings → Mesh → Gateway Status

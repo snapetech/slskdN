@@ -78,16 +78,49 @@ public sealed class LidarrClientTests
         Assert.False(file.TryGetProperty("tracks", out _));
     }
 
+    [Fact]
+    public async Task GetCommandAsync_ReadsCommandStatusAndError()
+    {
+        var handler = new CapturingHttpMessageHandler
+        {
+            CommandResponse = "{\"id\":42,\"status\":\"failed\",\"errorMessage\":\"Artist not found\",\"message\":\"Import failed\"}",
+        };
+        using var httpClient = new HttpClient(handler);
+        var options = new Options
+        {
+            Integration = new Options.IntegrationOptions
+            {
+                Lidarr = new Options.IntegrationOptions.LidarrOptions
+                {
+                    Url = "http://lidarr.test",
+                    ApiKey = "test-key",
+                },
+            },
+        };
+        var client = new LidarrClient(new TestHttpClientFactory(httpClient), new TestOptionsMonitor<Options>(options));
+
+        var command = await client.GetCommandAsync(42);
+
+        Assert.Equal(42, command.Id);
+        Assert.Equal("failed", command.Status);
+        Assert.Equal("Artist not found", command.ErrorMessage);
+        Assert.Equal("Import failed", command.Message);
+    }
+
     private sealed class CapturingHttpMessageHandler : HttpMessageHandler
     {
         public string LastRequestBody { get; private set; } = string.Empty;
 
+        public string CommandResponse { get; init; } = "{\"id\":42,\"name\":\"ManualImport\",\"status\":\"queued\"}";
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            LastRequestBody = await request.Content!.ReadAsStringAsync(cancellationToken);
+            LastRequestBody = request.Content is null
+                ? string.Empty
+                : await request.Content.ReadAsStringAsync(cancellationToken);
             return new HttpResponseMessage(HttpStatusCode.Created)
             {
-                Content = new StringContent("{\"id\":42,\"name\":\"ManualImport\",\"status\":\"queued\"}"),
+                Content = new StringContent(CommandResponse),
             };
         }
     }

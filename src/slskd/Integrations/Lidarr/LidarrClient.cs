@@ -42,6 +42,8 @@ public interface ILidarrClient
         CancellationToken cancellationToken = default);
 
     Task<LidarrCommandResponse> StartCommandAsync(string name, object payload, CancellationToken cancellationToken = default);
+
+    Task<LidarrCommandResponse> GetCommandAsync(int commandId, CancellationToken cancellationToken = default);
 }
 
 public sealed class LidarrClient : ILidarrClient
@@ -197,6 +199,15 @@ public sealed class LidarrClient : ILidarrClient
             ?? new LidarrCommandResponse { Name = name };
     }
 
+    public async Task<LidarrCommandResponse> GetCommandAsync(int commandId, CancellationToken cancellationToken = default)
+    {
+        var relative = $"api/v1/command/{commandId.ToString(CultureInfo.InvariantCulture)}";
+        using var request = CreateRequest(HttpMethod.Get, relative);
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return await ReadJsonAsync<LidarrCommandResponse>(response, cancellationToken).ConfigureAwait(false)
+            ?? new LidarrCommandResponse { Id = commandId };
+    }
+
     private static async Task<T?> ReadJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
@@ -326,6 +337,10 @@ public sealed record LidarrCommandResponse
     public string Name { get; init; } = string.Empty;
 
     public string Status { get; init; } = string.Empty;
+
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    public string Message { get; init; } = string.Empty;
 }
 
 public sealed class LidarrManualImportResource

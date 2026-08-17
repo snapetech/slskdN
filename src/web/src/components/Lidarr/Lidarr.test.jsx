@@ -17,7 +17,9 @@ vi.mock('../../lib/lidarr', () => ({
   getStatus: vi.fn(),
   getSyncStatus: vi.fn(),
   getWantedMissing: vi.fn(),
+  getImportHistory: vi.fn(),
   importCompletedDirectory: vi.fn(),
+  retryImport: vi.fn(),
   syncWanted: vi.fn(),
 }));
 
@@ -48,6 +50,7 @@ describe('Lidarr', () => {
       records: [],
       totalRecords: 0,
     });
+    lidarrAPI.getImportHistory.mockResolvedValue([]);
     wishlistAPI.getAll.mockResolvedValue([]);
   });
 
@@ -156,6 +159,36 @@ describe('Lidarr', () => {
     });
     expect(toast.success).toHaveBeenCalledWith('Lidarr import queued: 2 file(s)');
     expect(input).toHaveValue('');
+  });
+
+  it('shows failed imports and retries the recorded directory', async () => {
+    lidarrAPI.getImportHistory.mockResolvedValue([
+      {
+        candidateCount: 1,
+        completedAt: '2026-08-17T12:00:00Z',
+        directory: '/downloads/Artist/Album',
+        errorMessage: 'Artist with ID 0 does not exist',
+        id: 'history-1',
+        safeCandidateCount: 1,
+        startedAt: '2026-08-17T11:59:00Z',
+        status: 'Failed',
+      },
+    ]);
+    lidarrAPI.retryImport.mockResolvedValue({
+      commandId: 42,
+      safeCandidateCount: 1,
+    });
+
+    render(<Lidarr />);
+
+    expect(await screen.findByText('Artist with ID 0 does not exist')).toBeInTheDocument();
+    const retry = screen.getByRole('button', { name: 'Retry Lidarr import for /downloads/Artist/Album' });
+    fireEvent.click(retry);
+
+    await waitFor(() => {
+      expect(lidarrAPI.retryImport).toHaveBeenCalledWith('history-1');
+    });
+    expect(toast.success).toHaveBeenCalledWith('Lidarr import retry queued: 1 file(s)');
   });
 
   it('does not overlap slow status polls', async () => {

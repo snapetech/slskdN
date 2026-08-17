@@ -22,9 +22,24 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Consolidated the Soulseek TCP listen port and public DHT/mesh-overlay/QUIC
+  UDP traffic onto one port number by default (`50300`); `dht.dht_port` and
+  `overlay.listen_port`/`overlay.quic_listen_port` now default to match
+  `soulseek.listen_port` instead of `50305`, so operators forward one port
+  number for both protocols instead of two.
+- Added QUIC data-plane traffic (`overlay_data`) to the shared public UDP
+  socket by default (`overlay_data.share_with_dht_port: true`), routed by
+  inspecting the TLS ClientHello ALPN in each QUIC Initial packet. Retires
+  the separate public `50401/udp` port from the default configuration.
+- Type-1 obfuscated Soulseek peer connections now share the regular Soulseek
+  listen port by default (`soulseek.obfuscation.listen_port: 0`),
+  distinguished per-connection instead of requiring a second dedicated port.
 - Fixed Lidarr manual imports failing after queuing with `Artist with ID 0
   does not exist`; slskdN now sends the flat artist, album, release, and track
   identifiers required by Lidarr's `ManualImport` command.
+- Added Lidarr import history to the dashboard. Manual and automatic attempts
+  now show their status, file counts, and failure details, with a retry action
+  for failed or skipped attempts.
 
 ## [2026081618-slskdn.306] — 2026-08-16
 

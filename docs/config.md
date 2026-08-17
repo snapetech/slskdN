@@ -808,7 +808,7 @@ Modes:
 | ---------------------------------------- | -------------------------------------------- | ----------- |
 | `--slsk-obfuscation`                     | `SLSKD_SLSK_OBFUSCATION`                     | Enables the type-1 obfuscation feature option and status reporting |
 | `--slsk-obfuscation-mode`                | `SLSKD_SLSK_OBFUSCATION_MODE`                | Obfuscation posture: `compatibility`, `prefer`, or `only` |
-| `--slsk-obfuscation-listen-port`         | `SLSKD_SLSK_OBFUSCATION_LISTEN_PORT`         | Dedicated type-1 obfuscated peer/distributed/transfer listen port; `0` derives from `listen_port + 1` when runtime support exists |
+| `--slsk-obfuscation-listen-port`         | `SLSKD_SLSK_OBFUSCATION_LISTEN_PORT`         | Dedicated type-1 obfuscated peer/distributed/transfer listen port; `0` (default) shares `listen_port` instead, with plain and obfuscated connections distinguished per-connection |
 | `--slsk-obfuscation-advertise-regular-port` | `SLSKD_SLSK_OBFUSCATION_ADVERTISE_REGULAR_PORT` | Advertises the regular listen port alongside obfuscation metadata |
 | `--slsk-obfuscation-prefer-outbound`     | `SLSKD_SLSK_OBFUSCATION_PREFER_OUTBOUND`     | In `prefer` mode, prefers compatible type-1 obfuscated outbound peer/distributed/transfer dials |
 
@@ -823,6 +823,8 @@ soulseek:
     advertise_regular_port: true
     prefer_outbound: true  # only changes outbound priority when mode is prefer
 ```
+
+With the default `obfuscation.listen_port: 0`, obfuscated peer/distributed/transfer connections are accepted on the same TCP socket as `soulseek.listen_port` -- there's nothing extra to forward. On each accepted connection, slskdN reads the first bytes and tests whether they form a plausible plain init frame; if not, it treats them as the start of an obfuscated frame. Set `obfuscation.listen_port` to an explicit nonzero value only if you need obfuscated connections to arrive on a dedicated port instead.
 
 Mesh-DHT and overlay privacy uses the separate `security.adversarial` transport options. Those options can prefer Tor, I2P, WebSocket tunnel, HTTP tunnel, obfs4, or meek for slskdN mesh paths while falling back to normal mesh routing when private/obfuscated transports are unavailable. They do not wrap the official Soulseek server connection or change the separate public BitTorrent DHT rendezvous layer.
 

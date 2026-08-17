@@ -120,6 +120,7 @@ const StatusBar = ({ status, syncState, onSync, syncing }) => {
 const PAGE_SIZE = 50;
 const WISHLIST_PAGE_SIZE = 50;
 const STATUS_POLL_INTERVAL_MS = 30_000;
+const IMPORT_HISTORY_POLL_INTERVAL_MS = 5_000;
 
 export const areLidarrStatusesEqual = (left, right) =>
   left === right ||
@@ -399,7 +400,7 @@ const WishlistSection = () => {
 
 // ─── Manual import ────────────────────────────────────────────────────────────
 
-const ImportSection = ({ connected }) => {
+const ImportSection = ({ connected, onHistoryChanged }) => {
   const [directory, setDirectory] = useState('');
   const [importing, setImporting] = useState(false);
 
@@ -422,6 +423,7 @@ const ImportSection = ({ connected }) => {
       toast.error(`Import failed: ${err.message}`);
     } finally {
       setImporting(false);
+      onHistoryChanged?.();
     }
   };
 
@@ -468,12 +470,193 @@ const ImportSection = ({ connected }) => {
   );
 };
 
+// ─── Import history ───────────────────────────────────────────────────────────
+
+const importStatusColor = {
+  Queued: 'grey',
+  Running: 'blue',
+  Successful: 'green',
+  Failed: 'red',
+  Skipped: 'yellow',
+};
+
+const ImportHistorySection = ({ connected, refreshKey }) => {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [retryingId, setRetryingId] = useState(null);
+
+  const load = useCallback(async () => {
+    if (!connected) return;
+    setLoading(true);
+    try {
+      const data = await lidarrAPI.getImportHistory({ limit: 50 });
+      setHistory(Array.isArray(data) ? data : []);
+    } catch (err) {
+      toast.error(`Failed to load Lidarr import history: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [connected]);
+
+  useEffect(() => {
+    if (!connected) return undefined;
+
+    let interval = null;
+    const stopPolling = () => {
+      if (interval) {
+        window.clearInterval(interval);
+        interval = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || interval) return;
+      load();
+      interval = window.setInterval(load, IMPORT_HISTORY_POLL_INTERVAL_MS);
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [connected, load, refreshKey]);
+
+  const handleRetry = async (historyId) => {
+    setRetryingId(historyId);
+    try {
+      const result = await lidarrAPI.retryImport(historyId);
+      if (result?.commandId) {
+        toast.success(`Lidarr import retry queued: ${result.safeCandidateCount ?? 0} file(s)`);
+      } else {
+        toast.error(
+          result?.skippedReason ||
+          'Lidarr could not find a safe file to import on retry',
+        );
+      }
+      await load();
+    } catch (err) {
+      toast.error(`Import retry failed: ${err.message}`);
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
+  return (
+    <div className="lidarr-section">
+      <div className="lidarr-section-header">
+        <Header as="h4">
+          <Icon name="history" />
+          <Header.Content>
+            Import History
+            {!loading && (
+              <Header.Subheader>{history.length} recent attempts</Header.Subheader>
+            )}
+          </Header.Content>
+        </Header>
+        <Popup
+          content="Refresh the recent Lidarr import attempts and their latest command status."
+          position="top center"
+          trigger={
+            <Button
+              aria-label="Refresh Lidarr import history"
+              icon="refresh"
+              loading={loading}
+              onClick={load}
+              size="mini"
+            />
+          }
+        />
+      </div>
+
+      {!connected ? (
+        <div className="lidarr-empty">Connect Lidarr to see import history.</div>
+      ) : loading && history.length === 0 ? (
+        <Segment basic padded><Loader active inline="centered" /></Segment>
+      ) : history.length === 0 ? (
+        <div className="lidarr-empty">
+          No Lidarr imports recorded yet. Run a manual import to start tracking attempts.
+        </div>
+      ) : (
+        <Table celled compact size="small" unstackable>
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell>Status</Table.HeaderCell>
+              <Table.HeaderCell>Directory</Table.HeaderCell>
+              <Table.HeaderCell>Files</Table.HeaderCell>
+              <Table.HeaderCell>Started</Table.HeaderCell>
+              <Table.HeaderCell>Finished</Table.HeaderCell>
+              <Table.HeaderCell>Details</Table.HeaderCell>
+              <Table.HeaderCell>Actions</Table.HeaderCell>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {history.map((entry) => {
+              const status = entry.status || 'Queued';
+              const canRetry = status === 'Failed' || status === 'Skipped';
+              const details = entry.errorMessage || entry.skippedReason || '—';
+              return (
+                <Table.Row key={entry.id}>
+                  <Table.Cell>
+                    <Label color={importStatusColor[status] || 'grey'} size="tiny">
+                      {status}
+                    </Label>
+                  </Table.Cell>
+                  <Table.Cell className="lidarr-import-directory" title={entry.directory}>
+                    {entry.directory || '—'}
+                  </Table.Cell>
+                  <Table.Cell>
+                    {entry.candidateCount > 0
+                      ? `${entry.safeCandidateCount ?? 0}/${entry.candidateCount}`
+                      : '—'}
+                  </Table.Cell>
+                  <Table.Cell>{formatDate(entry.startedAt)}</Table.Cell>
+                  <Table.Cell>{formatDate(entry.completedAt)}</Table.Cell>
+                  <Table.Cell className="lidarr-import-details" title={details}>
+                    {details}
+                  </Table.Cell>
+                  <Table.Cell textAlign="center">
+                    {canRetry && (
+                      <Popup
+                        content="Run this directory through Lidarr again and record a new import attempt."
+                        position="top center"
+                        trigger={
+                          <Button
+                            aria-label={`Retry Lidarr import for ${entry.directory}`}
+                            disabled={retryingId !== null}
+                            icon="redo"
+                            loading={retryingId === entry.id}
+                            onClick={() => handleRetry(entry.id)}
+                            size="mini"
+                          />
+                        }
+                      />
+                    )}
+                  </Table.Cell>
+                </Table.Row>
+              );
+            })}
+          </Table.Body>
+        </Table>
+      )}
+    </div>
+  );
+};
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 const Lidarr = () => {
   const [status, setStatus] = useState(null);
   const [syncState, setSyncState] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const mountedRef = useRef(false);
   const statusInflightRef = useRef(false);
 
@@ -554,6 +737,9 @@ const Lidarr = () => {
   };
 
   const connected = !!status?.version;
+  const handleHistoryChanged = useCallback(() => {
+    setHistoryRefreshKey((key) => key + 1);
+  }, []);
 
   return (
     <div className="lidarr-container">
@@ -576,7 +762,15 @@ const Lidarr = () => {
 
       <WishlistSection />
 
-      <ImportSection connected={connected} />
+      <ImportSection
+        connected={connected}
+        onHistoryChanged={handleHistoryChanged}
+      />
+
+      <ImportHistorySection
+        connected={connected}
+        refreshKey={historyRefreshKey}
+      />
     </div>
   );
 };

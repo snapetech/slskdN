@@ -22,8 +22,11 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
     private static readonly TimeSpan SessionIdleTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan PendingSessionTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan MalformedOverlayDatagramLogInterval = TimeSpan.FromMinutes(1);
+    private const string DataPlaneAlpnProtocol = "slskdn-overlay-data";
+
     private readonly IPEndPoint _listenEndPoint;
     private readonly IPEndPoint? _quicBackendEndPoint;
+    private readonly IPEndPoint? _quicDataBackendEndPoint;
     private readonly ILogger<SharedMeshUdpListener> _logger;
     private readonly IControlDispatcher? _overlayDispatcher;
     private readonly ConnectionThrottler? _connectionThrottler;
@@ -46,10 +49,12 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
         IControlDispatcher? overlayDispatcher = null,
         ConnectionThrottler? connectionThrottler = null,
         IOptions<OverlayOptions>? overlayOptions = null,
-        IOptions<MeshOptions>? meshOptions = null)
+        IOptions<MeshOptions>? meshOptions = null,
+        IPEndPoint? quicDataBackendEndPoint = null)
     {
         _listenEndPoint = listenEndPoint;
         _quicBackendEndPoint = quicBackendEndPoint;
+        _quicDataBackendEndPoint = quicDataBackendEndPoint;
         _logger = logger;
         _overlayDispatcher = overlayDispatcher;
         _connectionThrottler = connectionThrottler;
@@ -86,11 +91,12 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
             }
 
             _logger.LogInformation(
-                "[DHT] Shared UDP listener bound {PublicPort} on {SocketCount} socket(s); UDP overlay enabled={OverlayEnabled}; QUIC backend={Backend}",
+                "[DHT] Shared UDP listener bound {PublicPort} on {SocketCount} socket(s); UDP overlay enabled={OverlayEnabled}; QUIC control backend={Backend}; QUIC data backend={DataBackend}",
                 _listenEndPoint.Port,
                 _publicSockets.Count,
                 _overlayDispatcher is not null,
-                _quicBackendEndPoint?.ToString() ?? "disabled");
+                _quicBackendEndPoint?.ToString() ?? "disabled",
+                _quicDataBackendEndPoint?.ToString() ?? "disabled");
         }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
         {
@@ -175,7 +181,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
                     continue;
                 }
 
-                if (_quicBackendEndPoint is not null && IsQuicInitialPacket(result.Buffer))
+                if ((_quicBackendEndPoint is not null || _quicDataBackendEndPoint is not null) && IsQuicInitialPacket(result.Buffer))
                 {
                     if (!_quicSessions.TryGetValue(result.RemoteEndPoint, out var session))
                     {
@@ -190,7 +196,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
 
                             var candidate = new QuicProxySession(
                                 result.RemoteEndPoint,
-                                _quicBackendEndPoint,
+                                ResolveQuicBackendEndPoint(result.Buffer),
                                 udp,
                                 _logger,
                                 admissionLease,
@@ -299,6 +305,26 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
             "[Overlay] Failed to decode malformed overlay datagram from {Endpoint} size={Size}",
             OverlayLogSanitizer.Endpoint(remoteEndPoint),
             size);
+    }
+
+    /// <summary>
+    /// Picks which QUIC backend a brand-new remote endpoint's session should proxy to. Only
+    /// attempts ALPN sniffing when both backends are configured -- if only one is present there is
+    /// nothing to disambiguate, so skip the parsing work entirely. Any sniff failure (unsupported
+    /// framing, non-QUICv1/v2 version, truncated packet, anything) falls back to the control-plane
+    /// backend, matching this listener's behavior before data-plane sharing existed.
+    /// </summary>
+    private IPEndPoint ResolveQuicBackendEndPoint(ReadOnlyMemory<byte> buffer)
+    {
+        if (_quicBackendEndPoint is not null && _quicDataBackendEndPoint is not null)
+        {
+            return QuicInitialAlpnSniffer.TryGetAlpn(buffer.Span, out var alpn) && alpn == DataPlaneAlpnProtocol
+                ? _quicDataBackendEndPoint
+                : _quicBackendEndPoint;
+        }
+
+        // Caller only reaches here when at least one backend is non-null.
+        return _quicBackendEndPoint ?? _quicDataBackendEndPoint!;
     }
 
     private void PruneIdleQuicSessions()

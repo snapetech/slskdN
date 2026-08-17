@@ -38,6 +38,21 @@ namespace Soulseek.Tests.Unit.Network.Tcp
             Assert.Equal(options, l.ConnectionOptions);
 
             Assert.False(l.Listening);
+            Assert.False(l.Obfuscated);
+            Assert.False(l.ObfuscationSniffingEnabled);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiates with obfuscation sniffing enabled")]
+        public void Instantiates_With_Obfuscation_Sniffing_Enabled()
+        {
+            var options = new ConnectionOptions();
+            var port = 0;
+
+            var l = new Listener(IPAddress.Loopback, port, options, obfuscationSniffingEnabled: true);
+
+            Assert.True(l.ObfuscationSniffingEnabled);
+            Assert.False(l.Obfuscated);
         }
 
         [Trait("Category", "Start")]

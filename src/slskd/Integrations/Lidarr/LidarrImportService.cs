@@ -24,24 +24,32 @@ public interface ILidarrImportService
     Task<LidarrImportResult> ImportCompletedDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default);
 
     Task<LidarrImportResult> ImportDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LidarrImportHistoryRecord>> GetHistoryAsync(int limit = 50, CancellationToken cancellationToken = default);
+
+    Task<LidarrImportResult?> RetryImportAsync(Guid historyId, CancellationToken cancellationToken = default);
 }
 
 public sealed class LidarrImportService : BackgroundService, ILidarrImportService
 {
     private const string SubscriberName = "LidarrImportService.DownloadDirectoryComplete";
+    private static readonly TimeSpan CommandPollInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan CommandPollTimeout = TimeSpan.FromMinutes(30);
 
     public LidarrImportService(
         ILidarrClient lidarrClient,
         EventBus eventBus,
         IOptionsMonitor<global::slskd.Options> optionsMonitor,
         IDbContextFactory<TransfersDbContext>? transfersContextFactory = null,
-        IWishlistService? wishlistService = null)
+        IWishlistService? wishlistService = null,
+        IDbContextFactory<WishlistDbContext>? historyContextFactory = null)
     {
         LidarrClient = lidarrClient;
         EventBus = eventBus;
         OptionsMonitor = optionsMonitor;
         TransfersContextFactory = transfersContextFactory;
         WishlistService = wishlistService;
+        HistoryContextFactory = historyContextFactory;
     }
 
     private ILidarrClient LidarrClient { get; }
@@ -51,142 +59,493 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
     private IOptionsMonitor<global::slskd.Options> OptionsMonitor { get; }
     private IDbContextFactory<TransfersDbContext>? TransfersContextFactory { get; }
     private IWishlistService? WishlistService { get; }
+    private IDbContextFactory<WishlistDbContext>? HistoryContextFactory { get; }
 
     private ConcurrentDictionary<string, DateTime> RecentlyProcessed { get; } = new(StringComparer.Ordinal);
 
+    private ConcurrentDictionary<Guid, byte> ActiveCommandMonitors { get; } = new();
+
+    private ConcurrentDictionary<Guid, LidarrImportHistoryRecord> VolatileHistory { get; } = new();
+
     private SemaphoreSlim ImportGate { get; } = new(1, 1);
+
+    private CancellationTokenSource MonitoringCancellation { get; } = new();
 
     private ILogger Log { get; } = Serilog.Log.ForContext<LidarrImportService>();
 
     public async Task<LidarrImportResult> ImportCompletedDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default)
-        => await ImportDirectoryAsync(localDirectory, requireAutoImportEnabled: true, bypassDebounce: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+        => await ImportDirectoryAsync(localDirectory, requireAutoImportEnabled: true, bypassDebounce: false, retryOfId: null, cancellationToken: cancellationToken).ConfigureAwait(false);
 
     public async Task<LidarrImportResult> ImportDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default)
-        => await ImportDirectoryAsync(localDirectory, requireAutoImportEnabled: false, bypassDebounce: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+        => await ImportDirectoryAsync(localDirectory, requireAutoImportEnabled: false, bypassDebounce: true, retryOfId: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<LidarrImportHistoryRecord>> GetHistoryAsync(int limit = 50, CancellationToken cancellationToken = default)
+    {
+        var safeLimit = Math.Clamp(limit, 1, 200);
+        if (HistoryContextFactory is null)
+        {
+            return VolatileHistory.Values
+                .OrderByDescending(record => record.StartedAt)
+                .Take(safeLimit)
+                .ToList();
+        }
+
+        await using var context = await HistoryContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        return await context.LidarrImportHistory
+            .AsNoTracking()
+            .OrderByDescending(record => record.StartedAt)
+            .Take(safeLimit)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<LidarrImportResult?> RetryImportAsync(Guid historyId, CancellationToken cancellationToken = default)
+    {
+        LidarrImportHistoryRecord? history;
+        if (HistoryContextFactory is null)
+        {
+            VolatileHistory.TryGetValue(historyId, out history);
+        }
+        else
+        {
+            await using var context = await HistoryContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            history = await context.LidarrImportHistory
+                .AsNoTracking()
+                .SingleOrDefaultAsync(record => record.Id == historyId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (history is null)
+        {
+            return null;
+        }
+
+        var sourceDirectory = string.IsNullOrWhiteSpace(history.SourceDirectory)
+            ? history.Directory
+            : history.SourceDirectory;
+        return await ImportDirectoryAsync(
+            sourceDirectory,
+            requireAutoImportEnabled: false,
+            bypassDebounce: true,
+            retryOfId: history.Id,
+            cancellationToken).ConfigureAwait(false);
+    }
 
     private async Task<LidarrImportResult> ImportDirectoryAsync(
         string localDirectory,
         bool requireAutoImportEnabled,
         bool bypassDebounce,
+        Guid? retryOfId,
         CancellationToken cancellationToken)
     {
         var options = OptionsMonitor.CurrentValue.Integration.Lidarr;
-        if (!options.Enabled)
-        {
-            return new LidarrImportResult
-            {
-                Enabled = false,
-                AutoImportEnabled = options.AutoImportCompleted,
-                SkippedReason = "Lidarr integration is disabled",
-            };
-        }
+        var sourceDirectory = localDirectory?.Trim() ?? string.Empty;
+        var lidarrDirectory = string.IsNullOrWhiteSpace(sourceDirectory)
+            ? string.Empty
+            : MapPath(sourceDirectory, options.ImportPathFrom, options.ImportPathTo);
+        var history = await BeginHistoryAsync(sourceDirectory, lidarrDirectory, retryOfId, cancellationToken).ConfigureAwait(false);
 
-        if (requireAutoImportEnabled && !options.AutoImportCompleted)
-        {
-            return new LidarrImportResult
-            {
-                Enabled = true,
-                AutoImportEnabled = false,
-                SkippedReason = "Automatic completed-directory import is disabled",
-            };
-        }
-
-        if (string.IsNullOrWhiteSpace(localDirectory))
-        {
-            return new LidarrImportResult
-            {
-                Enabled = options.Enabled,
-                AutoImportEnabled = options.AutoImportCompleted,
-                SkippedReason = "Directory is empty",
-            };
-        }
-
-        var lidarrDirectory = MapPath(localDirectory, options.ImportPathFrom, options.ImportPathTo);
-        if (!bypassDebounce && !TryBeginProcessing(lidarrDirectory))
-        {
-            return new LidarrImportResult
-            {
-                Enabled = options.Enabled,
-                AutoImportEnabled = options.AutoImportCompleted,
-                Directory = lidarrDirectory,
-                SkippedReason = "Recently processed",
-            };
-        }
-
-        await ImportGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var candidates = await LidarrClient
-                .GetManualImportCandidatesAsync(
-                    lidarrDirectory,
-                    filterExistingFiles: false,
-                    replaceExistingFiles: options.ImportReplaceExistingFiles,
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            var safeCandidates = candidates
-                .Where(candidate => candidate.IsSafeAutomaticImportCandidate)
-                .ToList();
-
-            foreach (var candidate in safeCandidates)
+            if (!options.Enabled)
             {
-                candidate.ReplaceExistingFiles = options.ImportReplaceExistingFiles;
-            }
-
-            var result = new LidarrImportResult
-            {
-                Enabled = options.Enabled,
-                AutoImportEnabled = options.AutoImportCompleted,
-                Directory = lidarrDirectory,
-                CandidateCount = candidates.Count,
-                SafeCandidateCount = safeCandidates.Count,
-                RejectedCandidateCount = candidates.Count - safeCandidates.Count,
-                RejectedFilenames = candidates
-                    .Where(candidate => !candidate.IsSafeAutomaticImportCandidate)
-                    .Select(candidate => GetPortableFileName(candidate.Path))
-                    .Where(filename => !string.IsNullOrWhiteSpace(filename))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToArray(),
-            };
-
-            if (safeCandidates.Count == 0)
-            {
-                result.SkippedReason = candidates.Count == 0
-                    ? "Lidarr found no import candidates"
-                    : "Lidarr candidates had rejections or ambiguous matches";
-                Log.Information(
-                    "Lidarr auto-import skipped {Directory}: {Reason} ({Candidates} candidates)",
-                    lidarrDirectory,
-                    result.SkippedReason,
-                    candidates.Count);
+                var result = new LidarrImportResult
+                {
+                    Enabled = false,
+                    AutoImportEnabled = options.AutoImportCompleted,
+                    SkippedReason = "Lidarr integration is disabled",
+                    HistoryId = history.Id,
+                };
+                await CompleteHistoryAsync(history.Id, result, LidarrImportStatus.Skipped, cancellationToken).ConfigureAwait(false);
                 return result;
             }
 
-            var importMode = NormalizeImportMode(options.ImportMode);
-            var command = await LidarrClient
-                .StartManualImportAsync(safeCandidates, importMode, options.ImportReplaceExistingFiles, cancellationToken)
-                .ConfigureAwait(false);
+            if (requireAutoImportEnabled && !options.AutoImportCompleted)
+            {
+                var result = new LidarrImportResult
+                {
+                    Enabled = true,
+                    AutoImportEnabled = false,
+                    SkippedReason = "Automatic completed-directory import is disabled",
+                    HistoryId = history.Id,
+                };
+                await CompleteHistoryAsync(history.Id, result, LidarrImportStatus.Skipped, cancellationToken).ConfigureAwait(false);
+                return result;
+            }
 
-            result.CommandId = command.Id;
-            result.ImportMode = importMode;
-            Log.Information(
-                "Queued Lidarr manual import command {CommandId} for {Directory}: {SafeCandidates}/{Candidates} safe candidates",
-                command.Id,
-                lidarrDirectory,
-                safeCandidates.Count,
-                candidates.Count);
+            if (string.IsNullOrWhiteSpace(sourceDirectory))
+            {
+                var result = new LidarrImportResult
+                {
+                    Enabled = options.Enabled,
+                    AutoImportEnabled = options.AutoImportCompleted,
+                    SkippedReason = "Directory is empty",
+                    HistoryId = history.Id,
+                };
+                await CompleteHistoryAsync(history.Id, result, LidarrImportStatus.Skipped, cancellationToken).ConfigureAwait(false);
+                return result;
+            }
 
-            return result;
+            if (!bypassDebounce && !TryBeginProcessing(lidarrDirectory))
+            {
+                var result = new LidarrImportResult
+                {
+                    Enabled = options.Enabled,
+                    AutoImportEnabled = options.AutoImportCompleted,
+                    Directory = lidarrDirectory,
+                    SkippedReason = "Recently processed",
+                    HistoryId = history.Id,
+                };
+                await CompleteHistoryAsync(history.Id, result, LidarrImportStatus.Skipped, cancellationToken).ConfigureAwait(false);
+                return result;
+            }
+
+            await ImportGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var candidates = await LidarrClient
+                    .GetManualImportCandidatesAsync(
+                        lidarrDirectory,
+                        filterExistingFiles: false,
+                        replaceExistingFiles: options.ImportReplaceExistingFiles,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                var safeCandidates = candidates
+                    .Where(candidate => candidate.IsSafeAutomaticImportCandidate)
+                    .ToList();
+
+                foreach (var candidate in safeCandidates)
+                {
+                    candidate.ReplaceExistingFiles = options.ImportReplaceExistingFiles;
+                }
+
+                var result = new LidarrImportResult
+                {
+                    Enabled = options.Enabled,
+                    AutoImportEnabled = options.AutoImportCompleted,
+                    Directory = lidarrDirectory,
+                    CandidateCount = candidates.Count,
+                    SafeCandidateCount = safeCandidates.Count,
+                    RejectedCandidateCount = candidates.Count - safeCandidates.Count,
+                    RejectedFilenames = candidates
+                        .Where(candidate => !candidate.IsSafeAutomaticImportCandidate)
+                        .Select(candidate => GetPortableFileName(candidate.Path))
+                        .Where(filename => !string.IsNullOrWhiteSpace(filename))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToArray(),
+                    HistoryId = history.Id,
+                };
+
+                if (safeCandidates.Count == 0)
+                {
+                    result.SkippedReason = candidates.Count == 0
+                        ? "Lidarr found no import candidates"
+                        : "Lidarr candidates had rejections or ambiguous matches";
+                    Log.Information(
+                        "Lidarr auto-import skipped {Directory}: {Reason} ({Candidates} candidates)",
+                        lidarrDirectory,
+                        result.SkippedReason,
+                        candidates.Count);
+                    await CompleteHistoryAsync(history.Id, result, LidarrImportStatus.Skipped, cancellationToken).ConfigureAwait(false);
+                    return result;
+                }
+
+                var importMode = NormalizeImportMode(options.ImportMode);
+                var command = await LidarrClient
+                    .StartManualImportAsync(safeCandidates, importMode, options.ImportReplaceExistingFiles, cancellationToken)
+                    .ConfigureAwait(false);
+
+                result.CommandId = command.Id;
+                result.ImportMode = importMode;
+                await QueueHistoryAsync(history.Id, result, command, cancellationToken).ConfigureAwait(false);
+                Log.Information(
+                    "Queued Lidarr manual import command {CommandId} for {Directory}: {SafeCandidates}/{Candidates} safe candidates",
+                    command.Id,
+                    lidarrDirectory,
+                    safeCandidates.Count,
+                    candidates.Count);
+
+                if (command.Id > 0 && !IsTerminalCommandStatus(command.Status))
+                {
+                    StartCommandMonitor(history.Id, command.Id);
+                }
+
+                return result;
+            }
+            finally
+            {
+                ImportGate.Release();
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await MarkHistoryFailedAsync(history.Id, "Import canceled.").ConfigureAwait(false);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await MarkHistoryFailedAsync(history.Id, ex.Message).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private async Task<LidarrImportHistoryRecord> BeginHistoryAsync(
+        string sourceDirectory,
+        string lidarrDirectory,
+        Guid? retryOfId,
+        CancellationToken cancellationToken)
+    {
+        var history = new LidarrImportHistoryRecord
+        {
+            SourceDirectory = sourceDirectory,
+            Directory = lidarrDirectory,
+            RetryOfId = retryOfId,
+        };
+        VolatileHistory[history.Id] = history;
+
+        if (HistoryContextFactory is null)
+        {
+            return history;
+        }
+
+        await using var context = await HistoryContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        context.LidarrImportHistory.Add(history);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return history;
+    }
+
+    private async Task CompleteHistoryAsync(
+        Guid historyId,
+        LidarrImportResult result,
+        string status,
+        CancellationToken cancellationToken)
+    {
+        await UpdateHistoryAsync(
+            historyId,
+            history =>
+            {
+                history.Status = status;
+                history.Directory = string.IsNullOrWhiteSpace(result.Directory) ? history.Directory : result.Directory;
+                history.CandidateCount = result.CandidateCount;
+                history.SafeCandidateCount = result.SafeCandidateCount;
+                history.RejectedCandidateCount = result.RejectedCandidateCount;
+                history.CommandId = result.CommandId > 0 ? result.CommandId : null;
+                history.ImportMode = result.ImportMode;
+                history.SkippedReason = result.SkippedReason;
+                history.CompletedAt = DateTime.UtcNow;
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task QueueHistoryAsync(
+        Guid historyId,
+        LidarrImportResult result,
+        LidarrCommandResponse command,
+        CancellationToken cancellationToken)
+    {
+        var status = command.Id <= 0 ? LidarrImportStatus.Failed : MapCommandStatus(command.Status);
+        var errorMessage = command.Id <= 0
+            ? "Lidarr did not return a command ID."
+            : GetCommandError(command, status);
+        DateTime? completed = IsTerminalHistoryStatus(status) ? DateTime.UtcNow : null;
+
+        await UpdateHistoryAsync(
+            historyId,
+            history =>
+            {
+                history.Status = status;
+                history.Directory = string.IsNullOrWhiteSpace(result.Directory) ? history.Directory : result.Directory;
+                history.CandidateCount = result.CandidateCount;
+                history.SafeCandidateCount = result.SafeCandidateCount;
+                history.RejectedCandidateCount = result.RejectedCandidateCount;
+                history.CommandId = command.Id > 0 ? command.Id : null;
+                history.ImportMode = result.ImportMode;
+                history.ErrorMessage = errorMessage;
+                history.CompletedAt = completed;
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task MarkHistoryFailedAsync(Guid historyId, string errorMessage)
+    {
+        try
+        {
+            await UpdateHistoryAsync(
+                historyId,
+                history =>
+                {
+                    history.Status = LidarrImportStatus.Failed;
+                    history.ErrorMessage = string.IsNullOrWhiteSpace(errorMessage) ? "Lidarr import failed." : errorMessage;
+                    history.CompletedAt = DateTime.UtcNow;
+                },
+                CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Could not persist Lidarr import failure for history entry {HistoryId}", historyId);
+        }
+    }
+
+    private async Task UpdateHistoryAsync(
+        Guid historyId,
+        Action<LidarrImportHistoryRecord> update,
+        CancellationToken cancellationToken)
+    {
+        if (VolatileHistory.TryGetValue(historyId, out var volatileHistory))
+        {
+            update(volatileHistory);
+        }
+
+        if (HistoryContextFactory is null)
+        {
+            return;
+        }
+
+        await using var context = await HistoryContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var history = await context.LidarrImportHistory
+            .SingleOrDefaultAsync(record => record.Id == historyId, cancellationToken)
+            .ConfigureAwait(false);
+        if (history is null)
+        {
+            return;
+        }
+
+        update(history);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private void StartCommandMonitor(Guid historyId, int commandId)
+    {
+        if (!ActiveCommandMonitors.TryAdd(historyId, 0))
+        {
+            return;
+        }
+
+        _ = MonitorCommandAsync(historyId, commandId);
+    }
+
+    private async Task MonitorCommandAsync(Guid historyId, int commandId)
+    {
+        try
+        {
+            var deadline = DateTime.UtcNow + CommandPollTimeout;
+            while (DateTime.UtcNow < deadline)
+            {
+                var command = await LidarrClient.GetCommandAsync(commandId, MonitoringCancellation.Token).ConfigureAwait(false);
+                var status = MapCommandStatus(command.Status);
+                await UpdateHistoryAsync(
+                    historyId,
+                    history =>
+                    {
+                        history.Status = status;
+                        history.ErrorMessage = GetCommandError(command, status);
+                        if (IsTerminalHistoryStatus(status))
+                        {
+                            history.CompletedAt = DateTime.UtcNow;
+                        }
+                    },
+                    MonitoringCancellation.Token).ConfigureAwait(false);
+
+                if (IsTerminalHistoryStatus(status))
+                {
+                    return;
+                }
+
+                await Task.Delay(CommandPollInterval, MonitoringCancellation.Token).ConfigureAwait(false);
+            }
+
+            await MarkHistoryFailedAsync(historyId, "Lidarr command did not finish within 30 minutes.").ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (MonitoringCancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            await MarkHistoryFailedAsync(historyId, ex.Message).ConfigureAwait(false);
+            Log.Warning(ex, "Could not track Lidarr import command {CommandId}", commandId);
         }
         finally
         {
-            ImportGate.Release();
+            ActiveCommandMonitors.TryRemove(historyId, out _);
         }
+    }
+
+    private async Task ResumePendingImportsAsync(CancellationToken cancellationToken)
+    {
+        if (HistoryContextFactory is null)
+        {
+            foreach (var history in VolatileHistory.Values.Where(IsPendingHistory))
+            {
+                StartCommandMonitor(history.Id, history.CommandId!.Value);
+            }
+
+            return;
+        }
+
+        await using var context = await HistoryContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var pending = await context.LidarrImportHistory
+            .AsNoTracking()
+            .Where(history => history.CommandId.HasValue &&
+                history.CommandId.Value > 0 &&
+                (history.Status == LidarrImportStatus.Queued || history.Status == LidarrImportStatus.Running))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        foreach (var history in pending)
+        {
+            StartCommandMonitor(history.Id, history.CommandId!.Value);
+        }
+    }
+
+    private static bool IsPendingHistory(LidarrImportHistoryRecord history)
+        => history.CommandId.HasValue &&
+            history.CommandId.Value > 0 &&
+            (history.Status == LidarrImportStatus.Queued || history.Status == LidarrImportStatus.Running);
+
+    private static string MapCommandStatus(string? status)
+    {
+        var normalized = status?.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "completed" => LidarrImportStatus.Successful,
+            "failed" or "aborted" or "cancelled" or "canceled" or "orphaned" => LidarrImportStatus.Failed,
+            "started" or "running" or "processing" => LidarrImportStatus.Running,
+            _ => LidarrImportStatus.Queued,
+        };
+    }
+
+    private static bool IsTerminalCommandStatus(string? status)
+        => IsTerminalHistoryStatus(MapCommandStatus(status));
+
+    private static bool IsTerminalHistoryStatus(string status)
+        => status == LidarrImportStatus.Successful || status == LidarrImportStatus.Failed;
+
+    private static string GetCommandError(LidarrCommandResponse command, string status)
+    {
+        if (status != LidarrImportStatus.Failed)
+        {
+            return string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(command.ErrorMessage))
+        {
+            return command.ErrorMessage;
+        }
+
+        if (!string.IsNullOrWhiteSpace(command.Message))
+        {
+            return command.Message;
+        }
+
+        return string.IsNullOrWhiteSpace(command.Status)
+            ? "Lidarr command failed."
+            : $"Lidarr command ended with status '{command.Status}'.";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
+        await ResumePendingImportsAsync(stoppingToken).ConfigureAwait(false);
 
         EventBus.Subscribe<DownloadDirectoryCompleteEvent>(
             SubscriberName,
@@ -240,6 +599,12 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         {
             EventBus.Unsubscribe<DownloadDirectoryCompleteEvent>(SubscriberName);
         }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        MonitoringCancellation.Cancel();
+        await base.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ApplyRejectedDownloadPolicyAsync(
@@ -366,6 +731,8 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
 
 public sealed record LidarrImportResult
 {
+    public Guid HistoryId { get; init; }
+
     public bool Enabled { get; init; }
 
     public bool AutoImportEnabled { get; init; }

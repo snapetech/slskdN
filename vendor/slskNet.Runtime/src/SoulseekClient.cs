@@ -945,7 +945,9 @@ namespace Soulseek
                     listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions);
                     listener.Start();
 
-                    if (Options.PeerObfuscationOptions.Enabled)
+                    // a dedicated obfuscation listen port of 0 means obfuscated connections share the regular listener's
+                    // single bound port (distinguished per-connection instead), so there is no second port to probe here.
+                    if (Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort != 0)
                     {
                         obfuscatedListener = new Listener(
                             Options.ListenIPAddress,
@@ -3542,11 +3544,20 @@ namespace Soulseek
 
                     if (Options.EnableListener)
                     {
-                        Listener = new Listener(Options.ListenIPAddress, Options.ListenPort, connectionOptions: Options.IncomingConnectionOptions);
+                        // a dedicated obfuscation listen port of 0 means obfuscated connections share the regular
+                        // listener's single bound port; the shared listener determines plain-vs-obfuscated per
+                        // connection instead of a second listener with a static obfuscated flag.
+                        var sharedObfuscation = Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort == 0;
+
+                        Listener = new Listener(
+                            Options.ListenIPAddress,
+                            Options.ListenPort,
+                            connectionOptions: Options.IncomingConnectionOptions,
+                            obfuscationSniffingEnabled: sharedObfuscation);
                         Listener.Accepted += ListenerHandler.HandleConnection;
                         Listener.Start();
 
-                        if (Options.PeerObfuscationOptions.Enabled)
+                        if (Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort != 0)
                         {
                             ObfuscatedListener = new Listener(
                                 Options.ListenIPAddress,
@@ -4640,11 +4651,20 @@ namespace Soulseek
 
                     if (wasListening && Options.EnableListener)
                     {
-                        Listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions);
+                        // a dedicated obfuscation listen port of 0 means obfuscated connections share the regular
+                        // listener's single bound port; the shared listener determines plain-vs-obfuscated per
+                        // connection instead of a second listener with a static obfuscated flag.
+                        var sharedObfuscation = Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort == 0;
+
+                        Listener = new Listener(
+                            Options.ListenIPAddress,
+                            Options.ListenPort,
+                            Options.IncomingConnectionOptions,
+                            obfuscationSniffingEnabled: sharedObfuscation);
                         Listener.Accepted += ListenerHandler.HandleConnection;
                         Listener.Start();
 
-                        if (Options.PeerObfuscationOptions.Enabled)
+                        if (Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort != 0)
                         {
                             ObfuscatedListener = new Listener(
                                 Options.ListenIPAddress,

@@ -2736,7 +2736,7 @@ namespace slskd
                 /// </summary>
                 [Argument(default, "slsk-obfuscation-listen-port")]
                 [EnvironmentVariable("SLSK_OBFUSCATION_LISTEN_PORT")]
-                [Description("dedicated type-1 obfuscated peer/distributed/transfer listen port (0 = derive from regular listen port when runtime support exists)")]
+                [Description("dedicated type-1 obfuscated peer/distributed/transfer listen port (0 = share the regular listen port; plain and obfuscated connections are distinguished per-connection)")]
                 [Range(0, 65535)]
                 [RequiresReconnect]
                 public int ListenPort { get; init; } = 0;

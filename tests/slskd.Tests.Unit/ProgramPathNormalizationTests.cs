@@ -148,7 +148,11 @@ public class ProgramPathNormalizationTests
         Assert.True(options.AcceptDistributedChildren);
         Assert.Equal(7, options.DistributedChildLimit);
         Assert.True(options.PeerObfuscationOptions.Enabled);
-        Assert.Equal(50445, options.PeerObfuscationOptions.ListenPort);
+
+        // Obfuscation.ListenPort defaults to 0, meaning obfuscated peer connections share the
+        // regular listen port (50444) via per-connection sniffing rather than binding a second,
+        // dedicated port.
+        Assert.Equal(0, options.PeerObfuscationOptions.ListenPort);
     }
 
     [Fact]
@@ -498,12 +502,15 @@ public class ProgramPathNormalizationTests
         var dataOverlay = new slskd.Mesh.Overlay.DataOverlayOptions();
 
         Assert.True(overlay.Enable);
-        Assert.Equal(50305, overlay.ListenPort);
+        Assert.Equal(50300, overlay.ListenPort);
         Assert.True(overlay.EnableQuic);
         Assert.True(overlay.ShareQuicWithDhtPort);
-        Assert.Equal(50305, overlay.QuicListenPort);
+        Assert.Equal(50300, overlay.QuicListenPort);
         Assert.Equal(55305, overlay.QuicBackendListenPort);
         Assert.False(dataOverlay.Enable);
+        Assert.Equal(50300, dataOverlay.ListenPort);
+        Assert.True(dataOverlay.ShareWithDhtPort);
+        Assert.Equal(55401, dataOverlay.BackendListenPort);
     }
 
     [Theory]

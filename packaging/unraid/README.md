@@ -24,16 +24,15 @@ The old **Settings → Docker → Template Repositories** instructions are obsol
 |------|---------|
 | 5030 | Web UI (HTTP) |
 | 5031 | Web UI (HTTPS) |
-| 50300 | Soulseek incoming connections |
-| 50305/tcp | slskdN mesh overlay |
-| 50305/udp | Public DHT rendezvous and shared UDP/QUIC mesh traffic |
-| 50401/udp | Optional QUIC data overlay |
+| 50300/tcp | Soulseek incoming connections (plain and obfuscated peer connections share this one port by default) |
+| 50305/tcp | slskdN mesh overlay (a distinct number from 50300 because both are TCP) |
+| 50300/udp | Public DHT rendezvous, mesh overlay control, and QUIC control/data-plane traffic, all sharing one UDP socket |
 
 Port 50300/tcp should be forwarded in your router for optimal Soulseek
-connectivity. Ports 50305/tcp and 50305/udp are used when DHT/mesh services are
-enabled. Port 50401/udp is only needed when the optional `overlay_data` QUIC
-data plane is enabled. The loopback-only QUIC backend port 55305 must not be
-published.
+connectivity. Ports 50305/tcp and 50300/udp are used when DHT/mesh services are
+enabled; 50300/udp shares the Soulseek listen port's number since TCP and UDP
+are separate port spaces. The loopback-only QUIC backend ports (55305 and
+55401) must not be published.
 
 ## First Run
 

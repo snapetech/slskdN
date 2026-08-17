@@ -22,6 +22,7 @@
 //
 //     Modified by slskdN Team.
 //     Modified: Added obfuscated listener identity.
+//     Modified: Added per-connection obfuscation sniffing flag for shared single-port listeners.
 // </copyright>
 
 namespace Soulseek.Network.Tcp
@@ -58,6 +59,14 @@ namespace Soulseek.Network.Tcp
         ///     Gets a value indicating whether accepted init frames are type-1 obfuscated.
         /// </summary>
         bool Obfuscated { get; }
+
+        /// <summary>
+        ///     Gets a value indicating whether this listener determines, per accepted connection, whether the init frame is
+        ///     type-1 obfuscated by inspecting the first bytes read from the socket, rather than relying on a static,
+        ///     per-listener <see cref="Obfuscated"/> flag. This is used when plain and obfuscated peer connections share a
+        ///     single bound port.
+        /// </summary>
+        bool ObfuscationSniffingEnabled { get; }
 
         /// <summary>
         ///     Gets the port of the listener.

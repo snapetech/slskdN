@@ -70,3 +70,9 @@
   color: #888;
   padding: 2em 0;
 }
+
+.lidarr-import-directory,
+.lidarr-import-details {
+  max-width: 24em;
+  overflow-wrap: anywhere;
+}

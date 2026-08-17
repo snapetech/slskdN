@@ -5,8 +5,10 @@ namespace slskd.Tests.Unit.Integrations.Lidarr;
 
 using System.Net.Http;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using slskd.Events;
 using slskd.Integrations.Lidarr;
+using slskd.Wishlist;
 using Xunit;
 
 public class LidarrImportServiceTests
@@ -235,6 +237,64 @@ public class LidarrImportServiceTests
     }
 
     [Fact]
+    public async Task ImportDirectoryAsync_PersistsHistoryAndRetriesAsANewAttempt()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"lidarr-history-{Guid.NewGuid():N}.db");
+        try
+        {
+            var options = new DbContextOptionsBuilder<WishlistDbContext>()
+                .UseSqlite($"Data Source={databasePath}")
+                .Options;
+            var contextFactory = new TestWishlistDbContextFactory(options);
+            await using (var context = await contextFactory.CreateDbContextAsync())
+            {
+                await context.Database.EnsureCreatedAsync();
+            }
+
+            var client = new FakeLidarrClient
+            {
+                Candidates = [RejectedCandidate()],
+            };
+            var service = CreateService(client, EnabledImportOptions(), contextFactory);
+
+            var firstResult = await service.ImportDirectoryAsync("/downloads/music/Artist/Album");
+            var firstHistory = Assert.Single(await service.GetHistoryAsync());
+
+            Assert.Equal(firstHistory.Id, firstResult.HistoryId);
+            Assert.Equal(LidarrImportStatus.Skipped, firstHistory.Status);
+            Assert.Equal("Lidarr candidates had rejections or ambiguous matches", firstHistory.SkippedReason);
+
+            client.Candidates = [SafeCandidate()];
+            var retryResult = await service.RetryImportAsync(firstHistory.Id);
+            Assert.NotNull(retryResult);
+            Assert.Equal(42, retryResult.CommandId);
+
+            LidarrImportHistoryRecord? retryHistory = null;
+            for (var attempt = 0; attempt < 20; attempt++)
+            {
+                retryHistory = (await service.GetHistoryAsync()).SingleOrDefault(history => history.Id != firstHistory.Id);
+                if (retryHistory?.Status == LidarrImportStatus.Successful)
+                {
+                    break;
+                }
+
+                await Task.Delay(10);
+            }
+
+            Assert.NotNull(retryHistory);
+            Assert.Equal(LidarrImportStatus.Successful, retryHistory!.Status);
+            Assert.Equal(firstHistory.Id, retryHistory.RetryOfId);
+            Assert.Equal("/downloads/music/Artist/Album", retryHistory.SourceDirectory);
+        }
+        finally
+        {
+            File.Delete(databasePath);
+            File.Delete(databasePath + "-shm");
+            File.Delete(databasePath + "-wal");
+        }
+    }
+
+    [Fact]
     public async Task ImportCompletedDirectoryAsync_SerializesDifferentDirectoryImports()
     {
         var client = new FakeLidarrClient
@@ -270,7 +330,10 @@ public class LidarrImportServiceTests
         Assert.True(LidarrImportService.IsExpectedExternalHttpFailure(ex));
     }
 
-    private static LidarrImportService CreateService(FakeLidarrClient client, Options.IntegrationOptions.LidarrOptions lidarrOptions)
+    private static LidarrImportService CreateService(
+        FakeLidarrClient client,
+        Options.IntegrationOptions.LidarrOptions lidarrOptions,
+        IDbContextFactory<WishlistDbContext>? historyContextFactory = null)
         => new(
             client,
             new EventBus(null!),
@@ -280,7 +343,8 @@ public class LidarrImportServiceTests
                 {
                     Lidarr = lidarrOptions,
                 },
-            }));
+            }),
+            historyContextFactory: historyContextFactory);
 
     private static Options.IntegrationOptions.LidarrOptions EnabledImportOptions()
         => new()
@@ -318,7 +382,7 @@ public class LidarrImportServiceTests
 
     private sealed class FakeLidarrClient : ILidarrClient
     {
-        public IReadOnlyList<LidarrManualImportResource> Candidates { get; init; } = [];
+        public IReadOnlyList<LidarrManualImportResource> Candidates { get; set; } = [];
 
         public TimeSpan CandidateDelay { get; init; } = TimeSpan.Zero;
 
@@ -421,5 +485,17 @@ public class LidarrImportServiceTests
 
         public Task<LidarrCommandResponse> StartCommandAsync(string name, object payload, CancellationToken cancellationToken = default)
             => Task.FromResult(new LidarrCommandResponse { Id = 42, Name = name, Status = "queued" });
+
+        public Task<LidarrCommandResponse> GetCommandAsync(int commandId, CancellationToken cancellationToken = default)
+            => Task.FromResult(new LidarrCommandResponse { Id = commandId, Status = "completed" });
+    }
+
+    private sealed class TestWishlistDbContextFactory(DbContextOptions<WishlistDbContext> options)
+        : IDbContextFactory<WishlistDbContext>
+    {
+        public WishlistDbContext CreateDbContext() => new(options);
+
+        public ValueTask<WishlistDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(CreateDbContext());
     }
 }

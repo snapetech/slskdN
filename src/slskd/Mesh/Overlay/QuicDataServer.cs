@@ -89,9 +89,11 @@ public class QuicDataServer : BackgroundService
             // Generate self-signed certificate for QUIC/TLS
             using var certificate = SelfSignedCertificate.Create("CN=mesh-overlay-quic-data");
 
+            var listenEndPoint = GetListenEndPoint(options);
+            var advertisedPort = options.ListenPort;
             var listenerOptions = new QuicListenerOptions
             {
-                ListenEndPoint = new IPEndPoint(IPAddress.Any, options.ListenPort),
+                ListenEndPoint = listenEndPoint,
                 ApplicationProtocols = new List<SslApplicationProtocol> { new SslApplicationProtocol("slskdn-overlay-data") },
                 ConnectionOptionsCallback = (connection, hello, token) =>
                 {
@@ -112,7 +114,10 @@ public class QuicDataServer : BackgroundService
             };
 
             await using var listener = await QuicListener.ListenAsync(listenerOptions, stoppingToken);
-            logger.LogInformation("[Overlay-QUIC-DATA] Listening on port {Port}", options.ListenPort);
+            logger.LogInformation(
+                "[Overlay-QUIC-DATA] Listening on {ListenEndPoint}; advertised public port {PublicPort}",
+                listenEndPoint,
+                advertisedPort);
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -151,6 +156,13 @@ public class QuicDataServer : BackgroundService
         {
             logger.LogError(ex, "[Overlay-QUIC-DATA] Server failed");
         }
+    }
+
+    internal static IPEndPoint GetListenEndPoint(DataOverlayOptions options)
+    {
+        return options.ShareWithDhtPort
+            ? new IPEndPoint(IPAddress.Loopback, options.BackendListenPort)
+            : new IPEndPoint(IPAddress.Any, options.ListenPort);
     }
 
     private async Task HandleConnectionAsync(QuicConnection connection, CancellationToken ct)

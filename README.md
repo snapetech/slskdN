@@ -393,6 +393,7 @@ First-class Soulseek peer-message, distributed-message, and file-transfer obfusc
 - **Only mode reserved** — obfuscated-only reachability is intentionally rejected while the runtime preserves legacy-client fallback
 - **Visible status** — System → Network reports enablement, mode, advertised ports, fallback posture, and runtime activation state
 - **Active runtime support** — slskdN’s vendored runtime now advertises type-1 metadata, accepts obfuscated peer, distributed, and transfer handshakes, and can prefer compatible outbound obfuscated dials
+- **Shared listen port by default** — obfuscated connections share the same TCP port as regular Soulseek peer connections (distinguished per-connection); nothing extra to forward unless you opt into a dedicated obfuscation port
 - **Scoped transport** — obfuscation applies to Soulseek peer-message, distributed-message, and file-transfer streams while regular fallback stays available
 - **Server transport wrapping deferred** — the official Soulseek server connection is not wrapped by type-1 obfuscation; future SOCKS/pluggable-transport work is tracked separately from native Soulseek `P/D/F` support
 
@@ -633,6 +634,8 @@ docker run -d \
   --name slskdN \
   ghcr.io/snapetech/slskdn:latest
 ```
+_Add `-p 50300:50300/udp` if you enable mesh/DHT rendezvous (off by default) — it shares the
+Soulseek listen port's number for DHT, mesh overlay control, and QUIC traffic._
 
 ### With Docker Compose
 ```yaml
@@ -647,6 +650,9 @@ services:
     environment:
       - SLSKD_SLSK_USERNAME=your_username
       - SLSKD_SLSK_PASSWORD=your_password
+    # If you enable mesh/DHT rendezvous (off by default), also publish 50300/udp: it shares
+    # the same port number as the Soulseek TCP listen port for DHT, mesh overlay control, and
+    # QUIC traffic. See docs/getting-started.md#first-run-ports.
     volumes:
       - ./app:/app
       - ./downloads:/downloads

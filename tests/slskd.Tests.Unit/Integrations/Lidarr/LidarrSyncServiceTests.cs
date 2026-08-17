@@ -864,5 +864,8 @@ public class LidarrSyncServiceTests
 
         public Task<LidarrCommandResponse> StartCommandAsync(string name, object payload, CancellationToken cancellationToken = default)
             => Task.FromResult(new LidarrCommandResponse());
+
+        public Task<LidarrCommandResponse> GetCommandAsync(int commandId, CancellationToken cancellationToken = default)
+            => Task.FromResult(new LidarrCommandResponse { Id = commandId, Status = "completed" });
     }
 }

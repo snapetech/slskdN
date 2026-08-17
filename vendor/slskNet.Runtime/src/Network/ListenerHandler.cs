@@ -22,6 +22,7 @@
 //
 //     Modified by slskdN Team.
 //     Modified: Added type-1 obfuscated peer-message init handling.
+//     Modified: Added per-connection obfuscation sniffing for shared single-port listeners.
 // </copyright>
 
 namespace Soulseek.Network
@@ -80,7 +81,8 @@ namespace Soulseek.Network
                 var listener = sender as IListener;
                 var listenerPort = listener?.Port ?? SoulseekClient.Listener?.Port ?? 0;
                 var listenerAddress = listener?.IPAddress ?? SoulseekClient.Listener?.IPAddress;
-                var obfuscated = listener?.Obfuscated == true;
+                var sniffObfuscation = listener?.ObfuscationSniffingEnabled == true;
+                var obfuscated = !sniffObfuscation && listener?.Obfuscated == true;
                 if (obfuscated)
                 {
                     connection.MarkObfuscated();
@@ -90,7 +92,47 @@ namespace Soulseek.Network
 
                 byte[] message;
 
-                if (obfuscated)
+                if (sniffObfuscation)
+                {
+                    // this listener's single bound port is shared by plain and type-1 obfuscated connections. peek at the
+                    // frame by reading the first four bytes once (IConnection.ReadAsync only supports forward reads, so these
+                    // bytes cannot be "put back") and testing whether they form a plausible plain init frame length. if so,
+                    // treat the connection as plain and reuse those bytes as the length prefix; otherwise, treat them as the
+                    // first four bytes of the eight-byte obfuscated header and read the remaining four to complete it.
+                    var firstFour = await connection.ReadAsync(4).ConfigureAwait(false);
+                    var candidateLength = BitConverter.ToInt32(firstFour, 0);
+
+                    if (TryValidateInitMessageLength(candidateLength))
+                    {
+                        obfuscated = false;
+
+                        var bodyBytes = await connection.ReadAsync(candidateLength).ConfigureAwait(false);
+                        message = firstFour.Concat(bodyBytes).ToArray();
+                    }
+                    else
+                    {
+                        obfuscated = true;
+                        connection.MarkObfuscated();
+
+                        var remainingHeaderBytes = await connection.ReadAsync(4).ConfigureAwait(false);
+                        var firstBlock = firstFour.Concat(remainingHeaderBytes).ToArray();
+                        var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
+                        var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
+                        ValidateObfuscatedMessageLength(length);
+
+                        var obfuscatedMessage = new byte[8 + length];
+                        Buffer.BlockCopy(firstBlock, 0, obfuscatedMessage, 0, firstBlock.Length);
+
+                        if (length > 0)
+                        {
+                            var remainingBytes = await connection.ReadAsync(length).ConfigureAwait(false);
+                            Buffer.BlockCopy(remainingBytes, 0, obfuscatedMessage, 8, remainingBytes.Length);
+                        }
+
+                        message = RotatedObfuscation.Decode(obfuscatedMessage);
+                    }
+                }
+                else if (obfuscated)
                 {
                     var firstBlock = await connection.ReadAsync(8).ConfigureAwait(false);
                     var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
@@ -293,6 +335,27 @@ namespace Soulseek.Network
         private static void ValidateObfuscatedMessageLength(int length)
         {
             MessageFrameValidator.ValidateInitMessageLength(length, "obfuscated initialization message");
+        }
+
+        /// <summary>
+        ///     Determines whether <paramref name="length"/> is a plausible plain (non-obfuscated) init frame length, i.e.
+        ///     whether it would pass <see cref="MessageFrameValidator.ValidateInitMessageLength(int, string)"/>. Used only when
+        ///     sniffing a shared plain/obfuscated listener port, where the first four bytes read from the socket could be
+        ///     either a plain length prefix or the leading bytes of a random obfuscation key.
+        /// </summary>
+        /// <param name="length">The candidate length, interpreted from the first four bytes read from the socket.</param>
+        /// <returns>true if the length is within the bounds enforced for plain init frames; otherwise, false.</returns>
+        private static bool TryValidateInitMessageLength(int length)
+        {
+            try
+            {
+                MessageFrameValidator.ValidateInitMessageLength(length);
+                return true;
+            }
+            catch (MessageReadException)
+            {
+                return false;
+            }
         }
     }
 }

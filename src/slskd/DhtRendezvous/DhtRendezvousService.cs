@@ -48,6 +48,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
     private readonly ConnectionThrottler? _connectionThrottler;
     private readonly IOptions<OverlayOptions>? _overlayOptionsMonitor;
     private readonly IOptions<MeshOptions>? _meshOptions;
+    private readonly DataOverlayOptions _dataOverlayOptions;
     private volatile int _vpnAdvertisedOverlayPort = 0;
 
     // MonoTorrent DHT components
@@ -101,7 +102,8 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         IControlDispatcher? overlayDispatcher = null,
         ConnectionThrottler? connectionThrottler = null,
         IOptions<MeshOptions>? meshOptions = null,
-        VPNService? vpnService = null)
+        VPNService? vpnService = null,
+        IOptions<DataOverlayOptions>? dataOverlayOptions = null)
     {
         _logger = logger;
         _overlayServer = overlayServer;
@@ -115,6 +117,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         _connectionThrottler = connectionThrottler;
         _overlayOptionsMonitor = overlayOptions;
         _meshOptions = meshOptions;
+        _dataOverlayOptions = dataOverlayOptions?.Value ?? new DataOverlayOptions();
 
         if (vpnService is not null && _options.VpnPortSyncMode != VpnOverlayPortSyncMode.Disabled)
         {
@@ -558,6 +561,10 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                 ? new IPEndPoint(IPAddress.Loopback, _overlayOptions.QuicBackendListenPort)
                 : null;
 
+            var quicDataBackendEndPoint = ShouldProxyDataQuicOnSharedDhtPort(_options, _overlayOptions, _dataOverlayOptions)
+                ? new IPEndPoint(IPAddress.Loopback, _dataOverlayOptions.BackendListenPort)
+                : null;
+
             return new SharedMeshUdpListener(
                 new IPEndPoint(IPAddress.Any, dhtPort),
                 quicBackendEndPoint,
@@ -565,7 +572,8 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                 _overlayDispatcher,
                 _connectionThrottler,
                 _overlayOptionsMonitor,
-                _meshOptions);
+                _meshOptions,
+                quicDataBackendEndPoint);
         }
 
         return MonoTorrent.Factories.Default.CreateDhtListener(new IPEndPoint(IPAddress.Any, dhtPort));
@@ -592,6 +600,26 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                overlayOptions.ShareQuicWithDhtPort &&
                overlayOptions.QuicListenPort == dhtOptions.DhtPort &&
                overlayOptions.QuicBackendListenPort != dhtOptions.DhtPort &&
+               QuicRuntime.IsAvailable();
+    }
+
+    /// <summary>
+    /// True when the mesh QUIC data-plane listener (<see cref="QuicDataServer"/>) should bind its
+    /// loopback backend port and rely on <see cref="SharedMeshUdpListener"/> to proxy inbound
+    /// traffic to it (by ALPN) instead of binding <see cref="DataOverlayOptions.ListenPort"/>
+    /// directly and publicly.
+    /// </summary>
+    internal static bool ShouldProxyDataQuicOnSharedDhtPort(
+        DhtRendezvousOptions dhtOptions,
+        OverlayOptions overlayOptions,
+        DataOverlayOptions dataOverlayOptions)
+    {
+        return dhtOptions.Enabled &&
+               overlayOptions.Enable &&
+               dataOverlayOptions.Enable &&
+               dataOverlayOptions.ShareWithDhtPort &&
+               dataOverlayOptions.ListenPort == dhtOptions.DhtPort &&
+               dataOverlayOptions.BackendListenPort != dhtOptions.DhtPort &&
                QuicRuntime.IsAvailable();
     }
 
@@ -1168,9 +1196,13 @@ public sealed class DhtRendezvousOptions
     public int EffectiveOverlayPort => AdvertisedOverlayPort > 0 ? AdvertisedOverlayPort : OverlayPort;
 
     /// <summary>
-    /// UDP port for DHT.
+    /// UDP port for DHT. Shares a public UDP socket with the mesh overlay control channel and
+    /// QUIC (control- and data-plane) when their listen ports are configured to match this value
+    /// (the default). Intentionally matches <see cref="slskd.Options.SoulseekOptions.ListenPort"/>'s
+    /// default so a single port number covers both the TCP Soulseek peer listener and all UDP
+    /// mesh/DHT/QUIC traffic.
     /// </summary>
-    public int DhtPort { get; set; } = 50305;
+    public int DhtPort { get; set; } = 50300;
 
     /// <summary>
     /// Bootstrap routers used to seed the public BitTorrent DHT when no saved node table is available.

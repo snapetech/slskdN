@@ -3,6 +3,8 @@
 //
 //     This file is part of slskNet.Runtime, a modified version of Soulseek.NET.
 //     Modified: Added type-1 peer-message obfuscation runtime options.
+//     Modified: listenPort 0 while enabled now means "share the regular listen port via per-connection sniffing"
+//     instead of being rejected.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by
@@ -38,7 +40,11 @@ namespace Soulseek
         ///     Initializes a new instance of the <see cref="PeerObfuscationOptions"/> class.
         /// </summary>
         /// <param name="enabled">A value indicating whether to advertise and accept obfuscated peer-message connections.</param>
-        /// <param name="listenPort">The dedicated obfuscated peer-message listener port.</param>
+        /// <param name="listenPort">
+        ///     The dedicated obfuscated peer-message listener port, or 0 to share the regular peer-message listener's single
+        ///     bound port. When shared, plain and obfuscated init frames are distinguished per-connection by inspecting the
+        ///     first bytes read from the socket instead of relying on a dedicated listener.
+        /// </param>
         /// <param name="type">The obfuscation type to advertise. Type 1 is the rotated Soulseek peer-message transform.</param>
         /// <param name="advertiseRegularPort">A value indicating whether to advertise the regular peer-message port.</param>
         /// <param name="preferOutbound">A value indicating whether outbound peer-message dials should prefer compatible obfuscated endpoints.</param>
@@ -52,11 +58,6 @@ namespace Soulseek
             if (enabled && type != 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(type), "Only type 1 peer-message obfuscation is supported");
-            }
-
-            if (enabled && listenPort == 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(listenPort), "Must be specified when peer obfuscation is enabled");
             }
 
             if (listenPort != 0 && (listenPort < 1024 || listenPort > IPEndPoint.MaxPort))
@@ -82,7 +83,8 @@ namespace Soulseek
         public bool Enabled { get; }
 
         /// <summary>
-        ///     Gets the dedicated obfuscated peer-message listener port.
+        ///     Gets the dedicated obfuscated peer-message listener port, or 0 when the regular peer-message listener's single
+        ///     bound port is shared via per-connection obfuscation sniffing.
         /// </summary>
         public int ListenPort { get; }
 

@@ -1,3 +1,25 @@
+## Update 2026-08-17 15:20:52Z
+
+- Current task: complete. Added Lidarr manual/automatic import history with
+  persistent status, candidate counts, command tracking, skipped/failed
+  reasons, and a dashboard retry action. The manual-import payload fix now
+  also prevents Lidarr's `Artist with ID 0` command failure.
+- Live validation: built and deployed a temporary validation image to the
+  live validation host; the migration completed, the authenticated history
+  endpoint returned 200, a no-file import persisted as `Skipped`, and retry
+  created a linked second history row through `retryOfId`. The service is
+  healthy on the validation image.
+- Validation: focused backend Lidarr `38/38`, focused frontend Lidarr `7/7`,
+  full backend application `74/74`, unit `5123/5123`, integration `284/284`,
+  full frontend `911 passed / 4 skipped`, `./bin/lint`, Docker build, and
+  `git diff --check` pass. Standalone frontend ESLint remains blocked by the
+  existing TypeScript 7/typescript-eslint parser compatibility error before
+  source analysis.
+- Next steps:
+  1. Commit all current tracked and untracked worktree changes as requested.
+  2. Push the verified `snapetech/slskdN` branch and cut the authorized main
+     release tag.
+
 ## Update 2026-08-17 14:40:03Z
 
 - Current task: complete. Fixed Lidarr manual-import commands failing after

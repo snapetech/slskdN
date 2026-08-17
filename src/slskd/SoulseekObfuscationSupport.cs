@@ -36,8 +36,13 @@ public static class SoulseekObfuscationSupport
             ? parsedMode
             : SoulseekObfuscationMode.Compatibility;
 
+        // a configured obfuscation listen port of 0 means "share the regular listen port" rather than binding a
+        // second, dedicated port: the shared listener determines plain-vs-obfuscated per accepted connection by
+        // inspecting the first bytes read from the socket. in that case the port obfuscated peers are actually
+        // reachable on is the same as the regular listen port.
         var requestedListenPort = options.ListenPort > 0 ? options.ListenPort : (int?)null;
-        var effectiveListenPort = requestedListenPort ?? DeriveListenPort(soulseek.ListenPort);
+        var shared = requestedListenPort is null;
+        var effectiveListenPort = requestedListenPort ?? soulseek.ListenPort;
         var runtimeState = options.Enabled ? "active" : "disabled";
 
         var limitations = new List<string>();
@@ -45,6 +50,11 @@ public static class SoulseekObfuscationSupport
         limitations.Add("Type-1 obfuscation is a compatibility/privacy posture, not transport security or meaningful encryption.");
         limitations.Add("Current runtime support covers peer-message (P), distributed-message (D), and file-transfer (F) streams.");
         limitations.Add("Regular transfer paths remain advertised and available for legacy-client compatibility.");
+
+        if (shared)
+        {
+            limitations.Add("Obfuscated connections share the regular listen port; plain and obfuscated init frames are distinguished per-connection instead of using a dedicated port.");
+        }
 
         if (mode == SoulseekObfuscationMode.Only)
         {
@@ -58,6 +68,7 @@ public static class SoulseekObfuscationSupport
             RegularListenPort: soulseek.ListenPort,
             RequestedListenPort: requestedListenPort,
             EffectiveListenPort: effectiveListenPort,
+            Shared: shared,
             AdvertiseRegularPort: options.AdvertiseRegularPort,
             PreferOutbound: mode == SoulseekObfuscationMode.Prefer && options.PreferOutbound,
             SupportedConnectionTypes: SupportedConnectionTypes,
@@ -66,9 +77,6 @@ public static class SoulseekObfuscationSupport
             Summary: BuildSummary(options.Enabled, mode),
             Limitations: limitations);
     }
-
-    private static int? DeriveListenPort(int regularListenPort)
-        => regularListenPort < 65535 ? regularListenPort + 1 : null;
 
     /// <summary>
     ///     Build runtime options for the Soulseek client.
@@ -80,8 +88,8 @@ public static class SoulseekObfuscationSupport
         var plan = BuildPlan(soulseek);
 
         return new Soulseek.PeerObfuscationOptions(
-            enabled: plan.Enabled && plan.RuntimeSupported && plan.EffectiveListenPort.HasValue,
-            listenPort: plan.EffectiveListenPort ?? 0,
+            enabled: plan.Enabled && plan.RuntimeSupported,
+            listenPort: plan.RequestedListenPort ?? 0,
             type: plan.Type,
             advertiseRegularPort: plan.AdvertiseRegularPort,
             preferOutbound: plan.PreferOutbound);
@@ -114,7 +122,14 @@ public static class SoulseekObfuscationSupport
 /// <param name="Type">Soulseek obfuscation type.</param>
 /// <param name="RegularListenPort">Regular peer-message listen port.</param>
 /// <param name="RequestedListenPort">Configured obfuscated listen port, if explicitly set.</param>
-/// <param name="EffectiveListenPort">Effective obfuscated listen port when runtime support exists.</param>
+/// <param name="EffectiveListenPort">
+///     The port on which obfuscated peer connections are actually reachable: the explicitly configured dedicated
+///     port when one is set, otherwise the regular listen port (see <see cref="Shared"/>).
+/// </param>
+/// <param name="Shared">
+///     Whether obfuscated connections share the regular listener's single bound port (per-connection sniffing)
+///     rather than using a dedicated obfuscation listen port.
+/// </param>
 /// <param name="AdvertiseRegularPort">Whether regular-port metadata is advertised alongside obfuscation metadata.</param>
 /// <param name="PreferOutbound">Whether outbound peer/distributed/transfer dials prefer compatible obfuscated metadata.</param>
 /// <param name="SupportedConnectionTypes">Soulseek connection types supported by the current type-1 obfuscation implementation.</param>
@@ -129,6 +144,7 @@ public sealed record SoulseekObfuscationPlan(
     int RegularListenPort,
     int? RequestedListenPort,
     int? EffectiveListenPort,
+    bool Shared,
     bool AdvertiseRegularPort,
     bool PreferOutbound,
     IReadOnlyList<string> SupportedConnectionTypes,

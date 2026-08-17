@@ -26,7 +26,7 @@ slskdN’s vendored runtime exposes the wire path:
 - Type-1 obfuscated outbound distributed-message dialing for compatible direct parent candidates and compatible indirect child connections.
 - Obfuscation fields on peer-address and indirect-connect responses.
 
-When enabled with a valid obfuscated listener port, slskdN reports type-1 obfuscation as `active`.
+When enabled, slskdN reports type-1 obfuscation as `active`. By default (`obfuscation.listen_port: 0`), obfuscated connections share the same TCP socket as `soulseek.listen_port` rather than requiring a second bound port: on each accepted connection, the listener reads the first bytes and tests whether they form a plausible plain init-frame length; if not, it treats them as the start of an obfuscated frame instead. This mirrors how DHT, mesh overlay control, and QUIC already share one public UDP port (see `docs/DHT_RENDEZVOUS_DESIGN.md`). Setting `obfuscation.listen_port` to an explicit nonzero value instead binds a second, dedicated TCP listener for obfuscated connections, as before.
 
 ## Modes
 

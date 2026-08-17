@@ -588,6 +588,87 @@ namespace Soulseek.Tests.Unit.Network
             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid obfuscated initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
         }
 
+        [Trait("Category", "SharedObfuscationSniffing")]
+        [Theory(DisplayName = "Shared listener classifies plain PeerInit connection as plain"), AutoData]
+        public async Task Shared_Listener_Classifies_Plain_PeerInit_Connection_As_Plain(IPEndPoint endpoint, string username, int token)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var message = new PeerInit(username, Constants.ConnectionType.Peer, token);
+            var messageBytes = message.ToByteArray().AsSpan().Slice(4).ToArray();
+
+            mocks.Listener.Setup(m => m.ObfuscationSniffingEnabled).Returns(true);
+
+            // the plain length prefix (well within the [4, MaxInitMessageLength] bound) is read once as the
+            // "sniffed" first four bytes and is not re-read from the socket.
+            mocks.Connection.Setup(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(BitConverter.GetBytes(messageBytes.Length)));
+
+            mocks.Connection.Setup(m => m.ReadAsync(messageBytes.Length, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(messageBytes));
+
+            await handler.HandleConnectionAsync(mocks.Listener.Object, mocks.Connection.Object);
+
+            mocks.Connection.Verify(m => m.MarkObfuscated(), Times.Never);
+            mocks.Connection.Verify(m => m.ReadAsync(8, It.IsAny<CancellationToken?>()), Times.Never);
+            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateMessageConnectionAsync(username, mocks.Connection.Object), Times.Once);
+            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateObfuscatedMessageConnectionAsync(username, mocks.Connection.Object), Times.Never);
+        }
+
+        [Trait("Category", "SharedObfuscationSniffing")]
+        [Theory(DisplayName = "Shared listener classifies obfuscated PeerInit connection as obfuscated"), AutoData]
+        public async Task Shared_Listener_Classifies_Obfuscated_PeerInit_Connection_As_Obfuscated(IPEndPoint endpoint, string username, int token)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var message = new PeerInit(username, Constants.ConnectionType.Peer, token).ToByteArray();
+
+            // the key (0x1020_3040), read raw as the first four bytes of the obfuscated header, decodes to a
+            // candidate length far outside the plain [4, MaxInitMessageLength] bound, so sniffing correctly falls
+            // through to the obfuscated interpretation.
+            var obfuscatedMessage = RotatedObfuscation.Encode(message, 0x1020_3040);
+
+            mocks.Listener.Setup(m => m.ObfuscationSniffingEnabled).Returns(true);
+
+            mocks.Connection.SetupSequence(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(0, 4).ToArray()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(4, 4).ToArray()));
+
+            mocks.Connection.Setup(m => m.ReadAsync(message.Length - 4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(8).ToArray()));
+
+            await handler.HandleConnectionAsync(mocks.Listener.Object, mocks.Connection.Object);
+
+            mocks.Connection.Verify(m => m.MarkObfuscated(), Times.Once);
+            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateObfuscatedMessageConnectionAsync(username, mocks.Connection.Object), Times.Once);
+            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateMessageConnectionAsync(username, mocks.Connection.Object), Times.Never);
+        }
+
+        [Trait("Category", "SharedObfuscationSniffing")]
+        [Theory(DisplayName = "Shared listener disconnects when sniffed obfuscated frame fails validation"), AutoData]
+        public async Task Shared_Listener_Disconnects_When_Sniffed_Obfuscated_Frame_Fails_Validation(IPEndPoint endpoint)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var lengthBytes = new byte[4];
+            BinaryPrimitives.WriteInt32LittleEndian(lengthBytes, RotatedObfuscation.MaxInitMessageLength + 1);
+            var obfuscatedHeader = RotatedObfuscation.Encode(lengthBytes, 0x1020_3040);
+
+            mocks.Listener.Setup(m => m.ObfuscationSniffingEnabled).Returns(true);
+
+            mocks.Connection.SetupSequence(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedHeader.AsSpan().Slice(0, 4).ToArray()))
+                .Returns(Task.FromResult(obfuscatedHeader.AsSpan().Slice(4, 4).ToArray()));
+
+            mocks.Diagnostic.Setup(m => m.Debug(It.IsAny<string>()));
+
+            await handler.HandleConnectionAsync(mocks.Listener.Object, mocks.Connection.Object);
+
+            var compare = StringComparison.InvariantCultureIgnoreCase;
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", compare) && s.Contains("Invalid obfuscated initialization message length", compare))), Times.Once);
+            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<Exception>()), Times.Once);
+        }
+
         [Trait("Category", "PierceFirewall")]
         [Theory(DisplayName = "Completes solicited distributed connection on distributed PierceFirewall"), AutoData]
         public void Completes_Solicited_Distributed_Connection_On_Distributed_PierceFirewall(IPEndPoint endpoint, string username, int token)
