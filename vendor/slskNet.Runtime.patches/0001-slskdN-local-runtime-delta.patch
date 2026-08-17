@@ -64,6 +64,226 @@ index e1ad166..f721e52 100644
                  }
              }
  
+diff --git a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
+index 7038299..d53fce2 100644
+--- a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
++++ b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
+@@ -22,6 +22,7 @@
+ //
+ //     Modified by slskdN Team.
+ //     Modified: Added type-1 obfuscated peer-message init handling.
++//     Modified: Added per-connection obfuscation sniffing for shared single-port listeners.
+ // </copyright>
+ 
+ namespace Soulseek.Network
+@@ -80,7 +81,8 @@ namespace Soulseek.Network
+                 var listener = sender as IListener;
+                 var listenerPort = listener?.Port ?? SoulseekClient.Listener?.Port ?? 0;
+                 var listenerAddress = listener?.IPAddress ?? SoulseekClient.Listener?.IPAddress;
+-                var obfuscated = listener?.Obfuscated == true;
++                var sniffObfuscation = listener?.ObfuscationSniffingEnabled == true;
++                var obfuscated = !sniffObfuscation && listener?.Obfuscated == true;
+                 if (obfuscated)
+                 {
+                     connection.MarkObfuscated();
+@@ -90,7 +92,47 @@ namespace Soulseek.Network
+ 
+                 byte[] message;
+ 
+-                if (obfuscated)
++                if (sniffObfuscation)
++                {
++                    // this listener's single bound port is shared by plain and type-1 obfuscated connections. peek at the
++                    // frame by reading the first four bytes once (IConnection.ReadAsync only supports forward reads, so these
++                    // bytes cannot be "put back") and testing whether they form a plausible plain init frame length. if so,
++                    // treat the connection as plain and reuse those bytes as the length prefix; otherwise, treat them as the
++                    // first four bytes of the eight-byte obfuscated header and read the remaining four to complete it.
++                    var firstFour = await connection.ReadAsync(4).ConfigureAwait(false);
++                    var candidateLength = BitConverter.ToInt32(firstFour, 0);
++
++                    if (TryValidateInitMessageLength(candidateLength))
++                    {
++                        obfuscated = false;
++
++                        var bodyBytes = await connection.ReadAsync(candidateLength).ConfigureAwait(false);
++                        message = firstFour.Concat(bodyBytes).ToArray();
++                    }
++                    else
++                    {
++                        obfuscated = true;
++                        connection.MarkObfuscated();
++
++                        var remainingHeaderBytes = await connection.ReadAsync(4).ConfigureAwait(false);
++                        var firstBlock = firstFour.Concat(remainingHeaderBytes).ToArray();
++                        var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
++                        var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
++                        ValidateObfuscatedMessageLength(length);
++
++                        var obfuscatedMessage = new byte[8 + length];
++                        Buffer.BlockCopy(firstBlock, 0, obfuscatedMessage, 0, firstBlock.Length);
++
++                        if (length > 0)
++                        {
++                            var remainingBytes = await connection.ReadAsync(length).ConfigureAwait(false);
++                            Buffer.BlockCopy(remainingBytes, 0, obfuscatedMessage, 8, remainingBytes.Length);
++                        }
++
++                        message = RotatedObfuscation.Decode(obfuscatedMessage);
++                    }
++                }
++                else if (obfuscated)
+                 {
+                     var firstBlock = await connection.ReadAsync(8).ConfigureAwait(false);
+                     var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
+@@ -294,5 +336,26 @@ namespace Soulseek.Network
+         {
+             MessageFrameValidator.ValidateInitMessageLength(length, "obfuscated initialization message");
+         }
++
++        /// <summary>
++        ///     Determines whether <paramref name="length"/> is a plausible plain (non-obfuscated) init frame length, i.e.
++        ///     whether it would pass <see cref="MessageFrameValidator.ValidateInitMessageLength(int, string)"/>. Used only when
++        ///     sniffing a shared plain/obfuscated listener port, where the first four bytes read from the socket could be
++        ///     either a plain length prefix or the leading bytes of a random obfuscation key.
++        /// </summary>
++        /// <param name="length">The candidate length, interpreted from the first four bytes read from the socket.</param>
++        /// <returns>true if the length is within the bounds enforced for plain init frames; otherwise, false.</returns>
++        private static bool TryValidateInitMessageLength(int length)
++        {
++            try
++            {
++                MessageFrameValidator.ValidateInitMessageLength(length);
++                return true;
++            }
++            catch (MessageReadException)
++            {
++                return false;
++            }
++        }
+     }
+ }
+diff --git a/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs b/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs
+index 2cd986a..b3e23ca 100644
+--- a/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs
++++ b/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs
+@@ -22,6 +22,7 @@
+ //
+ //     Modified by slskdN Team.
+ //     Modified: Added obfuscated listener identity.
++//     Modified: Added per-connection obfuscation sniffing flag for shared single-port listeners.
+ // </copyright>
+ 
+ namespace Soulseek.Network.Tcp
+@@ -59,6 +60,14 @@ namespace Soulseek.Network.Tcp
+         /// </summary>
+         bool Obfuscated { get; }
+ 
++        /// <summary>
++        ///     Gets a value indicating whether this listener determines, per accepted connection, whether the init frame is
++        ///     type-1 obfuscated by inspecting the first bytes read from the socket, rather than relying on a static,
++        ///     per-listener <see cref="Obfuscated"/> flag. This is used when plain and obfuscated peer connections share a
++        ///     single bound port.
++        /// </summary>
++        bool ObfuscationSniffingEnabled { get; }
++
+         /// <summary>
+         ///     Gets the port of the listener.
+         /// </summary>
+diff --git a/vendor/slskNet.Runtime/src/Network/Tcp/Listener.cs b/vendor/slskNet.Runtime/src/Network/Tcp/Listener.cs
+index 37a80f8..4244889 100644
+--- a/vendor/slskNet.Runtime/src/Network/Tcp/Listener.cs
++++ b/vendor/slskNet.Runtime/src/Network/Tcp/Listener.cs
+@@ -22,6 +22,7 @@
+ //
+ //     Modified by slskdN Team.
+ //     Modified: Added obfuscated listener identity.
++//     Modified: Added per-connection obfuscation sniffing for shared single-port listeners.
+ // </copyright>
+ 
+ namespace Soulseek.Network.Tcp
+@@ -55,7 +56,12 @@ namespace Soulseek.Network.Tcp
+         /// <param name="connectionOptions">The optional options to use when creating <see cref="IConnection"/> instances.</param>
+         /// <param name="tcpListener">The optional TcpClient instance to use.</param>
+         /// <param name="obfuscated">A value indicating whether accepted peer-message handshakes use type-1 obfuscation.</param>
+-        public Listener(IPAddress ipAddress, int port, ConnectionOptions connectionOptions, ITcpListener tcpListener = null, bool obfuscated = false)
++        /// <param name="obfuscationSniffingEnabled">
++        ///     A value indicating whether plain-vs-obfuscated status should be determined per accepted connection by
++        ///     inspecting the first bytes read from the socket, rather than assuming the static <paramref name="obfuscated"/>
++        ///     value. Used when plain and obfuscated peer connections share this listener's single bound port.
++        /// </param>
++        public Listener(IPAddress ipAddress, int port, ConnectionOptions connectionOptions, ITcpListener tcpListener = null, bool obfuscated = false, bool obfuscationSniffingEnabled = false)
+         {
+             var address = ipAddress.Snapshot();
+ 
+@@ -64,6 +70,7 @@ namespace Soulseek.Network.Tcp
+             ConnectionOptions = connectionOptions ?? new ConnectionOptions();
+             TcpListener = tcpListener ?? new TcpListenerAdapter(new TcpListener(address, port));
+             Obfuscated = obfuscated;
++            ObfuscationSniffingEnabled = obfuscationSniffingEnabled;
+         }
+ 
+         /// <summary>
+@@ -91,6 +98,12 @@ namespace Soulseek.Network.Tcp
+         /// </summary>
+         public bool Obfuscated { get; }
+ 
++        /// <summary>
++        ///     Gets a value indicating whether this listener determines, per accepted connection, whether the init frame is
++        ///     type-1 obfuscated by inspecting the first bytes read from the socket.
++        /// </summary>
++        public bool ObfuscationSniffingEnabled { get; }
++
+         /// <summary>
+         ///     Gets the port of the listener.
+         /// </summary>
+diff --git a/vendor/slskNet.Runtime/src/Options/PeerObfuscationOptions.cs b/vendor/slskNet.Runtime/src/Options/PeerObfuscationOptions.cs
+index 4805f63..b679897 100644
+--- a/vendor/slskNet.Runtime/src/Options/PeerObfuscationOptions.cs
++++ b/vendor/slskNet.Runtime/src/Options/PeerObfuscationOptions.cs
+@@ -3,6 +3,8 @@
+ //
+ //     This file is part of slskNet.Runtime, a modified version of Soulseek.NET.
+ //     Modified: Added type-1 peer-message obfuscation runtime options.
++//     Modified: listenPort 0 while enabled now means "share the regular listen port via per-connection sniffing"
++//     instead of being rejected.
+ //
+ //     This program is free software: you can redistribute it and/or modify
+ //     it under the terms of the GNU General Public License as published by
+@@ -38,7 +40,11 @@ namespace Soulseek
+         ///     Initializes a new instance of the <see cref="PeerObfuscationOptions"/> class.
+         /// </summary>
+         /// <param name="enabled">A value indicating whether to advertise and accept obfuscated peer-message connections.</param>
+-        /// <param name="listenPort">The dedicated obfuscated peer-message listener port.</param>
++        /// <param name="listenPort">
++        ///     The dedicated obfuscated peer-message listener port, or 0 to share the regular peer-message listener's single
++        ///     bound port. When shared, plain and obfuscated init frames are distinguished per-connection by inspecting the
++        ///     first bytes read from the socket instead of relying on a dedicated listener.
++        /// </param>
+         /// <param name="type">The obfuscation type to advertise. Type 1 is the rotated Soulseek peer-message transform.</param>
+         /// <param name="advertiseRegularPort">A value indicating whether to advertise the regular peer-message port.</param>
+         /// <param name="preferOutbound">A value indicating whether outbound peer-message dials should prefer compatible obfuscated endpoints.</param>
+@@ -54,11 +60,6 @@ namespace Soulseek
+                 throw new ArgumentOutOfRangeException(nameof(type), "Only type 1 peer-message obfuscation is supported");
+             }
+ 
+-            if (enabled && listenPort == 0)
+-            {
+-                throw new ArgumentOutOfRangeException(nameof(listenPort), "Must be specified when peer obfuscation is enabled");
+-            }
+-
+             if (listenPort != 0 && (listenPort < 1024 || listenPort > IPEndPoint.MaxPort))
+             {
+                 throw new ArgumentOutOfRangeException(nameof(listenPort), $"Must be zero or between 1024 and {IPEndPoint.MaxPort}");
+@@ -82,7 +83,8 @@ namespace Soulseek
+         public bool Enabled { get; }
+ 
+         /// <summary>
+-        ///     Gets the dedicated obfuscated peer-message listener port.
++        ///     Gets the dedicated obfuscated peer-message listener port, or 0 when the regular peer-message listener's single
++        ///     bound port is shared via per-connection obfuscation sniffing.
+         /// </summary>
+         public int ListenPort { get; }
+ 
 diff --git a/vendor/slskNet.Runtime/src/SearchInternal.cs b/vendor/slskNet.Runtime/src/SearchInternal.cs
 index 870d18d..a290c7b 100644
 --- a/vendor/slskNet.Runtime/src/SearchInternal.cs
@@ -151,10 +371,10 @@ index 870d18d..a290c7b 100644
                  State = state;
  
 diff --git a/vendor/slskNet.Runtime/src/Soulseek.csproj b/vendor/slskNet.Runtime/src/Soulseek.csproj
-index b09f1e2..292fdbf 100644
+index b09f1e2..692a979 100644
 --- a/vendor/slskNet.Runtime/src/Soulseek.csproj
 +++ b/vendor/slskNet.Runtime/src/Soulseek.csproj
-@@ -59,12 +59,12 @@
+@@ -59,13 +59,13 @@
    </PropertyGroup>
  
    <ItemGroup>
@@ -165,16 +385,51 @@ index b09f1e2..292fdbf 100644
      </PackageReference>
      <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 -    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All" />
-+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" />
 -    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
++    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" />
 +    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
      <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
        <PrivateAssets>all</PrivateAssets>
+       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 diff --git a/vendor/slskNet.Runtime/src/SoulseekClient.cs b/vendor/slskNet.Runtime/src/SoulseekClient.cs
-index c50d252..0ae1995 100644
+index c50d252..122abbc 100644
 --- a/vendor/slskNet.Runtime/src/SoulseekClient.cs
 +++ b/vendor/slskNet.Runtime/src/SoulseekClient.cs
-@@ -3941,6 +3941,12 @@ namespace Soulseek
+@@ -945,7 +945,9 @@ namespace Soulseek
+                     listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions);
+                     listener.Start();
+ 
+-                    if (Options.PeerObfuscationOptions.Enabled)
++                    // a dedicated obfuscation listen port of 0 means obfuscated connections share the regular listener's
++                    // single bound port (distinguished per-connection instead), so there is no second port to probe here.
++                    if (Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort != 0)
+                     {
+                         obfuscatedListener = new Listener(
+                             Options.ListenIPAddress,
+@@ -3542,11 +3544,20 @@ namespace Soulseek
+ 
+                     if (Options.EnableListener)
+                     {
+-                        Listener = new Listener(Options.ListenIPAddress, Options.ListenPort, connectionOptions: Options.IncomingConnectionOptions);
++                        // a dedicated obfuscation listen port of 0 means obfuscated connections share the regular
++                        // listener's single bound port; the shared listener determines plain-vs-obfuscated per
++                        // connection instead of a second listener with a static obfuscated flag.
++                        var sharedObfuscation = Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort == 0;
++
++                        Listener = new Listener(
++                            Options.ListenIPAddress,
++                            Options.ListenPort,
++                            connectionOptions: Options.IncomingConnectionOptions,
++                            obfuscationSniffingEnabled: sharedObfuscation);
+                         Listener.Accepted += ListenerHandler.HandleConnection;
+                         Listener.Start();
+ 
+-                        if (Options.PeerObfuscationOptions.Enabled)
++                        if (Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort != 0)
+                         {
+                             ObfuscatedListener = new Listener(
+                                 Options.ListenIPAddress,
+@@ -3941,6 +3952,12 @@ namespace Soulseek
                      },
                      cancellationToken: linkedCancellationToken);
  
@@ -187,7 +442,7 @@ index c50d252..0ae1995 100644
                  var firstTask = await Task.WhenAny(
                      readTask, // we successfully read all of the data
                      disconnectedTaskCancellationSource.Task, // the connection is disconnected
-@@ -4606,8 +4612,17 @@ namespace Soulseek
+@@ -4606,8 +4623,17 @@ namespace Soulseek
                  var listenAddressChanged = patch.ListenIPAddress != null && !patch.ListenIPAddress.Equals(Options.ListenIPAddress);
                  var listenPortChanged = patch.ListenPort.HasValue && patch.ListenPort.Value != Options.ListenPort;
                  var incomingConnectionOptionsChanged = patch.IncomingConnectionOptions != null && patch.IncomingConnectionOptions != Options.IncomingConnectionOptions;
@@ -207,7 +462,7 @@ index c50d252..0ae1995 100644
                  {
                      var wasListening = Listener?.Listening ?? false;
  
-@@ -4620,7 +4635,8 @@ namespace Soulseek
+@@ -4620,15 +4646,25 @@ namespace Soulseek
                          enableListener: patch.EnableListener,
                          listenIPAddress: patch.ListenIPAddress,
                          listenPort: patch.ListenPort,
@@ -217,7 +472,26 @@ index c50d252..0ae1995 100644
  
                      if (wasListening && Options.EnableListener)
                      {
-@@ -4658,6 +4674,7 @@ namespace Soulseek
+-                        Listener = new Listener(Options.ListenIPAddress, Options.ListenPort, Options.IncomingConnectionOptions);
++                        // a dedicated obfuscation listen port of 0 means obfuscated connections share the regular
++                        // listener's single bound port; the shared listener determines plain-vs-obfuscated per
++                        // connection instead of a second listener with a static obfuscated flag.
++                        var sharedObfuscation = Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort == 0;
++
++                        Listener = new Listener(
++                            Options.ListenIPAddress,
++                            Options.ListenPort,
++                            Options.IncomingConnectionOptions,
++                            obfuscationSniffingEnabled: sharedObfuscation);
+                         Listener.Accepted += ListenerHandler.HandleConnection;
+                         Listener.Start();
+ 
+-                        if (Options.PeerObfuscationOptions.Enabled)
++                        if (Options.PeerObfuscationOptions.Enabled && Options.PeerObfuscationOptions.ListenPort != 0)
+                         {
+                             ObfuscatedListener = new Listener(
+                                 Options.ListenIPAddress,
+@@ -4658,6 +4694,7 @@ namespace Soulseek
                      peerConnectionOptions: patch.PeerConnectionOptions,
                      transferConnectionOptions: patch.TransferConnectionOptions,
                      incomingConnectionOptions: patch.IncomingConnectionOptions,
@@ -225,7 +499,7 @@ index c50d252..0ae1995 100644
                      distributedConnectionOptions: patch.DistributedConnectionOptions,
                      userEndPointCache: patch.UserEndPointCache,
                      searchResponseResolver: patch.SearchResponseResolver,
-@@ -5436,6 +5453,11 @@ namespace Soulseek
+@@ -5436,6 +5473,11 @@ namespace Soulseek
                      writeTask = Task.CompletedTask;
                  }
  
@@ -360,6 +634,151 @@ index 13523ec..00fdda3 100644
 +            Assert.False(response.HasObfuscatedEndpoint);
 +            Assert.Null(response.ObfuscatedIPEndPoint);
          }
+     }
+ }
+diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
+index 20cf63a..f7286b5 100644
+--- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
++++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
+@@ -588,6 +588,87 @@ namespace Soulseek.Tests.Unit.Network
+             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid obfuscated initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
+         }
+ 
++        [Trait("Category", "SharedObfuscationSniffing")]
++        [Theory(DisplayName = "Shared listener classifies plain PeerInit connection as plain"), AutoData]
++        public async Task Shared_Listener_Classifies_Plain_PeerInit_Connection_As_Plain(IPEndPoint endpoint, string username, int token)
++        {
++            var (handler, mocks) = GetFixture(endpoint);
++
++            var message = new PeerInit(username, Constants.ConnectionType.Peer, token);
++            var messageBytes = message.ToByteArray().AsSpan().Slice(4).ToArray();
++
++            mocks.Listener.Setup(m => m.ObfuscationSniffingEnabled).Returns(true);
++
++            // the plain length prefix (well within the [4, MaxInitMessageLength] bound) is read once as the
++            // "sniffed" first four bytes and is not re-read from the socket.
++            mocks.Connection.Setup(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
++                .Returns(Task.FromResult(BitConverter.GetBytes(messageBytes.Length)));
++
++            mocks.Connection.Setup(m => m.ReadAsync(messageBytes.Length, It.IsAny<CancellationToken?>()))
++                .Returns(Task.FromResult(messageBytes));
++
++            await handler.HandleConnectionAsync(mocks.Listener.Object, mocks.Connection.Object);
++
++            mocks.Connection.Verify(m => m.MarkObfuscated(), Times.Never);
++            mocks.Connection.Verify(m => m.ReadAsync(8, It.IsAny<CancellationToken?>()), Times.Never);
++            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateMessageConnectionAsync(username, mocks.Connection.Object), Times.Once);
++            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateObfuscatedMessageConnectionAsync(username, mocks.Connection.Object), Times.Never);
++        }
++
++        [Trait("Category", "SharedObfuscationSniffing")]
++        [Theory(DisplayName = "Shared listener classifies obfuscated PeerInit connection as obfuscated"), AutoData]
++        public async Task Shared_Listener_Classifies_Obfuscated_PeerInit_Connection_As_Obfuscated(IPEndPoint endpoint, string username, int token)
++        {
++            var (handler, mocks) = GetFixture(endpoint);
++
++            var message = new PeerInit(username, Constants.ConnectionType.Peer, token).ToByteArray();
++
++            // the key (0x1020_3040), read raw as the first four bytes of the obfuscated header, decodes to a
++            // candidate length far outside the plain [4, MaxInitMessageLength] bound, so sniffing correctly falls
++            // through to the obfuscated interpretation.
++            var obfuscatedMessage = RotatedObfuscation.Encode(message, 0x1020_3040);
++
++            mocks.Listener.Setup(m => m.ObfuscationSniffingEnabled).Returns(true);
++
++            mocks.Connection.SetupSequence(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
++                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(0, 4).ToArray()))
++                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(4, 4).ToArray()));
++
++            mocks.Connection.Setup(m => m.ReadAsync(message.Length - 4, It.IsAny<CancellationToken?>()))
++                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(8).ToArray()));
++
++            await handler.HandleConnectionAsync(mocks.Listener.Object, mocks.Connection.Object);
++
++            mocks.Connection.Verify(m => m.MarkObfuscated(), Times.Once);
++            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateObfuscatedMessageConnectionAsync(username, mocks.Connection.Object), Times.Once);
++            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateMessageConnectionAsync(username, mocks.Connection.Object), Times.Never);
++        }
++
++        [Trait("Category", "SharedObfuscationSniffing")]
++        [Theory(DisplayName = "Shared listener disconnects when sniffed obfuscated frame fails validation"), AutoData]
++        public async Task Shared_Listener_Disconnects_When_Sniffed_Obfuscated_Frame_Fails_Validation(IPEndPoint endpoint)
++        {
++            var (handler, mocks) = GetFixture(endpoint);
++
++            var lengthBytes = new byte[4];
++            BinaryPrimitives.WriteInt32LittleEndian(lengthBytes, RotatedObfuscation.MaxInitMessageLength + 1);
++            var obfuscatedHeader = RotatedObfuscation.Encode(lengthBytes, 0x1020_3040);
++
++            mocks.Listener.Setup(m => m.ObfuscationSniffingEnabled).Returns(true);
++
++            mocks.Connection.SetupSequence(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
++                .Returns(Task.FromResult(obfuscatedHeader.AsSpan().Slice(0, 4).ToArray()))
++                .Returns(Task.FromResult(obfuscatedHeader.AsSpan().Slice(4, 4).ToArray()));
++
++            mocks.Diagnostic.Setup(m => m.Debug(It.IsAny<string>()));
++
++            await handler.HandleConnectionAsync(mocks.Listener.Object, mocks.Connection.Object);
++
++            var compare = StringComparison.InvariantCultureIgnoreCase;
++            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", compare) && s.Contains("Invalid obfuscated initialization message length", compare))), Times.Once);
++            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<Exception>()), Times.Once);
++        }
++
+         [Trait("Category", "PierceFirewall")]
+         [Theory(DisplayName = "Completes solicited distributed connection on distributed PierceFirewall"), AutoData]
+         public void Completes_Solicited_Distributed_Connection_On_Distributed_PierceFirewall(IPEndPoint endpoint, string username, int token)
+diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/Tcp/ListenerTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/Tcp/ListenerTests.cs
+index 687c050..682523d 100644
+--- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/Tcp/ListenerTests.cs
++++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/Tcp/ListenerTests.cs
+@@ -38,6 +38,21 @@ namespace Soulseek.Tests.Unit.Network.Tcp
+             Assert.Equal(options, l.ConnectionOptions);
+ 
+             Assert.False(l.Listening);
++            Assert.False(l.Obfuscated);
++            Assert.False(l.ObfuscationSniffingEnabled);
++        }
++
++        [Trait("Category", "Instantiation")]
++        [Fact(DisplayName = "Instantiates with obfuscation sniffing enabled")]
++        public void Instantiates_With_Obfuscation_Sniffing_Enabled()
++        {
++            var options = new ConnectionOptions();
++            var port = 0;
++
++            var l = new Listener(IPAddress.Loopback, port, options, obfuscationSniffingEnabled: true);
++
++            Assert.True(l.ObfuscationSniffingEnabled);
++            Assert.False(l.Obfuscated);
+         }
+ 
+         [Trait("Category", "Start")]
+diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Options/PeerObfuscationOptionsTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Options/PeerObfuscationOptionsTests.cs
+index 6acb766..04e00f3 100644
+--- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Options/PeerObfuscationOptionsTests.cs
++++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Options/PeerObfuscationOptionsTests.cs
+@@ -26,5 +26,22 @@ namespace Soulseek.Tests.Unit.Options
+             Assert.NotNull(ex);
+             Assert.IsType<ArgumentException>(ex);
+         }
++
++        [Fact(DisplayName = "Instantiation does not throw if enabled with a zero (shared) listen port")]
++        public void Instantiation_Does_Not_Throw_If_Enabled_With_Zero_Listen_Port()
++        {
++            var ex = Record.Exception(() => new PeerObfuscationOptions(enabled: true, listenPort: 0));
++
++            Assert.Null(ex);
++        }
++
++        [Fact(DisplayName = "A zero listen port is retained as zero (shared) when enabled")]
++        public void Zero_Listen_Port_Is_Retained_When_Enabled()
++        {
++            var options = new PeerObfuscationOptions(enabled: true, listenPort: 0);
++
++            Assert.True(options.Enabled);
++            Assert.Equal(0, options.ListenPort);
++        }
      }
  }
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/SearchInternalTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/SearchInternalTests.cs
