@@ -42,13 +42,10 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
     private readonly MeshServiceRouter? _serviceRouter;
     private readonly DhtRendezvousOptions _dhtOptions;
 
-    private TcpListener? _listener;
-    private CancellationTokenSource? _cts;
-    private Task? _acceptLoopTask;
     private DateTimeOffset? _startedAt;
     private long _totalAccepted;
     private long _totalRejected;
-    private bool _sharedTcpPortMode;
+    private bool _isListening;
 
     private string LocalUsername => _optionsMonitor.CurrentValue?.Soulseek?.Username ?? "unknown";
     private int ListenPortConfig => _dhtOptions.OverlayPort;
@@ -84,145 +81,57 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         _serviceRouter = serviceRouter;
     }
 
-    public bool IsListening => _listener is not null || _sharedTcpPortMode;
+    public bool IsListening => _isListening;
     public int ListenPort => ListenPortConfig;
     public int ActiveConnections => _registry.Count;
     public long TotalConnectionsAccepted => _totalAccepted;
     public long TotalConnectionsRejected => _totalRejected;
 
+    /// <summary>
+    /// Marks the server ready to receive connections. There is no socket to bind here: the public
+    /// TCP port is always owned by <see cref="SharedMeshTcpListener"/>, which feeds already-accepted,
+    /// already-classified connections to <see cref="HandleExternallyAcceptedConnectionAsync"/>.
+    /// </summary>
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_listener is not null || _sharedTcpPortMode)
+        if (_isListening)
         {
             _logger.LogWarning("Server already running");
             return Task.CompletedTask;
         }
 
-        if (_dhtOptions.ShareOverlayTcpPortWithSoulseek)
-        {
-            // The real public socket is owned by SharedMeshTcpListener, which feeds us
-            // already-accepted, already-classified connections via
-            // HandleExternallyAcceptedConnectionAsync. Nothing to bind here.
-            _sharedTcpPortMode = true;
-            _startedAt = DateTimeOffset.UtcNow;
-            _logger.LogInformation(
-                "Mesh overlay server ready in shared-TCP-port mode on port {Port} (owned by SharedMeshTcpListener)",
-                ListenPortConfig);
-            return Task.CompletedTask;
-        }
-
-        _cts = new CancellationTokenSource();
-        _listener = new TcpListener(IPAddress.Any, ListenPortConfig);
-        _listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-        try
-        {
-            _listener.Start();
-            _startedAt = DateTimeOffset.UtcNow;
-
-            _logger.LogInformation(
-                "Mesh overlay server started on port {Port}",
-                ListenPortConfig);
-
-            _acceptLoopTask = AcceptLoopAsync(_cts.Token);
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
-        {
-            _logger.LogDebug(ex, "Mesh overlay server port {Port} is already in use", ListenPortConfig);
-            _listener.Stop();
-            _listener = null;
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to start mesh overlay server on port {Port}", ListenPortConfig);
-            _listener.Stop();
-            _listener = null;
-            throw;
-        }
+        _isListening = true;
+        _startedAt = DateTimeOffset.UtcNow;
+        _logger.LogInformation(
+            "Mesh overlay server ready on port {Port} (owned by SharedMeshTcpListener)",
+            ListenPortConfig);
 
         return Task.CompletedTask;
     }
 
-    public async Task StopAsync()
+    public Task StopAsync()
     {
-        if (_sharedTcpPortMode)
+        if (!_isListening)
         {
-            _sharedTcpPortMode = false;
-            _startedAt = null;
-            _logger.LogInformation("Mesh overlay server stopped (shared-TCP-port mode)");
-            return;
+            return Task.CompletedTask;
         }
 
-        if (_listener is null)
-        {
-            return;
-        }
-
-        _logger.LogInformation("Stopping mesh overlay server");
-
-        if (_cts is not null)
-        {
-            await _cts.CancelAsync();
-        }
-
-        _listener.Stop();
-        _listener = null;
-
-        if (_acceptLoopTask is not null)
-        {
-            try
-            {
-                await _acceptLoopTask;
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected
-            }
-        }
-
-        _cts?.Dispose();
-        _cts = null;
-        _acceptLoopTask = null;
+        _isListening = false;
         _startedAt = null;
+        _logger.LogInformation("Mesh overlay server stopped");
+
+        return Task.CompletedTask;
     }
 
     public Task HandleExternallyAcceptedConnectionAsync(TcpClient tcpClient, CancellationToken cancellationToken = default)
     {
-        if (!_sharedTcpPortMode)
+        if (!_isListening)
         {
             tcpClient.Dispose();
             return Task.CompletedTask;
         }
 
         return HandleConnectionAsync(tcpClient, cancellationToken);
-    }
-
-    private async Task AcceptLoopAsync(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested && _listener is not null)
-        {
-            try
-            {
-                var tcpClient = await _listener.AcceptTcpClientAsync(cancellationToken);
-
-                _ = TaskObservation.Observe(
-                    HandleConnectionAsync(tcpClient, cancellationToken),
-                    ex => _logger.LogWarning(ex, "Unhandled inbound overlay connection task failure"));
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (ObjectDisposedException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error accepting connection");
-            }
-        }
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Accepted connections are registered for ongoing ownership or explicitly disconnected on rejection and error paths.")]
@@ -722,6 +631,5 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await StopAsync();
-        _cts?.Dispose();
     }
 }

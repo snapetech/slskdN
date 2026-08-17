@@ -52,11 +52,10 @@ public interface IMeshOverlayServer
     MeshOverlayServerStats GetStats();
 
     /// <summary>
-    /// Handles a connection that was accepted and classified as a mesh overlay handshake by an
-    /// external demultiplexer (<see cref="SharedMeshTcpListener"/>) rather than by this server's
-    /// own listener. Only meaningful when the server is running in shared-TCP-port mode
-    /// (<see cref="DhtRendezvousOptions.ShareOverlayTcpPortWithSoulseek"/>); the connection is
-    /// disposed without further handling otherwise.
+    /// Handles a connection that was accepted and classified as a mesh overlay handshake by the
+    /// external demultiplexer (<see cref="SharedMeshTcpListener"/>), which always owns the public
+    /// TCP port -- this server has no listening socket of its own. The connection is disposed
+    /// without further handling if the server has not been started.
     /// </summary>
     /// <param name="tcpClient">The already-accepted, unconsumed connection.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

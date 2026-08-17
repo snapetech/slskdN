@@ -2,7 +2,7 @@
 category: added
 audience: users, operators
 area: networking
-action: Enable `dht.share_overlay_tcp_port_with_soulseek` only when the experimental shared TCP listener is desired.
+action: none
 breaking: false
 ---
-The experimental DHT mesh overlay can now share the Soulseek TCP listen port with plain and obfuscated peer traffic, using a conservative first-byte classifier while remaining disabled by default.
+When DHT rendezvous is enabled, the mesh overlay now shares the Soulseek TCP listen port with plain and obfuscated peer traffic through a conservative first-byte classifier, eliminating a separate TCP overlay port.

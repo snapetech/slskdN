@@ -16,11 +16,23 @@ using Xunit;
 public class SharedMeshTcpListenerTests
 {
     [Fact]
-    public void ShouldRun_RequiresBothDhtEnabledAndSharingOptedIn()
+    public void ShouldRun_IsUnconditionalWheneverDhtRendezvousIsEnabled()
     {
-        Assert.True(SharedMeshTcpListener.ShouldRun(new DhtRendezvousOptions { Enabled = true, ShareOverlayTcpPortWithSoulseek = true }));
-        Assert.False(SharedMeshTcpListener.ShouldRun(new DhtRendezvousOptions { Enabled = false, ShareOverlayTcpPortWithSoulseek = true }));
-        Assert.False(SharedMeshTcpListener.ShouldRun(new DhtRendezvousOptions { Enabled = true, ShareOverlayTcpPortWithSoulseek = false }));
+        // No separate opt-in: sharing runs whenever DHT rendezvous does, for every installation.
+        Assert.True(SharedMeshTcpListener.ShouldRun(new DhtRendezvousOptions { Enabled = true }));
+        Assert.False(SharedMeshTcpListener.ShouldRun(new DhtRendezvousOptions { Enabled = false }));
+    }
+
+    [Fact]
+    public void ShouldRun_Options_AlsoRequiresTheDhtFeatureFlag()
+    {
+        var defaultOptions = new OptionsAtStartup();
+        Assert.True(defaultOptions.Feature.Dht, "Test assumes Feature.Dht defaults to true.");
+        Assert.True(defaultOptions.DhtRendezvous.Enabled, "Test assumes DhtRendezvous.Enabled defaults to true.");
+        Assert.True(SharedMeshTcpListener.ShouldRun(defaultOptions));
+
+        var withFeatureOff = new OptionsAtStartup { Feature = new Options.FeatureOptions { Dht = false } };
+        Assert.False(SharedMeshTcpListener.ShouldRun(withFeatureOff));
     }
 
     [Theory]
@@ -80,7 +92,7 @@ public class SharedMeshTcpListenerTests
     [Fact]
     public async Task ExecuteAsync_RoutesMeshOverlayAndSoulseekConnectionsToTheirDestinations()
     {
-        var dhtOptions = new DhtRendezvousOptions { Enabled = true, ShareOverlayTcpPortWithSoulseek = true };
+        var dhtOptions = new DhtRendezvousOptions { Enabled = true };
         var optionsAtStartup = new OptionsAtStartup
         {
             Soulseek = new Options.SoulseekOptions

@@ -13,13 +13,14 @@ using Microsoft.Extensions.Logging;
 using slskd.SoulseekRuntime;
 
 /// <summary>
-/// Owns the public Soulseek peer-listen TCP socket when
-/// <see cref="DhtRendezvousOptions.ShareOverlayTcpPortWithSoulseek"/> is enabled, and
-/// demultiplexes each accepted connection between the Soulseek peer protocol (fed to
-/// <see cref="FedTcpListener"/>, consumed by the vendored Soulseek client's own listener
-/// pipeline -- including its existing plain-vs-obfuscated sniffing) and the mesh TCP overlay
-/// handshake (always TLS-wrapped; handed to <see cref="IMeshOverlayServer"/>), based on the first
-/// bytes read from the socket.
+/// Owns the public Soulseek peer-listen TCP socket whenever DHT rendezvous is enabled (see
+/// <see cref="ShouldRun(DhtRendezvousOptions)"/>), and demultiplexes each accepted connection
+/// between the Soulseek peer protocol (fed to <see cref="FedTcpListener"/>, consumed by the
+/// vendored Soulseek client's own listener pipeline -- including its existing
+/// plain-vs-obfuscated sniffing) and the mesh TCP overlay handshake (always TLS-wrapped; handed
+/// to <see cref="IMeshOverlayServer"/>), based on the first bytes read from the socket. There is
+/// no separate "don't share" mode: whenever the mesh overlay needs a TCP port at all, this is how
+/// it gets one, for every installation.
 /// </summary>
 /// <remarks>
 /// This mirrors two things already in this codebase: <see cref="SharedMeshUdpListener"/>, which
@@ -35,12 +36,11 @@ using slskd.SoulseekRuntime;
 /// reads its own protocol's bytes from the very start, exactly as if it had accepted the
 /// connection directly.
 ///
-/// EXPERIMENTAL and off by default. Unlike the UDP consolidation (a single new component owning
-/// everything end to end), this bridges two independently lifecycled components: the vendored
-/// Soulseek client's own connect/reconnect/reconfigure lifecycle (which constructs a new listener
-/// around the shared <see cref="FedTcpListener"/> on each of those events) and
-/// <see cref="IMeshOverlayServer"/>'s beacon-capability-driven start/stop. It also adds a new byte
-/// sniffing dimension (TLS vs. Soulseek framing) that hasn't been exercised in production yet.
+/// This bridges two components with different lifecycles: the vendored Soulseek client's own
+/// connect/reconnect/reconfigure lifecycle (which constructs a new listener around the shared
+/// <see cref="FedTcpListener"/> on each of those events) and <see cref="IMeshOverlayServer"/>'s
+/// beacon-capability-driven start/stop. <see cref="MeshOverlayServer"/> no longer has an
+/// independent bind path -- it always waits for connections fed through here.
 /// </remarks>
 internal sealed class SharedMeshTcpListener : BackgroundService
 {
@@ -76,11 +76,13 @@ internal sealed class SharedMeshTcpListener : BackgroundService
 
     /// <summary>
     /// True when this component -- rather than the vendored Soulseek listener binding its own
-    /// socket -- should own the public TCP port.
+    /// socket -- should own the public TCP port. Unconditional whenever the mesh TCP overlay
+    /// handshake runs at all: there is no separate "don't share" mode, so every installation with
+    /// DHT rendezvous enabled gets the same single code path.
     /// </summary>
     internal static bool ShouldRun(DhtRendezvousOptions dhtOptions)
     {
-        return dhtOptions.Enabled && dhtOptions.ShareOverlayTcpPortWithSoulseek;
+        return dhtOptions.Enabled;
     }
 
     /// <summary>
@@ -125,7 +127,7 @@ internal sealed class SharedMeshTcpListener : BackgroundService
         {
             _logger.LogError(
                 ex,
-                "[SharedMeshTcpListener] Failed to bind shared TCP port {Address}:{Port}; Soulseek peer connections and the mesh TCP overlay will both be unavailable. Set dht.share_overlay_tcp_port_with_soulseek: false to fall back to independently bound listeners.",
+                "[SharedMeshTcpListener] Failed to bind shared TCP port {Address}:{Port}; Soulseek peer connections and the mesh TCP overlay will both be unavailable. Set dht.enabled: false to disable DHT rendezvous if this port cannot be used.",
                 listenAddress,
                 listenPort);
             return;

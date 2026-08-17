@@ -20,6 +20,7 @@ using slskd.DhtRendezvous.Messages;
 using slskd.DhtRendezvous.Search;
 using slskd.DhtRendezvous.Security;
 using slskd.Shares;
+using slskd.SoulseekRuntime;
 using Soulseek;
 using Xunit;
 
@@ -81,7 +82,23 @@ public class MeshSearchLoopbackTests
                 new MeshOverlayRequestRouter(),
                 dhtOpts);
 
+            var sharedListener = new SharedMeshTcpListener(
+                logFact.CreateLogger<SharedMeshTcpListener>(),
+                new slskd.OptionsAtStartup
+                {
+                    Soulseek = new slskd.Options.SoulseekOptions
+                    {
+                        ListenIpAddress = "127.0.0.1",
+                        ListenPort = port,
+                    },
+                },
+                dhtOpts,
+                new FedTcpListener(),
+                server);
+
             await server.StartAsync(CancellationToken.None);
+            await sharedListener.StartAsync(CancellationToken.None);
+            await WaitForSharedListenerAsync(sharedListener);
 
             try
             {
@@ -114,6 +131,7 @@ public class MeshSearchLoopbackTests
             }
             finally
             {
+                await sharedListener.StopAsync(CancellationToken.None);
                 await server.StopAsync();
             }
         }
@@ -180,6 +198,20 @@ public class MeshSearchLoopbackTests
                 requestRouter,
                 dhtOpts);
 
+            var sharedListener = new SharedMeshTcpListener(
+                logFact.CreateLogger<SharedMeshTcpListener>(),
+                new slskd.OptionsAtStartup
+                {
+                    Soulseek = new slskd.Options.SoulseekOptions
+                    {
+                        ListenIpAddress = "127.0.0.1",
+                        ListenPort = port,
+                    },
+                },
+                dhtOpts,
+                new FedTcpListener(),
+                server);
+
             var clientCertMgr = new CertificateManager(logFact.CreateLogger<CertificateManager>(), Path.Combine(tempDir, "client"));
             var clientPinStore = new CertificatePinStore(NullLoggerFactory.Instance.CreateLogger<CertificatePinStore>(), Path.Combine(tempDir, "client"));
             using var clientRateLimiter = new OverlayRateLimiter();
@@ -199,6 +231,8 @@ public class MeshSearchLoopbackTests
             var search = new MeshOverlaySearchService(clientRegistry, requestRouter, logFact.CreateLogger<MeshOverlaySearchService>());
 
             await server.StartAsync(CancellationToken.None);
+            await sharedListener.StartAsync(CancellationToken.None);
+            await WaitForSharedListenerAsync(sharedListener);
 
             try
             {
@@ -226,6 +260,7 @@ public class MeshSearchLoopbackTests
             }
             finally
             {
+                await sharedListener.StopAsync(CancellationToken.None);
                 await server.StopAsync();
                 foreach (var connection in clientRegistry.GetAllConnections())
                 {
@@ -239,6 +274,20 @@ public class MeshSearchLoopbackTests
             {
                 try { System.IO.Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
             }
+        }
+    }
+
+    private static async Task WaitForSharedListenerAsync(SharedMeshTcpListener listener)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(2);
+        while (listener.LocalEndPoint is null)
+        {
+            if (DateTimeOffset.UtcNow >= deadline)
+            {
+                throw new TimeoutException("Timed out waiting for shared mesh TCP listener.");
+            }
+
+            await Task.Delay(10);
         }
     }
 

@@ -4,3 +4,4 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("slskd.Tests.Unit")]
+[assembly: InternalsVisibleTo("slskd.Tests.Integration")]

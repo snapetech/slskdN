@@ -22,18 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-- Added experimental, opt-in shared TCP-port support for the DHT mesh overlay
-  and Soulseek peer listener; it remains disabled by default.
+- Added automatic shared TCP-port support for the DHT mesh overlay and Soulseek
+  peer listener whenever DHT rendezvous is enabled.
 
 ## [2026081715-slskdn.308] — 2026-08-17
 
-- Added an experimental, opt-in `dht.share_overlay_tcp_port_with_soulseek`
-  option. When enabled, the mesh TCP overlay handshake shares
-  `soulseek.listen_port` instead of binding its own `dht.overlay_port`: a new
-  `SharedMeshTcpListener` owns that socket and classifies each accepted
+- The DHT mesh overlay now shares `soulseek.listen_port` instead of binding a
+  separate TCP port. `SharedMeshTcpListener` classifies each accepted
   connection by its first bytes (TLS ClientHello for the mesh overlay vs.
   Soulseek peer framing, which the Soulseek listener further sniffs on its
-  own for plain vs. obfuscated) before handing it off. Off by default.
+  own for plain vs. obfuscated) before handing it off.
 
 ## [2026081715-slskdn.307] — 2026-08-17
 

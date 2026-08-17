@@ -92,11 +92,14 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
 
         // Allocate ephemeral ports
         apiPort = AllocateEphemeralPort();
-        overlayPort = overlayPortOverride ?? AllocateEphemeralPort();
+        // DHT mesh TCP and Soulseek peer traffic share the Soulseek listen port. Keep the
+        // externally visible OverlayPort property aligned with that single socket so readiness
+        // probes and peer-connection tests target the port the application actually binds.
+        soulseekListenPort = overlayPortOverride ?? AllocateEphemeralPort();
+        overlayPort = soulseekListenPort;
         dhtPort = dhtPortOverride ?? AllocateEphemeralPortUdp();
         udpOverlayPort = AllocateEphemeralPortUdp();
         dataOverlayPort = AllocateEphemeralPort();
-        soulseekListenPort = AllocateEphemeralPort();
         if (enableBridge)
         {
             bridgePort = bridgePortOverride ?? AllocateEphemeralPort();

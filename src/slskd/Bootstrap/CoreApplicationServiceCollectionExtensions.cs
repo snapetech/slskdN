@@ -45,7 +45,7 @@ public static class CoreApplicationServiceCollectionExtensions
         slskd.Options optionsAtStartup,
         string dataDirectory)
     {
-        services.AddSingleton<IWaiter, Waiter>();
+        services.AddSingleton<slskd.IWaiter, slskd.Waiter>();
         services.AddSingleton<ConnectionWatchdog, ConnectionWatchdog>();
 
         // wire up all of the connection strings we'll use. this is somewhat annoying but necessary because of the
