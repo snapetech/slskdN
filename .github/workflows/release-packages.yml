@@ -99,7 +99,7 @@ jobs:
           mv *.deb slskdn_${{ steps.version.outputs.version }}_amd64.deb
 
       - name: Upload .deb to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           files: slskdn_${{ steps.version.outputs.version }}_amd64.deb
@@ -196,7 +196,7 @@ jobs:
 
       - name: Upload .rpm to Release
         if: steps.find_rpm.outputs.rpm_path != ''
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           files: ${{ steps.find_rpm.outputs.rpm_path }}
