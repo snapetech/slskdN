@@ -22,17 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-- Fixed malformed inbound Soulseek initialization frames surfacing as fatal
-  unobserved-task logs from the listener event boundary. Rejected peer frames
-  are now explicitly observed and cleaned up without destabilizing the service.
-- Hardened rejected inbound connection cleanup so unsolicited sockets do not
-  fault an unobserved disconnect waiter.
-- Hardened the VPN ingress watchdog to inspect each forwarded WireGuard
-  namespace and the NAT-PMP renewal unit independently. A stale ingress tunnel
-  is now reconciled before its public lease silently expires, while healthy
-  mappings are not rebuilt from a short-lived handshake timestamp.
-- Fixed Web UI whole-document YAML saves for supported legacy `global`,
-  `integration`, share-list, and nested upload-limit layouts.
+## [2026081814-slskdn.311] — 2026-08-18
+
 - Fixed Chromaprint fingerprinting failing to load its native library on
   Debian/Ubuntu-packaged installs, including the official container image,
   which ships only the versioned soname (`libchromaprint.so.1`) rather than
