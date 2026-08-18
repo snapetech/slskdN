@@ -1313,3 +1313,22 @@ index 22d3c36..8c9604a 100644
          [Trait("Category", "Complete")]
          [Fact(DisplayName = "Complete is idempotent")]
          public void Complete_Is_Idempotent()
+diff --git a/vendor/slskNet.Runtime/src/Soulseek.csproj b/vendor/slskNet.Runtime/src/Soulseek.csproj
+index 692a979..e2be339 100644
+--- a/vendor/slskNet.Runtime/src/Soulseek.csproj
++++ b/vendor/slskNet.Runtime/src/Soulseek.csproj
+@@ -59,12 +59,12 @@
+   </PropertyGroup>
+ 
+   <ItemGroup>
+-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.302">
++    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.400">
+       <PrivateAssets>all</PrivateAssets>
+       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+     </PackageReference>
+     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" />
++    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.400" PrivateAssets="All" />
+     <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
+     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+       <PrivateAssets>all</PrivateAssets>

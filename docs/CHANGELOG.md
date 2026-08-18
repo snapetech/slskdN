@@ -34,6 +34,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   protection sniffer is correct per RFC 9001 5.4.3 (a single raw AES block
   encryption, not multi-block ECB of secret data) rather than a
   vulnerability.
+- Recorded the `Microsoft.CodeAnalysis.NetAnalyzers` and
+  `Microsoft.SourceLink.GitHub` dev-dependency bumps in the vendored
+  runtime's declared local patch, keeping the dependency update reproducible
+  under the runtime sync gate.
 
 ## [2026081814-slskdn.311] — 2026-08-18
 
