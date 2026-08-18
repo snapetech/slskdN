@@ -1067,7 +1067,7 @@ jobs:
             --pattern "slskdn-main-linux-glibc-x64.zip"
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
