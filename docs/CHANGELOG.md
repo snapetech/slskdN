@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Upgraded dependencies: 14 grouped NuGet packages, 7 grouped npm packages,
+  `js-yaml` 4.3.0 to 4.3.1 (resolves a high-severity ReDoS advisory),
+  `@microsoft/signalr` 7.0.14 to 10.0.11 (now matches the server-side
+  SignalR major version), and 5 GitHub Actions used by CI. Aligned the
+  Microsoft.Extensions.* package references in the test projects that the
+  grouped NuGet bump missed, avoiding a downgrade conflict.
+- Documented why `CipherMode.ECB` in the QUIC Initial-packet header
+  protection sniffer is correct per RFC 9001 5.4.3 (a single raw AES block
+  encryption, not multi-block ECB of secret data) rather than a
+  vulnerability.
+
 ## [2026081814-slskdn.311] — 2026-08-18
 
 - Fixed Chromaprint fingerprinting failing to load its native library on

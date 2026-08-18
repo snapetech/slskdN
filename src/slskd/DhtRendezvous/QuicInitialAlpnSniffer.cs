@@ -225,6 +225,13 @@ internal static class QuicInitialAlpnSniffer
 
     private static byte[] ComputeHeaderProtectionMask(byte[] headerProtectionKey, ReadOnlySpan<byte> sample)
     {
+        // RFC 9001 5.4.3: AES-based header protection defines the mask as a single raw AES
+        // block encryption of a 16-byte sample (SampleLength above), not multi-block ECB
+        // encryption of secret data. .NET has no bare "encrypt one block" primitive, so
+        // CipherMode.ECB + a single 16-byte TransformBlock call is the standard way to get it.
+        // The QUIC Initial keys used here are themselves publicly derivable from the connection
+        // ID (RFC 9001 5.2), so there is no confidentiality property for ECB's block-repetition
+        // weakness to undermine.
         using var aes = Aes.Create();
         aes.Key = headerProtectionKey;
         aes.Mode = CipherMode.ECB;
