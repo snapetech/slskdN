@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026081815-slskdn.312] — 2026-08-18
+
 - Upgraded dependencies: 14 grouped NuGet packages, 7 grouped npm packages,
   `js-yaml` 4.3.0 to 4.3.1 (resolves a high-severity ReDoS advisory),
   `@microsoft/signalr` 7.0.14 to 10.0.11 (now matches the server-side
