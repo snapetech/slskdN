@@ -1370,10 +1370,14 @@ sync and auto-download/import after the paths are confirmed.
 | `--lidarr-wishlist-max-results`      | `LIDARR_WISHLIST_MAX_RESULTS`         | Maximum search results retained by Lidarr-created Wishlist items   |
 | `--lidarr-edition-match-mode`        | `LIDARR_EDITION_MATCH_MODE`           | Handling for candidates that don't match Lidarr's monitored release's track count/duration/edition: `exclude`, `prefer`, or `off` |
 | `--lidarr-auto-import-completed`     | `LIDARR_AUTO_IMPORT_COMPLETED`        | Submit completed slskdN download directories to Lidarr for import  |
+| `--lidarr-import-delay`              | `LIDARR_IMPORT_DELAY`                 | Delay before the first automatic import attempt, in seconds; lets a path-mapped or network-shared destination become visible to Lidarr first. Only applies to auto-triggered imports |
+| `--lidarr-import-retry-max-attempts` | `LIDARR_IMPORT_RETRY_MAX_ATTEMPTS`    | Additional automatic retries when a manual-import call fails transiently (non-2xx response or timeout); `0` disables auto-retry |
+| `--lidarr-import-retry-delay`        | `LIDARR_IMPORT_RETRY_DELAY`           | Base delay between automatic retries, in seconds; doubles after each failed attempt |
 | `--lidarr-import-path-from`          | `LIDARR_IMPORT_PATH_FROM`             | Local slskdN completed path prefix to rewrite before calling Lidarr |
 | `--lidarr-import-path-to`            | `LIDARR_IMPORT_PATH_TO`               | Lidarr-visible completed path prefix                               |
 | `--lidarr-import-mode`               | `LIDARR_IMPORT_MODE`                  | Lidarr import mode: `move` or `copy`                               |
 | `--lidarr-import-replace-existing`   | `LIDARR_IMPORT_REPLACE_EXISTING`      | Allow Lidarr import to replace existing files                      |
+| `--lidarr-skip-already-owned-albums` | `LIDARR_SKIP_ALREADY_OWNED_ALBUMS`    | Skip auto-import, without calling Lidarr, when the identified album is already fully owned; ignored when `--lidarr-import-replace-existing` is set |
 
 #### **YAML**
 ```yaml
@@ -1391,11 +1395,37 @@ integrations:
     wishlist_max_results: 100
     edition_match_mode: "exclude" # exclude, prefer, or off
     auto_import_completed: false
+    import_delay_seconds: 0 # only applies to auto-triggered imports, not manual ones
+    import_retry_max_attempts: 2 # 0 disables auto-retry
+    import_retry_delay_seconds: 30 # doubles after each attempt
     import_path_from: ""
     import_path_to: ""
     import_mode: "move"
     import_replace_existing_files: false
+    skip_already_owned_albums: true
 ```
+
+A Lidarr manual-import call can fail transiently right after a download
+completes — for example if the destination hasn't become visible to Lidarr
+yet across a network share or path-mapped mount. When that happens, slskdN
+automatically retries up to `import_retry_max_attempts` additional times,
+doubling `import_retry_delay_seconds` between attempts, before giving up and
+recording the failure in the Lidarr import history (retryable manually from
+there). Set `import_delay_seconds` to wait before the very first automatic
+attempt if the destination consistently needs a moment to become visible.
+Failures that aren't transient (Lidarr disabled, bad credentials, a
+permanently missing path) are not retried automatically.
+
+Separately, some Lidarr versions throw an internal error scanning a download
+folder that duplicates an album already fully present in the library (a
+re-download or a second search hitting the same release), rather than
+returning a normal "no changes" result. When `skip_already_owned_albums` is
+enabled (the default), slskdN identifies the release via Lidarr's `/parse`
+endpoint before scanning it and, if every track of the matched album already
+has a file in Lidarr, skips the import outright instead of calling the
+manual-import endpoint at all. This check is skipped when
+`import_replace_existing_files` is enabled, since that setting means
+existing files should intentionally be replaced.
 
 If slskdN and Lidarr see completed downloads at different paths, set both
 `import_path_from` and `import_path_to`. `import_path_from` must match the path

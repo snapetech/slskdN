@@ -836,6 +836,12 @@ public class LidarrSyncServiceTests
             return Task.FromResult(AlbumDetails.TryGetValue(albumId, out var detail) ? detail : null);
         }
 
+        public Task<LidarrParseResult?> ParseAsync(string title, CancellationToken cancellationToken = default)
+            => Task.FromResult<LidarrParseResult?>(null);
+
+        public Task<IReadOnlyList<LidarrArtistAlbumResource>> GetAlbumsByArtistAsync(int artistId, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<LidarrArtistAlbumResource>>([]);
+
         public Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)
             => Task.FromResult(Wanted);
 

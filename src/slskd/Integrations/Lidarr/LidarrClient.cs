@@ -25,6 +25,10 @@ public interface ILidarrClient
 
     Task<LidarrAlbumDetail?> GetAlbumAsync(int albumId, CancellationToken cancellationToken = default);
 
+    Task<LidarrParseResult?> ParseAsync(string title, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LidarrArtistAlbumResource>> GetAlbumsByArtistAsync(int artistId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default);
 
     Task<(IReadOnlyList<LidarrWantedAlbum> Records, int TotalRecords)> GetWantedMissingPageAsync(int page, int pageSize, CancellationToken cancellationToken = default);
@@ -94,6 +98,23 @@ public sealed class LidarrClient : ILidarrClient
         using var request = CreateRequest(HttpMethod.Get, relative);
         using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         return await ReadJsonAsync<LidarrAlbumDetail>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<LidarrParseResult?> ParseAsync(string title, CancellationToken cancellationToken = default)
+    {
+        var relative = "api/v1/parse?title=" + Uri.EscapeDataString(title);
+        using var request = CreateRequest(HttpMethod.Get, relative);
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return await ReadJsonAsync<LidarrParseResult>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<LidarrArtistAlbumResource>> GetAlbumsByArtistAsync(int artistId, CancellationToken cancellationToken = default)
+    {
+        var relative = $"api/v1/album?artistId={artistId.ToString(CultureInfo.InvariantCulture)}";
+        using var request = CreateRequest(HttpMethod.Get, relative);
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return await ReadJsonAsync<List<LidarrArtistAlbumResource>>(response, cancellationToken).ConfigureAwait(false)
+            ?? [];
     }
 
     public async Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)
@@ -299,6 +320,37 @@ public sealed record LidarrAlbumStatistics
     public int TrackCount { get; init; }
 
     public int TotalTrackCount { get; init; }
+}
+
+/// <summary>
+///     The response of <c>GET api/v1/parse?title=...</c>: Lidarr's best-effort identification of an
+///     artist/album from a release title or folder name, without touching the filesystem.
+/// </summary>
+public sealed record LidarrParseResult
+{
+    public LidarrArtistResource? Artist { get; init; }
+
+    public LidarrParsedAlbumInfo? ParsedAlbumInfo { get; init; }
+}
+
+public sealed record LidarrParsedAlbumInfo
+{
+    public string AlbumTitle { get; init; } = string.Empty;
+}
+
+/// <summary>
+///     An entry from <c>GET api/v1/album?artistId=...</c>, used to check whether an identified album
+///     is already fully present in Lidarr's library before attempting a manual-import scan of it.
+/// </summary>
+public sealed record LidarrArtistAlbumResource
+{
+    public int Id { get; init; }
+
+    public string Title { get; init; } = string.Empty;
+
+    public bool Monitored { get; init; }
+
+    public LidarrAlbumStatistics? Statistics { get; init; }
 }
 
 public sealed record LidarrQualityProfile

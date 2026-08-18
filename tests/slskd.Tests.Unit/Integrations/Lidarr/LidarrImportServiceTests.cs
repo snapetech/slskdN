@@ -237,6 +237,126 @@ public class LidarrImportServiceTests
     }
 
     [Fact]
+    public async Task ImportCompletedDirectoryAsync_SkipsAlreadyOwnedAlbumWithoutCallingManualImport()
+    {
+        // Mirrors a real Lidarr response: the release folder identifies an artist/album that
+        // already has every track file on disk, which some Lidarr versions crash on when scanned
+        // via manual-import (see ChromaprintContext-adjacent bug notes). The pre-check should
+        // catch this before ever calling GetManualImportCandidatesAsync.
+        var client = new FakeLidarrClient
+        {
+            ParseResult = new LidarrParseResult
+            {
+                Artist = new LidarrArtistResource { Id = 229, ArtistName = "Dua Lipa" },
+                ParsedAlbumInfo = new LidarrParsedAlbumInfo { AlbumTitle = "Dua Lipa" },
+            },
+            ArtistAlbums =
+            [
+                new LidarrArtistAlbumResource
+                {
+                    Id = 2675,
+                    Title = "Dua Lipa",
+                    Monitored = true,
+                    Statistics = new LidarrAlbumStatistics { TrackFileCount = 17, TrackCount = 17, TotalTrackCount = 17 },
+                },
+            ],
+        };
+        var service = CreateService(client, EnabledImportOptions());
+
+        var result = await service.ImportCompletedDirectoryAsync("/downloads/music/Dua Lipa - Dua Lipa (Deluxe) (2017) [WEB-MP3]");
+
+        Assert.Equal(0, client.CandidateRequestCount);
+        Assert.Equal("Already fully in Lidarr library (Dua Lipa - Dua Lipa)", result.SkippedReason);
+    }
+
+    [Fact]
+    public async Task ImportCompletedDirectoryAsync_DoesNotSkipAlreadyOwnedAlbumWhenReplaceExistingFilesIsEnabled()
+    {
+        var client = new FakeLidarrClient
+        {
+            Candidates = [SafeCandidate()],
+            ParseResult = new LidarrParseResult
+            {
+                Artist = new LidarrArtistResource { Id = 229, ArtistName = "Dua Lipa" },
+                ParsedAlbumInfo = new LidarrParsedAlbumInfo { AlbumTitle = "Dua Lipa" },
+            },
+            ArtistAlbums =
+            [
+                new LidarrArtistAlbumResource
+                {
+                    Id = 2675,
+                    Title = "Dua Lipa",
+                    Monitored = true,
+                    Statistics = new LidarrAlbumStatistics { TrackFileCount = 17, TrackCount = 17, TotalTrackCount = 17 },
+                },
+            ],
+        };
+        var options = new Options.IntegrationOptions.LidarrOptions
+        {
+            Enabled = true,
+            Url = "http://lidarr.test",
+            ApiKey = "key",
+            AutoImportCompleted = true,
+            ImportReplaceExistingFiles = true,
+        };
+        var service = CreateService(client, options);
+
+        var result = await service.ImportCompletedDirectoryAsync("/downloads/music/Dua Lipa - Dua Lipa (Deluxe) (2017) [WEB-MP3]");
+
+        Assert.Equal(1, client.CandidateRequestCount);
+        Assert.Equal(42, result.CommandId);
+    }
+
+    [Fact]
+    public async Task ImportCompletedDirectoryAsync_RetriesTransientLidarrFailureAndSucceeds()
+    {
+        var client = new FakeLidarrClient
+        {
+            Candidates = [SafeCandidate()],
+            CandidateException = new HttpRequestException("Response status code does not indicate success: 503 (Service Unavailable)."),
+            FailAttempts = 1,
+        };
+        var options = new Options.IntegrationOptions.LidarrOptions
+        {
+            Enabled = true,
+            Url = "http://lidarr.test",
+            ApiKey = "key",
+            AutoImportCompleted = true,
+            ImportRetryMaxAttempts = 2,
+            ImportRetryDelaySeconds = 1,
+        };
+        var service = CreateService(client, options);
+
+        var result = await service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album");
+
+        Assert.Equal(2, client.CandidateRequestCount);
+        Assert.Equal(42, result.CommandId);
+    }
+
+    [Fact]
+    public async Task ImportCompletedDirectoryAsync_ExhaustsRetriesThenThrows()
+    {
+        var client = new FakeLidarrClient
+        {
+            CandidateException = new HttpRequestException("Response status code does not indicate success: 503 (Service Unavailable)."),
+        };
+        var options = new Options.IntegrationOptions.LidarrOptions
+        {
+            Enabled = true,
+            Url = "http://lidarr.test",
+            ApiKey = "key",
+            AutoImportCompleted = true,
+            ImportRetryMaxAttempts = 2,
+            ImportRetryDelaySeconds = 0,
+        };
+        var service = CreateService(client, options);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album"));
+
+        Assert.Equal(3, client.CandidateRequestCount);
+    }
+
+    [Fact]
     public async Task ImportDirectoryAsync_PersistsHistoryAndRetriesAsANewAttempt()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"lidarr-history-{Guid.NewGuid():N}.db");
@@ -388,6 +508,13 @@ public class LidarrImportServiceTests
 
         public Exception? CandidateException { get; init; }
 
+        /// <summary>
+        ///     The number of calls to <see cref="GetManualImportCandidatesAsync"/> that should throw
+        ///     <see cref="CandidateException"/> before calls start succeeding. Defaults to always-throw
+        ///     (for tests that never expect success) when <see cref="CandidateException"/> is set.
+        /// </summary>
+        public int FailAttempts { get; init; } = int.MaxValue;
+
         public int CandidateRequestCount { get; private set; }
 
         public int MaxConcurrentCandidateRequests { get; private set; }
@@ -400,8 +527,18 @@ public class LidarrImportServiceTests
 
         public List<LidarrManualImportResource> ImportedFiles { get; } = [];
 
+        public LidarrParseResult? ParseResult { get; init; }
+
+        public IReadOnlyList<LidarrArtistAlbumResource> ArtistAlbums { get; init; } = [];
+
         public Task<LidarrSystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(new LidarrSystemStatus());
+
+        public Task<LidarrParseResult?> ParseAsync(string title, CancellationToken cancellationToken = default)
+            => Task.FromResult(ParseResult);
+
+        public Task<IReadOnlyList<LidarrArtistAlbumResource>> GetAlbumsByArtistAsync(int artistId, CancellationToken cancellationToken = default)
+            => Task.FromResult(ArtistAlbums);
 
         public Task<IReadOnlyList<LidarrQualityProfile>> GetQualityProfilesAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<LidarrQualityProfile>>([]);
@@ -438,7 +575,7 @@ public class LidarrImportServiceTests
                     return GetManualImportCandidatesWithDelayAsync(cancellationToken);
                 }
 
-                if (CandidateException is not null)
+                if (CandidateException is not null && CandidateRequestCount <= FailAttempts)
                 {
                     return Task.FromException<IReadOnlyList<LidarrManualImportResource>>(CandidateException);
                 }
@@ -459,7 +596,7 @@ public class LidarrImportServiceTests
             try
             {
                 await Task.Delay(CandidateDelay, cancellationToken);
-                if (CandidateException is not null)
+                if (CandidateException is not null && CandidateRequestCount <= FailAttempts)
                 {
                     throw CandidateException;
                 }

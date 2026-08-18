@@ -167,6 +167,29 @@ public class OptionsControllerTests
         Assert.Equal("Invalid YAML configuration", ok.Value);
     }
 
+    [Fact]
+    public void TryValidateYaml_WithInvalidOptions_PopulatesDetailForAdministratorOnlyCallers()
+    {
+        // UpdateYamlFile (Administrator-only) needs the specific validation reason so users
+        // can actually fix their configuration; ValidateYamlFile (ReadWrite-or-Administrator)
+        // must keep using the generic 'error' only, per the tests above.
+        var controller = CreateController();
+
+        var method = typeof(OptionsController).GetMethod(
+            "TryValidateYaml",
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            binder: null,
+            types: new[] { typeof(string), typeof(string).MakeByRefType(), typeof(string).MakeByRefType() },
+            modifiers: null);
+
+        var args = new object?[] { "soulseek:\n  listen_port: 1", null, null };
+        var success = (bool)method!.Invoke(controller, args)!;
+
+        Assert.False(success);
+        Assert.Equal("Invalid YAML configuration", args[1]);
+        Assert.Contains("1024", (string)args[2]!, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData("-0.1")]
     [InlineData("100.1")]

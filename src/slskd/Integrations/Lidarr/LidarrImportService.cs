@@ -143,6 +143,12 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         var lidarrDirectory = string.IsNullOrWhiteSpace(sourceDirectory)
             ? string.Empty
             : MapPath(sourceDirectory, options.ImportPathFrom, options.ImportPathTo);
+
+        if (requireAutoImportEnabled && options.ImportDelaySeconds > 0)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(options.ImportDelaySeconds), cancellationToken).ConfigureAwait(false);
+        }
+
         var history = await BeginHistoryAsync(sourceDirectory, lidarrDirectory, retryOfId, cancellationToken).ConfigureAwait(false);
 
         try
@@ -200,83 +206,124 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
                 return result;
             }
 
-            await ImportGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-            try
+            if (options.SkipAlreadyOwnedAlbums && !options.ImportReplaceExistingFiles)
             {
-                var candidates = await LidarrClient
-                    .GetManualImportCandidatesAsync(
-                        lidarrDirectory,
-                        filterExistingFiles: false,
-                        replaceExistingFiles: options.ImportReplaceExistingFiles,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-
-                var safeCandidates = candidates
-                    .Where(candidate => candidate.IsSafeAutomaticImportCandidate)
-                    .ToList();
-
-                foreach (var candidate in safeCandidates)
+                var ownedReason = await GetAlreadyOwnedSkipReasonAsync(lidarrDirectory, cancellationToken).ConfigureAwait(false);
+                if (ownedReason is not null)
                 {
-                    candidate.ReplaceExistingFiles = options.ImportReplaceExistingFiles;
-                }
-
-                var result = new LidarrImportResult
-                {
-                    Enabled = options.Enabled,
-                    AutoImportEnabled = options.AutoImportCompleted,
-                    Directory = lidarrDirectory,
-                    CandidateCount = candidates.Count,
-                    SafeCandidateCount = safeCandidates.Count,
-                    RejectedCandidateCount = candidates.Count - safeCandidates.Count,
-                    RejectedFilenames = candidates
-                        .Where(candidate => !candidate.IsSafeAutomaticImportCandidate)
-                        .Select(candidate => GetPortableFileName(candidate.Path))
-                        .Where(filename => !string.IsNullOrWhiteSpace(filename))
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToArray(),
-                    HistoryId = history.Id,
-                };
-
-                if (safeCandidates.Count == 0)
-                {
-                    result.SkippedReason = candidates.Count == 0
-                        ? "Lidarr found no import candidates"
-                        : "Lidarr candidates had rejections or ambiguous matches";
-                    Log.Information(
-                        "Lidarr auto-import skipped {Directory}: {Reason} ({Candidates} candidates)",
-                        lidarrDirectory,
-                        result.SkippedReason,
-                        candidates.Count);
+                    var result = new LidarrImportResult
+                    {
+                        Enabled = options.Enabled,
+                        AutoImportEnabled = options.AutoImportCompleted,
+                        Directory = lidarrDirectory,
+                        SkippedReason = ownedReason,
+                        HistoryId = history.Id,
+                    };
+                    Log.Information("Lidarr auto-import skipped {Directory}: {Reason}", lidarrDirectory, ownedReason);
                     await CompleteHistoryAsync(history.Id, result, LidarrImportStatus.Skipped, cancellationToken).ConfigureAwait(false);
                     return result;
                 }
+            }
 
-                var importMode = NormalizeImportMode(options.ImportMode);
-                var command = await LidarrClient
-                    .StartManualImportAsync(safeCandidates, importMode, options.ImportReplaceExistingFiles, cancellationToken)
-                    .ConfigureAwait(false);
+            var maxAttempts = options.ImportRetryMaxAttempts + 1;
+            var retryDelay = TimeSpan.FromSeconds(options.ImportRetryDelaySeconds);
 
-                result.CommandId = command.Id;
-                result.ImportMode = importMode;
-                await QueueHistoryAsync(history.Id, result, command, cancellationToken).ConfigureAwait(false);
-                Log.Information(
-                    "Queued Lidarr manual import command {CommandId} for {Directory}: {SafeCandidates}/{Candidates} safe candidates",
-                    command.Id,
-                    lidarrDirectory,
-                    safeCandidates.Count,
-                    candidates.Count);
-
-                if (command.Id > 0 && !IsTerminalCommandStatus(command.Status))
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                await ImportGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
                 {
-                    StartCommandMonitor(history.Id, command.Id);
+                    var candidates = await LidarrClient
+                        .GetManualImportCandidatesAsync(
+                            lidarrDirectory,
+                            filterExistingFiles: false,
+                            replaceExistingFiles: options.ImportReplaceExistingFiles,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                    var safeCandidates = candidates
+                        .Where(candidate => candidate.IsSafeAutomaticImportCandidate)
+                        .ToList();
+
+                    foreach (var candidate in safeCandidates)
+                    {
+                        candidate.ReplaceExistingFiles = options.ImportReplaceExistingFiles;
+                    }
+
+                    var result = new LidarrImportResult
+                    {
+                        Enabled = options.Enabled,
+                        AutoImportEnabled = options.AutoImportCompleted,
+                        Directory = lidarrDirectory,
+                        CandidateCount = candidates.Count,
+                        SafeCandidateCount = safeCandidates.Count,
+                        RejectedCandidateCount = candidates.Count - safeCandidates.Count,
+                        RejectedFilenames = candidates
+                            .Where(candidate => !candidate.IsSafeAutomaticImportCandidate)
+                            .Select(candidate => GetPortableFileName(candidate.Path))
+                            .Where(filename => !string.IsNullOrWhiteSpace(filename))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToArray(),
+                        HistoryId = history.Id,
+                    };
+
+                    if (safeCandidates.Count == 0)
+                    {
+                        result.SkippedReason = candidates.Count == 0
+                            ? "Lidarr found no import candidates"
+                            : "Lidarr candidates had rejections or ambiguous matches";
+                        Log.Information(
+                            "Lidarr auto-import skipped {Directory}: {Reason} ({Candidates} candidates)",
+                            lidarrDirectory,
+                            result.SkippedReason,
+                            candidates.Count);
+                        await CompleteHistoryAsync(history.Id, result, LidarrImportStatus.Skipped, cancellationToken).ConfigureAwait(false);
+                        return result;
+                    }
+
+                    var importMode = NormalizeImportMode(options.ImportMode);
+                    var command = await LidarrClient
+                        .StartManualImportAsync(safeCandidates, importMode, options.ImportReplaceExistingFiles, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    result.CommandId = command.Id;
+                    result.ImportMode = importMode;
+                    await QueueHistoryAsync(history.Id, result, command, cancellationToken).ConfigureAwait(false);
+                    Log.Information(
+                        "Queued Lidarr manual import command {CommandId} for {Directory}: {SafeCandidates}/{Candidates} safe candidates",
+                        command.Id,
+                        lidarrDirectory,
+                        safeCandidates.Count,
+                        candidates.Count);
+
+                    if (command.Id > 0 && !IsTerminalCommandStatus(command.Status))
+                    {
+                        StartCommandMonitor(history.Id, command.Id);
+                    }
+
+                    return result;
+                }
+                catch (Exception ex) when (attempt < maxAttempts &&
+                    (IsExpectedExternalHttpFailure(ex) || (ex is OperationCanceledException timeoutEx && IsHttpClientTimeout(timeoutEx))))
+                {
+                    Log.Information(
+                        "Lidarr manual import attempt {Attempt}/{MaxAttempts} failed for {Directory}: {Message}; retrying in {Delay}",
+                        attempt,
+                        maxAttempts,
+                        lidarrDirectory,
+                        ex.Message,
+                        retryDelay);
+                }
+                finally
+                {
+                    ImportGate.Release();
                 }
 
-                return result;
+                await Task.Delay(retryDelay, cancellationToken).ConfigureAwait(false);
+                retryDelay += retryDelay;
             }
-            finally
-            {
-                ImportGate.Release();
-            }
+
+            throw new InvalidOperationException("Lidarr manual import retry loop exited without returning or throwing.");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -663,6 +710,54 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
 
     internal static bool IsExpectedExternalHttpFailure(Exception ex)
         => ex is HttpRequestException || ex.InnerException is HttpRequestException;
+
+    /// <summary>
+    ///     Best-effort check for whether the release identified by <paramref name="lidarrDirectory"/>'s
+    ///     folder name is already fully present in Lidarr's library, using Lidarr's <c>/parse</c>
+    ///     endpoint (identification only, does not touch the filesystem) followed by a per-artist album
+    ///     lookup. Some Lidarr versions throw an internal error when the manual-import scan itself
+    ///     encounters a duplicate of an already-owned album, so this avoids that call entirely for the
+    ///     common case of re-downloading something already owned.
+    /// </summary>
+    /// <returns>A human-readable skip reason, or <see langword="null"/> if the check found nothing owned
+    /// (including when Lidarr couldn't identify the release, or the pre-check itself failed).</returns>
+    private async Task<string?> GetAlreadyOwnedSkipReasonAsync(string lidarrDirectory, CancellationToken cancellationToken)
+    {
+        var releaseTitle = GetPortableFileName(lidarrDirectory);
+        if (string.IsNullOrWhiteSpace(releaseTitle))
+        {
+            return null;
+        }
+
+        try
+        {
+            var parsed = await LidarrClient.ParseAsync(releaseTitle, cancellationToken).ConfigureAwait(false);
+            var artist = parsed?.Artist;
+            var albumTitle = parsed?.ParsedAlbumInfo?.AlbumTitle;
+
+            if (artist is null || string.IsNullOrWhiteSpace(albumTitle))
+            {
+                return null;
+            }
+
+            var albums = await LidarrClient.GetAlbumsByArtistAsync(artist.Id, cancellationToken).ConfigureAwait(false);
+            var match = albums.FirstOrDefault(album => string.Equals(album.Title, albumTitle, StringComparison.OrdinalIgnoreCase));
+
+            if (match?.Statistics is { TotalTrackCount: > 0 } statistics && statistics.TrackFileCount >= statistics.TotalTrackCount)
+            {
+                return $"Already fully in Lidarr library ({artist.ArtistName} - {match.Title})";
+            }
+        }
+        catch (Exception ex) when (IsExpectedExternalHttpFailure(ex) || (ex is OperationCanceledException timeoutEx && IsHttpClientTimeout(timeoutEx)))
+        {
+            // This is a best-effort optimization; if Lidarr is unavailable for the pre-check, fall
+            // through to the normal manual-import attempt (with its own retry/failure handling)
+            // rather than blocking the import on it.
+            Log.Debug(ex, "Could not pre-check Lidarr library ownership for {Directory}", lidarrDirectory);
+        }
+
+        return null;
+    }
 
     private static string MapPath(string path, string fromPrefix, string toPrefix)
     {

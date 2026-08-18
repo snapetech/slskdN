@@ -208,10 +208,10 @@ namespace slskd.Core.API
                 return StatusCode(413, "YAML is too large");
             }
 
-            if (!TryValidateYaml(yaml, out var error))
+            if (!TryValidateYaml(yaml, out var error, out var detail))
             {
                 Log.Error("Failed to validate YAML configuration: {Error}", error);
-                return BadRequest(error);
+                return BadRequest(string.IsNullOrWhiteSpace(detail) ? error : $"{error}: {detail}");
             }
 
             try
@@ -265,9 +265,20 @@ namespace slskd.Core.API
             return Ok();
         }
 
-        private bool TryValidateYaml(string yaml, out string error)
+        private bool TryValidateYaml(string yaml, out string error) => TryValidateYaml(yaml, out error, out _);
+
+        /// <summary>
+        ///     Validates the supplied YAML, producing both a generic, safe-to-expose-to-any-caller
+        ///     <paramref name="error"/> and a <paramref name="detail"/> message with the specific
+        ///     reason validation failed. <paramref name="detail"/> is only surfaced to callers that
+        ///     require Administrator privileges (i.e. <see cref="UpdateYamlFile"/>), since it can
+        ///     reveal details about the server's configuration/filesystem; lower-privileged callers
+        ///     (e.g. <see cref="ValidateYamlFile"/>) must continue to use <paramref name="error"/> only.
+        /// </summary>
+        private bool TryValidateYaml(string yaml, out string error, out string detail)
         {
             error = string.Empty;
+            detail = string.Empty;
 
             try
             {
@@ -280,7 +291,8 @@ namespace slskd.Core.API
 
                 if (!options.TryValidate(out var result))
                 {
-                    Log.Warning("Configuration validation failed: {Message}", result.GetResultString());
+                    detail = result.GetResultString();
+                    Log.Warning("Configuration validation failed: {Message}", detail);
                     error = "Invalid YAML configuration";
                     return false;
                 }
@@ -289,6 +301,7 @@ namespace slskd.Core.API
             {
                 Log.Warning(ex, "Configuration validation failed");
                 error = "Invalid YAML configuration";
+                detail = ex.Message;
 
                 return false;
             }

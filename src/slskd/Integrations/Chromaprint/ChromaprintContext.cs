@@ -4,6 +4,7 @@
 namespace slskd.Integrations.Chromaprint
 {
     using System;
+    using System.Reflection;
     using System.Runtime.InteropServices;
 
     internal sealed class ChromaprintContext : SafeHandle
@@ -100,6 +101,40 @@ namespace slskd.Integrations.Chromaprint
         private static class NativeMethods
         {
             private const string LibraryName = "chromaprint";
+
+            // Debian/Ubuntu (incl. the official slskdN container image) ship only the
+            // versioned soname (e.g. libchromaprint.so.1) via libchromaprint-tools /
+            // libchromaprint1; the unversioned libchromaprint.so symlink that .NET's
+            // default P/Invoke resolution looks for is only present in libchromaprint-dev,
+            // which isn't installed. Fall back to the known sonames before giving up.
+            private static readonly string[] VersionedLibraryNames =
+            {
+                "libchromaprint.so.1",
+                "libchromaprint.so.0",
+            };
+
+            static NativeMethods()
+            {
+                NativeLibrary.SetDllImportResolver(typeof(NativeMethods).Assembly, ResolveLibrary);
+            }
+
+            private static IntPtr ResolveLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+            {
+                if (libraryName != LibraryName)
+                {
+                    return IntPtr.Zero;
+                }
+
+                foreach (var candidate in VersionedLibraryNames)
+                {
+                    if (NativeLibrary.TryLoad(candidate, assembly, searchPath, out var handle))
+                    {
+                        return handle;
+                    }
+                }
+
+                return IntPtr.Zero;
+            }
 
             [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
             internal static extern IntPtr chromaprint_new(int algorithm);

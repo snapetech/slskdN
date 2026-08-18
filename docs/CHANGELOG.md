@@ -33,6 +33,23 @@ For dev or build tags, use the same logical version string embedded in the tag.
   mappings are not rebuilt from a short-lived handshake timestamp.
 - Fixed Web UI whole-document YAML saves for supported legacy `global`,
   `integration`, share-list, and nested upload-limit layouts.
+- Fixed Chromaprint fingerprinting failing to load its native library on
+  Debian/Ubuntu-packaged installs, including the official container image,
+  which ships only the versioned soname (`libchromaprint.so.1`) rather than
+  the unversioned symlink .NET looks for by default.
+- Fixed the Web UI configuration save endpoint (`PUT /options/yaml`)
+  returning a generic, undiagnosable "Invalid YAML configuration" error on
+  every failure. Administrators now see the actual validation reason, so a
+  stale or invalid field elsewhere in the file no longer silently blocks
+  unrelated settings changes with no way to identify the cause.
+- Added automatic retry with backoff, plus an optional pre-import delay, for
+  Lidarr auto-import attempts that fail transiently (`lidarr-import-retry-*`,
+  `lidarr-import-delay`).
+- Added a pre-check that skips Lidarr auto-import, without calling Lidarr,
+  for albums Lidarr already owns in full (`lidarr-skip-already-owned-
+  albums`, on by default). Some Lidarr versions throw an internal error
+  scanning a download folder that duplicates an already-owned album instead
+  of returning a normal no-op result.
 
 ## [2026081719-slskdn.310] — 2026-08-17
 

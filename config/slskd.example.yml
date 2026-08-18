@@ -515,8 +515,12 @@
 #    wishlist_filter: "" # fallback; allowed profile entries become independent branches, e.g. `mp3 minbr:320 OR aac minbr:256 OR m4a minbr:256 OR flac`
 #    wishlist_max_results: 100
 #    auto_import_completed: false # automatic completed-directory handoff; UI/API manual import remains available when integration is enabled
+#    import_delay_seconds: 0 # delay before the first automatic import attempt; only applies to auto-triggered imports, not manual ones
+#    import_retry_max_attempts: 2 # additional automatic retries when a manual-import call fails transiently (0 disables auto-retry)
+#    import_retry_delay_seconds: 30 # base delay between automatic retries, in seconds (doubles after each attempt)
 #    import_mode: "move" # move or copy
 #    import_replace_existing_files: false
+#    skip_already_owned_albums: true # skip auto-import (without calling Lidarr) when the identified album is already fully owned; has no effect when import_replace_existing_files is true
 #    delete_rejected_downloads: false # delete only exact files rejected by Lidarr; never recursively deletes the directory
 #    blacklist_rejected_downloads: false # ignore the exact Wishlist peer+remote directory after rejection
 #    import_path_from: "" # optional local slskdN completed path prefix

@@ -4376,6 +4376,38 @@ namespace slskd
                 public bool AutoImportCompleted { get; init; } = false;
 
                 /// <summary>
+                ///     Gets the delay before the first automatic import attempt after a download completes,
+                ///     in seconds. Gives a path-mapped or network-shared destination time to become visible
+                ///     to Lidarr before the initial manual-import scan. Does not apply to manually-triggered imports.
+                /// </summary>
+                [Argument(default, "lidarr-import-delay")]
+                [EnvironmentVariable("LIDARR_IMPORT_DELAY")]
+                [Description("delay before the first automatic import attempt, in seconds")]
+                [Range(0, 600)]
+                public int ImportDelaySeconds { get; init; } = 0;
+
+                /// <summary>
+                ///     Gets the number of additional automatic retry attempts when a Lidarr manual-import
+                ///     call fails transiently (a non-2xx response or timeout). 0 disables automatic retry,
+                ///     leaving failures to be retried manually from the import history.
+                /// </summary>
+                [Argument(default, "lidarr-import-retry-max-attempts")]
+                [EnvironmentVariable("LIDARR_IMPORT_RETRY_MAX_ATTEMPTS")]
+                [Description("additional automatic retry attempts on a transient Lidarr import failure")]
+                [Range(0, 10)]
+                public int ImportRetryMaxAttempts { get; init; } = 2;
+
+                /// <summary>
+                ///     Gets the base delay between automatic retry attempts, in seconds. Doubles after each
+                ///     failed attempt.
+                /// </summary>
+                [Argument(default, "lidarr-import-retry-delay")]
+                [EnvironmentVariable("LIDARR_IMPORT_RETRY_DELAY")]
+                [Description("base delay between automatic retry attempts, in seconds (doubles each attempt)")]
+                [Range(1, 3600)]
+                public int ImportRetryDelaySeconds { get; init; } = 30;
+
+                /// <summary>
                 ///     Gets the local slskdN completed path prefix to rewrite before calling Lidarr.
                 /// </summary>
                 [Argument(default, "lidarr-import-path-from")]
@@ -4406,6 +4438,20 @@ namespace slskd
                 [EnvironmentVariable("LIDARR_IMPORT_REPLACE_EXISTING")]
                 [Description("allow Lidarr auto-import to replace existing files")]
                 public bool ImportReplaceExistingFiles { get; init; } = false;
+
+                /// <summary>
+                ///     Gets a value indicating whether a completed directory should be skipped, without
+                ///     calling Lidarr's manual-import scan, when Lidarr already has every track of the
+                ///     identified album on disk. Some Lidarr versions throw an internal error scanning a
+                ///     download folder that duplicates an already-owned album, so this check avoids the
+                ///     call entirely for the common re-download/re-search case. Has no effect when
+                ///     <see cref="ImportReplaceExistingFiles"/> is enabled, since that means existing files
+                ///     should intentionally be replaced.
+                /// </summary>
+                [Argument(default, "lidarr-skip-already-owned-albums")]
+                [EnvironmentVariable("LIDARR_SKIP_ALREADY_OWNED_ALBUMS")]
+                [Description("skip auto-import, without calling Lidarr, when the identified album is already fully owned")]
+                public bool SkipAlreadyOwnedAlbums { get; init; } = true;
 
                 [Argument(default, "lidarr-delete-rejected-downloads")]
                 [EnvironmentVariable("LIDARR_DELETE_REJECTED_DOWNLOADS")]
