@@ -456,6 +456,34 @@ and direct YAML deserialization do not automatically share aliases or
 compatibility transforms, so a validator can reject a live configuration
 unless that boundary is explicitly kept in sync.
 
+### 0z861. Apply Column Resize Deltas To The Drag-Start Width
+
+**The Bug**: The transfer table added the full mouse distance from the drag
+start to the current width on every `mousemove`. Repeated events therefore
+amplified one drag into an unexpectedly large column, and the resize affordance
+was invisible until hover.
+
+**Files Affected**:
+- `src/web/src/components/Transfers/TransferTable.jsx`
+- `src/web/src/components/Transfers/Transfers.css`
+- `src/web/src/components/Transfers/TransferTable.test.jsx`
+
+**Wrong**:
+```javascript
+const onMove = (event) => setColumnWidth(key, event.clientX - startX);
+```
+
+**Correct**:
+```javascript
+const startWidth = widths[key] || 60;
+const onMove = (event) => setColumnWidth(key, startWidth + event.clientX - startX);
+```
+
+**Why This Keeps Happening**: Pointer events report the position relative to
+the original press, while the stored width changes after each event. Resize
+logic must keep the immutable drag-start width as its baseline, and the handle
+must retain a subtle non-hover visual so users can discover the control.
+
 ### 0z817. Bound Auto-Replace by Persisted Request Attempts
 
 **The Bug**: Auto-replace declared `AutoReplaceOptions.MaxRetries` but never
