@@ -28468,3 +28468,41 @@ older handshake => secondary stale-tunnel signal with a conservative bound
 usable without updating the latest-handshake timestamp as often as the port
 forward lease. Provider mapping renewal is the stronger liveness signal for an
 active forwarded port; handshake age must not be used as a short lease timer.
+
+### 0z870. Honor The Optional DNS Leak Verification Flag
+
+**The Bug**: `VerifySocksConfigurationAsync(..., expectedLeakPrevention: false)`
+still performed a second SOCKS probe and only ignored its result. The extra
+probe made a fragmented-handshake test depend on a second sequential socket
+exchange and could time out under a loaded CI runner.
+
+**Files Affected**:
+- `src/slskd/Mesh/Transport/DnsLeakPreventionVerifier.cs`
+- `tests/slskd.Tests.Unit/Mesh/Transport/DnsLeakPreventionVerifierTests.cs`
+
+**Wrong**:
+```csharp
+var dnsLeakResult = await TestDnsLeakPreventionAsync(proxyHost, proxyPort);
+if (expectedLeakPrevention && !dnsLeakResult.LeakPrevented)
+{
+    return DnsLeakVerificationResult.Failure("DNS leak verification failed");
+}
+```
+
+**Correct**:
+```csharp
+if (expectedLeakPrevention)
+{
+    var dnsLeakResult = await TestDnsLeakPreventionAsync(proxyHost, proxyPort);
+    if (!dnsLeakResult.LeakPrevented)
+    {
+        return DnsLeakVerificationResult.Failure("DNS leak verification failed");
+    }
+}
+```
+
+**Why This Keeps Happening**: A boolean policy flag can control both whether
+an operation runs and whether its result is enforced. Treating it as only an
+assertion switch leaves unnecessary network work in supposedly relaxed test
+and validation paths; make the control-flow intent explicit and cover the
+single-probe path with a deterministic mock server.
