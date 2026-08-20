@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026082016-slskdn.315] — 2026-08-20
+
 - Added multi-select actions to the Searches page so users can rerun completed
   searches, stop active ones, or delete selected history without clearing the
   entire list.
