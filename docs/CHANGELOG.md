@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added multi-select actions to the Searches page so users can rerun completed
+  searches, stop active ones, or delete selected history without clearing the
+  entire list.
+
 ## [2026082015-slskdn.314] — 2026-08-20
 
 - Fixed optional DNS leak verification mode performing an unnecessary second

@@ -5,7 +5,7 @@ import * as searches from '../../../lib/searches';
 import SearchActionIcon from './SearchActionIcon';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Icon, Label, Popup, Table } from 'semantic-ui-react';
+import { Checkbox, Icon, Label, Popup, Table } from 'semantic-ui-react';
 import { toast } from 'react-toastify';
 
 const sourceColors = {
@@ -46,7 +46,14 @@ const SourceBadge = ({ source }) => {
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
-const SearchListRow = ({ onRemove, onStop, search }) => {
+const SearchListRow = ({
+  onRemove,
+  onSelectionChange = () => {},
+  onStop,
+  search,
+  selected = false,
+  selectionDisabled = false,
+}) => {
   const [working, setWorking] = useState(false);
   const [graphData, setGraphData] = useState(null);
   const [graphLoading, setGraphLoading] = useState(false);
@@ -153,9 +160,27 @@ const SearchListRow = ({ onRemove, onStop, search }) => {
   return (
     <>
       <Table.Row
+        aria-selected={selected}
+        className={selected ? 'search-list-row-selected' : undefined}
         disabled={working}
         style={{ cursor: working ? 'wait' : undefined }}
       >
+        <Table.Cell className="search-list-select">
+          <Popup
+            content="Select this search for a bulk action."
+            position="top center"
+            trigger={(
+              <span>
+                <Checkbox
+                  aria-label={`Select search ${search.searchText || search.id}`}
+                  checked={selected}
+                  disabled={selectionDisabled || working}
+                  onChange={(event, data) => onSelectionChange(data.checked)}
+                />
+              </span>
+            )}
+          />
+        </Table.Cell>
         <Table.Cell>
           <SearchStatusIcon state={search.state} />
         </Table.Cell>

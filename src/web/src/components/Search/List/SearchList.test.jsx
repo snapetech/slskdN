@@ -4,12 +4,21 @@
 
 import SearchList from './SearchList';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('./SearchListRow', () => ({
-  default: ({ search }) => (
+  default: ({ onSelectionChange, search, selected, selectionDisabled }) => (
     <tr>
+      <td>
+        <input
+          aria-label={`Select search ${search.searchText || search.id}`}
+          checked={selected}
+          disabled={selectionDisabled}
+          onChange={(event) => onSelectionChange(event.target.checked)}
+          type="checkbox"
+        />
+      </td>
       <td>{search.id}</td>
     </tr>
   ),
@@ -35,5 +44,55 @@ describe('SearchList', () => {
     expect(
       screen.getByRole('button', { name: 'Next search page' }),
     ).toBeInTheDocument();
+  });
+
+  it('selects the filtered list and routes actions to the eligible searches', async () => {
+    const completed = {
+      id: 'completed',
+      searchText: 'finished query',
+      startedAt: '2026-08-20T12:00:00Z',
+      state: 'Completed',
+    };
+    const active = {
+      id: 'active',
+      searchText: 'running query',
+      startedAt: '2026-08-20T11:00:00Z',
+      state: 'InProgress',
+    };
+    const onRemoveSelected = vi.fn().mockResolvedValue(['completed']);
+    const onStopSelected = vi.fn().mockResolvedValue(['active']);
+    const onResearchSelected = vi.fn().mockResolvedValue(['completed']);
+
+    render(
+      <SearchList
+        onRemoveSelected={onRemoveSelected}
+        onResearchSelected={onResearchSelected}
+        onStopSelected={onStopSelected}
+        searches={{ active, completed }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Select all searches in current list' }),
+    );
+
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search Again' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Stop Active' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Delete Selected' })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Selected' }));
+
+    await waitFor(() => {
+      expect(onRemoveSelected).toHaveBeenCalledWith([completed]);
+    });
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Active' }));
+
+    await waitFor(() => {
+      expect(onStopSelected).toHaveBeenCalledWith([active]);
+    });
+    expect(screen.queryByRole('toolbar', { name: 'Selected search actions' })).not.toBeInTheDocument();
   });
 });

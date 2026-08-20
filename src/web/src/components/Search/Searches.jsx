@@ -156,6 +156,7 @@ const Searches = ({ server } = {}) => {
   const [stopping, setStopping] = useState(false);
   const [creating, setCreating] = useState(false);
   const [cleaningUp, setCleaningUp] = useState(false);
+  const [bulkAction, setBulkAction] = useState(null);
   const [sourceFilter, setSourceFilter] = useState('all');
 
   // Scene ↔ Pod Bridging provider selection (opt-in; normal search stays Soulseek-compatible by default)
@@ -174,6 +175,9 @@ const Searches = ({ server } = {}) => {
   const routerNavigate = useNavigate();
   const { id: searchId } = useParams();
   const acquisitionProfile = getAcquisitionProfile(acquisitionProfileId);
+  const searchProviders = scenePodBridgeEnabled
+    ? [providerPod && 'pod', providerScene && 'scene'].filter(Boolean)
+    : null;
   const acquisitionProfileOptions = acquisitionProfiles.map((profile) => ({
     content: (
       <div>
@@ -379,15 +383,10 @@ const Searches = ({ server } = {}) => {
     try {
       setCreating(true);
 
-      // Include provider selection if Scene ↔ Pod Bridging is enabled
-      const providers = scenePodBridgeEnabled
-        ? [providerPod && 'pod', providerScene && 'scene'].filter(Boolean)
-        : null;
-
       await library.create({
         acquisitionProfile: acquisitionProfile.id,
         id,
-        providers,
+        providers: searchProviders,
         searchText,
       });
 
@@ -482,6 +481,98 @@ const Searches = ({ server } = {}) => {
           stoppingError,
       );
       setStopping(false);
+    }
+  };
+
+  const removeSelected = async (selectedSearches) => {
+    const processedIds = [];
+
+    setBulkAction('remove');
+
+    try {
+      for (const search of selectedSearches) {
+        await library.remove({ id: search.id });
+        processedIds.push(search.id);
+      }
+
+      toast.success(`Deleted ${processedIds.length} selected searches`);
+    } catch (error_) {
+      console.error(error_);
+      toast.error(
+        error_?.response?.data ??
+          error_?.message ??
+          error_,
+      );
+    } finally {
+      if (processedIds.length > 0) {
+        setSearches((old) => {
+          const next = { ...old };
+          processedIds.forEach((id) => delete next[id]);
+          return next;
+        });
+      }
+      setBulkAction(null);
+    }
+
+    return processedIds;
+  };
+
+  const stopSelected = async (selectedSearches) => {
+    const processedIds = [];
+
+    setBulkAction('stop');
+
+    try {
+      for (const search of selectedSearches) {
+        await library.stop({ id: search.id });
+        processedIds.push(search.id);
+      }
+
+      toast.success(`Stopped ${processedIds.length} selected searches`);
+    } catch (error_) {
+      console.error(error_);
+      toast.error(
+        error_?.response?.data ??
+          error_?.message ??
+          error_,
+      );
+    } finally {
+      setBulkAction(null);
+    }
+
+    return processedIds;
+  };
+
+  const researchSelected = async (selectedSearches) => {
+    const searchable = selectedSearches.filter(
+      (search) => typeof search.searchText === 'string' && search.searchText.trim(),
+    );
+
+    if (searchable.length === 0) {
+      toast.error('The selected searches do not contain searchable text');
+      return [];
+    }
+
+    setBulkAction('research');
+
+    try {
+      const count = await library.createBatch({
+        acquisitionProfile: acquisitionProfile.id,
+        providers: searchProviders,
+        queries: searchable.map((search) => search.searchText),
+      });
+      toast.success(`Started ${count} selected searches again`);
+      return searchable.map((search) => search.id);
+    } catch (error_) {
+      console.error(error_);
+      toast.error(
+        error_?.response?.data ??
+          error_?.message ??
+          error_,
+      );
+      return [];
+    } finally {
+      setBulkAction(null);
     }
   };
 
@@ -765,13 +856,17 @@ const Searches = ({ server } = {}) => {
               />
             </div>
             <SearchList
+              bulkAction={bulkAction}
               cleaningUp={cleaningUp}
               connecting={connecting}
               error={error}
               onCleanup={cleanup}
               onRemove={remove}
               onRemoveAll={removeAll}
+              onRemoveSelected={removeSelected}
+              onResearchSelected={researchSelected}
               onStop={stop}
+              onStopSelected={stopSelected}
               removingAll={removingAll}
               searches={searches}
               sourceFilter={sourceFilter}

@@ -1,3 +1,14 @@
+## Update 2026-08-20 16:22:58Z
+
+- Current task: complete. Built the Search page multi-select workflow with
+  filtered select-all, per-row selection, serialized rerun/stop/delete actions,
+  and acquisition-profile/provider propagation for replayed searches.
+- Added focused regression coverage, the user-facing release-note fragment,
+  and the Unreleased changelog bullet. Full Web, backend, lint, build, release
+  note, and identity checks are passing.
+- Next steps: none for this task; do not create a release tag unless explicitly
+  requested.
+
 ## Update 2026-08-20 15:43:26Z
 
 - Release `build-main-2026082015-slskdn.313` failed in hosted CI because

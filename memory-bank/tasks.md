@@ -9,6 +9,13 @@
 
 ### High Priority
 
+- [x] Add multi-select actions to the Search page.
+  - Status: completed (2026-08-20)
+  - Priority: P1
+  - Notes: Added filtered select-all and per-search checkboxes, serialized
+    rerun/stop/delete actions, current acquisition-profile/provider propagation,
+    focused UI/API regression coverage, and the required release-note fragment.
+
 - [x] Fix tester feedback for transfer column sizing and the Unraid shared path.
   - Status: completed (2026-08-20)
   - Priority: P1

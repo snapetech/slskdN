@@ -154,7 +154,11 @@ const createWithRetry = async (
   throw new Error('Search batch retry loop exhausted unexpectedly.');
 };
 
-export const createBatch = async ({ queries = [], providers = null } = {}) => {
+export const createBatch = async ({
+  acquisitionProfile = null,
+  queries = [],
+  providers = null,
+} = {}) => {
   const normalizedQueries = Array.isArray(queries)
     ? queries.map((query) => (query || '').trim()).filter(Boolean)
     : [];
@@ -163,6 +167,7 @@ export const createBatch = async ({ queries = [], providers = null } = {}) => {
     (chain, searchText) =>
       chain.then(() =>
         createWithRetry({
+          acquisitionProfile,
           id: uuidv4(),
           providers,
           searchText,

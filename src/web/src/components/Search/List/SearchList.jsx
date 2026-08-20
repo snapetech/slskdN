@@ -2,9 +2,12 @@ import ErrorSegment from '../../Shared/ErrorSegment';
 import PlaceholderSegment from '../../Shared/PlaceholderSegment';
 import SearchListRow from './SearchListRow';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Icon, Loader, Popup, Table } from 'semantic-ui-react';
+import { Button, Card, Checkbox, Icon, Loader, Popup, Table } from 'semantic-ui-react';
 
 const SEARCH_LIST_PAGE_SIZE = 100;
+
+const isSearchComplete = (search) =>
+  search?.isComplete === true || String(search?.state ?? '').toLowerCase().includes('complete');
 
 const SearchList = ({
   connecting = false,
@@ -12,13 +15,19 @@ const SearchList = ({
   onCleanup = () => {},
   onRemove = () => {},
   onRemoveAll = () => {},
+  onRemoveSelected = async () => [],
+  onResearchSelected = async () => [],
   onStop = () => {},
+  onStopSelected = async () => [],
   removingAll = false,
   cleaningUp = false,
+  bulkAction = null,
   searches = {},
   sourceFilter = 'all',
 }) => {
   const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const bulkWorking = Boolean(bulkAction);
   const filteredSearchValues = useMemo(() => {
     const values = Object.values(searches);
     const filtered = sourceFilter === 'all'
@@ -34,6 +43,19 @@ const SearchList = ({
     setPage(1);
   }, [sourceFilter]);
 
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [sourceFilter]);
+
+  useEffect(() => {
+    const availableIds = new Set(Object.keys(searches));
+
+    setSelectedIds((current) => {
+      const next = new Set([...current].filter((id) => availableIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [searches]);
+
   const searchCount = Object.keys(searches).length;
   const filteredCount = filteredSearchValues.length;
   const totalPages = Math.max(1, Math.ceil(filteredCount / SEARCH_LIST_PAGE_SIZE));
@@ -42,6 +64,50 @@ const SearchList = ({
   const pageSearches = filteredSearchValues.slice(start, start + SEARCH_LIST_PAGE_SIZE);
   const pageStart = filteredCount === 0 ? 0 : start + 1;
   const pageEnd = Math.min(start + SEARCH_LIST_PAGE_SIZE, filteredCount);
+
+  const selectedSearches = filteredSearchValues.filter((search) => selectedIds.has(search.id));
+  const selectedCompletedSearches = selectedSearches.filter(isSearchComplete);
+  const selectedActiveSearches = selectedSearches.filter((search) => !isSearchComplete(search));
+  const allVisibleSelected = filteredCount > 0 && selectedSearches.length === filteredCount;
+  const someVisibleSelected = selectedSearches.length > 0 && !allVisibleSelected;
+
+  const toggleAllVisible = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (allVisibleSelected) {
+        filteredSearchValues.forEach((search) => next.delete(search.id));
+      } else {
+        filteredSearchValues.forEach((search) => next.add(search.id));
+      }
+
+      return next;
+    });
+  };
+
+  const toggleSearch = (searchId, selected) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (selected) {
+        next.add(searchId);
+      } else {
+        next.delete(searchId);
+      }
+
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const runSelectedAction = async (action, eligibleSearches) => {
+    const processedIds = await action(eligibleSearches);
+
+    if (Array.isArray(processedIds)) {
+      setSelectedIds((current) => new Set([...current].filter((id) => !processedIds.includes(id))));
+    }
+  };
 
   return (
     <Card
@@ -94,6 +160,85 @@ const SearchList = ({
             {filteredCount} / {searchCount} searches
           </div>
         </div>
+        {selectedSearches.length > 0 && (
+          <div className="search-list-selection-toolbar" role="toolbar" aria-label="Selected search actions">
+            <span className="search-list-selection-summary">
+              {selectedSearches.length} selected
+              <span className="search-list-selection-count">
+                {' '}
+                ({selectedCompletedSearches.length} completed, {selectedActiveSearches.length} active)
+              </span>
+            </span>
+
+            <Popup
+              content="Run the selected completed searches again, one at a time, using the current acquisition profile."
+              position="top center"
+              trigger={(
+                <span>
+                  <Button
+                    color="blue"
+                    disabled={bulkWorking || selectedCompletedSearches.length === 0}
+                    loading={bulkAction === 'research'}
+                    onClick={() => runSelectedAction(onResearchSelected, selectedCompletedSearches)}
+                  >
+                    <Icon name="refresh" />
+                    Search Again
+                  </Button>
+                </span>
+              )}
+            />
+
+            <Popup
+              content="Stop the selected searches that are still running."
+              position="top center"
+              trigger={(
+                <span>
+                  <Button
+                    color="orange"
+                    disabled={bulkWorking || selectedActiveSearches.length === 0}
+                    loading={bulkAction === 'stop'}
+                    onClick={() => runSelectedAction(onStopSelected, selectedActiveSearches)}
+                  >
+                    <Icon name="stop circle" />
+                    Stop Active
+                  </Button>
+                </span>
+              )}
+            />
+
+            <Popup
+              content="Delete the selected completed searches from search history."
+              position="top center"
+              trigger={(
+                <span>
+                  <Button
+                    color="red"
+                    disabled={bulkWorking || selectedCompletedSearches.length === 0}
+                    loading={bulkAction === 'remove'}
+                    onClick={() => runSelectedAction(onRemoveSelected, selectedCompletedSearches)}
+                  >
+                    <Icon name="trash" />
+                    Delete Selected
+                  </Button>
+                </span>
+              )}
+            />
+
+            <Popup
+              content="Clear the current selection without changing any searches."
+              position="top center"
+              trigger={(
+                <Button
+                  aria-label="Clear selection"
+                  basic
+                  disabled={bulkWorking}
+                  icon="close"
+                  onClick={clearSelection}
+                />
+              )}
+            />
+          </div>
+        )}
         {connecting && (
           <Loader
             active
@@ -115,11 +260,28 @@ const SearchList = ({
         ) : (
           <div className="search-list-wrapper">
             <Table
-              className="unstackable"
+              className="search-list-table unstackable"
               size="large"
             >
               <Table.Header>
                 <Table.Row>
+                  <Table.HeaderCell className="search-list-select">
+                    <Popup
+                      content="Select all searches in the current list filter."
+                      position="top center"
+                      trigger={(
+                        <span>
+                          <Checkbox
+                            aria-label="Select all searches in current list"
+                            checked={allVisibleSelected}
+                            disabled={filteredCount === 0 || bulkWorking}
+                            indeterminate={someVisibleSelected}
+                            onChange={toggleAllVisible}
+                          />
+                        </span>
+                      )}
+                    />
+                  </Table.HeaderCell>
                   <Table.HeaderCell className="search-list-action">
                     <Icon name="info circle" />
                   </Table.HeaderCell>
@@ -147,7 +309,10 @@ const SearchList = ({
                     key={search.id}
                     onRemove={onRemove}
                     onStop={onStop}
+                    onSelectionChange={(selected) => toggleSearch(search.id, selected)}
                     search={search}
+                    selected={selectedIds.has(search.id)}
+                    selectionDisabled={bulkWorking}
                   />
                 ))}
               </Table.Body>

@@ -1,3 +1,19 @@
+## Update 2026-08-20 16:22:58Z
+
+- Completed the Search page multi-select feature: filtered select-all and
+  per-row checkboxes now expose bulk Search Again, Stop Active, Delete
+  Selected, and Clear Selection actions. Completed replays use the current
+  acquisition profile and optional Scene/Pod providers, with serialized
+  requests to limit network impact.
+- Added SearchList/Searches/search-library regression coverage and the
+  validated `release-notes/20260820-search-bulk-actions.md` fragment plus the
+  Unreleased changelog entry.
+- Validation passed: Web tests (`917` passed, `4` skipped), Web production
+  build, backend application (`74/74`), unit (`5143/5143`), integration
+  (`284/284`), `./bin/lint`, release-note tests, and local-identity checks.
+- Standalone Web ESLint remains blocked before source analysis by the existing
+  TypeScript 7 / `typescript-eslint` parser incompatibility.
+
 ## Update 2026-08-20 15:43:26Z
 
 - Hosted CI for `.313` exposed a flaky fragmented SOCKS test: the relaxed

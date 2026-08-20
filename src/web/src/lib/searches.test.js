@@ -78,6 +78,27 @@ describe('createBatch', () => {
       },
     });
   });
+
+  it('passes the active acquisition profile and providers to every replayed query', async () => {
+    api.post.mockResolvedValueOnce({ data: { id: 'replayed' } });
+
+    await expect(
+      search.createBatch({
+        acquisitionProfile: 'conservative-network',
+        providers: ['pod'],
+        queries: ['one'],
+      }),
+    ).resolves.toBe(1);
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/searches',
+      expect.objectContaining({
+        acquisitionProfile: 'conservative-network',
+        providers: ['pod'],
+        searchText: 'one',
+      }),
+    );
+  });
 });
 
 describe('blocked users', () => {

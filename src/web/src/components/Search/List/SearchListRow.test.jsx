@@ -4,7 +4,7 @@
 
 import SearchListRow from './SearchListRow';
 import { MemoryRouter } from 'react-router-dom';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../SearchStatusIcon', () => ({
@@ -51,5 +51,32 @@ describe('SearchListRow', () => {
       'href',
       '/searches/search-123',
     );
+  });
+
+  it('reports checkbox selection for bulk actions', () => {
+    const onSelectionChange = vi.fn();
+
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <table>
+          <tbody>
+            <SearchListRow
+              onRemove={() => {}}
+              onSelectionChange={onSelectionChange}
+              onStop={() => {}}
+              search={{
+                id: 'search-123',
+                searchText: 'metallica one',
+                state: 'Complete',
+              }}
+            />
+          </tbody>
+        </table>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select search metallica one' }));
+
+    expect(onSelectionChange).toHaveBeenCalledWith(true);
   });
 });

@@ -20,6 +20,7 @@ vi.mock('../../lib/searches', () => ({
   create: vi.fn(),
   get: vi.fn(),
   getAll: vi.fn(),
+  createBatch: vi.fn(),
   remove: vi.fn(),
   removeAll: vi.fn(),
   stop: vi.fn(),
@@ -36,9 +37,36 @@ vi.mock('./Detail/SearchDetail', () => ({
   default: ({ search }) => <div data-testid="search-detail">{search.id}</div>,
 }));
 vi.mock('./List/SearchList', () => ({
-  default: ({ searches = {} }) => (
-    <div data-testid="search-list">{Object.keys(searches).join(',')}</div>
-  ),
+  default: ({
+    onRemoveSelected = async () => [],
+    onResearchSelected = async () => [],
+    onStopSelected = async () => [],
+    searches = {},
+  }) => {
+    const selectedSearch = Object.values(searches)[0];
+
+    return (
+      <div data-testid="search-list">
+        {Object.keys(searches).join(',')}
+        {selectedSearch && (
+          <>
+            <button
+              data-testid="search-list-research"
+              onClick={() => onResearchSelected([selectedSearch])}
+            />
+            <button
+              data-testid="search-list-remove"
+              onClick={() => onRemoveSelected([selectedSearch])}
+            />
+            <button
+              data-testid="search-list-stop"
+              onClick={() => onStopSelected([selectedSearch])}
+            />
+          </>
+        )}
+      </div>
+    );
+  },
 }));
 
 const callbacks = {};
@@ -147,6 +175,35 @@ describe('Searches', () => {
         searchText: 'beatles',
       }),
     );
+  });
+
+  it('replays a selected search with the current acquisition profile and providers', async () => {
+    getCapabilities.mockResolvedValue({
+      feature: { scenePodBridge: true },
+      features: ['scene_pod_bridge'],
+    });
+    library.createBatch.mockResolvedValue(1);
+
+    await renderSearches({
+      hubStart: async () => {
+        callbacks.list?.([
+          {
+            id: 'completed-search',
+            searchText: 'rare live set',
+            state: 'Completed',
+          },
+        ]);
+      },
+    });
+
+    fireEvent.click(screen.getByTestId('search-list-research'));
+
+    await waitFor(() => expect(library.createBatch).toHaveBeenCalledTimes(1));
+    expect(library.createBatch).toHaveBeenCalledWith({
+      acquisitionProfile: 'lossless-exact',
+      providers: ['pod', 'scene'],
+      queries: ['rare live set'],
+    });
   });
 
   it('defaults secondary search sections closed and remembers expanded state', async () => {
