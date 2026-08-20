@@ -484,6 +484,20 @@ the original press, while the stored width changes after each event. Resize
 logic must keep the immutable drag-start width as its baseline, and the handle
 must retain a subtle non-hover visual so users can discover the control.
 
+### 0z862. Use The Map Variable In JSX Attribute Expressions
+
+**The Bug**: A transfer-header accessibility label used `key` inside a
+`visibleCols.map((col) => ...)` callback even though that callback exposes the
+column as `col`. The component failed at render time with `ReferenceError`.
+
+**Files Affected**:
+- `src/web/src/components/Transfers/TransferTable.jsx`
+
+**Prevention**: When adding JSX attributes inside a mapped callback, use the
+callback's declared item variable (`col.key`) or destructure it explicitly.
+Run the focused render test immediately; static-looking template literals can
+still reference an out-of-scope name before any user interaction occurs.
+
 ### 0z817. Bound Auto-Replace by Persisted Request Attempts
 
 **The Bug**: Auto-replace declared `AutoReplaceOptions.MaxRetries` but never
