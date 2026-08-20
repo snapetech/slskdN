@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026082015-slskdn.313] — 2026-08-20
+
 - Fixed Downloads and Uploads column resizing so each drag uses a stable
   pointer delta, made resize handles continuously visible, and added a reset
   control for restoring default widths.
