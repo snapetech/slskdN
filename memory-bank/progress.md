@@ -1,3 +1,15 @@
+## Update 2026-08-20 15:43:26Z
+
+- Hosted CI for `.313` exposed a flaky fragmented SOCKS test: the relaxed
+  verification mode still opened a second sequential proxy connection.
+- Changed the verifier to honor `expectedLeakPrevention: false`, added a
+  connection-count regression assertion, and documented gotcha `0z870`.
+- Validation passed locally and in the guarded release gate: Web `913 passed /
+  4 skipped`, unit `5143/5143`, application `74/74`, integration smoke `40/40`,
+  frontend build, lint, packaging, remediation, and release-note checks.
+- Pushed corrected stable tag `build-main-2026082015-slskdn.314`; its hosted
+  tag build is now in progress.
+
 ## Update 2026-08-20 15:18:44Z
 
 - Repaired the disposable npm cache after the first release-gate attempt

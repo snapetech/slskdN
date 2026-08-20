@@ -1,3 +1,15 @@
+## Update 2026-08-20 15:43:26Z
+
+- Release `build-main-2026082015-slskdn.313` failed in hosted CI because
+  `VerifySocksConfiguration_HandlesFragmentedHandshakeResponse` timed out on
+  the unnecessary second SOCKS probe.
+- Fixed `expectedLeakPrevention: false` to skip the optional DNS audit probe,
+  added a one-connection regression assertion, and recorded gotcha `0z870`.
+- Release `build-main-2026082015-slskdn.314` is pushed after the full guarded
+  release gate passed. Main is synchronized with origin and the worktree is
+  clean.
+- Next steps: monitor the `.314` tag-only hosted build and verify artifacts.
+
 ## Update 2026-08-20 15:18:44Z
 
 - Release `build-main-2026082015-slskdn.313` is complete. The release gate
