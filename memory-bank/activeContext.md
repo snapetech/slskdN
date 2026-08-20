@@ -42,6 +42,23 @@
   tracked and untracked worktree changes as authorized, then create and push a
   stable hotfix tag through `scripts/create-release-tag.sh`.
 
+## Update 2026-08-20 15:09:23Z
+
+- Current task: complete. Fixed tester feedback for the Downloads/Uploads
+  column resizing affordance and the Unraid shared-directory default.
+- Implemented stable drag-start-based width updates, always-visible resize
+  handles, an accessible reset-width control with Popup help, focused
+  regression tests, and `SLSKD_SHARED_DIR=/music` in the Unraid template.
+- Recorded gotchas `0z861` and `0z862` immediately after the implementation
+  fixes and committed those documentation entries separately as required.
+- Validation passes: focused Web tests (`3/3`), full Web tests (`913` passed,
+  `4` skipped), application (`74/74`), unit (`5143/5143`), integration
+  (`284/284`), `./bin/lint`, Web production build, packaging metadata, Unraid
+  XML parsing, and diff checks. Standalone ESLint remains blocked before
+  source analysis by the existing TypeScript 7 / `typescript-eslint` parser
+  incompatibility.
+- Next steps: none for this task; do not create a build tag.
+
 ## Update 2026-08-17 19:26:00Z
 
 - Current task: final validation and release of the public VPN ingress fix;

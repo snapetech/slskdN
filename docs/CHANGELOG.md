@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Downloads and Uploads column resizing so each drag uses a stable
+  pointer delta, made resize handles continuously visible, and added a reset
+  control for restoring default widths.
+- Updated the Unraid template to pre-fill `SLSKD_SHARED_DIR=/music` for the
+  optional Music Library mapping.
+
 ## [2026081815-slskdn.312] — 2026-08-18
 
 - Upgraded dependencies: 14 grouped NuGet packages, 7 grouped npm packages,

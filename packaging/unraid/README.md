@@ -16,7 +16,7 @@ The old **Settings → Docker → Template Repositories** instructions are obsol
 |---------|---------------|-------------------|
 | App Data | `/app` | `/mnt/user/appdata/slskdn` |
 | Downloads | `/downloads` | Choose a share and directory before starting |
-| Music Library | `/music` | Optional; choose a read-only share and directory |
+| Music Library | `/music` | Optional; choose a read-only share and directory; `/music` is the default shared path |
 
 ## Default Ports
 
@@ -39,7 +39,9 @@ are separate port spaces. The loopback-only QUIC backend ports (55305 and
 1. Access the web UI at `http://YOUR_UNRAID_IP:5030`
 2. Default login: `slskd` / `slskd`
 3. Go to **System** → Configure your Soulseek username/password
-4. Configure your shared folders under **System** → **Shares**
+4. Select a read-only Music Library mapping if you want to share music; the
+   template pre-fills `SLSKD_SHARED_DIR=/music` for that mapping
+5. Configure any additional shared folders under **System** → **Shares**
 
 ## Environment Variables
 
@@ -70,8 +72,9 @@ YAML or image default. Enter an explicit value when an override is wanted.
 Downloads is a required Unraid path field and must be filled with the share and
 directory you want to use before the container is started. Completed files use
 `/downloads`; incomplete files use `/app/incomplete`, which is created in the
-writable App Data mapping. Music Library remains optional; leave it unmounted
-when no read-only share should be exposed.
+writable App Data mapping. The template defaults `SLSKD_SHARED_DIR` to `/music`,
+so select the optional Music Library mapping when you want that path shared;
+leave it unmounted when no read-only share should be exposed.
 
 Image-managed Docker runtime settings are also visible in the advanced section
 with their safe image defaults. Do not combine `PUID`/`PGID` with a Docker

@@ -17,6 +17,7 @@ import {
 import {
   ALL_COLUMNS,
   columnMinWidth,
+  defaultColumnWidths,
   loadColumnState,
   saveColumnState,
   visibleColumnKeys,
@@ -283,13 +284,20 @@ const TransferTable = ({
     }));
   }, [persistAndSave]);
 
-  const resize = useCallback((key, delta) => {
+  const setColumnWidth = useCallback((key, width) => {
     persistAndSave((prev) => ({
       ...prev,
       widths: {
         ...prev.widths,
-        [key]: Math.max(columnMinWidth(key), (prev.widths[key] || 60) + delta),
+        [key]: Math.max(columnMinWidth(key), width),
       },
+    }));
+  }, [persistAndSave]);
+
+  const resetWidths = useCallback(() => {
+    persistAndSave((prev) => ({
+      ...prev,
+      widths: defaultColumnWidths(),
     }));
   }, [persistAndSave]);
 
@@ -408,14 +416,15 @@ const TransferTable = ({
     event.preventDefault();
     event.stopPropagation();
     const startX = event.clientX;
-    const onMove = (ev) => { resize(key, ev.clientX - startX); };
+    const startWidth = colState.widths[key] || 60;
+    const onMove = (ev) => { setColumnWidth(key, startWidth + ev.clientX - startX); };
     const onUp = () => {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [resize]);
+  }, [colState.widths, setColumnWidth]);
 
   const chooserOptions = ALL_COLUMNS
     .filter((c) => !c.fixed)
@@ -472,17 +481,36 @@ const TransferTable = ({
                   {isSorted && <Icon name={sort.direction === 'ascending' ? 'caret up' : 'caret down'} />}
                 </span>
                 <div
+                  aria-label={`Resize ${col.label || col.key} column`}
                   className="resize-handle"
+                  role="separator"
                   style={{
                     position: 'absolute', top: 0, right: -3, bottom: 0, width: RESIZE_HANDLE,
                     cursor: 'col-resize', zIndex: 10,
                   }}
+                  tabIndex={0}
+                  onClick={(e) => e.stopPropagation()}
                   onMouseDown={(e) => handleResizeMouseDown(e, col.key)}
                 />
               </div>
             );
           })}
-          <div className="transfer-cell" role="columnheader">
+          <div className="transfer-cell transfer-column-tools" role="columnheader">
+            <Popup
+              content="Reset all transfer column widths to their defaults."
+              position="top center"
+              trigger={
+                <Button
+                  aria-label="Reset transfer column widths"
+                  compact
+                  icon="undo"
+                  onClick={resetWidths}
+                  size="mini"
+                  style={{ fontSize: '0.65rem', margin: 0, padding: '2px 4px' }}
+                  type="button"
+                />
+              }
+            />
             <Popup
               trigger={
                 <Button

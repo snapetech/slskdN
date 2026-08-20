@@ -67,6 +67,10 @@ function defaultWidths() {
   return widths;
 }
 
+export function defaultColumnWidths() {
+  return defaultWidths();
+}
+
 function detectMissing(keys) {
   const defined = ALL_COLUMNS.filter((c) => !c.fixed).map((c) => c.key);
   const missing = defined.filter((k) => !keys.includes(k));
@@ -91,14 +95,14 @@ export function loadColumnState(direction) {
     return {
       order: defaultOrder(),
       visible: { ...defaultVis },
-      widths: defaultWidths(),
+      widths: defaultColumnWidths(),
     };
   }
 
   // Merge saved state with defaults, add any new columns
   const order = detectMissing(saved.order || defaultOrder());
   const visible = { ...defaultVis, ...(saved.visible || {}) };
-  const widths = { ...defaultWidths(), ...(saved.widths || {}) };
+  const widths = { ...defaultColumnWidths(), ...(saved.widths || {}) };
 
   return { order, visible, widths };
 }

@@ -9,6 +9,14 @@
 
 ### High Priority
 
+- [x] Fix tester feedback for transfer column sizing and the Unraid shared path.
+  - Status: completed (2026-08-20)
+  - Priority: P1
+  - Notes: Transfer-table resizing now applies pointer movement from the
+    drag-start width, keeps resize handles visible, and provides a reset-width
+    control. The Unraid template pre-fills `SLSKD_SHARED_DIR=/music` and its
+    documentation and packaging validator cover the default.
+
 - [x] Fix Lidarr manual-import command payload identifiers.
   - Status: completed (2026-08-17)
   - Priority: P1

@@ -404,9 +404,35 @@
 /* ── Column management ──────────────────────────────────── */
 
 /* Resize handle */
+.resize-handle {
+  background: linear-gradient(
+    to right,
+    transparent 2px,
+    rgba(127, 127, 127, 0.48) 2px,
+    rgba(127, 127, 127, 0.48) 4px,
+    transparent 4px
+  );
+  opacity: 0.8;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
 .resize-handle:hover,
 .resize-handle:active {
   background: var(--slskdn-accent-primary, #2185d0);
+  opacity: 1;
+}
+
+.resize-handle:focus-visible {
+  outline: 2px solid var(--slskdn-accent-primary, #2185d0);
+  outline-offset: -1px;
+  opacity: 1;
+}
+
+.transfer-column-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
 }
 
 /* Dragging feedback */

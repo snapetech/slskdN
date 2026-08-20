@@ -160,6 +160,7 @@ expect_literal packaging/unraid/slskdn.xml '<Config Name="SLSKD_REMOTE_CONFIGURA
 expect_literal packaging/unraid/slskdn.xml '<Config Name="SLSKD_SLSK_PROXY_PASSWORD" Target="SLSKD_SLSK_PROXY_PASSWORD" Default=""'
 expect_literal packaging/unraid/slskdn.xml 'Target="/downloads" Default=""'
 expect_literal packaging/unraid/slskdn.xml 'Target="/music" Default=""'
+expect_literal packaging/unraid/slskdn.xml '<Config Name="SLSKD_SHARED_DIR" Target="SLSKD_SHARED_DIR" Default="/music"'
 expect_literal packaging/unraid/slskdn.xml 'Target="SLSKD_PUSHBULLET_ACCESS_TOKEN"'
 expect_literal packaging/unraid/slskdn.xml 'Target="SLSKD_PUSHBULLET_NOTIFICATION_PREFIX"'
 expect_literal packaging/unraid/slskdn.xml 'Target="SLSKD_SLSK_PROXY_ENABLED"'

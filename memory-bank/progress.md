@@ -1,3 +1,18 @@
+## Update 2026-08-20 15:04:06Z
+
+- Fixed tester-reported Downloads/Uploads column resizing: the handle is now
+  continuously visible, repeated mousemove events use the drag-start width,
+  and a tooltip-backed reset control restores all default widths.
+- Updated the Unraid template and operator guide to pre-fill
+  `SLSKD_SHARED_DIR=/music` for the mapped Music Library, with packaging
+  metadata coverage and two release-note fragments.
+- Focused Web transfer tests (`3/3`), the full Web suite (`913` passed,
+  `4` skipped), application (`74/74`), unit (`5143/5143`), integration
+  (`284/284`), `./bin/lint`, Web production build, Unraid XML parsing, and
+  packaging metadata validation pass. Standalone ESLint remains blocked before
+  source analysis by the existing TypeScript 7 / `typescript-eslint` parser
+  incompatibility.
+
 ## Update 2026-08-17 19:26:00Z
 
 - Fixed public WireGuard ingress on native nftables hosts by managing a narrow
