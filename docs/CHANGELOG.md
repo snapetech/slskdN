@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026082015-slskdn.314] — 2026-08-20
+
 - Fixed optional DNS leak verification mode performing an unnecessary second
   SOCKS probe, preventing loaded runners from timing out in fragmented
   handshake checks.
