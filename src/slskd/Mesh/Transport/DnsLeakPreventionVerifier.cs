@@ -44,13 +44,16 @@ public class DnsLeakPreventionVerifier
                 return DnsLeakVerificationResult.Failure("SOCKS proxy connection failed");
             }
 
-            // Test 2: Verify no local DNS resolution occurred
-            // This is difficult to verify directly, but we can check proxy behavior
-            var dnsLeakResult = await TestDnsLeakPreventionAsync(proxyHost, proxyPort);
-
-            if (expectedLeakPrevention && !dnsLeakResult.LeakPrevented)
+            // Test 2: Verify no local DNS resolution occurred when required.
+            // This is difficult to verify directly, but we can check proxy behavior.
+            if (expectedLeakPrevention)
             {
-                return DnsLeakVerificationResult.Failure("DNS leak verification failed");
+                var dnsLeakResult = await TestDnsLeakPreventionAsync(proxyHost, proxyPort);
+
+                if (!dnsLeakResult.LeakPrevented)
+                {
+                    return DnsLeakVerificationResult.Failure("DNS leak verification failed");
+                }
             }
 
             // Test 3: Verify hostname validation

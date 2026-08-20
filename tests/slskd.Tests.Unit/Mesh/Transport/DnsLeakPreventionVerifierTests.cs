@@ -59,6 +59,7 @@ public class DnsLeakPreventionVerifierTests
 
         // Assert
         Assert.True(result.Success);
+        Assert.Equal(1, mockServer.ConnectionCount);
     }
 
     [Fact]
@@ -194,10 +195,12 @@ public class DnsLeakPreventionVerifierTests
         private readonly ConcurrentDictionary<TcpClient, byte> _clients = new();
         private readonly CancellationTokenSource _cts = new();
         private readonly TaskCompletionSource<bool> _serverStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _connectionCount;
         private Task? _serverTask;
         private TcpListener? _listener;
 
         public int Port { get; private set; }
+        public int ConnectionCount => Volatile.Read(ref _connectionCount);
         public bool FragmentHandshakeResponse { get; set; }
 
         public async Task StartAsync()
@@ -220,6 +223,7 @@ public class DnsLeakPreventionVerifierTests
                         try
                         {
                             var client = _listener!.AcceptTcpClient();
+                            Interlocked.Increment(ref _connectionCount);
                             _clients.TryAdd(client, 0);
                             try
                             {

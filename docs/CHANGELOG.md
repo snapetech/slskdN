@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed optional DNS leak verification mode performing an unnecessary second
+  SOCKS probe, preventing loaded runners from timing out in fragmented
+  handshake checks.
+
 ## [2026082015-slskdn.313] — 2026-08-20
 
 - Fixed Downloads and Uploads column resizing so each drag uses a stable
