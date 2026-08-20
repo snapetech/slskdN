@@ -1,3 +1,15 @@
+## Update 2026-08-20 15:18:44Z
+
+- Repaired the disposable npm cache after the first release-gate attempt
+  stopped on missing cached tarballs, then reran the guarded release flow.
+- Release gate passed: Web `913 passed / 4 skipped`, unit `5143/5143`,
+  application `74/74`, integration smoke `40/40`, frontend build, packaging,
+  remediation, and release-note validation.
+- Pushed `build-main-2026082015-slskdn.313` to `snapetech/slskdN` after
+  synchronizing `main` with the remote stable metadata commit.
+- The post-release memory update remains to be committed and pushed; hosted
+  tag-build and artifact verification are the next operational checks.
+
 ## Update 2026-08-20 15:04:06Z
 
 - Fixed tester-reported Downloads/Uploads column resizing: the handle is now

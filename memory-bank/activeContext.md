@@ -1,3 +1,15 @@
+## Update 2026-08-20 15:18:44Z
+
+- Release `build-main-2026082015-slskdn.313` is complete. The release gate
+  passed and the tag is pushed to `snapetech/slskdN`.
+- The release includes the tester fixes for transfer-column resizing and the
+  Unraid `/music` shared-directory default. Main is synchronized with origin,
+  and the worktree is clean.
+- Validation passed: 160 Web test files (`913` passed, `4` skipped), `5143`
+  unit tests, application `74/74`, integration smoke `40/40`, frontend build,
+  packaging metadata, remediation, and release-note checks.
+- Next steps: monitor the tag-only hosted build and verify published assets.
+
 ## Update 2026-08-17 21:12:42Z
 
 - Current task: complete. The YAML save compatibility fix and the authorized
