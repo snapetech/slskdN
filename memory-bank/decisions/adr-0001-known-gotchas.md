@@ -28848,3 +28848,32 @@ import { Button, Card, Popup } from 'semantic-ui-react';
 **Why This Keeps Happening**: Component extraction moves JSX and imports in
 separate edits. Run the component test after extraction and compare every JSX
 identifier with the module's imports before declaring the panel complete.
+
+### 0z882. Preserve Rendered Data Shapes In UI Mocks
+
+**The Bug**: The Integrations test mocked `buildServarrReadiness` and
+`buildServarrCompatibilityPreview` with empty objects. Once the previously
+missing panel rendered, it called `checks.map` and `compatibility.actions.length`
+on those incomplete fixtures, causing every Integrations test to fail.
+
+**Files Affected**:
+- `src/web/src/components/System/Integrations/index.test.jsx`
+
+**Wrong**:
+```javascript
+buildServarrReadiness: vi.fn(() => ({})),
+buildServarrCompatibilityPreview: vi.fn(() => ({})),
+```
+
+**Correct**:
+```javascript
+// Use the pure production helpers, or return the complete render contract.
+vi.mock('../../../lib/servarrReadiness', async () =>
+  vi.importActual('../../../lib/servarrReadiness'),
+);
+```
+
+**Why This Keeps Happening**: A mock created while a component was skipped can
+return only the fields needed by an earlier assertion. When the component is
+enabled, the fixture must satisfy every property the render path consumes;
+prefer real pure helpers or a complete typed-shaped fixture.
