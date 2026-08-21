@@ -28877,3 +28877,23 @@ vi.mock('../../../lib/servarrReadiness', async () =>
 return only the fields needed by an earlier assertion. When the component is
 enabled, the fixture must satisfy every property the render path consumes;
 prefer real pure helpers or a complete typed-shaped fixture.
+
+### 0z883. Complete API Versioning Registration Before Swagger Discovery
+
+**The Bug**: API-versioning analyzer warnings identified two controllers
+without `[ApiController]`, API-versioning builders without `.AddMvc()`, and a
+Swagger setup that read the provider directly without first calling
+`DescribeApiVersions()`. The application still built and tests passed, but
+controller metadata and versioned Swagger discovery were incomplete.
+
+**Files Affected**:
+- `src/slskd/Search/API/Controllers/SearchesController.cs`
+- `src/slskd/Transfers/API/Controllers/TransfersController.cs`
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+- `src/slskd/Bootstrap/WebApplicationPipelineExtensions.cs`
+- API-versioned test hosts under `tests/`
+
+**Prevention**: Treat AV0013, AV0014, and AV0027 as actionable registration
+defects. MVC API versioning needs `.AddMvc()`, controllers need
+`[ApiController]`, and endpoint-based Swagger description discovery must call
+`DescribeApiVersions()` after versioned endpoints are mapped.
