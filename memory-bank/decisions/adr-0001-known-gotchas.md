@@ -28797,3 +28797,30 @@ import vitestPlugin from '@vitest/eslint-plugin';
 on a developer machine while leaving the package manifest incomplete. Audit
 every import in a flat config, including rule-support packages and shared
 globals, and test the manifest from a clean `npm ci` installation.
+
+### 0z880. Do Not Nest A Duplicate React Component Declaration
+
+**The Bug**: A duplicated `ServarrReadinessPanel` declaration nested the real
+component inside an outer arrow function. The exported outer function then
+returned nothing, so the Servarr readiness panel silently disappeared from the
+Integrations screen while the file still parsed and linted.
+
+**Files Affected**:
+- `src/web/src/components/System/Integrations/ServarrReadinessPanel.jsx`
+
+**Wrong**:
+```javascript
+const ServarrReadinessPanel = () => {
+  const ServarrReadinessPanel = () => <Card>...</Card>;
+};
+```
+
+**Correct**:
+```javascript
+const ServarrReadinessPanel = () => <Card>...</Card>;
+```
+
+**Why This Keeps Happening**: Mechanical merges or partial extraction edits
+can duplicate the declaration line without producing a syntax error. A
+component test must assert that the exported component renders its identifying
+heading, not only that the module imports successfully.
