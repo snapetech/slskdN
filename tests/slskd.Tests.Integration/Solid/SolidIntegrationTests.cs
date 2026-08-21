@@ -199,7 +199,7 @@ public class SolidTestWebApplicationFactory : IDisposable
                         options.ReportApiVersions = true;
                         options.DefaultApiVersion = new Asp.Versioning.ApiVersion(0, 0);
                         options.AssumeDefaultVersionWhenUnspecified = true;
-                    });
+                    }).AddMvc();
 
                     // Add controllers including Solid controller
                     services.AddControllers()

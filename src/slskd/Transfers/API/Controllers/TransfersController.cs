@@ -44,6 +44,7 @@ namespace slskd.Transfers.API
     /// <summary>
     ///     Transfers.
     /// </summary>
+    [ApiController]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiVersion("0")]
     [Produces("application/json")]

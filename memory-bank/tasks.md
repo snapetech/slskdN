@@ -36,6 +36,14 @@
     extracted Servarr panel and refreshed its stale integration coverage. Clean
     `npm ci`, `npm audit`, Web lint, and the focused Integrations suite pass.
 
+- [x] Close API-versioning analyzer findings.
+  - Status: completed (2026-08-21)
+  - Priority: P1
+  - Notes: Added `[ApiController]` metadata to the Search and Transfers
+    controllers, completed `.AddMvc()` registration in the application and
+    test hosts, and switched Swagger version discovery to `DescribeApiVersions()`.
+    Recorded gotchas `0z883` and `0z884`.
+
 - [x] Fix tester feedback for transfer column sizing and the Unraid shared path.
   - Status: completed (2026-08-20)
   - Priority: P1

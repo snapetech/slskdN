@@ -120,6 +120,7 @@ public class SlskdnTestClient : IAsyncDisposable
             options.DefaultApiVersion = new Asp.Versioning.ApiVersion(0, 0);
             options.AssumeDefaultVersionWhenUnspecified = true;
         })
+        .AddMvc()
         .AddApiExplorer(options =>
         {
             options.GroupNameFormat = "'v'VVV";

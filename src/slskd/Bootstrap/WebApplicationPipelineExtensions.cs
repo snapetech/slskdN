@@ -560,7 +560,8 @@ public static class WebApplicationPipelineExtensions
         if (optionsAtStartup.Feature.Swagger)
         {
             app.UseSwagger();
-            app.UseSwaggerUI(options => app.Services.GetRequiredService<IApiVersionDescriptionProvider>().ApiVersionDescriptions.ToList()
+            var apiVersionDescriptions = app.DescribeApiVersions();
+            app.UseSwaggerUI(options => apiVersionDescriptions.ToList()
                 .ForEach(description => options.SwaggerEndpoint($"{(urlBase == "/" ? string.Empty : urlBase)}/swagger/{description.GroupName}/swagger.json", description.GroupName)));
 
             Serilog.Log.Information("Publishing Swagger documentation to {URL}", "/swagger");

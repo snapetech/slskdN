@@ -13512,3 +13512,15 @@ rollback.
 - Next steps: run the full relevant test/release-note checks, commit and push
   the UI correction on `main`, and leave tag creation for an explicit release
   request.
+## Update 2026-08-21 15:52:00Z
+
+- Current task: finish the authorized stable release after closing the Web,
+  Integrations, and API-versioning findings.
+- API-versioning analyzer findings are fixed: Search and Transfers have
+  `[ApiController]`, application/test registrations include `.AddMvc()`, and
+  Swagger discovers version descriptions from the endpoint model.
+- Recorded gotchas `0z883` and `0z884`; added the API release-note fragment and
+  Unreleased changelog entry.
+- Next steps: rerun lint and full tests, push the final commits, move shipped
+  changelog bullets into the `2026082115-slskdn.316` section, and create the
+  authorized stable tag.

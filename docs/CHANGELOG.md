@@ -33,6 +33,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `typescript-eslint` peer range, declaring flat-config imports directly, and
   removing unused vulnerable lint dependencies. Clean installs, lint, and npm
   audit now pass without findings.
+- Completed API-versioning registration for the Search and Transfers
+  controllers and versioned Swagger discovery, keeping automatic API behavior
+  and generated versioned API documentation consistent.
 
 ## [2026082016-slskdn.315] — 2026-08-20
 

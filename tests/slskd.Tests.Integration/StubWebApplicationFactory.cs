@@ -138,6 +138,7 @@ public class StubWebApplicationFactory : WebApplicationFactory<ProgramStub>
                         options.DefaultApiVersion = new Asp.Versioning.ApiVersion(0, 0);
                         options.AssumeDefaultVersionWhenUnspecified = true;
                     })
+                    .AddMvc()
                     .AddApiExplorer(options =>
                     {
                         options.GroupNameFormat = "'v'VVV";

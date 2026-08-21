@@ -67,7 +67,7 @@ public class TestHostFactory : WebApplicationFactory<ProgramStub>
                         o.DefaultApiVersion = new ApiVersion(0, 0);
                         o.AssumeDefaultVersionWhenUnspecified = true;
                         o.ReportApiVersions = true;
-                    }).AddApiExplorer(o =>
+                    }).AddMvc().AddApiExplorer(o =>
                     {
                         o.GroupNameFormat = "'v'VVV";
                         o.SubstituteApiVersionInUrl = true;

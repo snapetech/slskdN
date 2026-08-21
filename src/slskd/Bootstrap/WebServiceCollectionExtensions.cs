@@ -436,6 +436,7 @@ public static class WebServiceCollectionExtensions
             {
                 options.ReportApiVersions = true;
             })
+            .AddMvc()
             .AddApiExplorer(options =>
             {
                 options.GroupNameFormat = "'v'VVV";

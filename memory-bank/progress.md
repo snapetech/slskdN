@@ -12793,3 +12793,12 @@ validation passed, including frontend `911 passed / 4 skipped`, release unit
 `40/40`, packaging, remediation, and release-note gates. Pushed `main` and
 tagged `build-main-2026081719-slskdn.310`; all authorized concurrent worktree
 changes were retained.
+## Update 2026-08-21 15:52:00Z
+
+- Closed the API-versioning analyzer findings: Search and Transfers now carry
+  `[ApiController]`, all API-versioned application/test registrations include
+  `.AddMvc()`, and Swagger uses endpoint-based `DescribeApiVersions()`
+  discovery. Recorded gotchas `0z883` and `0z884`.
+- Added the API-versioning release-note fragment and Unreleased changelog
+  entry. Full lint, solution tests, and the guarded release gate will be rerun
+  after this final code change.
