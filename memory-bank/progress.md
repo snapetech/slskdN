@@ -12813,3 +12813,14 @@ changes were retained.
   Homebrew, COPR, Discord, and release creation succeeded. Chocolatey failed
   at its external pack/push step; PPA and omnibus tester publication remain
   in progress.
+## Update 2026-08-21 16:54:00Z
+
+- Final release audit: `main` and `origin/main` match at `8a07fed97`, release
+  `2026082115-slskdn.316` is published with 13 assets, and
+  `verify-release-artifacts.sh` passed all checks.
+- The omnibus tester Docker image succeeded. Chocolatey packaging succeeded
+  but its external push returned HTTP 504 on five attempts in the tag run and
+  five more in one guarded manual retry. Launchpad PPA publication remains in
+  progress.
+- GitHub status is clean: zero open PRs, Dependabot alerts, CodeQL alerts, or
+  secret-scanning alerts; hosted CodeQL and identity checks are green.

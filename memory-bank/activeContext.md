@@ -13537,3 +13537,16 @@ rollback.
 - The local checkout includes the generated stable metadata commit and is
   ready for the final documentation sync after the remaining package jobs
   close.
+## Update 2026-08-21 16:54:00Z
+
+- Final core-release checks remain green: the local checkout and `origin/main`
+  are synchronized at `8a07fed97`, the published release has 13 assets, and
+  artifact verification passed.
+- The tag workflow's omnibus tester image finished successfully. The only
+  active job is Launchpad PPA publication; Chocolatey failed in both the tag
+  workflow and one guarded manual retry with HTTP 504 after five attempts.
+- GitHub currently reports zero open PRs, Dependabot alerts, CodeQL alerts,
+  and secret-scanning alerts. CodeQL and identity checks for the API fix and
+  final main push are green.
+- Next steps: leave the PPA publication poll running externally; retry
+  Chocolatey only after its service recovers.

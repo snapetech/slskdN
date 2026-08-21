@@ -51,9 +51,10 @@
     archives were published and verified against their SHA256 manifest, with
     Linux payload/version checks and CodeQL/identity checks green. Main Docker,
     AUR, Nix metadata, Homebrew, COPR, and Discord publication succeeded.
-  - Follow-up: Chocolatey failed in its external pack/push step; PPA and the
-    omnibus tester image were still running at the last update. Inspect the
-    final workflow result before retrying any external package channel.
+  - Follow-up: Chocolatey packaging succeeded but its external push returned
+    HTTP 504 on five tag-run attempts and five more in one guarded manual
+    retry. The omnibus tester image succeeded; Launchpad PPA publication is
+    still polling externally. Retry Chocolatey after its service recovers.
 
 - [x] Fix tester feedback for transfer column sizing and the Unraid shared path.
   - Status: completed (2026-08-20)
