@@ -28569,3 +28569,34 @@ beforeEach(() => {
 mock implementation reset. Tests that customize a module mock must restore its
 default implementation in setup or use an explicit reset so later tests do
 not receive a partial fixture.
+
+### 0z873. Browser-Local Visibility Preferences Must Not Create Startup API Work
+
+**The Bug**: The first player-visibility implementation called the asynchronous
+player cleanup path whenever the preference was false, including initial page
+load. That made a browser-local presentation setting issue a now-playing API
+request on every startup.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/lib/experiencePreferences.js`
+
+**Wrong**:
+```javascript
+useEffect(() => {
+  if (!playerVisible) clear();
+}, [clear, playerVisible]);
+```
+
+**Correct**:
+```javascript
+useEffect(() => {
+  if (previousPlayerVisible.current && !playerVisible) clear();
+  previousPlayerVisible.current = playerVisible;
+}, [clear, playerVisible]);
+```
+
+**Why This Keeps Happening**: A local UI preference can be read during
+initialization without representing a state transition. Side-effect cleanup
+must distinguish initial state from a user-requested disable, especially when
+the cleanup path calls an authenticated or network-backed API.
