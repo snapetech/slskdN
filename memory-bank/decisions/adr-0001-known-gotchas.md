@@ -28630,3 +28630,34 @@ if (!playerVisible) {
 reverse that action. Any persistent surface that can be hidden must retain a
 small, accessible restore affordance at the same location; a settings-page
 fallback can remain available but cannot be the only recovery path.
+
+### 0z875. Keep TypeScript Within The typescript-eslint Peer Range
+
+**The Bug**: The Web dependency update moved TypeScript from 6.0.3 to 7.0.2
+while the installed `typescript-eslint` 8.x packages still require TypeScript
+`<6.1.0`, causing ESLint to crash before it analyzed any source file.
+
+**Files Affected**:
+- `src/web/package.json`
+- `src/web/package-lock.json`
+
+**Wrong**:
+```json
+{
+  "typescript": "^7.0.2",
+  "@typescript-eslint/typescript-estree": "8.58.2"
+}
+```
+
+**Correct**:
+```json
+{
+  "typescript": "^6.0.3",
+  "@typescript-eslint/typescript-estree": "8.58.2"
+}
+```
+
+**Why This Keeps Happening**: A dependency bump can satisfy its own package
+metadata while violating a transitive peer contract. Dependency updates must
+run the actual lint command and inspect peer ranges, not only install and test
+the application bundle.
