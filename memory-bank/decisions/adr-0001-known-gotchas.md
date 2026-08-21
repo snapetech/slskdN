@@ -28690,3 +28690,35 @@ renderDownloadAction = () => {
 variables from the parent `render` method. When a helper starts consuming a
 new prop, read it from `this.props` or pass it explicitly and add lint/test
 coverage before considering the UI change complete.
+
+### 0z877. Remove Unused Legacy Lint Config Dependencies
+
+**The Bug**: The Web package kept a direct dependency on the legacy
+`eslint-config-canonical` package after the flat ESLint config stopped
+importing it. That unused dependency pulled in the vulnerable `deepmerge-ts`
+7.x chain and left a high-severity npm audit finding in the development tree.
+
+**Files Affected**:
+- `src/web/package.json`
+- `src/web/package-lock.json`
+- `src/web/eslint.config.mjs`
+
+**Wrong**:
+```json
+{
+  "devDependencies": {
+    "eslint-config-canonical": "^47.4.2"
+  }
+}
+```
+
+**Correct**:
+```javascript
+// eslint.config.mjs owns the active flat-config rules directly.
+```
+
+**Why This Keeps Happening**: A migration can replace a configuration
+mechanism without removing the package that supported the old mechanism.
+Audit direct development dependencies against actual imports before applying
+an audit tool's major-version downgrade recommendation; unused legacy config
+packages should be removed so the vulnerable transitive tree disappears.
