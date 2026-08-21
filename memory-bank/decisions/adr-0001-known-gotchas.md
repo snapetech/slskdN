@@ -28506,3 +28506,35 @@ an operation runs and whether its result is enforced. Treating it as only an
 assertion switch leaves unnecessary network work in supposedly relaxed test
 and validation paths; make the control-flow intent explicit and cover the
 single-probe path with a deterministic mock server.
+
+### 0z871. Use The Runtime Feature Configuration Shape In User Documentation
+
+**The Bug**: User-facing Scene/Pod, streaming, collections, wishlist, and
+swarm troubleshooting examples used a `features:` YAML tree and obsolete
+lowercase or nested option names. The runtime binds the feature gates under
+`feature:` and exposes the current option names such as `Streaming`,
+`CollectionsSharing`, `Mesh`, and `MultiSourceDownloads`; wishlist settings
+are under top-level `wishlist:`.
+
+**Files Affected**:
+- `docs/advanced-features.md`
+- `docs/troubleshooting.md`
+- `config/slskd.example.yml`
+
+**Wrong**:
+```yaml
+features:
+  streaming: true
+```
+
+**Correct**:
+```yaml
+feature:
+  Streaming: true
+```
+
+**Why This Keeps Happening**: Older design text and the current options model
+evolved separately. Documentation examples must be checked against the
+`Options` YAML aliases and the commented example configuration whenever a
+feature gate or option is renamed; a documentation-only configuration change
+still needs a configuration parse or targeted binding check.
