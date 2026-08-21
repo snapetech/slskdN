@@ -28722,3 +28722,38 @@ mechanism without removing the package that supported the old mechanism.
 Audit direct development dependencies against actual imports before applying
 an audit tool's major-version downgrade recommendation; unused legacy config
 packages should be removed so the vulnerable transitive tree disappears.
+
+### 0z878. Declare Every Flat-Config Plugin Directly
+
+**The Bug**: The Web flat ESLint config imported `eslint-plugin-react` without
+declaring it. The import worked only because the old canonical config happened
+to install it transitively; removing that unused legacy dependency made a clean
+install fail with `ERR_MODULE_NOT_FOUND`.
+
+**Files Affected**:
+- `src/web/package.json`
+- `src/web/package-lock.json`
+- `src/web/eslint.config.mjs`
+
+**Wrong**:
+```json
+{
+  "devDependencies": {
+    "eslint-config-canonical": "^47.4.2"
+  }
+}
+```
+
+**Correct**:
+```json
+{
+  "devDependencies": {
+    "eslint-plugin-react": "^7.37.5"
+  }
+}
+```
+
+**Why This Keeps Happening**: A package can mask a missing direct dependency
+by re-exporting or installing the same module transitively. Flat configs load
+their plugins directly, so every imported plugin must be listed in the
+package's own development dependencies and verified after `npm ci`.
