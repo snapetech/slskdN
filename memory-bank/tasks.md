@@ -9,6 +9,14 @@
 
 ### High Priority
 
+- [x] Document Docker permissions for multiple download destinations.
+  - Status: completed (2026-08-21)
+  - Priority: P1
+  - Notes: Added a canonical Docker/Compose guide covering container-path
+    mapping, `PUID`/`PGID` and `user:` identity modes, host ownership and ACLs,
+    NAS/NFS/CIFS troubleshooting, and in-container verification. Linked it from
+    the Docker, multiple-destination, configuration, and documentation guides.
+
 - [x] Add multi-select actions to the Search page.
   - Status: completed (2026-08-20)
   - Priority: P1

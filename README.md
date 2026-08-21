@@ -182,7 +182,9 @@ Create and mount each path with write access, then restart slskdN after changing
 the YAML or container mounts. If no folder is marked `default: true`,
 `directories.downloads` remains the default. See
 [Multiple Download Destinations](docs/advanced-features.md#multiple-download-destinations)
-for setup and UI instructions.
+for setup and UI instructions, and
+[Docker Download Permissions](docs/docker-download-permissions.md) for
+container UID/GID and bind-mount troubleshooting.
 
 ### 🗑️ Clear All Searches
 One-click cleanup for your search history.
@@ -840,6 +842,7 @@ Detailed documentation for configuration options can be found in [docs/config.md
 | [Configuration](docs/config.md) | All configuration options |
 | [Building](docs/build.md) | Build instructions |
 | [Docker](docs/docker.md) | Container deployment |
+| [Docker Download Permissions](docs/docker-download-permissions.md) | Writable bind mounts for download destinations |
 | [Test Coverage Summary](docs/TEST_COVERAGE_SUMMARY.md) | Current test counts and coverage |
 | [Test Coverage Assessment](docs/TEST_COVERAGE_ASSESSMENT.md) | Coverage rationale and gaps |
 

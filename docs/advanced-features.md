@@ -501,6 +501,8 @@ If no destination has `default: true`, `directories.downloads` is the default.
 - **Ensure Writable**: All paths must be writable
 - **Mount Container Paths**: A YAML path is inside the container; bind-mount or
   volume-mount the corresponding host storage
+- **Docker permissions**: For UID/GID, ACL, Compose, and NAS troubleshooting,
+  see [Docker Download Permissions](docker-download-permissions.md)
 - **Sufficient Space**: Ensure all destinations have space
 
 ## Job Management & Monitoring

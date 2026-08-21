@@ -198,7 +198,9 @@
 #  enable_stun: true
 #destinations:
 #  folders:
-#    # Paths must exist inside the host/container and be writable by slskdN.
+#    # These are paths inside the application/container. In Docker, bind the
+#    # host directories to these exact targets and make them writable by the
+#    # container UID/GID. See docs/docker-download-permissions.md.
 #    # Set default: true on at most one folder. It becomes the daemon-wide
 #    # destination for downloads without an explicit Search/Browse UI choice.
 #    - name: "Music"

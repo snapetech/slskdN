@@ -203,11 +203,24 @@ is world-writable. Set `SLSKD_STRICT_APP_DIR_PERMISSIONS=true` to make the
 entrypoint set only the app directory itself to `0770`; it does not recursively
 change mounted media trees.
 
+For multiple download destinations, `:rw` only makes the Docker mount writable;
+the host directory must also be writable by the container's runtime UID/GID.
+See [Docker Download Permissions](docker-download-permissions.md) for the
+recommended `PUID`/`PGID` setup, the `user:` alternative, host ownership and
+ACL examples, and verification commands.
+
 This configuration, however, doesn't include any shared directories.
 
-First, you need to map each share to the container as a volume. Then each local directory within the container needs to be added to the configuration. The image starts as root only long enough to prepare the application directory and then drops to the built-in `slskdn` user. You may specify the user and group ID that should run the container and own files created by slskd. Docker accepts numeric values in the `UID:GID` format, such as `1000:1000` in this example.
+First, you need to map each share to the container as a volume. Then each
+local directory within the container needs to be added to the configuration.
+The image starts as root only long enough to prepare the application directory
+and then drops to the built-in `slskdn` user. For bind-mount ownership and the
+mutually exclusive `PUID`/`PGID` and `user:` modes, see
+[Docker Download Permissions](docker-download-permissions.md).
 
-In the following example, assume that the slskd application directory will be `/var/slskd` on the docker host. Assume that the directories `/home/JohnDoe/Music` and `/home/JohnDoe/eBooks` will be shared. 
+In the following example, assume that the slskd application directory is
+`/srv/slskdn/app` on the Docker host, and that `/srv/media/music` and
+`/srv/media/audiobooks` will be shared.
 
 
 For this scenario, the `docker run` command would be:
@@ -218,11 +231,12 @@ docker run -d \
   -p 5031:5031 \
   -p 50300:50300 \
   -e SLSKD_REMOTE_CONFIGURATION=true \
-  -v /var/slskd:/app \
-  -v /home/JohnDoe/Music:/music \
-  -v /home/JohnDoe/eBooks:/ebooks \
+  -v /srv/slskdn/app:/app \
+  -v /srv/media/music:/music \
+  -v /srv/media/audiobooks:/ebooks \
+  -e PUID=1000 \
+  -e PGID=1000 \
   --name slskd \
-  --user 1000:1000 \
   ghcr.io/snapetech/slskdn:latest
 ```
 
@@ -234,15 +248,16 @@ services:
   slskd:
     environment:
       - SLSKD_REMOTE_CONFIGURATION=true
+      - PUID=1000
+      - PGID=1000
     ports:
       - 5030:5030/tcp
       - 5031:5031/tcp
       - 50300:50300/tcp
     volumes:
-      - /var/slskd:/app:rw
-      - /home/JohnDoe/Music:/music:rw
-      - /home/JohnDoe/eBooks:/ebooks:rw
-    user: 1000:1000
+      - /srv/slskdn/app:/app:rw
+      - /srv/media/music:/music:rw
+      - /srv/media/audiobooks:/ebooks:rw
     image: ghcr.io/snapetech/slskdn:latest
 ```
 The YAML configuration file would contain:
@@ -268,12 +283,13 @@ docker run -d \
   -p 5031:5031 \
   -p 50300:50300 \
   -e SLSKD_REMOTE_CONFIGURATION=true \
-  -v /var/slskd:/app \
-  -v /home/JohnDoe/Music:/music \
-  -v /home/JohnDoe/eBooks:/ebooks \
+  -v /srv/slskdn/app:/app \
+  -v /srv/media/music:/music \
+  -v /srv/media/audiobooks:/ebooks \
   -e "SLSKD_SHARED_DIR=/music;/ebooks" \
+  -e PUID=1000 \
+  -e PGID=1000 \
   --name slskd \
-  --user 1000:1000 \
   ghcr.io/snapetech/slskdn:latest
 ```
 
@@ -286,14 +302,15 @@ services:
     environment:
       - SLSKD_REMOTE_CONFIGURATION=true
       - "SLSKD_SHARED_DIR=/music;/ebooks"
+      - PUID=1000
+      - PGID=1000
     ports:
       - 5030:5030/tcp
       - 5031:5031/tcp
       - 50300:50300/tcp
     volumes:
-      - /var/slskd:/app:rw
-      - /home/JohnDoe/Music:/music:rw
-      - /home/JohnDoe/eBooks:/ebooks:rw
-    user: 1000:1000
+      - /srv/slskdn/app:/app:rw
+      - /srv/media/music:/music:rw
+      - /srv/media/audiobooks:/ebooks:rw
     image: ghcr.io/snapetech/slskdn:latest
 ```

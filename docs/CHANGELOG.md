@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Documented Docker and Docker Compose permissions for multiple download
+  destinations, including container-path mapping, `PUID`/`PGID` ownership,
+  the `user:` alternative, ACL/NAS troubleshooting, and in-container checks.
+
 ## [2026082115-slskdn.316] — 2026-08-21
 
 - Added browser-local Experience preferences and direct player controls for

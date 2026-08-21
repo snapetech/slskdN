@@ -1,3 +1,14 @@
+## Update 2026-08-21
+
+- Current task: document and publish the Docker permissions workflow for
+  multiple download destinations.
+- Added the canonical Docker Download Permissions guide and cross-linked it
+  from all relevant user/configuration documentation. The guide explains why
+  `:rw` alone is insufficient, how to match host ownership to `PUID`/`PGID`,
+  when to use `user:`, and how to verify or troubleshoot local and NAS mounts.
+- Next steps: validate the documentation and release-note fragment, commit the
+  confirmed files on the documentation branch, and push it to the fork.
+
 ## Update 2026-08-21 15:35:00Z
 
 - Current task: prepare the authorized stable release after the Web/toolchain

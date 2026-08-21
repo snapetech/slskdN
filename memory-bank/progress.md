@@ -1,3 +1,13 @@
+## 2026-08-21 - Document Docker download-directory permissions
+
+- Added `docs/docker-download-permissions.md` with the complete Docker Compose
+  workflow for multiple writable download destinations: container-path mapping,
+  `PUID`/`PGID` ownership, the mutually exclusive `user:` mode, ACLs,
+  verification commands, and NFS/CIFS troubleshooting.
+- Linked the guide from the Docker deployment, multiple-destination,
+  configuration, README, and documentation index pages, and added the required
+  release-note fragment.
+
 ## Update 2026-08-21 15:35:00Z
 
 - Fixed the Web lint failure caused by TypeScript 7 violating the installed

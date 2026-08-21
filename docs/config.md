@@ -141,6 +141,11 @@ By default, incomplete and downloaded files are saved in `APP_DIR/incomplete` an
 
 Alternative locations can be specified for each directory. Directories must exist and be writable by the application; the application will not attempt to create them.
 
+When Docker bind-mounts these paths, the host directory must also be writable
+by the container's runtime UID/GID. See [Docker Download Permissions](docker-download-permissions.md)
+for multiple destinations, Compose `PUID`/`PGID` setup, and NAS/ACL
+troubleshooting.
+
 | Command-Line      | Environment Variable       | Description                                   |
 | ----------------- | ---------------------------| --------------------------------------------- |
 | `-o\|--downloads` | `SLSKD_DOWNLOADS_DIR`      | The path where downloaded files are saved     |

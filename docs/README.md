@@ -13,6 +13,7 @@ completed workstream notes, and incident reports live under
 - [Configuration](config.md) - Complete configuration reference
 - [Building from Source](build.md) - Build instructions
 - [Docker Deployment](docker.md) - Container setup
+- [Docker Download Permissions](docker-download-permissions.md) - UID/GID and bind-mount setup for writable download destinations
 - [Reverse Proxy Setup](reverse_proxy.md) - Running behind a proxy
 - [Known Issues](known_issues.md) - Current known problems
 - [Runtime Feature Gates and Network Defaults](runtime-feature-gating.md) - Exact API-gate, service-lifecycle, pod enrollment, and network-default behavior
