@@ -28897,3 +28897,17 @@ controller metadata and versioned Swagger discovery were incomplete.
 defects. MVC API versioning needs `.AddMvc()`, controllers need
 `[ApiController]`, and endpoint-based Swagger description discovery must call
 `DescribeApiVersions()` after versioned endpoints are mapped.
+
+### 0z884. Use Unique Context When Applying Repeated Fluent-Chain Edits
+
+**The Bug**: A bulk patch intended to add `.AddMvc()` to the API-versioning
+registration matched an unrelated `});` in an integration fixture and added
+the method to the authorization chain instead.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/Solid/SolidIntegrationTests.cs`
+
+**Prevention**: When the same terminator appears repeatedly in a file, include
+the registration call and surrounding comment in the patch context. Inspect
+the resulting diff immediately and run the affected build or tests before
+staging the change.
