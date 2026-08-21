@@ -2,6 +2,7 @@ import {
   EXPERIENCE_PREFERENCES_STORAGE_KEY,
   notifyExperiencePreferencesChanged,
   readExperiencePreference,
+  setExperiencePreference,
   subscribeToExperiencePreferences,
 } from './experiencePreferences';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,5 +38,18 @@ describe('experiencePreferences', () => {
     unsubscribe();
     notifyExperiencePreferencesChanged();
     expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates one preference without discarding the other browser choices', () => {
+    localStorage.setItem(
+      EXPERIENCE_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({ searchAlbumCandidatesVisible: false }),
+    );
+
+    expect(setExperiencePreference('playerVisible', false)).toBe(true);
+    expect(JSON.parse(localStorage.getItem(EXPERIENCE_PREFERENCES_STORAGE_KEY))).toEqual({
+      playerVisible: false,
+      searchAlbumCandidatesVisible: false,
+    });
   });
 });

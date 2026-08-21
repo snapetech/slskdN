@@ -11,6 +11,7 @@ import {
   upsertDiscoveryShelfItem,
 } from '../../lib/discoveryShelf';
 import * as externalVisualizer from '../../lib/externalVisualizer';
+import { setExperiencePreference } from '../../lib/experiencePreferences';
 import * as listenBrainz from '../../lib/listenBrainz';
 import {
   clearListeningHistory,
@@ -2201,7 +2202,7 @@ const PlayerBar = () => {
     resizeObserver.observe(element);
 
     return () => resizeObserver.disconnect();
-  }, [collapsed, current, eqPanelOpen, lyricsOpen]);
+  }, [collapsed, current, eqPanelOpen, lyricsOpen, playerVisible]);
 
   const playAudio = useCallback(async () => {
     if (!audioRef.current) return;
@@ -2523,7 +2524,24 @@ const PlayerBar = () => {
   }, [current, next, pause, previous, seekRelative]);
 
   if (!playerVisible) {
-    return null;
+    return (
+      <div
+        className="player-bar player-bar-hidden player-bar-modern"
+        ref={playerBarRef}
+      >
+        <div className="player-hidden-label">
+          <Icon name="music" />
+          Player hidden
+        </div>
+        <PlayerToolButton
+          content="Show the browser player again at this location."
+          aria-label="Show player"
+          data-testid="player-show"
+          icon="eye"
+          onClick={() => setExperiencePreference('playerVisible', true)}
+        />
+      </div>
+    );
   }
 
   const audio = (
@@ -2572,6 +2590,13 @@ const PlayerBar = () => {
             data-testid="player-expand"
             icon="angle up"
             onClick={() => setCollapsed(false)}
+          />
+          <PlayerToolButton
+            content="Hide the player controls and stop local playback. Use Show player to restore this bar."
+            aria-label="Hide player"
+            data-testid="player-hide"
+            icon="eye slash"
+            onClick={() => setExperiencePreference('playerVisible', false)}
           />
           <PlayerToolButton
             content={playing ? 'Pause the current stream.' : 'Resume the current stream.'}
@@ -2815,6 +2840,13 @@ const PlayerBar = () => {
               data-testid="player-collapse"
               icon="angle down"
               onClick={() => setCollapsed(true)}
+            />
+            <PlayerToolButton
+              content="Hide the player controls and stop local playback. Use Show player to restore this bar."
+              aria-label="Hide player"
+              data-testid="player-hide"
+              icon="eye slash"
+              onClick={() => setExperiencePreference('playerVisible', false)}
             />
             <PlayerToolButton
               active={karaokeEnabled}

@@ -20,11 +20,12 @@
   - Status: completed (2026-08-21)
   - Priority: P1
   - Notes: Added browser-local System → Experience controls for hiding the
-    persistent player and album-candidate panel, including playback gating and
-    regression coverage. Documented the existing multiple-download-directory
-    support, corrected current feature YAML examples, and added the explicit
-    mesh/DHT reduction profile plus independent Streaming, Wishlist, auto-retry,
-    and Backfill controls. Added the required release-note fragment.
+    persistent player and album-candidate panel, including playback gating,
+    direct in-player hide/restore controls, and regression coverage. Documented
+    the existing multiple-download-directory support, corrected current feature
+    YAML examples, and added the explicit mesh/DHT reduction profile plus
+    independent Streaming, Wishlist, auto-retry, and Backfill controls. Added
+    the required release-note fragment.
 
 - [x] Fix tester feedback for transfer column sizing and the Unraid shared path.
   - Status: completed (2026-08-20)

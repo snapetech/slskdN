@@ -180,7 +180,8 @@ configuration, searches, downloads, or network behavior.
 - **Show browser player** keeps or hides the persistent music player. Turning
   it off stops current local playback, clears the browser player queue, hides
   Search's Stream action, and prevents other Web UI play controls from starting
-  playback.
+  playback. A small **Show player** control remains at the same bottom edge so
+  the player can be restored without returning to System settings.
 - **Show album candidates** keeps or hides the album-candidate review panel on
   song search pages. The panel only groups results already received; hiding it
   does not change the search request or contact additional peers.

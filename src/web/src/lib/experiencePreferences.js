@@ -1,4 +1,4 @@
-import { getLocalStorageItem } from './storage';
+import { getLocalStorageItem, setLocalStorageItem } from './storage';
 import { useEffect, useState } from 'react';
 
 export const EXPERIENCE_PREFERENCES_STORAGE_KEY =
@@ -22,6 +22,33 @@ export const readExperiencePreference = (key, fallback) => {
 export const notifyExperiencePreferencesChanged = () => {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new window.Event(EXPERIENCE_PREFERENCES_CHANGED_EVENT));
+};
+
+const readStoredExperiencePreferences = () => {
+  const stored = getLocalStorageItem(EXPERIENCE_PREFERENCES_STORAGE_KEY);
+  if (!stored) return {};
+
+  try {
+    const parsed = JSON.parse(stored);
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+export const setExperiencePreference = (key, value) => {
+  const saved = setLocalStorageItem(
+    EXPERIENCE_PREFERENCES_STORAGE_KEY,
+    JSON.stringify({
+      ...readStoredExperiencePreferences(),
+      [key]: value,
+    }),
+  );
+
+  if (saved) notifyExperiencePreferencesChanged();
+  return saved;
 };
 
 export const subscribeToExperiencePreferences = (callback) => {

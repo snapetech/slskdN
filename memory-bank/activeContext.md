@@ -1,3 +1,15 @@
+## Update 2026-08-21 15:19:55Z
+
+- Follow-up correction complete: the browser player now retains a direct
+  Hide/Show control at its bottom-edge location. The hidden state is a small
+  restore strip rather than a settings-only dead end; expanded and collapsed
+  player surfaces both expose Hide player.
+- Focused tests pass (`29/29`); full Web tests pass (`924` passed, `4` skipped),
+  and the Web production build passes. The required gotcha is recorded as
+  `0z874` in ADR-0001 and committed separately.
+- Next steps: none for this follow-up; do not create a build or release tag
+  unless explicitly requested.
+
 ## Update 2026-08-21 15:11:13Z
 
 - Current task: complete. Added browser-local System → Experience controls for

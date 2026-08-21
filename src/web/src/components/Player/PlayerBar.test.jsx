@@ -270,7 +270,7 @@ describe('PlayerBar', () => {
     expect(window.localStorage.getItem('slskdn.player.localMuted')).toBe('true');
   });
 
-  it('hides the player and rejects playback when the browser preference is disabled', () => {
+  it('hides the player, keeps a restore control, and rejects playback when disabled', () => {
     window.localStorage.setItem(
       'slskdn:experience-preferences:v1',
       JSON.stringify({ playerVisible: false }),
@@ -278,11 +278,29 @@ describe('PlayerBar', () => {
 
     renderPlayer();
 
-    expect(document.querySelector('.player-bar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('player-show')).toBeInTheDocument();
+    expect(document.querySelector('audio')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Play fixture'));
 
     expect(document.querySelector('audio')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('player-show'));
+    expect(screen.getByTestId('player-hide')).toBeInTheDocument();
+  });
+
+  it('toggles player visibility from the player surface', () => {
+    renderPlayer();
+
+    fireEvent.click(screen.getByTestId('player-hide'));
+
+    expect(screen.getByTestId('player-show')).toBeInTheDocument();
+    expect(
+      JSON.parse(window.localStorage.getItem('slskdn:experience-preferences:v1')),
+    ).toEqual({ playerVisible: false });
+
+    fireEvent.click(screen.getByTestId('player-show'));
+    expect(screen.getByTestId('player-hide')).toBeInTheDocument();
   });
 
   it('does not clear now-playing on startup when the player was already hidden', () => {
@@ -293,6 +311,7 @@ describe('PlayerBar', () => {
 
     renderPlayer();
 
+    expect(screen.getByTestId('player-show')).toBeInTheDocument();
     expect(nowPlaying.clearNowPlaying).not.toHaveBeenCalled();
   });
 

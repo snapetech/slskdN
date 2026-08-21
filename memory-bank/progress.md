@@ -1,3 +1,13 @@
+## Update 2026-08-21 15:19:55Z
+
+- Corrected the browser-player interaction: hiding it now leaves a small
+  restore strip at the same bottom edge, and both expanded and collapsed player
+  surfaces expose a direct Hide player control. Restoring preserves the other
+  browser preferences and does not start playback.
+- Added regression coverage for direct hide/show, hidden startup, preference
+  preservation, and the no-startup-cleanup behavior. Full Web validation now
+  passes (`924` passed, `4` skipped) and the production build passes.
+
 ## Update 2026-08-21 15:11:13Z
 
 - Added browser-local Experience controls for the persistent player and Search

@@ -65,6 +65,28 @@ body:has(.ui.modal) .player-bar {
   min-width: 34px;
 }
 
+.player-bar-hidden {
+  align-items: center;
+  display: flex;
+  height: 38px;
+  justify-content: space-between;
+  min-height: 38px;
+  overflow: visible;
+  padding-bottom: 0.2rem;
+  padding-top: 0.2rem;
+}
+
+.player-hidden-label {
+  align-items: center;
+  color: var(--player-cyan);
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 600;
+  gap: 0.45rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .player-display {
   background:
     linear-gradient(90deg, rgba(7, 22, 18, 0.74), rgba(5, 6, 8, 0.68)),
@@ -1428,6 +1450,10 @@ body:has(.ui.modal) .player-bar {
   .player-bar-collapsed {
     grid-template-columns: minmax(0, 1fr) auto;
     min-height: 48px;
+  }
+
+  .player-bar-hidden {
+    min-height: 40px;
   }
 
   .player-main-deck {
