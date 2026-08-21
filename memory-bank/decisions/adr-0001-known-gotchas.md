@@ -28661,3 +28661,32 @@ while the installed `typescript-eslint` 8.x packages still require TypeScript
 metadata while violating a transitive peer contract. Dependency updates must
 run the actual lint command and inspect peer ranges, not only install and test
 the application bundle.
+
+### 0z876. Pass Render-Scoped Visibility Props Into Class Helper Methods
+
+**The Bug**: A class component added a `playerVisible` conditional inside its
+`renderDownloadAction` helper but only destructured that prop in `render`, so
+ESLint reported an undefined variable and the Web lint gate failed.
+
+**Files Affected**:
+- `src/web/src/components/Search/Response.jsx`
+
+**Wrong**:
+```javascript
+renderDownloadAction = () => {
+  return playerVisible ? <StreamButton /> : null;
+};
+```
+
+**Correct**:
+```javascript
+renderDownloadAction = () => {
+  const { playerVisible = true } = this.props;
+  return playerVisible ? <StreamButton /> : null;
+};
+```
+
+**Why This Keeps Happening**: Class render helpers do not inherit local
+variables from the parent `render` method. When a helper starts consuming a
+new prop, read it from `this.props` or pass it explicitly and add lint/test
+coverage before considering the UI change complete.
