@@ -28757,3 +28757,43 @@ install fail with `ERR_MODULE_NOT_FOUND`.
 by re-exporting or installing the same module transitively. Flat configs load
 their plugins directly, so every imported plugin must be listed in the
 package's own development dependencies and verified after `npm ci`.
+
+### 0z879. Declare Flat-Config Support Packages Directly Too
+
+**The Bug**: After the React plugin was made direct, a clean install still
+failed because `eslint.config.mjs` also imported `@vitest/eslint-plugin`,
+`@eslint/js`, and `globals` without declaring those packages directly.
+
+**Files Affected**:
+- `src/web/package.json`
+- `src/web/package-lock.json`
+- `src/web/eslint.config.mjs`
+
+**Wrong**:
+```javascript
+import vitestPlugin from '@vitest/eslint-plugin';
+```
+
+```json
+{
+  "devDependencies": {
+    "eslint": "^9.39.5"
+  }
+}
+```
+
+**Correct**:
+```json
+{
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@vitest/eslint-plugin": "^1.6.27",
+    "globals": "^14.0.0"
+  }
+}
+```
+
+**Why This Keeps Happening**: Transitive packages can make an import resolve
+on a developer machine while leaving the package manifest incomplete. Audit
+every import in a flat config, including rule-support packages and shared
+globals, and test the manifest from a clean `npm ci` installation.
