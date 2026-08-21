@@ -529,7 +529,7 @@ class Response extends Component {
     downloadError,
   ) => {
     const noSelection = selectedFiles.length === 0;
-    const { candidateRank, response } = this.props;
+    const { candidateRank, playerVisible = true, response } = this.props;
     const { qualitySummary } = this.state;
     const sourceProviders = asArray(response.sourceProviders);
     const hasPodSource = sourceProviders.includes('pod');

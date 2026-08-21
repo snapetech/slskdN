@@ -1,3 +1,19 @@
+## Update 2026-08-21 15:35:00Z
+
+- Fixed the Web lint failure caused by TypeScript 7 violating the installed
+  `typescript-eslint` peer range; TypeScript is back on the supported 6.x line.
+- Closed the local Web dependency findings by removing the unused vulnerable
+  canonical ESLint config tree, updating nanoid, and declaring all flat-config
+  imports directly. A clean `npm ci` reports zero vulnerabilities and Web lint
+  is clean.
+- Repaired the extracted Servarr readiness panel's duplicated declaration and
+  missing Popup import, restored its skipped Integrations tests, and aligned the
+  media-server assertion with the current provider-selector UI. The focused
+  Integrations suite passes `15/15`.
+- Added release-note fragments and the `2026082115-slskdn.316` changelog
+  section. Next steps are full release gates, branch synchronization, push, and
+  the authorized stable tag.
+
 ## Update 2026-08-21 15:19:55Z
 
 - Corrected the browser-player interaction: hiding it now leaves a small

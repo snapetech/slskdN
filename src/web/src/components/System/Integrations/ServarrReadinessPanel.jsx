@@ -18,6 +18,7 @@ import {
   Icon,
   Input,
   Message,
+  Popup,
   Segment,
   Table,
   Label,
@@ -48,10 +49,6 @@ const getIntegrationsOptions = (options = {}) =>
 const getLidarrOptions = (options = {}) =>
   getOption(getIntegrationsOptions(options), 'lidarr', 'Lidarr') || {};
 
-const valueOrDash = (value) =>
-  value === undefined || value === null || value === '' ? '-' : value;
-
-const ServarrReadinessPanel = ({ options }) => {
 const valueOrDash = (value) =>
   value === undefined || value === null || value === '' ? '-' : value;
 
@@ -257,7 +254,6 @@ const ServarrReadinessPanel = ({ options }) => {
       </Card.Content>
     </Card>
   );
-};
 };
 
 export default ServarrReadinessPanel;

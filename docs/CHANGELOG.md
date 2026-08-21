@@ -26,6 +26,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
   hiding/restoring the persistent music player and album-candidate panel, and
   documented the current feature YAML keys plus an upstream-like network
   reduction profile.
+- Restored the System Integrations Servarr readiness panel and aligned its
+  media-server checks with the current provider-selector UI, so the panel
+  renders reliably and operators can review safe action controls.
+- Fixed the Web lint toolchain by keeping TypeScript within the supported
+  `typescript-eslint` peer range, declaring flat-config imports directly, and
+  removing unused vulnerable lint dependencies. Clean installs, lint, and npm
+  audit now pass without findings.
 
 ## [2026082016-slskdn.315] — 2026-08-20
 

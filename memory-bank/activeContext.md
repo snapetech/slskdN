@@ -1,3 +1,17 @@
+## Update 2026-08-21 15:35:00Z
+
+- Current task: prepare the authorized stable release after the Web/toolchain
+  and Integrations cleanup.
+- Fixed the TypeScript/`typescript-eslint` incompatibility, removed the unused
+  vulnerable lint dependency tree, updated nanoid, and made every flat ESLint
+  config import direct. Clean install, `npm audit`, and Web lint pass.
+- Repaired the extracted Servarr readiness panel and restored its four skipped
+  Integrations tests; the focused suite passes `15/15`. Added release-note
+  fragments and the `2026082115-slskdn.316` changelog section.
+- Next steps: merge the current remote stable-metadata commit, run the full
+  release gates, commit/push the final tree, and create the authorized
+  `build-main-2026082115-slskdn.316` tag.
+
 ## Update 2026-08-21 15:19:55Z
 
 - Follow-up correction complete: the browser player now retains a direct

@@ -27,6 +27,15 @@
     independent Streaming, Wishlist, auto-retry, and Backfill controls. Added
     the required release-note fragment.
 
+- [x] Restore Web lint compatibility and close current frontend dependency findings.
+  - Status: completed (2026-08-21)
+  - Priority: P1
+  - Notes: Restored the TypeScript 6 peer-compatible toolchain, removed the
+    unused vulnerable canonical ESLint dependency, declared every flat-config
+    import directly, and upgraded the transitive nanoid fix. Repaired the
+    extracted Servarr panel and refreshed its stale integration coverage. Clean
+    `npm ci`, `npm audit`, Web lint, and the focused Integrations suite pass.
+
 - [x] Fix tester feedback for transfer column sizing and the Unraid shared path.
   - Status: completed (2026-08-20)
   - Priority: P1

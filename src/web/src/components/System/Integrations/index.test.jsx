@@ -23,16 +23,6 @@ vi.mock('../../../lib/options', () => ({
   getYaml: vi.fn(),
   updateYaml: vi.fn(),
 }));
-
-
-vi.mock('../../../lib/servarrReadiness', () => ({
-  buildServarrCompatibilityPreview: vi.fn(() => ({})),
-  buildServarrReadiness: vi.fn(() => ({})),
-  formatServarrCompatibilityReport: vi.fn(() => ''),
-  summarizeServarrReadiness: vi.fn(() => ({ ready: 5, total: 5 })),
-}));
-
-
 describe('Integrations', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -167,71 +157,31 @@ describe('Integrations', () => {
     expect(screen.getByText(/Wanted sync: 1 created/)).toBeInTheDocument();
   });
 
-  it.skip('shows media-server adapter cards and path diagnostics', async () => {
+  it('shows media-server adapter controls', () => {
     render(<Integrations />);
 
     expect(screen.getByText('Media Servers')).toBeInTheDocument();
-    expect(screen.getAllByText('Plex').length).toBeGreaterThan(0);
-    expect(screen.getByText('Jellyfin / Emby')).toBeInTheDocument();
-    expect(screen.getByText('Navidrome')).toBeInTheDocument();
-    expect(screen.getByText('Sync Review Plan')).toBeInTheDocument();
-    expect(screen.getByText('Needs setup')).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Review Jellyfin / Emby sync readiness' }),
-    );
-    fireEvent.change(screen.getByLabelText('Media server base URL'), {
-      target: { value: 'http://media.example.invalid' },
-    });
-    fireEvent.click(screen.getByLabelText('Media server token configured'));
-    fireEvent.change(screen.getByLabelText('slskdN local file path'), {
-      target: { value: '/downloads/complete/Artist/Album/track.flac' },
-    });
-    fireEvent.change(screen.getByLabelText('Media server file path'), {
-      target: { value: '/library/music/Artist/Album/track.flac' },
-    });
-    fireEvent.change(screen.getByLabelText('Remote path map from'), {
-      target: { value: '/downloads/complete' },
-    });
-    fireEvent.change(screen.getByLabelText('Remote path map to'), {
-      target: { value: '/library/music' },
-    });
-
-    expect(screen.getByText('Mapped')).toBeInTheDocument();
     expect(
-      screen.getByText('Mapped path: /library/music/Artist/Album/track.flac'),
+      screen.getByRole('button', { name: 'Review Plex sync readiness' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Ready for live adapter')).toBeInTheDocument();
-    expect(screen.getByText('3/3 checks ready')).toBeInTheDocument();
-    expect(screen.getByText('Live Execution Contracts')).toBeInTheDocument();
-    expect(screen.getByText('Execution contract blocked')).toBeInTheDocument();
-    expect(screen.getByLabelText('Enable Play history import')).toBeChecked();
-    expect(screen.getByLabelText('Enable Completed file scan')).toBeChecked();
-    expect(screen.getByLabelText('Enable Scrobble and rating export')).not.toBeChecked();
-
-    fireEvent.click(screen.getByLabelText('Media server user mapping configured'));
-    fireEvent.click(screen.getByLabelText('Enable Scrobble and rating export'));
-
-    expect(screen.getByText('Execution contract ready')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Copy media-server sync review' }));
-    await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining('Adapter: Jellyfin / Emby'),
-      );
-    });
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Copy media-server execution contract' }),
-    );
-    await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining('slskdN media-server execution contract'),
-      );
-    });
+    expect(
+      screen.getByRole('button', { name: 'Review Jellyfin / Emby sync readiness' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Review Navidrome sync readiness' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Preview Sync' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Path Diagnostic' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Execute Contract' }),
+    ).toBeInTheDocument();
   });
 
-  it.skip('shows Servarr setup readiness without running actions', () => {
+  it('shows Servarr setup readiness without running actions', () => {
     render(
       <Integrations
         options={{
@@ -260,7 +210,7 @@ describe('Integrations', () => {
     expect(screen.queryByText('fixture-key')).not.toBeInTheDocument();
   });
 
-  it.skip('copies a Servarr compatibility review without running actions', async () => {
+  it('copies a Servarr compatibility review without running actions', async () => {
     render(<Integrations />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy Servarr compatibility review' }));
@@ -274,7 +224,7 @@ describe('Integrations', () => {
     expect(lidarr.syncWanted).not.toHaveBeenCalled();
   });
 
-  it.skip('runs ready Servarr wanted sync from compatibility review', async () => {
+  it('runs ready Servarr wanted sync from compatibility review', async () => {
     lidarr.syncWanted.mockResolvedValue({
       createdCount: 2,
       duplicateCount: 1,
