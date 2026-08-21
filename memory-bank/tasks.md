@@ -44,6 +44,17 @@
     test hosts, and switched Swagger version discovery to `DescribeApiVersions()`.
     Recorded gotchas `0z883` and `0z884`.
 
+- [x] Publish the validated stable release `2026082115-slskdn.316`.
+  - Status: core release completed (2026-08-21)
+  - Priority: P1
+  - Notes: The guarded local and hosted release gates passed; six platform
+    archives were published and verified against their SHA256 manifest, with
+    Linux payload/version checks and CodeQL/identity checks green. Main Docker,
+    AUR, Nix metadata, Homebrew, COPR, and Discord publication succeeded.
+  - Follow-up: Chocolatey failed in its external pack/push step; PPA and the
+    omnibus tester image were still running at the last update. Inspect the
+    final workflow result before retrying any external package channel.
+
 - [x] Fix tester feedback for transfer column sizing and the Unraid shared path.
   - Status: completed (2026-08-20)
   - Priority: P1

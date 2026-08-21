@@ -13524,3 +13524,16 @@ rollback.
 - Next steps: rerun lint and full tests, push the final commits, move shipped
   changelog bullets into the `2026082115-slskdn.316` section, and create the
   authorized stable tag.
+## Update 2026-08-21 16:43:00Z
+
+- Core release complete: `build-main-2026082115-slskdn.316` is tagged and
+  published from the validated `main` tree. The hosted release gate, six
+  platform archives, SHA256 verification, Linux payload/version checks, and
+  CodeQL analysis all pass.
+- The release workflow also completed main Docker, AUR, Nix metadata,
+  Homebrew, COPR, Discord, and identity checks. Chocolatey failed only at its
+  external `Pack and Push` step; PPA publication and the omnibus tester image
+  are still running.
+- The local checkout includes the generated stable metadata commit and is
+  ready for the final documentation sync after the remaining package jobs
+  close.

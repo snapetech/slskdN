@@ -12802,3 +12802,14 @@ changes were retained.
 - Added the API-versioning release-note fragment and Unreleased changelog
   entry. Full lint, solution tests, and the guarded release gate will be rerun
   after this final code change.
+## Update 2026-08-21 16:43:00Z
+
+- Cut and published stable release `build-main-2026082115-slskdn.316` after
+  the guarded local and hosted release gates passed.
+- Verified all six platform archives against the published SHA256 manifest;
+  the Linux x64 payload includes the VPN helper and Web marker, and reports
+  `2026082115-slskdn.316`.
+- Hosted CodeQL and identity checks pass. Main Docker, AUR, Nix metadata,
+  Homebrew, COPR, Discord, and release creation succeeded. Chocolatey failed
+  at its external pack/push step; PPA and omnibus tester publication remain
+  in progress.
