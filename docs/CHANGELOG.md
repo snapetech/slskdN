@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026082115-slskdn.316] — 2026-08-21
+
 - Added browser-local Experience preferences and direct player controls for
   hiding/restoring the persistent music player and album-candidate panel, and
   documented the current feature YAML keys plus an upstream-like network
