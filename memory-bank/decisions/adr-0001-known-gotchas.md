@@ -28600,3 +28600,33 @@ useEffect(() => {
 initialization without representing a state transition. Side-effect cleanup
 must distinguish initial state from a user-requested disable, especially when
 the cleanup path calls an authenticated or network-backed API.
+
+### 0z874. Hidden Browser Player Needs A Direct Restore Control
+
+**The Bug**: Making the PlayerBar return `null` when its browser-local
+visibility preference was false removed the existing player surface entirely,
+so users had to navigate to System settings to restore it instead of using a
+direct control where the player had been.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/Player.css`
+
+**Wrong**:
+```javascript
+if (!playerVisible) {
+  return null;
+}
+```
+
+**Correct**:
+```javascript
+if (!playerVisible) {
+  return <PlayerRestoreControl />;
+}
+```
+
+**Why This Keeps Happening**: A hide action removes the controls needed to
+reverse that action. Any persistent surface that can be hidden must retain a
+small, accessible restore affordance at the same location; a settings-page
+fallback can remain available but cannot be the only recovery path.
