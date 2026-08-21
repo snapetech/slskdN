@@ -28824,3 +28824,27 @@ const ServarrReadinessPanel = () => <Card>...</Card>;
 can duplicate the declaration line without producing a syntax error. A
 component test must assert that the exported component renders its identifying
 heading, not only that the module imports successfully.
+
+### 0z881. Keep JSX Component Imports In Sync With Extracted Panels
+
+**The Bug**: `ServarrReadinessPanel` rendered Semantic UI `Popup` elements but
+did not import `Popup`, so the Integrations page threw a `ReferenceError` as
+soon as React rendered the panel.
+
+**Files Affected**:
+- `src/web/src/components/System/Integrations/ServarrReadinessPanel.jsx`
+
+**Wrong**:
+```javascript
+import { Button, Card } from 'semantic-ui-react';
+// JSX later uses <Popup />.
+```
+
+**Correct**:
+```javascript
+import { Button, Card, Popup } from 'semantic-ui-react';
+```
+
+**Why This Keeps Happening**: Component extraction moves JSX and imports in
+separate edits. Run the component test after extraction and compare every JSX
+identifier with the module's imports before declaring the panel complete.
