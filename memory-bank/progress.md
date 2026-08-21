@@ -1,3 +1,19 @@
+## Update 2026-08-21 15:11:13Z
+
+- Added browser-local Experience controls for the persistent player and Search
+  album-candidate panel. Disabling the player now stops and clears local
+  playback, hides player actions, and prevents new Web UI playback; both
+  preferences update immediately after saving and remain enabled by default.
+- Corrected stale feature configuration examples in the advanced-features and
+  troubleshooting guides, and documented the existing multiple-download-
+  directory support plus the explicit mesh/DHT reduction profile and related
+  independent controls.
+- Validation passed: focused Web tests (`37/37`), full Web tests (`922` passed,
+  `4` skipped), Web production build, application (`74/74`), unit (`5143/5143`),
+  integration (`284/284`), `./bin/lint`, release-note checks, and diff checks.
+  Standalone Web ESLint remains blocked before source analysis by the existing
+  TypeScript 7 / `typescript-eslint` parser incompatibility.
+
 ## Update 2026-08-20 16:22:58Z
 
 - Completed the Search page multi-select feature: filtered select-all and

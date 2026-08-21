@@ -584,35 +584,37 @@ class Response extends Component {
               />
             }
           />
-          <Popup
-            content={
-              hasPodSource
-                ? `Stream from Pod (${primarySource === 'pod' ? 'preferred' : 'available'}).`
-                : 'Preview the first selected audio file directly from this Soulseek peer. This is a manual, limited stream and does not save the file or start a batch download.'
-            }
-            position="top center"
-            trigger={
-              <Button
-                basic
-                color="blue"
-                content="Stream"
-                disabled={
-                  noSelection ||
-                  this.props.disabled ||
-                  downloadRequest === 'inProgress'
-                }
-                icon="play"
-                onClick={() =>
-                  hasPodSource
-                    ? this.streamSearchActionPreview(selectedFiles[0])
-                    : this.streamPreview(
-                        this.props.response.username,
-                        selectedFiles[0],
-                      )
-                }
-              />
-            }
-          />
+          {playerVisible && (
+            <Popup
+              content={
+                hasPodSource
+                  ? `Stream from Pod (${primarySource === 'pod' ? 'preferred' : 'available'}).`
+                  : 'Preview the first selected audio file directly from this Soulseek peer. This is a manual, limited stream and does not save the file or start a batch download.'
+              }
+              position="top center"
+              trigger={
+                <Button
+                  basic
+                  color="blue"
+                  content="Stream"
+                  disabled={
+                    noSelection ||
+                    this.props.disabled ||
+                    downloadRequest === 'inProgress'
+                  }
+                  icon="play"
+                  onClick={() =>
+                    hasPodSource
+                      ? this.streamSearchActionPreview(selectedFiles[0])
+                      : this.streamPreview(
+                          this.props.response.username,
+                          selectedFiles[0],
+                        )
+                  }
+                />
+              }
+            />
+          )}
           {downloadRequest === 'inProgress' && (
             <Icon
               loading
@@ -657,6 +659,7 @@ class Response extends Component {
       onUnblock,
       response,
       candidateRank,
+      playerVisible = true,
       userGroup,
       userGroupLoading,
       userNote,

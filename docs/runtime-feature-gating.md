@@ -80,6 +80,33 @@ implicitly enable every transport: for example, DHT needs both `feature.Dht`
 and `dht.enabled`, while mesh descriptor publishing needs `feature.Mesh` and
 `mesh.enable_dht`.
 
+## Upstream-like reduction
+
+The reduction profile intentionally focuses on slskdN's networked experimental
+services. To use slskdN for standard Soulseek search/transfers plus multiple
+download destinations, add these independent controls when they are not
+needed:
+
+```yaml
+feature:
+  Streaming: false
+  StreamingRelayFallback: false
+
+wishlist:
+  enabled: false
+
+transfers:
+  download:
+    auto_retry:
+      enabled: false
+```
+
+The Web player and album-candidate panel are browser-local controls under
+**System → Experience**; they are not server feature gates. Auto-replace is
+already opt-in by default. Backfill is also separate from Mesh and can be
+disabled at runtime with `POST /api/v0/backfill/enable?enabled=false`; that
+switch is in-memory and must be reapplied after a restart.
+
 ## Pods and Gold Star Club
 
 `feature.Pods: false` prevents Gold Star Club startup, including reserved-pod

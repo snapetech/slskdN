@@ -3,7 +3,9 @@ import React from 'react';
 import { Button, Icon, Popup } from 'semantic-ui-react';
 
 const PlayCollectionItemButton = ({ item, size = 'small' }) => {
-  const { playItem } = usePlayer();
+  const { playItem, playerVisible } = usePlayer();
+
+  if (!playerVisible) return null;
 
   return (
     <Popup
@@ -23,4 +25,3 @@ const PlayCollectionItemButton = ({ item, size = 'small' }) => {
 };
 
 export default PlayCollectionItemButton;
-

@@ -23,6 +23,8 @@ describe('ExperienceSettings', () => {
     expect(screen.queryByText('Discovery Inbox')).not.toBeInTheDocument();
     expect(screen.getByText('Player')).toBeInTheDocument();
     expect(screen.getByText('Messages')).toBeInTheDocument();
+    expect(screen.getByLabelText('Show browser player preference')).toBeChecked();
+    expect(screen.getByLabelText('Show album candidates preference')).toBeChecked();
     expect(
       screen.getByLabelText('Enable search duplicate folding preference'),
     ).toBeChecked();
@@ -34,11 +36,15 @@ describe('ExperienceSettings', () => {
 
     fireEvent.click(screen.getByLabelText('Enable search duplicate folding preference'));
     fireEvent.click(screen.getByLabelText('Enable player queue auto-fill preference'));
+    fireEvent.click(screen.getByLabelText('Show browser player preference'));
+    fireEvent.click(screen.getByLabelText('Show album candidates preference'));
     fireEvent.click(screen.getByRole('button', { name: 'Save Local Preferences' }));
 
     const saved = JSON.parse(localStorage.getItem(storageKey));
     expect(saved.searchDuplicateFolding).toBe(false);
     expect(saved.playerQueueAutoFill).toBe(true);
+    expect(saved.playerVisible).toBe(false);
+    expect(saved.searchAlbumCandidatesVisible).toBe(false);
     expect(
       screen.getByText('Experience preferences saved locally in this browser.'),
     ).toBeInTheDocument();
@@ -52,6 +58,8 @@ describe('ExperienceSettings', () => {
     expect(
       screen.getByLabelText('Enable search duplicate folding preference'),
     ).toBeChecked();
+    expect(screen.getByLabelText('Show browser player preference')).toBeChecked();
+    expect(screen.getByLabelText('Show album candidates preference')).toBeChecked();
     expect(screen.getByLabelText('Show unread message badges preference')).toBeChecked();
   });
 
@@ -75,6 +83,8 @@ describe('ExperienceSettings', () => {
     expect(
       screen.getByLabelText('Enable search duplicate folding preference'),
     ).toBeChecked();
+    expect(screen.getByLabelText('Show browser player preference')).toBeChecked();
+    expect(screen.getByLabelText('Show album candidates preference')).toBeChecked();
     expect(screen.getByLabelText('Show unread message badges preference')).toBeChecked();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy Report' }));
@@ -88,7 +98,7 @@ describe('ExperienceSettings', () => {
       ),
     );
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('Player: queue_auto_fill=false, radio_seed=current'),
+      expect.stringContaining('Player: visible=true, queue_auto_fill=false, radio_seed=current'),
     );
   });
 

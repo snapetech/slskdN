@@ -6,6 +6,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { vi } from 'vitest';
 import * as externalVisualizer from '../../lib/externalVisualizer';
 import * as collectionsAPI from '../../lib/collections';
+import * as nowPlaying from '../../lib/nowPlaying';
 import * as searches from '../../lib/searches';
 import * as wishlistAPI from '../../lib/wishlist';
 
@@ -267,6 +268,32 @@ describe('PlayerBar', () => {
       '/api/v0/streams/sha256%3Atest',
     );
     expect(window.localStorage.getItem('slskdn.player.localMuted')).toBe('true');
+  });
+
+  it('hides the player and rejects playback when the browser preference is disabled', () => {
+    window.localStorage.setItem(
+      'slskdn:experience-preferences:v1',
+      JSON.stringify({ playerVisible: false }),
+    );
+
+    renderPlayer();
+
+    expect(document.querySelector('.player-bar')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Play fixture'));
+
+    expect(document.querySelector('audio')).not.toBeInTheDocument();
+  });
+
+  it('does not clear now-playing on startup when the player was already hidden', () => {
+    window.localStorage.setItem(
+      'slskdn:experience-preferences:v1',
+      JSON.stringify({ playerVisible: false }),
+    );
+
+    renderPlayer();
+
+    expect(nowPlaying.clearNowPlaying).not.toHaveBeenCalled();
   });
 
   it('restores the local mute preference for the PWA/browser session', () => {

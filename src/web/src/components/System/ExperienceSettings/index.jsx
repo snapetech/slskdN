@@ -10,8 +10,12 @@ import {
   Popup,
   Segment,
 } from 'semantic-ui-react';
+import {
+  EXPERIENCE_PREFERENCES_STORAGE_KEY,
+  notifyExperiencePreferencesChanged,
+} from '../../../lib/experiencePreferences';
 
-const storageKey = 'slskdn:experience-preferences:v1';
+const storageKey = EXPERIENCE_PREFERENCES_STORAGE_KEY;
 
 const defaults = {
   discoveryApprovalFilter: 'all',
@@ -24,6 +28,7 @@ const defaults = {
   messagesRoomUserFilter: true,
   messagesSearchEnabled: true,
   messagesUnreadBadges: true,
+  playerVisible: true,
   playerCaptureHistory: true,
   playerDefaultVisualizer: 'last',
   playerKeyboardShortcuts: true,
@@ -31,6 +36,7 @@ const defaults = {
   playerRadioSeedMode: 'current',
   playerScrobbleMode: 'manual',
   playerShowRatings: true,
+  searchAlbumCandidatesVisible: true,
   searchActionPreviewDensity: 'detailed',
   searchDuplicateFolding: true,
   searchPreferredCondition: 'lossless',
@@ -43,10 +49,12 @@ const booleanPreferenceKeys = [
   'messagesRoomUserFilter',
   'messagesSearchEnabled',
   'messagesUnreadBadges',
+  'playerVisible',
   'playerCaptureHistory',
   'playerKeyboardShortcuts',
   'playerQueueAutoFill',
   'playerShowRatings',
+  'searchAlbumCandidatesVisible',
   'searchDuplicateFolding',
 ];
 
@@ -191,9 +199,9 @@ const readStoredPreferences = () => {
 const buildReport = (form) =>
   [
     'slskdN experience preferences',
-    `Search: ranking=${form.searchRankingProfile}, condition=${form.searchPreferredCondition}, duplicate_folding=${form.searchDuplicateFolding}, previews=${form.searchActionPreviewDensity}`,
+    `Search: ranking=${form.searchRankingProfile}, condition=${form.searchPreferredCondition}, duplicate_folding=${form.searchDuplicateFolding}, album_candidates=${form.searchAlbumCandidatesVisible}, previews=${form.searchActionPreviewDensity}`,
     `Discovery: provider=${form.discoveryProviderFilter || 'all'}, approval=${form.discoveryApprovalFilter}, confidence>=${form.discoveryConfidenceFloor}, stale_days=${form.discoveryStaleDays}, explanations=${form.discoveryExplanationDetail}`,
-    `Player: queue_auto_fill=${form.playerQueueAutoFill}, radio_seed=${form.playerRadioSeedMode}, ratings=${form.playerShowRatings}, history=${form.playerCaptureHistory}, scrobble=${form.playerScrobbleMode}, visualizer=${form.playerDefaultVisualizer}, shortcuts=${form.playerKeyboardShortcuts}`,
+    `Player: visible=${form.playerVisible}, queue_auto_fill=${form.playerQueueAutoFill}, radio_seed=${form.playerRadioSeedMode}, ratings=${form.playerShowRatings}, history=${form.playerCaptureHistory}, scrobble=${form.playerScrobbleMode}, visualizer=${form.playerDefaultVisualizer}, shortcuts=${form.playerKeyboardShortcuts}`,
     `Messages: dense=${form.messagesDenseMode}, pinned_restore=${form.messagesPinnedRestore}, unread_badges=${form.messagesUnreadBadges}, user_filter=${form.messagesRoomUserFilter}, search=${form.messagesSearchEnabled}`,
   ].join('\n');
 
@@ -212,12 +220,14 @@ const ExperienceSettings = () => {
 
   const save = () => {
     localStorage.setItem(storageKey, JSON.stringify(form));
+    notifyExperiencePreferencesChanged();
     setMessage('Experience preferences saved locally in this browser.');
   };
 
   const reset = () => {
     localStorage.removeItem(storageKey);
     setForm(defaults);
+    notifyExperiencePreferencesChanged();
     setMessage('Experience preferences reset to defaults.');
   };
 
@@ -258,7 +268,7 @@ const ExperienceSettings = () => {
               <Icon name="search" />
               Search
             </Card.Header>
-            <Card.Meta>Ranking, duplicate folding, preferred conditions, and planned-action density.</Card.Meta>
+            <Card.Meta>Ranking, duplicate folding, album-candidate visibility, preferred conditions, and planned-action density.</Card.Meta>
           </Card.Content>
           <Card.Content>
             <Form>
@@ -301,6 +311,20 @@ const ExperienceSettings = () => {
                   />
                 }
               />
+              <Popup
+                content="Show the album-candidate review panel below song searches. It only organizes results already received and does not start another search or contact more peers."
+                trigger={
+                  <Checkbox
+                    aria-label="Show album candidates preference"
+                    checked={form.searchAlbumCandidatesVisible}
+                    label="Show album candidates"
+                    onChange={(_, { checked }) =>
+                      update('searchAlbumCandidatesVisible', Boolean(checked))
+                    }
+                    toggle
+                  />
+                }
+              />
             </Form>
           </Card.Content>
         </Card>
@@ -311,7 +335,7 @@ const ExperienceSettings = () => {
               <Icon name="play circle" />
               Player
             </Card.Header>
-            <Card.Meta>Queue, radio, ratings, history, scrobbling, visualizer, and keyboard behavior.</Card.Meta>
+            <Card.Meta>Visibility, queue, radio, ratings, history, scrobbling, visualizer, and keyboard behavior.</Card.Meta>
           </Card.Content>
           <Card.Content>
             <Form>
@@ -339,6 +363,20 @@ const ExperienceSettings = () => {
                 />
               </Form.Group>
               <Form.Group grouped>
+                <Popup
+                  content="Show the persistent browser music player and allow player actions such as Stream and Play. Turning it off stops current local playback and clears the browser player queue."
+                  trigger={
+                    <Checkbox
+                      aria-label="Show browser player preference"
+                      checked={form.playerVisible}
+                      label="Show browser player"
+                      onChange={(_, { checked }) =>
+                        update('playerVisible', Boolean(checked))
+                      }
+                      toggle
+                    />
+                  }
+                />
                 <Popup
                   content="Allow player pages to append local similar-track queue candidates when explicit page support is available."
                   trigger={

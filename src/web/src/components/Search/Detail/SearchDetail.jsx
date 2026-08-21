@@ -21,6 +21,7 @@ import {
   removeSavedSearchFilter,
   saveSearchFilter,
 } from '../../../lib/savedSearchFilters';
+import { useExperiencePreference } from '../../../lib/experiencePreferences';
 import {
   getLocalStorageItem,
   removeLocalStorageItem,
@@ -147,6 +148,11 @@ const SearchDetail = ({
     state,
   } = search;
   const acquisitionProfile = search.acquisitionProfile || 'lossless-exact';
+  const showAlbumCandidates = useExperiencePreference(
+    'searchAlbumCandidatesVisible',
+    true,
+  );
+  const playerVisible = useExperiencePreference('playerVisible', true);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(undefined);
@@ -501,12 +507,15 @@ const SearchDetail = ({
   }, [visibleUsernames]);
 
   const albumCandidates = useMemo(
-    () =>
-      buildAlbumCandidates({
+    () => {
+      if (!showAlbumCandidates) return [];
+
+      return buildAlbumCandidates({
         responses: sortedAndFilteredResults,
         searchText: search.searchText,
-      }),
-    [search.searchText, sortedAndFilteredResults],
+      });
+    },
+    [search.searchText, showAlbumCandidates, sortedAndFilteredResults],
   );
 
   // when a user uses the action buttons, we will *probably* re-use this component,
@@ -1092,6 +1101,7 @@ const SearchDetail = ({
                 setQualitySignalVersion((version) => version + 1)
               }
               onUnblock={() => handleUnblockUser(r.username)}
+              playerVisible={playerVisible}
               response={r}
               responseIndex={index}
               searchId={id}

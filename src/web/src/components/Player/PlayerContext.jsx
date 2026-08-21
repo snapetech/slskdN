@@ -1,9 +1,11 @@
 import * as nowPlaying from '../../lib/nowPlaying';
+import { useExperiencePreference } from '../../lib/experiencePreferences';
 import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -23,6 +25,7 @@ export const PlayerContext = createContext({
   removeFromQueue: () => {},
   seekRelative: () => {},
   setAudioElement: () => {},
+  playerVisible: true,
 });
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
@@ -33,6 +36,8 @@ export const PlayerProvider = ({ children }) => {
   const [history, setHistory] = useState([]);
   const [queue, setQueue] = useState([]);
   const [followingParty, setFollowingParty] = useState(null);
+  const playerVisible = useExperiencePreference('playerVisible', true);
+  const previousPlayerVisible = useRef(playerVisible);
 
   useEffect(() => {
     if (!current?.artist || !current?.title) return;
@@ -45,7 +50,7 @@ export const PlayerProvider = ({ children }) => {
 
   const playItem = useCallback(
     (item, options = {}) => {
-      if (!item?.contentId) return;
+      if (!playerVisible || !item?.contentId) return;
 
       const playable = {
         album: item.album || item.collectionTitle || '',
@@ -80,7 +85,7 @@ export const PlayerProvider = ({ children }) => {
         }
       }, 0);
     },
-    [audioElement, current],
+    [audioElement, current, playerVisible],
   );
 
   const pause = useCallback(() => {
@@ -101,6 +106,13 @@ export const PlayerProvider = ({ children }) => {
     setQueue([]);
     await nowPlaying.clearNowPlaying();
   }, [audioElement]);
+
+  useEffect(() => {
+    if (previousPlayerVisible.current && !playerVisible) {
+      clear();
+    }
+    previousPlayerVisible.current = playerVisible;
+  }, [clear, playerVisible]);
 
   const clearQueue = useCallback(() => {
     setQueue((existing) => (current ? [current] : existing.slice(0, 1)));
@@ -181,6 +193,7 @@ export const PlayerProvider = ({ children }) => {
         next,
         pause,
         playItem,
+        playerVisible,
         previous,
         queue,
         queueItems,

@@ -73,8 +73,8 @@ Unified search across Pod/Mesh and Soulseek Scene networks.
 
 **Configuration:**
 ```yaml
-features:
-  scene_pod_bridge: true
+feature:
+  ScenePodBridge: true
 ```
 
 **Web UI:**
@@ -166,10 +166,27 @@ See [Listening Party and Player](listening-party.md) for the full protocol and U
 
 **Configuration:**
 ```yaml
-features:
-  streaming: true
-  streamingRelayFallback: true  # Use relay if direct unavailable
+feature:
+  Streaming: true
+  StreamingRelayFallback: true  # Use relay if direct unavailable
 ```
+
+### Browser Experience Preferences
+
+Open **System → Experience** to configure browser-local presentation choices.
+These settings are saved in the current browser and do not change server
+configuration, searches, downloads, or network behavior.
+
+- **Show browser player** keeps or hides the persistent music player. Turning
+  it off stops current local playback, clears the browser player queue, hides
+  Search's Stream action, and prevents other Web UI play controls from starting
+  playback.
+- **Show album candidates** keeps or hides the album-candidate review panel on
+  song search pages. The panel only groups results already received; hiding it
+  does not change the search request or contact additional peers.
+
+Both preferences are enabled by default and take effect immediately after
+clicking **Save Local Preferences**.
 
 ### Streaming Limitations
 

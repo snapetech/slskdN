@@ -521,8 +521,8 @@ manual search result to inspect unusually large releases.
 
 1. **Enable Swarm Feature:**
    ```yaml
-   features:
-     swarmDownloads: true
+   feature:
+     MultiSourceDownloads: true
    ```
 
 2. **Check Source Count:**
@@ -548,10 +548,9 @@ manual search result to inspect unusually large releases.
 
 1. **Enable Wishlist:**
    ```yaml
-   features:
-     wishlist:
-       enabled: true
-       interval: 60  # Run every 60 seconds
+   wishlist:
+     enabled: true
+     interval_seconds: 3600  # Run every hour; minimum 300
    ```
 
 2. **Check Search Configuration:**
@@ -575,8 +574,8 @@ manual search result to inspect unusually large releases.
 
 1. **Enable Collections Feature:**
    ```yaml
-   features:
-     collectionsSharing: true
+   feature:
+     CollectionsSharing: true
    ```
 
 2. **Check Share Policy:**
@@ -584,8 +583,7 @@ manual search result to inspect unusually large releases.
    - Check user permissions
 
 3. **Check Mesh Connectivity:**
-   - Collections require mesh connectivity
-   - Verify mesh is connected
+   - Verify the collection/share source is available to this instance
 
 ### Streaming Not Working
 
@@ -598,13 +596,12 @@ manual search result to inspect unusually large releases.
 
 1. **Enable Streaming Feature:**
    ```yaml
-   features:
-     streaming: true
+   feature:
+     Streaming: true
    ```
 
 2. **Check Content Source:**
-   - Streaming only works for Pod/Mesh content
-   - Soulseek Scene content doesn't support streaming
+   - Streaming requires an accessible local, peer, Pod, or Mesh content source
 
 3. **Check Download Status:**
    - Content must be downloading or downloaded

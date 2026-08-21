@@ -4,6 +4,7 @@ import SearchDetail, {
   mapUserNotesByUsername,
   shouldFetchSearchResponses,
 } from './SearchDetail';
+import { buildAlbumCandidates } from '../../../lib/albumCandidatePicker';
 import { getResponses } from '../../../lib/searches';
 import { getGroups } from '../../../lib/users';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -60,6 +61,7 @@ vi.mock('./SearchFilterModal', () => ({ default: () => null }));
 describe('SearchDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    buildAlbumCandidates.mockReturnValue([]);
     localStorage.clear();
   });
 
@@ -145,6 +147,25 @@ describe('SearchDetail', () => {
       'hide that peer and folder from future runs of this wishlist item',
     );
     await waitFor(() => expect(getResponses).toHaveBeenCalledTimes(1));
+  });
+
+  it('skips the album-candidate panel when the browser preference is disabled', async () => {
+    localStorage.setItem(
+      'slskdn:experience-preferences:v1',
+      JSON.stringify({ searchAlbumCandidatesVisible: false }),
+    );
+    buildAlbumCandidates.mockReturnValue([
+      {
+        albumTitle: 'Hidden Album',
+      },
+    ]);
+    getResponses.mockResolvedValue([]);
+
+    render(<SearchDetail {...createProps()} />);
+
+    await waitFor(() => expect(getResponses).toHaveBeenCalledTimes(1));
+    expect(buildAlbumCandidates).not.toHaveBeenCalled();
+    expect(screen.queryByText('Album candidates')).not.toBeInTheDocument();
   });
 
   it('clears hydrated results when a reused detail changes to an active search without responses', async () => {

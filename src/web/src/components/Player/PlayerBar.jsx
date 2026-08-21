@@ -2102,6 +2102,7 @@ const PlayerBar = () => {
     seekRelative,
     setAudioElement,
     playItem,
+    playerVisible,
   } = usePlayer();
   const [localMuted, setLocalMuted] = useState(() =>
     readStoredBoolean(localMuteStorageKey),
@@ -2520,6 +2521,10 @@ const PlayerBar = () => {
       });
     };
   }, [current, next, pause, previous, seekRelative]);
+
+  if (!playerVisible) {
+    return null;
+  }
 
   const audio = (
     <>

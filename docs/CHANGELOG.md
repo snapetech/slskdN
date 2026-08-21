@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added browser-local Experience preferences for hiding the persistent music
+  player and album-candidate panel, and documented the current feature YAML
+  keys plus an upstream-like network reduction profile.
+
 ## [2026082016-slskdn.315] — 2026-08-20
 
 - Added multi-select actions to the Searches page so users can rerun completed

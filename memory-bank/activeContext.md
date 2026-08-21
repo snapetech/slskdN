@@ -1,3 +1,19 @@
+## Update 2026-08-21 15:11:13Z
+
+- Current task: complete. Added browser-local System → Experience controls for
+  hiding the persistent player and album-candidate panel, with immediate
+  same-browser updates, playback gating/cleanup, and focused regression tests.
+- Corrected stale feature YAML examples and documented existing multiple
+  download-directory support, the explicit mesh/DHT reduction profile, and the
+  independent Streaming, Wishlist, auto-retry, and Backfill controls.
+- Validation passed focused/full Web tests (`37/37`; `922` passed, `4` skipped),
+  Web production build, application (`74/74`), unit (`5143/5143`), integration
+  (`284/284`), `./bin/lint`, release-note checks, and diff checks. Standalone
+  Web ESLint remains blocked before source analysis by the existing TypeScript
+  7 / `typescript-eslint` parser incompatibility.
+- Next steps: none for this task; do not create a build or release tag unless
+  explicitly requested.
+
 ## Update 2026-08-20 16:22:58Z
 
 - Current task: complete. Built the Search page multi-select workflow with
