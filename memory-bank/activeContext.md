@@ -1,3 +1,14 @@
+## Update 2026-08-21 20:20:49Z
+
+- Current task: complete. Published the Docker permissions documentation for
+  multiple download destinations on branch
+  `docs/docker-download-permissions` at commit `31be42380`.
+- Validation passed: release-note parsing and preview, local identity checks,
+  `git diff --check`, backend application tests (`74/74`), unit tests
+  (`5143/5143`), integration tests (`284/284`), and `./bin/lint`.
+- Next steps: none for this task; the documentation branch is pushed to the
+  verified `snapetech/slskdN` fork.
+
 ## Update 2026-08-21
 
 - Current task: document and publish the Docker permissions workflow for
