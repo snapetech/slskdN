@@ -28538,3 +28538,34 @@ evolved separately. Documentation examples must be checked against the
 `Options` YAML aliases and the commented example configuration whenever a
 feature gate or option is renamed; a documentation-only configuration change
 still needs a configuration parse or targeted binding check.
+
+### 0z872. Reset Mock Implementations When Tests Share A Mock Module
+
+**The Bug**: A SearchDetail regression test changed the mocked
+`buildAlbumCandidates` implementation, but the suite's `vi.clearAllMocks()`
+only cleared call history. The minimal candidate fixture leaked into the next
+test and crashed its rendering path because it lacked the complete candidate
+shape.
+
+**Files Affected**:
+- `src/web/src/components/Search/Detail/SearchDetail.test.jsx`
+
+**Wrong**:
+```javascript
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+```
+
+**Correct**:
+```javascript
+beforeEach(() => {
+  vi.clearAllMocks();
+  buildAlbumCandidates.mockReturnValue([]);
+});
+```
+
+**Why This Keeps Happening**: Vitest separates mock call-state cleanup from
+mock implementation reset. Tests that customize a module mock must restore its
+default implementation in setup or use an explicit reset so later tests do
+not receive a partial fixture.
