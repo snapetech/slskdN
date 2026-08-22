@@ -352,7 +352,7 @@ Before submitting a PR, ensure:
 
 ## Getting Help
 
-- **Discord**: [Join our Discord](https://discord.gg/NRzj8xycQZ)
+- **Discord**: [Join our Discord](https://discord.gg/5PyXBfvS6T)
 - **GitHub Issues**: [Open an issue](https://github.com/snapetech/slskdn/issues)
 - **Documentation**: See [docs/README.md](docs/README.md)
 

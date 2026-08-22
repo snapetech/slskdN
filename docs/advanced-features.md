@@ -633,4 +633,4 @@ See [Troubleshooting Guide](troubleshooting.md) for detailed troubleshooting.
 
 ---
 
-**Need more help?** Check the [Documentation Index](README.md) or join our [Discord](https://discord.gg/NRzj8xycQZ)!
+**Need more help?** Check the [Documentation Index](README.md) or join our [Discord](https://discord.gg/5PyXBfvS6T)!

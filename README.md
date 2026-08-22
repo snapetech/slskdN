@@ -40,7 +40,7 @@
   <a href="https://github.com/microsoft/winget-pkgs/tree/master/manifests/s/snapetech/slskdn"><img src="https://img.shields.io/badge/winget-slskdn-00D1F1?logo=windows" alt="Winget"></a>
   <a href="https://github.com/slskd/slskd/releases/tag/0.24.5"><img src="https://img.shields.io/badge/base%20slskd-0.24.x-purple" alt="Based on slskd 0.24.x"></a>
   <a href="https://github.com/snapetech/slskdn/blob/main/LICENSE"><img src="https://img.shields.io/github/license/snapetech/slskdn" alt="License"></a>
-  <a href="https://discord.gg/NRzj8xycQZ"><img src="https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://discord.gg/5PyXBfvS6T"><img src="https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
 ---

@@ -375,7 +375,7 @@ See [Pods, Rooms, And Messages](pods-and-rooms.md) for the full policy.
 2. **Check Known Issues**: See [Known Issues](known_issues.md)
 
 3. **Community Support**:
-   - [Discord](https://discord.gg/NRzj8xycQZ)
+   - [Discord](https://discord.gg/5PyXBfvS6T)
    - [GitHub Issues](https://github.com/snapetech/slskdn/issues)
 
 4. **Documentation**:
@@ -388,7 +388,7 @@ See [Pods, Rooms, And Messages](pods-and-rooms.md) for the full policy.
 - **Explore Features**: Check out [Features Overview](FEATURES.md) for all available features
 - **Configure Advanced Settings**: See [Configuration Reference](config.md) for detailed options
 - **Learn About Architecture**: Read [How It Works](HOW-IT-WORKS.md) for technical details
-- **Join the Community**: [Discord](https://discord.gg/NRzj8xycQZ)
+- **Join the Community**: [Discord](https://discord.gg/5PyXBfvS6T)
 
 ## Security Best Practices
 
@@ -403,4 +403,4 @@ See [Security Guidelines](SECURITY-GUIDELINES.md) for detailed security informat
 
 ---
 
-**Need more help?** Check the [Documentation Index](README.md) or join our [Discord](https://discord.gg/NRzj8xycQZ)!
+**Need more help?** Check the [Documentation Index](README.md) or join our [Discord](https://discord.gg/5PyXBfvS6T)!

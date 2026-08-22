@@ -643,7 +643,7 @@ logging:
 
 ### Community Resources
 
-1. **Discord**: [Join our Discord](https://discord.gg/NRzj8xycQZ)
+1. **Discord**: [Join our Discord](https://discord.gg/5PyXBfvS6T)
    - Real-time help from community
    - Share issues and solutions
 
@@ -678,4 +678,4 @@ For enterprise deployments or complex issues:
 
 ---
 
-**Still having issues?** Join our [Discord](https://discord.gg/NRzj8xycQZ) or [open an issue](https://github.com/snapetech/slskdn/issues)!
+**Still having issues?** Join our [Discord](https://discord.gg/5PyXBfvS6T) or [open an issue](https://github.com/snapetech/slskdn/issues)!
