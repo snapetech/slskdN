@@ -12834,3 +12834,10 @@ changes were retained.
   progress.
 - GitHub status is clean: zero open PRs, Dependabot alerts, CodeQL alerts, or
   secret-scanning alerts; hosted CodeQL and identity checks are green.
+
+[2026-08-24T16:24:43Z] Completed the Caddy reverse-proxy documentation follow-up.
+The guide now recommends proxying Caddy's public HTTPS endpoint to slskd's
+HTTP listener on port `5030`, explains that port `5031` does not imply HTTPS to
+Caddy, and documents the explicit TLS transport and self-signed-certificate
+tradeoff for end-to-end proxying. Added the validated release-note fragment;
+no runtime code change was necessary.

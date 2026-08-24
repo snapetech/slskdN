@@ -13572,3 +13572,16 @@ rollback.
   final main push are green.
 - Next steps: leave the PPA publication poll running externally; retry
   Chocolatey only after its service recovers.
+
+## Update 2026-08-24 16:24:43Z
+
+- Current task: complete. Investigated a Caddy reverse-proxy login failure and
+  confirmed it is an upstream transport configuration issue, not a slskdN
+  runtime defect: Caddy treats an address-only `:5031` upstream as plaintext
+  unless an HTTPS scheme/transport is configured.
+- Added Caddy guidance recommending the normal TLS-termination path through
+  slskd's HTTP port `5030`, plus the explicit port-`5031` TLS alternative and
+  its self-signed-certificate warning. Added the required release-note
+  fragment; no runtime code change was necessary.
+- Next steps: none for this task. Do not create a release tag unless
+  explicitly requested.

@@ -9,6 +9,13 @@
 
 ### High Priority
 
+- [x] Document Caddy reverse-proxy setup for the Web UI.
+  - Status: completed (2026-08-24)
+  - Priority: P1
+  - Notes: Added the recommended Caddy-to-port-5030 configuration, explained
+    that port 5031 requires an explicit HTTPS transport, and documented the
+    self-signed-certificate tradeoff.
+
 - [x] Document Docker permissions for multiple download destinations.
   - Status: completed (2026-08-21)
   - Priority: P1

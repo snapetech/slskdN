@@ -46,6 +46,53 @@ server {
 }
 ```
 
+## Caddy
+
+Caddy normally terminates HTTPS for the public hostname and proxies to an
+HTTP backend. Use slskd's HTTP listener (`5030`) for this arrangement; an
+upstream port number does not make Caddy use HTTPS automatically. Caddy also
+handles the WebSocket upgrade used by slskd, so no special WebSocket headers
+are required.
+
+### At a subdomain
+
+With slskd's default `web.url_base: /`:
+
+```
+seek.example.org {
+        reverse_proxy 192.0.2.10:5030
+}
+```
+
+If Caddy and slskd run on the same host, use `127.0.0.1:5030`. If slskd is
+running in the same Docker network, use its container name and port, such as
+`reverse_proxy slskd:5030`.
+
+Leave `web.https.force` disabled when Caddy is terminating HTTPS and proxying
+to port `5030`; the connection from Caddy to slskd is HTTP, and slskd does not
+need to redirect it.
+
+### Proxying to slskd's HTTPS listener
+
+If the connection between Caddy and slskd must also use TLS, specify the
+`https://` upstream explicitly. The default slskd certificate is self-signed,
+so Caddy will reject it unless the certificate is trusted by Caddy or
+verification is deliberately disabled:
+
+```
+seek.example.org {
+        reverse_proxy https://192.0.2.10:5031 {
+                transport http {
+                        tls_insecure_skip_verify
+                }
+        }
+}
+```
+
+`tls_insecure_skip_verify` is suitable only for a trusted private network or
+temporary troubleshooting. Prefer port `5030` on a trusted local link, or
+configure slskd with a certificate and name that Caddy can validate.
+
 ## SWAG
 
 ### At a Subdomain
