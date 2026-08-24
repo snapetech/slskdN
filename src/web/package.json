@@ -58,7 +58,7 @@
     "globals": "^14.0.0",
     "jsdom": "^30.0.1",
     "less": "^4.9.0",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "vite": "^8.2.1",
     "vitest": "^4.1.10"
   },
