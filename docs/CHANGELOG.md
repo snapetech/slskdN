@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026082519-slskdn.317] — 2026-08-25
+
 - Documented Docker and Docker Compose permissions for multiple download
   destinations, including container-path mapping, `PUID`/`PGID` ownership,
   the `user:` alternative, ACL/NAS troubleshooting, and in-container checks.
