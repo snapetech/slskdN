@@ -28911,3 +28911,21 @@ the method to the authorization chain instead.
 the registration call and surrounding comment in the patch context. Inspect
 the resulting diff immediately and run the affected build or tests before
 staging the change.
+
+### 0z885. Do Not Require A PFX For The Generated HTTPS Certificate
+
+**The Bug**: The Admin Policies page disabled its Save button whenever HTTPS
+was enabled without a configured certificate PFX. An empty PFX is a supported
+configuration: the daemon generates a self-signed certificate at startup.
+Normal/default HTTPS installations therefore could not save any policy change
+from the page, even though the configuration was valid and other runtime
+configuration panels continued to work.
+
+**Files Affected**:
+- `src/web/src/components/System/AdminPolicies/index.jsx`
+- `src/web/src/components/System/AdminPolicies/index.test.jsx`
+
+**Prevention**: Treat an empty HTTPS PFX as the generated-certificate mode, not
+as a missing required field. Only block a guided save for values that the
+daemon actually requires, and keep a regression test for the default HTTPS
+configuration.
