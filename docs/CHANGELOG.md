@@ -36,6 +36,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed the Dependabot GitHub Actions configuration to use repository-relative
   excluded workflow paths, allowing automated dependency updates to pass
   Dependabot's configuration validation.
+- Kept Roslyn analyzer packages below 5.4.0 in Dependabot until the SDK,
+  vendored-runtime sync, and direct test references can move together.
 
 ## [2026082115-slskdn.316] — 2026-08-21
 
