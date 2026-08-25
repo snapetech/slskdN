@@ -33,6 +33,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Kept Dependabot on TypeScript 6.x until the installed typescript-eslint
   toolchain supports TypeScript 7, preventing incompatible frontend upgrades
   from being proposed repeatedly.
+- Fixed the Dependabot GitHub Actions configuration to use repository-relative
+  excluded workflow paths, allowing automated dependency updates to pass
+  Dependabot's configuration validation.
 
 ## [2026082115-slskdn.316] — 2026-08-21
 

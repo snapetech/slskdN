@@ -49,7 +49,7 @@ updates:
       day: "monday"
     open-pull-requests-limit: 5
     exclude-paths:
-      - "/.github/workflows/check-upstream-access.yml"
+      - ".github/workflows/check-upstream-access.yml"
     groups:
       github-actions-nonbreaking:
         patterns:

@@ -28948,3 +28948,17 @@ though no product regression was present.
 documentation change and update the durable count in the same change. Keep
 the scanner's output and the checked-in backlog synchronized before pushing a
 branch or reviewing dependency pull requests.
+
+### 0z887. Keep Dependabot Excluded Paths Relative To The Repository Root
+
+**The Bug**: Dependabot rejected the configuration before running any update
+checks because an `exclude-paths` entry began with `/`. Dependabot requires
+excluded paths to be relative to the repository root, so every automated
+dependency pull request inherited a configuration-validation failure.
+
+**Files Affected**:
+- `.github/dependabot.yml`
+
+**Prevention**: Write Dependabot `exclude-paths` entries without a leading
+slash and verify the configuration through a refreshed dependency pull
+request before treating the CI queue as a product failure.
