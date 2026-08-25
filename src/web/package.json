@@ -55,7 +55,7 @@
     "eslint-plugin-promise": "^7.3.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^14.0.0",
+    "globals": "^17.11.0",
     "jsdom": "^30.0.1",
     "less": "^4.9.0",
     "typescript": "^6.0.3",
