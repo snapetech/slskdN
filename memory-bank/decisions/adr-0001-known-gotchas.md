@@ -28929,3 +28929,22 @@ configuration panels continued to work.
 as a missing required field. Only block a guided save for values that the
 daemon actually requires, and keep a regression test for the default HTTPS
 configuration.
+
+### 0z886. Refresh Active Bughunt Counts With Release-Facing Text Changes
+
+**The Bug**: The active bughunt gate compared its generated candidate count
+with a durable count in `docs/dev/bug-council-active-backlog.md`. The scanner
+also includes release-facing documentation, so valid policy and release-note
+wording changes increased the `Red-team abuse lens` count while leaving the
+snapshot stale. Every affected pull request then failed the release gate even
+though no product regression was present.
+
+**Files Affected**:
+- `scripts/run-council-active-bughunt.sh`
+- `scripts/check-council-active-backlog.sh`
+- `docs/dev/bug-council-active-backlog.md`
+
+**Prevention**: Run the active backlog check after any source or scanned
+documentation change and update the durable count in the same change. Keep
+the scanner's output and the checked-in backlog synchronized before pushing a
+branch or reviewing dependency pull requests.
