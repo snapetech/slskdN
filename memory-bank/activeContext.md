@@ -13597,3 +13597,18 @@ rollback.
   staged in the working tree with the implementation.
 - Next steps: full Web/backend/lint/remediation validation, commit and push,
   then merge only all-green valid Dependabot PRs into `snapetech/slskdN/main`.
+
+## Update 2026-08-25 19:22:58Z
+
+- Current task: complete. The verified fork Dependabot queue is empty after
+  merging PRs `#307`, `#309`, `#311`, `#312`, `#315`, and `#317` into
+  `snapetech/slskdN/main`; local `main` was synchronized at `b070a7064` before
+  this documentation update.
+- All runnable hosted checks passed. PR `#317` needed one failed-job retry
+  after a transient `Messaging.test.jsx` timeout; the retry passed. Windows
+  Smoke remains queued because no runner matches its required labels.
+- No release tag was created. The dependency-only merges did not require a
+  new release-note fragment; existing release-note checks were skipped for
+  these Dependabot PRs.
+- Next steps: none for this queue. Do not create a release tag unless the user
+  explicitly requests one.

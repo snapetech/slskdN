@@ -16,6 +16,10 @@
     empty webhook/script drafts remain empty until complete; and incomplete
     guided policies are blocked with actionable messages. Added regression
     coverage, release notes, and gotcha `0z888`.
+  - Queue follow-up (2026-08-25): Verified and merged the remaining fork
+    Dependabot queue (`#307`, `#309`, `#311`, `#312`, `#315`, and `#317`). All
+    runnable hosted checks passed; Windows Smoke remains unvalidated because
+    no runner matches its required labels.
 
 - [x] Document Caddy reverse-proxy setup for the Web UI.
   - Status: completed (2026-08-24)

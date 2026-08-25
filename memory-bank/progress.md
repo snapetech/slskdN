@@ -12841,6 +12841,7 @@ HTTP listener on port `5030`, explains that port `5031` does not imply HTTPS to
 Caddy, and documents the explicit TLS transport and self-signed-certificate
 tradeoff for end-to-end proxying. Added the validated release-note fragment;
 no runtime code change was necessary.
+
 ## Update 2026-08-25 15:51:54Z
 
 - Audited guided configuration-save guards against backend defaults and
@@ -12852,3 +12853,11 @@ no runtime code change was necessary.
   and gotcha `0z888` in its required standalone documentation commit.
 - Next steps: run the full Web/backend/lint/remediation validation, commit and
   push the implementation, then continue the verified open PR queue.
+
+[2026-08-25T19:22:58Z] Completed the verified fork Dependabot queue. Merged
+PRs `#307`, `#309`, `#311`, `#312`, `#315`, and `#317` into `main`, ending at
+`b070a7064` before this documentation sync. All runnable hosted checks passed;
+PR `#317` passed after retrying one transient `Messaging.test.jsx` timeout.
+Windows Smoke remains unavailable because no runner matches its required
+labels. No release tag was created, and no new release-note fragment was
+needed for these dependency-only maintenance merges.
