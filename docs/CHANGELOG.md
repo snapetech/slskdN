@@ -27,6 +27,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   the `user:` alternative, ACL/NAS troubleshooting, and in-container checks.
 - Fixed the Admin Policies page disabling YAML saves for valid HTTPS setups
   that use slskdN's generated self-signed certificate instead of a PFX file.
+- Fixed Admin Policies validation for loopback-only no-auth and empty optional
+  webhook/script drafts, so valid saves are not blocked and unrelated saves do
+  not create invalid empty policies.
 - Updated CI so automated dependency pull requests are not rejected by the
   manual Unreleased changelog check; the separate release-note workflow still
   handles bot pull requests according to the repository contract.

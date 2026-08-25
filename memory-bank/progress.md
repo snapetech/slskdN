@@ -12841,3 +12841,14 @@ HTTP listener on port `5030`, explains that port `5031` does not imply HTTPS to
 Caddy, and documents the explicit TLS transport and self-signed-certificate
 tradeoff for end-to-end proxying. Added the validated release-note fragment;
 no runtime code change was necessary.
+## Update 2026-08-25 15:51:54Z
+
+- Audited guided configuration-save guards against backend defaults and
+  validation conditions after fixing issue #314.
+- Fixed Admin Policies so loopback-only no-auth does not require passthrough
+  CIDRs, empty optional webhook/script drafts do not serialize placeholder
+  policies, and incomplete policy drafts are reported before save.
+- Added focused regression coverage (`8/8`), release-note/changelog updates,
+  and gotcha `0z888` in its required standalone documentation commit.
+- Next steps: run the full Web/backend/lint/remediation validation, commit and
+  push the implementation, then continue the verified open PR queue.

@@ -9,6 +9,14 @@
 
 ### High Priority
 
+- [x] Fix Admin Policies validation mismatches found during the #314 audit.
+  - Status: completed (2026-08-25)
+  - Priority: P1
+  - Notes: Loopback-only no-auth no longer requires remote passthrough CIDRs;
+    empty webhook/script drafts remain empty until complete; and incomplete
+    guided policies are blocked with actionable messages. Added regression
+    coverage, release notes, and gotcha `0z888`.
+
 - [x] Document Caddy reverse-proxy setup for the Web UI.
   - Status: completed (2026-08-24)
   - Priority: P1

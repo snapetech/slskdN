@@ -157,6 +157,71 @@ describe('AdminPolicies', () => {
     expect(saved.retention.logs).toBe(180);
   });
 
+  it('does not invent empty webhook or script policies when saving other settings', async () => {
+    optionsApi.getYaml.mockResolvedValue('web:\n  authentication: {}\n');
+    optionsApi.updateYaml.mockResolvedValue({});
+    renderPolicies();
+
+    expect(screen.getByLabelText('Webhook policy name')).toHaveValue('');
+    expect(screen.getByLabelText('Script policy name')).toHaveValue('');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save YAML' }));
+
+    await waitFor(() => expect(optionsApi.updateYaml).toHaveBeenCalledTimes(1));
+    const saved = YAML.parse(optionsApi.updateYaml.mock.calls[0][0].yaml);
+
+    expect(saved.integrations).toBeUndefined();
+  });
+
+  it('requires complete webhook and script policy drafts', () => {
+    renderPolicies();
+
+    fireEvent.change(screen.getByLabelText('Webhook policy name'), {
+      target: { value: 'ops' },
+    });
+    fireEvent.change(screen.getByLabelText('Script policy name'), {
+      target: { value: 'local' },
+    });
+
+    expect(screen.getByRole('button', { name: 'Save YAML' })).toBeDisabled();
+    expect(screen.getByText('Webhook settings need a target URL.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Script settings need either a command or an executable.'),
+    ).toBeInTheDocument();
+  });
+
+  it('allows loopback-only no-auth without passthrough CIDRs', () => {
+    renderPolicies({
+      web: {
+        allowRemoteNoAuth: false,
+        authentication: {
+          disabled: true,
+        },
+      },
+    });
+
+    expect(screen.getByRole('button', { name: 'Save YAML' })).toBeEnabled();
+    expect(
+      screen.queryByText('Remote no-auth mode needs an explicit CIDR allowlist.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('still requires a CIDR allowlist for remote no-auth', () => {
+    renderPolicies({
+      web: {
+        allowRemoteNoAuth: true,
+        authentication: {
+          disabled: true,
+        },
+      },
+    });
+
+    expect(screen.getByRole('button', { name: 'Save YAML' })).toBeDisabled();
+    expect(
+      screen.getByText('Remote no-auth mode needs an explicit CIDR allowlist.'),
+    ).toBeInTheDocument();
+  });
+
   it('keeps save disabled when remote configuration is off', () => {
     render(<AdminPolicies options={{ remoteConfiguration: false }} />);
 

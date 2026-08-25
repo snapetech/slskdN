@@ -112,11 +112,11 @@ const buildForm = (options = {}) => {
   const sharesCache = getOption(getShareOptions(options), 'cache', 'Cache') || {};
   const webhooks = getOption(getIntegrationOptions(options), 'webhooks', 'Webhooks') || {};
   const scripts = getOption(getIntegrationOptions(options), 'scripts', 'Scripts') || {};
-  const firstWebhookName = Object.keys(webhooks)[0] || 'my_webhook';
+  const firstWebhookName = Object.keys(webhooks)[0] || '';
   const firstWebhook = webhooks[firstWebhookName] || {};
   const firstWebhookCall = getOption(firstWebhook, 'call', 'Call') || {};
   const firstWebhookRetry = getOption(firstWebhook, 'retry', 'Retry') || {};
-  const firstScriptName = Object.keys(scripts)[0] || 'my_script';
+  const firstScriptName = Object.keys(scripts)[0] || '';
   const firstScript = scripts[firstScriptName] || {};
   const firstScriptRun = getOption(firstScript, 'run', 'Run') || {};
   const firstApiKeyName = Object.keys(apiKeys)[0] || 'automation';
@@ -278,12 +278,26 @@ const AdminPolicies = ({ options = {} }) => {
     form.webhookUrl.trim() &&
       !form.webhookName.trim() &&
       'Webhook settings need a stable name.',
+    form.webhookName.trim() &&
+      !form.webhookUrl.trim() &&
+      'Webhook settings need a target URL.',
     form.scriptCommand.trim() &&
       !form.scriptName.trim() &&
       'Script settings need a stable name.',
+    form.scriptExecutable.trim() &&
+      !form.scriptName.trim() &&
+      'Script settings need a stable name.',
+    form.scriptName.trim() &&
+      !form.scriptCommand.trim() &&
+      !form.scriptExecutable.trim() &&
+      'Script settings need either a command or an executable.',
+    form.scriptCommand.trim() &&
+      form.scriptExecutable.trim() &&
+      'Script settings must use either a command or an executable, not both.',
     form.noAuth &&
+      form.allowRemoteNoAuth &&
       !form.passthroughCidrs.trim() &&
-      'No-auth mode should keep an explicit loopback CIDR allowlist.',
+      'Remote no-auth mode needs an explicit CIDR allowlist.',
     form.blacklistEnabled &&
       !form.blacklistFile.trim() &&
       'Managed blacklist needs a file path.',

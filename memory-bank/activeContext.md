@@ -13585,3 +13585,15 @@ rollback.
   fragment; no runtime code change was necessary.
 - Next steps: none for this task. Do not create a release tag unless
   explicitly requested.
+## Update 2026-08-25 15:51:54Z
+
+- Current task: complete the proactive Admin Policies validation audit related
+  to issue #314, then finish the open fork PR queue.
+- Confirmed and fixed two related mismatches: loopback-only no-auth accepts an
+  empty passthrough CIDR list, and empty webhook/script policy drafts must not
+  invent names or serialize invalid configuration.
+- Focused Admin Policies tests pass (`8/8`). Gotcha `0z888` is committed
+  separately as required; release-note and Unreleased changelog updates are
+  staged in the working tree with the implementation.
+- Next steps: full Web/backend/lint/remediation validation, commit and push,
+  then merge only all-green valid Dependabot PRs into `snapetech/slskdN/main`.
