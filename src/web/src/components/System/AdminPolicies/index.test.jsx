@@ -165,4 +165,20 @@ describe('AdminPolicies', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save YAML' })).toBeDisabled();
   });
+
+  it('allows saving when HTTPS uses the generated certificate', () => {
+    renderPolicies({
+      web: {
+        https: {
+          disabled: false,
+          certificate: {
+            pfx: '',
+          },
+        },
+      },
+    });
+
+    expect(screen.getByRole('button', { name: 'Save YAML' })).toBeEnabled();
+    expect(screen.queryByText('HTTPS needs a certificate PFX path.')).not.toBeInTheDocument();
+  });
 });

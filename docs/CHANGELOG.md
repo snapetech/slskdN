@@ -25,6 +25,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Documented Docker and Docker Compose permissions for multiple download
   destinations, including container-path mapping, `PUID`/`PGID` ownership,
   the `user:` alternative, ACL/NAS troubleshooting, and in-container checks.
+- Fixed the Admin Policies page disabling YAML saves for valid HTTPS setups
+  that use slskdN's generated self-signed certificate instead of a PFX file.
+- Updated CI so automated dependency pull requests are not rejected by the
+  manual Unreleased changelog check; the separate release-note workflow still
+  handles bot pull requests according to the repository contract.
 
 ## [2026082115-slskdn.316] — 2026-08-21
 

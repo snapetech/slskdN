@@ -95,7 +95,7 @@ jobs:
             packaging/aur/PKGBUILD-bin
 
       - name: Changelog Discipline Check
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.type != 'Bot'
         run: |
           bash scripts/validate-changelog-entry.sh \
             range \

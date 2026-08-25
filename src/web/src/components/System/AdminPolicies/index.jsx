@@ -284,9 +284,6 @@ const AdminPolicies = ({ options = {} }) => {
     form.noAuth &&
       !form.passthroughCidrs.trim() &&
       'No-auth mode should keep an explicit loopback CIDR allowlist.',
-    !form.httpsDisabled &&
-      !form.httpsCertificatePfx.trim() &&
-      'HTTPS needs a certificate PFX path.',
     form.blacklistEnabled &&
       !form.blacklistFile.trim() &&
       'Managed blacklist needs a file path.',
@@ -1113,7 +1110,7 @@ const AdminPolicies = ({ options = {} }) => {
                 <Form.Input
                   aria-label="HTTPS certificate PFX path"
                   disabled={!remoteConfiguration || saving}
-                  label="Certificate PFX"
+                  label="Certificate PFX (optional)"
                   onChange={(_, { value }) => update('httpsCertificatePfx', value)}
                   value={form.httpsCertificatePfx}
                 />
