@@ -9,6 +9,15 @@
 
 ### High Priority
 
+- [x] Cut the stable release `2026082519-slskdn.317`.
+  - Status: core release published (2026-08-25)
+  - Priority: P1
+  - Notes: The guarded local release gate passed, the tag-triggered hosted
+    gate and all six platform archive jobs passed, the GitHub Release contains
+    13 verified assets, and the post-release artifact verifier passed. Discord,
+    Homebrew, and AUR publication succeeded; Docker, COPR, Chocolatey, Nix,
+    and PPA publication remain asynchronous.
+
 - [x] Fix Admin Policies validation mismatches found during the #314 audit.
   - Status: completed (2026-08-25)
   - Priority: P1

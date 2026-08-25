@@ -12861,3 +12861,11 @@ PR `#317` passed after retrying one transient `Messaging.test.jsx` timeout.
 Windows Smoke remains unavailable because no runner matches its required
 labels. No release tag was created, and no new release-note fragment was
 needed for these dependency-only maintenance merges.
+
+[2026-08-25T20:06:30Z] Cut stable release `build-main-2026082519-slskdn.317`
+from `6d80f6978` after the guarded local release gate passed. The hosted Build
+gate and all six platform archive jobs passed; the GitHub Release published 13
+assets, and `scripts/verify-release-artifacts.sh` passed checksums, version,
+VPN helper, and bundled Web marker checks. Discord, Homebrew, and AUR
+publication succeeded; Docker, COPR, Chocolatey, Nix, and PPA publication
+remain asynchronous.

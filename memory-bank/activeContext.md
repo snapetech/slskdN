@@ -13612,3 +13612,18 @@ rollback.
   these Dependabot PRs.
 - Next steps: none for this queue. Do not create a release tag unless the user
   explicitly requests one.
+
+## Update 2026-08-25 20:06:30Z
+
+- Current task: complete for the stable release core. No dirty or untracked
+  files were present when the release request began; the release-prep changelog
+  commit `6d80f6978` was pushed before tagging.
+- Pushed `build-main-2026082519-slskdn.317` at `6d80f6978`. The guarded local
+  release gate passed, the hosted Build gate and all six platform archive jobs
+  passed, and the GitHub Release `2026082519-slskdn.317` published 13 assets.
+  `scripts/verify-release-artifacts.sh` passed checksums, version, VPN helper,
+  and bundled Web marker validation.
+- Discord, Homebrew, and AUR publication succeeded. Docker, COPR, Chocolatey,
+  Nix, and PPA publication are still running asynchronously.
+- Next steps: monitor the remaining downstream package jobs; do not create
+  another release tag for this release.
