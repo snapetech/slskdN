@@ -28962,3 +28962,19 @@ dependency pull request inherited a configuration-validation failure.
 **Prevention**: Write Dependabot `exclude-paths` entries without a leading
 slash and verify the configuration through a refreshed dependency pull
 request before treating the CI queue as a product failure.
+
+### 0z888. Match Guided Policy Guards To The Backend's Security Conditions
+
+**The Bug**: The Admin Policies page required passthrough CIDRs whenever
+authentication was disabled, even though loopback-only no-auth is valid with
+an empty allowlist. Its empty webhook and script placeholder names also caused
+an unrelated save to create invalid policies with missing required values.
+
+**Files Affected**:
+- `src/web/src/components/System/AdminPolicies/index.jsx`
+- `src/web/src/components/System/AdminPolicies/index.test.jsx`
+
+**Prevention**: Compare every guided-save guard with the backend validation
+condition, including the security mode that activates it. Optional policy
+drafts must remain empty until the user supplies a complete name and payload;
+never serialize placeholder names into configuration.
