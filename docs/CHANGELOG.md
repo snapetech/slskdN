@@ -30,6 +30,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Updated CI so automated dependency pull requests are not rejected by the
   manual Unreleased changelog check; the separate release-note workflow still
   handles bot pull requests according to the repository contract.
+- Kept Dependabot on TypeScript 6.x until the installed typescript-eslint
+  toolchain supports TypeScript 7, preventing incompatible frontend upgrades
+  from being proposed repeatedly.
 
 ## [2026082115-slskdn.316] — 2026-08-21
 
