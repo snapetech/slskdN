@@ -204,7 +204,7 @@ describe('Footer', () => {
     expect(getSlskdnStats).toHaveBeenCalledTimes(1);
   });
 
-  it('renders build info and checks for updates when logged out', async () => {
+  it('shows only attribution when logged out — no build badge, donation links, or telemetry', async () => {
     isLoggedIn.mockReturnValue(false);
     getBuild.mockResolvedValue({
       current: '0.0.0-slskdn.manual.local',
@@ -217,9 +217,11 @@ describe('Footer', () => {
 
     render(<Footer />);
 
-    expect(await screen.findByText('0.0.0-slskdn.manual.local')).toBeInTheDocument();
-    expect(screen.getByText('update 2026050500-slskdn.221')).toBeInTheDocument();
-    expect(getBuild).toHaveBeenCalledWith({ checkForUpdates: true });
+    expect(await screen.findByText('slskdN')).toBeInTheDocument();
+    expect(screen.getByText('slskd')).toBeInTheDocument();
+    expect(screen.queryByText('0.0.0-slskdn.manual.local')).not.toBeInTheDocument();
+    expect(screen.queryByText(/PayPal/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ko-fi/)).not.toBeInTheDocument();
     expect(getSlskdnStats).not.toHaveBeenCalled();
     expect(getSpeeds).not.toHaveBeenCalled();
   });

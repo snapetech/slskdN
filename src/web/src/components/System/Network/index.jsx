@@ -430,19 +430,24 @@ const Network = ({ theme }) => {
           >
             {networkHealth.label}
           </Progress>
-          <Label color="blue">
+          {/* These four are inputs to the score above, not states of their
+              own — one neutral pill style, not four unrelated hues. */}
+          <Label basic>
             Mesh
             <Label.Detail>{networkHealth.inputs.meshCount}</Label.Detail>
           </Label>
-          <Label color="teal">
+          <Label basic>
             Discovered
             <Label.Detail>{networkHealth.inputs.discoveredCount}</Label.Detail>
           </Label>
-          <Label color="purple">
+          <Label basic>
             DHT
             <Label.Detail>{networkHealth.inputs.dhtNodes}</Label.Detail>
           </Label>
-          <Label color="orange">
+          <Label
+            basic={networkHealth.inputs.securityWarningCount === 0}
+            color={networkHealth.inputs.securityWarningCount > 0 ? 'orange' : undefined}
+          >
             Security
             <Label.Detail>{networkHealth.inputs.securityWarningCount}</Label.Detail>
           </Label>

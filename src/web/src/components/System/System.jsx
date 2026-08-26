@@ -27,6 +27,17 @@ const Shares = lazy(() => import('./Shares'));
 const SourceProviders = lazy(() => import('./SourceProviders'));
 const SwarmAnalytics = lazy(() => import('./SwarmAnalytics'));
 
+// Six named groups instead of one 22-item flat tab strip. Order here is the
+// order sections appear in; a pane's `section` field below assigns it to one.
+const SECTIONS = [
+  { icon: 'home', key: 'overview', title: 'Overview' },
+  { icon: 'share alternate', key: 'network', title: 'Network & Mesh' },
+  { icon: 'shield alternate', key: 'security', title: 'Security & Trust' },
+  { icon: 'magic', key: 'automation', title: 'Automation & Jobs' },
+  { icon: 'heartbeat', key: 'diagnostics', title: 'Diagnostics' },
+  { icon: 'options', key: 'advanced', title: 'Advanced' },
+];
+
 const renderPane = (Component, props = {}, className) => (
   <Tab.Pane className={className}>
     <Suspense
@@ -88,6 +99,7 @@ const System = ({ options = {}, state = {}, theme }) => {
       ),
       render: () => renderPane(Info, { options, state, theme }),
       route: 'info',
+      section: 'overview',
     },
     {
       menuItem: (
@@ -101,87 +113,7 @@ const System = ({ options = {}, state = {}, theme }) => {
       ),
       render: () => renderPane(Network, { theme }),
       route: 'network',
-    },
-    {
-      menuItem: labeledMenuItem({
-        icon: 'share alternate',
-        key: 'mesh',
-        label: 'Experimental',
-        labelColor: 'violet',
-        text: 'Mesh',
-      }),
-      render: () => renderPane(Mesh),
-      route: 'mesh',
-    },
-    {
-      menuItem: labeledMenuItem({
-        icon: 'exchange',
-        key: 'bridge',
-        label: 'Experimental',
-        labelColor: 'violet',
-        text: 'Bridge',
-      }),
-      render: () => renderPane(Bridge),
-      route: 'bridge',
-    },
-    {
-      menuItem: labeledMenuItem({
-        icon: 'music',
-        key: 'mediacore',
-        label: 'Experimental',
-        labelColor: 'violet',
-        text: 'MediaCore',
-      }),
-      render: () => renderPane(MediaCore),
-      route: 'mediacore',
-    },
-    {
-      menuItem: {
-        content: 'Security',
-        icon: 'shield alternate',
-        key: 'security',
-      },
-      render: () => renderPane(Security),
-      route: 'security',
-    },
-    {
-      menuItem: labeledMenuItem({
-        icon: 'sliders horizontal',
-        key: 'policies',
-        label: 'Admin',
-        text: 'Policies',
-      }),
-      render: () => renderPane(AdminPolicies, { options }, 'full-height'),
-      route: 'policies',
-    },
-    {
-      menuItem: {
-        content: 'Experience',
-        icon: 'compass',
-        key: 'experience',
-      },
-      render: () => renderPane(ExperienceSettings, {}, 'full-height'),
-      route: 'experience',
-    },
-    {
-      menuItem: labeledMenuItem({
-        icon: 'plug',
-        key: 'integrations',
-        label: 'Admin',
-        text: 'Integrations',
-      }),
-      render: () => renderPane(Integrations, { options, state }, 'full-height'),
-      route: 'integrations',
-    },
-    {
-      menuItem: labeledMenuItem({
-        icon: 'options',
-        key: 'options',
-        label: 'Admin',
-        text: 'Options',
-      }),
-      render: () => renderPane(Options, { options, theme }, 'full-height'),
-      route: 'options',
+      section: 'overview',
     },
     {
       menuItem: (
@@ -203,25 +135,43 @@ const System = ({ options = {}, state = {}, theme }) => {
       ),
       render: () => renderPane(Shares, { state: state.shares, theme }),
       route: 'shares',
-    },
-    {
-      menuItem: {
-        content: 'Jobs',
-        icon: 'tasks',
-        key: 'jobs',
-      },
-      render: () => renderPane(Jobs, {}, 'full-height'),
-      route: 'jobs',
+      section: 'overview',
     },
     {
       menuItem: labeledMenuItem({
-        icon: 'magic',
-        key: 'automations',
-        label: 'Admin',
-        text: 'Automations',
+        icon: 'share alternate',
+        key: 'mesh',
+        label: 'Experimental',
+        labelColor: 'violet',
+        text: 'Mesh',
       }),
-      render: () => renderPane(AutomationCenter, {}, 'full-height'),
-      route: 'automations',
+      render: () => renderPane(Mesh),
+      route: 'mesh',
+      section: 'network',
+    },
+    {
+      menuItem: labeledMenuItem({
+        icon: 'exchange',
+        key: 'bridge',
+        label: 'Experimental',
+        labelColor: 'violet',
+        text: 'Bridge',
+      }),
+      render: () => renderPane(Bridge),
+      route: 'bridge',
+      section: 'network',
+    },
+    {
+      menuItem: labeledMenuItem({
+        icon: 'music',
+        key: 'mediacore',
+        label: 'Experimental',
+        labelColor: 'violet',
+        text: 'MediaCore',
+      }),
+      render: () => renderPane(MediaCore),
+      route: 'mediacore',
+      section: 'network',
     },
     {
       menuItem: labeledMenuItem({
@@ -233,6 +183,7 @@ const System = ({ options = {}, state = {}, theme }) => {
       }),
       render: () => renderPane(SourceProviders, {}, 'full-height'),
       route: 'source-providers',
+      section: 'network',
     },
     {
       menuItem: labeledMenuItem({
@@ -244,15 +195,28 @@ const System = ({ options = {}, state = {}, theme }) => {
       }),
       render: () => renderPane(SwarmAnalytics, {}, 'full-height'),
       route: 'swarm-analytics',
+      section: 'network',
     },
     {
       menuItem: {
-        content: 'Library Health',
-        icon: 'heartbeat',
-        key: 'library-health',
+        content: 'Security',
+        icon: 'shield alternate',
+        key: 'security',
       },
-      render: () => renderPane(LibraryHealth, {}, 'full-height'),
-      route: 'library-health',
+      render: () => renderPane(Security),
+      route: 'security',
+      section: 'security',
+    },
+    {
+      menuItem: labeledMenuItem({
+        icon: 'sliders horizontal',
+        key: 'policies',
+        label: 'Admin',
+        text: 'Policies',
+      }),
+      render: () => renderPane(AdminPolicies, { options }, 'full-height'),
+      route: 'policies',
+      section: 'security',
     },
     {
       menuItem: labeledMenuItem({
@@ -263,6 +227,48 @@ const System = ({ options = {}, state = {}, theme }) => {
       }),
       render: () => renderPane(QuarantineJury, {}, 'full-height'),
       route: 'quarantine-jury',
+      section: 'security',
+    },
+    {
+      menuItem: {
+        content: 'Jobs',
+        icon: 'tasks',
+        key: 'jobs',
+      },
+      render: () => renderPane(Jobs, {}, 'full-height'),
+      route: 'jobs',
+      section: 'automation',
+    },
+    {
+      menuItem: labeledMenuItem({
+        icon: 'magic',
+        key: 'automations',
+        label: 'Admin',
+        text: 'Automations',
+      }),
+      render: () => renderPane(AutomationCenter, {}, 'full-height'),
+      route: 'automations',
+      section: 'automation',
+    },
+    {
+      menuItem: {
+        content: 'Events',
+        icon: 'calendar check',
+        key: 'events',
+      },
+      render: () => renderPane(Events, {}, 'full-height'),
+      route: 'events',
+      section: 'automation',
+    },
+    {
+      menuItem: {
+        content: 'Library Health',
+        icon: 'heartbeat',
+        key: 'library-health',
+      },
+      render: () => renderPane(LibraryHealth, {}, 'full-height'),
+      route: 'library-health',
+      section: 'diagnostics',
     },
     {
       menuItem: {
@@ -272,6 +278,7 @@ const System = ({ options = {}, state = {}, theme }) => {
       },
       render: () => renderPane(Files, { options, theme }, 'full-height'),
       route: 'files',
+      section: 'diagnostics',
     },
     {
       menuItem: labeledMenuItem({
@@ -282,15 +289,7 @@ const System = ({ options = {}, state = {}, theme }) => {
       }),
       render: () => renderPane(Data, { theme }, 'full-height'),
       route: 'data',
-    },
-    {
-      menuItem: {
-        content: 'Events',
-        icon: 'calendar check',
-        key: 'events',
-      },
-      render: () => renderPane(Events, {}, 'full-height'),
-      route: 'events',
+      section: 'diagnostics',
     },
     {
       menuItem: labeledMenuItem({
@@ -301,6 +300,7 @@ const System = ({ options = {}, state = {}, theme }) => {
       }),
       render: () => renderPane(Logs),
       route: 'logs',
+      section: 'diagnostics',
     },
     {
       menuItem: labeledMenuItem({
@@ -311,6 +311,39 @@ const System = ({ options = {}, state = {}, theme }) => {
       }),
       render: () => renderPane(Metrics, {}, 'full-height'),
       route: 'metrics',
+      section: 'diagnostics',
+    },
+    {
+      menuItem: {
+        content: 'Experience',
+        icon: 'compass',
+        key: 'experience',
+      },
+      render: () => renderPane(ExperienceSettings, {}, 'full-height'),
+      route: 'experience',
+      section: 'advanced',
+    },
+    {
+      menuItem: labeledMenuItem({
+        icon: 'plug',
+        key: 'integrations',
+        label: 'Admin',
+        text: 'Integrations',
+      }),
+      render: () => renderPane(Integrations, { options, state }, 'full-height'),
+      route: 'integrations',
+      section: 'advanced',
+    },
+    {
+      menuItem: labeledMenuItem({
+        icon: 'options',
+        key: 'options',
+        label: 'Admin',
+        text: 'Options',
+      }),
+      render: () => renderPane(Options, { options, theme }, 'full-height'),
+      route: 'options',
+      section: 'advanced',
     },
   ];
 
@@ -321,23 +354,54 @@ const System = ({ options = {}, state = {}, theme }) => {
       '.ui.tabular.menu .active.item',
     );
     activeItem?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-  }, [activeIndex]);
-
-  const onTabChange = (_event, { activeIndex: newActiveIndex }) => {
-    navigate(`/system/${panes[newActiveIndex].route}`);
-  };
+  }, [tab]);
 
   if (tab === undefined || activeIndex === -1) {
     return <Navigate replace to={`/system/${panes[0].route}`} />;
   }
 
+  const activePane = panes[activeIndex];
+  const sectionPanes = panes.filter(
+    (pane) => pane.section === activePane.section,
+  );
+  const sectionActiveIndex = sectionPanes.findIndex(
+    (pane) => pane.route === activePane.route,
+  );
+
+  const onSectionTabChange = (_event, { activeIndex: newIndex }) => {
+    navigate(`/system/${sectionPanes[newIndex].route}`);
+  };
+
+  const onSectionSelect = (sectionKey) => {
+    const firstRoute = panes.find((pane) => pane.section === sectionKey)?.route;
+    if (firstRoute) {
+      navigate(`/system/${firstRoute}`);
+    }
+  };
+
   return (
     <div className="system" ref={systemRef}>
+      <Menu
+        className="system-section-menu"
+        pointing
+        secondary
+      >
+        {SECTIONS.map((section) => (
+          <Menu.Item
+            active={activePane.section === section.key}
+            key={section.key}
+            onClick={() => onSectionSelect(section.key)}
+          >
+            <Icon name={section.icon} />
+            {section.title}
+          </Menu.Item>
+        ))}
+      </Menu>
       <Segment raised>
         <Tab
-          activeIndex={activeIndex > -1 ? activeIndex : 0}
-          onTabChange={onTabChange}
-          panes={panes}
+          activeIndex={sectionActiveIndex > -1 ? sectionActiveIndex : 0}
+          onTabChange={onSectionTabChange}
+          panes={sectionPanes}
         />
       </Segment>
     </div>

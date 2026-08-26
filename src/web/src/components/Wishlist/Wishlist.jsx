@@ -1788,15 +1788,17 @@ const Wishlist = () => {
             />
           </div>
           <div className="wishlist-request-summary-grid">
-            <Label color="purple">
+            {/* Plain counts get a neutral pill; color is reserved for the two
+                pills below that actually report a state worth noticing. */}
+            <Label basic>
               Requests
               <Label.Detail>{requestSummary.total}</Label.Detail>
             </Label>
-            <Label color="green">
+            <Label basic>
               Enabled
               <Label.Detail>{requestSummary.enabled}</Label.Detail>
             </Label>
-            <Label color="blue">
+            <Label basic>
               Automatic
               <Label.Detail>{requestSummary.automatic}</Label.Detail>
             </Label>
@@ -1810,10 +1812,7 @@ const Wishlist = () => {
             </Label>
           </div>
           {requestCopyStatus && (
-            <Label
-              basic
-              color="purple"
-            >
+            <Label basic>
               {requestCopyStatus}
             </Label>
           )}

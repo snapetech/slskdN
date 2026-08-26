@@ -22,6 +22,21 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Replaced the dual violet+amber accent theme with a single-accent "Iris"
+  identity and four shared semantic colors (success/warning/danger/info),
+  used only for real state instead of decorating badges and buttons.
+- The player now collapses by default until explicitly expanded, instead of
+  always rendering at full size.
+- Grouped the top navigation's low-traffic items under Discover/Network/
+  Sharing dropdowns (15 flat items to 7) and grouped System settings' 22
+  tabs into 6 named sections instead of one flat, scrolling strip.
+- Neutralized badge/pill rows (Wishlist, Playlist Intake, Network health
+  legend, Source Providers) that colored plain categories or counts instead
+  of real states; fixed amber being reused for a CTA, a build badge, and an
+  alarm all at once.
+- The footer shows only attribution when logged out, not donation, build, or
+  live network telemetry chrome.
+
 ## [2026082519-slskdn.317] — 2026-08-25
 
 - Documented Docker and Docker Compose permissions for multiple download

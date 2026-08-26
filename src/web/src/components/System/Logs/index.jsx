@@ -83,6 +83,8 @@ class Logs extends Component {
     return (
       <div className="logs">
         <div style={{ marginBottom: '1em' }}>
+          {/* The one place severity color earns its keep: the selected filter
+              picks up the same color its rows render with below. */}
           <ButtonGroup>
             <Button
               active={filterLevel === 'all'}
@@ -92,18 +94,21 @@ class Logs extends Component {
             </Button>
             <Button
               active={filterLevel === 'Information'}
+              color={filterLevel === 'Information' ? 'blue' : undefined}
               onClick={() => this.handleFilterChange('Information')}
             >
               Info
             </Button>
             <Button
               active={filterLevel === 'Warning'}
+              color={filterLevel === 'Warning' ? 'yellow' : undefined}
               onClick={() => this.handleFilterChange('Warning')}
             >
               Warn
             </Button>
             <Button
               active={filterLevel === 'Error'}
+              color={filterLevel === 'Error' ? 'red' : undefined}
               onClick={() => this.handleFilterChange('Error')}
             >
               Error

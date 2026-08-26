@@ -66,42 +66,79 @@ describe('System', () => {
     expect(await screen.findByTestId('location')).toHaveTextContent('/system/info');
   });
 
-  it('labels admin and experimental system panels in the tab menu', async () => {
-    render(
-      <MemoryRouter initialEntries={['/system/info']}>
-        <Routes>
-          <Route
-            element={<System />}
-            path="/system/:tab"
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
+  const renderAtTab = (tab) => render(
+    <MemoryRouter initialEntries={[`/system/${tab}`]}>
+      <Routes>
+        <Route
+          element={<System />}
+          path="/system/:tab"
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
 
-    expect(await screen.findByText('MediaCore')).toBeInTheDocument();
+  it('groups the 22 settings tabs into named sections instead of one flat strip', async () => {
+    renderAtTab('info');
 
     [
-      'Mesh',
-      'Bridge',
-      'MediaCore',
-      'Source Providers',
-      'Swarm Analytics',
-    ].forEach((panel) => {
+      'Overview',
+      'Network & Mesh',
+      'Security & Trust',
+      'Automation & Jobs',
+      'Diagnostics',
+      'Advanced',
+    ].forEach((section) => {
+      expect(screen.getByText(section)).toBeInTheDocument();
+    });
+
+    // Only the active section's tabs render at once — the other 19 aren't
+    // dumped into the DOM alongside them.
+    expect(await screen.findByText('Info')).toBeInTheDocument();
+    expect(screen.getByText('Network')).toBeInTheDocument();
+    expect(screen.getByText('Shares')).toBeInTheDocument();
+    expect(screen.queryByText('MediaCore')).not.toBeInTheDocument();
+    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
+  });
+
+  it('labels experimental panels within the Network & Mesh section', async () => {
+    renderAtTab('mesh');
+
+    expect(await screen.findByText('MediaCore')).toBeInTheDocument();
+    ['Mesh', 'Bridge', 'MediaCore', 'Source Providers', 'Swarm Analytics'].forEach(
+      (panel) => {
+        expect(
+          within(screen.getByText(panel).closest('.item')).getByText('Experimental'),
+        ).toBeInTheDocument();
+      },
+    );
+  });
+
+  it('labels admin panels within the section each one belongs to', async () => {
+    renderAtTab('policies');
+    expect(await screen.findByText('Policies')).toBeInTheDocument();
+    ['Policies', 'Quarantine Jury'].forEach((panel) => {
       expect(
-        within(screen.getByText(panel).closest('.item')).getByText('Experimental'),
+        within(screen.getByText(panel).closest('.item')).getByText('Admin'),
       ).toBeInTheDocument();
     });
 
-    [
-      'Policies',
-      'Integrations',
-      'Options',
-      'Automations',
-      'Quarantine Jury',
-      'Data',
-      'Logs',
-      'Metrics',
-    ].forEach((panel) => {
+    renderAtTab('automations');
+    expect(await screen.findByText('Automations')).toBeInTheDocument();
+    expect(
+      within(screen.getByText('Automations').closest('.item')).getByText('Admin'),
+    ).toBeInTheDocument();
+
+    renderAtTab('data');
+    expect(await screen.findByText('Data')).toBeInTheDocument();
+    ['Data', 'Logs', 'Metrics'].forEach((panel) => {
+      expect(
+        within(screen.getByText(panel).closest('.item')).getByText('Admin'),
+      ).toBeInTheDocument();
+    });
+
+    renderAtTab('integrations');
+    expect(await screen.findByText('Integrations')).toBeInTheDocument();
+    ['Integrations', 'Options'].forEach((panel) => {
       expect(
         within(screen.getByText(panel).closest('.item')).getByText('Admin'),
       ).toBeInTheDocument();

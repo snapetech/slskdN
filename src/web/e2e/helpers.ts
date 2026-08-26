@@ -530,6 +530,25 @@ export async function goto(page: Page, node: NodeCfg, route: string) {
 }
 
 export async function clickNav(page: Page, testId: string) {
+  // Some destinations live inside a collapsed nav group (Discover / Network /
+  // Sharing dropdowns) — open the enclosing dropdown first if the target
+  // exists in the DOM but isn't visible yet.
+  const targetInDom = page.locator(`[data-testid="${testId}"]`).first();
+  if (await targetInDom.count()) {
+    const alreadyVisible = await targetInDom.isVisible().catch(() => false);
+    if (!alreadyVisible) {
+      const enclosingDropdown = page
+        .locator(`.navigation .ui.dropdown:has([data-testid="${testId}"])`)
+        .first();
+      if (await enclosingDropdown.count()) {
+        await enclosingDropdown.click();
+        await targetInDom
+          .waitFor({ state: 'visible', timeout: 5_000 })
+          .catch(() => {});
+      }
+    }
+  }
+
   // The Link component wraps the Menu.Item, so we need to find the Link that contains the Menu.Item
   // Try multiple approaches to find the clickable element
   const menuItem = page.getByTestId(testId);

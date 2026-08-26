@@ -304,6 +304,38 @@ class Footer extends Component {
       ? `DHT peers: ${displayedDhtPeers}; DHT nodes: ${dhtNodes}; mesh peers: ${meshPeers}; hashes: ${hashCount}; seq: ${seqId}`
       : 'Login to see slskdN network stats';
 
+    if (!isLoggedIn) {
+      // Nothing here is real yet — no donation asks, build badge, or live
+      // telemetry before someone has even signed in. Just attribution.
+      return (
+        <footer
+          className="slskdn-footer slskdn-footer-minimal"
+          ref={this.footerRef}
+        >
+          <span className="slskdn-footer-copyright">
+            © {year}{' '}
+            <a
+              href={GITHUB_BASE}
+              rel="noopener noreferrer"
+              target="_blank"
+              title="slskdN project"
+            >
+              slskdN
+            </a>
+            <span className="slskdn-footer-note">unofficial fork of</span>
+            <a
+              href={SLSKD_GITHUB}
+              rel="noopener noreferrer"
+              target="_blank"
+              title="slskd upstream project"
+            >
+              slskd
+            </a>
+          </span>
+        </footer>
+      );
+    }
+
     return (
       <footer
         className="slskdn-footer"

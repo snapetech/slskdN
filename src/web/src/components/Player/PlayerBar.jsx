@@ -2108,9 +2108,12 @@ const PlayerBar = () => {
   const [localMuted, setLocalMuted] = useState(() =>
     readStoredBoolean(localMuteStorageKey),
   );
-  const [collapsed, setCollapsed] = useState(() =>
-    readStoredBoolean(collapsedStorageKey),
-  );
+  const [collapsed, setCollapsed] = useState(() => {
+    // Auto-hide by default: an unset preference collapses the player so it
+    // doesn't dominate the layout before the user has ever played anything.
+    const stored = getLocalStorageItem(collapsedStorageKey);
+    return stored === null ? true : stored === 'true';
+  });
   const [playing, setPlaying] = useState(false);
   const [visualizerMode, setVisualizerMode] = useState(() =>
     readStoredBoolean(visualizerStorageKey) ? 'inline' : 'off',

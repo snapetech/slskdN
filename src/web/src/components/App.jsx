@@ -20,6 +20,7 @@ import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify';
 import {
   Button,
+  Dropdown,
   Header,
   Icon,
   Loader,
@@ -1067,30 +1068,6 @@ class App extends Component {
                       Search
                     </Menu.Item>
                   </NavLink>
-                  <NavLink to="/discovery-graph">
-                    <Menu.Item data-testid="nav-discovery-graph">
-                      <Icon name="crosshairs" />
-                      Discovery Graph
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/playlist-intake">
-                    <Menu.Item data-testid="nav-playlist-intake">
-                      <Icon name="list alternate outline" />
-                      Playlist Intake
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/wishlist">
-                    <Menu.Item data-testid="nav-wishlist">
-                      <Icon name="star" />
-                      Wishlist
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/lidarr">
-                    <Menu.Item data-testid="nav-lidarr">
-                      <Icon name="music" />
-                      Lidarr
-                    </Menu.Item>
-                  </NavLink>
                   <NavLink to="/downloads">
                     <Menu.Item data-testid="nav-downloads">
                       <Icon name="download" />
@@ -1115,48 +1092,117 @@ class App extends Component {
                       Messages
                     </Menu.Item>
                   </NavLink>
-                  <NavLink to="/users">
-                    <Menu.Item data-testid="nav-users">
-                      <Icon name="users" />
-                      Users
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/contacts">
-                    <Menu.Item data-testid="nav-contacts">
-                      <Icon name="address book" />
-                      Contacts
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/solid">
-                    <Menu.Item data-testid="nav-solid">
-                      <Icon name="key" />
-                      Solid
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/collections">
-                    <Menu.Item data-testid="nav-collections">
-                      <Icon name="list" />
-                      Collections
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/sharegroups">
-                    <Menu.Item data-testid="nav-groups">
-                      <Icon name="users" />
-                      Share Groups
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/shared">
-                    <Menu.Item data-testid="nav-shared-with-me">
-                      <Icon name="share" />
-                      Shared with Me
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/browse">
-                    <Menu.Item data-testid="nav-browse">
-                      <Icon name="folder open" />
-                      Browse
-                    </Menu.Item>
-                  </NavLink>
+
+                  <Dropdown
+                    icon={null}
+                    item
+                    trigger={(
+                      <>
+                        <Icon name="compass outline" />
+                        Discover
+                        <Icon name="dropdown" />
+                      </>
+                    )}
+                  >
+                    <Dropdown.Menu>
+                      <NavLink to="/discovery-graph">
+                        <Dropdown.Item data-testid="nav-discovery-graph">
+                          <Icon name="crosshairs" />
+                          Discovery Graph
+                        </Dropdown.Item>
+                      </NavLink>
+                      <NavLink to="/playlist-intake">
+                        <Dropdown.Item data-testid="nav-playlist-intake">
+                          <Icon name="list alternate outline" />
+                          Playlist Intake
+                        </Dropdown.Item>
+                      </NavLink>
+                      <NavLink to="/wishlist">
+                        <Dropdown.Item data-testid="nav-wishlist">
+                          <Icon name="star" />
+                          Wishlist
+                        </Dropdown.Item>
+                      </NavLink>
+                      <NavLink to="/lidarr">
+                        <Dropdown.Item data-testid="nav-lidarr">
+                          <Icon name="music" />
+                          Lidarr
+                        </Dropdown.Item>
+                      </NavLink>
+                    </Dropdown.Menu>
+                  </Dropdown>
+
+                  <Dropdown
+                    icon={null}
+                    item
+                    trigger={(
+                      <>
+                        <Icon name="user circle outline" />
+                        Network
+                        <Icon name="dropdown" />
+                      </>
+                    )}
+                  >
+                    <Dropdown.Menu>
+                      <NavLink to="/users">
+                        <Dropdown.Item data-testid="nav-users">
+                          <Icon name="users" />
+                          Users
+                        </Dropdown.Item>
+                      </NavLink>
+                      <NavLink to="/contacts">
+                        <Dropdown.Item data-testid="nav-contacts">
+                          <Icon name="address book" />
+                          Contacts
+                        </Dropdown.Item>
+                      </NavLink>
+                      <NavLink to="/solid">
+                        <Dropdown.Item data-testid="nav-solid">
+                          <Icon name="key" />
+                          Solid
+                        </Dropdown.Item>
+                      </NavLink>
+                    </Dropdown.Menu>
+                  </Dropdown>
+
+                  <Dropdown
+                    icon={null}
+                    item
+                    trigger={(
+                      <>
+                        <Icon name="share alternate" />
+                        Sharing
+                        <Icon name="dropdown" />
+                      </>
+                    )}
+                  >
+                    <Dropdown.Menu>
+                      <NavLink to="/collections">
+                        <Dropdown.Item data-testid="nav-collections">
+                          <Icon name="list" />
+                          Collections
+                        </Dropdown.Item>
+                      </NavLink>
+                      <NavLink to="/sharegroups">
+                        <Dropdown.Item data-testid="nav-groups">
+                          <Icon name="users" />
+                          Share Groups
+                        </Dropdown.Item>
+                      </NavLink>
+                      <NavLink to="/shared">
+                        <Dropdown.Item data-testid="nav-shared-with-me">
+                          <Icon name="share" />
+                          Shared with Me
+                        </Dropdown.Item>
+                      </NavLink>
+                      <NavLink to="/browse">
+                        <Dropdown.Item data-testid="nav-browse">
+                          <Icon name="folder open" />
+                          Browse
+                        </Dropdown.Item>
+                      </NavLink>
+                    </Dropdown.Menu>
+                  </Dropdown>
                 </>
               )}
             </div>

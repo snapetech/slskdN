@@ -228,15 +228,17 @@ const PlaylistIntake = () => {
       </Form>
 
       <div className="playlist-intake-summary">
-        <Label color="blue">
+        <Label basic>
           Playlists
           <Label.Detail>{summary.total}</Label.Detail>
         </Label>
-        <Label color="green">
+        <Label basic>
           Tracks
           <Label.Detail>{summary.tracks}</Label.Detail>
         </Label>
-        <Label color="orange">
+        {/* Orange only once there's actually something unmatched to fix —
+            not on a fresh, expected zero. */}
+        <Label color={summary.unmatched > 0 ? 'orange' : 'grey'}>
           Unmatched
           <Label.Detail>{summary.unmatched}</Label.Detail>
         </Label>

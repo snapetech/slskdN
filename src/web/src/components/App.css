@@ -11,39 +11,49 @@
 }
 
 :root.dark {
-    --slskd-primary-background: #0e1012;
-    --slskd-secondary-background: #171615;
-    --slskd-overlay-background: #201b16;
-    --slskd-tertiary-background: #2a241d;
-    --slskd-tertiary-border-color: rgba(214, 168, 104, 0.24);
-    --slskd-subtle-background: rgba(214, 168, 104, 0.13);
-    --slskd-color: #f1eadf;
-    --slskd-color-subtle: #c5b7a7;
-    --slskd-hover-background: #372d23;
-    --slskd-color-inset: #070809;
-    --slskd-emphasis-background: #8a6338;
-    --slskdn-accent-primary: #b89af6;
-    --slskdn-accent-primary-hover: #d9c7ff;
-    --slskdn-accent-primary-muted: rgba(184, 154, 246, 0.14);
-    --slskdn-accent-primary-border: rgba(184, 154, 246, 0.26);
-    --slskdn-accent-warm: #d7a16b;
-    --slskdn-accent-warm-hover: #f0bc83;
-    --slskdn-accent-warm-muted: rgba(215, 161, 107, 0.2);
-    --slskdn-nav-background: #151210;
-    --slskdn-nav-border: rgba(215, 161, 107, 0.34);
-    --slskdn-theme-trigger-background: #2a241d;
-    --slskdn-theme-trigger-hover-background: #3c3125;
-    --slskdn-theme-menu-background: #201b16;
-    --slskdn-theme-menu-active-background: #5d4328;
-    --slskdn-theme-menu-shadow: 0 16px 38px rgba(0, 0, 0, 0.58), 0 0 22px rgba(215, 161, 107, 0.12);
-    --slskdn-footer-background: linear-gradient(135deg, #0e1012 0%, #221b14 54%, #11100e 100%);
-    --slskdn-footer-shadow: 0 -10px 30px rgba(0, 0, 0, 0.58), 0 -1px 0 rgba(215, 161, 107, 0.28);
-    --slskdn-surface-shadow: 0 18px 46px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.045);
-    --slskdn-surface-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.035);
-    --slskdn-focus-ring: 0 0 0 3px rgba(215, 161, 107, 0.26);
-    --slskdn-affordance-hover-background: rgba(215, 161, 107, 0.14);
-    --slskdn-affordance-active-background: rgba(215, 161, 107, 0.24);
-    --slskdn-affordance-outline: #edc08f;
+    /* Iris — one accent, warm graphite neutrals. See docs/design/iris-oxide.md */
+    --slskd-primary-background: #17151a;
+    --slskd-secondary-background: #1f1c24;
+    --slskd-overlay-background: #211d28;
+    --slskd-tertiary-background: #2a2531;
+    --slskd-tertiary-border-color: rgba(156, 124, 240, 0.22);
+    --slskd-subtle-background: rgba(156, 124, 240, 0.12);
+    --slskd-color: #edeaf2;
+    --slskd-color-subtle: #a79fb0;
+    --slskd-hover-background: #322c3b;
+    --slskd-color-inset: #0c0a10;
+    --slskd-emphasis-background: #4a3a78;
+    --slskdn-accent-primary: #9c7cf0;
+    --slskdn-accent-primary-hover: #b79bf6;
+    --slskdn-accent-primary-muted: rgba(156, 124, 240, 0.14);
+    --slskdn-accent-primary-border: rgba(156, 124, 240, 0.28);
+    /* Kept as an alias of the single accent — nothing should introduce a second hue. */
+    --slskdn-accent-warm: var(--slskdn-accent-primary);
+    --slskdn-accent-warm-hover: var(--slskdn-accent-primary-hover);
+    --slskdn-accent-warm-muted: var(--slskdn-accent-primary-muted);
+    --slskdn-success: #4fb477;
+    --slskdn-success-muted: rgba(79, 180, 119, 0.16);
+    --slskdn-warning: #d9a441;
+    --slskdn-warning-muted: rgba(217, 164, 65, 0.16);
+    --slskdn-danger: #e1594f;
+    --slskdn-danger-muted: rgba(225, 89, 79, 0.16);
+    --slskdn-info: #4c9fe0;
+    --slskdn-info-muted: rgba(76, 159, 224, 0.16);
+    --slskdn-nav-background: #18151c;
+    --slskdn-nav-border: rgba(156, 124, 240, 0.24);
+    --slskdn-theme-trigger-background: #2a2531;
+    --slskdn-theme-trigger-hover-background: #3a3344;
+    --slskdn-theme-menu-background: #211d28;
+    --slskdn-theme-menu-active-background: #423a52;
+    --slskdn-theme-menu-shadow: 0 16px 38px rgba(0, 0, 0, 0.5);
+    --slskdn-footer-background: var(--slskd-primary-background);
+    --slskdn-footer-shadow: 0 -1px 0 rgba(156, 124, 240, 0.14);
+    --slskdn-surface-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+    --slskdn-surface-shadow-soft: 0 6px 16px rgba(0, 0, 0, 0.24);
+    --slskdn-focus-ring: 0 0 0 3px rgba(156, 124, 240, 0.32);
+    --slskdn-affordance-hover-background: rgba(156, 124, 240, 0.12);
+    --slskdn-affordance-active-background: rgba(156, 124, 240, 0.2);
+    --slskdn-affordance-outline: #b79bf6;
 
     --background-color: var(--slskd-primary-background) !important;
 
@@ -141,11 +151,11 @@
     --slskdn-accent-primary-hover: #79c0ff;
     --slskdn-accent-primary-muted: rgba(88, 166, 255, 0.15);
     --slskdn-accent-primary-border: rgba(88, 166, 255, 0.2);
-    --slskdn-accent-warm: #f0883e;
-    --slskdn-accent-warm-hover: #ffa657;
-    --slskdn-accent-warm-muted: rgba(240, 136, 62, 0.18);
-    --slskdn-footer-background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
-    --slskdn-footer-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    --slskdn-accent-warm: var(--slskdn-accent-primary);
+    --slskdn-accent-warm-hover: var(--slskdn-accent-primary-hover);
+    --slskdn-accent-warm-muted: var(--slskdn-accent-primary-muted);
+    --slskdn-footer-background: var(--slskd-primary-background);
+    --slskdn-footer-shadow: 0 -1px 0 rgba(88, 166, 255, 0.14);
     --smui-site-link-color: #58a6ff;
     --smui-table-row-warning-background-color:rgba(187,128,9,0.15);
     --smui-table-row-warning-border-color: rgba(187,128,9,0.4);
@@ -248,7 +258,6 @@ body {
 :root.dark .app-content a[href]:hover,
 :root.dark .app-content a[href]:focus-visible {
     color: var(--slskdn-accent-primary-hover) !important;
-    text-shadow: 0 0 12px rgba(199, 167, 255, 0.28);
 }
 
 :root.dark .app-content .ui.selectable.table tbody tr:hover,
@@ -259,7 +268,6 @@ body {
 :root.dark .ui.dropdown:hover,
 :root.dark .ui.selection.dropdown:hover {
     border-color: var(--slskdn-accent-primary-border) !important;
-    box-shadow: 0 0 0 1px rgba(199, 167, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
 :root.dark .ui.checkbox label:hover,
@@ -344,7 +352,7 @@ body {
 
 :root.dark .ui.table thead th,
 :root.dark .ui.table tfoot th {
-    background: linear-gradient(180deg, rgba(199, 167, 255, 0.18), rgba(199, 167, 255, 0.07)), var(--slskd-tertiary-background) !important;
+    background: var(--slskd-tertiary-background) !important;
     color: var(--slskd-color) !important;
 }
 
@@ -426,7 +434,7 @@ body {
 }
 
 :root.dark .ui.modal {
-    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.68), 0 0 0 1px rgba(199, 167, 255, 0.22) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* Keep modal interactions above fixed navigation, player, and footer chrome. */
@@ -479,9 +487,8 @@ body {
 
 :root.dark .ui.button:not(.red):not(.orange):not(.yellow):not(.olive):not(.green):not(.teal):not(.blue):not(.violet):not(.purple):not(.pink):not(.brown):not(.grey):not(.black):not(.basic):hover,
 :root.dark .ui.button:not(.red):not(.orange):not(.yellow):not(.olive):not(.green):not(.teal):not(.blue):not(.violet):not(.purple):not(.pink):not(.brown):not(.grey):not(.black):not(.basic):focus {
-    background: linear-gradient(180deg, rgba(199, 167, 255, 0.26), rgba(199, 167, 255, 0.08)), var(--slskd-hover-background) !important;
+    background: var(--slskd-hover-background) !important;
     border-color: var(--slskdn-accent-primary-border) !important;
-    box-shadow: 0 9px 24px rgba(0, 0, 0, 0.34), var(--slskdn-focus-ring) !important;
     color: var(--slskdn-accent-primary-hover) !important;
 }
 

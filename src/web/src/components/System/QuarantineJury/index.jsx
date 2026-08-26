@@ -347,7 +347,15 @@ const QuarantineJury = () => {
             <Statistic.Value>{normalizedRequests.length}</Statistic.Value>
             <Statistic.Label>Requests</Statistic.Label>
           </Statistic>
-          <Statistic color={aggregate.quorumReached ? 'green' : 'orange'}>
+          {/* Nothing to review yet isn't a warning state — only color these
+              once a verdict has actually been cast. */}
+          <Statistic
+            color={
+              aggregate.totalVerdicts === 0
+                ? undefined
+                : aggregate.quorumReached ? 'green' : 'orange'
+            }
+          >
             <Statistic.Value>{aggregate.totalVerdicts}</Statistic.Value>
             <Statistic.Label>Verdicts</Statistic.Label>
           </Statistic>
@@ -355,8 +363,10 @@ const QuarantineJury = () => {
             <Statistic.Value>{aggregate.requiredVotes}</Statistic.Value>
             <Statistic.Label>Required</Statistic.Label>
           </Statistic>
-          <Statistic color={verdictColor(aggregate.recommendation)}>
-            <Statistic.Value>{normalizeVerdict(aggregate.recommendation)}</Statistic.Value>
+          <Statistic color={aggregate.totalVerdicts === 0 ? undefined : verdictColor(aggregate.recommendation)}>
+            <Statistic.Value>
+              {aggregate.totalVerdicts === 0 ? 'No verdicts yet' : normalizeVerdict(aggregate.recommendation)}
+            </Statistic.Value>
             <Statistic.Label>Recommendation</Statistic.Label>
           </Statistic>
         </Statistic.Group>

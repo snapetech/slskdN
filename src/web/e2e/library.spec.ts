@@ -53,9 +53,11 @@ test.describe('library ingest', () => {
     await waitForHealth(request, nodeA.baseUrl);
     await login(page, nodeA);
 
-    // Wait for browse nav to appear (sidebar loads after login)
+    // Wait for the nav sidebar to load after login. Browse now lives inside
+    // the collapsed "Sharing" nav group, so it's attached but not visible
+    // until clickNav opens that dropdown below.
     const browseNav = page.getByTestId(T.navBrowse);
-    await expect(browseNav).toBeVisible({ timeout: 15_000 });
+    await expect(browseNav).toBeAttached({ timeout: 15_000 });
 
     await clickNav(page, T.navBrowse);
     await page.waitForLoadState('domcontentloaded', { timeout: 5_000 });
