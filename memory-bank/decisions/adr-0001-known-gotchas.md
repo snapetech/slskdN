@@ -28978,3 +28978,33 @@ an unrelated save to create invalid policies with missing required values.
 condition, including the security mode that activates it. Optional policy
 drafts must remain empty until the user supplies a complete name and payload;
 never serialize placeholder names into configuration.
+
+### 0z889. Preserve Existing Secrets When Optional Replacement Is Blank
+
+**The Bug**: While preventing an empty API-key policy from being created, a
+save path could treat an existing configured key and a blank replacement field
+as permission to write an empty key, silently deleting the secret.
+
+**Files Affected**:
+- `src/web/src/components/System/AdminPolicies/index.jsx`
+
+**Wrong**:
+```javascript
+if (existingKey || replacement.trim()) {
+  document.setIn([...base, 'key'], replacement.trim());
+}
+```
+
+**Correct**:
+```javascript
+if (existingKey || replacement.trim()) {
+  if (replacement.trim()) {
+    document.setIn([...base, 'key'], replacement.trim());
+  }
+}
+```
+
+**Why This Keeps Happening**: Secret replacement inputs are intentionally
+blank when a value is already configured. The blank value means “preserve the
+existing secret,” not “clear it”; only an explicit replacement should update
+the serialized key.
