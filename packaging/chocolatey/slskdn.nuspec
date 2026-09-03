@@ -5,8 +5,15 @@
     <version>2026090318-slskdn.318</version>
     <title>slskdn</title>
     <authors>snapetech</authors>
+    <owners>slskdn</owners>
     <projectUrl>https://github.com/snapetech/slskdn</projectUrl>
+    <iconUrl>https://cdn.jsdelivr.net/gh/snapetech/slskdn@main/etc/icon.svg</iconUrl>
     <licenseUrl>https://github.com/snapetech/slskdn/blob/main/LICENSE</licenseUrl>
+    <packageSourceUrl>https://github.com/snapetech/slskdn/tree/main/packaging/chocolatey</packageSourceUrl>
+    <projectSourceUrl>https://github.com/snapetech/slskdn</projectSourceUrl>
+    <docsUrl>https://github.com/snapetech/slskdn/blob/main/docs/README.md</docsUrl>
+    <bugTrackerUrl>https://github.com/snapetech/slskdn/issues</bugTrackerUrl>
+    <releaseNotes>https://github.com/snapetech/slskdn/releases/tag/2026090318-slskdn.318</releaseNotes>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <tags>slskdn soulseek p2p community-service content-sharing</tags>
     <summary>slskdN, an unofficial batteries-included fork of slskd</summary>

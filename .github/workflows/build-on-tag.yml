@@ -1195,51 +1195,102 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $Version = "${{ needs.parse.outputs.version }}"
-          $PackageVersion = $Version -replace '^(\d{10})-slskdn\.(\d+)$', '$1.0.0-slskdn.$2'
+          if ($Version -notmatch '^(\d{10})-slskdn\.(\d+)$') {
+            Write-Error "Unsupported stable release version for Chocolatey: $Version"
+            exit 1
+          }
+          $PackageVersion = "$($Matches[1]).0.0.$($Matches[2])"
+          if ($PackageVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+            Write-Error "Chocolatey package version is not numeric: $PackageVersion"
+            exit 1
+          }
           $Url = "https://github.com/${{ github.repository }}/releases/download/${{ needs.parse.outputs.version }}/slskdn-main-win-x64.zip"
           $Checksum = (Get-FileHash slskdn-main-win-x64.zip -Algorithm SHA256).Hash
           (Get-Content packaging/chocolatey/slskdn.nuspec) -replace '<version>.*</version>', "<version>$PackageVersion</version>" | Set-Content packaging/chocolatey/slskdn.nuspec
+          (Get-Content packaging/chocolatey/slskdn.nuspec) -replace '<releaseNotes>.*</releaseNotes>', "<releaseNotes>https://github.com/${{ github.repository }}/releases/tag/$Version</releaseNotes>" | Set-Content packaging/chocolatey/slskdn.nuspec
           (Get-Content packaging/chocolatey/tools/chocolateyinstall.ps1) -replace '\$url\s*=\s*".*"', "`$url = `"$Url`"" | Set-Content packaging/chocolatey/tools/chocolateyinstall.ps1
           (Get-Content packaging/chocolatey/tools/chocolateyinstall.ps1) -replace '\$checksum\s*=\s*".*"', "`$checksum = `"$Checksum`"" | Set-Content packaging/chocolatey/tools/chocolateyinstall.ps1
           cd packaging/chocolatey
           choco pack
           
-          # Find the exact nupkg file
-          $nupkg = Get-ChildItem -Filter "*.nupkg" | Select-Object -First 1
-          if (-not $nupkg) { Write-Error "No .nupkg file found"; exit 1 }
-          Write-Host "Pushing: $($nupkg.FullName)"
-          
-          # Use cmd /c to completely bypass PowerShell argument parsing
-          # Retry on 504/timeout
-          $nupkgPath = $nupkg.FullName
-          $apiKey = $env:CHOCO_API_KEY
-          $maxRetries = 5
-          $retryCount = 0
-          $success = $false
-          while ($retryCount -lt $maxRetries -and -not $success) {
-            $pushOutput = cmd /c "choco push `"$nupkgPath`" --source https://push.chocolatey.org/ --api-key $apiKey --execution-timeout 300 2>&1"
-            $pushText = $pushOutput -join "`n"
-            Write-Host $pushText
-            if ($LASTEXITCODE -eq 0) {
-              $success = $true
-              Write-Host "✅ Published to Chocolatey: slskdn (stable)"
-            } elseif ($pushText -match "already exists|Package already exists|409") {
-              $success = $true
-              Write-Host "✅ Chocolatey already has this package version"
-            } elseif ($pushText -match "504|Gateway Timeout|timeout") {
-              $retryCount++
-              if ($retryCount -lt $maxRetries) {
-                $sleepSeconds = 30 * $retryCount
-                Write-Host "⚠️ Chocolatey timeout (attempt $retryCount/${maxRetries}), retrying in $sleepSeconds seconds..."
-                Start-Sleep -Seconds $sleepSeconds
-              } else {
-                Write-Host "⚠️ Chocolatey push failed after $maxRetries attempts (likely transient)"
-                exit 1
-              }
-            } else {
-              Write-Host "❌ Chocolatey push failed with exit code $LASTEXITCODE"; exit 1
+          $expectedNupkg = "slskdn.$PackageVersion.nupkg"
+          $nupkg = Get-ChildItem -Filter $expectedNupkg -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $nupkg) {
+            Write-Error "Chocolatey produced no package named $expectedNupkg"
+            exit 1
+          }
+          Write-Host "Created and validated: $($nupkg.Name)"
+
+          $packageEndpoint = "https://community.chocolatey.org/api/v2/package/slskdn/$PackageVersion"
+          function Test-ChocolateyPackage {
+            try {
+              $response = Invoke-WebRequest -Uri $packageEndpoint -Method Head -MaximumRedirection 5 -ErrorAction Stop
+              return $response.StatusCode -eq 200
+            } catch {
+              return $false
             }
           }
+
+          function Wait-ForChocolateyPackage {
+            param(
+              [int]$Attempts = 6,
+              [int]$DelaySeconds = 10
+            )
+
+            for ($check = 1; $check -le $Attempts; $check++) {
+              if (Test-ChocolateyPackage) {
+                return $true
+              }
+              if ($check -lt $Attempts) {
+                Start-Sleep -Seconds $DelaySeconds
+              }
+            }
+            return $false
+          }
+
+          $maxRetries = 5
+          for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+            if (Test-ChocolateyPackage) {
+              Write-Host "Chocolatey already has slskdn $PackageVersion"
+              exit 0
+            }
+
+            Write-Host "Pushing $($nupkg.Name) to Chocolatey (attempt $attempt/$maxRetries)"
+            # Run from the package directory without a path argument; this avoids
+            # Chocolatey v2/PowerShell gluing the path to the next option.
+            $pushOutput = & choco push --source https://push.chocolatey.org/ --api-key "$env:CHOCO_API_KEY" --execution-timeout 300 2>&1
+            $pushExitCode = $LASTEXITCODE
+            $pushText = ($pushOutput | Out-String).Trim()
+            Write-Host $pushText
+
+            if ($pushExitCode -eq 0 -or $pushText -match "already exists|Package already exists|409") {
+              if (Wait-ForChocolateyPackage) {
+                Write-Host "Published to Chocolatey: slskdn $PackageVersion"
+                exit 0
+              }
+              Write-Error "Chocolatey reported success but $packageEndpoint is not available"
+              exit 1
+            }
+
+            if ($pushText -notmatch "504|Gateway Timeout|timeout") {
+              Write-Error "choco push failed with exit code $pushExitCode"
+              exit $pushExitCode
+            }
+
+            if (Test-ChocolateyPackage) {
+              Write-Host "Chocolatey accepted slskdn $PackageVersion despite the push timeout"
+              exit 0
+            }
+
+            if ($attempt -lt $maxRetries) {
+              $sleepSeconds = 30 * $attempt
+              Write-Host "Chocolatey timeout (attempt $attempt/$maxRetries), retrying in $sleepSeconds seconds..."
+              Start-Sleep -Seconds $sleepSeconds
+            }
+          }
+
+          Write-Error "Chocolatey push failed after $maxRetries attempts; exact package endpoint was not published"
+          exit 1
         shell: pwsh
 
   nix-main:

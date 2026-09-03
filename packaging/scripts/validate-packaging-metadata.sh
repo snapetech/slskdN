@@ -575,6 +575,12 @@ CHOC_VERSION=$(sed -n 's#.*<version>\(.*\)</version>#\1#p' packaging/chocolatey/
 if [[ -z "${CHOC_VERSION}" ]]; then
   fail "Could not extract Chocolatey version from packaging/chocolatey/slskdn.nuspec"
 fi
+expect_literal .github/workflows/build-on-tag.yml '$PackageVersion = "$($Matches[1]).0.0.$($Matches[2])"'
+expect_literal .github/workflows/publish-chocolatey.yml '$PackageVersion = "$($Matches[1]).0.0.$($Matches[2])"'
+reject_literal .github/workflows/build-on-tag.yml '$1.0.0-slskdn.$2'
+reject_literal .github/workflows/publish-chocolatey.yml '$1.0.0-slskdn.$2'
+expect_literal .github/workflows/build-on-tag.yml 'Invoke-WebRequest -Uri $packageEndpoint -Method Head'
+expect_literal .github/workflows/publish-chocolatey.yml 'Invoke-WebRequest -Uri $packageEndpoint -Method Head'
 if [[ "$CHOC_VERSION" != "$STABLE_FORMULA_VERSION" ]]; then
   fail "Chocolatey version ${CHOC_VERSION} does not match stable Formula version ${STABLE_FORMULA_VERSION}"
 fi
