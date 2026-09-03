@@ -29045,3 +29045,38 @@ stable Chocolatey packages to four numeric version components, for example
 `2026090318.0.0.318`. Preflight the generated nupkg version and verify the
 exact package endpoint after every push; a successful local `choco pack` or a
 green retry loop does not prove that Chocolatey accepted the upload.
+
+### 0z892. Do Not Upgrade React Beyond The Semantic UI Ref Compatibility Range
+
+**The Bug**: Upgrading `react` and `react-dom` to 19 with the current
+`semantic-ui-react` stack caused rendered tests to fail because
+`@fluentui/react-component-ref` still calls the removed
+`ReactDOM.findDOMNode` API.
+
+**Files Affected**:
+- `src/web/package.json`
+- `src/web/package-lock.json`
+
+**Wrong**:
+```json
+{
+  "react": "^19.2.8",
+  "react-dom": "^19.2.8",
+  "semantic-ui-react": "^2.1.5"
+}
+```
+
+**Correct**:
+```json
+{
+  "react": "^18.3.1",
+  "react-dom": "^18.3.1",
+  "semantic-ui-react": "^2.1.5"
+}
+```
+
+**Why This Keeps Happening**: A dependency bot can update React and React
+DOM independently, while the UI library's peer range and transitive ref
+implementation remain on the older React contract. Upgrade the pair only
+after the complete UI dependency tree supports the new major and a focused
+render test proves that ref handling no longer depends on removed APIs.
