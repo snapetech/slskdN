@@ -1,3 +1,18 @@
+## Update 2026-09-03 18:30:28Z
+
+- Completed issue #318 and pushed the fix, regression tests, release notes, and
+  required repository documentation to `main` on `snapetech/slskdN`.
+- Created the authorized tag `build-main-2026090318-slskdn.318`. The hosted
+  release workflow's release gate, all six platform archive jobs, and GitHub
+  Release creation passed.
+- Verified the published `2026090318-slskdn.318` release: all 13 assets,
+  published checksums, required files, the Linux x64 version, and bundled Web
+  markers passed `scripts/verify-release-artifacts.sh`.
+- Package publication jobs for Docker, Chocolatey, and PPA were still running;
+  AUR, Nix, Discord, COPR, and Homebrew had passed at this point.
+- Next steps: none for the repository task; external package jobs may finish
+  asynchronously in workflow run `33789357766`.
+
 ## Update 2026-09-03 18:04:56Z
 
 - Reproduced issue #318 in the Admin Policies component: an unrelated

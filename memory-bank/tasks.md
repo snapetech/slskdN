@@ -19,6 +19,15 @@
     newly supplied key. Focused regression coverage passes after failing before
     the fix.
 
+- [x] Cut the stable release `2026090318-slskdn.318`.
+  - Status: core release published (2026-09-03)
+  - Priority: P1
+  - Notes: The guarded local and hosted release gates passed, all six platform
+    archive jobs passed, the GitHub Release contains 13 verified assets, and
+    the post-release artifact verifier passed. AUR, Nix, Discord, COPR, and
+    Homebrew publication succeeded; Docker, Chocolatey, and PPA publication
+    were still asynchronous when this entry was recorded.
+
 - [x] Cut the stable release `2026082519-slskdn.317`.
   - Status: core release published (2026-08-25)
   - Priority: P1

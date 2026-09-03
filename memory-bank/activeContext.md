@@ -1,3 +1,16 @@
+## Update 2026-09-03 18:30:28Z
+
+- Current task: complete. Issue #318 was fixed, tested, committed, pushed to
+  `main`, and released as `2026090318-slskdn.318`.
+- Evidence: the pre-fix focused regression reproduced the invalid legacy
+  threshold serialization (`8/9` passed); the fixed focused suite passed
+  `10/10`; the full local release gate passed; the hosted release gate and all
+  six platform jobs passed; and published artifact verification passed.
+- The GitHub Release is published with 13 verified assets. AUR, Nix, Discord,
+  COPR, and Homebrew jobs passed; Docker, Chocolatey, and PPA jobs were still
+  asynchronous when recorded.
+- Next steps: none for this task.
+
 ## Update 2026-09-03 18:04:56Z
 
 - Current task: fix and release issue #318, “Policies tab changes do not
