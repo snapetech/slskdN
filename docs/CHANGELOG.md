@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026090318-slskdn.318] — 2026-09-03
+
 - Fixed Admin Policies saves so canonical auto-replace settings are not written
   into incompatible legacy fields and empty API-key entries are not created;
   unrelated policy changes now validate and persist.
