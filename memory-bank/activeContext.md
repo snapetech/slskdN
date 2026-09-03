@@ -1,3 +1,23 @@
+## Update 2026-09-03 20:47:00Z
+
+- Current repository and corrective-release task: complete. Stable release
+  `2026090318-slskdn.319` is published from `main`; the hosted build gate,
+  platform artifacts, Docker main image, and Chocolatey publication passed.
+  The PPA job is still waiting for Launchpad's asynchronous publication.
+- The Chocolatey control experiment succeeded with package version
+  `2026090318.0.0.319`; the exact public package endpoint returns HTTP 200 and
+  the package page is in normal validation/verification review.
+- The live validation host has the `.319` image pulled at digest
+  `sha256:5a162be070b824d8b1e13dd067a7d412691b226cb7ac8dc094a35d4eba3c5ae7`,
+  and its service override points to that tag. The application service is
+  stopped, with no matching application container or exact `slskdn`/`slskr`
+  process present.
+- Deployment remains blocked before Docker launch because the configured media
+  directories are absent while the existing media LV is held by a long-running
+  `resize2fs` operation. Do not interrupt that operation or create substitute
+  mount directories. After the LV is available, start the service and verify
+  health/version.
+
 ## Update 2026-09-03 20:09:19Z
 
 - Current task: correct the stable Chocolatey publication and prove the fix

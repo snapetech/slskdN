@@ -1,3 +1,22 @@
+## Update 2026-09-03 20:47:00Z
+
+- Published corrective stable release `2026090318-slskdn.319` from `main`.
+  The hosted build gate, platform artifacts, stable Docker image, and
+  Chocolatey publication passed. The PPA job remains in Launchpad's normal
+  asynchronous publication wait.
+- Reproduced the package-specific Chocolatey failure in the old workflow:
+  package creation succeeded, five uploads returned 504, and the old version
+  was absent from the public feed. The corrected package version
+  `2026090318.0.0.319` uploaded successfully and is present at the exact
+  public feed endpoint.
+- Pulled the `.319` Docker image on the live validation host and updated the
+  existing release override. Confirmed the service is inactive and no matching
+  application container or exact `slskdn`/`slskr` process remains.
+- A start attempt failed in systemd namespace setup because the configured
+  media directory is absent while a pre-existing `resize2fs` process holds the
+  media LV. The storage operation was left untouched; deployment can continue
+  after it releases the device and the configured volume is mounted.
+
 ## Update 2026-09-03 18:59:51Z
 
 - Began the requested live deployment after the release image became

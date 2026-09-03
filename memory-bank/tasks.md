@@ -38,11 +38,18 @@
     parsing trap, and the exact public package endpoint is checked after
     upload. The corrective release is `2026090318-slskdn.319`.
 
-- [ ] Deploy stable release `2026090318-slskdn.318` to the live validation host.
+- [x] Cut corrective stable release `2026090318-slskdn.319`.
+  - Status: published (2026-09-03)
+  - Priority: P1
+  - Notes: The hosted release workflow published the GitHub assets, stable
+    Docker image, and Chocolatey package `2026090318.0.0.319`; PPA publication
+    remains asynchronous.
+
+- [ ] Deploy stable release `2026090318-slskdn.319` to the live validation host.
   - Status: blocked (2026-09-03)
   - Priority: P1
-  - Notes: The release image is pulled and the service is stopped, but the
-    configured media volume cannot mount while a pre-existing `resize2fs`
+  - Notes: The `.319` image is pulled and the service override is updated, but
+    the configured media volume cannot mount while a pre-existing `resize2fs`
     process holds its block device exclusively. Do not terminate that
     filesystem operation or create replacement directories over the mountpoint
     without explicit direction.
