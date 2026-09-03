@@ -101,7 +101,7 @@ export const buildMetadataMatch = (item) => {
     parseTrackNumber(stripExtension(fileName));
   let artist = '';
   let album = '';
-  let title = '';
+  let title;
 
   if (parts.length >= 4) {
     artist = parts[0];
