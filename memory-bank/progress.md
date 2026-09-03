@@ -1,3 +1,16 @@
+## Update 2026-09-03 18:04:56Z
+
+- Reproduced issue #318 in the Admin Policies component: an unrelated
+  incoming-concurrency edit generated a zero-valued legacy auto-replace
+  threshold and an empty `automation` API-key mapping, which the backend
+  rejected during whole-document validation.
+- Fixed the editor to write auto-replace threshold/interval only to the
+  canonical `auto_replace` section and to preserve configured API keys while
+  skipping absent keys. Added focused regression coverage and the release-note
+  fragment; the focused suite passes `10/10`.
+- Next steps: run the full release gates, commit/push `main`, and cut the
+  authorized stable release tag.
+
 ## 2026-08-21 - Document Docker download-directory permissions
 
 - Added `docs/docker-download-permissions.md` with the complete Docker Compose

@@ -173,6 +173,70 @@ describe('AdminPolicies', () => {
     expect(saved.integrations).toBeUndefined();
   });
 
+  it('does not emit invalid legacy auto-replace defaults or an empty API key', async () => {
+    optionsApi.getYaml.mockResolvedValue(`
+auto_replace:
+  size_threshold_percent: 0
+web:
+  authentication: {}
+`);
+    optionsApi.updateYaml.mockResolvedValue({});
+    renderPolicies({
+      autoReplace: {
+        sizeThresholdPercent: 0,
+      },
+      web: {
+        authentication: {
+          apiKeys: {},
+        },
+      },
+    });
+
+    fireEvent.change(screen.getByLabelText('Incoming search concurrency'), {
+      target: { value: '12' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save YAML' }));
+
+    await waitFor(() => expect(optionsApi.updateYaml).toHaveBeenCalledTimes(1));
+    const saved = YAML.parse(optionsApi.updateYaml.mock.calls[0][0].yaml);
+
+    expect(saved.auto_replace.size_threshold_percent).toBe(0);
+    expect(saved.transfers.download.auto_replace_threshold).toBeUndefined();
+    expect(saved.transfers.download.auto_replace_interval).toBeUndefined();
+    expect(saved.web.authentication.api_keys).toBeUndefined();
+    expect(saved.throttling.search.incoming.concurrency).toBe(12);
+  });
+
+  it('preserves an existing API key when no replacement is supplied', async () => {
+    const existingKey = 'existing-api-key-secret';
+    optionsApi.getYaml.mockResolvedValue(`
+web:
+  authentication:
+    api_keys:
+      automation:
+        key: ${existingKey}
+`);
+    optionsApi.updateYaml.mockResolvedValue({});
+    renderPolicies({
+      web: {
+        authentication: {
+          apiKeys: {
+            automation: {
+              key: existingKey,
+            },
+          },
+        },
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save YAML' }));
+
+    await waitFor(() => expect(optionsApi.updateYaml).toHaveBeenCalledTimes(1));
+    const saved = YAML.parse(optionsApi.updateYaml.mock.calls[0][0].yaml);
+
+    expect(saved.web.authentication.api_keys.automation.key).toBe(existingKey);
+  });
+
   it('requires complete webhook and script policy drafts', () => {
     renderPolicies();
 

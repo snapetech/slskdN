@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Admin Policies saves so canonical auto-replace settings are not written
+  into incompatible legacy fields and empty API-key entries are not created;
+  unrelated policy changes now validate and persist.
 - Replaced the dual violet+amber accent theme with a single-accent "Iris"
   identity and four shared semantic colors (success/warning/danger/info),
   used only for real state instead of decorating badges and buttons.

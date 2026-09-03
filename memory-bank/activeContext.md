@@ -1,3 +1,18 @@
+## Update 2026-09-03 18:04:56Z
+
+- Current task: fix and release issue #318, “Policies tab changes do not
+  persist.”
+- Reproduction: the current Admin Policies save path emits
+  `transfers.download.auto_replace_threshold: 0` and a fallback empty
+  `web.authentication.api_keys.automation` entry when the canonical config
+  has no API key; backend whole-document validation rejects those values.
+- Fix: preserve canonical auto-replace values, omit incompatible legacy
+  threshold/interval fields, skip absent API-key mappings, and preserve an
+  existing key when its replacement input is blank. Focused Web regression
+  coverage passes (`10/10`) after failing (`8/9`) before the implementation.
+- Next steps: run full validation, push `main`, prepare the versioned changelog,
+  and create the authorized stable tag.
+
 ## Update 2026-08-21 20:20:49Z
 
 - Current task: complete. Published the Docker permissions documentation for

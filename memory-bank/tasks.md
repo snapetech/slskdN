@@ -9,6 +9,16 @@
 
 ### High Priority
 
+- [x] Fix issue #318: Admin Policies changes do not persist.
+  - Status: completed (2026-09-03)
+  - Priority: P1
+  - Notes: Reproduced the save failure caused by the UI serializing a canonical
+    zero auto-replace threshold into the legacy `transfers.download` field and
+    creating an empty fallback API key. The editor now writes only canonical
+    auto-replace values and persists API-key metadata only for an existing or
+    newly supplied key. Focused regression coverage passes after failing before
+    the fix.
+
 - [x] Cut the stable release `2026082519-slskdn.317`.
   - Status: core release published (2026-08-25)
   - Priority: P1

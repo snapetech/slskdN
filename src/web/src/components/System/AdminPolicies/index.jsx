@@ -363,14 +363,6 @@ const AdminPolicies = ({ options = {} }) => {
         toNumber(form.downloadRetryMaxDelay, 60000),
       );
       document.setIn(['transfers', 'download', 'auto_replace_stuck'], form.autoReplaceStuck);
-      document.setIn(
-        ['transfers', 'download', 'auto_replace_threshold'],
-        Number.parseFloat(form.autoReplaceThreshold) || 0,
-      );
-      document.setIn(
-        ['transfers', 'download', 'auto_replace_interval'],
-        toNumber(form.autoReplaceInterval, 60),
-      );
       document.setIn(['auto_replace', 'interval_seconds'], toNumber(form.autoReplaceInterval, 300));
       document.setIn(
         ['auto_replace', 'size_threshold_percent'],
@@ -395,12 +387,15 @@ const AdminPolicies = ({ options = {} }) => {
       }
       if (form.apiKeyName.trim()) {
         const base = ['web', 'authentication', 'api_keys', form.apiKeyName.trim()];
-        if (form.apiKeyValue.trim()) {
-          document.setIn([...base, 'key'], form.apiKeyValue.trim());
+        const existingKey = document.getIn([...base, 'key']);
+        if (form.apiKeyValue.trim() || (typeof existingKey === 'string' && existingKey.trim())) {
+          if (form.apiKeyValue.trim()) {
+            document.setIn([...base, 'key'], form.apiKeyValue.trim());
+          }
+          document.setIn([...base, 'role'], form.apiKeyRole);
+          document.setIn([...base, 'cidr'], form.apiKeyCidr.trim());
+          document.setIn([...base, 'scopes'], form.apiKeyScopes.trim() || '*');
         }
-        document.setIn([...base, 'role'], form.apiKeyRole);
-        document.setIn([...base, 'cidr'], form.apiKeyCidr.trim());
-        document.setIn([...base, 'scopes'], form.apiKeyScopes.trim() || '*');
       }
       document.setIn(
         ['web', 'authentication', 'passthrough', 'allowed_cidrs'],
