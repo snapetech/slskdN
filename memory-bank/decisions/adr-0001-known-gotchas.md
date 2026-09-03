@@ -29080,3 +29080,30 @@ DOM independently, while the UI library's peer range and transitive ref
 implementation remain on the older React contract. Upgrade the pair only
 after the complete UI dependency tree supports the new major and a focused
 render test proves that ref handling no longer depends on removed APIs.
+
+### 0z893. Lock Cargo Dependencies In Optional Media-Tool Images
+
+**The Bug**: The omnibus tester image installed the latest `c2patool` without
+using its packaged lockfile. Cargo therefore selected `tinyvec 1.13.0`, whose
+no-std `alloc` build fails to compile because the `vec!` macro is not in scope;
+the upstream `c2patool 0.27.17` lockfile still selects `tinyvec 1.12.0`.
+
+**Files Affected**:
+- `packaging/docker/install-optional-media-tools`
+
+**Wrong**:
+```bash
+cargo install c2patool "${crate_version_args[@]}" --root "${TOOLS_ROOT}/c2pa-bin"
+```
+
+**Correct**:
+```bash
+cargo install --locked c2patool "${crate_version_args[@]}" --root "${TOOLS_ROOT}/c2pa-bin"
+```
+
+**Why This Keeps Happening**: `cargo install` resolves the newest compatible
+transitive dependencies unless `--locked` is supplied. Optional tools are
+still part of the release image, so an upstream transitive regression can make
+the image fail even when the application image is healthy. Use the published
+crate lockfile for reproducible installs and deliberately update it only after
+the tool builds successfully.
