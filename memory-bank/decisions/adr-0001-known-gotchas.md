@@ -29026,3 +29026,22 @@ the settings did not persist.
 canonical `auto_replace` section. Persist API-key metadata only when the raw
 YAML already contains a non-empty key or the user supplies a replacement;
 never materialize placeholder policy names as empty configuration objects.
+
+### 0z891. Chocolatey Stable Packages Must Use CCR-Compatible Numeric Versions
+
+**The Bug**: The stable Chocolatey workflow converted a date-based release
+tag such as `2026090318-slskdn.318` into
+`2026090318.0.0-slskdn.318`. The dotted prerelease suffix makes that a SemVer
+2 package, which Chocolatey Community Repository does not support. Chocolatey
+could create the nupkg successfully, but the remote push repeatedly returned
+HTTP 504 and no stable package appeared in the public feed.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/publish-chocolatey.yml`
+
+**Prevention**: Keep the public GitHub release tag in download URLs, but map
+stable Chocolatey packages to four numeric version components, for example
+`2026090318.0.0.318`. Preflight the generated nupkg version and verify the
+exact package endpoint after every push; a successful local `choco pack` or a
+green retry loop does not prove that Chocolatey accepted the upload.
