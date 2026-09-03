@@ -9,6 +9,15 @@
 
 ### High Priority
 
+- [x] Merge the fork pull-request queue and resolve current security findings.
+  - Status: completed (2026-09-03)
+  - Priority: P1
+  - Notes: Merged PRs `#319` through `#324` into `main`, retaining React 18
+    because the current Semantic UI dependency tree still uses the removed
+    React 19 `findDOMNode` path. The fork now has only `main`; open pull
+    requests, Dependabot alerts, CodeQL alerts, and secret-scanning alerts are
+    all zero.
+
 - [x] Fix issue #318: Admin Policies changes do not persist.
   - Status: completed (2026-09-03)
   - Priority: P1

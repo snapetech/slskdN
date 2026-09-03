@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026090321-slskdn.320] — 2026-09-03
+
 - Kept the Web UI on the React 18 runtime supported by the current Semantic UI
   dependency tree, preventing React 19 ref-handling failures during updates.
 

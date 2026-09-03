@@ -1,3 +1,22 @@
+## Update 2026-09-03 21:42:27Z
+
+- Current repository audit: complete. PRs `#319` through `#324` are merged to
+  `main`; the fork has no other remote branch, no open pull requests, and zero
+  open Dependabot, CodeQL, or secret-scanning alerts. The local worktree is
+  clean and has only the `main` branch.
+- The final Web dependency fix keeps React and React DOM on 18.3.1 because the
+  current Semantic UI ref package calls the React 18-only `findDOMNode` API.
+  React 19 reproduced all 10 Admin Policies render failures; the corrected
+  tree passes the full Web suite (`939` tests), lint, and production build.
+- The next stable tag is authorized and prepared as
+  `build-main-2026090321-slskdn.320`, including the validated compatibility
+  release note. The prior `.319` live deployment remains blocked by the
+  existing media-volume filesystem operation; do not interrupt it or create
+  replacement mount directories.
+- Next steps: run the guarded `.320` release tag gate, verify hosted artifacts,
+  then update the live validation service only when its configured media volume
+  is safely available.
+
 ## Update 2026-09-03 20:47:00Z
 
 - Current repository and corrective-release task: complete. Stable release

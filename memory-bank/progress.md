@@ -12945,3 +12945,13 @@ contains the repository metadata required for review. Local YAML/PowerShell,
 packaging metadata, lint, full .NET tests (`74` application, `5143` unit, `284`
 integration), and release-note preview passed. Corrective release
 `2026090318-slskdn.319` is ready for the hosted Chocolatey control upload.
+
+[2026-09-03T21:42:27Z] Completed the fork maintenance audit. Dependabot PRs
+`#319` through `#324` are merged to `main`; the fork has only its `main`
+branch, no open pull requests, and zero open Dependabot, CodeQL, or
+secret-scanning alerts. The React 19 compatibility regression was reproduced
+against the current Semantic UI stack and fixed by keeping React/React DOM on
+18.3.1; the full Web suite (`939` tests), lint, production build, backend
+application/unit/integration suites (`74/5143/284`), and repository lint pass.
+The next stable release metadata is prepared for
+`build-main-2026090321-slskdn.320`.
