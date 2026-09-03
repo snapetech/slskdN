@@ -28,6 +28,16 @@
     Homebrew publication succeeded; Docker, Chocolatey, and PPA publication
     were still asynchronous when this entry was recorded.
 
+- [x] Fix stable Chocolatey publication failures.
+  - Status: completed (2026-09-03)
+  - Priority: P1
+  - Notes: The package workflow was sending a dotted SemVer 2 prerelease
+    (`YYYYMMDDHH.0.0-slskdn.N`) to the Chocolatey Community Repository, which
+    does not support SemVer 2. Stable packages now use four numeric version
+    components, both publish paths avoid the Chocolatey v2 path-argument
+    parsing trap, and the exact public package endpoint is checked after
+    upload. The corrective release is `2026090318-slskdn.319`.
+
 - [ ] Deploy stable release `2026090318-slskdn.318` to the live validation host.
   - Status: blocked (2026-09-03)
   - Priority: P1
@@ -529,10 +539,14 @@
   - Priority: P2
   - Notes: Stable release `.284` contains the two Wishlist accessibility labels, explicit AngleSharp `1.5.0` security floor, and MediaCore workflow-anchor correction. The local and hosted release gates passed, all six platform archives passed published-checksum, payload, Web-marker, and embedded-version verification, and the amd64/arm64 main plus amd64 omnibus GHCR images were published. AUR, COPR, PPA, Homebrew, Nix, and release announcements passed. The Chocolatey package built successfully, but its external push endpoint returned HTTP 504 on all five bounded attempts.
 
-- [ ] Retry stable Chocolatey publication after its push service recovers.
-  - Status: blocked on external service availability (2026-07-20)
+- [x] Retry stable Chocolatey publication after its push service recovers.
+  - Status: superseded by package-specific workflow fix (2026-09-03)
   - Priority: P2
-  - Notes: The `.287` package builds successfully, but `https://push.chocolatey.org/` returned 504 on all five bounded release attempts, continuing the external failure already observed for `.283` through `.285`. The existing manual workflow can safely retry `.287` without a new release.
+  - Notes: Repeated 504 responses were initially treated as external service
+    instability, but investigation found that every date-based stable package
+    used an unsupported dotted SemVer 2 prerelease. The retry-only follow-up is
+    closed by the versioning and post-upload verification fix in
+    `2026090318-slskdn.319`.
 
 - [x] Complete every defect represented by open PRs #266–#276.
   - Status: completed (2026-07-17)

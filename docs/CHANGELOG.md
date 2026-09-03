@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026090318-slskdn.319] — 2026-09-03
+
 - Fixed stable Chocolatey publication by using a numeric package version
   accepted by the Chocolatey Community Repository and verifying the exact
   uploaded version instead of treating a successful pack or retry as proof of

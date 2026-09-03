@@ -12914,3 +12914,15 @@ assets, and `scripts/verify-release-artifacts.sh` passed checksums, version,
 VPN helper, and bundled Web marker checks. Discord, Homebrew, and AUR
 publication succeeded; Docker, COPR, Chocolatey, Nix, and PPA publication
 remain asynchronous.
+
+[2026-09-03T20:09:19Z] Diagnosed and corrected the stable Chocolatey publisher.
+The generated `YYYYMMDDHH.0.0-slskdn.N` version was a dotted SemVer 2
+prerelease unsupported by the Chocolatey Community Repository; repeated 504s
+were the misleading remote response, and earlier green retry jobs had
+swallowed the same failure. Both tag and manual workflows now emit
+`YYYYMMDDHH.0.0.N`, avoid the Chocolatey v2 path-argument parsing trap, and
+verify the exact public package endpoint after upload. The package nuspec now
+contains the repository metadata required for review. Local YAML/PowerShell,
+packaging metadata, lint, full .NET tests (`74` application, `5143` unit, `284`
+integration), and release-note preview passed. Corrective release
+`2026090318-slskdn.319` is ready for the hosted Chocolatey control upload.

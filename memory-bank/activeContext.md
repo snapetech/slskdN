@@ -1,19 +1,20 @@
-## Update 2026-09-03 18:59:51Z
+## Update 2026-09-03 20:09:19Z
 
-- Current task: release complete; live deployment blocked on the validation
-  host's storage state.
-- Stopped the existing application service and verified that no bare
-  `slskd`/`slskdn`/`slskr` processes or matching application containers remain.
-  Pulled the verified `2026090318-slskdn.318` Docker image and installed a
-  release service override, but the service cannot start while the configured
-  media volume is unavailable.
-- The media LV is held exclusively by a pre-existing `resize2fs` process that
-  has been running for more than a day. The operation must not be killed and
-  the mountpoint must not be populated with substitute directories without
-  explicit direction.
-- Next steps: wait for or receive direction about the storage operation; then
-  mount the configured media volume, start the release service, and verify
-  health/version.
+- Current task: correct the stable Chocolatey publication and prove the fix
+  through a fresh package upload.
+- Root cause: stable package versions were generated as
+  `YYYYMMDDHH.0.0-slskdn.N`, a dotted SemVer 2 prerelease unsupported by the
+  Chocolatey Community Repository. The older green `.193`/`.197` jobs were
+  false greens because their exhausted 504 retry path exited successfully.
+- Both publish workflows now map stable tags to four numeric components,
+  avoid passing a package path to Chocolatey v2, validate the generated nupkg
+  name, and check the exact public package endpoint after upload. The nuspec
+  has the repository metadata needed for review.
+- Local YAML/PowerShell, package metadata, lint, full .NET tests, and release
+  note preview passed. Commits `c4431a2a7` and `e8853cee6` are pushed to
+  `main`.
+- Next steps: cut `2026090318-slskdn.319`, verify the Chocolatey package is
+  present at `2026090318.0.0.319`, then update the release/deployment status.
 
 ## Update 2026-09-03 18:30:28Z
 
