@@ -1,3 +1,20 @@
+## Update 2026-09-03 18:59:51Z
+
+- Current task: release complete; live deployment blocked on the validation
+  host's storage state.
+- Stopped the existing application service and verified that no bare
+  `slskd`/`slskdn`/`slskr` processes or matching application containers remain.
+  Pulled the verified `2026090318-slskdn.318` Docker image and installed a
+  release service override, but the service cannot start while the configured
+  media volume is unavailable.
+- The media LV is held exclusively by a pre-existing `resize2fs` process that
+  has been running for more than a day. The operation must not be killed and
+  the mountpoint must not be populated with substitute directories without
+  explicit direction.
+- Next steps: wait for or receive direction about the storage operation; then
+  mount the configured media volume, start the release service, and verify
+  health/version.
+
 ## Update 2026-09-03 18:30:28Z
 
 - Current task: complete. Issue #318 was fixed, tested, committed, pushed to

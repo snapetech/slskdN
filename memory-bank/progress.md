@@ -1,3 +1,20 @@
+## Update 2026-09-03 18:59:51Z
+
+- Began the requested live deployment after the release image became
+  available. Stopped the host `slskd` service and confirmed no application
+  containers or bare `slskd`/`slskdn`/`slskr` processes remained; the unrelated
+  GitHub Actions runner was left running.
+- Pulled and verified
+  `ghcr.io/snapetech/slskdn:2026090318-slskdn.318`, and installed the service
+  override for that image. The first start failed because the configured media
+  volume was unmounted.
+- Mount recovery is blocked by a pre-existing `resize2fs` process holding
+  `/dev/mapper/datapool_lvm-media` exclusively after running for more than a
+  day. No replacement directories were created and the filesystem operation
+  was not interrupted.
+- Next step: after the storage operation releases the device, mount the
+  configured volume, start the release service, and verify health/version.
+
 ## Update 2026-09-03 18:30:28Z
 
 - Completed issue #318 and pushed the fix, regression tests, release notes, and

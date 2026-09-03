@@ -28,6 +28,15 @@
     Homebrew publication succeeded; Docker, Chocolatey, and PPA publication
     were still asynchronous when this entry was recorded.
 
+- [ ] Deploy stable release `2026090318-slskdn.318` to the live validation host.
+  - Status: blocked (2026-09-03)
+  - Priority: P1
+  - Notes: The release image is pulled and the service is stopped, but the
+    configured media volume cannot mount while a pre-existing `resize2fs`
+    process holds its block device exclusively. Do not terminate that
+    filesystem operation or create replacement directories over the mountpoint
+    without explicit direction.
+
 - [x] Cut the stable release `2026082519-slskdn.317`.
   - Status: core release published (2026-08-25)
   - Priority: P1
