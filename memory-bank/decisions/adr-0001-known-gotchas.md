@@ -29008,3 +29008,21 @@ if (existingKey || replacement.trim()) {
 blank when a value is already configured. The blank value means “preserve the
 existing secret,” not “clear it”; only an explicit replacement should update
 the serialized key.
+
+### 0z890. Keep Canonical Auto-Replace Values Out Of Legacy Validation Fields
+
+**The Bug**: The Admin Policies editor wrote its canonical zero-valued
+`auto_replace` threshold into the legacy `transfers.download` threshold,
+whose minimum is `0.1`, and also created a fallback `automation` API-key
+mapping without a key. Whole-document validation rejected otherwise unrelated
+policy changes, so the UI reported success only before the save request and
+the settings did not persist.
+
+**Files Affected**:
+- `src/web/src/components/System/AdminPolicies/index.jsx`
+- `src/web/src/components/System/AdminPolicies/index.test.jsx`
+
+**Prevention**: Write auto-replace threshold and interval only to the
+canonical `auto_replace` section. Persist API-key metadata only when the raw
+YAML already contains a non-empty key or the user supplies a replacement;
+never materialize placeholder policy names as empty configuration objects.
