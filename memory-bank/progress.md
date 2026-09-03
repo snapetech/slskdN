@@ -12955,3 +12955,25 @@ against the current Semantic UI stack and fixed by keeping React/React DOM on
 application/unit/integration suites (`74/5143/284`), and repository lint pass.
 The next stable release metadata is prepared for
 `build-main-2026090321-slskdn.320`.
+
+[2026-09-03T22:36:17Z] Completed the `.320` core release validation. The rerun
+of the hosted gate passed after one transient SOCKS-fragmentation test failure;
+all six archives, the 13-asset GitHub Release, the published checksum/payload
+verification, and the multi-architecture Docker image passed. Docker GHCR and
+Docker Hub report the same digest. AUR, Homebrew, COPR, Nix, Discord, and
+Docker publication succeeded. The package-specific Chocolatey failure is now
+confirmed as CCR moderation state: `.319` is reachable but still `Submitted`
+with no approval date, so the `.320` numeric-version package must be retried
+after approval. Launchpad accepted `.320` for Jammy and is building it; the
+older `.318` rejection is from a source that is now superseded by `.319`.
+The live validation service remains stopped with no exact `slskdn`/`slskr`
+process or container; `.320` is pulled and pinned, but startup is blocked by
+the absent media mount and active `resize2fs` operation.
+
+[2026-09-03T22:42:25Z] Diagnosed the separate `.320` omnibus tester failure.
+The image's unlocked `cargo install c2patool` resolved `tinyvec 1.13.0`, whose
+no-std build fails because the `vec!` macro is not in scope; the published
+`c2patool 0.27.17` lockfile selects `tinyvec 1.12.0`. Added `--locked`,
+recorded gotcha `0z893`, and verified a local locked install completes and
+reports `c2patool 0.27.17`. This correction is on `main`; the immutable `.320`
+tag predates it, so it awaits the next explicitly authorized release tag.

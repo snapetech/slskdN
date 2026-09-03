@@ -142,7 +142,7 @@ install_c2pa() {
   if [[ -n "${SLSKDN_C2PATOOL_CRATE_VERSION:-}" ]]; then
     crate_version_args=(--version "${SLSKDN_C2PATOOL_CRATE_VERSION}")
   fi
-  cargo install c2patool "${crate_version_args[@]}" --root "${TOOLS_ROOT}/c2pa-bin"
+  cargo install --locked c2patool "${crate_version_args[@]}" --root "${TOOLS_ROOT}/c2pa-bin"
   ln -sf "${TOOLS_ROOT}/c2pa-bin/bin/c2patool" "${BIN_DIR}/c2patool"
 }
 

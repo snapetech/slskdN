@@ -28,6 +28,16 @@
     newly supplied key. Focused regression coverage passes after failing before
     the fix.
 
+- [x] Fix the optional omnibus image's transitive Rust dependency drift.
+  - Status: completed (2026-09-03)
+  - Priority: P1
+  - Notes: The `.320` omnibus tester build reproduced a failure in
+    `c2patool`'s newly selected `tinyvec 1.13.0`. The installer now uses
+    `cargo install --locked`, and a local `c2patool 0.27.17` locked install
+    completes successfully with `tinyvec 1.12.0`. Gotcha `0z893` records the
+    failure mode. The immutable `.320` tag was built before this follow-up;
+    the correction is on `main` for the next explicitly authorized tag.
+
 - [x] Cut the stable release `2026090318-slskdn.318`.
   - Status: core release published (2026-09-03)
   - Priority: P1
@@ -51,15 +61,43 @@
   - Status: published (2026-09-03)
   - Priority: P1
   - Notes: The hosted release workflow published the GitHub assets, stable
-    Docker image, and Chocolatey package `2026090318.0.0.319`; PPA publication
-    remains asynchronous.
+    Docker image, and Chocolatey package `2026090318.0.0.319`. Launchpad now
+    reports the matching Jammy source as published. The attached rejection for
+    `.318` is for a source publication that was subsequently superseded by
+    `.319`, not a failure of the current `.320` source upload.
 
-- [ ] Deploy stable release `2026090318-slskdn.319` to the live validation host.
+- [x] Cut stable release `2026090321-slskdn.320`.
+  - Status: core release published (2026-09-03)
+  - Priority: P1
+  - Notes: The guarded local release gate passed, the rerun hosted gate passed
+    after one transient SOCKS-test failure, all six platform archives passed,
+    the GitHub Release contains 13 verified assets, and the post-release
+    artifact verifier passed. Main Docker is published for both architectures
+    at digest `sha256:1fafd65f2af5aca20da4da99dc653f5aad37b3813fdebd77361dde06b8bb7262`.
+    AUR, Homebrew, COPR, Nix, Discord, and Docker publication succeeded.
+    Chocolatey returned HTTP 403 because the package has no approved stable
+    version yet; its numeric-version fix remains in the workflows for future
+    releases. Launchpad accepted the Jammy source and is still building it.
+    The optional omnibus tester image failed independently while compiling
+    `c2patool`; gotcha `0z893` and the locked-install correction are now on
+    `main` for the next tag.
+
+- [ ] Retry Chocolatey publication for `2026090321-slskdn.320` after Community
+  Repository moderation approves the prior stable version.
+  - Status: externally blocked (2026-09-03)
+  - Priority: P1
+  - Notes: The exact `.319` package endpoint is reachable but its CCR metadata
+    remains `Submitted` with no approval date. CCR documents this moderation
+    state as a cause of 403 push responses; retry the existing `.320` release
+    through the manual Chocolatey workflow after `.319` is approved.
+
+- [ ] Deploy stable release `2026090321-slskdn.320` to the live validation host.
   - Status: blocked (2026-09-03)
   - Priority: P1
-  - Notes: The `.319` image is pulled and the service override is updated, but
-    the configured media volume cannot mount while a pre-existing `resize2fs`
-    process holds its block device exclusively. Do not terminate that
+  - Notes: The `.320` image is pulled and the stopped service override is
+    updated, but the configured media volume cannot mount while a pre-existing
+    `resize2fs` process holds its block device exclusively. Exact `slskdn` and
+    `slskr` processes and containers are absent. Do not terminate that
     filesystem operation or create replacement directories over the mountpoint
     without explicit direction.
 

@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Pinned optional media-tool Rust installs to their published crate lockfiles,
+  preventing a newly released broken transitive dependency from making the
+  omnibus tester image fail to build.
+
 ## [2026090321-slskdn.320] — 2026-09-03
 
 - Kept the Web UI on the React 18 runtime supported by the current Semantic UI

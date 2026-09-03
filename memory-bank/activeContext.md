@@ -1,3 +1,48 @@
+## Update 2026-09-03 22:42:25Z
+
+- The `.320` stable runtime image remains healthy and published, but its
+  optional omnibus tester image failed independently while building
+  `c2patool 0.27.17`: unlocked Cargo resolution selected `tinyvec 1.13.0`,
+  whose no-std build does not compile because `vec!` is not in scope.
+- Added `cargo install --locked` to
+  `packaging/docker/install-optional-media-tools`. A local locked install of
+  `c2patool 0.27.17` completed successfully and selected the upstream lockfile's
+  `tinyvec 1.12.0`; gotcha `0z893`, the release note, and the Unreleased
+  changelog entry are recorded. The immutable `.320` tag predates this
+  follow-up; no additional release tag has been created yet.
+- Next step for this follow-up is an explicitly authorized tag/build if the
+  omnibus tester image is required. The `.320` core release, Chocolatey CCR
+  moderation blocker, Launchpad build, and live media-mount blocker remain as
+  recorded below.
+
+## Update 2026-09-03 22:36:17Z
+
+- Stable release `2026090321-slskdn.320` is published. The first hosted release
+  attempt had one transient SOCKS-fragmentation test failure; its rerun passed
+  the full gate and all six platform archive jobs. The GitHub Release has 13
+  verified assets, the post-release artifact verifier passes, and the main
+  multi-architecture Docker image is published at
+  `sha256:1fafd65f2af5aca20da4da99dc653f5aad37b3813fdebd77361dde06b8bb7262`.
+- AUR, Homebrew, COPR, Nix, Discord, and Docker publication succeeded. The
+  Chocolatey tag job returned HTTP 403; the exact `.319` package endpoint is
+  reachable but its package metadata remains `Submitted` with no approval
+  date, so `.320` must be retried after Community Repository moderation.
+- Launchpad accepted the `.320` Jammy source and is building it. The older
+  `.318` rejection in the attached message is now explained by that source
+  being superseded by `.319`; `.319` is currently published for Jammy.
+- The live validation host has the `.320` image pulled and the stopped service
+  override pinned to it. Exact `slskdn`/`slskr` processes and containers are
+  absent. Deployment cannot start because the configured media paths are absent
+  while the existing `resize2fs` operation holds the media block device. Do not
+  interrupt it or create replacement mount directories.
+- Repository audit remains clean: only `main` exists remotely, there are no
+  open pull requests, and open Dependabot, CodeQL, and secret-scanning alerts
+  are all zero. The local checkout is synchronized at the workflow-generated
+  stable metadata commit.
+- Next steps: monitor the Launchpad build and CCR moderation; retry the
+  existing `.320` Chocolatey publication after approval; start the service only
+  after the configured media mount is available.
+
 ## Update 2026-09-03 21:42:27Z
 
 - Current repository audit: complete. PRs `#319` through `#324` are merged to
