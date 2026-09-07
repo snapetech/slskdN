@@ -1,3 +1,13 @@
+## Update 2026-09-06 20:40:06-06:00
+
+- Published `build-main-2026090620-slskdn.321` after the complete release gate
+  passed twice, including frontend build/subpath smoke, 5,156 .NET unit tests,
+  74 backend smoke tests, and 144 integration smoke tests.
+- The final Playwright run passed all 6 regressions, including the authenticated
+  blocked-user API round trip; `./bin/lint` and frontend ESLint also passed.
+- Main and the release tag are pushed to `snapetech/slskdN`; hosted artifact
+  verification remains the next operational follow-up.
+
 ## Update 2026-09-06 20:26:17-06:00
 
 - Reproduced the reported Wishlist false positives (`2005 Asteroid` and

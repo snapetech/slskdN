@@ -10,7 +10,7 @@
 ### High Priority
 
 - [x] Fix Wishlist matching, blocked-user policy, and transfer/navigation regressions.
-  - Status: implementation complete; release gate pending (2026-09-06)
+  - Status: implementation and release complete (2026-09-06)
   - Priority: P1
   - Notes: Reproduced the `2005 Asteroid` and `Aglo 2023 Into the Maze` false
     positives, the dark-on-dark menus, clipped grouped navigation, and transfer
@@ -19,11 +19,12 @@
     users and per-direction transfer preferences. Focused and full tests pass,
     including authenticated API and Playwright regression coverage.
 
-- [ ] Cut the stable release `2026090620-slskdn.321` after the final release gate.
-  - Status: release metadata prepared; gate pending (2026-09-06)
+- [x] Cut the stable release `2026090620-slskdn.321` after the final release gate.
+  - Status: published (2026-09-06)
   - Priority: P1
-  - Notes: Do not create the tag until the full local release gate and the final
-    authenticated API/Playwright checks pass on the pushed branch.
+  - Notes: The full release gate and final authenticated API/Playwright checks
+    passed on the pushed branch before `build-main-2026090620-slskdn.321` was
+    created and pushed.
 
 - [x] Merge the fork pull-request queue and resolve current security findings.
   - Status: completed (2026-09-03)

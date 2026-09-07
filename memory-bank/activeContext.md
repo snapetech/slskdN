@@ -1,3 +1,12 @@
+## Update 2026-09-06 20:40:06-06:00
+
+- Released the Wishlist, blocked-user, navigation, System-tab, transfer-table,
+  and transfer-preference fixes as `build-main-2026090620-slskdn.321`.
+- The pushed branch passed the full release gate, including 947 Web tests,
+  5,156 .NET unit tests, 74 backend smoke tests, 144 integration smoke tests,
+  and the authenticated API/Playwright regression suite (6/6).
+- Next steps: monitor the hosted tag build and verify its published artifacts.
+
 ## Update 2026-09-06 20:26:17-06:00
 
 - Current task: fix the tester-reported Wishlist, blocked-user, navigation,
