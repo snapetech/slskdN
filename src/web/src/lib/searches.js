@@ -69,38 +69,65 @@ export const getUserDownloadStats = () => {
   return userDownloadStatsInflight;
 };
 
-// Blocked users management (localStorage-based)
-const BLOCKED_USERS_KEY = 'slskdn_blocked_users';
+// Browser compatibility cache for the durable blocked-user policy.
+export const BLOCKED_USERS_KEY = 'slskdn_blocked_users';
+
+const normalizeBlockedUsername = (username) =>
+  typeof username === 'string' ? username.trim() : '';
+
+const uniqueUsernames = (usernames) => {
+  const seen = new Set();
+  return usernames.reduce((unique, username) => {
+    const normalized = normalizeBlockedUsername(username);
+    const key = normalized.toLocaleLowerCase();
+    if (normalized && !seen.has(key)) {
+      seen.add(key);
+      unique.push(normalized);
+    }
+    return unique;
+  }, []);
+};
 
 export const getBlockedUsers = () => {
   try {
     const blocked = getLocalStorageItem(BLOCKED_USERS_KEY);
     const parsed = blocked ? JSON.parse(blocked) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? uniqueUsernames(parsed) : [];
   } catch {
     return [];
   }
 };
 
-export const blockUser = (username) => {
-  const blocked = getBlockedUsers();
-  if (!blocked.includes(username)) {
-    blocked.push(username);
-    setLocalStorageItem(BLOCKED_USERS_KEY, JSON.stringify(blocked));
-  }
-
-  return blocked;
-};
-
-export const unblockUser = (username) => {
-  let blocked = getBlockedUsers();
-  blocked = blocked.filter((u) => u !== username);
+export const setBlockedUsers = (usernames) => {
+  const blocked = uniqueUsernames(Array.isArray(usernames) ? usernames : []);
   setLocalStorageItem(BLOCKED_USERS_KEY, JSON.stringify(blocked));
   return blocked;
 };
 
+export const blockUser = (username) => {
+  const normalized = normalizeBlockedUsername(username);
+  const blocked = getBlockedUsers();
+  if (!normalized) {
+    return blocked;
+  }
+
+  return setBlockedUsers([...blocked, normalized]);
+};
+
+export const unblockUser = (username) => {
+  const normalized = normalizeBlockedUsername(username).toLocaleLowerCase();
+  return setBlockedUsers(
+    getBlockedUsers().filter(
+      (blockedUsername) => blockedUsername.toLocaleLowerCase() !== normalized,
+    ),
+  );
+};
+
 export const isUserBlocked = (username) => {
-  return getBlockedUsers().includes(username);
+  const normalized = normalizeBlockedUsername(username).toLocaleLowerCase();
+  return Boolean(normalized) && getBlockedUsers().some(
+    (blockedUsername) => blockedUsername.toLocaleLowerCase() === normalized,
+  );
 };
 
 export const create = ({

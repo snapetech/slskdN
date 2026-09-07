@@ -37,8 +37,12 @@ public class PodSearchProvider : ISearchProvider
             // Use mesh overlay search service to query pod peers
             var responses = await _meshOverlaySearchService.SearchAsync(request.SearchText, ct);
 
+            var filteredResponses = request.FileFilter == null
+                ? responses
+                : WishlistSearchPolicy.FilterResponses(responses, string.Empty, request.FileFilter);
+
             // Convert mesh responses to SearchResult with provenance
-            foreach (var response in responses)
+            foreach (var response in filteredResponses)
             {
                 // Extract ContentId from filename if available (mesh search may include it)
                 // For now, we'll use filename as the identifier
@@ -74,7 +78,7 @@ public class PodSearchProvider : ISearchProvider
                 sink.AddResult(searchResult);
             }
 
-            _logger.LogDebug("[PodProvider] Search completed for '{Query}': {Count} responses", request.SearchText, responses.Count);
+            _logger.LogDebug("[PodProvider] Search completed for '{Query}': {Count} responses", request.SearchText, filteredResponses.Count);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

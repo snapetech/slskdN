@@ -10,6 +10,7 @@ import {
 import * as wishlistAPI from '../../lib/wishlist';
 import * as searchesAPI from '../../lib/searches';
 import * as optionsAPI from '../../lib/options';
+import { syncBlockedUsers } from '../../lib/userBlocks';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -39,12 +40,20 @@ const formatDate = (dateString) => {
 const getVisibleHitCount = (item) => item.lastVisibleHitCount ?? item.lastMatchCount ?? 0;
 
 const getHitBreakdown = (item) => ({
+  blocked: item.lastBlockedHitCount ?? 0,
   filteredOut: item.lastFilteredOutHitCount ?? 0,
   hiddenLocked: item.lastHiddenLockedHitCount ?? 0,
   ignored: item.lastIgnoredResultHitCount ?? 0,
   responses: item.lastResponseCount ?? item.lastMatchCount ?? 0,
   visible: getVisibleHitCount(item),
 });
+
+const includesUsername = (usernames, username) => {
+  const normalized = (username || '').toLocaleLowerCase();
+  return Boolean(normalized) && usernames.some(
+    (blockedUsername) => blockedUsername.toLocaleLowerCase() === normalized,
+  );
+};
 
 const getUnseenCount = (item) => {
   if (!item.lastSearchId || !item.lastSearchedAt) return 0;
@@ -73,6 +82,7 @@ const WishlistItemRow = ({
   onMarkViewed,
   selected,
   onSelect,
+  blockedUsers,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [running, setRunning] = useState(false);
@@ -82,6 +92,10 @@ const WishlistItemRow = ({
   const [expandedSearchId, setExpandedSearchId] = useState(null);
   const [expandedSearchResults, setExpandedSearchResults] = useState([]);
   const [loadingResults, setLoadingResults] = useState(false);
+  const visibleExpandedSearchResults = useMemo(
+    () => expandedSearchResults.filter((result) => !includesUsername(blockedUsers, result.username)),
+    [blockedUsers, expandedSearchResults],
+  );
   const requestState = getWishlistRequestState(item, []);
   const unseenCount = getUnseenCount(item);
 
@@ -180,7 +194,7 @@ const WishlistItemRow = ({
           <Popup
             content={() => {
               const hits = getHitBreakdown(item);
-              return `${hits.visible} visible hits, ${hits.hiddenLocked} locked (unreachable), ${hits.filteredOut} hidden by filter, ${hits.ignored} persistently ignored, ${hits.responses} responses`;
+              return `${hits.visible} visible hits, ${hits.blocked} blocked, ${hits.hiddenLocked} locked (unreachable), ${hits.filteredOut} hidden by filter, ${hits.ignored} persistently ignored, ${hits.responses} responses`;
             }}
             position="top center"
             trigger={
@@ -189,6 +203,11 @@ const WishlistItemRow = ({
                 {(item.lastHiddenLockedHitCount ?? 0) > 0 && (
                   <span className="wishlist-locked-count" style={{ color: '#999', marginLeft: '0.25em' }}>
                     {`(+${item.lastHiddenLockedHitCount} locked)`}
+                  </span>
+                )}
+                {(item.lastBlockedHitCount ?? 0) > 0 && (
+                  <span className="wishlist-blocked-count" style={{ color: '#999', marginLeft: '0.25em' }}>
+                    {`(+${item.lastBlockedHitCount} blocked)`}
                   </span>
                 )}
               </span>
@@ -391,12 +410,12 @@ const WishlistItemRow = ({
                   <div style={{ marginTop: '0.75em', padding: '0.5em', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}>
                     {loadingResults ? (
                       <Icon name="spinner" loading />
-                    ) : expandedSearchResults.length === 0 ? (
+                    ) : visibleExpandedSearchResults.length === 0 ? (
                       <span style={{ color: '#999', fontStyle: 'italic' }}>No results for this search.</span>
                     ) : (
                       <>
                         <Header as="h5" style={{ marginBottom: '0.5em' }}>
-                          {expandedSearchResults.length} result(s)
+                          {visibleExpandedSearchResults.length} result(s)
                         </Header>
                         <Table compact size="small" basic="very" striped>
                           <Table.Header>
@@ -408,7 +427,7 @@ const WishlistItemRow = ({
                             </Table.Row>
                           </Table.Header>
                           <Table.Body>
-                            {expandedSearchResults.slice(0, 20).map((r, idx) => {
+                            {visibleExpandedSearchResults.slice(0, 20).map((r, idx) => {
                               const dir = r.files?.[0]?.filename
                                 ? r.files[0].filename.split('/').slice(0, -1).join('/')
                                 : '';
@@ -429,9 +448,9 @@ const WishlistItemRow = ({
                             })}
                           </Table.Body>
                         </Table>
-                        {expandedSearchResults.length > 20 && (
+                        {visibleExpandedSearchResults.length > 20 && (
                           <span style={{ color: '#999', fontSize: '0.85em' }}>
-                            Showing first 20 of {expandedSearchResults.length} results.
+                            Showing first 20 of {visibleExpandedSearchResults.length} results.
                           </span>
                         )}
                       </>
@@ -455,6 +474,7 @@ const WishlistItemCard = ({
   onRunSearch,
   selected,
   onSelect,
+  blockedUsers,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [running, setRunning] = useState(false);
@@ -464,6 +484,10 @@ const WishlistItemCard = ({
   const [expandedSearchId, setExpandedSearchId] = useState(null);
   const [expandedSearchResults, setExpandedSearchResults] = useState([]);
   const [loadingResults, setLoadingResults] = useState(false);
+  const visibleExpandedSearchResults = useMemo(
+    () => expandedSearchResults.filter((result) => !includesUsername(blockedUsers, result.username)),
+    [blockedUsers, expandedSearchResults],
+  );
   const requestState = getWishlistRequestState(item, []);
   const unseenCount = getUnseenCount(item);
 
@@ -578,6 +602,17 @@ const WishlistItemCard = ({
                     trigger={
                       <span style={{ color: '#999', marginLeft: '0.25em' }}>
                         {`(+${item.lastHiddenLockedHitCount} locked)`}
+                      </span>
+                    }
+                  />
+                )}
+                {(item.lastBlockedHitCount ?? 0) > 0 && (
+                  <Popup
+                    content="Matching files from blocked users are excluded from Wishlist hits and automatic downloads."
+                    position="top center"
+                    trigger={
+                      <span style={{ color: '#999', marginLeft: '0.25em' }}>
+                        {`(+${item.lastBlockedHitCount} blocked)`}
                       </span>
                     }
                   />
@@ -768,12 +803,12 @@ const WishlistItemCard = ({
                   <div style={{ marginTop: '0.5em', padding: '0.5em', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}>
                     {loadingResults ? (
                       <Icon name="spinner" loading />
-                    ) : expandedSearchResults.length === 0 ? (
+                    ) : visibleExpandedSearchResults.length === 0 ? (
                       <span style={{ color: '#999', fontStyle: 'italic' }}>No results for this search.</span>
                     ) : (
                       <>
                         <Header as="h5" style={{ marginBottom: '0.5em' }}>
-                          {expandedSearchResults.length} result(s)
+                          {visibleExpandedSearchResults.length} result(s)
                         </Header>
                         <Table compact size="small" basic="very" striped>
                           <Table.Header>
@@ -785,7 +820,7 @@ const WishlistItemCard = ({
                             </Table.Row>
                           </Table.Header>
                           <Table.Body>
-                            {expandedSearchResults.slice(0, 20).map((r, idx) => {
+                            {visibleExpandedSearchResults.slice(0, 20).map((r, idx) => {
                               const dir = r.files?.[0]?.filename
                                 ? r.files[0].filename.split('/').slice(0, -1).join('/')
                                 : '';
@@ -806,9 +841,9 @@ const WishlistItemCard = ({
                             })}
                           </Table.Body>
                         </Table>
-                        {expandedSearchResults.length > 20 && (
+                        {visibleExpandedSearchResults.length > 20 && (
                           <span style={{ color: '#999', fontSize: '0.85em' }}>
-                            Showing first 20 of {expandedSearchResults.length} results.
+                            Showing first 20 of {visibleExpandedSearchResults.length} results.
                           </span>
                         )}
                       </>
@@ -1364,6 +1399,7 @@ const Wishlist = () => {
   const [bulkRunning, setBulkRunning] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [blockedUsers, setBlockedUsers] = useState(() => searchesAPI.getBlockedUsers());
   const [viewState, setViewState] = useState(loadWishlistViewState);
   const [page, setPage] = useState(1);
   const requestSummary = useMemo(
@@ -1543,6 +1579,23 @@ const Wishlist = () => {
     loadOptions();
     loadItems();
   }, [loadOptions, loadItems]);
+
+  useEffect(() => {
+    let cancelled = false;
+    syncBlockedUsers()
+      .then((updated) => {
+        if (!cancelled) {
+          setBlockedUsers(updated);
+        }
+      })
+      .catch((error_) => {
+        console.error('Failed to synchronize blocked users', error_);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleAdd = () => {
     setModalItem(null);
@@ -2080,6 +2133,7 @@ const Wishlist = () => {
                     onRunSearch={handleRunSearch}
                     selected={selectedIds.has(item.id)}
                     onSelect={handleSelectItem}
+                    blockedUsers={blockedUsers}
                   />
                 ))}
               </Table.Body>
@@ -2096,6 +2150,7 @@ const Wishlist = () => {
                   onRunSearch={handleRunSearch}
                   selected={selectedIds.has(item.id)}
                   onSelect={handleSelectItem}
+                  blockedUsers={blockedUsers}
                 />
               ))}
             </div>

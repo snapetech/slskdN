@@ -25,9 +25,11 @@ public static class UserDataServiceCollectionExtensions
                 .Options))
         {
             userNotesContext.Database.EnsureCreated();
+            userNotesContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS UserBlocks (Username TEXT COLLATE NOCASE NOT NULL PRIMARY KEY, CreatedAt TEXT NOT NULL)");
         }
 
         services.AddSingleton<Users.Notes.IUserNoteService, Users.Notes.UserNoteService>();
+        services.AddSingleton<Users.Notes.IUserBlockService, Users.Notes.UserBlockService>();
 
         // Collections / sharing (ShareGroup, Collection, ShareGrant) — behind Feature.CollectionsSharing
         var collectionsDbPath = Path.Combine(Program.AppDirectory, "collections.db");

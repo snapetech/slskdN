@@ -19,6 +19,7 @@ namespace slskd.Wishlist
     using slskd.Search;
     using slskd.Transfers.Downloads;
     using slskd.Transfers.Ranking;
+    using slskd.Users.Notes;
     using Soulseek;
     using SlskdSearch = slskd.Search.Search;
 
@@ -122,7 +123,8 @@ namespace slskd.Wishlist
             ISoulseekClient soulseekClient,
             IOptionsMonitor<slskd.Options> optionsMonitor,
             ISourceRankingService rankingService,
-            IDownloadService downloadService)
+            IDownloadService downloadService,
+            IUserBlockService? userBlockService = null)
         {
             ContextFactory = contextFactory;
             TransfersContextFactory = transfersContextFactory;
@@ -131,6 +133,7 @@ namespace slskd.Wishlist
             OptionsMonitor = optionsMonitor;
             RankingService = rankingService;
             DownloadService = downloadService;
+            UserBlockService = userBlockService;
         }
 
         private IDbContextFactory<WishlistDbContext> ContextFactory { get; }
@@ -140,6 +143,7 @@ namespace slskd.Wishlist
         private IOptionsMonitor<slskd.Options> OptionsMonitor { get; }
         private ISourceRankingService RankingService { get; }
         private IDownloadService DownloadService { get; }
+        private IUserBlockService? UserBlockService { get; }
         private ILogger Log { get; } = Serilog.Log.ForContext<WishlistService>();
 
         /// <inheritdoc/>
@@ -474,7 +478,7 @@ namespace slskd.Wishlist
             foreach (var batch in items.Chunk(WishlistInsertBatchSize))
             {
                 var values = batch.Select((_, index) =>
-                    $"(@id{index}, @search_text{index}, @filter{index}, @enabled{index}, @auto_download{index}, @max_results{index}, @created_at{index}, @last_searched_at{index}, @last_match_count{index}, @last_visible_hit_count{index}, @last_hidden_locked_hit_count{index}, @last_filtered_out_hit_count{index}, @last_ignored_result_hit_count{index}, @last_response_count{index}, @total_search_count{index}, @total_download_count{index}, @max_downloads{index}, @last_search_id{index}, @last_viewed_at{index}, @lidarr_album_id{index}, @lidarr_track_id{index}, @lidarr_track_count{index}, @lidarr_duration_seconds{index}, @lidarr_release_disambiguation{index})");
+                    $"(@id{index}, @search_text{index}, @filter{index}, @enabled{index}, @auto_download{index}, @max_results{index}, @created_at{index}, @last_searched_at{index}, @last_match_count{index}, @last_visible_hit_count{index}, @last_hidden_locked_hit_count{index}, @last_filtered_out_hit_count{index}, @last_ignored_result_hit_count{index}, @last_blocked_hit_count{index}, @last_response_count{index}, @total_search_count{index}, @total_download_count{index}, @max_downloads{index}, @last_search_id{index}, @last_viewed_at{index}, @lidarr_album_id{index}, @lidarr_track_id{index}, @lidarr_track_count{index}, @lidarr_duration_seconds{index}, @lidarr_release_disambiguation{index})");
                 var commandText = $"""
                     INSERT INTO WishlistItems (
                         Id,
@@ -490,6 +494,7 @@ namespace slskd.Wishlist
                         LastHiddenLockedHitCount,
                         LastFilteredOutHitCount,
                         LastIgnoredResultHitCount,
+                        LastBlockedHitCount,
                         LastResponseCount,
                         TotalSearchCount,
                         TotalDownloadCount,
@@ -503,7 +508,7 @@ namespace slskd.Wishlist
                         LidarrReleaseDisambiguation)
                     VALUES {string.Join(", ", values)}
                     """;
-                var parameters = new List<object>(batch.Length * 24);
+                var parameters = new List<object>(batch.Length * 25);
 
                 for (var index = 0; index < batch.Length; index++)
                 {
@@ -521,6 +526,7 @@ namespace slskd.Wishlist
                     AddParameter(parameters, $"@last_hidden_locked_hit_count{index}", item.LastHiddenLockedHitCount);
                     AddParameter(parameters, $"@last_filtered_out_hit_count{index}", item.LastFilteredOutHitCount);
                     AddParameter(parameters, $"@last_ignored_result_hit_count{index}", item.LastIgnoredResultHitCount);
+                    AddParameter(parameters, $"@last_blocked_hit_count{index}", item.LastBlockedHitCount);
                     AddParameter(parameters, $"@last_response_count{index}", item.LastResponseCount);
                     AddParameter(parameters, $"@total_search_count{index}", item.TotalSearchCount);
                     AddParameter(parameters, $"@total_download_count{index}", item.TotalDownloadCount);
@@ -802,19 +808,15 @@ namespace slskd.Wishlist
             var query = new SearchQuery(item.SearchText);
             var scope = SearchScope.Network;
 
+            var userFileFilter = CreateFileFilter(item.Filter);
+            var wishlistFileFilter = WishlistSearchPolicy.CreateSoulseekFileFilter(
+                item.SearchText,
+                userFileFilter);
             var searchOptions = new SearchOptions(
                 searchTimeout: 15000,
                 responseLimit: item.MaxResults,
-                filterResponses: !string.IsNullOrEmpty(item.Filter));
-
-            // Apply the wishlist filter string as a file filter during search collection.
-            // Without this, filterResponses: true only enables default filtering (e.g., locked files)
-            // but ignores the user's filter expression like "flac OR mp3".
-            if (!string.IsNullOrEmpty(item.Filter))
-            {
-                var fileFilter = CreateFileFilter(item.Filter);
-                searchOptions = searchOptions.WithFilters(fileFilter: fileFilter);
-            }
+                filterResponses: true)
+                .WithFilters(fileFilter: wishlistFileFilter);
 
             var search = await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist", wishlistItemId: item.Id);
 
@@ -843,8 +845,16 @@ namespace slskd.Wishlist
             var ignoredResults = await context.WishlistIgnoredResults
                 .Where(rule => rule.WishlistItemId == item.Id)
                 .ToListAsync(cancellationToken);
+            IReadOnlySet<string> blockedUsers = UserBlockService == null
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : await UserBlockService.GetBlockedUsernamesAsync(cancellationToken);
 
-            var hitStats = CountWishlistHits(searchWithResponses, item.Filter, ignoredResults);
+            var hitStats = CountWishlistHits(
+                searchWithResponses,
+                item.SearchText,
+                item.Filter,
+                ignoredResults,
+                blockedUsers);
 
             // Update wishlist item stats
             item.LastSearchedAt = DateTime.UtcNow;
@@ -855,17 +865,20 @@ namespace slskd.Wishlist
             item.LastHiddenLockedHitCount = hitStats.HiddenLocked;
             item.LastFilteredOutHitCount = hitStats.FilteredOut;
             item.LastIgnoredResultHitCount = hitStats.Ignored;
+            item.LastBlockedHitCount = hitStats.Blocked;
             item.LastMatchCount = hitStats.Visible;
 
             await context.SaveChangesAsync(cancellationToken);
 
             Log.Information(
-                "Wishlist search {Id} completed with {Visible} visible hits ({Responses} responses, {HiddenLocked} locked hidden, {FilteredOut} filtered out)",
+                "Wishlist search {Id} completed with {Visible} visible hits ({Responses} responses, {HiddenLocked} locked hidden, {FilteredOut} filtered out, {Ignored} ignored, {Blocked} blocked)",
                 searchId,
                 item.LastVisibleHitCount,
                 item.LastResponseCount,
                 item.LastHiddenLockedHitCount,
-                item.LastFilteredOutHitCount);
+                item.LastFilteredOutHitCount,
+                item.LastIgnoredResultHitCount,
+                item.LastBlockedHitCount);
 
             var autoDownloadState = await context.WishlistItems
                 .AsNoTracking()
@@ -881,6 +894,7 @@ namespace slskd.Wishlist
                     searchWithResponses,
                     item,
                     ignoredResults,
+                    blockedUsers,
                     cancellationToken);
                 if (downloadResult.EnqueuedCount > 0)
                 {
@@ -925,6 +939,7 @@ namespace slskd.Wishlist
             SlskdSearch search,
             WishlistItem item,
             IReadOnlyCollection<WishlistIgnoredResult> ignoredResults,
+            IReadOnlySet<string> blockedUsers,
             CancellationToken cancellationToken)
         {
             try
@@ -939,13 +954,20 @@ namespace slskd.Wishlist
                     return WishlistDownloadResult.Empty;
                 }
 
-                var fileFilter = CreateSearchResultFileFilter(filter);
+                var fileFilter = WishlistSearchPolicy.CreateResultFileFilter(
+                    item.SearchText,
+                    CreateSearchResultFileFilter(filter));
                 var alreadyDownloaded = await GetRecentlyCompletedTrackKeysAsync(item.SearchText, cancellationToken)
                     .ConfigureAwait(false);
 
                 var candidates = new List<SourceCandidate>();
                 foreach (var response in search.Responses)
                 {
+                    if (blockedUsers.Contains(response.Username))
+                    {
+                        continue;
+                    }
+
                     foreach (var file in response.Files)
                     {
                         if (!fileFilter(file) ||
@@ -1066,6 +1088,18 @@ namespace slskd.Wishlist
                     : int.MaxValue;
                 if (finalRemainingDownloads <= 0)
                 {
+                    return WishlistDownloadResult.Empty;
+                }
+
+                var latestBlockedUsers = UserBlockService == null
+                    ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                    : await UserBlockService.GetBlockedUsernamesAsync(cancellationToken);
+                if (latestBlockedUsers.Contains(bestPlan.Plan.Key.Username))
+                {
+                    Log.Information(
+                        "Skipping wishlist auto-download for {WishlistItemId}: selected user {Username} was blocked before enqueue",
+                        wishlistItemId,
+                        bestPlan.Plan.Key.Username);
                     return WishlistDownloadResult.Empty;
                 }
 
@@ -1486,19 +1520,24 @@ namespace slskd.Wishlist
 
         private static WishlistHitStats CountWishlistHits(
             SlskdSearch? search,
+            string searchText,
             string filter,
-            IReadOnlyCollection<WishlistIgnoredResult> ignoredResults)
+            IReadOnlyCollection<WishlistIgnoredResult> ignoredResults,
+            IReadOnlySet<string> blockedUsers)
         {
             if (search?.Responses == null)
             {
-                return new WishlistHitStats(0, 0, 0, 0);
+                return new WishlistHitStats(0, 0, 0, 0, 0);
             }
 
-            var fileFilter = CreateSearchResultFileFilter(filter);
+            var fileFilter = WishlistSearchPolicy.CreateResultFileFilter(
+                searchText,
+                CreateSearchResultFileFilter(filter));
             var visible = 0;
             var hiddenLocked = 0;
             var filteredOut = 0;
             var ignored = 0;
+            var blocked = 0;
 
             foreach (var response in search.Responses)
             {
@@ -1507,6 +1546,10 @@ namespace slskd.Wishlist
                     if (!fileFilter(file))
                     {
                         filteredOut++;
+                    }
+                    else if (blockedUsers.Contains(response.Username))
+                    {
+                        blocked++;
                     }
                     else if (IsIgnored(ignoredResults, response.Username, file.Filename))
                     {
@@ -1524,6 +1567,10 @@ namespace slskd.Wishlist
                     {
                         filteredOut++;
                     }
+                    else if (blockedUsers.Contains(response.Username))
+                    {
+                        blocked++;
+                    }
                     else if (IsIgnored(ignoredResults, response.Username, file.Filename))
                     {
                         ignored++;
@@ -1535,7 +1582,7 @@ namespace slskd.Wishlist
                 }
             }
 
-            return new WishlistHitStats(visible, hiddenLocked, filteredOut, ignored);
+            return new WishlistHitStats(visible, hiddenLocked, filteredOut, ignored, blocked);
         }
 
         internal static bool IsIgnored(
@@ -1698,7 +1745,7 @@ namespace slskd.Wishlist
             List<WishlistFilterClause> Clauses,
             HashSet<string> Exclude);
 
-        private readonly record struct WishlistHitStats(int Visible, int HiddenLocked, int FilteredOut, int Ignored);
+        private readonly record struct WishlistHitStats(int Visible, int HiddenLocked, int FilteredOut, int Ignored, int Blocked);
 
         private readonly record struct WishlistGroupPlan(
             (string Username, string Dir) Key,

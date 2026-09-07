@@ -25,6 +25,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Pinned optional media-tool Rust installs to their published crate lockfiles,
   preventing a newly released broken transitive dependency from making the
   omnibus tester image fail to build.
+- Fixed Wishlist matching so every requested term is enforced at direct, mesh,
+  bridged, persisted, and automatic-download result boundaries; fallback
+  searches now relax only known suppressed terms and never broaden silently.
+- Added durable, case-insensitive blocked-user storage and API synchronization;
+  blocked peers are excluded from Wishlist hit counts and automatic downloads,
+  with the excluded count visible to users.
 
 ## [2026090321-slskdn.320] — 2026-09-03
 

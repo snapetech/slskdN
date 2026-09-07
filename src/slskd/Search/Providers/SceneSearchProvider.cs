@@ -93,7 +93,8 @@ public class SceneSearchProvider : ISearchProvider
                             responseLimit: responseLimit,
                             fileLimit: fileLimit,
                             filterResponses: true,
-                            minimumResponseFileCount: 1),
+                            minimumResponseFileCount: 1,
+                            fileFilter: request.FileFilter),
                         cancellationToken: timeoutCts.Token);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)

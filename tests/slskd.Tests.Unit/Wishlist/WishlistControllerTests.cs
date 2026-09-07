@@ -13,6 +13,7 @@ using slskd.Search;
 using slskd.Tests.Unit;
 using slskd.Transfers.Downloads;
 using slskd.Transfers.Ranking;
+using slskd.Users.Notes;
 using slskd.Wishlist;
 using slskd.Wishlist.API;
 using Soulseek;
@@ -533,6 +534,9 @@ public class WishlistControllerTests : IDisposable
         Assert.Equal(SearchScopeType.Network, capturedScope?.Type);
         Assert.Equal("wishlist", capturedSafetySource);
         Assert.Equal(25, capturedOptions?.ResponseLimit);
+        Assert.NotNull(capturedOptions?.FileFilter);
+        Assert.True(capturedOptions!.FileFilter!(new Soulseek.File(1, "artist title.flac", 1, "flac")));
+        Assert.False(capturedOptions.FileFilter(new Soulseek.File(1, "artist.flac", 1, "flac")));
         Assert.Equal(3, result.ResponseCount);
         searchService.Verify(
             service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), false),
@@ -596,14 +600,14 @@ public class WishlistControllerTests : IDisposable
                             LockedFileCount = 2,
                             Files =
                             [
-                                new slskd.Search.File { Filename = @"Music\Album\01 Song.flac", Size = 100 },
-                                new slskd.Search.File { Filename = @"Music\Album\02 demo.flac", Size = 100 },
-                                new slskd.Search.File { Filename = @"Music\Album\cover.jpg", Size = 100 },
+                                new slskd.Search.File { Filename = @"Music\Artist Title\Album\01 Song.flac", Size = 100 },
+                                new slskd.Search.File { Filename = @"Music\Artist Title\Album\02 demo.flac", Size = 100 },
+                                new slskd.Search.File { Filename = @"Music\Artist Title\Album\cover.jpg", Size = 100 },
                             ],
                             LockedFiles =
                             [
-                                new slskd.Search.File { Filename = @"Music\Album\03 Locked.flac", Size = 100 },
-                                new slskd.Search.File { Filename = @"Music\Album\04 Locked Demo.flac", Size = 100 },
+                                new slskd.Search.File { Filename = @"Music\Artist Title\Album\03 Locked.flac", Size = 100 },
+                                new slskd.Search.File { Filename = @"Music\Artist Title\Album\04 Locked Demo.flac", Size = 100 },
                             ],
                         },
                     ],
@@ -628,6 +632,56 @@ public class WishlistControllerTests : IDisposable
         Assert.Equal(3, item.LastFilteredOutHitCount);
         Assert.Equal(1, item.LastResponseCount);
         Assert.Equal(item.LastVisibleHitCount, item.LastMatchCount);
+    }
+
+    [Fact]
+    public async Task RunSearch_ExcludesBlockedUsersFromHitsAndAutoDownload()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title",
+                Filter = "flac",
+                AutoDownload = true,
+                Enabled = true,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var searchService = CreateCompletedSearchService(itemId);
+        var rankingService = new Mock<ISourceRankingService>();
+        var downloadService = new Mock<IDownloadService>();
+        var blockService = new Mock<IUserBlockService>();
+        blockService
+            .Setup(service => service.GetBlockedUsernamesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlySet<string>)new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ALICE" });
+
+        var service = new WishlistService(
+            _contextFactory,
+            Mock.Of<IDbContextFactory<slskd.Transfers.TransfersDbContext>>(),
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            rankingService.Object,
+            downloadService.Object,
+            blockService.Object);
+
+        await service.RunSearchAsync(itemId);
+
+        await using var verifyContext = _contextFactory.CreateDbContext();
+        var item = await verifyContext.WishlistItems.FindAsync(itemId);
+        Assert.NotNull(item);
+        Assert.Equal(0, item.LastVisibleHitCount);
+        Assert.Equal(2, item.LastBlockedHitCount);
+        downloadService.Verify(
+            download => download.EnqueueAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -779,7 +833,7 @@ public class WishlistControllerTests : IDisposable
                 Files = Enumerable.Range(1, 51)
                     .Select(index => new slskd.Search.File
                     {
-                        Filename = $@"Music\Album\{index:00} Track.flac",
+                        Filename = $@"Music\Artist Title Track\Album\{index:00} Track.flac",
                         Size = index,
                     })
                     .ToList(),
@@ -856,7 +910,7 @@ public class WishlistControllerTests : IDisposable
                     new Response
                     {
                         Username = "alice",
-                        Files = [new slskd.Search.File { Filename = @"Music\Album\01 Song.flac", Size = 100 }],
+                        Files = [new slskd.Search.File { Filename = @"Music\Artist Title\Album\01 Song.flac", Size = 100 }],
                     },
                 ],
             });
@@ -1050,7 +1104,7 @@ public class WishlistControllerTests : IDisposable
                         new slskd.Search.File
                         {
                             BitRate = 128,
-                            Filename = @"Music\Album\128\01 Song.mp3",
+                            Filename = @"Music\Artist Title Track\Album\128\01 Song.mp3",
                             Size = 100,
                         },
                     ],
@@ -1066,7 +1120,7 @@ public class WishlistControllerTests : IDisposable
                         new slskd.Search.File
                         {
                             BitRate = 320,
-                            Filename = @"Music\Album\320\01 Song.mp3",
+                            Filename = @"Music\Artist Title Track\Album\320\01 Song.mp3",
                             Size = 100,
                         },
                     ],
@@ -1145,13 +1199,13 @@ public class WishlistControllerTests : IDisposable
                     [
                         new slskd.Search.File
                         {
-                            Filename = @"Music\Album\01 Song.mp3",
+                            Filename = @"Music\Artist Title Track\Album\01 Song.mp3",
                             Size = 1_000,
                             BitRate = 320,
                         },
                         new slskd.Search.File
                         {
-                            Filename = @"Music\Album\01 Song.flac",
+                            Filename = @"Music\Artist Title Track\Album\01 Song.flac",
                             Size = 100,
                         },
                     ],
@@ -1240,8 +1294,8 @@ public class WishlistControllerTests : IDisposable
                         UploadSpeed = 1000,
                         Files =
                         [
-                            new slskd.Search.File { Filename = @"Music\Album\01 Song.flac", Size = 100 },
-                            new slskd.Search.File { Filename = @"Music\Album\02 Song.flac", Size = 200 },
+                            new slskd.Search.File { Filename = @"Music\Artist Title Track\Album\01 Song.flac", Size = 100 },
+                            new slskd.Search.File { Filename = @"Music\Artist Title Track\Album\02 Song.flac", Size = 200 },
                         ],
                     },
                 ],

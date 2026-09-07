@@ -23,6 +23,7 @@ using slskd.Search.Providers;
 using slskd.VirtualSoulfind.Capture;
 using Serilog;
 using Soulseek;
+using ProviderSearchRequest = slskd.Search.Providers.SearchRequest;
 using Xunit;
 
 public class SearchServiceLifecycleTests
@@ -382,6 +383,81 @@ public class SearchServiceLifecycleTests
     }
 
     [Fact]
+    public async Task StartAsync_WhenBridgedWishlistSearchFiltersEveryProviderResult()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<SearchDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using (var context = new SearchDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var hub = CreateSearchHub();
+        var provider = new Mock<ISearchProvider>();
+        provider.Setup(candidate => candidate.Name).Returns("pod");
+        ProviderSearchRequest? capturedRequest = null;
+        provider.Setup(candidate => candidate.StartSearchAsync(
+                It.IsAny<ProviderSearchRequest>(),
+                It.IsAny<ISearchResultSink>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((ProviderSearchRequest request, ISearchResultSink sink, CancellationToken _) =>
+            {
+                capturedRequest = request;
+                sink.AddResult(new SearchResult
+                {
+                    Provider = "pod",
+                    PrimarySource = "pod",
+                    SourceProviders = ["pod"],
+                    Response = new Response
+                    {
+                        Username = "peer",
+                        FileCount = 2,
+                        Files =
+                        [
+                            new slskd.Search.File { Extension = "flac", Filename = "Artist Title/01.flac", Size = 1 },
+                            new slskd.Search.File { Extension = "flac", Filename = "Artist/02.flac", Size = 2 },
+                        ],
+                    },
+                });
+                return Task.CompletedTask;
+            });
+
+        var fileFilter = new Func<Soulseek.File, bool>(file => file.Extension == "flac");
+        var wishlistItemId = Guid.NewGuid();
+        using var service = new SearchService(
+            hub.Object,
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options
+            {
+                Feature = new slskd.Options.FeatureOptions
+                {
+                    ScenePodBridge = true,
+                },
+            }),
+            Mock.Of<ISoulseekClient>(),
+            new SearchDbContextFactory(options),
+            Mock.Of<ISoulseekSafetyLimiter>(),
+            searchProviders: [provider.Object]);
+
+        var search = await service.StartAsync(
+            Guid.NewGuid(),
+            SearchQuery.FromText("artist title"),
+            SearchScope.Network,
+            new SearchOptions(fileFilter: fileFilter),
+            requestedProviders: null,
+            safetySource: "wishlist",
+            wishlistItemId: wishlistItemId);
+
+        var response = Assert.Single(search.Responses);
+        var file = Assert.Single(response.Files);
+        Assert.Equal("Artist Title/01.flac", file.Filename);
+        Assert.Same(fileFilter, capturedRequest!.FileFilter);
+        Assert.Equal(1, search.FileCount);
+    }
+
+    [Fact]
     public async Task StartAsync_WhenClientLaunchFails_ReleasesCancellationToken()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -487,14 +563,14 @@ public class SearchServiceLifecycleTests
             hasFreeUploadSlot: true,
             uploadSpeed: 1,
             queueLength: 0,
-            [new Soulseek.File(1, "artist\\album\\one.flac", 1_024, "flac")]);
+            [new Soulseek.File(1, "artist title\\album\\one.flac", 1_024, "flac")]);
         var secondResponse = new SearchResponse(
             "peer-two",
             42,
             hasFreeUploadSlot: true,
             uploadSpeed: 1,
             queueLength: 0,
-            [new Soulseek.File(1, "artist\\album\\two.flac", 2_048, "flac")]);
+            [new Soulseek.File(1, "artist title\\album\\two.flac", 2_048, "flac")]);
         var inProgress = new Soulseek.Search(
             SearchQuery.FromText("artist title"),
             SearchScope.Network,
@@ -603,6 +679,13 @@ public class SearchServiceLifecycleTests
                     uploadSpeed: 1,
                     queueLength: 0,
                     [new Soulseek.File(1, "Linkin Park/Meteora/01.flac", 2_048, "flac")]));
+                responseHandler(new SearchResponse(
+                    "false-positive-peer",
+                    token ?? 0,
+                    hasFreeUploadSlot: true,
+                    uploadSpeed: 1,
+                    queueLength: 0,
+                    [new Soulseek.File(1, "Park/Meteora/01.flac", 2_048, "flac")]));
 
                 return Task.FromResult(new Soulseek.Search(
                     searchQuery,
@@ -624,13 +707,15 @@ public class SearchServiceLifecycleTests
             safetyLimiter.Object);
 
         var searchId = Guid.NewGuid();
+        var wishlistItemId = Guid.NewGuid();
         await service.StartAsync(
             searchId,
             SearchQuery.FromText("Linkin Park Meteora"),
             SearchScope.Network,
             new SearchOptions(searchTimeout: 15_000),
             requestedProviders: null,
-            safetySource: "wishlist");
+            safetySource: "wishlist",
+            wishlistItemId: wishlistItemId);
 
         Assert.True(await WaitUntilAsync(
             () => GetCancellationTokens(service).IsEmpty,
@@ -644,6 +729,7 @@ public class SearchServiceLifecycleTests
         await using var verifyContext = new SearchDbContext(options);
         var persisted = await verifyContext.Searches.AsNoTracking().SingleAsync();
         Assert.True(persisted.State.HasFlag(SearchStates.Completed));
+        Assert.Equal(wishlistItemId, persisted.WishlistItemId);
         Assert.Equal(1, persisted.ResponseCount);
         Assert.Equal(1, persisted.FileCount);
         Assert.Single(persisted.Responses);

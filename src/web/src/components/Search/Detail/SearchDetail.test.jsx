@@ -24,14 +24,17 @@ vi.mock('../../../lib/searchResultDeduplication', () => ({
   })),
 }));
 vi.mock('../../../lib/searches', () => ({
-  blockUser: vi.fn(() => []),
   createBatch: vi.fn(),
   filterResponse: vi.fn(({ response }) => response),
   getBlockedUsers: vi.fn(() => []),
   getResponses: vi.fn(),
   getUserDownloadStats: vi.fn(async () => ({})),
   parseFiltersFromString: vi.fn(() => []),
-  unblockUser: vi.fn(() => []),
+}));
+vi.mock('../../../lib/userBlocks', () => ({
+  blockUserOnServer: vi.fn(async () => []),
+  syncBlockedUsers: vi.fn(async () => []),
+  unblockUserOnServer: vi.fn(async () => []),
 }));
 vi.mock('../../../lib/userNotes', () => ({
   getAllNotes: vi.fn(async () => ({ data: [] })),

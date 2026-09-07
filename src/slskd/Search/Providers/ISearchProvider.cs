@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Search.Providers;
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -69,6 +70,12 @@ public class SearchRequest
     ///     Gets or sets a value indicating whether the provider may use the bounded Wishlist Soulseek fallback.
     /// </summary>
     public bool AllowSmartSoulseekFallback { get; set; }
+
+    /// <summary>
+    ///     Optional file policy shared by providers. Wishlist searches use it
+    ///     to keep bridged results identical to direct Soulseek results.
+    /// </summary>
+    public Func<Soulseek.File, bool>? FileFilter { get; set; }
 }
 
 /// <summary>

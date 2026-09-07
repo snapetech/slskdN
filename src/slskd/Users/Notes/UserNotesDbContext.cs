@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Users.Notes
 {
+    using System;
     using Microsoft.EntityFrameworkCore;
 
     /// <summary>
@@ -24,11 +25,25 @@ namespace slskd.Users.Notes
         /// </summary>
         public DbSet<UserNote> UserNotes { get; set; }
 
+        /// <summary>
+        ///     Gets or sets durable user blocks.
+        /// </summary>
+        public DbSet<UserBlock> UserBlocks { get; set; }
+
         /// <inheritdoc/>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<UserNote>()
                 .HasKey(x => x.Username);
+
+            modelBuilder.Entity<UserBlock>(entity =>
+            {
+                entity.ToTable("UserBlocks");
+                entity.HasKey(x => x.Username);
+                entity.Property(x => x.Username).UseCollation("NOCASE");
+                entity.Property(x => x.CreatedAt)
+                    .HasConversion(value => value, value => DateTime.SpecifyKind(value, DateTimeKind.Utc));
+            });
         }
     }
 }

@@ -1,13 +1,16 @@
 import {
   createBatch,
-  blockUser,
   filterResponse,
   getBlockedUsers,
   getResponses,
   getUserDownloadStats,
   parseFiltersFromString,
-  unblockUser,
 } from '../../../lib/searches';
+import {
+  blockUserOnServer,
+  syncBlockedUsers,
+  unblockUserOnServer,
+} from '../../../lib/userBlocks';
 import {
   buildAlbumCandidates,
   getAlbumCandidateFilter,
@@ -79,6 +82,13 @@ const sortDropdownOptions = [
 ];
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+
+const includesUsername = (usernames, username) => {
+  const normalized = (username || '').toLocaleLowerCase();
+  return Boolean(normalized) && usernames.some(
+    (blockedUsername) => blockedUsername.toLocaleLowerCase() === normalized,
+  );
+};
 
 const scheduleAfterPaint = (callback) => {
   if (typeof window === 'undefined') {
@@ -213,6 +223,23 @@ const SearchDetail = ({
     };
   }, [fetchUserNotes]);
 
+  useEffect(() => {
+    let cancelled = false;
+    syncBlockedUsers()
+      .then((updated) => {
+        if (!cancelled) {
+          setBlockedUsers(updated);
+        }
+      })
+      .catch((error_) => {
+        console.error('Failed to synchronize blocked users', error_);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [hasSavedDefault, setHasSavedDefault] = useState(
     Boolean(getLocalStorageItem('slskd-default-search-filter')),
   );
@@ -310,16 +337,24 @@ const SearchDetail = ({
   }, []);
 
   // Handle blocking/unblocking users
-  const handleBlockUser = useCallback((username) => {
-    const updated = blockUser(username);
-    setBlockedUsers(updated);
-    toast.info(`Blocked ${username} from search results`);
+  const handleBlockUser = useCallback(async (username) => {
+    try {
+      const updated = await blockUserOnServer(username);
+      setBlockedUsers(updated);
+      toast.info(`Blocked ${username} from search results`);
+    } catch (error_) {
+      toast.error(`Failed to block ${username}: ${error_.message}`);
+    }
   }, []);
 
-  const handleUnblockUser = useCallback((username) => {
-    const updated = unblockUser(username);
-    setBlockedUsers(updated);
-    toast.info(`Unblocked ${username}`);
+  const handleUnblockUser = useCallback(async (username) => {
+    try {
+      const updated = await unblockUserOnServer(username);
+      setBlockedUsers(updated);
+      toast.info(`Unblocked ${username}`);
+    } catch (error_) {
+      toast.error(`Failed to unblock ${username}: ${error_.message}`);
+    }
   }, []);
 
   // Fetch durable results at completion or when early mesh responses are
@@ -384,7 +419,7 @@ const SearchDetail = ({
 
     return results
       .filter((r) => !hiddenResults.includes(r.username))
-      .filter((r) => !(hideBlockedUsers && blockedUsers.includes(r.username)))
+      .filter((r) => !(hideBlockedUsers && includesUsername(blockedUsers, r.username)))
       .map((response) => {
         if (!search.wishlistItemId || ignoredResults.length === 0) return response;
         const files = asArray(response.files).filter(
@@ -1088,7 +1123,7 @@ const SearchDetail = ({
               disabled={disabled}
               destination={downloadDestination}
               downloadStats={r.downloadStats}
-              isBlocked={blockedUsers.includes(r.username)}
+              isBlocked={includesUsername(blockedUsers, r.username)}
               isInitiallyFolded={foldResults}
               key={r.username}
               onBlock={() => handleBlockUser(r.username)}

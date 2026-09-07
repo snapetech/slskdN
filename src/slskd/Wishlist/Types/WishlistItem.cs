@@ -79,6 +79,11 @@ namespace slskd.Wishlist
         public int LastIgnoredResultHitCount { get; set; } = 0;
 
         /// <summary>
+        ///     Gets or sets the number of matching file hits hidden because their users are blocked.
+        /// </summary>
+        public int LastBlockedHitCount { get; set; } = 0;
+
+        /// <summary>
         ///     Gets or sets the raw response count for the last search.
         /// </summary>
         public int LastResponseCount { get; set; } = 0;

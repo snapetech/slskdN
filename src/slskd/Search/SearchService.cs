@@ -371,7 +371,7 @@ namespace slskd.Search
             // T-823: Check if the legacy fallback is active; default behavior remains Soulseek + mesh together.
             if (DisasterModeCoordinator?.IsDisasterModeActive == true)
             {
-                return await StartMeshOnlySearchAsync(id, query, options);
+                return await StartMeshOnlySearchAsync(id, query, options, safetySource, wishlistItemId);
             }
 
             var token = Client.GetNextToken();
@@ -423,6 +423,10 @@ namespace slskd.Search
                 int soulseekLockedFileCount = 0;
 
                 options ??= new SearchOptions();
+                Func<IReadOnlyList<Response>, IReadOnlyList<Response>> applyWishlistPolicy = mergedResponses =>
+                    wishlistItemId.HasValue
+                        ? WishlistSearchPolicy.FilterResponses(mergedResponses, query.SearchText, options.FileFilter)
+                        : mergedResponses;
                 var smartFallbackMayStart = SmartSearchFallback.IsEnabledForSource(safetySource)
                     && SmartSearchFallback.CreateQueries(query.SearchText).Count > 0;
                 options = options.WithActions(
@@ -474,7 +478,7 @@ namespace slskd.Search
                                 soulseekSnapshot = responses.ToList();
                             }
 
-                            var merged = MergeSearchResponses(soulseekSnapshot, meshSnapshot);
+                            var merged = applyWishlistPolicy(MergeSearchResponses(soulseekSnapshot, meshSnapshot));
                             ApplyResponseSummary(search, merged);
                         }
                         else
@@ -583,7 +587,7 @@ namespace slskd.Search
                             soulseekSnapshot = responses.ToList();
                         }
 
-                        var merged = MergeSearchResponses(soulseekSnapshot, meshResponses);
+                        var merged = applyWishlistPolicy(MergeSearchResponses(soulseekSnapshot, meshResponses));
                         search.Responses = merged;
                         search.ResponsesAvailable = true;
                         ApplyResponseSummary(search, merged);
@@ -653,7 +657,7 @@ namespace slskd.Search
                                 soulseekSnapshot = responses.ToList();
                             }
 
-                            var merged = MergeSearchResponses(soulseekSnapshot, meshResponses);
+                            var merged = applyWishlistPolicy(MergeSearchResponses(soulseekSnapshot, meshResponses));
                             search.Responses = merged;
                             search.ResponsesAvailable = true;
                             ApplyResponseSummary(search, merged);
@@ -1105,8 +1109,15 @@ namespace slskd.Search
         /// <param name="id">A unique identifier for the search.</param>
         /// <param name="query">The search query.</param>
         /// <param name="options">Search options.</param>
+        /// <param name="safetySource">The safety-limiter source for the search.</param>
+        /// <param name="wishlistItemId">The originating wishlist item, if any.</param>
         /// <returns>The completed search with mesh-only results.</returns>
-        private async Task<Search> StartMeshOnlySearchAsync(Guid id, SearchQuery query, SearchOptions? options = null)
+        private async Task<Search> StartMeshOnlySearchAsync(
+            Guid id,
+            SearchQuery query,
+            SearchOptions? options = null,
+            string safetySource = "user",
+            Guid? wishlistItemId = null)
         {
             Log.Information("[VSF-DISASTER-SEARCH] Starting mesh-only search for query: {Query} (id: {Id})", query.SearchText, id);
 
@@ -1122,6 +1133,8 @@ namespace slskd.Search
                 Id = id,
                 State = SearchStates.Requested,
                 StartedAt = DateTime.UtcNow,
+                Source = safetySource,
+                WishlistItemId = wishlistItemId,
             };
 
             try
@@ -1159,11 +1172,12 @@ namespace slskd.Search
 
                     search.State = SearchStates.Completed;
                     search.EndedAt = DateTime.UtcNow;
-                    search.Responses = overlayResponses;
+                    var filteredOverlayResponses = wishlistItemId.HasValue
+                        ? WishlistSearchPolicy.FilterResponses(overlayResponses, query.SearchText, options?.FileFilter)
+                        : overlayResponses;
+                    search.Responses = filteredOverlayResponses;
                     search.ResponsesAvailable = true;
-                    search.ResponseCount = overlayResponses.Count;
-                    search.FileCount = overlayResponses.Sum(r => r.FileCount);
-                    search.LockedFileCount = 0;
+                    ApplyResponseSummary(search, filteredOverlayResponses);
                     Update(search);
                     await SearchHub.BroadcastUpdateAsync(search);
                     return search;
@@ -1200,16 +1214,17 @@ namespace slskd.Search
 
                 // Step 3: Convert mesh results to Search.Response format
                 var responses = ConvertMeshResultsToResponses(meshResults, query.SearchText);
+                var filteredResponses = wishlistItemId.HasValue
+                    ? WishlistSearchPolicy.FilterResponses(responses, query.SearchText, options?.FileFilter)
+                    : responses.ToList();
 
                 // Update search record with results
                 search.State = SearchStates.Completed;
                 search.EndedAt = DateTime.UtcNow;
-                search.ResponseCount = responses.Count();
-                search.FileCount = responses.Sum(r => r.FileCount);
-                search.LockedFileCount = 0; // Mesh results don't have locked files
+                ApplyResponseSummary(search, filteredResponses);
 
                 // Add responses to search
-                search.Responses = responses;
+                search.Responses = filteredResponses;
                 search.ResponsesAvailable = true;
 
                 Update(search);

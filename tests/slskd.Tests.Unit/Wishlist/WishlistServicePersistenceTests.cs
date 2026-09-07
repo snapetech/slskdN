@@ -39,6 +39,10 @@ public sealed class WishlistServicePersistenceTests
             migration.Apply();
             migration.Apply();
 
+            var blockedHitCountMigration = new Z09062026_WishlistBlockedHitCountMigration(connectionString);
+            blockedHitCountMigration.Apply();
+            blockedHitCountMigration.Apply();
+
             using var verificationConnection = new SqliteConnection(connectionString);
             verificationConnection.Open();
             using var verificationCommand = verificationConnection.CreateCommand();
@@ -52,6 +56,7 @@ public sealed class WishlistServicePersistenceTests
 
             Assert.Contains("LidarrAlbumId", columns);
             Assert.Contains("LidarrTrackId", columns);
+            Assert.Contains("LastBlockedHitCount", columns);
         }
         finally
         {
@@ -297,6 +302,7 @@ public sealed class WishlistServicePersistenceTests
         items[0].LastHiddenLockedHitCount = 6;
         items[0].LastFilteredOutHitCount = 5;
         items[0].LastIgnoredResultHitCount = 4;
+        items[0].LastBlockedHitCount = 10;
         items[0].LastResponseCount = 3;
         items[0].TotalSearchCount = 2;
         items[0].TotalDownloadCount = 1;
@@ -326,6 +332,7 @@ public sealed class WishlistServicePersistenceTests
         Assert.Equal(6, stored.LastHiddenLockedHitCount);
         Assert.Equal(5, stored.LastFilteredOutHitCount);
         Assert.Equal(4, stored.LastIgnoredResultHitCount);
+        Assert.Equal(10, stored.LastBlockedHitCount);
         Assert.Equal(3, stored.LastResponseCount);
         Assert.Equal(2, stored.TotalSearchCount);
         Assert.Equal(1, stored.TotalDownloadCount);

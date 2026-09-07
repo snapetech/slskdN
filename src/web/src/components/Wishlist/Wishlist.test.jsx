@@ -24,6 +24,10 @@ vi.mock('../../lib/spotifyIntegration', () => ({
   startSpotifyAuthorization: vi.fn(),
 }));
 
+vi.mock('../../lib/userBlocks', () => ({
+  syncBlockedUsers: vi.fn(async () => []),
+}));
+
 const renderWishlist = () =>
   render(
     <MemoryRouter>

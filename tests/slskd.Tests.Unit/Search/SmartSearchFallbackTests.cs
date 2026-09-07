@@ -10,11 +10,11 @@ using Xunit;
 public sealed class SmartSearchFallbackTests
 {
     [Fact]
-    public void CreateQueries_RelaxesOnlyLeadingTerms()
+    public void CreateQueries_DoesNotRemoveUnknownTerms()
     {
         var queries = SmartSearchFallback.CreateQueries("Park Meteora Album");
 
-        Assert.Equal(["Meteora Album", "Park Album"], queries);
+        Assert.Empty(queries);
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public sealed class SmartSearchFallbackTests
         var queries = SmartSearchFallback.CreateQueries("Linkin Park Meteora");
 
         // First fallback should remove "Linkin" (known suppressed), not "Park"
-        Assert.Equal(["Park Meteora", "Linkin Meteora"], queries);
+        Assert.Equal(["Park Meteora"], queries);
     }
 
     [Fact]
@@ -33,8 +33,9 @@ public sealed class SmartSearchFallbackTests
         // Even if the suppressed term is not leading, it should be targeted
         var queries = SmartSearchFallback.CreateQueries("Meteora Linkin Park");
 
-        // Should remove "Linkin" first (known suppressed), then fall back to generic
+        // A known suppressed term may be removed regardless of its position.
         Assert.Contains("Meteora Park", queries);
+        Assert.Single(queries);
     }
 
     [Fact]
@@ -50,11 +51,11 @@ public sealed class SmartSearchFallbackTests
     }
 
     [Fact]
-    public void CreateQueries_NormalizesWhitespaceAndBoundsCandidates()
+    public void CreateQueries_DoesNotBroadenNormalWhitespaceSeparatedQueries()
     {
         var queries = SmartSearchFallback.CreateQueries("  Tate   McRae   greedy  ");
 
-        Assert.Equal(["McRae greedy", "Tate greedy"], queries);
+        Assert.Empty(queries);
     }
 
     [Theory]

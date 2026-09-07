@@ -71,7 +71,8 @@ public sealed partial class SearchService
                 TimeoutSeconds = options?.SearchTimeout / 1000 ?? 15,
                 ResponseLimit = options?.ResponseLimit ?? 100,
                 FileLimit = options?.FileLimit ?? 10000,
-                AllowSmartSoulseekFallback = SmartSearchFallback.IsEnabledForSource(safetySource)
+                AllowSmartSoulseekFallback = SmartSearchFallback.IsEnabledForSource(safetySource),
+                FileFilter = options?.FileFilter,
             };
 
             // Aggregate results from requested providers (or all if not specified)
@@ -81,6 +82,11 @@ public sealed partial class SearchService
             // Convert SearchResult back to Response format for compatibility
             // Responses already have provenance attached by providers
             var responses = aggregatedResults.Select(r => r.Response).ToList();
+            if (wishlistItemId.HasValue)
+            {
+                responses = WishlistSearchPolicy
+                    .FilterResponses(responses, query.SearchText, options?.FileFilter);
+            }
 
             // Update search record
             search.State = SearchStates.Completed;
