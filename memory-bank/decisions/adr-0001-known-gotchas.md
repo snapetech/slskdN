@@ -29107,3 +29107,32 @@ still part of the release image, so an upstream transitive regression can make
 the image fail even when the application image is healthy. Use the published
 crate lockfile for reproducible installs and deliberately update it only after
 the tool builds successfully.
+
+### 0z894. Enforce Wishlist Query And Peer Policies At Every Result Boundary
+
+**The Bug**: Wishlist searches treated the Soulseek query, bridged provider
+queries, persisted responses, hit counters, and automatic-download candidates
+as separate contracts. Relaxed fallback queries could therefore return files
+matching only part of the original request, while browser-only blocked-user
+state was ignored by backend counters and automation.
+
+**Files Affected**:
+- `src/slskd/Search/SearchService.cs`
+- `src/slskd/Search/Providers/SceneSearchProvider.cs`
+- `src/slskd/Search/Providers/PodSearchProvider.cs`
+- `src/slskd/Wishlist/WishlistService.cs`
+- `src/slskd/Users/Notes/`
+- `src/web/src/components/Search/Detail/SearchDetail.jsx`
+- `src/web/src/components/Wishlist/Wishlist.jsx`
+
+**Prevention**: Keep one canonical wishlist filename/query predicate and apply
+it to direct Soulseek searches, Scene/Pod results, mesh overlays, persisted
+responses, counters, and automatic-download candidates. Keep blocked peers in
+durable server-side state and load that policy once per operation before both
+counting and enqueueing. Never infer backend correctness from a browser-only
+filter or from the first provider path tested.
+
+**Why This Keeps Happening**: Search providers and UI surfaces were added at
+different times with independently shaped response models. A fix in one path
+does not protect another path unless the boundary contract is centralized and
+covered by provider, persistence, API, and browser regression tests.
