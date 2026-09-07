@@ -29152,3 +29152,19 @@ failed to open destinations such as Browse or Wishlist.
 with its child test IDs and make E2E helpers open that trigger before resolving
 the child locator. When a menu implementation changes, run the real
 navigation helpers, not only component tests.
+
+### 0z896. Derive Filtered Wishlist History From Current Policy
+
+**The Bug**: Wishlist inline history filtered blocked users only while the
+response request was completing. If durable block synchronization finished
+after the history had opened, a newly blocked peer remained visible until the
+history was fetched again; unblocking could not restore a result that had
+already been discarded from component state.
+
+**Files Affected**:
+- `src/web/src/components/Wishlist/Wishlist.jsx`
+
+**Prevention**: Retain the raw response payload and derive the visible list
+from the current blocked-user policy during rendering. Do not permanently
+discard policy-filtered data when the policy can change independently of the
+network response.
