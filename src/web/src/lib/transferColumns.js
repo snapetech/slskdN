@@ -26,7 +26,7 @@ export const ALL_COLUMNS = [
   { key: 'remaining',  label: 'Remaining',  sortable: true,  defaultWidth: 90,  defaultVisible: false, fixed: false },
   { key: 'started',    label: 'Added',      sortable: true,  defaultWidth: 110, defaultVisible: false, fixed: false },
   { key: 'completed',  label: 'Done',       sortable: true,  defaultWidth: 110, defaultVisible: false, fixed: false },
-  { key: 'actions',    label: '',           sortable: false, defaultWidth: 90,  defaultVisible: true,  fixed: false },
+  { key: 'actions',    label: '',           sortable: false, defaultWidth: 90,  defaultVisible: true,  fixed: true },
 ];
 
 // Immutable columns always shown at fixed positions
@@ -73,11 +73,11 @@ export function defaultColumnWidths() {
 
 function detectMissing(keys) {
   const defined = ALL_COLUMNS.filter((c) => !c.fixed).map((c) => c.key);
-  const missing = defined.filter((k) => !keys.includes(k));
-  if (missing.length > 0) {
-    return [...keys, ...missing].filter((k) => defined.includes(k));
-  }
-  return keys;
+  const validKeys = Array.isArray(keys)
+    ? keys.filter((key, index) => defined.includes(key) && keys.indexOf(key) === index)
+    : [];
+  const missing = defined.filter((k) => !validKeys.includes(k));
+  return [...validKeys, ...missing];
 }
 
 /**
@@ -101,8 +101,19 @@ export function loadColumnState(direction) {
 
   // Merge saved state with defaults, add any new columns
   const order = detectMissing(saved.order || defaultOrder());
-  const visible = { ...defaultVis, ...(saved.visible || {}) };
-  const widths = { ...defaultColumnWidths(), ...(saved.widths || {}) };
+  const visible = { ...defaultVis };
+  for (const col of ALL_COLUMNS) {
+    if (typeof saved.visible?.[col.key] === 'boolean') {
+      visible[col.key] = saved.visible[col.key];
+    }
+  }
+  const widths = { ...defaultColumnWidths() };
+  for (const col of ALL_COLUMNS) {
+    const width = Number(saved.widths?.[col.key]);
+    if (Number.isFinite(width) && width >= columnMinWidth(col.key)) {
+      widths[col.key] = width;
+    }
+  }
 
   return { order, visible, widths };
 }
@@ -119,6 +130,17 @@ export function saveColumnState(direction, state) {
  */
 export function visibleColumnKeys(state) {
   return state.order.filter((k) => state.visible[k]);
+}
+
+/**
+ * Return visible column definitions in the user's persisted order. Headers,
+ * row cells, and grid tracks must all consume this same sequence.
+ */
+export function visibleColumnDefinitions(state) {
+  const columnsByKey = new Map(ALL_COLUMNS.map((column) => [column.key, column]));
+  return visibleColumnKeys(state)
+    .map((key) => columnsByKey.get(key))
+    .filter(Boolean);
 }
 
 /**

@@ -181,6 +181,38 @@ describe('App', () => {
     });
   });
 
+  it('opens grouped navigation menus and routes to their items', async () => {
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    const discoverMenu = await screen.findByTestId('nav-group-discover');
+    expect(discoverMenu).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(discoverMenu);
+
+    expect(discoverMenu).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(await screen.findByTestId('nav-wishlist'));
+
+    expect(await screen.findByText('Wishlist')).toBeInTheDocument();
+  });
+
+  it('opens grouped navigation menus from the keyboard', async () => {
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    const discoverMenu = await screen.findByTestId('nav-group-discover');
+    fireEvent.keyDown(discoverMenu, { key: 'Enter' });
+
+    expect(await screen.findByTestId('nav-wishlist')).toBeInTheDocument();
+    expect(discoverMenu).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('keeps the browser tab title focused on slskdN branding', async () => {
     render(
       <MemoryRouter>

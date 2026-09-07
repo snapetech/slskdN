@@ -20,7 +20,6 @@ import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify';
 import {
   Button,
-  Dropdown,
   Header,
   Icon,
   Loader,
@@ -291,6 +290,88 @@ const NavigationIcon = ({ alert, alertTestId, name }) => (
     )}
   </span>
 );
+
+const NAVIGATION_GROUPS = [
+  {
+    icon: 'compass outline',
+    key: 'discover',
+    label: 'Discover',
+    items: [
+      { icon: 'crosshairs', label: 'Discovery Graph', testId: 'nav-discovery-graph', to: '/discovery-graph' },
+      { icon: 'list alternate outline', label: 'Playlist Intake', testId: 'nav-playlist-intake', to: '/playlist-intake' },
+      { icon: 'star', label: 'Wishlist', testId: 'nav-wishlist', to: '/wishlist' },
+      { icon: 'music', label: 'Lidarr', testId: 'nav-lidarr', to: '/lidarr' },
+    ],
+  },
+  {
+    icon: 'user circle outline',
+    key: 'network',
+    label: 'Network',
+    items: [
+      { icon: 'users', label: 'Users', testId: 'nav-users', to: '/users' },
+      { icon: 'address book', label: 'Contacts', testId: 'nav-contacts', to: '/contacts' },
+      { icon: 'key', label: 'Solid', testId: 'nav-solid', to: '/solid' },
+    ],
+  },
+  {
+    icon: 'share alternate',
+    key: 'sharing',
+    label: 'Sharing',
+    items: [
+      { icon: 'list', label: 'Collections', testId: 'nav-collections', to: '/collections' },
+      { icon: 'users', label: 'Share Groups', testId: 'nav-groups', to: '/sharegroups' },
+      { icon: 'share', label: 'Shared with Me', testId: 'nav-shared-with-me', to: '/shared' },
+      { icon: 'folder open', label: 'Browse', testId: 'nav-browse', to: '/browse' },
+    ],
+  },
+];
+
+const NavigationDropdown = ({ group }) => {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <Popup
+      className="navigation-dropdown-popup"
+      on="click"
+      onClose={() => setOpen(false)}
+      onOpen={() => setOpen(true)}
+      open={open}
+      position="bottom left"
+      trigger={(
+        <Menu.Item
+          aria-expanded={open}
+          aria-haspopup="menu"
+          className="navigation-dropdown-trigger"
+          data-navigation-targets={group.items.map((item) => item.testId).join(' ')}
+          data-testid={`nav-group-${group.key}`}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setOpen((current) => !current);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <Icon name={group.icon} />
+          {group.label}
+          <Icon name="dropdown" />
+        </Menu.Item>
+      )}
+    >
+      <Menu className="navigation-dropdown-menu" vertical>
+        {group.items.map((item) => (
+          <NavLink key={item.to} onClick={() => setOpen(false)} to={item.to}>
+            <Menu.Item data-testid={item.testId}>
+              <Icon name={item.icon} />
+              {item.label}
+            </Menu.Item>
+          </NavLink>
+        ))}
+      </Menu>
+    </Popup>
+  );
+};
 
 const buildCurrentIngressPorts = (options = {}) => {
   const soulseek = getOption(options, 'soulseek', 'Soulseek') || {};
@@ -1093,116 +1174,9 @@ class App extends Component {
                     </Menu.Item>
                   </NavLink>
 
-                  <Dropdown
-                    icon={null}
-                    item
-                    trigger={(
-                      <>
-                        <Icon name="compass outline" />
-                        Discover
-                        <Icon name="dropdown" />
-                      </>
-                    )}
-                  >
-                    <Dropdown.Menu>
-                      <NavLink to="/discovery-graph">
-                        <Dropdown.Item data-testid="nav-discovery-graph">
-                          <Icon name="crosshairs" />
-                          Discovery Graph
-                        </Dropdown.Item>
-                      </NavLink>
-                      <NavLink to="/playlist-intake">
-                        <Dropdown.Item data-testid="nav-playlist-intake">
-                          <Icon name="list alternate outline" />
-                          Playlist Intake
-                        </Dropdown.Item>
-                      </NavLink>
-                      <NavLink to="/wishlist">
-                        <Dropdown.Item data-testid="nav-wishlist">
-                          <Icon name="star" />
-                          Wishlist
-                        </Dropdown.Item>
-                      </NavLink>
-                      <NavLink to="/lidarr">
-                        <Dropdown.Item data-testid="nav-lidarr">
-                          <Icon name="music" />
-                          Lidarr
-                        </Dropdown.Item>
-                      </NavLink>
-                    </Dropdown.Menu>
-                  </Dropdown>
-
-                  <Dropdown
-                    icon={null}
-                    item
-                    trigger={(
-                      <>
-                        <Icon name="user circle outline" />
-                        Network
-                        <Icon name="dropdown" />
-                      </>
-                    )}
-                  >
-                    <Dropdown.Menu>
-                      <NavLink to="/users">
-                        <Dropdown.Item data-testid="nav-users">
-                          <Icon name="users" />
-                          Users
-                        </Dropdown.Item>
-                      </NavLink>
-                      <NavLink to="/contacts">
-                        <Dropdown.Item data-testid="nav-contacts">
-                          <Icon name="address book" />
-                          Contacts
-                        </Dropdown.Item>
-                      </NavLink>
-                      <NavLink to="/solid">
-                        <Dropdown.Item data-testid="nav-solid">
-                          <Icon name="key" />
-                          Solid
-                        </Dropdown.Item>
-                      </NavLink>
-                    </Dropdown.Menu>
-                  </Dropdown>
-
-                  <Dropdown
-                    icon={null}
-                    item
-                    trigger={(
-                      <>
-                        <Icon name="share alternate" />
-                        Sharing
-                        <Icon name="dropdown" />
-                      </>
-                    )}
-                  >
-                    <Dropdown.Menu>
-                      <NavLink to="/collections">
-                        <Dropdown.Item data-testid="nav-collections">
-                          <Icon name="list" />
-                          Collections
-                        </Dropdown.Item>
-                      </NavLink>
-                      <NavLink to="/sharegroups">
-                        <Dropdown.Item data-testid="nav-groups">
-                          <Icon name="users" />
-                          Share Groups
-                        </Dropdown.Item>
-                      </NavLink>
-                      <NavLink to="/shared">
-                        <Dropdown.Item data-testid="nav-shared-with-me">
-                          <Icon name="share" />
-                          Shared with Me
-                        </Dropdown.Item>
-                      </NavLink>
-                      <NavLink to="/browse">
-                        <Dropdown.Item data-testid="nav-browse">
-                          <Icon name="folder open" />
-                          Browse
-                        </Dropdown.Item>
-                      </NavLink>
-                    </Dropdown.Menu>
-                  </Dropdown>
+                  {NAVIGATION_GROUPS.map((group) => (
+                    <NavigationDropdown group={group} key={group.key} />
+                  ))}
                 </>
               )}
             </div>

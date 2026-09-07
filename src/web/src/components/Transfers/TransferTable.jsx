@@ -20,7 +20,7 @@ import {
   defaultColumnWidths,
   loadColumnState,
   saveColumnState,
-  visibleColumnKeys,
+  visibleColumnDefinitions,
 } from '../../lib/transferColumns';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -176,6 +176,7 @@ const Row = React.memo(({ index, style, ...data }) => {
       {columnOrder.map((k) => (
         <div key={k}
           className={`transfer-cell ${k === 'name' ? 'transfer-cell-name' : ''} ${['progress','speed','eta','elapsed','remaining','size','bitrate','samplerate','length','track','year'].includes(k) ? 'transfer-cell-num' : ''}`}
+          data-colkey={k}
           role="gridcell"
           title={transfer.filename}
         >
@@ -192,12 +193,18 @@ const Row = React.memo(({ index, style, ...data }) => {
           {k === 'peer' && (
             <div className="transfer-cell-peer">
               <span className="transfer-peer-name">{transfer.username}</span>
-              <Button
-                aria-label={`Browse ${transfer.username} files`}
-                as={Link} compact icon="folder open" size="mini"
-                state={{ user: transfer.username }}
-                style={{ fontSize: '0.65rem', padding: '2px 4px' }}
-                to={`/browse?user=${encodeURIComponent(transfer.username)}`}
+              <Popup
+                content="Open this peer's shared files in the Browse view."
+                position="top center"
+                trigger={
+                  <Button
+                    aria-label={`Browse ${transfer.username} files`}
+                    as={Link} compact icon="folder open" size="mini"
+                    state={{ user: transfer.username }}
+                    style={{ fontSize: '0.65rem', padding: '2px 4px' }}
+                    to={`/browse?user=${encodeURIComponent(transfer.username)}`}
+                  />
+                }
               />
             </div>
           )}
@@ -245,11 +252,41 @@ const Row = React.memo(({ index, style, ...data }) => {
       ))}
       <div className="transfer-cell transfer-cell-actions" role="gridcell">
         {transfer.requestId && onOpenRequest && (
-          <Button icon="info" onClick={() => onOpenRequest(transfer.requestId)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Open request (rename, history)" />
+          <Popup
+            content="Open the originating request to review its name and history."
+            position="top center"
+            trigger={
+              <Button aria-label="Open originating request" icon="info" onClick={() => onOpenRequest(transfer.requestId)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} />
+            }
+          />
         )}
-        {retryable && <Button color="green" icon="redo" onClick={() => onRetry(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Retry" />}
-        {cancellable && <Button color="red" icon="x" onClick={() => onCancel(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Cancel" />}
-        {removable && <Button icon="trash alternate" onClick={() => onRemove(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Remove" />}
+        {retryable && (
+          <Popup
+            content="Retry this failed transfer."
+            position="top center"
+            trigger={
+              <Button aria-label="Retry transfer" color="green" icon="redo" onClick={() => onRetry(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} />
+            }
+          />
+        )}
+        {cancellable && (
+          <Popup
+            content="Cancel this transfer while it is in progress or queued."
+            position="top center"
+            trigger={
+              <Button aria-label="Cancel transfer" color="red" icon="x" onClick={() => onCancel(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} />
+            }
+          />
+        )}
+        {removable && (
+          <Popup
+            content="Remove this transfer from the list without changing the source file."
+            position="top center"
+            trigger={
+              <Button aria-label="Remove transfer" icon="trash alternate" onClick={() => onRemove(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} />
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -266,8 +303,15 @@ const TransferTable = ({
   onSelectionChange,
   selectedFiles, selectedKeys,
   transfers,
+  sort: controlledSort,
+  onSortChange,
 }) => {
   const [colState, setColState] = useState(() => loadColumnState(direction));
+  const [localSort, setLocalSort] = useState({ direction: 'ascending', key: 'name' });
+
+  useEffect(() => {
+    setColState(loadColumnState(direction));
+  }, [direction]);
 
   const persistAndSave = useCallback((updater) => {
     setColState((prev) => {
@@ -329,17 +373,24 @@ const TransferTable = ({
     });
   }, [persistAndSave]);
 
-  const [sort, setSort] = useState({ direction: 'ascending', key: 'name' });
   const toggleSort = useCallback((key) => {
-    setSort((prev) =>
-      prev.key === key
-        ? { ...prev, direction: prev.direction === 'ascending' ? 'descending' : 'ascending' }
-        : { direction: 'ascending', key },
-    );
-  }, []);
+    const nextSort = (controlledSort ?? localSort).key === key
+      ? {
+        ...(controlledSort ?? localSort),
+        direction: (controlledSort ?? localSort).direction === 'ascending' ? 'descending' : 'ascending',
+      }
+      : { direction: 'ascending', key };
+    if (onSortChange) {
+      onSortChange(nextSort);
+    } else {
+      setLocalSort(nextSort);
+    }
+  }, [controlledSort, localSort, onSortChange]);
 
-  const keys = visibleColumnKeys(colState);
-  const visibleCols = ALL_COLUMNS.filter((c) => keys.includes(c.key) && !c.fixed);
+  const sort = controlledSort ?? localSort;
+
+  const visibleCols = visibleColumnDefinitions(colState);
+  const keys = visibleCols.map((column) => column.key);
   const headerTemplate = `${CHECKBOX_WIDTH}px ${keys.map((k) => `${colState.widths[k] || 60}px`).join(' ')} 100px`;
 
   const sortValue = useCallback((transfer, k) => {
@@ -512,6 +563,7 @@ const TransferTable = ({
               }
             />
             <Popup
+              content="Choose which transfer columns are visible; your order and widths remain saved for this direction."
               trigger={
                 <Button
                   aria-label="Choose transfer table columns"

@@ -6,6 +6,10 @@ import {
   createTransferStore,
   transferKey,
 } from '../../lib/transferStore';
+import {
+  loadTransferViewState,
+  saveTransferViewState,
+} from '../../lib/transferViewPreferences';
 import { PlaceholderSegment } from '../Shared';
 import TransferTable from './TransferTable';
 import TransfersHeader from './TransfersHeader';
@@ -90,11 +94,10 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
   const [activeTab, setActiveTab] = useState(direction);
   const [connecting, setConnecting] = useState(true);
   const [connected, setConnected] = useState(false);
-  const [hideCompleted, setHideCompleted] = useState(true);
+  const [viewState, setViewState] = useState(() => loadTransferViewState(direction));
   const [initialSnapshotLoaded, setInitialSnapshotLoaded] = useState(false);
   const [totalCounts, setTotalCounts] = useState(null);
   const [historyVersion, setHistoryVersion] = useState(0);
-  const [statusFilter, setStatusFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
 
@@ -110,6 +113,20 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
     remove: 0,
     retry: 0,
   });
+
+  const { hideCompleted, statusFilter, sort } = viewState;
+
+  const updateViewState = useCallback((patch) => {
+    setViewState((current) => {
+      const next = {
+        ...current,
+        ...patch,
+        sort: patch.sort ? { ...current.sort, ...patch.sort } : current.sort,
+      };
+      saveTransferViewState(activeTab, next);
+      return next;
+    });
+  }, [activeTab]);
 
   const bulkQueueRef = useRef([]);
   const queuedBulkKeysRef = useRef(new Set());
@@ -127,6 +144,12 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
   useEffect(() => {
     setActiveTab(direction);
   }, [direction]);
+
+  useEffect(() => {
+    setViewState(loadTransferViewState(activeTab));
+    setSearchText('');
+    setSelectedKeys(new Set());
+  }, [activeTab]);
 
   // Seed from REST, stream deltas over SignalR, reconcile indexed deltas on a slow timer.
   useEffect(() => {
@@ -709,6 +732,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
   return (
     <div data-testid={testId} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <Menu
+        className="transfer-direction-menu"
         pointing
         secondary
         style={{ marginBottom: 0, minHeight: '36px' }}
@@ -753,7 +777,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
         onAcceleratedChange={handleAcceleratedChange}
         onAutoReplaceChange={handleAutoReplaceChange}
         onCancelAll={cancelAll}
-        onHideCompletedChange={setHideCompleted}
+        onHideCompletedChange={(value) => updateViewState({ hideCompleted: value })}
         onRemoveAll={removeAll}
         onRetryAll={retryAll}
         removing={removing}
@@ -772,7 +796,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
                   statusFilter === filter.key ? ' is-active' : ''
                 }`}
                 key={filter.key}
-                onClick={() => setStatusFilter(filter.key)}
+                onClick={() => updateViewState({ statusFilter: filter.key })}
                 type="button"
               >
                 {`${filter.label} (${statusCounts[filter.key] ?? 0})`}
@@ -841,6 +865,8 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
           onRetrySelected={() => retryAll(selectedFiles)}
           selectedKeys={selectedKeys}
           selectedFiles={selectedFiles}
+          sort={sort}
+          onSortChange={(nextSort) => updateViewState({ sort: nextSort })}
           transfers={filteredTransfers}
         />
       )}

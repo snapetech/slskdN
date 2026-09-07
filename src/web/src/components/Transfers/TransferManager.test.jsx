@@ -96,6 +96,7 @@ describe('TransferManager reconciliation', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    localStorage.clear();
     Object.keys(mocks.callbacks).forEach((key) => delete mocks.callbacks[key]);
     mocks.getAcceleratedMode.mockResolvedValue({ enabled: false });
     mocks.getAutoReplaceStatus.mockResolvedValue({ enabled: false });
@@ -113,6 +114,7 @@ describe('TransferManager reconciliation', () => {
   afterEach(() => {
     vi.useRealTimers();
     setHidden(false);
+    localStorage.clear();
   });
 
   it('advances from an initial snapshot to overlapping cursor deltas', async () => {

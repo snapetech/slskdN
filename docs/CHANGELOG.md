@@ -31,6 +31,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added durable, case-insensitive blocked-user storage and API synchronization;
   blocked peers are excluded from Wishlist hit counts and automatic downloads,
   with the excluded count visible to users.
+- Fixed dark-theme navigation and System/transfer tab contrast, made grouped
+  navigation menus visible and keyboard-accessible, aligned transfer headers
+  with persisted row order, and saved transfer view preferences per direction.
 
 ## [2026090321-slskdn.320] — 2026-09-03
 

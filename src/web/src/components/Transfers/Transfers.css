@@ -104,6 +104,19 @@
   min-height: 0;
 }
 
+.transfer-direction-menu.ui.secondary.pointing.menu {
+  flex: 0 0 auto;
+  margin-top: 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  white-space: nowrap;
+}
+
+.transfer-direction-menu.ui.secondary.pointing.menu > .item {
+  flex: 0 0 auto;
+}
+
 .transfer-grid {
   min-width: 920px;
   flex: 1;

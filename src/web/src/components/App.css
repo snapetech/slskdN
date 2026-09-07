@@ -555,6 +555,27 @@ body {
     box-shadow: inset 0 2px 0 var(--slskdn-accent-primary) !important;
 }
 
+/* Semantic UI's secondary menus retain a dark default text colour. Keep all
+   pointing secondary menus readable on the dark Iris surfaces. */
+:root.dark .ui.secondary.pointing.menu {
+    border-bottom-color: var(--slskdn-border, rgba(255,255,255,0.16));
+}
+
+:root.dark .ui.secondary.pointing.menu .item {
+    color: var(--slskd-color) !important;
+}
+
+:root.dark .ui.secondary.pointing.menu .item:hover,
+:root.dark .ui.secondary.pointing.menu .item:focus-visible {
+    background: var(--slskd-hover-background) !important;
+    color: var(--slskd-color) !important;
+}
+
+:root.dark .ui.secondary.pointing.menu .active.item {
+    border-color: var(--slskdn-accent-primary, #a277ff) !important;
+    color: var(--slskd-color) !important;
+}
+
 :root.dark .app-content [style*="color: rgb(102, 102, 102)"],
 :root.dark .app-content [style*="color: #666"],
 :root.dark .app-content [style*="color: black"],
@@ -694,8 +715,7 @@ body {
     align-items: stretch !important;
     display: flex !important;
     min-height: 58px !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
+    overflow: visible !important;
     position: sticky !important;
     top: 0 !important;
     z-index: 1000 !important; /* Above status bar */
@@ -704,10 +724,62 @@ body {
     scrollbar-width: thin;
 }
 
+/* Semantic UI's sidebar forces overflow-y:auto !important. The sidebar is
+   sticky chrome, while navigation-primary owns horizontal scrolling; leaving
+   the sidebar clipped hides portal-backed menus at its lower edge. */
+.navigation.ui.sidebar {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+}
+
 .navigation-primary {
     display: flex;
     flex: 1 1 auto;
     min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.navigation-dropdown-trigger {
+    cursor: pointer;
+}
+
+.ui.popup.navigation-dropdown-popup {
+    background: var(--slskdn-theme-menu-background, #2f3037) !important;
+    border: 1px solid var(--slskdn-accent-primary-border, rgba(255,255,255,0.16)) !important;
+    box-shadow: var(--slskdn-theme-menu-shadow, 0 12px 28px rgba(0,0,0,0.36)) !important;
+    max-width: min(320px, calc(100vw - 16px));
+    padding: 0 !important;
+    z-index: 3000 !important;
+}
+
+.ui.popup.navigation-dropdown-popup::before {
+    background: var(--slskdn-theme-menu-background, #2f3037) !important;
+    box-shadow: -1px -1px 0 0 var(--slskdn-accent-primary-border, rgba(255,255,255,0.16)) !important;
+}
+
+.navigation-dropdown-menu.ui.vertical.menu {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    min-width: 220px;
+}
+
+.navigation-dropdown-menu.ui.vertical.menu > a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.navigation-dropdown-menu.ui.vertical.menu > a > .item {
+    color: var(--slskd-color, inherit) !important;
+}
+
+.navigation-dropdown-menu.ui.vertical.menu > a > .item:hover,
+.navigation-dropdown-menu.ui.vertical.menu > a:focus-visible > .item {
+    background: var(--slskd-hover-background, rgba(255,255,255,0.12)) !important;
+    color: var(--slskd-color, inherit) !important;
 }
 
 .navigation-primary > a,
