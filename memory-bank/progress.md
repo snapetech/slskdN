@@ -1,3 +1,21 @@
+## Update 2026-09-06 20:26:17-06:00
+
+- Reproduced the reported Wishlist false positives (`2005 Asteroid` and
+  `Aglo 2023 Into the Maze`), invisible grouped navigation, unreadable System
+  and transfer menus, transfer header/row column drift, non-persistent transfer
+  view settings, and browser-only blocked-user rules.
+- Fixed the shared result contract at direct Soulseek, mesh, bridged,
+  persistence, and automatic-download boundaries; removed unsafe generic
+  fallback broadening; added durable blocked-user API/storage and migration;
+  repaired dark-theme/portal navigation; and persisted validated transfer
+  columns, filters, completed visibility, and sorting per direction.
+- Validation passed: full Web tests (`947/947`), Web lint/build, full .NET
+  suite (`5514/5514`), `./bin/lint`, authenticated blocked-user API checks,
+  and six Playwright regressions covering navigation, System contrast, transfer
+  alignment/preferences, library navigation, and browse handoff.
+- Release metadata is prepared for `2026090620-slskdn.321`; final guarded gate,
+  branch push, and tag creation remain pending.
+
 ## Update 2026-09-03 20:47:00Z
 
 - Published corrective stable release `2026090318-slskdn.319` from `main`.

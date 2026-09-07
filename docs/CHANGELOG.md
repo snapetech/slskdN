@@ -22,9 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-- Pinned optional media-tool Rust installs to their published crate lockfiles,
-  preventing a newly released broken transitive dependency from making the
-  omnibus tester image fail to build.
+
+## [2026090620-slskdn.321] — 2026-09-06
+
 - Fixed Wishlist matching so every requested term is enforced at direct, mesh,
   bridged, persisted, and automatic-download result boundaries; fallback
   searches now relax only known suppressed terms and never broaden silently.
@@ -34,6 +34,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed dark-theme navigation and System/transfer tab contrast, made grouped
   navigation menus visible and keyboard-accessible, aligned transfer headers
   with persisted row order, and saved transfer view preferences per direction.
+- Pinned optional media-tool Rust installs to their published crate lockfiles,
+  preventing a newly released broken transitive dependency from making the
+  omnibus tester image fail to build.
 
 ## [2026090321-slskdn.320] — 2026-09-03
 

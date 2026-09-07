@@ -1,3 +1,20 @@
+## Update 2026-09-06 20:26:17-06:00
+
+- Current task: fix the tester-reported Wishlist, blocked-user, navigation,
+  System-tab, transfer-table, and transfer-preference regressions.
+- Implementation is complete. Exact Wishlist matching is enforced across
+  direct Soulseek, mesh, bridged, persisted, and automatic-download boundaries;
+  blocked users are durable through the authenticated API; grouped menus and
+  dark-theme tab surfaces are readable; and transfer headers, rows, columns,
+  and per-direction view preferences share one state contract.
+- Reproduction/fix coverage passes: full Web tests (`947/947`), Web lint and
+  production build, full .NET tests (`5514/5514`), `./bin/lint`, authenticated
+  API checks, and six selected Playwright regressions.
+- Next steps: commit the implementation and release metadata, push `main`, run
+  the guarded release gate, rerun the authenticated API/Playwright checks, and
+  create the authorized `build-main-2026090620-slskdn.321` tag only after all
+  checks pass.
+
 ## Update 2026-09-03 22:42:25Z
 
 - The `.320` stable runtime image remains healthy and published, but its
