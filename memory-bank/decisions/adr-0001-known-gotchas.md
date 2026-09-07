@@ -29136,3 +29136,19 @@ filter or from the first provider path tested.
 different times with independently shaped response models. A fix in one path
 does not protect another path unless the boundary contract is centralized and
 covered by provider, persistence, API, and browser regression tests.
+
+### 0z895. Keep E2E Navigation Helpers Aligned With Popup-Based Menus
+
+**The Bug**: Replacing a clipped Semantic UI dropdown with a portal-backed
+`Popup` made the child route items absent while closed, so the existing
+Playwright `clickNav` helper could no longer find the parent menu and silently
+failed to open destinations such as Browse or Wishlist.
+
+**Files Affected**:
+- `src/web/src/components/App.jsx`
+- `src/web/e2e/helpers.ts`
+
+**Prevention**: Give every collapsed navigation trigger a stable association
+with its child test IDs and make E2E helpers open that trigger before resolving
+the child locator. When a menu implementation changes, run the real
+navigation helpers, not only component tests.
