@@ -23,13 +23,13 @@ The current template exposes the documented optional SLSKD_* environment overrid
 
 Web UI: 5030/tcp
 HTTPS Web UI: 5031/tcp
-Soulseek incoming connections: 50300/tcp (plain and obfuscated peer connections share this one port by default)
-slskdN mesh overlay: 50305/tcp (a distinct number from 50300 because both are TCP)
+Soulseek incoming connections and slskdN mesh overlay: 50300/tcp (plain,
+obfuscated, and mesh TCP connections share this one port by default)
 Public DHT, mesh overlay control, and QUIC control/data-plane traffic: 50300/udp (one shared UDP socket)
 
-Port 50300/tcp should be forwarded from the router to the Unraid server for the best Soulseek connectivity.
+Port 50300/tcp should be forwarded from the router to the Unraid server for the best Soulseek and mesh connectivity.
 
-Ports 50305/tcp and 50300/udp are used when DHT/mesh services are enabled. 50300/udp shares the Soulseek listen port's number since TCP and UDP are separate port spaces.
+If DHT, mesh, or QUIC services are enabled, also forward 50300/udp. TCP and UDP are separate port spaces, so both mappings use the same port number.
 
 Ports 55305 and 55401 are loopback-only QUIC backend ports and should not be published.
 
@@ -71,7 +71,7 @@ Change the default web UI username and password after the first login. Do not co
 4. Open the web UI at http://YOUR_UNRAID_IP:5030.
 5. Change the default web UI credentials.
 6. Configure the Soulseek account and shared folders.
-7. Forward 50300/tcp, and forward 50305/tcp and 50300/udp if DHT/mesh services are enabled.
+7. Forward 50300/tcp, and forward 50300/udp if DHT, mesh, or QUIC services are enabled.
 
 ## Features
 

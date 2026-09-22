@@ -32,16 +32,14 @@ CONTAINER DETAILS
 
 Web UI: 5030/tcp
 HTTPS Web UI: 5031/tcp
-Soulseek incoming connections: 50300/tcp
-slskdN mesh overlay: 50305/tcp
-Public DHT and shared UDP/QUIC mesh traffic: 50305/udp
-Optional QUIC data overlay: 50401/udp
+Soulseek incoming connections and slskdN mesh overlay: 50300/tcp
+Public DHT, mesh overlay control, and QUIC control/data-plane traffic: 50300/udp
 
-Port 50300/tcp should be forwarded from the router to the Unraid server for the best Soulseek connectivity.
+Port 50300/tcp should be forwarded from the router to the Unraid server for the best Soulseek and mesh connectivity.
 
-Ports 50305/tcp and 50305/udp are used when DHT/mesh services are enabled. Port 50401/udp is only needed when the optional overlay_data QUIC data plane is enabled.
+If DHT, mesh, or QUIC services are enabled, also forward 50300/udp. TCP and UDP are separate port spaces, so both mappings use the same port number.
 
-Port 55305 is a loopback-only QUIC backend port and should not be published.
+Ports 55305 and 55401 are loopback-only QUIC backend ports and should not be published.
 
 DEFAULT PATHS
 
@@ -79,7 +77,7 @@ FIRST RUN
 4. Open the web UI at http://YOUR_UNRAID_IP:5030.
 5. Change the default web UI credentials.
 6. Configure the Soulseek account and shared folders.
-7. Forward 50300/tcp, and forward 50305/tcp and 50305/udp if DHT/mesh services are enabled.
+7. Forward 50300/tcp, and forward 50300/udp if DHT, mesh, or QUIC services are enabled.
 
 FEATURES
 
