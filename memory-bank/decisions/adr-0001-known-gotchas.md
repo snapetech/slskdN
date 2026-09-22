@@ -93,6 +93,27 @@ keep a regression test that verifies the encoded server command.
 
 ---
 
+### 0z902. Unraid Port Profiles Must Follow Listener Consolidation
+
+**The Bug**: The Unraid template kept publishing separate mesh TCP/UDP and
+QUIC data ports after runtime consolidated Soulseek, mesh TCP, DHT, and QUIC
+onto `50300/tcp` and `50300/udp`, leaving the installation profile inconsistent
+with the actual listeners.
+
+**Files Affected**:
+- `packaging/unraid/slskdn.xml`
+- `packaging/unraid/README.md`
+- `packaging/unraid/SUPPORT_POST.md`
+- `packaging/unraid/SUPPORT_POST_FORUM.txt`
+
+**Prevention**: When listener ownership or default ports change, update the
+Unraid XML mappings and every copy-ready support document in the same change.
+Validate the template against the current configuration example and runtime
+port documentation; loopback-only backend ports such as `55305` and `55401`
+must not be published.
+
+---
+
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
 ### 0z853. Project Lidarr GET Resources Into Manual-Import Command Files
