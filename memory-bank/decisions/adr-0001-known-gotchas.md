@@ -29268,3 +29268,17 @@ and change the caller's error handling.
 **Prevention**: Keep iterator consumption (`foreach` or materialization) inside
 the existing exception-handling boundary whenever filesystem enumeration is
 made lazy.
+
+### 0z903. Set Static Response Headers Before The Response Starts
+
+**The Bug**: Middleware that awaited static-file handling and then changed
+response headers could run after the response had started. ASP.NET Core then
+rejects the header mutation, turning an otherwise successful asset request
+into a failed request.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebApplicationPipelineExtensions.cs`
+
+**Prevention**: Register response-header changes with `HttpResponse.OnStarting`
+before calling the next middleware so they are applied while headers are still
+writable.
