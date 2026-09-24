@@ -29168,3 +29168,27 @@ already been discarded from component state.
 from the current blocked-user policy during rendering. Do not permanently
 discard policy-filtered data when the policy can change independently of the
 network response.
+
+### 0z897. Check Search Tokens Before Inflating Peer Results
+
+**The Bug**: The peer search-response handler decompressed and parsed every
+response, then checked whether its search token was still active. Late
+responses therefore spent CPU and memory parsing large file lists that the
+application would immediately discard. They could also populate remote path
+encoding state after the search had ended.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Messaging/Handlers/PeerMessageHandler.cs`
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Peer/SearchResponseFactory.cs`
+
+**Prevention**: Read only the bounded username-length prefix and token from
+the compressed stream first. Drop inactive tokens before inflating file
+records. Fully parse active responses, then confirm the same search instance
+is still registered before updating response or path-encoding state. Preserve
+the existing maximum decompressed payload limit.
+
+**Why This Keeps Happening**: Message factories validate payloads eagerly, so
+calling a full parser before checking request ownership turns irrelevant late
+replies into full parsing work. Check correlation tokens before expensive
+payload materialization whenever the protocol places the token in a small
+prefix.
