@@ -9,6 +9,48 @@
 
 ### High Priority
 
+- [x] Review and action the open pull-request and security queues.
+  - Status: completed (2026-09-24)
+  - Priority: P1
+  - Notes: Merged compatible PRs #333, #328, #329, #334, and #335 after
+    rebasing and validating their dependency changes. PRs #326 and #327 remain
+    open because their React 19 updates fail checks against the current
+    Semantic UI React stack, which still depends on the removed
+    findDOMNode API. GitHub reported zero open CodeQL, Dependabot, and
+    secret-scanning alerts; no findings were dismissed. Windows Smoke could
+    not run because no repository runner matches its required labels.
+
+- [x] Fix issue #336 by dropping inactive peer search responses before parsing
+  their result lists.
+  - Status: implementation and local validation complete (2026-09-24); hosted
+    PR validation pending
+  - Priority: P1
+  - Notes: The handler now reads the bounded correlation prefix from the
+    compressed response, checks whether the search is still registered, and
+    avoids inflating/parsing stale file lists. Active responses are fully
+    parsed and their search registration is checked again before processing.
+    Full .NET tests (5,514), repository lint, release-note preview, and the
+    pinned vendored-runtime sync check pass.
+
+- [ ] Diagnose the peer-connection count increase reported alongside issue
+  #336.
+  - Status: follow-up (2026-09-24)
+  - Priority: P1
+  - Notes: The report shows connections increasing from 13 to 2,259 after
+    searches. Early stale-response dropping fixes unnecessary decompression
+    and parsing, but does not explain or claim to fix this separate connection
+    metric. Measure connection creation, reuse, and expiry around searches
+    before changing connection lifecycle behavior.
+
+- [ ] Establish React 19 compatibility before merging PRs #326 and #327.
+  - Status: blocked on Web UI compatibility work (2026-09-24)
+  - Priority: P1
+  - Notes: The current Semantic UI React package uses the removed
+    findDOMNode path, and the React 19 PRs fail build/E2E checks. Keep the
+    runtime on React 18 until the UI stack has a validated compatible path;
+    then update both PRs and rerun the full Web suite.
+
+
 - [x] Fix Wishlist matching, blocked-user policy, and transfer/navigation regressions.
   - Status: implementation and release complete (2026-09-06)
   - Priority: P1

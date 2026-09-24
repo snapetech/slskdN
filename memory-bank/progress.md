@@ -1,3 +1,23 @@
+## Update 2026-09-24 16:42:00Z
+
+- Fixed issue #336 at the parsing boundary: read the bounded search token
+  first, drop responses for inactive searches before inflating their result
+  lists, and recheck active search registration after parsing. Added regression
+  coverage and a release-note fragment.
+- Rebased the fix onto the merged .NET dependency and FluentFTP updates.
+  Regenerated the vendored runtime patch from its pinned upstream baseline;
+  the runtime sync check passes.
+- Validation passed: dotnet test (74 backend, 5,156 unit, 284 integration),
+  ./bin/lint, release-note preview, and the pinned runtime sync check.
+- Merged compatible PRs #333, #328, #329, #334, and #335. React 19 PRs #326
+  and #327 remain open because the current Semantic UI React stack is
+  incompatible. GitHub reported zero open CodeQL, Dependabot, and
+  secret-scanning alerts. Windows Smoke has no matching runner.
+- The reported peer-connection increase (13 to 2,259) is not explained by the
+  parsing fix and remains a separate measurement task.
+- Next: open the issue-fix PR, wait for hosted checks, merge it when green, and
+  recheck the issue, PR, and security-alert state.
+
 ## Update 2026-09-06 20:40:06-06:00
 
 - Published `build-main-2026090620-slskdn.321` after the complete release gate
