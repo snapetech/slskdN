@@ -213,39 +213,44 @@ namespace slskd.Shares
                 // derive a list of all directories from all shares. skip hidden and system directories, as well as anything that
                 // can't be accessed due to security restrictions. it's necessary to enumerate these directories up front so we
                 // can deduplicate directories and apply exclusions
-                var unmaskedDirectories = Shares
-                    .SelectMany(share =>
+                var unmaskedDirectories = new HashSet<string>();
+                foreach (var share in Shares)
+                {
+                    try
                     {
-                        try
+                        foreach (var directory in System.IO.Directory.EnumerateDirectories(share.LocalPath, "*", new EnumerationOptions()
                         {
-                            var directories = System.IO.Directory.GetDirectories(share.LocalPath, "*", new EnumerationOptions()
+                            // ReparsePoint skips symlinks and junctions so a symlink inside a share
+                            // cannot index files outside the share root (e.g. `share/x -> /etc`).
+                            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint,
+                            IgnoreInaccessible = true,
+                            RecurseSubdirectories = true,
+                        }))
+                        {
+                            if (!filters.Any(filter => filter.IsMatch(directory)))
                             {
-                                // ReparsePoint skips symlinks and junctions so a symlink inside a share
-                                // cannot index files outside the share root (e.g. `share/x -> /etc`).
-                                AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint,
-                                IgnoreInaccessible = true,
-                                RecurseSubdirectories = true,
-                            });
-
-                            return directories.Where(directory => !filters.Any(filter => filter.IsMatch(directory)));
+                                unmaskedDirectories.Add(directory);
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            Log.Warning("Failed to scan share {Directory}: {Message}", share.LocalPath, ex.Message);
-                            return Array.Empty<string>();
-                        }
-                    })
-                    .Concat(Shares.Select(share => share.LocalPath)) // include the shares themselves (GetDirectories returns only subdirectories)
-                    .Where(share => System.IO.Directory.Exists(share)) // discard any directories that don't exist.  we already warned about them.
-                    .ToHashSet(); // remove duplicates (in case shares overlap)
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning("Failed to scan share {Directory}: {Message}", share.LocalPath, ex.Message);
+                    }
 
-                var excludedDirectories = unmaskedDirectories
-                    .Where(share => Shares.Where(share => share.IsExcluded).Any(exclusion => share.StartsWith(exclusion.LocalPath)));
+                    // EnumerateDirectories returns only subdirectories, so include the share root.
+                    unmaskedDirectories.Add(share.LocalPath);
+                }
 
-                unmaskedDirectories = unmaskedDirectories.Except(excludedDirectories).ToHashSet();
+                // Discard share roots that do not exist; they have already been reported.
+                unmaskedDirectories.RemoveWhere(directory => !System.IO.Directory.Exists(directory));
 
-                State.SetValue(state => state with { Directories = unmaskedDirectories.Count, ExcludedDirectories = excludedDirectories.Count() });
-                Log.Information("Found {Directories} shared directories (and {Excluded} were excluded) in {Elapsed}ms.  Starting file scan.", unmaskedDirectories.Count, excludedDirectories.Count(), sw.ElapsedMilliseconds - swSnapshot);
+                var excludedShares = Shares.Where(share => share.IsExcluded).ToArray();
+                var excludedDirectoryCount = unmaskedDirectories.RemoveWhere(directory =>
+                    excludedShares.Any(exclusion => directory.StartsWith(exclusion.LocalPath)));
+
+                State.SetValue(state => state with { Directories = unmaskedDirectories.Count, ExcludedDirectories = excludedDirectoryCount });
+                Log.Information("Found {Directories} shared directories (and {Excluded} were excluded) in {Elapsed}ms.  Starting file scan.", unmaskedDirectories.Count, excludedDirectoryCount, sw.ElapsedMilliseconds - swSnapshot);
                 swSnapshot = sw.ElapsedMilliseconds;
 
                 var current = 0;
@@ -280,26 +285,21 @@ namespace slskd.Shares
 
                             repository.InsertDirectory(directory.ReplaceFirst(share.LocalPath, share.RemotePath).NormalizePathForSoulseek(), timestamp);
 
-                            // recursively find all files in the directory and stick a record in a dictionary, keyed on the sanitized
-                            // filename and with a value of a Soulseek.File object
+                            // Enumerate files lazily so large directories do not require a temporary filename array.
                             try
                             {
                                 // enumerate files in this directory only (no subdirectories) exclude hidden and system files and anything
                                 // that can't be accessed due to security restrictions
-                                var newFiles = System.IO.Directory.GetFiles(directory, "*", new EnumerationOptions()
+                                foreach (var originalFilename in System.IO.Directory.EnumerateFiles(directory, "*", new EnumerationOptions()
                                 {
                                     // Skip symlinks so a file symlink like `share/leak -> /etc/passwd` is not served to peers.
                                     AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint,
                                     IgnoreInaccessible = true,
                                     RecurseSubdirectories = false,
-                                });
-
-                                addedFiles = newFiles.Length;
-
-                                // merge the new dictionary with the rest this will overwrite any duplicate keys, but keys are the fully
-                                // qualified name the only time this *should* cause problems is if one of the shares is a subdirectory of another.
-                                foreach (var originalFilename in newFiles)
+                                }))
                                 {
+                                    addedFiles++;
+
                                     var info = Files.ResolveFileInfo(originalFilename);
                                     var file = soulseekFileFactory.Create(originalFilename, maskedFilename: originalFilename.ReplaceFirst(share.LocalPath, share.RemotePath).NormalizePathForSoulseek());
 
@@ -437,6 +437,11 @@ namespace slskd.Shares
                     Log.Debug("Vacuuming...");
                     repository.Vacuum();
                     Log.Debug("Vacuumed successfully");
+
+                    if (!repository.Checkpoint())
+                    {
+                        Log.Warning("Share database WAL checkpoint was blocked by an active reader");
+                    }
                 }
                 catch (OperationCanceledException)
                 {

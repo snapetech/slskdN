@@ -235,6 +235,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         sb.AppendLine("web:");
         sb.AppendLine($"  port: {apiPort}");
         sb.AppendLine($"  address: {(IsVpnWrapperConfigured() ? "0.0.0.0" : "127.0.0.1")}");
+        sb.AppendLine("  content_path: .");
         sb.AppendLine("  https:");
         sb.AppendLine("    disabled: true");
         sb.AppendLine("    force: false");
@@ -305,6 +306,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
 
         sb.AppendLine("flags:");
         sb.AppendLine($"  no_connect: {noConnect.ToString().ToLowerInvariant()}");
+        sb.AppendLine("headless: true");
 
         return sb.ToString();
     }

@@ -9,6 +9,20 @@
 
 ### High Priority
 
+- [ ] Audit the last six months of upstream slskd changes and implement
+  applicable parity fixes.
+  - Status: implementation and local validation complete; PR and stable
+    release pending (2026-09-24)
+  - Priority: P1
+  - Notes: Audited all 77 pull requests merged upstream from 2026-03-24 through
+    2026-09-24. Seven applicable changes are implemented; equivalent behavior,
+    incompatibilities, dependency state, and licensing boundaries are recorded
+    in `docs/dev/upstream-parity-audit-2026-09.md`. The full Web suite (948),
+    .NET suite (5,519), frontend build/lint, and repository lint pass. The five
+    gotchas found during implementation are recorded in ADR-0001. GitHub shows
+    no open issues or security alerts; PRs #326/#327 remain open because React
+    19 is incompatible with the current Semantic UI stack.
+
 - [x] Review and action the open pull-request and security queues.
   - Status: completed (2026-09-24)
   - Priority: P1
@@ -22,8 +36,8 @@
 
 - [x] Fix issue #336 by dropping inactive peer search responses before parsing
   their result lists.
-  - Status: implementation and local validation complete (2026-09-24); hosted
-    PR validation pending
+  - Status: merged to `main` in PR #337 (2026-09-24); included in the next
+    stable release
   - Priority: P1
   - Notes: The handler now reads the bounded correlation prefix from the
     compressed response, checks whether the search is still registered, and

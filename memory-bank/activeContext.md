@@ -1,3 +1,23 @@
+## Update 2026-09-24 17:54:00Z
+
+- Current task: audit and apply compatible upstream slskd fixes from the
+  preceding six months, then push and cut the authorized stable release.
+- Audited all 77 upstream PRs merged between 2026-03-24 and 2026-09-24; the
+  complete decision list is in `docs/dev/upstream-parity-audit-2026-09.md`.
+  Seven gaps were implemented: lazy share enumeration, WAL checkpoints,
+  bounded default disk logs, HTML cache revalidation, virtualized Browse rows,
+  share alias parsing with `]` paths, and Relay URL normalization. The missing
+  upstream #1699 audit row was checked and is already supported here.
+- GitHub currently has no open issues and zero CodeQL, Dependabot, or
+  secret-scanning alerts. PRs #326/#327 remain open because their React 19
+  updates fail against the current Semantic UI React compatibility boundary.
+- Full Web tests passed (948), full .NET tests passed (5,519), Web lint/build
+  passed, and `./bin/lint` passed. The API-only process test harness now runs
+  headless; its integration suite passed all 284 tests.
+- Next: finish the release gate, push the parity branch and merge its PR after
+  required checks pass, then run the final `main` gate and create the
+  explicitly authorized stable tag.
+
 ## Update 2026-09-24 16:42:00Z
 
 - Current task: complete issue #336's stale peer search response fix and finish

@@ -29223,3 +29223,76 @@ NU1605 downgrades in the unit-test project.
 **Prevention**: After a grouped package bump, search all project files for old
 versions and restore the full solution. Do not treat a successful restore of
 one project as proof that the application and every test project agree.
+
+### 0z900. Stop Share Alias Parsing At The First Closing Bracket
+
+**The Bug**: Share alias validation used a greedy `.*` capture, so a closing
+bracket inside an absolute local path was mistaken for the alias terminator.
+The path was then rejected as non-absolute or deduplicated under a corrupted
+alias/path pair.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `tests/slskd.Tests.Unit/SoulseekOptionsValidationTests.cs`
+
+**Prevention**: The share syntax terminates its alias at the first `]`. Keep
+all alias-shape checks and the alias/path split non-greedy, and retain a
+regression test with a `]` in the local path.
+
+### 0z901. Checkpoint SQLite WAL After Bulk Share Writes
+
+**The Bug**: The share database uses SQLite write-ahead logging, but a
+completed scan and its `VACUUM` could leave the latest share index only in the
+WAL file. Consumers that copy or inspect the main `.db` file before SQLite's
+next checkpoint could see stale data.
+
+**Files Affected**:
+- `src/slskd/Shares/ShareScanner.cs`
+- `src/slskd/Shares/SqliteShareRepository.cs`
+
+**Prevention**: Explicitly checkpoint after scan maintenance and after
+backing up the share database. Treat SQLite's reported busy result as a
+maintenance warning instead of claiming the checkpoint completed.
+
+### 0z902. Catch Errors During Lazy Filesystem Enumeration
+
+**The Bug**: Replacing collection-returning filesystem APIs with lazy
+`Enumerate*` APIs moves I/O failures from the method call to iterator
+consumption. A `try` block around only the API call would miss those failures
+and change the caller's error handling.
+
+**Files Affected**:
+- `src/slskd/Shares/ShareScanner.cs`
+- `src/slskd/Files/FileService.cs`
+
+**Prevention**: Keep iterator consumption (`foreach` or materialization) inside
+the existing exception-handling boundary whenever filesystem enumeration is
+made lazy.
+
+### 0z903. Set Static Response Headers Before The Response Starts
+
+**The Bug**: Middleware that awaited static-file handling and then changed
+response headers could run after the response had started. ASP.NET Core then
+rejects the header mutation, turning an otherwise successful asset request
+into a failed request.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebApplicationPipelineExtensions.cs`
+
+**Prevention**: Register response-header changes with `HttpResponse.OnStarting`
+before calling the next middleware so they are applied while headers are still
+writable.
+
+### 0z904. Configure Full-Instance API Tests As Headless
+
+**The Bug**: Full-instance integration tests launched the application with the
+Web UI enabled by default but did not stage a `wwwroot` directory beside the
+test executable. Startup validation therefore failed before API-only tests
+could run.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/Harness/SlskdnFullInstanceRunner.cs`
+
+**Prevention**: Explicitly run process-level API tests in headless mode and set
+`web.content_path` to an existing directory under the test executable's base
+path. This keeps the test setup independent of release packaging.

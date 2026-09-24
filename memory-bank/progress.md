@@ -1,3 +1,23 @@
+## Update 2026-09-24 17:54:00Z
+
+- Audited all 77 upstream slskd PRs merged from 2026-03-24 through 2026-09-24.
+  The complete inventory and applicability rationale are in
+  `docs/dev/upstream-parity-audit-2026-09.md`; 7 uncovered fixes were
+  implemented, while equivalent behavior, incompatible changes, and excluded
+  upstream license changes were retained as documented dispositions.
+- Added streamed filesystem enumeration, scan/backup WAL checkpoints, bounded
+  default disk logging, HTML cache revalidation, virtualized Browse rows,
+  correct share alias parsing with bracketed paths, and Relay URL
+  normalization. Updated config docs, changelog, release note, and gotchas.
+- Full Web suite passed (948); full .NET suite passed (5,519); Web lint/build
+  and repository lint passed. The full-instance API test runner now declares
+  headless mode and passes all 284 integration tests.
+- GitHub audit found no open issues and zero CodeQL, Dependabot, or
+  secret-scanning alerts. React 19 PRs #326/#327 remain open because the
+  current Semantic UI React dependency is incompatible.
+- Parity changes are awaiting branch push/PR checks, merge, and the authorized
+  stable release.
+
 ## Update 2026-09-24 16:42:00Z
 
 - Fixed issue #336 at the parsing boundary: read the bounded search token

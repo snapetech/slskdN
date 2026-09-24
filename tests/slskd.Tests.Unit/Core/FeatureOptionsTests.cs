@@ -54,4 +54,13 @@ public class FeatureOptionsTests
         Assert.True(options.SignalSystem.MeshChannel.Enabled);
         Assert.True(options.SignalSystem.BtExtensionChannel.Enabled);
     }
+
+    [Fact]
+    public void Defaults_RetainDiskLogsForThirtyDays()
+    {
+        var options = new slskd.Options();
+
+        Assert.True(options.Logger.Disk);
+        Assert.Equal(30, options.Retention.Logs);
+    }
 }

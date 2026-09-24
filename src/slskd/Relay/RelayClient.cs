@@ -314,8 +314,9 @@ namespace slskd.Relay
                         "({PinCount} pin(s) configured). CA/IgnoreCertificateErrors settings are overridden by pinning.", pinnedSpkiPins.Length);
                 }
 
+                var controllerAddress = NormalizeControllerAddress(options.Relay.Controller.Address);
                 HubConnection = new HubConnectionBuilder()
-                    .WithUrl($"{options.Relay.Controller.Address}/hub/relay", builder =>
+                    .WithUrl($"{controllerAddress}hub/relay", builder =>
                     {
                         builder.AccessTokenProvider = () => Task.FromResult<string?>(options.Relay.Controller.ApiKey);
                         builder.HttpMessageHandlerFactory = (message) =>
@@ -425,8 +426,13 @@ namespace slskd.Relay
             }
 
             client.Timeout = TimeSpan.FromMilliseconds(int.MaxValue);
-            client.BaseAddress = new(options.Address);
+            client.BaseAddress = new(NormalizeControllerAddress(options.Address));
             return client;
+        }
+
+        private static string NormalizeControllerAddress(string address)
+        {
+            return $"{address.TrimEnd('/')}/";
         }
 
         private static bool IsAllowedInsecureRelayCertificate(X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)

@@ -286,9 +286,9 @@
 #  files:
 #    complete: 20160 # 2 weeks, in minutes
 #    incomplete: 43200 # 30 days, in minutes
-#  logs: 180 # days
+#  logs: 30 # days
 #logger:
-#  disk: false
+#  disk: true
 #  no_color: false
 #  loki: ~
 #diagnostics:

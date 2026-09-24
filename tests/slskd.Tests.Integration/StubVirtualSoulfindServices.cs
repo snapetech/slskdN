@@ -135,6 +135,8 @@ internal sealed class StubShareRepository : IShareRepository
     public bool TryValidate(out IEnumerable<string> problems) { problems = Array.Empty<string>(); return true; }
     public void UpdateScan(long timestamp, long end) { }
     public void Vacuum() { }
+
+    public bool Checkpoint() => true;
     public void UpsertContentItem(string contentId, string domain, string workId, string maskedFilename, bool isAdvertisable, string? moderationReason, long checkedAt) { }
 
     public void Dispose() { }

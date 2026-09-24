@@ -313,22 +313,28 @@ namespace slskd.Files
                     }
 
                     var contents = enumerationOptions is null
-                        ? dir.GetFileSystemInfos("*")
-                        : dir.GetFileSystemInfos("*", enumerationOptions);
+                        ? dir.EnumerateFileSystemInfos("*")
+                        : dir.EnumerateFileSystemInfos("*", enumerationOptions);
+                    var files = new List<FilesystemFile>();
+                    var dirs = new List<FilesystemDirectory>();
 
-                    var files = contents
-                        .OfType<FileInfo>()
-                        .Select(f => FilesystemFile.FromFileInfo(f) with
+                    foreach (var content in contents)
+                    {
+                        if (content is FileInfo file)
                         {
-                            FullName = f.FullName.ReplaceFirst(directory, string.Empty).TrimStart('\\', '/'),
-                        });
-
-                    var dirs = contents
-                        .OfType<DirectoryInfo>()
-                        .Select(d => FilesystemDirectory.FromDirectoryInfo(d) with
+                            files.Add(FilesystemFile.FromFileInfo(file) with
+                            {
+                                FullName = file.FullName.ReplaceFirst(directory, string.Empty).TrimStart('\\', '/'),
+                            });
+                        }
+                        else if (content is DirectoryInfo subdirectory)
                         {
-                            FullName = d.FullName.ReplaceFirst(directory, string.Empty).TrimStart('\\', '/'),
-                        });
+                            dirs.Add(FilesystemDirectory.FromDirectoryInfo(subdirectory) with
+                            {
+                                FullName = subdirectory.FullName.ReplaceFirst(directory, string.Empty).TrimStart('\\', '/'),
+                            });
+                        }
+                    }
 
                     var response = FilesystemDirectory.FromDirectoryInfo(dir) with
                     {

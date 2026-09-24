@@ -42,8 +42,6 @@
 .browse-folderlist {
   width: 100% !important;
   white-space: pre;
-  overflow: auto !important;
-  max-height: 400px;
   padding: 1em !important;
   box-shadow: unset !important;
 }
@@ -60,13 +58,6 @@
 .browse-folderlist-list {
   margin: 0px !important;
   margin-bottom: 1px !important;
-}
-
-.browse-folderlist-limit {
-  color: var(--slskd-color-subtle, #777);
-  font-size: 0.9em;
-  margin-top: 8px;
-  white-space: normal;
 }
 
 .browse-folderlist-header {

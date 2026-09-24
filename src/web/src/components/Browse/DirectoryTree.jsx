@@ -1,22 +1,19 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import { Button, Icon, List } from 'semantic-ui-react';
+import { List as WindowedList } from 'react-window';
+import { Button, Icon, List, Popup } from 'semantic-ui-react';
 
-const MAX_VISIBLE_FOLDERS = 2000;
+const flattenVisibleDirectories = (nodes, expandedPaths) => {
+  const rows = [];
+  const pending = nodes.map((directory) => ({ directory, level: 0 })).reverse();
 
-const flattenVisibleDirectories = (nodes, expandedPaths, level = 0, rows = []) => {
-  for (const directory of nodes) {
-    rows.push({ directory, level });
+  while (pending.length > 0) {
+    const row = pending.pop();
+    rows.push(row);
 
-    if (rows.length >= MAX_VISIBLE_FOLDERS) {
-      return rows;
-    }
-
-    if (expandedPaths.has(directory.name) && directory.children?.length > 0) {
-      flattenVisibleDirectories(directory.children, expandedPaths, level + 1, rows);
-    }
-
-    if (rows.length >= MAX_VISIBLE_FOLDERS) {
-      return rows;
+    if (expandedPaths.has(row.directory.name) && row.directory.children?.length > 0) {
+      for (let index = row.directory.children.length - 1; index >= 0; index--) {
+        pending.push({ directory: row.directory.children[index], level: row.level + 1 });
+      }
     }
   }
 
@@ -25,21 +22,35 @@ const flattenVisibleDirectories = (nodes, expandedPaths, level = 0, rows = []) =
 
 const DirectoryRow = memo(
   ({
-    directory,
+    ariaAttributes,
     expandedPaths,
-    level,
+    index,
     onDownload,
     onToggleExpand,
     onSelect,
+    rows,
     selectedDirectoryName,
+    style,
   }) => {
+    const { directory, level } = rows[index];
     const isExpanded = expandedPaths.has(directory.name);
     const isActive = directory.name === selectedDirectoryName;
     const hasChildren = directory.children?.length > 0;
     const folderName = directory.name.split('\\').pop().split('/').pop();
 
     return (
-      <List.Item style={{ paddingLeft: level > 0 ? `${level}em` : 0 }}>
+      <List.Item
+        {...ariaAttributes}
+        style={{
+          ...style,
+          alignItems: 'center',
+          boxSizing: 'border-box',
+          display: 'flex',
+          paddingLeft: level > 0 ? `${level}em` : 0,
+          paddingBottom: 0,
+          paddingTop: 0,
+        }}
+      >
         <List.Content>
           <div style={{ alignItems: 'center', display: 'flex', gap: '4px' }}>
             {hasChildren ? (
@@ -80,13 +91,19 @@ const DirectoryRow = memo(
             </span>
 
             {level > 0 && (
-              <Button
-                basic
-                compact
-                icon="download"
-                onClick={() => onDownload(directory)}
-                size="mini"
-                title={`Download ${folderName}`}
+              <Popup
+                content={`Download every file in ${folderName} and its subdirectories to queue the whole folder tree at once.`}
+                position="top center"
+                trigger={(
+                  <Button
+                    aria-label={`Download ${folderName}`}
+                    basic
+                    compact
+                    icon="download"
+                    onClick={() => onDownload(directory)}
+                    size="mini"
+                  />
+                )}
               />
             )}
 
@@ -121,8 +138,6 @@ const DirectoryTree = ({ onDownload, onSelect, selectedDirectoryName, tree }) =>
     [expandedPaths, tree],
   );
 
-  const visibleLimitReached = visibleDirectories.length >= MAX_VISIBLE_FOLDERS;
-
   const toggleExpand = useCallback((path) => {
     setExpandedPaths((previous) => {
       const updated = new Set(previous);
@@ -148,6 +163,22 @@ const DirectoryTree = ({ onDownload, onSelect, selectedDirectoryName, tree }) =>
     setExpandedPaths(new Set());
   }, []);
 
+  const rowProps = useMemo(() => ({
+    expandedPaths,
+    onDownload,
+    onSelect: selectDirectory,
+    onToggleExpand: toggleExpand,
+    rows: visibleDirectories,
+    selectedDirectoryName,
+  }), [
+    expandedPaths,
+    onDownload,
+    selectDirectory,
+    selectedDirectoryName,
+    toggleExpand,
+    visibleDirectories,
+  ]);
+
   return (
     <div>
       <div
@@ -160,32 +191,28 @@ const DirectoryTree = ({ onDownload, onSelect, selectedDirectoryName, tree }) =>
           paddingBottom: '8px',
         }}
       >
-        <Button compact onClick={collapseAll} size="tiny">
-          <Icon name="compress" /> Collapse All
-        </Button>
+        <Popup
+          content="Collapse every open folder to make the directory tree easier to scan."
+          position="top center"
+          trigger={(
+            <Button compact onClick={collapseAll} size="tiny">
+              <Icon name="compress" /> Collapse All
+            </Button>
+          )}
+        />
       </div>
 
-      <List className="browse-folderlist-list">
-        {visibleDirectories.map(({ directory, level }) => (
-          <DirectoryRow
-            directory={directory}
-            expandedPaths={expandedPaths}
-            key={directory.name}
-            level={level}
-            onDownload={onDownload}
-            onSelect={selectDirectory}
-            onToggleExpand={toggleExpand}
-            selectedDirectoryName={selectedDirectoryName}
-          />
-        ))}
-      </List>
-
-      {visibleLimitReached && (
-        <div className="browse-folderlist-limit">
-          Showing the first {MAX_VISIBLE_FOLDERS} visible folders. Collapse a branch
-          to keep browsing deeper branches without locking the UI.
-        </div>
-      )}
+      <WindowedList
+        className="ui list browse-folderlist-list"
+        defaultHeight={400}
+        defaultWidth={400}
+        overscanCount={8}
+        rowComponent={DirectoryRow}
+        rowCount={visibleDirectories.length}
+        rowHeight={36}
+        rowProps={rowProps}
+        style={{ height: 400, width: '100%' }}
+      />
     </div>
   );
 };
