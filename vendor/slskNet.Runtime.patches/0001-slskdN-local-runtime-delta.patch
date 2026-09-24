@@ -1,5 +1,5 @@
 diff --git a/vendor/slskNet.Runtime/analyzers/Soulseek.CouncilAnalyzers/Soulseek.CouncilAnalyzers.csproj b/vendor/slskNet.Runtime/analyzers/Soulseek.CouncilAnalyzers/Soulseek.CouncilAnalyzers.csproj
-index 7a8e23d..9b517f8 100644
+index 7a8e23dd3a4bff6e5e43d03943d36e170ad6abea..9b517f8e308e0f1fea19158239b6fc776d53307a 100644
 --- a/vendor/slskNet.Runtime/analyzers/Soulseek.CouncilAnalyzers/Soulseek.CouncilAnalyzers.csproj
 +++ b/vendor/slskNet.Runtime/analyzers/Soulseek.CouncilAnalyzers/Soulseek.CouncilAnalyzers.csproj
 @@ -11,7 +11,7 @@
@@ -12,7 +12,7 @@ index 7a8e23d..9b517f8 100644
    </ItemGroup>
  
 diff --git a/vendor/slskNet.Runtime/examples/Web/api/WebAPI.csproj b/vendor/slskNet.Runtime/examples/Web/api/WebAPI.csproj
-index 73be616..2b45095 100644
+index 73be616c830e6bb9ee052c1d98d039e6c81c2b59..2b45095382ddf2e925e02e5aa0ffc2b0815cbde0 100644
 --- a/vendor/slskNet.Runtime/examples/Web/api/WebAPI.csproj
 +++ b/vendor/slskNet.Runtime/examples/Web/api/WebAPI.csproj
 @@ -32,10 +32,11 @@
@@ -30,7 +30,7 @@ index 73be616..2b45095 100644
  
    <ItemGroup>
 diff --git a/vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs b/vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs
-index 5490315..b1520cc 100644
+index 549031592d2c2456202487809b8346af13dec957..b1520cce13f5a5629e0d9aa3f350c5b3194b2455 100644
 --- a/vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs
 +++ b/vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs
 @@ -170,9 +170,11 @@ namespace Soulseek.Messaging.Messages
@@ -48,7 +48,7 @@ index 5490315..b1520cc 100644
              }
  
 diff --git a/vendor/slskNet.Runtime/src/Messaging/Messages/Server/UserAddressResponse.cs b/vendor/slskNet.Runtime/src/Messaging/Messages/Server/UserAddressResponse.cs
-index e1ad166..f721e52 100644
+index e1ad166bb2c182eb5402efbcadb7f153de256f19..f721e5258118749fba6ad8ce496ba1549ebefdcb 100644
 --- a/vendor/slskNet.Runtime/src/Messaging/Messages/Server/UserAddressResponse.cs
 +++ b/vendor/slskNet.Runtime/src/Messaging/Messages/Server/UserAddressResponse.cs
 @@ -143,9 +143,10 @@ namespace Soulseek.Messaging.Messages
@@ -65,7 +65,7 @@ index e1ad166..f721e52 100644
              }
  
 diff --git a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
-index 7038299..a7c5880 100644
+index 7038299246f14afe5f0cb4b745835fc92f51323f..a7c588019c53d830048bb385a5dd57121eccbb12 100644
 --- a/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
 +++ b/vendor/slskNet.Runtime/src/Network/ListenerHandler.cs
 @@ -22,6 +22,7 @@
@@ -218,7 +218,7 @@ index 7038299..a7c5880 100644
      }
  }
 diff --git a/vendor/slskNet.Runtime/src/Network/MessageFrameValidator.cs b/vendor/slskNet.Runtime/src/Network/MessageFrameValidator.cs
-index 5b6f66a..17796b1 100644
+index 5b6f66a256fad1f585fbfd15cdcfcd3b8bdbc32c..17796b1d6e1eaf5cee6e368d004d6337788f9276 100644
 --- a/vendor/slskNet.Runtime/src/Network/MessageFrameValidator.cs
 +++ b/vendor/slskNet.Runtime/src/Network/MessageFrameValidator.cs
 @@ -45,6 +45,14 @@ namespace Soulseek.Network
@@ -246,7 +246,7 @@ index 5b6f66a..17796b1 100644
                  throw new MessageReadException($"Invalid {frameName} length: {length}");
              }
 diff --git a/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs b/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs
-index 2cd986a..b3e23ca 100644
+index 2cd986a4dc75615103f60ef896b7515f5e749838..b3e23ca91dcc610fec681cee52315ee912ddcd2d 100644
 --- a/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs
 +++ b/vendor/slskNet.Runtime/src/Network/Tcp/IListener.cs
 @@ -22,6 +22,7 @@
@@ -273,7 +273,7 @@ index 2cd986a..b3e23ca 100644
          ///     Gets the port of the listener.
          /// </summary>
 diff --git a/vendor/slskNet.Runtime/src/Network/Tcp/Listener.cs b/vendor/slskNet.Runtime/src/Network/Tcp/Listener.cs
-index 37a80f8..4244889 100644
+index 37a80f81267e2b133e99e9bb2a51706630a94ce3..424488967472df101cba6895de556231867743c6 100644
 --- a/vendor/slskNet.Runtime/src/Network/Tcp/Listener.cs
 +++ b/vendor/slskNet.Runtime/src/Network/Tcp/Listener.cs
 @@ -22,6 +22,7 @@
@@ -320,7 +320,7 @@ index 37a80f8..4244889 100644
          ///     Gets the port of the listener.
          /// </summary>
 diff --git a/vendor/slskNet.Runtime/src/Options/PeerObfuscationOptions.cs b/vendor/slskNet.Runtime/src/Options/PeerObfuscationOptions.cs
-index 4805f63..b679897 100644
+index 4805f63938609be9144efba885c8b9f7f766e111..b679897a3af7fe47031885ed57e554948d514b46 100644
 --- a/vendor/slskNet.Runtime/src/Options/PeerObfuscationOptions.cs
 +++ b/vendor/slskNet.Runtime/src/Options/PeerObfuscationOptions.cs
 @@ -3,6 +3,8 @@
@@ -368,7 +368,7 @@ index 4805f63..b679897 100644
          public int ListenPort { get; }
  
 diff --git a/vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs b/vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs
-index 327a532..03dc4d6 100644
+index 327a5324fb5d50961058e6f72064480d48962db7..03dc4d68f65286684158aa21951290a5c115a576 100644
 --- a/vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs
 +++ b/vendor/slskNet.Runtime/src/Options/SoulseekClientOptions.cs
 @@ -107,6 +107,11 @@ namespace Soulseek
@@ -463,7 +463,7 @@ index 327a532..03dc4d6 100644
      }
  }
 diff --git a/vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs b/vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs
-index 3f91912..ad19bbd 100644
+index 3f9191295c589175671c8f76d10a946ba29dd5a1..ad19bbdacbd47704d13518723ae9655444190d2d 100644
 --- a/vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs
 +++ b/vendor/slskNet.Runtime/src/Options/SoulseekClientOptionsPatch.cs
 @@ -84,6 +84,10 @@ namespace Soulseek
@@ -515,7 +515,7 @@ index 3f91912..ad19bbd 100644
          ///     Gets the total maximum allowable download speed, in kibibytes per second.
          /// </summary>
 diff --git a/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs b/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs
-index ecfe5d7..2245153 100644
+index ecfe5d76a9dbf73aca55ac74dac903f51efa7bf2..2245153139c423f183d9b4e77dda5098f4cd58f0 100644
 --- a/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs
 +++ b/vendor/slskNet.Runtime/src/Properties/AssemblyInfo.cs
 @@ -25,4 +25,5 @@ using System.Runtime.CompilerServices;
@@ -528,7 +528,7 @@ index ecfe5d7..2245153 100644
 +[assembly: InternalsVisibleTo("slskd")] // slskdN Team: lets slskd supply a shared ITcpListener (see SoulseekClient.PrimaryListenerTcpListenerOverride)
 \ No newline at end of file
 diff --git a/vendor/slskNet.Runtime/src/SearchInternal.cs b/vendor/slskNet.Runtime/src/SearchInternal.cs
-index 870d18d..a290c7b 100644
+index 870d18d16f12b5aa16fa635b028905aa8593be66..a290c7bd674f93d801404900557e9bbe0d775456 100644
 --- a/vendor/slskNet.Runtime/src/SearchInternal.cs
 +++ b/vendor/slskNet.Runtime/src/SearchInternal.cs
 @@ -120,10 +120,20 @@ namespace Soulseek
@@ -614,7 +614,7 @@ index 870d18d..a290c7b 100644
                  State = state;
  
 diff --git a/vendor/slskNet.Runtime/src/Soulseek.csproj b/vendor/slskNet.Runtime/src/Soulseek.csproj
-index b09f1e2..692a979 100644
+index b09f1e294e741df955c75d0c094dea3a645ca966..54f3ba31e1ad3f2fed63542dbbb23856e2e6518e 100644
 --- a/vendor/slskNet.Runtime/src/Soulseek.csproj
 +++ b/vendor/slskNet.Runtime/src/Soulseek.csproj
 @@ -59,13 +59,13 @@
@@ -622,20 +622,20 @@ index b09f1e2..692a979 100644
  
    <ItemGroup>
 -    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.301">
-+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.302">
++    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.401">
        <PrivateAssets>all</PrivateAssets>
        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
      </PackageReference>
      <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 -    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All" />
 -    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
-+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" />
++    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="All" />
 +    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
      <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
        <PrivateAssets>all</PrivateAssets>
        <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
 diff --git a/vendor/slskNet.Runtime/src/SoulseekClient.cs b/vendor/slskNet.Runtime/src/SoulseekClient.cs
-index c50d252..0a0e3d7 100644
+index c50d252721c01deb0ab8d3a3af50fdc4552c1788..0a0e3d70848591bb812bcf7d09a5d6094bbdaa85 100644
 --- a/vendor/slskNet.Runtime/src/SoulseekClient.cs
 +++ b/vendor/slskNet.Runtime/src/SoulseekClient.cs
 @@ -616,6 +616,15 @@ namespace Soulseek
@@ -821,7 +821,7 @@ index c50d252..0a0e3d7 100644
                      writeTask,
                      disconnectedTaskCancellationSource.Task).ConfigureAwait(false);
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs
-index 5dcf1ea..b8780e1 100644
+index 5dcf1eaaa4586ea70b0ab18e41d78e41d33b9b82..b8780e1736e8a12ec52fe3c953581370960f3ef0 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ConnectAsyncTests.cs
 @@ -327,6 +327,57 @@ namespace Soulseek.Tests.Unit.Client
@@ -883,7 +883,7 @@ index 5dcf1ea..b8780e1 100644
          [Fact(DisplayName = "Sets state to Connected | LoggedIn on success")]
          public async Task Sets_State_To_Connected_LoggedIn_On_Success()
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs
-index 3a23376..23a5da7 100644
+index 3a23376240ffa4d98507a38873bed69e4c7a0737..23a5da74b3eb0d47eda8a93b4f380af8ed372911 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Client/ReconfigureOptionsAsyncTests.cs
 @@ -82,6 +82,57 @@ namespace Soulseek.Tests.Unit.Client
@@ -999,7 +999,7 @@ index 3a23376..23a5da7 100644
          [Fact(DisplayName = "Reconfigures listener if ListenIPAddress changed")]
          public async Task Reconfigures_Listener_If_ListenIPAddress_Changed()
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs
-index 68b76aa..5074d1f 100644
+index 68b76aaa12b1ff05d584a1c269156c781af8ebe6..5074d1f55b6838f00604c9ee7ce75c3ae7e7db01 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs
 @@ -186,11 +186,11 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
@@ -1034,7 +1034,7 @@ index 68b76aa..5074d1f 100644
      }
  }
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/UserAddressResponseTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/UserAddressResponseTests.cs
-index 13523ec..00fdda3 100644
+index 13523ec10a53bf306bfebd5784a653754c613fd6..00fdda3de6044965b3236d58b9aa810e6f6a75e6 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/UserAddressResponseTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/UserAddressResponseTests.cs
 @@ -168,8 +168,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
@@ -1066,7 +1066,7 @@ index 13523ec..00fdda3 100644
      }
  }
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
-index 20cf63a..aa2aca0 100644
+index 20cf63a81ecf3538d893e8d948cf7754e579094d..aa2aca00322e444d31856147f5573405c5de9952 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/ListenerHandlerTests.cs
 @@ -23,6 +23,8 @@ namespace Soulseek.Tests.Unit.Network
@@ -1222,7 +1222,7 @@ index 20cf63a..aa2aca0 100644
          [Theory(DisplayName = "Completes solicited distributed connection on distributed PierceFirewall"), AutoData]
          public void Completes_Solicited_Distributed_Connection_On_Distributed_PierceFirewall(IPEndPoint endpoint, string username, int token)
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/Tcp/ListenerTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/Tcp/ListenerTests.cs
-index 687c050..682523d 100644
+index 687c050ac0a9c4a49c718956dc57e73eee538ee5..682523d33858e885a3844da66efc4ed3497aab6f 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/Tcp/ListenerTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Network/Tcp/ListenerTests.cs
 @@ -38,6 +38,21 @@ namespace Soulseek.Tests.Unit.Network.Tcp
@@ -1248,7 +1248,7 @@ index 687c050..682523d 100644
  
          [Trait("Category", "Start")]
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Options/PeerObfuscationOptionsTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Options/PeerObfuscationOptionsTests.cs
-index 6acb766..04e00f3 100644
+index 6acb766befa2112656d9e0ea31a998af3fc7b807..04e00f34b01675cc9ddb004b54bf3a04b6efb41f 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Options/PeerObfuscationOptionsTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Options/PeerObfuscationOptionsTests.cs
 @@ -26,5 +26,22 @@ namespace Soulseek.Tests.Unit.Options
@@ -1275,7 +1275,7 @@ index 6acb766..04e00f3 100644
      }
  }
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/SearchInternalTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/SearchInternalTests.cs
-index 22d3c36..8c9604a 100644
+index 22d3c364f725c9d9eb51f1da1a3efd49bce5c9ee..8c9604a05dc7ff449cdde6fee7b522d4334ffa15 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/SearchInternalTests.cs
 +++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/SearchInternalTests.cs
 @@ -75,6 +75,34 @@ namespace Soulseek.Tests.Unit
@@ -1313,22 +1313,3 @@ index 22d3c36..8c9604a 100644
          [Trait("Category", "Complete")]
          [Fact(DisplayName = "Complete is idempotent")]
          public void Complete_Is_Idempotent()
-diff --git a/vendor/slskNet.Runtime/src/Soulseek.csproj b/vendor/slskNet.Runtime/src/Soulseek.csproj
-index 692a979..e2be339 100644
---- a/vendor/slskNet.Runtime/src/Soulseek.csproj
-+++ b/vendor/slskNet.Runtime/src/Soulseek.csproj
-@@ -59,12 +59,12 @@
-   </PropertyGroup>
- 
-   <ItemGroup>
--    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.302">
-+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.400">
-       <PrivateAssets>all</PrivateAssets>
-       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-     </PackageReference>
-     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
--    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All" />
-+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.400" PrivateAssets="All" />
-     <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
-     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
-       <PrivateAssets>all</PrivateAssets>
