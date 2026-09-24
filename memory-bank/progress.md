@@ -13058,3 +13058,17 @@ no-std build fails because the `vec!` macro is not in scope; the published
 recorded gotcha `0z893`, and verified a local locked install completes and
 reports `c2patool 0.27.17`. This correction is on `main`; the immutable `.320`
 tag predates it, so it awaits the next explicitly authorized release tag.
+
+[2026-09-24T18:38:48Z] Published stable release
+`build-main-2026092418-slskdn.322` from the validated parity implementation.
+The hosted release gate and all six platform builds passed. The release
+contains all six archives, and `scripts/verify-release-artifacts.sh` passed
+published checksum, required-asset, VPN helper, Web marker, and Linux version
+checks. COPR, Nix metadata, Homebrew, AUR, Chocolatey, and release
+announcements completed; Docker and Launchpad PPA publication were still
+running. The Nix publisher pushed generated stable package metadata to `main`.
+GitHub reports no open issues or CodeQL, Dependabot, or secret-scanning
+alerts. React 19 PRs #326/#327 remain open because the current Semantic UI
+React stack depends on `findDOMNode`; keep React 18 until a compatible UI stack
+is validated. Windows Smoke remains unavailable because no matching runner is
+configured.

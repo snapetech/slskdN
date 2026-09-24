@@ -13837,3 +13837,22 @@ rollback.
   Nix, and PPA publication are still running asynchronously.
 - Next steps: monitor the remaining downstream package jobs; do not create
   another release tag for this release.
+
+## Update 2026-09-24 18:38:48Z
+
+- Core release complete: `build-main-2026092418-slskdn.322` was cut from the
+  validated implementation commit, and the GitHub Release published six
+  platform archives plus support files. Hosted Release Gate and all six
+  platform builds passed; `scripts/verify-release-artifacts.sh` passed
+  checksum, required-asset, VPN helper, Web marker, and Linux version checks.
+- The release workflow passed for COPR, Nix metadata, Homebrew, AUR,
+  Chocolatey, and release announcements. Docker and Launchpad PPA publication
+  were still running at this update. Nix pushed generated stable package
+  metadata to `main`, and the release-finalization checkout includes it.
+- GitHub reports no open issues and zero open CodeQL, Dependabot, or
+  secret-scanning alerts. PRs #326 and #327 remain open because their React 19
+  updates fail against the current Semantic UI React stack; keep React 18 until
+  a compatible UI stack is validated. Windows Smoke remains unavailable
+  because no repository runner matches its required labels.
+- Next steps: check the two remaining package jobs; do not create another tag
+  for this release. Track React 19 compatibility as separate follow-up work.

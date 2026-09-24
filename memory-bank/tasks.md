@@ -9,10 +9,10 @@
 
 ### High Priority
 
-- [ ] Audit the last six months of upstream slskd changes and implement
+- [x] Audit the last six months of upstream slskd changes and implement
   applicable parity fixes.
-  - Status: implementation merged in PR #338; stable release gate/tag pending
-    (2026-09-24)
+  - Status: merged in PR #338; stable release `2026092418-slskdn.322`
+    published and release artifacts verified (2026-09-24)
   - Priority: P1
   - Notes: Audited all 77 pull requests merged upstream from 2026-03-24 through
     2026-09-24. Seven applicable changes are implemented; equivalent behavior,
@@ -21,7 +21,11 @@
     .NET suite (5,519), frontend build/lint, and repository lint pass. The five
     gotchas found during implementation are recorded in ADR-0001. GitHub shows
     no open issues or security alerts; PRs #326/#327 remain open because React
-    19 is incompatible with the current Semantic UI stack.
+    19 is incompatible with the current Semantic UI stack. The hosted release
+    gate and six platform builds passed; `scripts/verify-release-artifacts.sh`
+    verified all archives against `SHA256SUMS.txt`, the VPN helper and Web
+    marker, and Linux version output. Docker and Launchpad PPA publication
+    were still running at the completion note; the other publisher jobs passed.
 
 - [x] Review and action the open pull-request and security queues.
   - Status: completed (2026-09-24)
