@@ -29238,3 +29238,18 @@ alias/path pair.
 **Prevention**: The share syntax terminates its alias at the first `]`. Keep
 all alias-shape checks and the alias/path split non-greedy, and retain a
 regression test with a `]` in the local path.
+
+### 0z901. Checkpoint SQLite WAL After Bulk Share Writes
+
+**The Bug**: The share database uses SQLite write-ahead logging, but a
+completed scan and its `VACUUM` could leave the latest share index only in the
+WAL file. Consumers that copy or inspect the main `.db` file before SQLite's
+next checkpoint could see stale data.
+
+**Files Affected**:
+- `src/slskd/Shares/ShareScanner.cs`
+- `src/slskd/Shares/SqliteShareRepository.cs`
+
+**Prevention**: Explicitly checkpoint after scan maintenance and after
+backing up the share database. Treat SQLite's reported busy result as a
+maintenance warning instead of claiming the checkpoint completed.
