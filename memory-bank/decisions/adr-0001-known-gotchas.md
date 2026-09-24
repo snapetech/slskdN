@@ -29282,3 +29282,17 @@ into a failed request.
 **Prevention**: Register response-header changes with `HttpResponse.OnStarting`
 before calling the next middleware so they are applied while headers are still
 writable.
+
+### 0z904. Configure Full-Instance API Tests As Headless
+
+**The Bug**: Full-instance integration tests launched the application with the
+Web UI enabled by default but did not stage a `wwwroot` directory beside the
+test executable. Startup validation therefore failed before API-only tests
+could run.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/Harness/SlskdnFullInstanceRunner.cs`
+
+**Prevention**: Explicitly run process-level API tests in headless mode and set
+`web.content_path` to an existing directory under the test executable's base
+path. This keeps the test setup independent of release packaging.
