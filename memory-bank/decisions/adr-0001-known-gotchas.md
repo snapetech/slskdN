@@ -29208,3 +29208,18 @@ wrong lifecycle expectation.
 **Prevention**: Clear shared mock call history before each test. Assert against
 the operation under test, including transition completion and final engine
 disposal, instead of relying on a call made by another test.
+
+### 0z899. Align Direct Test-Project Packages With Grouped .NET Updates
+
+**The Bug**: A grouped .NET dependency update raised packages in the
+application project but left older direct package references in test projects.
+Fixing the first restore failure in the performance project exposed the same
+NU1605 downgrades in the unit-test project.
+
+**Files Affected**:
+- `tests/slskd.Tests.Performance/slskd.Tests.Performance.csproj`
+- `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj`
+
+**Prevention**: After a grouped package bump, search all project files for old
+versions and restore the full solution. Do not treat a successful restore of
+one project as proof that the application and every test project agree.
