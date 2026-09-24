@@ -84,6 +84,11 @@ namespace slskd.Shares
             using var cmd = new SqliteCommand("VACUUM", backupConn);
             cmd.ExecuteNonQuery();
             Log.Debug("Backup vacuumed successfully");
+
+            if (!Checkpoint(backupConn))
+            {
+                Log.Warning("Share database backup WAL checkpoint was blocked by an active reader");
+            }
         }
 
         /// <summary>
@@ -793,6 +798,23 @@ namespace slskd.Shares
         {
             using var conn = GetConnection();
             conn.ExecuteNonQuery("VACUUM;");
+        }
+
+        /// <summary>
+        ///     Checkpoints the write-ahead log to the database file.
+        /// </summary>
+        /// <returns>A value indicating whether the complete checkpoint succeeded.</returns>
+        public bool Checkpoint()
+        {
+            using var conn = GetConnection();
+            return Checkpoint(conn);
+        }
+
+        private static bool Checkpoint(SqliteConnection connection)
+        {
+            using var cmd = new SqliteCommand("PRAGMA wal_checkpoint(TRUNCATE);", connection);
+            using var reader = cmd.ExecuteReader();
+            return reader.Read() && reader.GetInt32(0) == 0;
         }
 
         // T-MCP03: Content item management for VirtualSoulfind advertisable gating

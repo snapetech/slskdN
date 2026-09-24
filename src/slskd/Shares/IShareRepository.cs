@@ -218,6 +218,12 @@ namespace slskd.Shares
         /// </summary>
         void Vacuum();
 
+        /// <summary>
+        ///     Checkpoints the write-ahead log to the database file.
+        /// </summary>
+        /// <returns>A value indicating whether the complete checkpoint succeeded.</returns>
+        bool Checkpoint();
+
         // T-MCP03: Content item management for VirtualSoulfind advertisable gating
 
         /// <summary>

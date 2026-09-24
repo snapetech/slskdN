@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Moq;
 using slskd.Files;
 using slskd.Shares;
@@ -30,6 +31,9 @@ public class ShareScannerHarnessTests
     {
         var shareRoot = Path.Combine(Path.GetTempPath(), $"share-scan-harness-{Guid.NewGuid():N}");
         var databasePath = Path.Combine(Path.GetTempPath(), $"share-scan-harness-{Guid.NewGuid():N}.db");
+        var databaseCopyPath = $"{databasePath}.copy";
+        var backupDatabasePath = $"{databasePath}.backup";
+        var backupCopyPath = $"{backupDatabasePath}.copy";
 
         try
         {
@@ -54,6 +58,27 @@ public class ShareScannerHarnessTests
                 "Synthetic share-scan harness").ConfigureAwait(false);
             stopwatch.Stop();
 
+            // A raw copy intentionally excludes the WAL sidecar. Its file rows must still reflect the completed scan.
+            File.Copy(databasePath, databaseCopyPath);
+            using (var copiedDatabase = new SqliteConnection($"Data Source={databaseCopyPath};Pooling=False"))
+            {
+                copiedDatabase.Open();
+                using var command = copiedDatabase.CreateCommand();
+                command.CommandText = "SELECT COUNT(*) FROM files;";
+                Assert.Equal(expectedFiles, Convert.ToInt32(command.ExecuteScalar()));
+            }
+
+            using var backupRepository = new SqliteShareRepository($"Data Source={backupDatabasePath}");
+            repository.BackupTo(backupRepository);
+            File.Copy(backupDatabasePath, backupCopyPath);
+            using (var copiedBackup = new SqliteConnection($"Data Source={backupCopyPath};Pooling=False"))
+            {
+                copiedBackup.Open();
+                using var command = copiedBackup.CreateCommand();
+                command.CommandText = "SELECT COUNT(*) FROM files;";
+                Assert.Equal(expectedFiles, Convert.ToInt32(command.ExecuteScalar()));
+            }
+
             var indexedFiles = repository.CountFiles();
             var finalSnapshot = snapshots.LastOrDefault();
 
@@ -77,6 +102,21 @@ public class ShareScannerHarnessTests
             if (File.Exists(databasePath))
             {
                 File.Delete(databasePath);
+            }
+
+            if (File.Exists(databaseCopyPath))
+            {
+                File.Delete(databaseCopyPath);
+            }
+
+            if (File.Exists(backupDatabasePath))
+            {
+                File.Delete(backupDatabasePath);
+            }
+
+            if (File.Exists(backupCopyPath))
+            {
+                File.Delete(backupCopyPath);
             }
         }
     }

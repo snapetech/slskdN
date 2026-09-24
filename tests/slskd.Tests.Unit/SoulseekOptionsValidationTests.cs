@@ -288,4 +288,17 @@ public class SoulseekOptionsValidationTests
                 "DHT rendezvous requires at least one bootstrap router",
                 System.StringComparison.Ordinal) == true);
     }
+
+    [Fact]
+    public void SharesOptions_AllowsClosingBracketInAliasedLocalPath()
+    {
+        var options = new Options.SharesOptions
+        {
+            Directories = new[] { "[music]/tmp/music]archive" },
+        };
+
+        var results = options.Validate(new ValidationContext(options)).ToList();
+
+        Assert.Empty(results);
+    }
 }

@@ -1143,7 +1143,7 @@ Transfers can be configured to be removed from the UI after they are complete by
 
 Files (on disk) can be configured to be deleted after the age of their last access time exceeds the configured time.  Completed and incomplete files can be configured separately.
 
-Application logs are removed after 180 days by default, but this can be configured as well.
+Application logs are removed after 30 days by default, but this can be configured as well.
 
 All retention periods are specified in minutes, with the exception of `logs`, which is in days.
 
@@ -1163,7 +1163,7 @@ retention:
   files:
     complete: 20160 # 2 weeks
     incomplete: 43200 # 30 days
-  logs: 180 # days
+  logs: 30 # days
 ```
 
 # Integrations
@@ -1532,13 +1532,13 @@ instance_name: default
 
 ## Logging Options and Configurable Loggers
 
-By default, the application logs to console with colors enabled.  Logging to disk is optional, and if enabled, logs will be written to `/logs` in the application directory.
+By default, the application logs to console with colors enabled and writes a rolling log file under `/logs` in the application directory. Disk logs are retained for 30 days. Set `logger.disk` to `false` to disable them, or change `retention.logs` to adjust how many days are kept.
 
 Console colors can be disabled via typical application configuration described below, or by setting the environment variable `NO_COLOR` in accordance with https://no-color.org/.
 
 | Command Line       | Environment Variable           | Description                        |
 | ------------------ | ------------------------------ | ---------------------------------- |
-| `--disk-logger`    | `SLSKD_DISK_LOGGER`            | Enable logging to disk             |
+| `--disk-logger`    | `SLSKD_DISK_LOGGER`            | Enable logging to disk (enabled by default; set `false` to disable) |
 | `--no-color`       | `SLSKD_NO_COLOR` or `NO_COLOR` | Disable console log colors         |
 
 Logs can optionally be forwarded to external services, and the targets can be expanded to any service supported by a [Serilog Sink](https://github.com/serilog/serilog/wiki/Provided-Sinks). Support for targets is added on an as-needed basis and within reason.
@@ -1553,7 +1553,7 @@ The current list of available targets is:
 ```yaml
 logger:
   loki: ~
-  disk: false
+  disk: true
   no_color: false
 ```
 

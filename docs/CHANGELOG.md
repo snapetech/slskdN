@@ -24,6 +24,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Updated .NET dependencies, including MessagePack 3.1.9, which fixes a nested-array deserialization bounds vulnerability.
 - Updated the FTP/FTPS integration dependency to FluentFTP 55.0.0.
+- Streamed share-directory and file scans and checkpointed the share database
+  after maintenance; windowed large Browse trees; fixed share-alias and Relay
+  URL edge cases and stale nested UI caching. Disk logs are now enabled by
+  default with 30-day retention, and can be disabled with `logger.disk: false`.
 
 ## [2026090620-slskdn.321] — 2026-09-06
 

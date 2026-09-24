@@ -16,6 +16,21 @@ namespace slskd.Tests.Unit.Relay;
 
 public class RelayClientTests
 {
+    [Theory]
+    [InlineData("https://relay.example", "https://relay.example/")]
+    [InlineData("https://relay.example/", "https://relay.example/")]
+    [InlineData("https://relay.example/base///", "https://relay.example/base/")]
+    public void NormalizeControllerAddress_PreservesBasePathAndAddsOneTrailingSlash(string address, string expected)
+    {
+        var method = typeof(RelayClient).GetMethod("NormalizeControllerAddress", BindingFlags.Static | BindingFlags.NonPublic);
+        Assert.NotNull(method);
+
+        var normalized = method!.Invoke(null, new object[] { address });
+
+        Assert.Equal(expected, normalized);
+        Assert.Equal(new System.Uri($"{expected}hub/relay"), new System.Uri(new System.Uri(expected), "hub/relay"));
+    }
+
     [Fact]
     public async Task StopAsync_CancelsStartRetryToken()
     {

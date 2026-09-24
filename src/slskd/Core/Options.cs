@@ -1068,22 +1068,22 @@ namespace slskd
 
                 var directories = Directories ?? Enumerable.Empty<string>();
 
-                bool IsBlankPath(string share) => Regex.IsMatch(share.LocalizePath(), @"^(!|-){0,1}(\[.*\])$");
+                bool IsBlankPath(string share) => Regex.IsMatch(share.LocalizePath(), @"^(!|-){0,1}(\[.*?\])$");
                 directories?.Where(share => IsBlankPath(share)).ToList()
                     .ForEach(blank => results.Add(new ValidationResult($"Share {blank} does not specify a path")));
 
-                bool IsRootMount(string share) => Regex.IsMatch(share.LocalizePath(), @"^(!|-){0,1}(\[.*\])/$");
+                bool IsRootMount(string share) => Regex.IsMatch(share.LocalizePath(), @"^(!|-){0,1}(\[.*?\])/$");
                 directories?.Where(share => IsRootMount(share)).ToList()
                     .ForEach(blank => results.Add(new ValidationResult($"Share {blank} specifies a root mount, which is not supported.")));
 
                 // starts with '/', 'X:', or '\\'
-                bool IsAbsolutePath(string share) => Regex.IsMatch(share.LocalizePath(), @"^(!|-){0,1}(\[.*\])?(\/|[a-zA-Z]:|\\\\).*$");
+                bool IsAbsolutePath(string share) => Regex.IsMatch(share.LocalizePath(), @"^(!|-){0,1}(\[.*?\])?(\/|[a-zA-Z]:|\\\\).*$");
                 directories?.Where(share => !IsAbsolutePath(share)).ToList()
                     .ForEach(relativePath => results.Add(new ValidationResult($"Share {relativePath} contains a relative path; only absolute paths are supported.")));
 
                 (string Raw, string Alias, string Path) Digest(string share)
                 {
-                    var matches = Regex.Matches(share, @"^(!|-){0,1}\[(.*)\](.*)$");
+                    var matches = Regex.Matches(share, @"^(!|-){0,1}\[(.*?)\](.*)$");
 
                     if (matches.Any())
                     {
@@ -2269,7 +2269,7 @@ namespace slskd
             [EnvironmentVariable("DISK_LOGGER")]
             [Description("enable logging to disk")]
             [RequiresRestart]
-            public bool Disk { get; init; } = false;
+            public bool Disk { get; init; } = true;
 
             /// <summary>
             ///     Gets a value indicating whether to suppress colorization of console logs.
@@ -2377,7 +2377,7 @@ namespace slskd
             ///     Gets the time to retain logs, in days.
             /// </summary>
             [Range(1, maximum: int.MaxValue)]
-            public int Logs { get; init; } = 180;
+            public int Logs { get; init; } = 30;
 
             /// <summary>
             ///     Transfer retention options.

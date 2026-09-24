@@ -573,6 +573,23 @@ public static class WebApplicationPipelineExtensions
         // This prevents static file middleware from short-circuiting requests before routing/security middleware runs.
         if (!optionsAtStartup.Headless)
         {
+            // Revalidate HTML after deployments so clients pick up the current asset manifest.
+            app.Use(async (context, next) =>
+            {
+                context.Response.OnStarting(() =>
+                {
+                    if (context.Response.StatusCode == StatusCodes.Status200OK &&
+                        context.Response.ContentType?.StartsWith("text/html", StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        context.Response.Headers["Cache-Control"] = "no-cache";
+                    }
+
+                    return Task.CompletedTask;
+                });
+
+                await next();
+            });
+
             app.UseFileServer(fileServerOptions);
             Serilog.Log.Information("Serving static content from {ContentPath}", contentPath);
 
