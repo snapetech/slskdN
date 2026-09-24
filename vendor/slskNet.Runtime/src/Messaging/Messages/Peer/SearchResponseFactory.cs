@@ -25,8 +25,11 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+    using System.Buffers.Binary;
     using System.Collections.Generic;
     using System.Linq;
+    using Soulseek.Messaging.Compression;
 
     /// <summary>
     ///     Factory for search response messages. This class helps keep message abstractions from leaking into the public API via
@@ -34,6 +37,69 @@ namespace Soulseek.Messaging.Messages
     /// </summary>
     internal static class SearchResponseFactory
     {
+        /// <summary>
+        ///     Reads only the token from a compressed search response, without inflating its file list.
+        /// </summary>
+        /// <param name="bytes">The message bytes from which to read.</param>
+        /// <returns>The search token.</returns>
+        public static int ReadToken(byte[] bytes)
+        {
+            var reader = new MessageReader<MessageCode.Peer>(bytes);
+            var code = reader.ReadCode();
+
+            if (code != MessageCode.Peer.SearchResponse)
+            {
+                throw new MessageException($"Message Code mismatch creating {nameof(SearchResponse)} (expected: {(int)MessageCode.Peer.SearchResponse}, received: {(int)code}");
+            }
+
+            if (reader.Payload.Length == 0)
+            {
+                throw new MessageCompressionException("Unable to decompress an empty message");
+            }
+
+            try
+            {
+                using var compressedPayload = new System.IO.MemoryStream(bytes, 8, bytes.Length - 8, writable: false);
+                using var decompressedPayload = new ZInputStream(compressedPayload);
+                var integerBytes = new byte[sizeof(int)];
+                var decompressedLength = 0;
+
+                ReadExactly(decompressedPayload, integerBytes, sizeof(int), ref decompressedLength, "username length");
+                var usernameLength = BinaryPrimitives.ReadInt32LittleEndian(integerBytes);
+
+                if (usernameLength < 0)
+                {
+                    throw new MessageReadException($"Invalid string length: {usernameLength}");
+                }
+
+                if (usernameLength > MessageReader<MessageCode.Peer>.MaximumDecompressedPayloadLength - (sizeof(int) * 2))
+                {
+                    throw new MessageCompressionException($"Decompressed message payload exceeds the maximum allowed length of {MessageReader<MessageCode.Peer>.MaximumDecompressedPayloadLength} bytes");
+                }
+
+                var skipBuffer = new byte[8192];
+                var remainingUsernameBytes = usernameLength;
+
+                while (remainingUsernameBytes > 0)
+                {
+                    var bytesToSkip = Math.Min(remainingUsernameBytes, skipBuffer.Length);
+                    ReadExactly(decompressedPayload, skipBuffer, bytesToSkip, ref decompressedLength, "username");
+                    remainingUsernameBytes -= bytesToSkip;
+                }
+
+                ReadExactly(decompressedPayload, integerBytes, sizeof(int), ref decompressedLength, "search token");
+                return BinaryPrimitives.ReadInt32LittleEndian(integerBytes);
+            }
+            catch (MessageException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new MessageCompressionException("Failed to read the compressed search response prefix", ex);
+            }
+        }
+
         /// <summary>
         ///     Creates a new instance of <see cref="SearchResponse"/> from the specified <paramref name="bytes"/>.
         /// </summary>
@@ -79,6 +145,30 @@ namespace Soulseek.Messaging.Messages
             }
 
             return new SearchResponse(username, token, hasFreeUploadSlot: freeUploadSlots > 0, uploadSpeed, queueLength, fileList, lockedFileList);
+        }
+
+        private static void ReadExactly(ZInputStream reader, byte[] buffer, int count, ref int decompressedLength, string field)
+        {
+            var offset = 0;
+
+            while (offset < count)
+            {
+                var read = reader.read(buffer, offset, count - offset);
+
+                if (read < 0)
+                {
+                    throw new MessageReadException($"Failed to read search response {field}");
+                }
+
+                decompressedLength += read;
+
+                if (decompressedLength > MessageReader<MessageCode.Peer>.MaximumDecompressedPayloadLength)
+                {
+                    throw new MessageCompressionException($"Decompressed message payload exceeds the maximum allowed length of {MessageReader<MessageCode.Peer>.MaximumDecompressedPayloadLength} bytes");
+                }
+
+                offset += read;
+            }
         }
 
         /// <summary>

@@ -28,6 +28,37 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
     public class SearchResponseFactoryTests
     {
         [Trait("Category", "Parse")]
+        [Theory(DisplayName = "ReadToken reads the search token without parsing the file list"), AutoData]
+        public void ReadToken_Reads_Token_Without_Parsing_File_List(string username, int token)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchResponse)
+                .WriteString(username)
+                .WriteInteger(token)
+                .WriteInteger(-1) // invalid file count is beyond the prefix needed to identify the search
+                .Compress()
+                .Build();
+
+            Assert.Equal(token, SearchResponseFactory.ReadToken(msg));
+        }
+
+        [Trait("Category", "Parse")]
+        [Fact(DisplayName = "ReadToken throws MessageReadException when the token is missing")]
+        public void ReadToken_Throws_MessageReadException_When_Token_Is_Missing()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchResponse)
+                .WriteString("foo")
+                .Compress()
+                .Build();
+
+            var ex = Record.Exception(() => SearchResponseFactory.ReadToken(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageReadException>(ex);
+        }
+
+        [Trait("Category", "Parse")]
         [Fact(DisplayName = "Parse throws MessageException on code mismatch")]
         public void Parse_Throws_MessageException_On_Code_Mismatch()
         {

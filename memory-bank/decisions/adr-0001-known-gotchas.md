@@ -29168,3 +29168,58 @@ already been discarded from component state.
 from the current blocked-user policy during rendering. Do not permanently
 discard policy-filtered data when the policy can change independently of the
 network response.
+
+### 0z897. Check Search Tokens Before Inflating Peer Results
+
+**The Bug**: The peer search-response handler decompressed and parsed every
+response, then checked whether its search token was still active. Late
+responses therefore spent CPU and memory parsing large file lists that the
+application would immediately discard. They could also populate remote path
+encoding state after the search had ended.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Messaging/Handlers/PeerMessageHandler.cs`
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Peer/SearchResponseFactory.cs`
+
+**Prevention**: Read only the bounded username-length prefix and token from
+the compressed stream first. Drop inactive tokens before inflating file
+records. Fully parse active responses, then confirm the same search instance
+is still registered before updating response or path-encoding state. Preserve
+the existing maximum decompressed payload limit.
+
+**Why This Keeps Happening**: Message factories validate payloads eagerly, so
+calling a full parser before checking request ownership turns irrelevant late
+replies into full parsing work. Check correlation tokens before expensive
+payload materialization whenever the protocol places the token in a small
+prefix.
+
+### 0z898. Keep Shared Vitest Mock Assertions Test-Local
+
+**The Bug**: A native MilkDrop lifecycle test passed because its module-level
+`renderer.dispose` spy had been called by an earlier test. Vitest 5 exposed the
+false positive when mock call histories no longer carried that evidence into
+the test. The imported-preset path intentionally retains the prior renderer
+until its transition ends, so asserting disposal immediately was also the
+wrong lifecycle expectation.
+
+**Files Affected**:
+- `src/web/src/components/Player/visualizers/nativeMilkdropEngine.test.js`
+
+**Prevention**: Clear shared mock call history before each test. Assert against
+the operation under test, including transition completion and final engine
+disposal, instead of relying on a call made by another test.
+
+### 0z899. Align Direct Test-Project Packages With Grouped .NET Updates
+
+**The Bug**: A grouped .NET dependency update raised packages in the
+application project but left older direct package references in test projects.
+Fixing the first restore failure in the performance project exposed the same
+NU1605 downgrades in the unit-test project.
+
+**Files Affected**:
+- `tests/slskd.Tests.Performance/slskd.Tests.Performance.csproj`
+- `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj`
+
+**Prevention**: After a grouped package bump, search all project files for old
+versions and restore the full solution. Do not treat a successful restore of
+one project as proof that the application and every test project agree.

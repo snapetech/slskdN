@@ -104,13 +104,13 @@ namespace Soulseek.Messaging.Handlers
                 var codeInt = BitConverter.ToInt32(message, 4);
                 var isKnownCode = Enum.IsDefined(typeof(MessageCode.Peer), codeInt);
                 var code = isKnownCode ? (MessageCode.Peer)codeInt : default;
-                var payload = message.Skip(8).ToArray();
                 displayCode = isKnownCode ? code.ToString() : codeInt.ToString();
 
                 Diagnostic.Debug($"Peer message received: {displayCode} from {connection.Username} ({connection.IPEndPoint}) (id: {connection.Id})");
 
                 if (!isKnownCode && CustomPeerMessageHandlers.TryGetValue(codeInt, out var handler))
                 {
+                    var payload = message.Skip(8).ToArray();
                     await handler(connection, payload).ConfigureAwait(false);
                     return;
                 }
@@ -118,12 +118,17 @@ namespace Soulseek.Messaging.Handlers
                 switch (code)
                 {
                     case MessageCode.Peer.SearchResponse:
-                        var searchResponse = SearchResponseFactory.FromByteArray(message);
-                        SoulseekClient.RememberRemotePathEncodings(searchResponse.Username, searchResponse);
+                        var token = SearchResponseFactory.ReadToken(message);
 
-                        if (SoulseekClient.Searches.TryGetValue(searchResponse.Token, out var search))
+                        if (SoulseekClient.Searches.TryGetValue(token, out var search))
                         {
-                            search.TryAddResponse(searchResponse);
+                            var searchResponse = SearchResponseFactory.FromByteArray(message);
+
+                            if (SoulseekClient.Searches.TryGetValue(token, out var currentSearch) && ReferenceEquals(search, currentSearch))
+                            {
+                                SoulseekClient.RememberRemotePathEncodings(searchResponse.Username, searchResponse);
+                                currentSearch.TryAddResponse(searchResponse);
+                            }
                         }
 
                         break;

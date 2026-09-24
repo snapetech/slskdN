@@ -392,6 +392,26 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         }
 
         [Trait("Category", "Message")]
+        [Theory(DisplayName = "Drops inactive search response before parsing file list"), AutoData]
+        public void Drops_Inactive_Search_Response_Before_Parsing_File_List(string username, IPEndPoint endpoint, int token)
+        {
+            var (handler, mocks) = GetFixture(username, endpoint);
+
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchResponse)
+                .WriteString(username)
+                .WriteInteger(token)
+                .WriteInteger(-1) // invalid file count; inactive responses must be dropped before parsing this field
+                .Compress()
+                .Build();
+
+            var ex = Record.Exception(() => handler.HandleMessageRead(mocks.PeerConnection.Object, msg));
+
+            Assert.Null(ex);
+            mocks.Diagnostic.Verify(m => m.Warning(It.IsAny<string>(), It.IsAny<Exception>()), Times.Never);
+        }
+
+        [Trait("Category", "Message")]
         [Theory(DisplayName = "Throws TransferRequest wait on PeerUploadDenied"), AutoData]
         public void Throws_TransferRequest_Wait_On_PeerUploadDenied(string username, IPEndPoint endpoint, string filename, string message)
         {

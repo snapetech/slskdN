@@ -1,3 +1,23 @@
+## Update 2026-09-24 16:42:00Z
+
+- Current task: complete issue #336's stale peer search response fix and finish
+  the open PR/security audit.
+- Root cause fixed: the handler used to inflate and parse the entire compressed
+  result list before discovering that its search had ended. It now reads the
+  bounded token prefix first, drops stale responses, and rechecks active
+  search registration after parsing.
+- Local validation passes: full .NET tests (5,514), ./bin/lint, release-note
+  preview, and vendored runtime sync against its pinned source.
+- Merged compatible PRs #333, #328, #329, #334, and #335. PRs #326 and #327
+  remain open because React 19 is incompatible with the current Semantic UI
+  React ref path; migration and revalidation are follow-up work. The current
+  CodeQL, Dependabot, and secret-scanning alert counts are zero. Windows Smoke
+  lacks a matching repository runner.
+- The issue's connection-count rise from 13 to 2,259 is outside the parser
+  root cause and needs separate measurement before any lifecycle change.
+- Next steps: open the fix PR, wait for its hosted checks, merge once required
+  checks pass, and refresh the GitHub issue, PR, and security-alert audit.
+
 ## Update 2026-09-06 20:40:06-06:00
 
 - Released the Wishlist, blocked-user, navigation, System-tab, transfer-table,
