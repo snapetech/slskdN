@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createNativeMilkdropEngine,
   getNativeMilkdropBeatUpdate,
@@ -29,6 +29,10 @@ const createAnalyser = () => ({
 });
 
 describe('createNativeMilkdropEngine', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('eases native transition progress between renderer sets', () => {
     expect(getNativeMilkdropTransitionProgress(10, 2, 10)).toBe(0);
     expect(getNativeMilkdropTransitionProgress(10, 2, 11)).toBe(0.5);
@@ -212,12 +216,13 @@ describe('createNativeMilkdropEngine', () => {
 
   it('loads imported preset text through the native renderer', async () => {
     const analyser = createAnalyser();
+    const audioContext = {
+      createAnalyser: () => analyser,
+      currentTime: 0,
+      sampleRate: 44100,
+    };
     const engine = await createNativeMilkdropEngine({
-      audioContext: {
-        createAnalyser: () => analyser,
-        currentTime: 0,
-        sampleRate: 44100,
-      },
+      audioContext,
       audioNode: {
         connect: vi.fn(),
         disconnect: vi.fn(),
@@ -231,7 +236,14 @@ describe('createNativeMilkdropEngine', () => {
     `, 'imported.milk');
 
     expect(presetName).toBe('Imported fixture');
-    expect(renderer.dispose).toHaveBeenCalled();
+    expect(renderer.dispose).not.toHaveBeenCalled();
+
+    audioContext.currentTime = 2;
+    engine.render();
+    expect(renderer.dispose).toHaveBeenCalledTimes(1);
+
+    engine.dispose();
+    expect(renderer.dispose).toHaveBeenCalledTimes(2);
   });
 
   it('passes imported texture assets into the native renderer', async () => {
