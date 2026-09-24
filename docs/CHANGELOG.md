@@ -23,6 +23,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ## [Unreleased]
 
 - Updated .NET dependencies, including MessagePack 3.1.9, which fixes a nested-array deserialization bounds vulnerability.
+- Updated the FTP/FTPS integration dependency to FluentFTP 55.0.0.
 
 ## [2026090620-slskdn.321] — 2026-09-06
 
