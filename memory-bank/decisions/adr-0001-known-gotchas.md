@@ -29253,3 +29253,18 @@ next checkpoint could see stale data.
 **Prevention**: Explicitly checkpoint after scan maintenance and after
 backing up the share database. Treat SQLite's reported busy result as a
 maintenance warning instead of claiming the checkpoint completed.
+
+### 0z902. Catch Errors During Lazy Filesystem Enumeration
+
+**The Bug**: Replacing collection-returning filesystem APIs with lazy
+`Enumerate*` APIs moves I/O failures from the method call to iterator
+consumption. A `try` block around only the API call would miss those failures
+and change the caller's error handling.
+
+**Files Affected**:
+- `src/slskd/Shares/ShareScanner.cs`
+- `src/slskd/Files/FileService.cs`
+
+**Prevention**: Keep iterator consumption (`foreach` or materialization) inside
+the existing exception-handling boundary whenever filesystem enumeration is
+made lazy.
