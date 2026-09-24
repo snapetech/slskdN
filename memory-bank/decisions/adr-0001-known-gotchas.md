@@ -29223,3 +29223,18 @@ NU1605 downgrades in the unit-test project.
 **Prevention**: After a grouped package bump, search all project files for old
 versions and restore the full solution. Do not treat a successful restore of
 one project as proof that the application and every test project agree.
+
+### 0z900. Stop Share Alias Parsing At The First Closing Bracket
+
+**The Bug**: Share alias validation used a greedy `.*` capture, so a closing
+bracket inside an absolute local path was mistaken for the alias terminator.
+The path was then rejected as non-absolute or deduplicated under a corrupted
+alias/path pair.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `tests/slskd.Tests.Unit/SoulseekOptionsValidationTests.cs`
+
+**Prevention**: The share syntax terminates its alias at the first `]`. Keep
+all alias-shape checks and the alias/path split non-greedy, and retain a
+regression test with a `]` in the local path.
