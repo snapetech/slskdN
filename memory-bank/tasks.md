@@ -38,16 +38,22 @@
     secret-scanning alerts; no findings were dismissed. Windows Smoke could
     not run because no repository runner matches its required labels.
 
-- [ ] Publish the next stable release with the normal date-and-sequence
+- [x] Publish the next stable release with the normal date-and-sequence
   version `2026092420-slskdn.323`.
-  - Status: release preparation in progress (2026-09-24)
+  - Status: GitHub release published and artifacts verified (2026-09-24)
   - Priority: P1
-  - Notes: Use the guarded tag `build-main-2026092420-slskdn.323`; the public
-    release version is `2026092420-slskdn.323`. React PRs #326/#327 cannot be
-    merged safely: upgrading the runtime and Semantic UI React to its v3 beta
-    left 3 of 948 frontend tests failing and triggered an event-handler error.
-    Open CodeQL, Dependabot, and secret-scanning alerts are zero; npm and NuGet
-    vulnerability audits also report no vulnerable packages.
+  - Notes: Published public release `2026092420-slskdn.323` from guarded tag
+    `build-main-2026092420-slskdn.323`; all 13 release assets and six archive
+    checksums passed `scripts/verify-release-artifacts.sh`. The first hosted
+    gate attempt failed one fragmented SOCKS test; rerunning the same immutable
+    tag passed the complete gate, and 10 local repetitions of that test passed.
+    Main Docker, COPR, Homebrew, Nix, AUR, Chocolatey, and release announcement
+    jobs succeeded. Launchpad publication and the optional Omnibus Testers
+    image were still in progress at 2026-09-24 21:11Z; follow-ups are below.
+    React PRs #326/#327 remain unmerged: a combined React 19.3 + Semantic UI
+    React v3 beta probe left 3 of 948 frontend tests failing and raised an
+    uncaught event-handler error. GitHub security-alert counts are zero, as
+    are npm audit vulnerabilities and vulnerable NuGet packages.
 
 - [ ] Confirm Launchpad publication for stable release `.322`.
   - Status: external publisher follow-up (2026-09-24)
@@ -56,6 +62,19 @@
     Launchpad reported the exact Jammy source as Pending. The source build is
     now successful, but the exact binary is not yet published; check the
     Launchpad queue before attempting any same-version upload.
+
+- [ ] Confirm Launchpad publication for stable release `.323`.
+  - Status: publication wait in progress (2026-09-24 21:11Z)
+  - Priority: P2
+  - Notes: The source upload completed, but Launchpad had not yet indexed the
+    exact source version. Let the existing publication wait finish; do not
+    upload the same source version again while it is being processed.
+
+- [ ] Confirm the optional `.323` Omnibus Testers image build.
+  - Status: hosted build in progress (2026-09-24 21:11Z)
+  - Priority: P3
+  - Notes: The stable application Docker image has published successfully.
+    This follow-up covers only the separate tester image job.
 
 - [x] Fix issue #336 by dropping inactive peer search responses before parsing
   their result lists.

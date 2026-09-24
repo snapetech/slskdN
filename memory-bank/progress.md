@@ -1,3 +1,23 @@
+## Update 2026-09-24 21:11:00Z
+
+- Published stable release `2026092420-slskdn.323` through the guarded
+  `build-main-2026092420-slskdn.323` tag. The release is latest; checksum,
+  six platform archive, required-asset, Linux version, VPN helper, and Web
+  marker verification all passed.
+- The first hosted release-gate attempt failed one fragmented SOCKS handshake
+  test. Per the immutable-tag release rule, the same tag was rerun; its full
+  hosted gate passed. Ten focused local repetitions also passed, so no
+  source-only workaround was applied.
+- Main Docker, COPR, Homebrew, Nix metadata, AUR, Chocolatey, and release
+  announcements succeeded. Launchpad publication and the optional Omnibus
+  Testers image were still running at 21:11Z. The earlier `.322` Launchpad
+  source remains Pending despite a successful binary build.
+- Security queues remain clear: zero open GitHub CodeQL, Dependabot, and
+  secret-scanning alerts; `npm audit` reports zero vulnerabilities; NuGet
+  reports no vulnerable packages. React PRs #326/#327 remain incompatible:
+  the combined React 19.3 + Semantic UI React v3 beta probe had 3 failing tests
+  of 948 and one uncaught event-handler error.
+
 ## Update 2026-09-24 20:13:00Z
 
 - Prepared the next stable release as `2026092420-slskdn.323` using the
