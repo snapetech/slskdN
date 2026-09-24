@@ -29192,3 +29192,19 @@ calling a full parser before checking request ownership turns irrelevant late
 replies into full parsing work. Check correlation tokens before expensive
 payload materialization whenever the protocol places the token in a small
 prefix.
+
+### 0z898. Keep Shared Vitest Mock Assertions Test-Local
+
+**The Bug**: A native MilkDrop lifecycle test passed because its module-level
+`renderer.dispose` spy had been called by an earlier test. Vitest 5 exposed the
+false positive when mock call histories no longer carried that evidence into
+the test. The imported-preset path intentionally retains the prior renderer
+until its transition ends, so asserting disposal immediately was also the
+wrong lifecycle expectation.
+
+**Files Affected**:
+- `src/web/src/components/Player/visualizers/nativeMilkdropEngine.test.js`
+
+**Prevention**: Clear shared mock call history before each test. Assert against
+the operation under test, including transition completion and final engine
+disposal, instead of relying on a call made by another test.
