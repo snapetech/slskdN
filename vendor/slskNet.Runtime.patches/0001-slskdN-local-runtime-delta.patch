@@ -29,6 +29,164 @@ index 73be616c830e6bb9ee052c1d98d039e6c81c2b59..2b45095382ddf2e925e02e5aa0ffc2b0
    </ItemGroup>
  
    <ItemGroup>
+diff --git a/vendor/slskNet.Runtime/src/Messaging/Handlers/PeerMessageHandler.cs b/vendor/slskNet.Runtime/src/Messaging/Handlers/PeerMessageHandler.cs
+index 9b51bdac8a5fbc2dbb1cf8ef15d438e2de31b8dc..1c2777a4273acb29672f7d53f8d2f0c7a0c8845c 100644
+--- a/vendor/slskNet.Runtime/src/Messaging/Handlers/PeerMessageHandler.cs
++++ b/vendor/slskNet.Runtime/src/Messaging/Handlers/PeerMessageHandler.cs
+@@ -104,13 +104,13 @@ namespace Soulseek.Messaging.Handlers
+                 var codeInt = BitConverter.ToInt32(message, 4);
+                 var isKnownCode = Enum.IsDefined(typeof(MessageCode.Peer), codeInt);
+                 var code = isKnownCode ? (MessageCode.Peer)codeInt : default;
+-                var payload = message.Skip(8).ToArray();
+                 displayCode = isKnownCode ? code.ToString() : codeInt.ToString();
+ 
+                 Diagnostic.Debug($"Peer message received: {displayCode} from {connection.Username} ({connection.IPEndPoint}) (id: {connection.Id})");
+ 
+                 if (!isKnownCode && CustomPeerMessageHandlers.TryGetValue(codeInt, out var handler))
+                 {
++                    var payload = message.Skip(8).ToArray();
+                     await handler(connection, payload).ConfigureAwait(false);
+                     return;
+                 }
+@@ -118,12 +118,17 @@ namespace Soulseek.Messaging.Handlers
+                 switch (code)
+                 {
+                     case MessageCode.Peer.SearchResponse:
+-                        var searchResponse = SearchResponseFactory.FromByteArray(message);
+-                        SoulseekClient.RememberRemotePathEncodings(searchResponse.Username, searchResponse);
++                        var token = SearchResponseFactory.ReadToken(message);
+ 
+-                        if (SoulseekClient.Searches.TryGetValue(searchResponse.Token, out var search))
++                        if (SoulseekClient.Searches.TryGetValue(token, out var search))
+                         {
+-                            search.TryAddResponse(searchResponse);
++                            var searchResponse = SearchResponseFactory.FromByteArray(message);
++
++                            if (SoulseekClient.Searches.TryGetValue(token, out var currentSearch) && ReferenceEquals(search, currentSearch))
++                            {
++                                SoulseekClient.RememberRemotePathEncodings(searchResponse.Username, searchResponse);
++                                currentSearch.TryAddResponse(searchResponse);
++                            }
+                         }
+ 
+                         break;
+diff --git a/vendor/slskNet.Runtime/src/Messaging/Messages/Peer/SearchResponseFactory.cs b/vendor/slskNet.Runtime/src/Messaging/Messages/Peer/SearchResponseFactory.cs
+index 3405282079ce8da6b94584646172244d3d7f78ce..3ba0b1f036040a8b3287a5f9fd78241917bc8c97 100644
+--- a/vendor/slskNet.Runtime/src/Messaging/Messages/Peer/SearchResponseFactory.cs
++++ b/vendor/slskNet.Runtime/src/Messaging/Messages/Peer/SearchResponseFactory.cs
+@@ -25,8 +25,11 @@
+ 
+ namespace Soulseek.Messaging.Messages
+ {
++    using System;
++    using System.Buffers.Binary;
+     using System.Collections.Generic;
+     using System.Linq;
++    using Soulseek.Messaging.Compression;
+ 
+     /// <summary>
+     ///     Factory for search response messages. This class helps keep message abstractions from leaking into the public API via
+@@ -34,6 +37,69 @@ namespace Soulseek.Messaging.Messages
+     /// </summary>
+     internal static class SearchResponseFactory
+     {
++        /// <summary>
++        ///     Reads only the token from a compressed search response, without inflating its file list.
++        /// </summary>
++        /// <param name="bytes">The message bytes from which to read.</param>
++        /// <returns>The search token.</returns>
++        public static int ReadToken(byte[] bytes)
++        {
++            var reader = new MessageReader<MessageCode.Peer>(bytes);
++            var code = reader.ReadCode();
++
++            if (code != MessageCode.Peer.SearchResponse)
++            {
++                throw new MessageException($"Message Code mismatch creating {nameof(SearchResponse)} (expected: {(int)MessageCode.Peer.SearchResponse}, received: {(int)code}");
++            }
++
++            if (reader.Payload.Length == 0)
++            {
++                throw new MessageCompressionException("Unable to decompress an empty message");
++            }
++
++            try
++            {
++                using var compressedPayload = new System.IO.MemoryStream(bytes, 8, bytes.Length - 8, writable: false);
++                using var decompressedPayload = new ZInputStream(compressedPayload);
++                var integerBytes = new byte[sizeof(int)];
++                var decompressedLength = 0;
++
++                ReadExactly(decompressedPayload, integerBytes, sizeof(int), ref decompressedLength, "username length");
++                var usernameLength = BinaryPrimitives.ReadInt32LittleEndian(integerBytes);
++
++                if (usernameLength < 0)
++                {
++                    throw new MessageReadException($"Invalid string length: {usernameLength}");
++                }
++
++                if (usernameLength > MessageReader<MessageCode.Peer>.MaximumDecompressedPayloadLength - (sizeof(int) * 2))
++                {
++                    throw new MessageCompressionException($"Decompressed message payload exceeds the maximum allowed length of {MessageReader<MessageCode.Peer>.MaximumDecompressedPayloadLength} bytes");
++                }
++
++                var skipBuffer = new byte[8192];
++                var remainingUsernameBytes = usernameLength;
++
++                while (remainingUsernameBytes > 0)
++                {
++                    var bytesToSkip = Math.Min(remainingUsernameBytes, skipBuffer.Length);
++                    ReadExactly(decompressedPayload, skipBuffer, bytesToSkip, ref decompressedLength, "username");
++                    remainingUsernameBytes -= bytesToSkip;
++                }
++
++                ReadExactly(decompressedPayload, integerBytes, sizeof(int), ref decompressedLength, "search token");
++                return BinaryPrimitives.ReadInt32LittleEndian(integerBytes);
++            }
++            catch (MessageException)
++            {
++                throw;
++            }
++            catch (Exception ex)
++            {
++                throw new MessageCompressionException("Failed to read the compressed search response prefix", ex);
++            }
++        }
++
+         /// <summary>
+         ///     Creates a new instance of <see cref="SearchResponse"/> from the specified <paramref name="bytes"/>.
+         /// </summary>
+@@ -81,6 +147,30 @@ namespace Soulseek.Messaging.Messages
+             return new SearchResponse(username, token, hasFreeUploadSlot: freeUploadSlots > 0, uploadSpeed, queueLength, fileList, lockedFileList);
+         }
+ 
++        private static void ReadExactly(ZInputStream reader, byte[] buffer, int count, ref int decompressedLength, string field)
++        {
++            var offset = 0;
++
++            while (offset < count)
++            {
++                var read = reader.read(buffer, offset, count - offset);
++
++                if (read < 0)
++                {
++                    throw new MessageReadException($"Failed to read search response {field}");
++                }
++
++                decompressedLength += read;
++
++                if (decompressedLength > MessageReader<MessageCode.Peer>.MaximumDecompressedPayloadLength)
++                {
++                    throw new MessageCompressionException($"Decompressed message payload exceeds the maximum allowed length of {MessageReader<MessageCode.Peer>.MaximumDecompressedPayloadLength} bytes");
++                }
++
++                offset += read;
++            }
++        }
++
+         /// <summary>
+         ///     Constructs a <see cref="byte"/> array from this message.
+         /// </summary>
 diff --git a/vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs b/vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs
 index 549031592d2c2456202487809b8346af13dec957..b1520cce13f5a5629e0d9aa3f350c5b3194b2455 100644
 --- a/vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs
@@ -998,6 +1156,79 @@ index 3a23376240ffa4d98507a38873bed69e4c7a0737..23a5da74b3eb0d47eda8a93b4f380af8
          [Trait("Category", "ReconfigureOptions")]
          [Fact(DisplayName = "Reconfigures listener if ListenIPAddress changed")]
          public async Task Reconfigures_Listener_If_ListenIPAddress_Changed()
+diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Handlers/PeerMessageHandlerTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Handlers/PeerMessageHandlerTests.cs
+index 84a6d77dcbb4a9a6862fec6ddbe128fd7e06e769..606a36a46bf21499f17490117512399251e7b55f 100644
+--- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Handlers/PeerMessageHandlerTests.cs
++++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Handlers/PeerMessageHandlerTests.cs
+@@ -391,6 +391,26 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
+             Assert.Null(ex);
+         }
+ 
++        [Trait("Category", "Message")]
++        [Theory(DisplayName = "Drops inactive search response before parsing file list"), AutoData]
++        public void Drops_Inactive_Search_Response_Before_Parsing_File_List(string username, IPEndPoint endpoint, int token)
++        {
++            var (handler, mocks) = GetFixture(username, endpoint);
++
++            var msg = new MessageBuilder()
++                .WriteCode(MessageCode.Peer.SearchResponse)
++                .WriteString(username)
++                .WriteInteger(token)
++                .WriteInteger(-1) // invalid file count; inactive responses must be dropped before parsing this field
++                .Compress()
++                .Build();
++
++            var ex = Record.Exception(() => handler.HandleMessageRead(mocks.PeerConnection.Object, msg));
++
++            Assert.Null(ex);
++            mocks.Diagnostic.Verify(m => m.Warning(It.IsAny<string>(), It.IsAny<Exception>()), Times.Never);
++        }
++
+         [Trait("Category", "Message")]
+         [Theory(DisplayName = "Throws TransferRequest wait on PeerUploadDenied"), AutoData]
+         public void Throws_TransferRequest_Wait_On_PeerUploadDenied(string username, IPEndPoint endpoint, string filename, string message)
+diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Peer/SearchResponseFactoryTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Peer/SearchResponseFactoryTests.cs
+index 67f40ccc337273a28e166e0fff81c7439189415f..390e50a980da0b0026fd93afba628d6b395623b1 100644
+--- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Peer/SearchResponseFactoryTests.cs
++++ b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Peer/SearchResponseFactoryTests.cs
+@@ -27,6 +27,37 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
+ 
+     public class SearchResponseFactoryTests
+     {
++        [Trait("Category", "Parse")]
++        [Theory(DisplayName = "ReadToken reads the search token without parsing the file list"), AutoData]
++        public void ReadToken_Reads_Token_Without_Parsing_File_List(string username, int token)
++        {
++            var msg = new MessageBuilder()
++                .WriteCode(MessageCode.Peer.SearchResponse)
++                .WriteString(username)
++                .WriteInteger(token)
++                .WriteInteger(-1) // invalid file count is beyond the prefix needed to identify the search
++                .Compress()
++                .Build();
++
++            Assert.Equal(token, SearchResponseFactory.ReadToken(msg));
++        }
++
++        [Trait("Category", "Parse")]
++        [Fact(DisplayName = "ReadToken throws MessageReadException when the token is missing")]
++        public void ReadToken_Throws_MessageReadException_When_Token_Is_Missing()
++        {
++            var msg = new MessageBuilder()
++                .WriteCode(MessageCode.Peer.SearchResponse)
++                .WriteString("foo")
++                .Compress()
++                .Build();
++
++            var ex = Record.Exception(() => SearchResponseFactory.ReadToken(msg));
++
++            Assert.NotNull(ex);
++            Assert.IsType<MessageReadException>(ex);
++        }
++
+         [Trait("Category", "Parse")]
+         [Fact(DisplayName = "Parse throws MessageException on code mismatch")]
+         public void Parse_Throws_MessageException_On_Code_Mismatch()
 diff --git a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs b/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs
 index 68b76aaa12b1ff05d584a1c269156c781af8ebe6..5074d1f55b6838f00604c9ee7ce75c3ae7e7db01 100644
 --- a/vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs
