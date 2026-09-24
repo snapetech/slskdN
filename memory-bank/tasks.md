@@ -38,6 +38,25 @@
     secret-scanning alerts; no findings were dismissed. Windows Smoke could
     not run because no repository runner matches its required labels.
 
+- [ ] Publish the next stable release with the normal date-and-sequence
+  version `2026092420-slskdn.323`.
+  - Status: release preparation in progress (2026-09-24)
+  - Priority: P1
+  - Notes: Use the guarded tag `build-main-2026092420-slskdn.323`; the public
+    release version is `2026092420-slskdn.323`. React PRs #326/#327 cannot be
+    merged safely: upgrading the runtime and Semantic UI React to its v3 beta
+    left 3 of 948 frontend tests failing and triggered an event-handler error.
+    Open CodeQL, Dependabot, and secret-scanning alerts are zero; npm and NuGet
+    vulnerability audits also report no vulnerable packages.
+
+- [ ] Confirm Launchpad publication for stable release `.322`.
+  - Status: external publisher follow-up (2026-09-24)
+  - Priority: P2
+  - Notes: The hosted publication wait timed out after 90 minutes while
+    Launchpad reported the exact Jammy source as Pending. The source build is
+    now successful, but the exact binary is not yet published; check the
+    Launchpad queue before attempting any same-version upload.
+
 - [x] Fix issue #336 by dropping inactive peer search responses before parsing
   their result lists.
   - Status: merged to `main` in PR #337 (2026-09-24); prepared for

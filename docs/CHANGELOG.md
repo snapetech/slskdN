@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026092420-slskdn.323] — 2026-09-24
+
+- Carried forward the validated application changes from
+  `2026092418-slskdn.322` under the next date-and-sequence stable version.
+  This release changes release and package metadata only; runtime behavior and
+  configuration are unchanged.
+
 ## [2026092418-slskdn.322] — 2026-09-24
 
 - Updated .NET dependencies, including MessagePack 3.1.9, which fixes a nested-array deserialization bounds vulnerability.

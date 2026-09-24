@@ -1,3 +1,20 @@
+## Update 2026-09-24 20:13:00Z
+
+- Prepared the next stable release as `2026092420-slskdn.323` using the
+  project's date-and-sequence public version format and the `build-main-`
+  guarded tag path. Researched React 19 support from official React and
+  Semantic UI React documentation and tested an isolated React 19.3 + Semantic
+  UI React v3 beta migration; 3 of 948 frontend tests still fail and one test
+  raises an uncaught Semantic UI event-handler error, so PRs #326/#327 remain
+  incompatible with the current app and were not merged.
+- Current security checks are clear: GitHub reports zero open CodeQL,
+  Dependabot, and secret-scanning alerts; `npm audit` reports zero
+  vulnerabilities; and NuGet reports no vulnerable packages. The current
+  React 18 tree passes `dotnet test` (5,519 tests) and `./bin/lint`.
+- The `.322` release assets are verified, but Launchpad's Jammy source remains
+  Pending despite a successful build, so its binary-publication follow-up is
+  tracked separately.
+
 ## Update 2026-09-24 18:13:00Z
 
 - Merged parity PR #338 to `main` at `6dc9ecc08`. Hosted Build and Test,

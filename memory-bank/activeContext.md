@@ -1,3 +1,25 @@
+## Update 2026-09-24 20:13:00Z
+
+- Preparing the requested follow-up stable release as
+  `2026092420-slskdn.323`, the next date-and-sequence version after `.322`.
+  The public version is the normal stable format; the tag-only build trigger
+  uses the required `build-main-` prefix and guarded release helper.
+- Investigated Dependabot PRs #326/#327 against current official React and
+  Semantic UI React documentation and tested React 19.3 with the Semantic UI
+  React v3 beta in an isolated worktree. The probe still has 3 frontend test
+  failures and an uncaught event-handler exception; keep the production tree
+  on React 18 and leave these incompatible PRs unmerged.
+- Current security checks are clear: zero open GitHub CodeQL, Dependabot, or
+  secret-scanning alerts, zero npm audit vulnerabilities, and no vulnerable
+  NuGet packages. `dotnet test` passes 5,519 tests and `./bin/lint` passes.
+- The `.322` release assets were verified. Its PPA wait timed out while
+  Launchpad kept the Jammy source Pending; the build later succeeded, but its
+  exact binary is still awaiting publication. Track this separately from the
+  `.323` release.
+- Next: validate the new release note and changelog, commit and push the
+  release preparation, create the guarded `.323` tag, then verify hosted
+  artifacts and publication jobs.
+
 ## Update 2026-09-24 18:13:00Z
 
 - PR #338 is merged to `main` at `6dc9ecc08`. The fork has zero open issues
