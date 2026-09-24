@@ -11,8 +11,8 @@
 
 - [ ] Audit the last six months of upstream slskd changes and implement
   applicable parity fixes.
-  - Status: implementation and local validation complete; PR and stable
-    release pending (2026-09-24)
+  - Status: implementation merged in PR #338; stable release gate/tag pending
+    (2026-09-24)
   - Priority: P1
   - Notes: Audited all 77 pull requests merged upstream from 2026-03-24 through
     2026-09-24. Seven applicable changes are implemented; equivalent behavior,
@@ -36,8 +36,8 @@
 
 - [x] Fix issue #336 by dropping inactive peer search responses before parsing
   their result lists.
-  - Status: merged to `main` in PR #337 (2026-09-24); included in the next
-    stable release
+  - Status: merged to `main` in PR #337 (2026-09-24); prepared for
+    `2026092418-slskdn.322`
   - Priority: P1
   - Notes: The handler now reads the bounded correlation prefix from the
     compressed response, checks whether the search is still registered, and

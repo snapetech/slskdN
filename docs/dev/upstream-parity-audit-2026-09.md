@@ -118,8 +118,14 @@ The mapped-IP finding was verified as already handled in the Relay hub.
 
 ## Validation and release tracking
 
-The initial GitHub alerts audit for this fork reported zero open CodeQL,
-Dependabot, and secret-scanning alerts; the final check is recorded after the
-release branch and hosted checks complete. The fork's license boundary,
+After PR #338 merged to `main` on 2026-09-24, the fork had zero open issues,
+zero CodeQL alerts, zero Dependabot alerts, and zero secret-scanning alerts.
+Hosted PR checks passed for build/test, CodeQL, dependency and container scans,
+E2E, Nix smoke, load and performance checks, release-note validation, and local
+identity checks. Windows Smoke remained queued because no matching Windows
+runner was available. PRs #326 and #327 remain open because React 19 is not
+compatible with the current Semantic UI React dependency; the fork stays on
+React 18 until a migration passes validation. The fork's license boundary,
 dependency freshness, and conservative network policy remain release gates.
-Release notes are previewed against the validated release base and head.
+The stable release-note preview is run against the validated release base and
+head before the tag is created.

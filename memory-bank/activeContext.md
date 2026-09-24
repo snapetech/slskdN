@@ -1,3 +1,17 @@
+## Update 2026-09-24 18:13:00Z
+
+- PR #338 is merged to `main` at `6dc9ecc08`. The fork has zero open issues
+  and zero open CodeQL, Dependabot, or secret-scanning alerts. Hosted build,
+  CodeQL, dependency/container, E2E, Nix, load, performance, release-note, and
+  identity checks passed; Windows Smoke remains queued because no matching
+  runner is available.
+- Prepared changelog version `2026092418-slskdn.322` with the merged
+  dependency and upstream parity changes. The full audit and final GitHub
+  status are in `docs/dev/upstream-parity-audit-2026-09.md`.
+- Next: push the release bookkeeping to `main`, run the guarded release gate
+  through `scripts/create-release-tag.sh`, then verify the hosted release and
+  published artifacts.
+
 ## Update 2026-09-24 17:54:00Z
 
 - Current task: audit and apply compatible upstream slskd fixes from the

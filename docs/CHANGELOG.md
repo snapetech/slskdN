@@ -22,8 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026092418-slskdn.322] — 2026-09-24
+
 - Updated .NET dependencies, including MessagePack 3.1.9, which fixes a nested-array deserialization bounds vulnerability.
 - Updated the FTP/FTPS integration dependency to FluentFTP 55.0.0.
+- Dropped late peer search responses before inflating and parsing stale result
+  lists, avoiding unnecessary work after a search has ended.
 - Streamed share-directory and file scans and checkpointed the share database
   after maintenance; windowed large Browse trees; fixed share-alias and Relay
   URL edge cases and stale nested UI caching. Disk logs are now enabled by

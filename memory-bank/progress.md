@@ -1,3 +1,16 @@
+## Update 2026-09-24 18:13:00Z
+
+- Merged parity PR #338 to `main` at `6dc9ecc08`. Hosted Build and Test,
+  CodeQL analysis, E2E, dependency/container scans, Nix smoke, load/performance,
+  release-note validation, and identity checks passed. Windows Smoke remains
+  queued because the repository has no matching Windows runner.
+- The post-merge GitHub audit found zero open issues and zero open CodeQL,
+  Dependabot, or secret-scanning alerts. PRs #326/#327 remain open because
+  React 19 is incompatible with the existing Semantic UI React dependency.
+- Prepared the versioned `.322` changelog and recorded the final upstream
+  audit/security status. Next: push the release bookkeeping, run the guarded
+  release gate/tag, and verify published artifacts.
+
 ## Update 2026-09-24 17:54:00Z
 
 - Audited all 77 upstream slskd PRs merged from 2026-03-24 through 2026-09-24.
