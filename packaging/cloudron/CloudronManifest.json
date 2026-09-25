@@ -1,0 +1,33 @@
+{
+  "id": "tech.snapetech.slskdn",
+  "title": "slskdN",
+  "author": "Snapetech",
+  "description": "AGPL-3.0 Soulseek client with discovery, downloads, library sharing, DHT, and optional mesh networking.",
+  "tagline": "Soulseek client with discovery and download automation",
+  "version": "2026.9.2517",
+  "upstreamVersion": "2026092517-slskdn.325",
+  "healthCheckPath": "/health",
+  "httpPort": 5030,
+  "tcpPorts": {
+    "SOULSEEK": {
+      "title": "Soulseek TCP port",
+      "description": "Incoming Soulseek and mesh TCP traffic.",
+      "containerPort": 50300
+    }
+  },
+  "udpPorts": {
+    "SOULSEEK_UDP": {
+      "title": "Soulseek UDP port",
+      "description": "Optional DHT, mesh rendezvous, and QUIC UDP traffic.",
+      "containerPort": 50300
+    }
+  },
+  "addons": {"localstorage": {}},
+  "persistentDirs": ["/app", "/downloads", "/music"],
+  "manifestVersion": 2,
+  "website": "https://github.com/snapetech/slskdn",
+  "documentationUrl": "https://github.com/snapetech/slskdn#readme",
+  "packageUrl": "https://github.com/snapetech/slskdn",
+  "iconUrl": "https://raw.githubusercontent.com/snapetech/slskdn/main/src/web/public/logo512.png",
+  "tags": ["music", "soulseek", "downloads", "p2p"]
+}
