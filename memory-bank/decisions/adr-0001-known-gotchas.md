@@ -24118,6 +24118,21 @@ Note: TWO spaces before `--`, specific date format.
 
 ---
 
+### 22. YunoHost v2 apt resources cannot use pipe alternatives
+
+**The Bug**: Putting a pipe-separated alternative such as
+`"libicu70|libicu72|libicu74|libicu76"` in `[resources.apt].packages` makes
+YunoHost's generated provisioning script parse the separators as shell pipes.
+Dependency provisioning then fails before the app's install script runs.
+
+**Prevention**: Use `packages_from_raw_bash` to select a package for the
+supported Debian release, or list a single package that exists on every
+supported release. The pipe-separated alternative syntax is for the
+`ynh_install_app_dependencies` shell helper, not the v2 apt resource array.
+Run `package_check` on a clean YunoHost guest to validate resource provisioning.
+
+---
+
 ## 🧪 Test Gotchas
 
 ### 13. Flaky UploadGovernorTests
