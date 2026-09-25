@@ -9,6 +9,31 @@
 
 ### High Priority
 
+- [x] Prepare and submit the slskdN YunoHost package and catalog entry.
+  - Status: package committed and catalog PR #3627 opened (2026-09-25).
+  - Priority: P1
+  - Notes: Added the YunoHost v2 package under `packaging/yunohost/`, pinned
+    stable release `2026092517-slskdn.325` for amd64 and arm64, and published
+    the standalone repository `snapetech/slskdn_ynh` with `main` and `testing`
+    branches. The catalog PR targets `YunoHost/apps`, sets the app to
+    `inprogress` on `testing`, adds the `non-free-network` antifeature and
+    logo, and removes the fulfilled `slskd` wishlist entry. The package linter
+    passes manifest, script, and general package checks; catalog status remains
+    pending PR merge. `catalog_linter.py` and `logos_check.py` pass. `./bin/lint`
+    and `dotnet test` pass (74 application, 5,161 unit, 284 integration).
+    Full YunoHost package_check was unavailable locally because no LXD runtime
+    is running; maintainers still need to validate install, upgrade, URL
+    changes, backup, and restore.
+
+- [ ] Respond to YunoHost catalog PR #3627 review and update the catalog state
+  only after YunoHost package CI validates the package.
+  - Status: awaiting maintainer review and package CI (2026-09-25).
+  - Priority: P2
+  - Notes: Keep the catalog on the `testing` branch and `inprogress` state
+    until maintainers verify the package lifecycle. Do not transfer repository
+    ownership or mark the app working without maintainer direction and passing
+    package checks.
+
 - [x] Audit the last six months of upstream slskd changes and implement
   applicable parity fixes.
   - Status: merged in PR #338; stable release `2026092418-slskdn.322`

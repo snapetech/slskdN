@@ -1,3 +1,26 @@
+## Update 2026-09-25 22:21:00Z
+
+- Current task: complete. Prepared the YunoHost v2 package, committed it to
+  the slskdN workspace, published `snapetech/slskdn_ynh` with `main` and
+  `testing` branches, and opened YunoHost/apps PR #3627. The catalog points to
+  `testing` and remains `inprogress` while maintainers review the package.
+- Added checksum-pinned amd64/arm64 assets from stable release
+  `2026092517-slskdn.325`, subpath-aware NGINX configuration, a generated web
+  password, and one exposed shared Soulseek TCP/UDP listener. Added the
+  `non-free-network` antifeature and removed the fulfilled `slskd` wishlist
+  item from the catalog PR.
+- Validation: package manifest/scripts/general checks pass in package_linter;
+  catalog_linter passes with existing unrelated warnings; logo and shell checks
+  pass; systemd-analyze verify passes with package placeholders resolved;
+  `./bin/lint` passes; `dotnet test` passes 74 application, 5,161 unit, and
+  284 integration tests.
+- Limitation: full YunoHost package_check could not run locally because no
+  LXD runtime is available. The YunoHost PR currently has no reported status
+  checks. Unrelated concurrent VPN/packaging edits remain unstaged.
+- Next steps: await YunoHost maintainer review and package CI for install, URL
+  changes, upgrade, backup, and restore. Keep the catalog on `testing` and
+  `inprogress` until those checks pass.
+
 ## Update 2026-09-25 18:04:00Z
 
 - Completed the requested commit/push of valid repository work and published
