@@ -259,7 +259,7 @@ scripts/create-release-tag.sh "build-dev-${VERSION}"
 | Action | Command |
 |--------|---------|
 | Run backend | `./bin/watch` |
-| Run frontend | `cd src/web && npm start` |
+| Run frontend | `pnpm --filter @slskdn/web start` |
 | Run tests | `dotnet test` |
 | Lint | `./bin/lint` |
 | Build release | `./bin/build` |

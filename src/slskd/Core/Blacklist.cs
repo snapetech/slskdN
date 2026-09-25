@@ -117,44 +117,89 @@ public class Blacklist
                 continue;
             }
 
-            try
+            if (TryDetectFormatLine(line, out var format))
             {
-                // CIDR format: 1.2.4.0/24
-                if (IPAddressRange.TryParse(line, out _))
-                {
-                    return BlacklistFormat.CIDR;
-                }
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                // P2P format: China Internet Information Center (CNNIC):1.2.4.0-1.2.4.255
-                if (TryGetP2PRange(line, out var p2pRange) && IPAddressRange.TryParse(p2pRange, out _))
-                {
-                    return BlacklistFormat.P2P;
-                }
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                // DAT format: 001.002.004.000 - 001.002.004.255 , 000 , China Internet Information Center (CNNIC)
-                if (IPAddressRange.TryParse(line.Split(",")[0], out _))
-                {
-                    return BlacklistFormat.DAT;
-                }
-            }
-            catch
-            {
+                return format;
             }
         }
 
         throw new FormatException("Failed to detect blacklist format. Only CIDR, P2P and DAT formats are supported");
+    }
+
+    /// <summary>
+    ///     Synchronously examines a blacklist file for use by synchronous options validation.
+    /// </summary>
+    /// <param name="filename">The fully qualified path to the file to examine.</param>
+    /// <returns>The detected format.</returns>
+    public static BlacklistFormat DetectFormatSync(string filename)
+    {
+        using var reader = new StreamReader(filename, options: new FileStreamOptions
+        {
+            Access = FileAccess.Read,
+            Mode = FileMode.Open,
+            Share = FileShare.Read,
+        });
+
+        string? line;
+        while ((line = reader.ReadLine()) != null)
+        {
+            if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#'))
+            {
+                continue;
+            }
+
+            if (TryDetectFormatLine(line, out var format))
+            {
+                return format;
+            }
+        }
+
+        throw new FormatException("Failed to detect blacklist format. Only CIDR, P2P and DAT formats are supported");
+    }
+
+    private static bool TryDetectFormatLine(string line, out BlacklistFormat format)
+    {
+        try
+        {
+            // CIDR format: 1.2.4.0/24
+            if (IPAddressRange.TryParse(line, out _))
+            {
+                format = BlacklistFormat.CIDR;
+                return true;
+            }
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            // P2P format: China Internet Information Center (CNNIC):1.2.4.0-1.2.4.255
+            if (TryGetP2PRange(line, out var p2pRange) && IPAddressRange.TryParse(p2pRange, out _))
+            {
+                format = BlacklistFormat.P2P;
+                return true;
+            }
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            // DAT format: 001.002.004.000 - 001.002.004.255 , 000 , China Internet Information Center (CNNIC)
+            if (IPAddressRange.TryParse(line.Split(",")[0], out _))
+            {
+                format = BlacklistFormat.DAT;
+                return true;
+            }
+        }
+        catch
+        {
+        }
+
+        format = BlacklistFormat.AutoDetect;
+        return false;
     }
 
     /// <summary>

@@ -1475,6 +1475,7 @@ static class Commands
         var hostIp = $"{AppConfig.IngressHostPrefix}.{index}.1";
         var nsIp = $"{AppConfig.IngressHostPrefix}.{index}.2";
         var table = (12100 + index).ToString();
+        var endpointIp = await WireGuardEndpointIpv4(config);
 
         await CleanupIngressSlot(index);
         await MustRun("ip", "netns", "add", ns);
@@ -1507,6 +1508,7 @@ static class Commands
         await MustRun("ip", "link", "set", wg, "netns", ns);
         await MustRun("ip", "netns", "exec", ns, "ip", "addr", "add", "10.2.0.2/32", "dev", wg);
         await MustRun("ip", "netns", "exec", ns, "ip", "link", "set", "mtu", "1280", "up", "dev", wg);
+        await MustRun("ip", "netns", "exec", ns, "ip", "route", "replace", $"{endpointIp}/32", "via", hostIp, "dev", vns);
         await MustRun("ip", "netns", "exec", ns, "ip", "route", "replace", "default", "dev", wg);
         await MustRun("ip", "netns", "exec", ns, "ip", "route", "replace", $"{hostIp}/32", "dev", vns);
         await MustRun("ip", "route", "replace", "default", "via", nsIp, "dev", vhost, "table", table);
@@ -1514,6 +1516,64 @@ static class Commands
         await ProcessUtil.Run("ip", "netns", "exec", ns, "sysctl", "-qw", "net.ipv4.ip_forward=1");
         await ProcessUtil.Run("ip", "netns", "exec", ns, "iptables", "-t", "nat", "-F", "PREROUTING");
         await MustRun("ip", "netns", "exec", ns, "iptables", "-t", "nat", "-A", "PREROUTING", "-p", port.Protocol, "--dport", port.PrivatePort.ToString(), "-j", "DNAT", "--to-destination", $"{hostIp}:{port.TargetPort}");
+    }
+
+    private static async Task<string> WireGuardEndpointIpv4(FileInfo config)
+    {
+        foreach (var rawLine in File.ReadLines(config.FullName))
+        {
+            var line = rawLine.Trim();
+            var equals = line.IndexOf('=');
+            if (equals <= 0 || !line[..equals].Trim().Equals("Endpoint", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var endpoint = line[(equals + 1)..].Trim();
+            var host = endpoint;
+            if (endpoint.StartsWith("[", StringComparison.Ordinal))
+            {
+                var closingBracket = endpoint.IndexOf(']');
+                host = closingBracket > 1 ? endpoint[1..closingBracket] : endpoint;
+            }
+            else
+            {
+                var lastColon = endpoint.LastIndexOf(':');
+                if (lastColon > 0)
+                {
+                    host = endpoint[..lastColon];
+                }
+            }
+
+            IPAddress? address;
+            if (IPAddress.TryParse(host, out var literal))
+            {
+                address = literal;
+            }
+            else
+            {
+                try
+                {
+                    address = (await Dns.GetHostAddressesAsync(host))
+                        .FirstOrDefault(candidate => candidate.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+                }
+                catch (System.Net.Sockets.SocketException exception)
+                {
+                    throw new InvalidOperationException(
+                        $"Unable to resolve WireGuard ingress endpoint '{host}' from {config.FullName} to IPv4",
+                        exception);
+                }
+            }
+
+            if (address?.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+            {
+                return address.ToString();
+            }
+
+            throw new InvalidOperationException($"WireGuard ingress endpoint '{host}' in {config.FullName} must be an IPv4 address or resolve to IPv4 so the namespace can bypass the VPN default route");
+        }
+
+        throw new InvalidOperationException($"WireGuard ingress config {config.FullName} has no Endpoint");
     }
 
     private static async Task<bool> ClaimIngressSlot(int index, IngressPort port)

@@ -25,7 +25,7 @@ while test $# -gt 0; do
       echo '-h, --help          show help'
       echo '--web-only          skip dotnet build'
       echo '--dotnet-only       skip web build'
-      echo '--skip-tests        skip execution of npm and dotnet tests'
+      echo '--skip-tests        skip execution of web and dotnet tests'
       echo '--version           version for the binary. defaults to current git tag+SHA'
       echo ''
       echo 'Note: Protocol contract tests require Soulfind server simulator.'
@@ -82,18 +82,18 @@ else
   cd src/web
   echo $'\n\t📍  '$(pwd)$'\n'
 
-  echo $'\n\t🛠️  npm ci --legacy-peer-deps\n'
-  npm ci --legacy-peer-deps
+  echo $'\n\t🛠️  pnpm install --frozen-lockfile\n'
+  pnpm install --frozen-lockfile
 
   if [ "$skip_tests" == true ]; then
       echo $'\n\t⏩  web tests skipped\n'
   else
-      echo $'\n\t🧪  npm run test-unattended\n'
-      npm run test-unattended
+      echo $'\n\t🧪  pnpm --filter @slskdn/web test-unattended\n'
+      pnpm --filter @slskdn/web test-unattended
   fi
 
-  echo $'\n\t🛠️  npm run build\n'
-  npm run build
+  echo $'\n\t🛠️  pnpm --filter @slskdn/web build\n'
+  pnpm --filter @slskdn/web build
 
   if [ "$web_only" == false ]; then
     # remove old build, but keep .gitkeep

@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-1. [Node.js](https://nodejs.org/en/download/current) 22.22.2 or a later version supported by the frontend test dependencies (with npm 9.6 or greater)
-1. [.NET SDK](https://dotnet.microsoft.com/en-us/download) 8.0
+1. [Node.js](https://nodejs.org/en/download/current) 22.22.2 or a later version supported by the frontend test dependencies, with pnpm 12.4.1
+1. [.NET SDK](https://dotnet.microsoft.com/en-us/download) 10.0
 
 ## Easy Way
 
@@ -137,11 +137,11 @@ Your best bet will be to review the scripts in the `/bin` directory, but if your
 
 slskd is composed of two separate parts; a front-end React project in the `/web` directory that was bootstrapped with `create-react-app`, and a .NET project in the `/slskd` directory that's a fairly basic .NET Web API project.  The front-end project is built into a set of static html, css and JavaScript files and the .NET application serves them to clients (and services API requests).
 
-By default, the .NET project expects the static content to reside in the `wwwroot` directory beside the executable, but this can be changed in the configuration. `./bin/build` and `./bin/publish` already build `src/web`, copy `src/web/build/*` into `src/slskd/wwwroot`, and include that `wwwroot` in the published output. A standalone `npm run build` only refreshes `src/web/build`; it does not update the backend-served bundle by itself.
+By default, the .NET project expects the static content to reside in the `wwwroot` directory beside the executable, but this can be changed in the configuration. `./bin/build` and `./bin/publish` already build `src/web`, copy `src/web/build/*` into `src/slskd/wwwroot`, and include that `wwwroot` in the published output. A standalone `pnpm --filter @slskdn/web build` only refreshes `src/web/build`; it does not update the backend-served bundle by itself.
 
 Assuming you are intentionally doing the steps by hand, you'll need to:
 
-1. Build the React application within the `src/web` directory using some variation of `npm run build`
+1. Build the React application from the repository root using `pnpm --filter @slskdn/web build`
 1. Publish the .NET application using some variation of `dotnet publish`
 1. Move the static content from the React application into a `wwwroot` beside the built slskd executable
 

@@ -38,12 +38,26 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
           node-version: '22.22.2'
-          cache: 'npm'
-          cache-dependency-path: src/web/package-lock.json
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Web workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Web workspace
+        run: pnpm --filter @slskdn/web build
+
+      - name: Check Web bundle budget
+        run: pnpm --filter @slskdn/web check:bundle
 
       - name: Setup Soulfind (Docker)
         if: ${{ runner.environment == 'github-hosted' }}

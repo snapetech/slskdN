@@ -97,6 +97,25 @@ expect_literal scripts/create-release-tag.sh 'git status --porcelain'
 expect_literal scripts/create-release-tag.sh 'git ls-remote --exit-code --tags origin "refs/tags/$tag"'
 expect_literal scripts/create-release-tag.sh 'git push origin "$tag"'
 expect_literal scripts/create-release-tag.sh '^build-(main|dev)-'
+expect_literal package.json '"packageManager": "pnpm@12.4.1"'
+expect_literal pnpm-workspace.yaml "- 'src/web'"
+expect_literal pnpm-workspace.yaml "- 'tests/e2e'"
+expect_literal bin/build 'pnpm install --frozen-lockfile'
+expect_literal bin/watch 'pnpm --filter @slskdn/web start'
+reject_literal bin/build 'npm ci --legacy-peer-deps'
+reject_literal packaging/aur/PKGBUILD 'npm ci --legacy-peer-deps'
+expect_literal packaging/aur/PKGBUILD "'nodejs' 'pnpm'"
+for workflow in \
+    .github/workflows/build-on-tag.yml \
+    .github/workflows/ci-enhancements.yml \
+    .github/workflows/ci.yml \
+    .github/workflows/e2e-tests.yml \
+    .github/workflows/release-copr.yml \
+    .github/workflows/release-linux.yml \
+    .github/workflows/release-ppa.yml \
+    .github/workflows/windows-smoke.yml; do
+    expect_literal "$workflow" 'pnpm/action-setup@v4'
+done
 expect_literal packaging/scripts/run-release-gate.sh 'timeout --kill-after=60s "$timeout_seconds" "$@"'
 reject_literal packaging/scripts/run-release-gate.sh 'timeout --preserve-status'
 expect_literal scripts/verify-release-artifacts.sh 'SHA256SUMS.txt'
@@ -268,6 +287,9 @@ reject_literal packaging/truenas-scale/charts/slskdn/values.yaml 'SLSKD_SOULSEEK
 expect_line .github/workflows/release-packages.yml 'slskdn-main-linux-glibc-x64\.zip'
 expect_literal .github/workflows/build-on-tag.yml 'cp packaging/linux/install-from-release.sh release/install-linux-release.sh'
 expect_literal .github/workflows/build-on-tag.yml 'sha256sum *.zip slskd.service slskd.yml slskd.sysusers slskd.tmpfiles install-linux-release.sh > SHA256SUMS.txt'
+expect_literal README.md '/releases/latest/download/install-linux-release.sh'
+expect_literal README.md 'sudo bash install-linux-release.sh'
+reject_literal README.md '0.24.5-slskdn.133'
 expect_literal .github/workflows/build-on-tag.yml 'cp packaging/aur/slskd.service packaging/aur/slskd.yml packaging/aur/slskd.sysusers packaging/aur/slskd.tmpfiles release/'
 expect_literal .github/workflows/build-on-tag.yml 'dotnet publish src/slskdN.VpnAgent/slskdN-vpn-agent.csproj'
 expect_literal .github/workflows/build-on-tag.yml 'publish-${{ matrix.runtime }}/vpn-agent'
@@ -466,6 +488,9 @@ expect_literal packaging/aur/PKGBUILD 'chmod 755 "${release_root}/slskd"'
 expect_literal packaging/aur/PKGBUILD 'exec /usr/lib/slskd/current/slskd "$@"'
 expect_literal packaging/linux/install-from-release.sh 'install_vpn_agent_payload'
 expect_literal packaging/linux/install-from-release.sh '/usr/local/bin/slskdN-vpn-agent'
+expect_literal packaging/linux/install-from-release.sh 'resolve_dotnet_apt_source'
+expect_literal packaging/linux/install-from-release.sh 'UBUNTU_CODENAME'
+expect_literal packaging/linux/install-from-release.sh 'packages.microsoft.com/linuxmint/'
 expect_literal packaging/debian/rules 'install -Dm755 usr/lib/slskd/vpn-agent/slskdN-vpn-agent debian/slskdn/usr/bin/slskdN-vpn-agent'
 expect_literal packaging/rpm/slskdn.spec 'install -Dm755 %{buildroot}%{slskd_appdir}/vpn-agent/slskdN-vpn-agent %{buildroot}%{_bindir}/slskdN-vpn-agent'
 test -f packaging/aur/slskd.install || fail 'packaging/aur/slskd.install is missing'

@@ -80,7 +80,7 @@ namespace slskd.Relay
         public IStateMonitor<RelayClientState> StateMonitor { get; }
 
         private FileService Files { get; }
-        private SemaphoreSlim ConfigurationSyncRoot { get; } = new SemaphoreSlim(1, 1);
+        private object ConfigurationSyncRoot { get; } = new object();
         private bool Disposed { get; set; }
         private IHttpClientFactory HttpClientFactory { get; }
         private HubConnection? HubConnection { get; set; }
@@ -118,7 +118,7 @@ namespace slskd.Relay
         /// <returns>The operation context.</returns>
         public async Task StartAsync(CancellationToken cancellationToken = default)
         {
-            if (!StateSyncRoot.Wait(0, cancellationToken))
+            if (!await StateSyncRoot.WaitAsync(0, cancellationToken).ConfigureAwait(false))
             {
                 // we're already attempting to connect, let the existing attempt handle it
                 return;
@@ -277,7 +277,7 @@ namespace slskd.Relay
                 return;
             }
 
-            ConfigurationSyncRoot.Wait();
+            Monitor.Enter(ConfigurationSyncRoot);
 
             try
             {
@@ -365,7 +365,7 @@ namespace slskd.Relay
             }
             finally
             {
-                ConfigurationSyncRoot.Release();
+                Monitor.Exit(ConfigurationSyncRoot);
             }
         }
 

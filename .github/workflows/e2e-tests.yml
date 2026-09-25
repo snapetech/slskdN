@@ -29,12 +29,20 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: src/web/package-lock.json
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build Backend
         run: |
@@ -42,10 +50,9 @@ jobs:
           dotnet build src/slskd/slskd.csproj -c Release -p:Version=0.0.0
 
       - name: Build Frontend
+        working-directory: src/web
         run: |
-          cd src/web
-          npm ci --legacy-peer-deps
-          npm run build
+          pnpm --filter @slskdn/web build
           # Copy to wwwroot for serving (wwwroot is gitignored, create if missing)
           mkdir -p ../slskd/wwwroot
           rm -rf ../slskd/wwwroot/*
@@ -58,14 +65,10 @@ jobs:
 
       - name: Install E2E Dependencies
         run: |
-          cd src/web
-          npm ci --legacy-peer-deps
-          npx playwright install --with-deps chromium
+          pnpm --filter @slskdn/e2e exec playwright install --with-deps chromium
 
       - name: Run E2E Tests
-        run: |
-          cd src/web
-          npm run test:e2e:ci
+        run: pnpm --filter @slskdn/e2e test:e2e:ci
         env:
           SLSKDN_TEST_NO_CONNECT: true
           SLSKDN_TEST_KEEP_ARTIFACTS: ${{ github.event_name == 'workflow_dispatch' }}

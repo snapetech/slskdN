@@ -589,8 +589,8 @@ This issue is **Arch/AUR-only**; other platforms are unaffected by this script.
 For Linux GitHub releases, use the bundled installer helper instead of manually unpacking a zip over an existing `slskd` service install. It rewrites the systemd unit to the extracted release tree so you do not keep launching an older package-managed binary by accident.
 
 ```bash
-wget https://github.com/snapetech/slskdn/releases/download/0.24.5-slskdn.133/install-linux-release.sh
-sudo SLSKDN_VERSION=0.24.5-slskdn.133 bash install-linux-release.sh
+wget -O install-linux-release.sh https://github.com/snapetech/slskdn/releases/latest/download/install-linux-release.sh &&
+  sudo bash install-linux-release.sh
 ```
 
 The installer places the release under `/opt/slskdn`, keeps config at `/etc/slskd/slskd.yml`, and points `slskd.service` at the extracted release.
@@ -897,8 +897,11 @@ We welcome contributions from *everyone*—first-timers and veterans alike. No p
 3. **Submit a PR** with your changes
 
 ```bash
-cd src/slskd && dotnet watch run     # Backend
-cd src/web && npm install && npm start  # Frontend
+# Run once from the repository root to install Web and E2E dependencies
+pnpm install --frozen-lockfile
+# In separate terminals:
+dotnet watch --project src/slskd/slskd.csproj run  # Backend
+pnpm --filter @slskdn/web start                    # Frontend
 ```
 
 For experimental features, see:

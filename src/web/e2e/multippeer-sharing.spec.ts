@@ -491,7 +491,7 @@ test.describe('multi-peer sharing', () => {
       const title = await pageA.title();
       throw new Error(
         `Stale WebUI bundle detected: /collections route missing (title=${title}, url=${pageA.url()}). ` +
-          'Run `npm run build` and re-run e2e with harness-launched nodes.',
+          'Run `pnpm --filter @slskdn/web build` and re-run e2e with harness-launched nodes.',
       );
     }
 

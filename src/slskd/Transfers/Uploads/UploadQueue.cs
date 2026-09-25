@@ -125,7 +125,7 @@ namespace slskd.Transfers
         private ILogger Log { get; } = Serilog.Log.ForContext<UploadQueue>();
         private IOptionsMonitor<Options> OptionsMonitor { get; }
         private IDisposable? OptionsMonitorRegistration { get; set; }
-        private SemaphoreSlim SyncRoot { get; } = new SemaphoreSlim(1, 1);
+        private object SyncRoot { get; } = new object();
         private ConcurrentDictionary<string, List<Upload>> Uploads { get; set; } = new ConcurrentDictionary<string, List<Upload>>();
         private IUserService Users { get; }
 
@@ -146,7 +146,7 @@ namespace slskd.Transfers
         /// <returns>The operation context.</returns>
         public Task AwaitStartAsync(string username, string filename)
         {
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -169,7 +169,7 @@ namespace slskd.Transfers
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
                 Process();
             }
         }
@@ -204,7 +204,7 @@ namespace slskd.Transfers
         /// <param name="filename">The completed filename.</param>
         public void Complete(string username, string filename)
         {
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -240,7 +240,7 @@ namespace slskd.Transfers
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
                 Process();
             }
         }
@@ -252,7 +252,7 @@ namespace slskd.Transfers
         /// <param name="filename">The filename to enqueue.</param>
         public void Enqueue(string username, string filename)
         {
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -271,7 +271,7 @@ namespace slskd.Transfers
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
                 Process();
             }
         }
@@ -300,7 +300,7 @@ namespace slskd.Transfers
         /// <exception cref="NotFoundException">Thrown if the specified filename is not enqueued.</exception>
         public int EstimatePosition(string username, string filename)
         {
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -381,7 +381,7 @@ namespace slskd.Transfers
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
             }
         }
 
@@ -395,7 +395,7 @@ namespace slskd.Transfers
         /// </returns>
         public int ForecastPosition(string username)
         {
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -430,7 +430,7 @@ namespace slskd.Transfers
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
             }
         }
 
@@ -439,7 +439,7 @@ namespace slskd.Transfers
             int GetExistingUsedSlotsOrDefault(string group)
                 => Groups.ContainsKey(group) ? Groups[group].UsedSlots : 0;
 
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -503,14 +503,14 @@ namespace slskd.Transfers
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
                 Process();
             }
         }
 
         private Upload? Process()
         {
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -599,7 +599,7 @@ namespace slskd.Transfers
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
             }
         }
 
@@ -615,7 +615,6 @@ namespace slskd.Transfers
                 {
                     OptionsMonitorRegistration?.Dispose();
                     OptionsMonitorRegistration = null;
-                    SyncRoot.Dispose();
                 }
 
                 Disposed = true;

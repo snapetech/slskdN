@@ -1,0 +1,55 @@
+{
+  "title": "slskd Performance",
+  "uid": "slskd-performance",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      { "name": "datasource", "label": "Prometheus", "type": "datasource", "query": "prometheus", "current": {} }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Incoming search rate",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        { "expr": "rate(slskd_search_incoming_requests_received[5m])", "legendFormat": "received" },
+        { "expr": "rate(slskd_search_incoming_requests_dropped[5m])", "legendFormat": "dropped" },
+        { "expr": "rate(slskd_search_incoming_responses_sent[5m])", "legendFormat": "sent" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Search queue depth",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [{ "expr": "slskd_search_incoming_request_queue_depth_current", "legendFormat": "queue" }],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Search response p95",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le) (rate(slskd_search_incoming_response_latency_bucket[5m])))", "legendFormat": "p95 ms" }],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Swarm activity",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        { "expr": "slskd_swarm_downloads_active", "legendFormat": "active downloads" },
+        { "expr": "rate(slskd_swarm_bytes_downloaded_total[5m])", "legendFormat": "bytes/s" },
+        { "expr": "rate(slskd_swarm_midstream_cancellations_total[5m])", "legendFormat": "cancellations" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+}

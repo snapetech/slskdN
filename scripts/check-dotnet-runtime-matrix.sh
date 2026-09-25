@@ -29,7 +29,12 @@ expect_literal packaging/flatpak/io.github.slskd.slskdn.yml "dotnet-runtime-${ta
 expect_literal packaging/flatpak/FLATHUB_SUBMISSION.md ".NET ${target_major}.0 runtime"
 expect_literal docs/FEATURES.md ".NET ${target_major}.0 or later"
 expect_literal docs/dev/e2e-testing-guide.md ".NET ${target_major}.0 SDK"
-expect_literal docs/dev/e2e-testing-guide.md "dotnet-version: '${target_major}.0.x'"
+workflow=".github/workflows/e2e-tests.yml"
+if ! rg -q "^  DOTNET_VERSION: '${target_major}\.0\.[0-9]+'$" "$repo_root/$workflow"; then
+  printf '%s must pin the application .NET %s.0 runtime version\n' "$workflow" "$target_major" >&2
+  failed=1
+fi
+expect_literal "$workflow" 'dotnet-version: ${{ env.DOTNET_VERSION }}'
 
 if rg -n '\.NET 8\.0|\.NET 8|aspnetcore-runtime-8\.0|dotnet-runtime-8\.0|dotnet-version: .8\.0\.x.' \
   "$repo_root/packaging/flatpak" \

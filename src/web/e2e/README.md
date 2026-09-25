@@ -55,8 +55,7 @@ These are graceful skips that allow tests to pass when features are intentionall
 
 ```bash
 # Start nodes manually or let harness start them
-cd src/web
-npm run test:e2e
+pnpm --filter @slskdn/web test:e2e
 ```
 
 ### CI Environment
@@ -64,7 +63,7 @@ npm run test:e2e
 Tests run with `SLSKDN_TEST_NO_CONNECT=true` to disable Soulseek connections for deterministic testing.
 
 ```bash
-npm run test:e2e:ci
+pnpm --filter @slskdn/web test:e2e:ci
 ```
 
 ## Test Harness

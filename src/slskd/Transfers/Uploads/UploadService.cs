@@ -295,7 +295,7 @@ namespace slskd.Transfers.Uploads
             }
 
             CancellationTokenSource? cts = null;
-            SemaphoreSlim? syncRoot = null;
+            var syncRoot = new object();
 
             /*
                 from this point forward, any exit from this method MUST result in an update to the Transfer record
@@ -308,8 +308,6 @@ namespace slskd.Transfers.Uploads
             try
             {
                 cts = new CancellationTokenSource();
-                syncRoot = new SemaphoreSlim(1, 1);
-
                 Log.Debug("Acquired lock {LockName}", lockName);
 
                 /*
@@ -389,7 +387,7 @@ namespace slskd.Transfers.Uploads
                             // don't wait for the semaphore; if a previous progress update is still hanging, don't make
                             // the problem worse. this will result in fewer/jumpy updates on systems with slow filesystems
                             // but the alternative is to continue to stack slow writes on top of one another
-                            if (syncRoot.Wait(millisecondsTimeout: 0, cts.Token))
+                            if (!cts.IsCancellationRequested && Monitor.TryEnter(syncRoot))
                             {
                                 try
                                 {
@@ -406,7 +404,7 @@ namespace slskd.Transfers.Uploads
                                 }
                                 finally
                                 {
-                                    syncRoot.Release();
+                                    Monitor.Exit(syncRoot);
                                 }
                             }
                             else
@@ -555,7 +553,6 @@ namespace slskd.Transfers.Uploads
                     // the file will get stuck in the queue and prevent any further uploads to the user. be extra cautious
                     // and ensure it gets removed
                     Queue.TryComplete(username: transfer.Username, filename: transfer.Filename);
-                    syncRoot?.Dispose();
                 }
                 catch (Exception ex)
                 {
@@ -1167,17 +1164,12 @@ namespace slskd.Transfers.Uploads
             return (host, filename, length);
         }
 
-        private void SynchronizedUpdate(Transfer transfer, SemaphoreSlim semaphore, CancellationToken cancellationToken = default)
+        private void SynchronizedUpdate(Transfer transfer, object semaphore, CancellationToken cancellationToken = default)
         {
-            semaphore.Wait(cancellationToken);
-
-            try
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (semaphore)
             {
                 Update(transfer);
-            }
-            finally
-            {
-                semaphore.Release();
             }
         }
 

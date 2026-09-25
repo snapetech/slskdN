@@ -26,6 +26,8 @@ for installer in \
   expect_literal "$installer" 'UMask=0002'
 done
 
+bash "$repo_root/scripts/test-linux-installer-dotnet-source.sh"
+
 if [ "$failed" -ne 0 ]; then
   cat >&2 <<'MSG'
 

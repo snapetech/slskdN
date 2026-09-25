@@ -31,7 +31,6 @@
     "react-window": "^2.3.1",
     "semantic-ui-less": "^2.5.0",
     "semantic-ui-react": "^2.1.5",
-    "signalr": "^2.4.1",
     "uuid": "^14.0.2",
     "yaml": "^2.9.1"
   },
@@ -65,7 +64,7 @@
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
-  "name": "web",
+  "name": "@slskdn/web",
   "overrides": {
     "css-select": "^3.1.0",
     "css-what": "^5.0.1",
@@ -75,6 +74,8 @@
   "private": true,
   "scripts": {
     "build": "vite build",
+    "check:bundle": "node ./scripts/check-bundle-size.mjs",
+    "bundle:baseline": "node ./scripts/check-bundle-size.mjs --write-baseline",
     "check:anonymous-endpoints": "bash ../../scripts/check-anonymous-endpoints.sh",
     "check:controller-csrf": "bash ../../scripts/check-controller-csrf.sh",
     "check:remediation": "bash ../../scripts/check-remediation-baseline.sh",
@@ -83,8 +84,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "postinstall": "semantic-ui-css-patch",
-    "pretest:e2e": "npm run build",
-    "pretest:e2e:ci": "npm run build",
+    "pretest:e2e": "pnpm run build",
+    "pretest:e2e:ci": "pnpm run build",
     "start": "vite",
     "test": "vitest run",
     "test:build-output": "node ./scripts/verify-build-output.mjs",

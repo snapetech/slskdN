@@ -9,7 +9,7 @@ This directory contains Playwright-based end-to-end tests for slskdn.
 ```bash
 # From repo root: build web, copy to wwwroot, build backend
 ./bin/build --skip-tests
-# Or: (cd src/web && npm run build) && cp -r src/web/build/* src/slskd/wwwroot/ && dotnet build src/slskd/slskd.csproj
+# Or: pnpm --filter @slskdn/web build && cp -r src/web/build/* src/slskd/wwwroot/ && dotnet build src/slskd/slskd.csproj
 ```
 
 Without this, the node may serve a stale wwwroot and UI-dependent tests (e.g. Solid page) can fail.
@@ -17,17 +17,17 @@ Without this, the node may serve a stale wwwroot and UI-dependent tests (e.g. So
 ## Quick Start
 
 ```bash
-# Install dependencies
-npm install
+# From the repository root, install workspace dependencies
+pnpm install --frozen-lockfile
 
 # Install Playwright browsers
-npx playwright install chromium
+pnpm --filter @slskdn/e2e exec playwright install chromium
 
 # Run all tests
-npm test
+pnpm --filter @slskdn/e2e test
 
 # Run specific test
-npx playwright test specs/smoke.spec.ts
+pnpm --filter @slskdn/e2e exec playwright test specs/smoke.spec.ts
 ```
 
 ## Project Structure
@@ -120,26 +120,26 @@ Tests run with:
 ### Run in Headed Mode
 
 ```bash
-npx playwright test --headed
+pnpm --filter @slskdn/e2e exec playwright test --headed
 ```
 
 ### Debug Mode
 
 ```bash
-DEBUG=pw:api npx playwright test
+DEBUG=pw:api pnpm --filter @slskdn/e2e exec playwright test
 ```
 
 ### Keep Artifacts
 
 ```bash
-SLSKDN_TEST_KEEP_ARTIFACTS=1 npm test
+SLSKDN_TEST_KEEP_ARTIFACTS=1 pnpm --filter @slskdn/e2e test
 # Check /tmp/slskdn-test-*/ for logs and data
 ```
 
 ### Single Test Debugging
 
 ```bash
-npx playwright test -g "test name" --debug
+pnpm --filter @slskdn/e2e exec playwright test -g "test name" --debug
 ```
 
 ## Adding data-testid Attributes

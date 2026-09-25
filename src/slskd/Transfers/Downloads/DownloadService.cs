@@ -1420,7 +1420,7 @@ namespace slskd.Transfers.Downloads
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cancellationTokenSource?.Token ?? CancellationToken.None);
             cancellationToken = cts.Token;
 
-            using var updateSyncRoot = new SemaphoreSlim(1, 1);
+            var updateSyncRoot = new object();
 
             var policyExclusion = DownloadFilter.GetMatchingExclusion(
                 transfer.Filename,
@@ -1496,7 +1496,7 @@ namespace slskd.Transfers.Downloads
                             // don't wait for the semaphore; if a previous progress update is still hanging, don't make
                             // the problem worse. this will result in fewer/jumpy updates on systems with slow filesystems
                             // but the alternative is to continue to stack slow writes on top of one another
-                            if (updateSyncRoot.Wait(millisecondsTimeout: 0, cancellationToken: cancellationToken))
+                            if (!cancellationToken.IsCancellationRequested && Monitor.TryEnter(updateSyncRoot))
                             {
                                 try
                                 {
@@ -1535,7 +1535,7 @@ namespace slskd.Transfers.Downloads
                                 }
                                 finally
                                 {
-                                    updateSyncRoot.Release();
+                                    Monitor.Exit(updateSyncRoot);
                                 }
                             }
                             else
@@ -1951,17 +1951,12 @@ namespace slskd.Transfers.Downloads
             }
         }
 
-        private void SynchronizedUpdate(Transfer transfer, SemaphoreSlim semaphore, CancellationToken cancellationToken = default)
+        private void SynchronizedUpdate(Transfer transfer, object semaphore, CancellationToken cancellationToken = default)
         {
-            semaphore.Wait(cancellationToken);
-
-            try
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (semaphore)
             {
                 Update(transfer);
-            }
-            finally
-            {
-                semaphore.Release();
             }
         }
 

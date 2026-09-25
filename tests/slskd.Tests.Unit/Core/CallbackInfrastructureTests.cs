@@ -59,20 +59,18 @@ public class CallbackInfrastructureTests
     }
 
     [Fact]
-    public void RateLimiter_Dispose_DisposesConcurrencySemaphore()
+    public void RateLimiter_Dispose_ReleasesConcurrencyState()
     {
         var rateLimiter = new RateLimiter(interval: 1000, concurrencyLimit: 1);
 
-        var semaphoreProperty = typeof(RateLimiter).GetProperty(
-            "ConcurrentExecutionPreventionSemaphore",
+        var activeExecutionsField = typeof(RateLimiter).GetField(
+            "_activeExecutions",
             BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("RateLimiter semaphore property was not found.");
-
-        var semaphore = (System.Threading.SemaphoreSlim)semaphoreProperty.GetValue(rateLimiter)!;
+            ?? throw new InvalidOperationException("RateLimiter active execution field was not found.");
 
         rateLimiter.Dispose();
 
-        Assert.Throws<ObjectDisposedException>(() => semaphore.Wait(0));
+        Assert.Equal(0, activeExecutionsField.GetValue(rateLimiter));
     }
 
     [Fact]
@@ -80,11 +78,10 @@ public class CallbackInfrastructureTests
     {
         var rateLimiter = new RateLimiter(interval: 1000, concurrencyLimit: 1, flushOnDispose: true);
 
-        var semaphoreProperty = typeof(RateLimiter).GetProperty(
-            "ConcurrentExecutionPreventionSemaphore",
+        var activeExecutionsField = typeof(RateLimiter).GetField(
+            "_activeExecutions",
             BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("RateLimiter semaphore property was not found.");
-        var semaphore = (System.Threading.SemaphoreSlim)semaphoreProperty.GetValue(rateLimiter)!;
+            ?? throw new InvalidOperationException("RateLimiter active execution field was not found.");
 
         rateLimiter.Invoke(() => { });
         rateLimiter.Invoke(() => throw new InvalidOperationException("boom"));
@@ -92,7 +89,7 @@ public class CallbackInfrastructureTests
         var exception = Assert.Throws<InvalidOperationException>(() => rateLimiter.Dispose());
 
         Assert.Equal("boom", exception.Message);
-        Assert.Throws<ObjectDisposedException>(() => semaphore.Wait(0));
+        Assert.Equal(0, activeExecutionsField.GetValue(rateLimiter));
     }
 
     [Fact]

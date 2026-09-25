@@ -1968,8 +1968,7 @@ namespace slskd
                 // kill the application
                 try
                 {
-                    // async not supported here, .Result is all we have
-                    _ = slskd.Blacklist.DetectFormat(File).Result;
+                    _ = slskd.Blacklist.DetectFormatSync(File);
                 }
                 catch
                 {

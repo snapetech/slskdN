@@ -127,7 +127,7 @@ namespace slskd.Shares
         private IDisposable? OptionsMonitorRegistration { get; set; }
         private ConcurrentDictionary<string, (Host Host, IShareRepository Repository)> HostDictionary { get; set; } = new();
         private IManagedState<ShareState> State { get; } = new ManagedState<ShareState>();
-        private SemaphoreSlim SyncRoot { get; } = new SemaphoreSlim(1, 1);
+        private object SyncRoot { get; } = new object();
         private StorageMode CacheStorageMode { get; }
         private ILogger Log { get; } = Serilog.Log.ForContext<ShareService>();
         private (Host Host, IShareRepository Repository) Local { get; set; }
@@ -639,7 +639,7 @@ namespace slskd.Shares
 
         private void Configure(Options options)
         {
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -663,7 +663,7 @@ namespace slskd.Shares
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
             }
         }
 
@@ -690,7 +690,6 @@ namespace slskd.Shares
                     HostDictionary.Clear();
                     Local.Repository.Dispose();
                     ScannerSyncRoot.Dispose();
-                    SyncRoot.Dispose();
                 }
 
                 Disposed = true;

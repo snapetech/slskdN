@@ -55,6 +55,15 @@
     uncaught event-handler error. GitHub security-alert counts are zero, as
     are npm audit vulnerabilities and vulnerable NuGet packages.
 
+- [ ] Publish the next stable release with the normal date-and-sequence
+  version 2026092516-slskdn.324.
+  - Status: implementation and local validation complete; commit/push, guarded
+    release gate, hosted build, and artifact verification remain.
+  - Priority: P1
+  - Notes: Includes the Linux Mint 22.3 installer repository fix plus the
+    validated pending Unraid, performance, pnpm workspace, bundle-check, and
+    WireGuard ingress changes.
+
 - [ ] Confirm Launchpad publication for stable release `.322`.
   - Status: external publisher follow-up (2026-09-24)
   - Priority: P2
@@ -3356,10 +3365,28 @@
   - Status: repository preparation and scan remediation completed (2026-08-01); forum support-thread creation and portal submission remain manual.
   - Priority: Medium
   - Notes: Added the required root `ca_profile.xml`, fork-owned icon and project/support links, a real GHCR `<Registry>`, current v2 Docker template metadata, all current public listeners (`5030`, `5031`, `50300`, `50305/tcp`, `50305/udp`, optional `50401/udp`), documented Docker environment overrides, blank optional values, copy-ready Markdown and plain-text forum posts, and XML/profile smoke validation. Renamed the unrelated Flatpak AppStream source to `slskdn.metainfo.xml.in` because the portal recursively scans `.xml` files and reports `not_unraid_application` for non-template XML. The remaining steps require the maintainer's Unraid forum account and Community Applications portal authentication.
+  - Follow-up (2026-09-21): Corrected the XML template and both copy-ready support posts to publish only the consolidated `50300/tcp` and `50300/udp` listeners. Updated packaging validation and added release-note fragment `20260921-unraid-consolidated-ports.md`; forum/account and portal submission remain manual.
 
 ---
 
 ## Completed Tasks
+
+- [x] **2026-09-25:** Fixed Linux Mint .NET APT source selection and replaced
+  the stale versioned installer URL with the latest release asset. Added
+  regression checks for Mint/Ubuntu/Debian mappings and invalid-base cleanup.
+  Full .NET tests (74/5,161/284), Web tests (948), Web lint/build, release
+  packaging validation, installer safety checks, and repository lint passed.
+
+- [x] **2026-09-25:** Integrated the Web/E2E pnpm workspace across package
+  scripts, AUR, local build/watch commands, workflows, release gate, and active
+  contributor documentation. Added bundle-size checks and preserved the
+  documented legacy Node tests as deferred Vitest work.
+
+- [x] **2026-09-21:** Corrected the Unraid port profile for the consolidated
+  listener layout. The template and copy-ready support documents now publish
+  `50300/tcp` and `50300/udp` only; packaging metadata validation and the
+  required release-note fragment were updated. The separate Community
+  Applications submission remains tracked above as manual follow-up.
 
 - [x] **chore (2026-04-06):** Fixed tester issues `#193` and `#194`, making share rescan progress monotonic, separating CSRF cookie/request-token naming so cookie-authenticated Web UI actions stop failing, downgrading expected Soulseek network churn out of fake fatal telemetry, and folding the remaining low-risk frontend/docs PR content directly into `main` so the stale PR queue can be closed as superseded.
 
@@ -4869,3 +4896,27 @@
 - [2026-08-17T21:01:16Z] Completed: fix whole-document Web UI YAML saves rejecting runtime-supported legacy `global`, `integration`, `shares: []`, and nested upload-limit layouts; add validator regressions and prepare the hotfix release.
 - [2026-08-17T21:03:59Z] Completed: finish release-candidate validation, document the external same-ISP hairpin limitation, and prepare the combined `.310` commit/push/tag.
 - [2026-08-17T21:12:42Z] Completed: pass the full hotfix release gate, push `main`, and create/push `build-main-2026081719-slskdn.310` with the YAML save fix and all authorized concurrent changes.
+
+## 2026-09-14 Performance Refactoring
+
+- [x] Remove avoidable synchronous semaphore waits from transfer, relay, share,
+  rate-limiter, and blacklist-validation paths; preserve synchronous API
+  contracts with monitor/atomic coordination and keep async relay acquisition
+  awaitable.
+- [x] Reduce Wishlist candidate ranking to one quality-key calculation per
+  candidate and validate the change with the 105-test Wishlist unit filter.
+- [x] Create the pnpm workspace for the Web and E2E packages, remove the
+  duplicate SignalR package and nested npm lockfiles, and lower the Vite chunk
+  warning threshold to 600 KB.
+- [ ] Complete the full Vitest migration for legacy `node:test` files after
+  replacing their Node mock APIs; the current Node runner remains the default
+  because its shared SQLite fixtures and mock semantics are not Vitest-safe.
+
+## 2026-09-15 Performance Refactoring Follow-up
+
+- [x] Update all Web/E2E/release workflows and the release gate to use the root
+  pnpm workspace after removing nested npm lockfiles.
+- [x] Add Vite bundle budget and baseline checks with a documented lazy
+  visualizer chunk exception.
+- [x] Align RateLimiter unit tests with the atomic execution-slot
+  implementation; the full unit suite passes 5,156 tests.

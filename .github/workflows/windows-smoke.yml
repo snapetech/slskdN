@@ -25,11 +25,15 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
       - uses: actions/setup-node@v7
         with:
           node-version: "22.22.2"
-          cache: npm
-          cache-dependency-path: src/web/package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Restore
         run: dotnet restore slskd.sln -p:Version=0.0.0

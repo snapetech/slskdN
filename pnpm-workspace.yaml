@@ -1,0 +1,13 @@
+packages:
+  - 'src/web'
+  - 'tests/e2e'
+
+onlyBuiltDependencies:
+  - core-js
+  - esbuild
+  - unrs-resolver
+
+allowBuilds:
+  core-js: true
+  esbuild: true
+  unrs-resolver: true

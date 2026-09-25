@@ -376,7 +376,7 @@ namespace slskd.Relay
         private IShareRepositoryFactory ShareRepositoryFactory { get; }
         private IShareService Shares { get; }
         private IManagedState<RelayState> State { get; } = new ManagedState<RelayState>();
-        private SemaphoreSlim SyncRoot { get; } = new SemaphoreSlim(1, 1);
+        private object SyncRoot { get; } = new object();
         private IWaiter Waiter { get; }
         private ConcurrentDictionary<WaitKey, Guid> WaitIdDictionary { get; } = new();
 
@@ -907,7 +907,7 @@ namespace slskd.Relay
 
         private void Configure(Options options)
         {
-            SyncRoot.Wait();
+            Monitor.Enter(SyncRoot);
 
             try
             {
@@ -973,7 +973,7 @@ namespace slskd.Relay
             }
             finally
             {
-                SyncRoot.Release();
+                Monitor.Exit(SyncRoot);
             }
         }
 
@@ -1177,7 +1177,6 @@ namespace slskd.Relay
                         disposableClient.Dispose();
                     }
 
-                    SyncRoot.Dispose();
                 }
 
                 Disposed = true;

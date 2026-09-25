@@ -17,6 +17,9 @@ routing, dynamic port claims, and ingress DNAT for slskdN.
 - `/etc/wireguard/slskdN-vpn.conf`: outbound WireGuard config.
 - `/etc/wireguard/slskdN-vpn-ingress/*.conf`: optional ingress configs, one per
   forwarded public port slot.
+- Each ingress endpoint must be an IPv4 address or a hostname that resolves to
+  IPv4 so the namespace can route WireGuard handshake traffic through the host
+  gateway before applying its tunnel default route.
 - `integrations.vpn` enabled in `/etc/slskdN/slskd.yml`.
 
 Do not reuse the same private key for the outbound tunnel and a simultaneous

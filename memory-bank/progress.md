@@ -1,3 +1,20 @@
+## Update 2026-09-25 16:37:34Z
+
+- Preparing stable release 2026092516-slskdn.324 with the Linux Mint installer
+  fix and validated pending repository work. The installer resolves Mint 22.3
+  through Ubuntu Noble, removes its stale Mint-specific Microsoft feed before
+  APT refresh, and fails closed for unknown Mint bases. README instructions
+  now use the current release installer asset.
+- Also integrated Unraid listener metadata, the transfer/relay/share and
+  Wishlist performance refactor, the pnpm Web/E2E workspace across AUR and
+  local developer scripts as well as CI/release workflows, bundle-size checks,
+  and WireGuard ingress endpoint routing with hostname-to-IPv4 resolution.
+- Validation passed: dotnet test (74 smoke, 5,161 unit, 284 integration), Web
+  tests (948), Web lint/build, bundle budget, build-output and subpath checks,
+  repository lint, frozen pnpm install, packaging metadata, workflow YAML, and
+  Linux installer resolver/safety checks. The guarded release gate and artifact
+  verification remain pending after commit and push.
+
 ## Update 2026-09-24 21:11:00Z
 
 - Published stable release `2026092420-slskdn.323` through the guarded
@@ -13095,6 +13112,24 @@ no-std build fails because the `vec!` macro is not in scope; the published
 recorded gotcha `0z893`, and verified a local locked install completes and
 reports `c2patool 0.27.17`. This correction is on `main`; the immutable `.320`
 tag predates it, so it awaits the next explicitly authorized release tag.
+
+[2026-09-14T00:00:00Z] Completed the performance refactor across transfer,
+relay, share, rate-limiter, blacklist validation, and Wishlist ranking paths.
+Added the pnpm workspace and migrated CI, E2E, release, and packaging commands;
+added bundle size/growth checks and a Grafana performance dashboard; recorded
+gotchas 0z906 and 0z907 for workspace configuration and release workflow
+consistency. The full Vitest migration remains deferred pending replacement of
+legacy node:test mocks and process-wide SQLite fixtures. Workspace and refactor
+changes were pending integration validation against the current main branch.
+
+[2026-09-21T18:48:16-06:00] Corrected the Unraid port profile after the
+Soulseek/mesh/DHT/QUIC listener consolidation. The XML template and both
+copy-ready support posts now publish only 50300/tcp and 50300/udp; stale
+50305/50401 mappings were removed, the packaging validator was updated,
+and release-note fragment 20260921-unraid-consolidated-ports.md was added.
+XML validation, packaging metadata validation, release-note preview/check,
+./bin/lint, and dotnet test passed (74 application, 5,156 unit, 284
+integration).
 
 [2026-09-24T18:38:48Z] Published stable release
 `build-main-2026092418-slskdn.322` from the validated parity implementation.

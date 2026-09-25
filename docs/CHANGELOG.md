@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Linux Mint runtime installation by mapping Mint to its Ubuntu package
+  base, removing the stale invalid Mint APT source, and documenting the current
+  release installer URL.
+- Updated the Unraid template and support instructions to publish the
+  consolidated `50300/tcp` and `50300/udp` listeners.
+- Reduced repeated Wishlist source quality calculations when ranking large
+  album result sets.
+- Added a host-side route for each WireGuard ingress endpoint before the tunnel
+  default route, preserving provider hostnames that resolve to IPv4.
+
 ## [2026092420-slskdn.323] — 2026-09-24
 
 - Carried forward the validated application changes from
@@ -51,7 +61,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed dark-theme navigation and System/transfer tab contrast, made grouped
   navigation menus visible and keyboard-accessible, aligned transfer headers
   with persisted row order, and saved transfer view preferences per direction.
-- Pinned optional media-tool Rust installs to their published crate lockfiles,
+- Pinned the optional `c2patool` Cargo install to its published lockfile,
   preventing a newly released broken transitive dependency from making the
   omnibus tester image fail to build.
 

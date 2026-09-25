@@ -37,18 +37,23 @@ jobs:
         with:
           dotnet-version: '10.0.100'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: '22.22.2'
-          cache: 'npm'
-          cache-dependency-path: src/web/package-lock.json
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Build Frontend
-        working-directory: src/web
         run: |
-          npm ci --legacy-peer-deps
-          npm run build
+          pnpm install --frozen-lockfile
+          pnpm --filter @slskdn/web build
+          pnpm --filter @slskdn/web check:bundle
 
       - name: Build Backend
         run: |

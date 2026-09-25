@@ -55,6 +55,7 @@ ensure_tool() {
 
 ensure_tool rg ripgrep
 ensure_tool jq jq
+ensure_tool pnpm pnpm
 
 run_step "Verify release branch sync" 120 \
     bash scripts/check-release-branch-sync.sh
@@ -66,13 +67,16 @@ run_step "Run remediation baseline checks" 300 \
     bash scripts/check-remediation-baseline.sh
 
 run_step "Install frontend dependencies" 900 \
-    npm --prefix src/web ci --legacy-peer-deps
+    pnpm install --frozen-lockfile
 
 run_step "Run frontend unit tests" 1200 \
-    npm --prefix src/web test
+    pnpm --filter @slskdn/web test
 
 run_step "Build frontend" 600 \
-    npm --prefix src/web run build
+    pnpm --filter @slskdn/web build
+
+run_step "Check frontend bundle budget" 180 \
+    pnpm --filter @slskdn/web check:bundle
 
 run_step "Verify built frontend output" 180 \
     node src/web/scripts/verify-build-output.mjs

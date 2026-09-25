@@ -110,7 +110,7 @@ Run these when the change touches the relevant surface:
   - `bash packaging/scripts/validate-packaging-metadata.sh`
   - `bash packaging/scripts/run-nix-package-smoke.sh`
 - Frontend hosting/base-path changes:
-  - `npm --prefix src/web run build`
+  - `pnpm --filter @slskdn/web build`
   - `node src/web/scripts/verify-build-output.mjs`
   - `node src/web/scripts/smoke-subpath-build.mjs`
 - Browser/user-journey changes:

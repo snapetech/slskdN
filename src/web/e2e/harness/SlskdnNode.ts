@@ -269,7 +269,7 @@ export class SlskdnNode {
       await fs.access(webBuildPath);
     } catch {
       throw new Error(
-        'Web build not found at src/web/build. Run `npm run build` first.',
+        'Web build not found at src/web/build. Run `pnpm --filter @slskdn/web build` first.',
       );
     }
 

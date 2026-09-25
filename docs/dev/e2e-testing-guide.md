@@ -109,31 +109,30 @@ dotnet --version  # Should be 10.0.x
 ### Installation
 
 ```bash
-# Install E2E test dependencies
-cd tests/e2e
-npm install
+# From the repository root, install the Web and E2E workspace dependencies
+pnpm install --frozen-lockfile
 
 # Install Playwright browsers
-npx playwright install --with-deps chromium
+pnpm --filter @slskdn/e2e exec playwright install --with-deps chromium
 ```
 
 ### Running Tests Locally
 
 ```bash
 # Run all E2E tests
-npm test
+pnpm --filter @slskdn/e2e test
 
 # Run specific test file
-npx playwright test specs/smoke.spec.ts
+pnpm --filter @slskdn/e2e exec playwright test specs/smoke.spec.ts
 
 # Run in headed mode (see browser)
-npx playwright test --headed
+pnpm --filter @slskdn/e2e exec playwright test --headed
 
 # Run with debug output
-DEBUG=pw:api npx playwright test
+DEBUG=pw:api pnpm --filter @slskdn/e2e exec playwright test
 
 # Run single test
-npx playwright test -g "should login successfully"
+pnpm --filter @slskdn/e2e exec playwright test -g "should login successfully"
 ```
 
 ### Local Test Execution Flow
@@ -153,75 +152,12 @@ npx playwright test -g "should login successfully"
 
 ### GitHub Actions Workflow
 
-E2E tests run in CI as a separate job:
+E2E tests run in `.github/workflows/e2e-tests.yml`. The job installs the root
+pnpm workspace, builds the Web package, stages its output in `wwwroot`, installs
+Chromium through the E2E workspace, and runs:
 
-```yaml
-# .github/workflows/e2e-tests.yml
-name: E2E Tests
-
-on:
-  pull_request:
-    branches: [main]
-  schedule:
-    - cron: '0 2 * * *'  # Nightly
-  workflow_dispatch:
-
-jobs:
-  e2e:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.22.2'
-          cache: 'npm'
-          cache-dependency-path: tests/e2e/package-lock.json
-      
-      - name: Build Backend
-        run: |
-          dotnet build src/slskd/slskd.csproj -c Release
-      
-      - name: Build Frontend
-        run: |
-          cd src/web
-          npm ci
-          npm run build
-          # Copy to wwwroot for serving
-          rm -rf ../slskd/wwwroot/*
-          cp -r build/* ../slskd/wwwroot/
-      
-      - name: Install E2E Dependencies
-        run: |
-          cd tests/e2e
-          npm ci
-          npx playwright install --with-deps chromium
-      
-      - name: Run E2E Tests
-        run: |
-          cd tests/e2e
-          npm test
-        env:
-          SLSKDN_TEST_NO_CONNECT: true  # Disable Soulseek for determinism
-          SLSKDN_TEST_KEEP_ARTIFACTS: ${{ github.event_name == 'workflow_dispatch' }}
-      
-      - name: Upload Test Artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-artifacts
-          path: |
-            tests/e2e/test-results/
-            /tmp/slskdn-test-*/
-          retention-days: 7
+```bash
+pnpm --filter @slskdn/e2e test:e2e:ci
 ```
 
 ### CI Determinism Rules
@@ -462,14 +398,14 @@ pkill -9 -f "dotnet.*slskd"
 ```bash
 # Increase timeout
 export SLSKDN_TEST_TIMEOUT=600
-npm test
+pnpm --filter @slskdn/e2e test
 ```
 
 ### Browser Not Found
 
 ```bash
 # Reinstall Playwright browsers
-npx playwright install chromium
+pnpm --filter @slskdn/e2e exec playwright install chromium
 ```
 
 ### Artifacts Not Cleaning Up

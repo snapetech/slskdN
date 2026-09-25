@@ -74,7 +74,8 @@ You're free to use whichever development tools you prefer.  If you don't yet hav
 ### Prerequisites
 
 - **.NET 8.0 SDK**: [Download](https://dotnet.microsoft.com/en-us/download)
-- **Node.js 18+**: [Download](https://nodejs.org/en/)
+- **Node.js 22.22.2+**: [Download](https://nodejs.org/en/)
+- **pnpm 12.4.1**: install with Corepack or the pnpm installation guide
 - **Git**: For version control
 - **IDE**: Visual Studio Code or Visual Studio (recommended)
 
@@ -91,10 +92,8 @@ You're free to use whichever development tools you prefer.  If you don't yet hav
    # Backend
    dotnet restore
    
-   # Frontend
-   cd src/web
-   npm install
-   cd ../..
+   # Frontend and Playwright workspace
+   pnpm install --frozen-lockfile
    ```
 
 3. **Build the project:**

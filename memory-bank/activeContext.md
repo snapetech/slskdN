@@ -1,3 +1,23 @@
+## Update 2026-09-25 16:37:34Z
+
+- Current task: commit and push the validated pending work, then cut stable
+  release 2026092516-slskdn.324 with the Linux Mint installer fix.
+- The installer now maps Linux Mint 22.3 to Ubuntu 24.04's native .NET feed,
+  removes the stale invalid Mint-specific Microsoft source before APT refresh,
+  and rejects unknown Mint bases. README install instructions now fetch the
+  latest installer asset with a success guard before execution.
+- Integrated the pending Unraid listener correction, performance and Wishlist
+  ranking refactor, root pnpm workspace migration across local/AUR/CI/release
+  entry points, bundle-size checks, and WireGuard ingress endpoint routing.
+  Hostname endpoints continue to work when they resolve to IPv4; Vitest
+  migration remains deferred.
+- Local validation passed: .NET tests (74 smoke, 5,161 unit, 284 integration),
+  Web tests (948), Web lint/build, bundle budget, build-output and subpath
+  checks, repository lint, pnpm frozen install, packaging metadata, workflow
+  YAML, and Linux installer mapping/safety checks.
+- Next: commit and push the tree, run the guarded .324 release helper, then
+  verify the hosted release assets and package jobs.
+
 ## Update 2026-09-24 21:11:00Z
 
 - Published `2026092420-slskdn.323` using guarded tag
@@ -95,6 +115,35 @@
   root cause and needs separate measurement before any lifecycle change.
 - Next steps: open the fix PR, wait for its hosted checks, merge once required
   checks pass, and refresh the GitHub issue, PR, and security-alert audit.
+
+## Update 2026-09-21 18:48:16-06:00
+
+- Corrected the Unraid template and copy-ready support documents to match the
+  consolidated listener layout: 50300/tcp carries Soulseek and mesh TCP,
+  while 50300/udp carries DHT, mesh, and QUIC traffic. Removed stale
+  50305 and 50401 mappings; loopback QUIC backends remain unpublished.
+- Updated packaging metadata validation, added release-note fragment
+  20260921-unraid-consolidated-ports.md, and recorded gotcha 0z905.
+- The prior focused validation passed XML parsing, packaging metadata checks,
+  release-note validation, ./bin/lint, and dotnet test (74 application,
+  5,156 unit, 284 integration tests).
+
+## Update 2026-09-15 Performance Refactoring Follow-up
+
+- Completed the root pnpm workspace migration across CI, E2E, release, and
+  packaging workflows; added Vite bundle size and growth checks.
+- Updated RateLimiter tests for atomic execution-slot accounting. The pending
+  work still needs validation against the current main branch and dependency
+  versions before it can be included in the next release.
+- The full Vitest migration remains deferred because legacy tests use
+  node:test mocks and process-wide SQLite fixtures.
+
+## Update 2026-09-14 Performance Refactoring
+
+- Replaced blocking semaphore coordination in transfer, relay, share,
+  rate-limiter, and blacklist-validation paths; cached Wishlist quality keys.
+- Added a pnpm workspace for Web and E2E packages and removed their nested npm
+  lockfiles. Pending work needs current-main integration validation.
 
 ## Update 2026-09-06 20:40:06-06:00
 

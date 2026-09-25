@@ -222,7 +222,7 @@ See `memory-bank/decisions/adr-0005-tagging-system.md` for complete details.
 dotnet build && dotnet test && ./bin/lint
 
 # Subshell for directory changes
-(cd src/web && npm install)
+pnpm install --frozen-lockfile
 
 # Combined grep
 grep -E "error|warning|fatal" file.log

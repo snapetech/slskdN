@@ -2,8 +2,8 @@
 
 if [ "$1" == "--web" ]; then
     cd src/web
-    npm install
-    npm start
+    pnpm install --frozen-lockfile
+    pnpm --filter @slskdn/web start
 else
     dotnet watch --project src/slskd/slskd.csproj run
 fi

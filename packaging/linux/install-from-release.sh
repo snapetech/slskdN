@@ -9,11 +9,6 @@ CONFIG_DIR="${SLSKDN_CONFIG_DIR:-/etc/slskd}"
 CONFIG_FILE="${CONFIG_DIR}/slskd.yml"
 SERVICE_FILE="/etc/systemd/system/slskd.service"
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "Run as root." >&2
-  exit 1
-fi
-
 resolve_release_tag() {
   local requested="$1"
   if [ -n "$requested" ]; then
@@ -98,17 +93,57 @@ verify_asset_checksum() {
   sha256sum --check --ignore-missing "$checksum_file"
 }
 
+resolve_dotnet_apt_source() {
+  local distro_id="$1"
+  local distro_version="$2"
+  local distro_codename="$3"
+  local ubuntu_codename="$4"
+
+  if [ "$distro_id" = "linuxmint" ]; then
+    case "$ubuntu_codename" in
+      noble)
+        printf 'ubuntu 24.04 noble native\n'
+        ;;
+      jammy)
+        printf 'ubuntu 22.04 jammy microsoft\n'
+        ;;
+      *)
+        echo "Unsupported Linux Mint Ubuntu base: ${ubuntu_codename:-unknown}" >&2
+        return 1
+        ;;
+    esac
+  elif [ "$distro_id" = "ubuntu" ] && [ "$distro_version" = "24.04" ]; then
+    printf 'ubuntu 24.04 noble native\n'
+  else
+    printf '%s %s %s microsoft\n' "$distro_id" "$distro_version" "$distro_codename"
+  fi
+}
+
 install_dotnet_runtime() {
   . /etc/os-release
 
+  local legacy_mint_source="/etc/apt/sources.list.d/microsoft.list"
+  if [ "$ID" = "linuxmint" ] &&
+    [ -f "$legacy_mint_source" ] &&
+    grep -q 'packages.microsoft.com/linuxmint/' "$legacy_mint_source"; then
+    rm -f "$legacy_mint_source"
+  fi
+
+  local package_source
+  package_source="$(resolve_dotnet_apt_source "$ID" "$VERSION_ID" "${VERSION_CODENAME:-}" "${UBUNTU_CODENAME:-}")"
+  local repo_id repo_version codename feed
+  read -r repo_id repo_version codename feed <<< "$package_source"
+
   apt-get update -qq
-  apt-get install -y -qq wget ca-certificates unzip lsb-release gpg
-  wget -qO /etc/apt/trusted.gpg.d/microsoft.asc https://packages.microsoft.com/keys/microsoft.asc
-  local repo="https://packages.microsoft.com/${ID}/${VERSION_ID}/prod"
-  local codename
-  codename="$(lsb_release -cs)"
-  echo "deb [arch=$(dpkg --print-architecture)] ${repo} ${codename} main" > /etc/apt/sources.list.d/microsoft.list
-  apt-get update -qq
+  apt-get install -y -qq wget ca-certificates unzip gpg
+
+  if [ "$feed" = "microsoft" ]; then
+    wget -qO /etc/apt/trusted.gpg.d/microsoft.asc https://packages.microsoft.com/keys/microsoft.asc
+    local repo="https://packages.microsoft.com/${repo_id}/${repo_version}/prod"
+    echo "deb [arch=$(dpkg --print-architecture)] ${repo} ${codename} main" > /etc/apt/sources.list.d/microsoft.list
+    apt-get update -qq
+  fi
+
   apt-get install -y -qq aspnetcore-runtime-10.0 yt-dlp
 }
 
@@ -222,6 +257,11 @@ install_vpn_agent_payload() {
 }
 
 main() {
+  if [ "$(id -u)" -ne 0 ]; then
+    echo "Run as root." >&2
+    exit 1
+  fi
+
   echo "[1/7] Installing .NET runtime 10.0 and prerequisites..."
   install_dotnet_runtime
 
@@ -289,4 +329,6 @@ main() {
   echo "Next: edit ${CONFIG_FILE}, then run: systemctl enable --now slskd"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

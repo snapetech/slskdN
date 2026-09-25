@@ -212,6 +212,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Web workspace
+        run: pnpm install --frozen-lockfile
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
@@ -229,10 +244,9 @@ jobs:
             exit 1
           fi
 
-      - name: Scan npm Dependencies
+      - name: Scan Web Dependencies
         run: |
-          cd src/web
-          npm audit --audit-level=high --production || true
+          pnpm audit --prod --audit-level high || true
 
       - name: Report Results
         if: always()

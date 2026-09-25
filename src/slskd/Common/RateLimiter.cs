@@ -51,7 +51,12 @@ namespace slskd
 
             if (concurrencyLimit.HasValue)
             {
-                ConcurrentExecutionPreventionSemaphore = new SemaphoreSlim(concurrencyLimit.Value, concurrencyLimit.Value);
+                if (concurrencyLimit.Value < 1)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(concurrencyLimit));
+                }
+
+                ConcurrentExecutionLimit = concurrencyLimit.Value;
             }
         }
 
@@ -60,7 +65,8 @@ namespace slskd
         private bool Init { get; set; }
         private Action? Staged { get; set; }
         private System.Timers.Timer Timer { get; set; }
-        private SemaphoreSlim? ConcurrentExecutionPreventionSemaphore { get; }
+        private int _activeExecutions;
+        private int? ConcurrentExecutionLimit { get; }
 
         /// <summary>
         ///     Releases all resources used by the <see cref="Component"/>.
@@ -118,7 +124,6 @@ namespace slskd
                     {
                         Timer.Elapsed -= Timer_Elapsed;
                         Common.TimerDisposer.DisposeWithWait(Timer);
-                        ConcurrentExecutionPreventionSemaphore?.Dispose();
                     }
 
                     if (flushException is not null)
@@ -133,7 +138,7 @@ namespace slskd
 
         private void Timer_Elapsed(object? sender, EventArgs args)
         {
-            if (ConcurrentExecutionPreventionSemaphore?.Wait(0) ?? true)
+            if (TryAcquireExecutionSlot())
             {
                 try
                 {
@@ -154,8 +159,33 @@ namespace slskd
                 }
                 finally
                 {
-                    ConcurrentExecutionPreventionSemaphore?.Release();
+                    ReleaseExecutionSlot();
                 }
+            }
+        }
+
+        private bool TryAcquireExecutionSlot()
+        {
+            if (!ConcurrentExecutionLimit.HasValue)
+            {
+                return true;
+            }
+
+            var active = Interlocked.Increment(ref _activeExecutions);
+            if (active <= ConcurrentExecutionLimit.Value)
+            {
+                return true;
+            }
+
+            Interlocked.Decrement(ref _activeExecutions);
+            return false;
+        }
+
+        private void ReleaseExecutionSlot()
+        {
+            if (ConcurrentExecutionLimit.HasValue)
+            {
+                Interlocked.Decrement(ref _activeExecutions);
             }
         }
     }

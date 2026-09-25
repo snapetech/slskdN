@@ -1000,19 +1000,15 @@ namespace slskd.Wishlist
 
                 // Group by (user, directory) so we can download a complete album at once.
                 // Rank one representative file per group (peer-level stats are the same for all).
-                var groups = candidates
-                    .GroupBy(c => (c.Username, Dir: GetParentDirectory(c.Filename)))
-                    .ToList();
-
                 var filterTerms = ParseFilterTerms(filter);
                 var editionExpectation = BuildEditionExpectation(item);
-                var groupPlans = groups
+                var groupPlans = candidates
+                    .GroupBy(c => (c.Username, Dir: GetParentDirectory(c.Filename)))
                     .Select(group => BuildGroupPlan(group.Key, group, filterTerms, remainingDownloads, editionExpectation))
                     .ToList();
-                var representatives = groupPlans
-                    .Select(plan => plan.Representative)
-                    .ToList();
-                var ranked = await RankingService.RankSourcesAsync(representatives, cancellationToken);
+                var ranked = await RankingService.RankSourcesAsync(
+                    groupPlans.Select(plan => plan.Representative),
+                    cancellationToken);
 
                 var groupPlansByKey = groupPlans.ToDictionary(plan => plan.Key);
                 var rankedPlans = ranked
@@ -1160,19 +1156,23 @@ namespace slskd.Wishlist
             int remainingDownloads,
             WishlistEditionExpectation? edition)
         {
-            var bestPerTrack = candidates
+            var rankedPerTrack = candidates
                 .GroupBy(GetTrackIdentity, StringComparer.OrdinalIgnoreCase)
                 .Select(group => group
-                    .OrderByDescending(candidate => GetQualityKey(candidate, filterTerms))
+                    .Select(candidate => (Candidate: candidate, Quality: GetQualityKey(candidate, filterTerms)))
+                    .OrderByDescending(ranked => ranked.Quality)
                     .First())
                 .ToList();
-            var files = bestPerTrack
-                .OrderByDescending(candidate => GetQualityKey(candidate, filterTerms))
+            var rankedFiles = rankedPerTrack
+                .OrderByDescending(ranked => ranked.Quality)
                 .Take(remainingDownloads)
                 .ToList();
+            var files = rankedFiles
+                .Select(ranked => ranked.Candidate)
+                .ToList();
 
-            var qualityKeys = files
-                .Select(candidate => GetQualityKey(candidate, filterTerms))
+            var qualityKeys = rankedFiles
+                .Select(ranked => ranked.Quality)
                 .OrderBy(keyValue => keyValue)
                 .ToList();
             var weakestQuality = qualityKeys.Count == 0
@@ -1180,27 +1180,27 @@ namespace slskd.Wishlist
                 : qualityKeys[0];
             var representativeQuality = files.Count == 0
                 ? default
-                : GetQualityKey(files[0], filterTerms);
+                : rankedFiles[0].Quality;
 
             var editionMismatch = false;
             if (edition.HasValue)
             {
                 int? totalLengthSeconds = edition.Value.IsTrackLevel
                     ? files.FirstOrDefault()?.Length
-                    : (bestPerTrack.Count > 0 && bestPerTrack.All(c => c.Length.HasValue)
-                        ? bestPerTrack.Sum(c => c.Length!.Value)
+                    : (rankedPerTrack.Count > 0 && rankedPerTrack.All(ranked => ranked.Candidate.Length.HasValue)
+                        ? rankedPerTrack.Sum(ranked => ranked.Candidate.Length!.Value)
                         : (int?)null);
 
-                editionMismatch = IsEditionMismatch(edition.Value, key.Dir, bestPerTrack.Count, totalLengthSeconds);
+                editionMismatch = IsEditionMismatch(edition.Value, key.Dir, rankedPerTrack.Count, totalLengthSeconds);
             }
 
             return new WishlistGroupPlan(
                 key,
                 files,
-                Math.Min(bestPerTrack.Count, remainingDownloads),
+                Math.Min(rankedPerTrack.Count, remainingDownloads),
                 weakestQuality,
                 representativeQuality,
-                files.FirstOrDefault() ?? candidates.First(),
+                files.FirstOrDefault() ?? rankedPerTrack[0].Candidate,
                 editionMismatch);
         }
 
