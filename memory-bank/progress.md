@@ -13166,6 +13166,20 @@ its checksum matches `SHA256SUMS.txt`, and the latest-download URL returns
 HTTP 200. Launchpad's `.324` publication wait remains in progress and `.325`
 PPA publication is queued behind it; avoid duplicate same-version uploads.
 
+[2026-09-25T22:27:22Z] Fixed the released VPN-agent onboarding path and merged
+the active `packaging/yunohost` branch into `main` at `bfba634b6`, then pushed
+to `snapetech/slskdN`. Release archives now include start-here instructions for
+Linux, Windows, and macOS; the Linux installer uses the bundled binary,
+persists VPN settings, orders external tunnels before applying routing, and
+enables ingress. Windows/macOS fail-closed setup validates the selected VPN
+interface before changing firewall rules. `dotnet test` passed 74 smoke, 5,161
+unit, and 284 integration tests; `./bin/lint`, packaging metadata validation,
+shell syntax, release-note preview, GitHub target verification, and local
+identity leak checks passed. No release tag was created. Historical PR refs
+whose changes are already integrated or whose snapshots are stale were left
+alone; the React 19 updates remain incompatible. The separate YunoHost subtree
+export branch has no shared Git history and was not merged.
+
 
 ## Update 2026-09-25 22:21:00Z
 

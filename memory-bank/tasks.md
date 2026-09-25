@@ -34,6 +34,18 @@
     ownership or mark the app working without maintainer direction and passing
     package checks.
 
+- [x] Make the released VPN agent understandable and runnable across platforms.
+  - Status: completed, validated, and merged to `main` (2026-09-25).
+  - Priority: P1
+  - Notes: Added release-archive first-use guides for Linux, Windows, and macOS;
+    fixed the bundled Linux installer to use its prebuilt helper, persist VPN
+    settings, order external tunnel services before routing, and enable ingress;
+    validated platform interface inputs before applying firewall rules. Updated
+    all release archive builders and artifact checks. `dotnet test` passed 74
+    smoke, 5,161 unit, and 284 integration tests; `./bin/lint`, packaging
+    metadata validation, and shell syntax checks passed. Pushed with the active
+    packaging branch to `main`; no release tag was created.
+
 - [x] Audit the last six months of upstream slskd changes and implement
   applicable parity fixes.
   - Status: merged in PR #338; stable release `2026092418-slskdn.322`

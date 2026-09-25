@@ -1,3 +1,23 @@
+## Update 2026-09-25 22:27:22Z
+
+- Completed the VPN-agent onboarding request and pushed it to `main` in merge
+  commit `bfba634b6`, together with the active `packaging/yunohost` branch.
+- Added first-use VPN-agent instructions to the release archives for Linux,
+  Windows, and macOS. Fixed the bundled Linux installer to use its prebuilt
+  helper, persist settings, order external tunnels before routing, and enable
+  the ingress unit. Windows and macOS now reject missing VPN interfaces before
+  applying firewall rules.
+- Validation passed: `dotnet test` (74 smoke, 5,161 unit, 284 integration),
+  `./bin/lint`, packaging metadata validation, shell syntax, release-note
+  preview, target verification, and the local-identity leak check. No release
+  tag was created.
+- Other local refs were reviewed: historical PR refs are already integrated or
+  contain stale dependency snapshots; the React 19 refs remain incompatible.
+  The separate YunoHost subtree-export branch has no shared Git history and was
+  not merged.
+- Next: continue with YunoHost catalog PR #3627 review and package CI when
+  maintainers report back; keep the catalog on `testing` and `inprogress`.
+
 ## Update 2026-09-25 22:21:00Z
 
 - Current task: complete. Prepared the YunoHost v2 package, committed it to
