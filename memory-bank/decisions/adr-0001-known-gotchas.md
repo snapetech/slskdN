@@ -238,11 +238,14 @@ baseline fail even though the workflow still used the correct runtime.
 **Prevention**: Derive workflow runtime expectations from
 .github/workflows/e2e-tests.yml and keep the developer guide focused on the
 commands and setup contributors actually run. Do not treat copied workflow
-snippets as authoritative release configuration.
+snippets as authoritative release configuration. The expect_literal helper
+already roots relative paths at the repository directory, so pass it a
+repository-relative workflow path rather than an absolute path.
 
 **Why This Keeps Happening**: Duplicated workflow examples drift, then tests
-accidentally enforce the example instead of the automation. Prefer checking
-the live workflow and keep documentation procedural.
+accidentally enforce the example instead of the automation. Validator helpers
+may also join paths internally; pass paths in the form their contract expects.
+Prefer checking the live workflow and keep documentation procedural.
 
 ---
 
