@@ -177,6 +177,35 @@ base image and do not inherit that tool setup.
 
 ---
 
+### 0z912. Normalize Date-Based YunoHost Upstream Versions
+
+**The Bug**: Using slskdN's raw date-and-sequence GitHub release tag as a
+YunoHost manifest version fails package linting because the upstream tag is
+not a valid YunoHost `<upstreamversion>~ynhN` version.
+
+**Files Affected**:
+- `packaging/yunohost/slskdn_ynh/manifest.toml`
+
+**Wrong**:
+```toml
+version = "2026092517-slskdn.325~ynh1"
+```
+
+**Correct**: Normalize the numeric components into a PEP 440 compatible
+version and use `autoupdate.version_regex` to derive that same value from
+future GitHub release tags, for example:
+```toml
+version = "2026.09.25.17.325~ynh1"
+autoupdate.version_regex = "^(\\d{4})(\\d{2})(\\d{2})(\\d+)-slskdn\\.(\\d+)$"
+```
+
+**Why This Keeps Happening**: Upstream release identifiers are optimized for
+project release sequencing, while YunoHost validates package versions against
+its own version grammar. Normalize tags consistently in both the current
+manifest and the source updater.
+
+---
+
 ### 0z905. Unraid Port Profiles Must Follow Listener Consolidation
 
 **The Bug**: The Unraid template kept publishing separate mesh TCP/UDP and
