@@ -70,8 +70,20 @@ non-free-network.en = "Soulseek is a third-party network and requires a Soulseek
     soulseek.exposed = "Both"
 
     [resources.apt]
-    packages = [
-        "libicu70|libicu72|libicu74|libicu76",
-        "liblttng-ust1|liblttng-ust1t64",
-        "patchelf",
-    ]
+    packages = ["patchelf"]
+    packages_from_raw_bash = """
+    select_package() {
+        local package
+        for package in "$@"; do
+            if apt-cache show "$package" 2>/dev/null | grep -Fqx "Package: $package"; then
+                printf '%s\\n' "$package"
+                return 0
+            fi
+        done
+        printf 'No supported package found among: %s\\n' "$*" >&2
+        exit 1
+    }
+
+    select_package libicu76 libicu74 libicu72 libicu70
+    select_package liblttng-ust1t64 liblttng-ust1
+    """
