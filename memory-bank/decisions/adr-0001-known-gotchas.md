@@ -206,6 +206,38 @@ manifest and the source updater.
 
 ---
 
+### 0z913. Keep Static YunoHost App Binaries Read-Only to the Service
+
+**The Bug**: Giving the service user ownership of a static executable bundle
+lets a compromised service replace its own code and keep that change across a
+restart.
+
+**Files Affected**:
+- `packaging/yunohost/slskdn_ynh/scripts/install`
+- `packaging/yunohost/slskdn_ynh/scripts/upgrade`
+- `packaging/yunohost/slskdn_ynh/scripts/restore`
+- `packaging/yunohost/slskdn_ynh/conf/systemd.service`
+
+**Wrong**:
+```bash
+chown -R "$app:$app" "$install_dir"
+```
+
+**Correct**: Keep static package files root-owned and readable by the app's
+private group, and run the service with a read-only system tree:
+```bash
+chown -R root:"$app" "$install_dir"
+chmod -R u=rwX,g=rX,o= "$install_dir"
+chmod 750 "$install_dir/slskd"
+```
+
+**Why This Keeps Happening**: Generic YunoHost examples often give PHP source
+files to the application user. Self-contained service binaries do not need
+write access to their installation directory; keep mutable configuration,
+state, and logs in their dedicated writable directories instead.
+
+---
+
 ### 0z905. Unraid Port Profiles Must Follow Listener Consolidation
 
 **The Bug**: The Unraid template kept publishing separate mesh TCP/UDP and
@@ -298,7 +330,7 @@ accidentally enforce the example instead of the automation. Validator helpers
 may also join paths internally; pass paths in the form their contract expects.
 Prefer checking the live workflow and keep documentation procedural.
 
-### 0z912. Make Packaged VPN Installers Work Without Source Trees
+### 0z913. Make Packaged VPN Installers Work Without Source Trees
 
 **The Bug**: The Linux release ZIP included a self-contained VPN agent and an
 `install.sh`, but the script always ran `dotnet publish` against a project file
