@@ -22,15 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-- Fixed Linux Mint runtime installation by mapping Mint to its Ubuntu package
-  base, removing the stale invalid Mint APT source, and documenting the current
-  release installer URL.
-- Updated the Unraid template and support instructions to publish the
-  consolidated `50300/tcp` and `50300/udp` listeners.
-- Reduced repeated Wishlist source quality calculations when ranking large
-  album result sets.
-- Added a host-side route for each WireGuard ingress endpoint before the tunnel
-  default route, preserving provider hostnames that resolve to IPv4.
+## [2026092516-slskdn.324] — 2026-09-25
+
+- Moved Web and E2E JavaScript packages to a pinned pnpm workspace and lockfile,
+  and updated local, CI, release, and AUR build entry points.
+- Added Web bundle size checks and build output validation, and expanded the
+  Grafana dashboard with frontend performance metrics.
+- Reduced lock contention across transfer, relay, and share paths, and removed
+  sync-over-async blocking from blacklist format validation.
 
 ## [2026092420-slskdn.323] — 2026-09-24
 
