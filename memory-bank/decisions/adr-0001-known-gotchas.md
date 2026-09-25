@@ -201,6 +201,29 @@ branding.
 
 ---
 
+### 0z909. Preserve DNS WireGuard Endpoints When Adding Bypass Routes
+
+**The Bug**: The ingress namespace needs a host-side route to each WireGuard
+peer before applying the tunnel's default route. Requiring the configured
+Endpoint to be a literal IPv4 address rejected the repository's documented
+hostname-based provider configs.
+
+**Files Affected**:
+- src/slskdN.VpnAgent/Program.cs
+- src/slskdN.VpnAgent/manual-linux-wireguard.md
+
+**Prevention**: Parse the endpoint host and port separately. Accept an IPv4
+literal or resolve a hostname to IPv4 before replacing the active namespace,
+then route that address through the host-facing veth. Keep an acceptance check
+for the documented hostname form and reject endpoints that have no IPv4
+address, since the ingress veth and policy routing are IPv4.
+
+**Why This Keeps Happening**: A route added to bypass a tunnel default can
+change which endpoint forms remain usable. Preserve the config formats already
+documented, and test their resolution before tearing down existing networking.
+
+---
+
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
 ### 0z853. Project Lidarr GET Resources Into Manual-Import Command Files
