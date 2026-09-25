@@ -93,7 +93,69 @@ keep a regression test that verifies the encoded server command.
 
 ---
 
-### 0z902. Unraid Port Profiles Must Follow Listener Consolidation
+### 0z906. Keep Workspace Package Config Out of npm Config
+
+**The Bug**: Running a parallel package script through `npm-run-all` exported
+the root package's inline `config` keys as `npm_config_*` arguments, causing
+pnpm to reject the generated key as an unknown command-line option.
+
+**Files Affected**:
+- `package.json`
+- `.czrc`
+- `commitlint.config.mjs`
+- `lint-staged.config.mjs`
+
+**Wrong**:
+```json
+{
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}
+```
+
+**Correct**:
+```json
+{
+  ".czrc": {
+    "path": "cz-conventional-changelog"
+  }
+}
+```
+
+**Why This Keeps Happening**: npm exposes package `config` entries as
+environment variables for every child package command. Keep tool configuration
+in each tool's standard config file when scripts may invoke pnpm or other
+package managers recursively.
+
+---
+
+### 0z907. Workspace Lockfile Changes Must Update Release Workflows
+
+**The Bug**: Moving `src/web` and E2E packages into the root pnpm workspace
+while deleting their nested npm lockfiles left release and E2E workflows
+running `npm ci` against paths that no longer existed.
+
+**Files Affected**:
+- `.github/workflows/ci.yml`
+- `.github/workflows/e2e-tests.yml`
+- `.github/workflows/release-*.yml`
+- `.github/workflows/build-on-tag.yml`
+- `packaging/scripts/run-release-gate.sh`
+
+**Correct**: Set up pnpm, install from the workspace root with
+`pnpm install --frozen-lockfile`, and invoke package scripts through
+`pnpm --filter <workspace> ...`.
+
+**Why This Keeps Happening**: Package-manager migrations are incomplete until
+local scripts, CI caches, release gates, and tag workflows all use the same
+lockfile and workspace boundary.
+
+---
+
+### 0z905. Unraid Port Profiles Must Follow Listener Consolidation
 
 **The Bug**: The Unraid template kept publishing separate mesh TCP/UDP and
 QUIC data ports after runtime consolidated Soulseek, mesh TCP, DHT, and QUIC
@@ -111,6 +173,31 @@ Unraid XML mappings and every copy-ready support document in the same change.
 Validate the template against the current configuration example and runtime
 port documentation; loopback-only backend ports such as `55305` and `55401`
 must not be published.
+
+---
+
+### 0z908. Resolve Linux Mint Through Its Ubuntu Package Base
+
+**The Bug**: The release installer used Linux Mint's own ID, version, and
+codename to construct a Microsoft APT source that does not exist, preventing
+the .NET runtime installation on Mint 22.3.
+
+**Files Affected**:
+- packaging/linux/install-from-release.sh
+
+**Wrong**: Derive the Microsoft source directly from the distro ID and
+version, then use lsb_release -cs. Mint 22.3 yields linuxmint/22.3 and zena,
+while its Ubuntu package base is Noble.
+
+**Correct**: Resolve Mint through UBUNTU_CODENAME. Use Ubuntu's own .NET 10
+packages for Noble without adding a Microsoft .NET source, map other
+supported Mint bases to their matching Ubuntu package feed, and reject
+unknown bases before writing any APT source.
+
+**Why This Keeps Happening**: Derived distributions have package IDs and
+codenames that differ from their base distribution. Installer logic must
+select repositories from the package base, not the desktop distribution's
+branding.
 
 ---
 
