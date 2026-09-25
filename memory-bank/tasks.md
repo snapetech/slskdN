@@ -55,14 +55,38 @@
     uncaught event-handler error. GitHub security-alert counts are zero, as
     are npm audit vulnerabilities and vulnerable NuGet packages.
 
-- [ ] Publish the next stable release with the normal date-and-sequence
-  version 2026092516-slskdn.324.
-  - Status: implementation and local validation complete; commit/push, guarded
-    release gate, hosted build, and artifact verification remain.
+- [x] Publish stable release `2026092516-slskdn.324` with the Linux Mint
+  installer fix and all validated repository work, then repair its hosted
+  Docker build in `2026092517-slskdn.325`.
+  - Status: both GitHub releases published; `.325` release gate, six platform
+    archives, and multi-platform Docker image build passed (2026-09-25).
   - Priority: P1
-  - Notes: Includes the Linux Mint 22.3 installer repository fix plus the
-    validated pending Unraid, performance, pnpm workspace, bundle-check, and
-    WireGuard ingress changes.
+  - Notes: The original `.324` release included the Linux Mint 22.3 .NET feed
+    correction plus the validated Unraid listener, performance/Wishlist,
+    pnpm workspace, bundle-check, and WireGuard ingress changes. Its Docker
+    build exposed a missing pnpm bootstrap in the image stage; `.325` adds the
+    workspace metadata and installs the pinned root package manager before
+    building Web assets. The `.325` installer is published, its checksum
+    matches `SHA256SUMS.txt`, its shell syntax passes, and the GitHub `latest`
+    download URL returns HTTP 200. The `.324` Launchpad PPA publication is
+    still being polled; the `.325` PPA job is queued behind it (follow-ups
+    below).
+
+- [ ] Confirm Launchpad publication for stable release `.324`.
+  - Status: PPA publication wait is still running (2026-09-25 18:04Z).
+  - Priority: P2
+  - Notes: The `.324` GitHub release and all other observed publication jobs
+    are complete; Launchpad's publication wait is the remaining publisher
+    follow-up and currently holds the `.325` PPA job in the queue. Do not
+    submit the same source version again while Launchpad is processing it.
+
+- [ ] Confirm Launchpad publication for stable release `.325`.
+  - Status: PPA job queued behind the `.324` publication wait (2026-09-25
+    18:04Z).
+  - Priority: P2
+  - Notes: The `.325` GitHub release, platform archives, and Docker image are
+    published successfully. Let the existing queued job run after the `.324`
+    Launchpad wait ends; do not submit the same source version manually.
 
 - [ ] Confirm Launchpad publication for stable release `.322`.
   - Status: external publisher follow-up (2026-09-24)

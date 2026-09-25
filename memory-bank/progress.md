@@ -13144,3 +13144,24 @@ alerts. React 19 PRs #326/#327 remain open because the current Semantic UI
 React stack depends on `findDOMNode`; keep React 18 until a compatible UI stack
 is validated. Windows Smoke remains unavailable because no matching runner is
 configured.
+
+[2026-09-25T18:04:00Z] Resolved and released the Linux Mint installer issue.
+The reported `0.24.5-slskdn.133` asset URL was not a published release path;
+the code defect was the installer configuring Microsoft APT with Linux Mint
+22.3's `zena` identity instead of the Ubuntu 24.04 `noble` base. Mint 22.3 now
+uses Ubuntu's native .NET feed, the installer removes a stale invalid Mint
+source before `apt-get update`, and README downloads the installer from the
+GitHub `latest` release endpoint. Committed and pushed all validated pending
+repository work, including Unraid listener mappings, performance/Wishlist
+ranking, pnpm workspace migration and bundle checks, and WireGuard ingress
+routing. Stable release `.324` included that tree; its hosted Docker build
+found a missing pnpm bootstrap in the image stage, so `.325` added root
+workspace metadata and installs the pinned package manager before compiling
+Web assets. `.325` is the published latest release. Local packaging metadata,
+pnpm/Docker builds, repository lint, and the full release validation passed;
+the hosted gate passed 948 Web tests, 5,161 unit tests, 74 smoke tests, and 40
+release integration tests. All six platform archives and the multi-platform
+Docker image built successfully. The exact installer asset passed `bash -n`,
+its checksum matches `SHA256SUMS.txt`, and the latest-download URL returns
+HTTP 200. Launchpad's `.324` publication wait remains in progress and `.325`
+PPA publication is queued behind it; avoid duplicate same-version uploads.

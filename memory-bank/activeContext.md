@@ -1,3 +1,24 @@
+## Update 2026-09-25 18:04:00Z
+
+- Completed the requested commit/push of valid repository work and published
+  stable releases `2026092516-slskdn.324` and
+  `2026092517-slskdn.325`. The `.324` source included the Linux Mint 22.3
+  installer correction and the other validated pending repository changes;
+  `.325` fixes the missing pnpm bootstrap found by the `.324` Docker build.
+- Validation passed locally and on the hosted release gate: Web (948 tests),
+  .NET (5,161 unit, 74 smoke, 40 integration), all six platform archives, and
+  the multi-platform Docker image. The `.325` installer asset checksum matches
+  its release manifest, `bash -n` passes, and the latest-download URL returns
+  HTTP 200. Local Docker web-stage and full-image builds also passed.
+- The original `0.24.5-slskdn.133` download URL was not a published release
+  asset; the separate repository bug was using Linux Mint 22.3's identity as
+  the Microsoft APT distribution instead of its Ubuntu 24.04 base. README now
+  uses GitHub's latest installer URL, and the installer uses Ubuntu Noble's
+  native .NET feed for Mint 22.3 while removing the stale invalid Mint source.
+- Next steps: monitor the still-running `.324` Launchpad publication wait and
+  the `.325` PPA job queued behind it. Do not resubmit either source version
+  while Launchpad is processing the existing uploads.
+
 ## Update 2026-09-25 16:37:34Z
 
 - Current task: commit and push the validated pending work, then cut stable
