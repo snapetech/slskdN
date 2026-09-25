@@ -155,6 +155,28 @@ lockfile and workspace boundary.
 
 ---
 
+### 0z911. Bootstrap pnpm in Container Build Stages
+
+**The Bug**: The tagged Docker image build invoked `bin/build` after the pnpm
+migration without installing pnpm in its web-build stage, so it failed with
+`pnpm: command not found`.
+
+**Files Affected**:
+- `Dockerfile`
+- `package.json`
+- `bin/build`
+
+**Prevention**: Every environment that invokes `bin/build` must bootstrap the
+pinned package manager from the root `packageManager` declaration. Keep the
+container build in release validation so local and hosted package-manager
+setup cannot mask a missing Docker-stage dependency.
+
+**Why This Keeps Happening**: Local scripts and GitHub jobs may install pnpm
+before invoking shared build scripts, while Docker stages start from their own
+base image and do not inherit that tool setup.
+
+---
+
 ### 0z905. Unraid Port Profiles Must Follow Listener Consolidation
 
 **The Bug**: The Unraid template kept publishing separate mesh TCP/UDP and
