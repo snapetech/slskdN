@@ -3,6 +3,11 @@
 Use this path when the host should own the WireGuard tunnel, fail-closed
 routing, dynamic port claims, and ingress DNAT for slskdN.
 
+For a released ZIP install, start with
+[`GETTING_STARTED.md`](GETTING_STARTED.md). The source-build steps below are
+for a full repository checkout and are not needed with the bundled Linux
+helper.
+
 ## When To Use
 
 - slskdN runs as a host service, not inside a VPN-owned container.
@@ -15,8 +20,9 @@ routing, dynamic port claims, and ingress DNAT for slskdN.
 
 - `SLSKDN_SERVICE_USER`: the service user running slskdN.
 - `/etc/wireguard/slskdN-vpn.conf`: outbound WireGuard config.
-- `/etc/wireguard/slskdN-vpn-ingress/*.conf`: optional ingress configs, one per
-  forwarded public port slot.
+- `/etc/wireguard/slskdN-vpn-ingress/*.conf`: one or more ingress configs,
+  one per forwarded public port slot. The bundled installer requires at least
+  one because this setup configures port forwarding.
 - Each ingress endpoint must be an IPv4 address or a hostname that resolves to
   IPv4 so the namespace can route WireGuard handshake traffic through the host
   gateway before applying its tunnel default route.
@@ -25,7 +31,7 @@ routing, dynamic port claims, and ingress DNAT for slskdN.
 Do not reuse the same private key for the outbound tunnel and a simultaneous
 ingress tunnel.
 
-## Install Outline
+## Manual install from a source checkout
 
 Install prerequisites:
 

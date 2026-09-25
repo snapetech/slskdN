@@ -6,11 +6,9 @@ Wants=network-online.target slskdN.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+EnvironmentFile=-/etc/default/slskdN-vpn-agent
 Environment=PF_ATTEMPTS=90
 Environment=PF_LIFETIME=60
-Environment=SLSKDN_VPN_TUNNEL_TYPE=wireguard
-Environment=VPN_PORT_FORWARD_BACKEND=natpmp
-Environment=SLSKDN_VPN_IFACE=slskdN-vpn
 ExecStart=/usr/local/bin/slskdN-vpn-agent ingress
 ExecStop=/usr/local/bin/slskdN-vpn-agent cleanup-ingress
 TimeoutStartSec=20min

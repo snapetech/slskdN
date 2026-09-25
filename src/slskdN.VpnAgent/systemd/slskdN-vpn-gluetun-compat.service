@@ -6,6 +6,7 @@ Before=slskd.service slskdN.service
 
 [Service]
 Type=simple
+EnvironmentFile=-/etc/default/slskdN-vpn-agent
 ExecStart=/usr/local/bin/slskdN-vpn-agent api
 Restart=always
 RestartSec=2
