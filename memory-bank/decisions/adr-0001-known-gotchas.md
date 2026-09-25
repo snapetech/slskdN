@@ -224,6 +224,28 @@ documented, and test their resolution before tearing down existing networking.
 
 ---
 
+### 0z910. Validate Runtime Versions Against The Live Workflow
+
+**The Bug**: The .NET runtime matrix validator read its expected E2E version
+from an illustrative workflow block in the developer guide. Replacing that
+outdated sample with a pointer to the real workflow made the remediation
+baseline fail even though the workflow still used the correct runtime.
+
+**Files Affected**:
+- scripts/check-dotnet-runtime-matrix.sh
+- docs/dev/e2e-testing-guide.md
+
+**Prevention**: Derive workflow runtime expectations from
+.github/workflows/e2e-tests.yml and keep the developer guide focused on the
+commands and setup contributors actually run. Do not treat copied workflow
+snippets as authoritative release configuration.
+
+**Why This Keeps Happening**: Duplicated workflow examples drift, then tests
+accidentally enforce the example instead of the automation. Prefer checking
+the live workflow and keep documentation procedural.
+
+---
+
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
 ### 0z853. Project Lidarr GET Resources Into Manual-Import Command Files
