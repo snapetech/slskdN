@@ -5,7 +5,11 @@ ARG VERSION=0.0.1.65534-local
 
 WORKDIR /slskd
 
-RUN apk add --no-cache bash
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tests/e2e/package.json tests/e2e/package.json
+
+RUN apk add --no-cache bash \
+  && npm install --global "$(node -p 'require("./package.json").packageManager')"
 
 COPY bin bin/.
 COPY src/web src/web/.

@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026092517-slskdn.325] — 2026-09-25
+
+- The main Docker image build now installs the pinned pnpm version from the
+  root package manager declaration and copies the complete workspace metadata
+  before invoking the shared Web build.
+
 ## [2026092516-slskdn.324] — 2026-09-25
 
 - Moved Web and E2E JavaScript packages to a pinned pnpm workspace and lockfile,
