@@ -269,6 +269,34 @@ accidentally enforce the example instead of the automation. Validator helpers
 may also join paths internally; pass paths in the form their contract expects.
 Prefer checking the live workflow and keep documentation procedural.
 
+### 0z912. Make Packaged VPN Installers Work Without Source Trees
+
+**The Bug**: The Linux release ZIP included a self-contained VPN agent and an
+`install.sh`, but the script always ran `dotnet publish` against a project file
+that was not in the ZIP. It also left provider settings out of the systemd
+environment and did not enable the ingress service, so the advertised release
+setup path could not complete reliably.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/install.sh`
+- `src/slskdN.VpnAgent/systemd/`
+- `packaging/linux/install-from-release.sh`
+- `.github/workflows/build-on-tag.yml`
+- `bin/publish`
+
+**Prevention**: Treat source-checkout and release-ZIP installs as separate
+inputs. A packaged installer must use the self-contained executable already
+beside it, persist tunnel settings for every systemd command that runs the
+agent, adapt app service names to the installed service, enable all required
+units, and ship every guide linked by the bundle README. Verify the resulting
+archive layout as part of release validation.
+
+**Why This Keeps Happening**: A release ZIP contains publish output and selected
+support files, not the source project or the .NET SDK. Scripts that work from a
+checkout can still fail when invoked from a packaged copy, and unit templates
+can keep development defaults that do not match the raw Linux release
+installer.
+
 ---
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
