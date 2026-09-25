@@ -1,0 +1,31 @@
+#!/bin/bash
+
+source ../settings/scripts/_common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Restoring slskdN..."
+
+ynh_restore "$install_dir"
+chown -R root:"$app" "$install_dir"
+chmod -R u=rwX,g=rX,o= "$install_dir"
+chmod 750 "$install_dir/slskd"
+
+ynh_restore "$data_dir"
+chown -R "$app:$app" "$data_dir"
+
+ynh_restore "/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_restore "/etc/systemd/system/$app.service"
+ynh_restore "/etc/logrotate.d/$app"
+ynh_restore "/var/log/$app/"
+
+systemctl daemon-reload
+systemctl enable "$app.service" --quiet
+
+yunohost service add "$app" \
+    --description="Soulseek client and server" \
+    --log="/var/log/$app/$app.log" \
+    --needs_exposed_ports="$port_soulseek"
+
+ynh_systemctl --service="$app" --action="start"
+systemctl reload nginx
+ynh_script_progression "Restoration of slskdN completed"

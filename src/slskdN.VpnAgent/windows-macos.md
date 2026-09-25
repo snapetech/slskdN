@@ -1,5 +1,8 @@
 # Windows And macOS VPN Enforcement
 
+For release downloads and exact commands, see
+[`GETTING_STARTED.md`](GETTING_STARTED.md).
+
 The Windows and macOS paths enforce fail-closed egress for the configured slskdN
 process or service user. They do not manage VPN clients and should usually be
 paired with static or provider-managed forwarded-port state.
@@ -8,7 +11,8 @@ paired with static or provider-managed forwarded-port state.
 
 Windows uses Windows Defender Firewall rules to block the configured slskdN
 program on non-VPN interfaces while leaving loopback and the named VPN interface
-usable.
+usable. It applies rules to adapters that are active when the helper runs; run
+it again after changing VPN adapters or network interfaces.
 
 Required inputs:
 
@@ -41,6 +45,10 @@ Optional inputs:
 - `SLSKDN_VPN_PF_ANCHOR`: pf anchor name, default `slskdN/vpn`.
 - `SLSKDN_VPN_PF_ANCHOR_FILE`: anchor rules file, default
   `/etc/pf.anchors/slskdN-vpn`.
+
+The helper validates the VPN interface and service user before updating the
+anchor. If the VPN reconnects on a different interface, run it again with that
+interface name.
 
 Example:
 

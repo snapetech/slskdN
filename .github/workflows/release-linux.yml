@@ -64,8 +64,13 @@ jobs:
             -r linux-${{ matrix.arch }} \
             -p:PublishSingleFile=true
           cp src/slskdN.VpnAgent/README.md publish-linux-${{ matrix.arch }}/vpn-agent/README.md
+          cp src/slskdN.VpnAgent/GETTING_STARTED.md publish-linux-${{ matrix.arch }}/vpn-agent/GETTING_STARTED.md
+          cp src/slskdN.VpnAgent/manual-linux-wireguard.md publish-linux-${{ matrix.arch }}/vpn-agent/manual-linux-wireguard.md
+          cp src/slskdN.VpnAgent/external-tunnel.md publish-linux-${{ matrix.arch }}/vpn-agent/external-tunnel.md
           cp src/slskdN.VpnAgent/self-hosted-relay.md publish-linux-${{ matrix.arch }}/vpn-agent/self-hosted-relay.md
           cp src/slskdN.VpnAgent/windows-macos.md publish-linux-${{ matrix.arch }}/vpn-agent/windows-macos.md
+          cp src/slskdN.VpnAgent/api-contract.md publish-linux-${{ matrix.arch }}/vpn-agent/api-contract.md
+          cp docs/self-hosted-relay-tester-guide.md publish-linux-${{ matrix.arch }}/vpn-agent/self-hosted-relay-tester-guide.md
           cp -r src/slskdN.VpnAgent/systemd publish-linux-${{ matrix.arch }}/vpn-agent/
           cp -r src/slskdN.VpnAgent/examples publish-linux-${{ matrix.arch }}/vpn-agent/
           cp src/slskdN.VpnAgent/Dockerfile.relay src/slskdN.VpnAgent/compose.relay.yml publish-linux-${{ matrix.arch }}/vpn-agent/

@@ -149,8 +149,13 @@ jobs:
             /p:InformationalVersion="$PUBLIC_VERSION" \
             /p:PackageVersion="$DOTNET_VERSION"
           cp src/slskdN.VpnAgent/README.md publish-${{ matrix.runtime }}/vpn-agent/README.md
+          cp src/slskdN.VpnAgent/GETTING_STARTED.md publish-${{ matrix.runtime }}/vpn-agent/GETTING_STARTED.md
+          cp src/slskdN.VpnAgent/manual-linux-wireguard.md publish-${{ matrix.runtime }}/vpn-agent/manual-linux-wireguard.md
+          cp src/slskdN.VpnAgent/external-tunnel.md publish-${{ matrix.runtime }}/vpn-agent/external-tunnel.md
           cp src/slskdN.VpnAgent/self-hosted-relay.md publish-${{ matrix.runtime }}/vpn-agent/self-hosted-relay.md
           cp src/slskdN.VpnAgent/windows-macos.md publish-${{ matrix.runtime }}/vpn-agent/windows-macos.md
+          cp src/slskdN.VpnAgent/api-contract.md publish-${{ matrix.runtime }}/vpn-agent/api-contract.md
+          cp docs/self-hosted-relay-tester-guide.md publish-${{ matrix.runtime }}/vpn-agent/self-hosted-relay-tester-guide.md
           case "${{ matrix.runtime }}" in
             linux-*)
               cp -r src/slskdN.VpnAgent/systemd publish-${{ matrix.runtime }}/vpn-agent/

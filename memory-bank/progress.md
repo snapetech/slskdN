@@ -13165,3 +13165,27 @@ Docker image built successfully. The exact installer asset passed `bash -n`,
 its checksum matches `SHA256SUMS.txt`, and the latest-download URL returns
 HTTP 200. Launchpad's `.324` publication wait remains in progress and `.325`
 PPA publication is queued behind it; avoid duplicate same-version uploads.
+
+
+## Update 2026-09-25 22:21:00Z
+
+- Prepared and committed the YunoHost v2 package at `18319de04`, with
+  known-gotcha commits `c78d15459` and `fc33dbafc`. Published the standalone
+  public package repository `snapetech/slskdn_ynh` with matching `main` and
+  `testing` branches, then opened YunoHost/apps PR #3627. The catalog tracks
+  `testing` with state `inprogress`, includes `non-free-network`, adds the
+  square app logo, and removes the fulfilled `slskd` wishlist request.
+- The package uses checksum-pinned amd64 and arm64 assets from stable release
+  `2026092517-slskdn.325`; the date-based release tag is normalized for the
+  YunoHost version parser and future source updates.
+- Validation passed: `./bin/lint`; `dotnet test` (74 application, 5,161 unit,
+  284 integration); package manifest/scripts/general checks; catalog_linter
+  (pre-existing unrelated warnings only); logo check; shell syntax; and
+  systemd unit syntax. The package_linter process still reports expected
+  catalog lookup/status findings until PR #3627 is merged and the app reaches
+  a validated state.
+- Full YunoHost package_check (install, upgrade, URL change, backup, restore)
+  is not available locally because no LXD runtime is running. Asked maintainers
+  in the PR to run their package CI. No PR checks had reported at this update.
+- Unrelated concurrent VPN and packaging edits in the shared checkout were
+  preserved and excluded from the commits.

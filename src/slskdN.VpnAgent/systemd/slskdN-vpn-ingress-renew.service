@@ -4,4 +4,5 @@ After=slskdN-vpn-ingress.service
 
 [Service]
 Type=oneshot
+EnvironmentFile=-/etc/default/slskdN-vpn-agent
 ExecStart=/usr/local/bin/slskdN-vpn-agent renew-ingress

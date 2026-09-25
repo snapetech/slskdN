@@ -232,6 +232,7 @@ SVC
 install_vpn_agent_payload() {
   local agent_root="${DEST}/vpn-agent"
   local agent_bin="${agent_root}/slskdN-vpn-agent"
+  local unit unit_name
 
   if [ ! -x "$agent_bin" ]; then
     echo "VPN agent payload not present in this release asset; skipping VPN helper install."
@@ -243,13 +244,18 @@ install_vpn_agent_payload() {
   ln -sfn /usr/local/lib/slskdN-vpn-agent/slskdN-vpn-agent /usr/local/bin/slskdN-vpn-agent
 
   if [ -d "${agent_root}/systemd" ]; then
-    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-split.service" /etc/systemd/system/slskdN-vpn-split.service
-    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-ingress.service" /etc/systemd/system/slskdN-vpn-ingress.service
-    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-ingress-renew.service" /etc/systemd/system/slskdN-vpn-ingress-renew.service
-    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-ingress-renew.timer" /etc/systemd/system/slskdN-vpn-ingress-renew.timer
-    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-gluetun-compat.service" /etc/systemd/system/slskdN-vpn-gluetun-compat.service
-    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-watchdog.service" /etc/systemd/system/slskdN-vpn-watchdog.service
-    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-watchdog.timer" /etc/systemd/system/slskdN-vpn-watchdog.timer
+    for unit_name in \
+      slskdN-vpn-split.service \
+      slskdN-vpn-ingress.service \
+      slskdN-vpn-ingress-renew.service \
+      slskdN-vpn-ingress-renew.timer \
+      slskdN-vpn-gluetun-compat.service \
+      slskdN-vpn-watchdog.service \
+      slskdN-vpn-watchdog.timer; do
+      unit="/etc/systemd/system/${unit_name}"
+      install -D -m 0644 "${agent_root}/systemd/${unit_name}" "$unit"
+      sed -i "/^\\[Install\\]/,\$! s/slskdN\\.service/slskd.service/g" "$unit"
+    done
   fi
 
   install -d -m 0755 /var/lib/slskdN-vpn
@@ -324,9 +330,10 @@ main() {
   echo
   echo "Installed release ${SLSKDN_VERSION} to ${DEST}."
   echo "Systemd now runs: /usr/bin/dotnet ${DEST}/slskd.dll --config ${CONFIG_FILE}"
-  echo "VPN helper installed as /usr/local/bin/slskdN-vpn-agent when included in the release asset."
-  echo "After adding WireGuard/static-forward config, enable the slskdN-vpn-* units described in ${DEST}/vpn-agent/README.md or run ${DEST}/vpn-agent/install.sh."
-  echo "Next: edit ${CONFIG_FILE}, then run: systemctl enable --now slskd"
+  echo "The optional Linux VPN agent is installed but not active; it is native Linux software and does not use Wine."
+  echo "To set it up, first configure the VPN integration in ${CONFIG_FILE}, then follow ${DEST}/vpn-agent/GETTING_STARTED.md and run: sudo ${DEST}/vpn-agent/install.sh"
+  echo "The VPN routing service starts before slskd so Soulseek traffic is protected when the app starts."
+  echo "Web UI: http://localhost:5030 (HTTPS is disabled unless you configure it)."
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

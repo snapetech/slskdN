@@ -99,6 +99,21 @@ if [ -n "$LINUX_ZIP" ]; then
   else
     fail "Linux x64 zip is missing executable vpn-agent/slskdN-vpn-agent"
   fi
+  for required_file in \
+    vpn-agent/GETTING_STARTED.md \
+    vpn-agent/README.md \
+    vpn-agent/manual-linux-wireguard.md \
+    vpn-agent/external-tunnel.md \
+    vpn-agent/windows-macos.md \
+    vpn-agent/api-contract.md \
+    vpn-agent/self-hosted-relay-tester-guide.md; do
+    if [ ! -s "extracted/$required_file" ]; then
+      fail "Linux x64 zip is missing $required_file"
+    fi
+  done
+  if [ ! -x extracted/vpn-agent/install.sh ]; then
+    fail "Linux x64 zip is missing executable vpn-agent/install.sh"
+  fi
 
   marker_found=0
   for web_asset_pattern in 'wwwroot/static/js/*.js' 'wwwroot/assets/*.js'; do

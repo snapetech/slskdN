@@ -1,0 +1,42 @@
+[Unit]
+Description=slskdN Soulseek client and server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__DATA_DIR__
+Environment=HOME=__DATA_DIR__
+Environment=DOTNET_EnableDiagnostics=0
+UMask=0002
+ExecStart=__INSTALL_DIR__/slskd --config __DATA_DIR__/slskd.yml
+StandardOutput=append:/var/log/__APP__/__APP__.log
+StandardError=inherit
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+DevicePolicy=closed
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProtectSystem=strict
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+# Keep the managed runtime's clock reads available while blocking privileged
+# and obsolete system calls that the app does not need.
+SystemCallFilter=~@debug @module @mount @obsolete @reboot @setuid @swap @cpu-emulation @privileged
+CapabilityBoundingSet=~CAP_RAWIO CAP_MKNOD CAP_AUDIT_CONTROL CAP_AUDIT_READ CAP_AUDIT_WRITE CAP_SYS_BOOT CAP_SYS_TIME CAP_SYS_MODULE CAP_SYS_PACCT CAP_LEASE CAP_LINUX_IMMUTABLE CAP_IPC_LOCK CAP_BLOCK_SUSPEND CAP_WAKE_ALARM CAP_SYS_TTY_CONFIG CAP_MAC_ADMIN CAP_MAC_OVERRIDE CAP_NET_ADMIN CAP_NET_BROADCAST CAP_NET_RAW CAP_SYS_ADMIN CAP_SYS_PTRACE CAP_SYSLOG
+ReadWritePaths=__DATA_DIR__ /var/log/__APP__
+
+[Install]
+WantedBy=multi-user.target

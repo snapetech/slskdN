@@ -79,8 +79,13 @@ jobs:
             -r linux-x64 \
             -p:PublishSingleFile=true
           cp src/slskdN.VpnAgent/README.md publish-linux-x64/vpn-agent/README.md
+          cp src/slskdN.VpnAgent/GETTING_STARTED.md publish-linux-x64/vpn-agent/GETTING_STARTED.md
+          cp src/slskdN.VpnAgent/manual-linux-wireguard.md publish-linux-x64/vpn-agent/manual-linux-wireguard.md
+          cp src/slskdN.VpnAgent/external-tunnel.md publish-linux-x64/vpn-agent/external-tunnel.md
           cp src/slskdN.VpnAgent/self-hosted-relay.md publish-linux-x64/vpn-agent/self-hosted-relay.md
           cp src/slskdN.VpnAgent/windows-macos.md publish-linux-x64/vpn-agent/windows-macos.md
+          cp src/slskdN.VpnAgent/api-contract.md publish-linux-x64/vpn-agent/api-contract.md
+          cp docs/self-hosted-relay-tester-guide.md publish-linux-x64/vpn-agent/self-hosted-relay-tester-guide.md
           cp -r src/slskdN.VpnAgent/systemd publish-linux-x64/vpn-agent/
           cp -r src/slskdN.VpnAgent/examples publish-linux-x64/vpn-agent/
           cp src/slskdN.VpnAgent/Dockerfile.relay src/slskdN.VpnAgent/compose.relay.yml publish-linux-x64/vpn-agent/

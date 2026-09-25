@@ -1,0 +1,36 @@
+remote_configuration: true
+
+directories:
+  downloads: __DATA_DIR__/downloads
+  incomplete: __DATA_DIR__/incomplete
+
+shares:
+  directories: []
+
+logger:
+  disk: false
+
+web:
+  address: 127.0.0.1
+  port: __PORT__
+  url_base: __PATH__
+  https:
+    disabled: true
+  enforce_security: true
+  allow_remote_no_auth: false
+  authentication:
+    disabled: false
+    username: slskd
+    password: "__WEB_PASSWORD__"
+
+soulseek:
+  username: ~
+  password: ~
+  listen_ip_address: 0.0.0.0
+  listen_port: __PORT_SOULSEEK__
+
+dht:
+  enabled: true
+  dht_port: __PORT_SOULSEEK__
+  overlay_port: __PORT_SOULSEEK__
+  enable_upnp: false

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Changing the slskdN URL..."
+ynh_systemctl --service="$app" --action="stop"
+
+ynh_config_change_url_nginx
+ynh_replace_regex \
+    --match="^  url_base:.*$" \
+    --replace="  url_base: $path" \
+    --file="$data_dir/slskd.yml"
+
+ynh_systemctl --service="$app" --action="start"
+ynh_script_progression "URL change completed"
