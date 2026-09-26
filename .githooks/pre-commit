@@ -115,7 +115,8 @@ mapfile -d '' paths < <(git diff --cached --name-only -z --diff-filter=ACMR)
 warned_paths=0
 blocked=0
 report_file=$(mktemp)
-trap 'rm -f "$report_file"' EXIT
+blob_file=$(mktemp)
+trap 'rm -f "$report_file" "$blob_file"' EXIT
 
 for path in "${paths[@]}"; do
   [[ -z "$path" ]] && continue
@@ -129,12 +130,13 @@ for path in "${paths[@]}"; do
   fi
 
   # Pull staged blob content. If binary, skip content scan.
-  if ! staged=$(git show ":$path" 2>/dev/null); then
+  if ! git show ":$path" >"$blob_file" 2>/dev/null; then
     continue
   fi
-  if ! grep -Iq . <<<"$staged"; then
+  if ! grep -Iq . "$blob_file"; then
     continue
   fi
+  staged=$(<"$blob_file")
 
   # Search staged content for high-confidence secrets, then drop placeholder/test matches.
   hits=$(printf '%s' "$staged" | rg -n --no-heading -e "$PAT" 2>/dev/null || true)

@@ -38,7 +38,8 @@ zero40='0000000000000000000000000000000000000000'
 blocked=0
 warned=0
 report_file=$(mktemp)
-trap 'rm -f "$report_file"' EXIT
+blob_file=$(mktemp)
+trap 'rm -f "$report_file" "$blob_file"' EXIT
 
 declare -A seen_blob=()
 declare -A seen_warn_path=()
@@ -86,12 +87,13 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       fi
       seen_blob["$key"]=1
 
-      if ! blob=$(git show "${commit}:${path}" 2>/dev/null); then
+      if ! git show "${commit}:${path}" >"$blob_file" 2>/dev/null; then
         continue
       fi
-      if ! grep -Iq . <<<"$blob"; then
+      if ! grep -Iq . "$blob_file"; then
         continue
       fi
+      blob=$(<"$blob_file")
 
       hits=$(printf '%s' "$blob" | rg -n --no-heading -e "$PAT" 2>/dev/null || true)
       [[ -z "$hits" ]] && continue
