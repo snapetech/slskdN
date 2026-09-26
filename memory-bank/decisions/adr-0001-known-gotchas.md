@@ -29636,3 +29636,16 @@ as published.
 **Prevention**: Store app data and configured download/share directories under
 the supported `/app/data` mount, follow Cloudron's published manifest fields,
 and do not mark an unvalidated package version as published.
+
+### 0z918. Detect Binary Git Blobs Before Shell Capture
+
+**The Bug**: The pre-commit and pre-push secret scanners captured Git blobs in
+Bash variables before checking whether they were binary. Bash discarded NUL
+bytes with a warning, so the later binary check inspected altered content.
+
+**Files Affected**:
+- `.githooks/pre-commit`
+- `.githooks/pre-push`
+
+**Prevention**: Inspect blobs as files or streams before loading text into a
+shell variable. Never use command substitution as a binary-content test.
