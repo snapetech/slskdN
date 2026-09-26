@@ -47,7 +47,7 @@ jobs:
       - name: Build Backend
         run: |
           # Use -p:Version=0.0.0 to avoid VERSION env var (if set) being read as an invalid MSBuild $(Version)
-          dotnet build src/slskd/slskd.csproj -c Release -p:Version=0.0.0
+          dotnet build src/slskd/slskd.csproj -c Debug -p:Version=0.0.0
 
       - name: Build Frontend
         working-directory: src/web

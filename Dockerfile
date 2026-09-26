@@ -32,6 +32,7 @@ COPY src/slskd src/slskd/.
 COPY src/slskdN.VpnAgent src/slskdN.VpnAgent/.
 COPY tests tests/.
 COPY vendor vendor/.
+COPY docs/self-hosted-relay-tester-guide.md docs/self-hosted-relay-tester-guide.md
 
 COPY --from=web /slskd/src/web/build /slskd/src/slskd/wwwroot/.
 
