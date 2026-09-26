@@ -123,9 +123,10 @@ zero CodeQL alerts, zero Dependabot alerts, and zero secret-scanning alerts.
 Hosted PR checks passed for build/test, CodeQL, dependency and container scans,
 E2E, Nix smoke, load and performance checks, release-note validation, and local
 identity checks. Windows Smoke remained queued because no matching Windows
-runner was available. PRs #326 and #327 remain open because React 19 is not
-compatible with the current Semantic UI React dependency; the fork stays on
-React 18 until a migration passes validation. The fork's license boundary,
+runner was available. At that audit checkpoint, PRs #326 and #327 were open
+because React 19 was not compatible with the current Semantic UI React
+dependency. Both PRs closed unmerged on 2026-09-25; the fork stays on React 18
+until a fresh migration passes validation. The fork's license boundary,
 dependency freshness, and conservative network policy remain release gates.
 The stable release-note preview is run against the validated release base and
 head before the tag is created.

@@ -14030,3 +14030,17 @@ rollback.
   because no repository runner matches its required labels.
 - Next steps: check the two remaining package jobs; do not create another tag
   for this release. Track React 19 compatibility as separate follow-up work.
+
+## Update 2026-09-26 03:19:40Z
+
+- Current task: complete. PR #339 is merged to `main` at `efa3805a3`.
+- Hosted Build and Test, E2E (including the new TypeScript check), CodeQL,
+  package/scanning/performance/load checks, release-note validation, and
+  identity checks passed. Windows Smoke remains unavailable because its
+  matching runner is not online. No release tag was created.
+- Cleanup: there were no stashes; the YunoHost export matches the package
+  subtree on `main` and needs no merge; GitLab `main` contains no commits absent
+  from GitHub `main`; the merged PR branch is deleted. React PRs #326/#327
+  remain closed and unmerged, with React 19 as a compatibility follow-up.
+- Next steps: await maintainers on YunoHost catalog PR #3627. No further work
+  is required for this task.

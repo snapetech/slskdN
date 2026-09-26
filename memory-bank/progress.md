@@ -13225,3 +13225,21 @@ export branch has no shared Git history and was not merged.
   default pool and Bookworm test image remain available for a future rerun.
 - Next: await YunoHost maintainers; do not mark the app working or change
   ownership while catalog review is pending.
+
+## Update 2026-09-26 03:19:40Z
+
+- Merged PR #339 into `main` at `efa3805a3`. It adds self-hosted deployment
+  catalog material, fixes the Solid Client ID/localhost behavior, updates E2E
+  navigation for the current grouped UI, and adds a TypeScript check to the
+  E2E workflow.
+- Hosted Build and Test, E2E (`13m12s`), CodeQL, container/dependency scans,
+  Nix, performance/load tests, release-note validation, and identity checks
+  passed. Windows Smoke stayed queued with no matching runner. No release tag
+  was created.
+- Cleanup review found no stashes. The YunoHost export ref has no merge base
+  and its 19 files exactly match the package subtree on `main`; GitLab `main`
+  is an ancestor of GitHub `main` with no unique commits. The merged PR branch
+  was removed. React PRs #326/#327 are closed unmerged; React 18 remains until
+  a compatible migration is validated.
+- Next: await YunoHost catalog PR #3627 maintainers; no code follow-up remains
+  for PR #339. Do not create a release tag without an explicit request.

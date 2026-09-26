@@ -9,6 +9,17 @@
 
 ### High Priority
 
+- [x] Merge self-hosted deployment catalog documentation and repair Solid/E2E checks.
+  - Status: PR #339 merged to `main` as `efa3805a3` (2026-09-26).
+  - Priority: P1
+  - Notes: Added deployment material for Cloudron, Coop Cloud, and StartOS;
+    corrected Solid Client ID and explicitly allowed localhost resolution;
+    updated grouped-navigation E2E flows; and added the E2E TypeScript check to
+    CI. Local E2E typecheck and workflow YAML validation passed. Hosted build
+    and test, E2E (13m12s), CodeQL, scans, Nix, performance/load, release-note,
+    and identity checks passed. Windows Smoke remained queued without a
+    matching runner. No release tag was created.
+
 - [x] Prepare and submit the slskdN YunoHost package and catalog entry.
   - Status: package published; catalog PR #3627 remains open for maintainer
     review (2026-09-25).
@@ -71,17 +82,20 @@
     verified all archives against `SHA256SUMS.txt`, the VPN helper and Web
     marker, and Linux version output. Docker and Launchpad PPA publication
     were still running at the completion note; the other publisher jobs passed.
+    PRs #326 and #327 closed unmerged on 2026-09-25; React 19 compatibility
+    remains future work after the dependency stack has a validated migration.
 
 - [x] Review and action the open pull-request and security queues.
   - Status: completed (2026-09-24)
   - Priority: P1
   - Notes: Merged compatible PRs #333, #328, #329, #334, and #335 after
-    rebasing and validating their dependency changes. PRs #326 and #327 remain
-    open because their React 19 updates fail checks against the current
-    Semantic UI React stack, which still depends on the removed
-    findDOMNode API. GitHub reported zero open CodeQL, Dependabot, and
-    secret-scanning alerts; no findings were dismissed. Windows Smoke could
-    not run because no repository runner matches its required labels.
+    rebasing and validating their dependency changes. At this 2026-09-24
+    review, PRs #326 and #327 were still open because their React 19 updates
+    failed checks against the current Semantic UI React stack, which depends
+    on the removed `findDOMNode` API. Both closed unmerged on 2026-09-25.
+    GitHub reported zero open CodeQL, Dependabot, and secret-scanning alerts;
+    no findings were dismissed. Windows Smoke could not run because no
+    repository runner matches its required labels.
 
 - [x] Publish the next stable release with the normal date-and-sequence
   version `2026092420-slskdn.323`.
@@ -176,13 +190,15 @@
     metric. Measure connection creation, reuse, and expiry around searches
     before changing connection lifecycle behavior.
 
-- [ ] Establish React 19 compatibility before merging PRs #326 and #327.
-  - Status: blocked on Web UI compatibility work (2026-09-24)
+- [ ] Reassess React 19 compatibility and plan a fresh migration when the Web
+  dependency stack has a supported path.
+  - Status: follow-up; PRs #326 and #327 closed unmerged (2026-09-25)
   - Priority: P1
-  - Notes: The current Semantic UI React package uses the removed
-    findDOMNode path, and the React 19 PRs fail build/E2E checks. Keep the
-    runtime on React 18 until the UI stack has a validated compatible path;
-    then update both PRs and rerun the full Web suite.
+  - Notes: The current Semantic UI React stack still uses the removed
+    `findDOMNode` path, and the previous React 19 migration failed frontend
+    checks. Keep the runtime on React 18 until a supported migration is
+    validated; the old pull requests are closed and their branches are not
+    candidates for merging.
 
 
 - [x] Fix Wishlist matching, blocked-user policy, and transfer/navigation regressions.
