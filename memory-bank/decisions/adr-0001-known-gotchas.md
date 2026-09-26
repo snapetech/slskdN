@@ -29710,3 +29710,13 @@ past the CI timeout.
 **Prevention**: Use an always-visible application-shell marker to detect login
 completion. Tests that need submenu items must open their navigation group
 before looking for those items.
+
+### 0z923. Follow Current System Sections in E2E Navigation
+
+**The Bug**: System E2E tests expected every settings tab to be visible at once. The current System UI groups tabs by section, so destinations such as Swarm Analytics are hidden until their section is selected.
+
+**Files Affected**:
+- `tests/e2e/specs/analytics.spec.ts`
+- `tests/e2e/specs/jobs.spec.ts`
+
+**Prevention**: Navigate through the visible System section before selecting a nested tab, or use the registered `/system/:tab` route and assert the destination heading. Do not use a tab's hidden text as proof that the System page loaded.
