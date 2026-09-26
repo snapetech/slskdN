@@ -29620,3 +29620,19 @@ expected executable did not exist and every browser test failed at startup.
 **Prevention**: Keep the E2E build configuration aligned with the configuration
 selected by `dotnet run --no-build`; verify the expected apphost path before
 starting browser tests.
+
+### 0z917. Keep Cloudron State Under Its Supported Writable Mount
+
+**The Bug**: The Cloudron draft advertised `/app`, `/downloads`, and `/music`
+as persistent paths even though Cloudron only guarantees writable persistent
+storage at `/app/data`; its version metadata also marked an unvalidated draft
+as published.
+
+**Files Affected**:
+- `packaging/cloudron/CloudronManifest.json`
+- `packaging/cloudron/CloudronVersions.json`
+- `packaging/cloudron/Dockerfile`
+
+**Prevention**: Store app data and configured download/share directories under
+the supported `/app/data` mount, follow Cloudron's published manifest fields,
+and do not mark an unvalidated package version as published.
