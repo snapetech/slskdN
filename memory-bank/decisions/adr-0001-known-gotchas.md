@@ -29677,3 +29677,19 @@ with a duplicate-port error.
 **Prevention**: When one test needs multiple ephemeral ports, make later
 allocations reject every port already selected by that test. A free-port probe
 alone does not reserve its result after the probe socket is closed.
+
+### 0z921. Avoid Broad `params` Signatures in Test Helpers
+
+**The Bug**: A test fix introduced a private helper with a `params` argument to
+exclude a previously selected ephemeral port. The active bughunt intentionally
+counts every `params` declaration, including private test helpers, so the
+release gate rejected the change because the checked-in candidate count became
+stale.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/LocalPortForwarderTests.cs`
+- `docs/dev/bug-council-active-backlog.md`
+
+**Prevention**: Use a single explicit unavailable port when a helper only needs
+one exclusion. If a scanned change legitimately alters a candidate count,
+refresh the active backlog and run its check before pushing.
