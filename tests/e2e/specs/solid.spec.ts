@@ -73,7 +73,7 @@ test.describe('Solid Integration', () => {
     await login(page, node.apiUrl, 'admin', 'admin');
     await page.goto(`${node.apiUrl}/solid`);
     await expect(page.locator('[data-testid="solid-root"]')).toBeVisible({ timeout: 60000 });
-    await expect(page.locator('text=Client ID:')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Not configured; endpoint disabled.')).toBeVisible({ timeout: 15000 });
   });
 
   test('should resolve WebID and display OIDC issuers', async ({ page }) => {
@@ -104,9 +104,11 @@ test.describe('Solid Integration', () => {
   });
 
   test('should serve Client ID document at correct endpoint', async ({ page }) => {
+    const clientIdUrl = 'https://slskdn.example/solid/clientid.jsonld';
     const node = await harness.startNode('alice-solid-clientid', 'test-data/slskdn-test-fixtures/music', {
       solidEnabled: true,
-      solidAllowedHosts: [fakeSolid.getHostname()]
+      solidAllowedHosts: [fakeSolid.getHostname()],
+      solidClientIdUrl: clientIdUrl
     });
 
     // Client ID document is anonymous; no login required
@@ -120,9 +122,10 @@ test.describe('Solid Integration', () => {
     // JSON-LD uses @context; some parsers expose it as context
     const context = doc['@context'] ?? doc.context;
     expect(context).toBe('https://www.w3.org/ns/solid/oidc-context.jsonld');
-    expect(doc.client_id).toContain('/solid/clientid.jsonld');
+    expect(doc.client_id).toBe(clientIdUrl);
     expect(doc.redirect_uris).toBeDefined();
     expect(Array.isArray(doc.redirect_uris)).toBe(true);
+    expect(doc.redirect_uris).toEqual(['https://slskdn.example/solid/callback']);
   });
 
   test('should block WebID resolution when host not in AllowedHosts', async ({ page }) => {

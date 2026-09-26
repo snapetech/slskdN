@@ -1,0 +1,55 @@
+{
+  "stable": true,
+  "versions": {
+    "2026.9.2517": {
+      "creationDate": "Fri, 25 Sep 2026 17:55:25 GMT",
+      "manifest": {
+        "id": "tech.snapetech.slskdn",
+        "title": "slskdN",
+        "description": "AGPL-3.0 Soulseek client with discovery, downloads, library sharing, DHT, and optional mesh networking.",
+        "tagline": "Soulseek client with discovery and download automation",
+        "version": "2026.9.2517",
+        "healthCheckPath": "/health",
+        "httpPort": 5030,
+        "tcpPorts": {
+          "SOULSEEK": {
+            "title": "Soulseek TCP port",
+            "description": "Incoming Soulseek and mesh TCP traffic.",
+            "containerPort": 50300
+          }
+        },
+        "udpPorts": {
+          "SOULSEEK_UDP": {
+            "title": "Soulseek UDP port",
+            "description": "Optional DHT, mesh rendezvous, and QUIC UDP traffic.",
+            "containerPort": 50300
+          }
+        },
+        "addons": {
+          "localstorage": {}
+        },
+        "manifestVersion": 2,
+        "website": "https://github.com/snapetech/slskdn",
+        "documentationUrl": "https://github.com/snapetech/slskdn#readme",
+        "packageUrl": "https://github.com/snapetech/slskdn",
+        "iconUrl": "https://raw.githubusercontent.com/snapetech/slskdn/main/src/web/public/logo512.png",
+        "tags": [
+          "music",
+          "soulseek",
+          "downloads",
+          "p2p"
+        ],
+        "minBoxVersion": "10.0.0",
+        "changelog": "* Initial Cloudron community package for slskdN 2026092517-slskdn.325.",
+        "mediaLinks": [
+          "https://raw.githubusercontent.com/snapetech/slskdN/main/packaging/cloudron/screenshot.png"
+        ],
+        "packagerName": "Snapetech",
+        "packagerUrl": "https://github.com/snapetech",
+        "dockerImage": "docker.io/snapetech/slskdn:2026092517-slskdn.325"
+      },
+      "publishState": "testing",
+      "ts": "Fri, 25 Sep 2026 17:55:25 GMT"
+    }
+  }
+}

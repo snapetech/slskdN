@@ -13,6 +13,7 @@ export interface NodeConfig {
   };
   solidEnabled?: boolean;
   solidAllowedHosts?: string[];
+  solidClientIdUrl?: string;
 }
 
 /**
@@ -68,7 +69,7 @@ export class SlskdnNode {
 solid:
   allowedHosts:${allowedHostsYaml}
   allowInsecureHttp: true
-  allowLocalhostForWebId: true`
+  allowLocalhostForWebId: true${this.config.solidClientIdUrl ? `\n  clientIdUrl: "${this.config.solidClientIdUrl}"` : ''}`
       : '';
 
     // slskdn requires absolute paths for shares; repo root when running from tests/e2e is ../..
@@ -114,7 +115,7 @@ flags:
     const args = ['run', '--project', projectPath, '--no-build', '--', '--config', configPath, '--app-dir', this.appDir];
 
     // stdin must be a pipe kept open: when stdin is /dev/null (ignore), the child can see EOF and exit (e.g. dotnet run)
-    const baseEnv = {
+    const baseEnv: NodeJS.ProcessEnv = {
       ...process.env,
       ASPNETCORE_ENVIRONMENT: 'Development',
       DOTNET_CLI_TELEMETRY_OPTOUT: '1',

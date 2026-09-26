@@ -1,0 +1,47 @@
+services:
+  app:
+    image: docker.io/snapetech/slskdn:2026092517-slskdn.325
+    environment:
+      SLSKD_HTTP_ADDRESS: 0.0.0.0
+      SLSKD_HTTP_PORT: "5030"
+      SLSKD_HTTPS_PORT: "5031"
+      SLSKD_SLSK_LISTEN_PORT: "50300"
+      SLSKD_APP_DIR: /app
+      SLSKD_DOWNLOADS_DIR: /downloads
+      SLSKD_SHARED_DIR: /music
+      SLSKD_UMASK: "0022"
+    volumes:
+      - slskdn_app:/app
+      - slskdn_downloads:/downloads
+      - slskdn_music:/music:ro
+    networks:
+      - proxy
+    ports:
+      - target: 50300
+        published: 50300
+        protocol: tcp
+        mode: host
+      - target: 50300
+        published: 50300
+        protocol: udp
+        mode: host
+    deploy:
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=proxy"
+        - "traefik.http.services.${STACK_NAME}.loadbalancer.server.port=5030"
+        - "traefik.http.routers.${STACK_NAME}.rule=Host(`${DOMAIN}`${EXTRA_DOMAINS})"
+        - "traefik.http.routers.${STACK_NAME}.entrypoints=web-secure"
+        - "traefik.http.routers.${STACK_NAME}.tls.certresolver=${LETS_ENCRYPT_ENV}"
+        - "coop-cloud.${STACK_NAME}.version=2026092517-slskdn.325"
+
+volumes:
+  slskdn_app:
+  slskdn_downloads:
+  slskdn_music:
+
+networks:
+  proxy:
+    external: true

@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.Solid;
 
+using System.Collections.Generic;
 using System.Net.Http;
 using Microsoft.Extensions.Http;
 
@@ -15,8 +16,11 @@ internal sealed class TestHttpClientFactory : IHttpClientFactory
         _client = client;
     }
 
+    public List<string> ClientNames { get; } = new();
+
     public HttpClient CreateClient(string name)
     {
+        ClientNames.Add(name);
         return _client;
     }
 }

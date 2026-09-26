@@ -18,6 +18,7 @@ test.describe('Smoke Tests', () => {
 
   // Node startup can take 60–90s (port allocation, dotnet cold start, health check). Use 2m so we don't flake.
   test.beforeAll(async () => {
+    test.setTimeout(120000);
     harness = new MultiPeerHarness();
 
     // One node for the whole suite.
@@ -25,7 +26,7 @@ test.describe('Smoke Tests', () => {
     const node = await harness.startNode('alice', 'test-data/slskdn-test-fixtures/music');
     nodeApiUrl = node.apiUrl;
     await waitForHealth(nodeApiUrl);
-  }, { timeout: 120000 });
+  });
 
   test.afterAll(async () => {
     await harness.stopAll();
@@ -46,7 +47,7 @@ test.describe('Smoke Tests', () => {
     await login(page, nodeApiUrl, 'admin', 'admin');
     await waitForAppReady(page, nodeApiUrl);
 
-    await expect(page.locator(selectors.nav.contacts)).toBeVisible();
+    await expect(page.locator(selectors.nav.appShell)).toBeVisible();
 
     const url = page.url();
     expect(url).toContain(nodeApiUrl);
@@ -56,7 +57,8 @@ test.describe('Smoke Tests', () => {
     await login(page, nodeApiUrl, 'admin', 'admin');
     await waitForAppReady(page, nodeApiUrl);
 
-    await page.goto(`${nodeApiUrl}/contacts`);
+    await page.locator(selectors.nav.networkGroup).click();
+    await page.locator(selectors.nav.contacts).click();
     await expect(page.locator(selectors.contacts.createInvite)).toBeVisible();
   });
 
@@ -64,7 +66,8 @@ test.describe('Smoke Tests', () => {
     await login(page, nodeApiUrl, 'admin', 'admin');
     await waitForAppReady(page, nodeApiUrl);
 
-    await page.goto(`${nodeApiUrl}/sharegroups`);
+    await page.locator(selectors.nav.sharingGroup).click();
+    await page.locator(selectors.nav.shareGroups).click();
     await expect(page.locator(selectors.shareGroups.createGroup)).toBeVisible();
   });
 });

@@ -86,9 +86,14 @@ import { selectors } from '../fixtures/selectors';
 test('should login', async ({ page }) => {
   const node = harness.getNode('alice');
   await login(page, node.apiUrl, 'admin', 'admin');
-  await expect(page.locator(selectors.nav.contacts)).toBeVisible();
+  await expect(page.locator(selectors.nav.appShell)).toBeVisible();
 });
 ```
+
+Network and Sharing destinations live in click-open navigation groups. System
+destinations are grouped into sections, and only the active section's tabs are
+shown. Open the relevant group or section before asserting or clicking a
+destination.
 
 ## Configuration
 

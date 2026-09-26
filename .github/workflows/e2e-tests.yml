@@ -44,11 +44,6 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Backend
-        run: |
-          # Use -p:Version=0.0.0 to avoid VERSION env var (if set) being read as an invalid MSBuild $(Version)
-          dotnet build src/slskd/slskd.csproj -c Release -p:Version=0.0.0
-
       - name: Build Frontend
         working-directory: src/web
         run: |
@@ -58,6 +53,12 @@ jobs:
           rm -rf ../slskd/wwwroot/*
           cp -r build/* ../slskd/wwwroot/
 
+      - name: Build Backend
+        run: |
+          # Web assets must be present before build so they are copied beside the E2E executable.
+          # Use -p:Version=0.0.0 to avoid VERSION env var (if set) being read as an invalid MSBuild $(Version)
+          dotnet build src/slskd/slskd.csproj -c Debug -p:Version=0.0.0
+
       - name: Fetch Test Fixtures
         run: |
           ./scripts/fetch-test-fixtures.sh
@@ -66,6 +67,9 @@ jobs:
       - name: Install E2E Dependencies
         run: |
           pnpm --filter @slskdn/e2e exec playwright install --with-deps chromium
+
+      - name: Typecheck E2E Tests
+        run: pnpm --filter @slskdn/e2e typecheck
 
       - name: Run E2E Tests
         run: pnpm --filter @slskdn/e2e test:e2e:ci

@@ -17,6 +17,7 @@ export class MultiPeerHarness {
       flags?: { noConnect?: boolean };
       solidEnabled?: boolean;
       solidAllowedHosts?: string[];
+      solidClientIdUrl?: string;
     }
   ): Promise<SlskdnNode> {
     if (this.nodes.has(name)) {
@@ -28,7 +29,8 @@ export class MultiPeerHarness {
       shareDir,
       flags: options?.flags,
       solidEnabled: options?.solidEnabled,
-      solidAllowedHosts: options?.solidAllowedHosts
+      solidAllowedHosts: options?.solidAllowedHosts,
+      solidClientIdUrl: options?.solidClientIdUrl
     });
 
     await node.start();

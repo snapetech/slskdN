@@ -31,7 +31,7 @@ public class SolidControllerTests
             Feature = new slskd.Options.FeatureOptions { Solid = true },
             Solid = new slskd.Options.SolidOptions
             {
-                ClientIdUrl = "/solid/clientid.jsonld",
+                ClientIdUrl = "https://slskdn.example/solid/clientid.jsonld",
                 RedirectPath = "/solid/callback"
             }
         });
@@ -66,8 +66,23 @@ public class SolidControllerTests
         var ok = Assert.IsType<OkObjectResult>(r);
         var result = ok.Value as dynamic;
         Assert.True(result.enabled);
-        Assert.Equal("/solid/clientid.jsonld", result.clientId.ToString());
+        Assert.Equal("https://slskdn.example/solid/clientid.jsonld", result.clientId.ToString());
         Assert.Equal("/solid/callback", result.redirectPath.ToString());
+    }
+
+    [Fact]
+    public async Task Status_UnconfiguredClientId_ReturnsNull()
+    {
+        _options = new TestOptionsMonitor(new slskd.Options
+        {
+            Feature = new slskd.Options.FeatureOptions { Solid = true },
+            Solid = new slskd.Options.SolidOptions()
+        });
+        var c = CreateController();
+
+        var result = Assert.IsType<OkObjectResult>(c.Status());
+
+        Assert.Null(result.Value?.GetType().GetProperty("clientId")?.GetValue(result.Value));
     }
 
     [Fact]

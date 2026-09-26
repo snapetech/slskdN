@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { MultiPeerHarness } from '../harness/MultiPeerHarness';
 import { login, waitForHealth } from '../fixtures/helpers';
+import { selectors } from '../fixtures/selectors';
 
 /**
  * E2E tests for Jobs functionality.
@@ -33,21 +34,14 @@ test.describe('Jobs', () => {
     await waitForHealth(alice.apiUrl);
     await login(page, alice.apiUrl, 'admin', 'admin');
 
-    // Navigate to System page
-    await page.goto(`${alice.apiUrl}/system`);
-    await page.waitForLoadState('networkidle');
+    // System destinations are grouped by section, and only the active
+    // section's tabs are rendered.
+    await page.locator(selectors.nav.system).click();
+    await page.getByText('Automation & Jobs', { exact: true }).click();
+    await page.getByText('Jobs', { exact: true }).click();
 
-    // Navigate to Jobs tab
-    const jobsTab = page.locator('text=Jobs').first();
-    if (await jobsTab.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await jobsTab.click();
-      
-      // Verify jobs page loaded
-      await page.waitForLoadState('networkidle');
-    }
-
-    // Test passes if page loaded
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page).toHaveURL(`${alice.apiUrl}/system/jobs`);
+    await expect(page.getByRole('heading', { name: 'Job Analytics' })).toBeVisible();
   });
 
   test('should display jobs list', async ({ page }) => {
@@ -64,7 +58,7 @@ test.describe('Jobs', () => {
 
     // Jobs list may or may not have items
     // Test passes if page loaded
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page.getByRole('heading', { name: 'Job Analytics' })).toBeVisible();
   });
 
   test('should display swarm jobs section when swarm downloads exist', async ({ page }) => {
@@ -83,7 +77,7 @@ test.describe('Jobs', () => {
 
     // Swarm jobs may or may not be visible depending on active downloads
     // Test passes if page loaded
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page.getByRole('heading', { name: 'Job Analytics' })).toBeVisible();
   });
 
   test('should open swarm visualization modal when View Details is clicked', async ({ page }) => {
@@ -116,7 +110,7 @@ test.describe('Jobs', () => {
     }
 
     // Test passes if page loaded
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page.getByRole('heading', { name: 'Job Analytics' })).toBeVisible();
   });
 
   test('should refresh swarm jobs periodically', async ({ page }) => {

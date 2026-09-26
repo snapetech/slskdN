@@ -7,6 +7,7 @@
   "description": "End-to-end tests for slskdn using Playwright",
   "private": true,
   "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "playwright test",
     "test:e2e:ci": "playwright test",
     "test:headed": "playwright test --headed",

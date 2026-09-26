@@ -1874,8 +1874,7 @@ namespace slskd
             public string[] AllowedHosts { get; init; } = Array.Empty<string>();
 
             /// <summary>
-            /// Where the Solid-OIDC Client ID document is served from (default: /solid/clientid.jsonld).
-            /// Leave empty to auto-derive from request base URL.
+            /// Canonical absolute URL for the Solid-OIDC Client ID document. Empty disables the document endpoint.
             /// </summary>
             public string? ClientIdUrl { get; init; }
 

@@ -66,8 +66,8 @@ export const selectors = {
 
 ## Known Issues
 
-1. **Login form selectors**: The actual login form may use different IDs. Update `selectors.login` based on actual UI.
-2. **Navigation selectors**: Update `selectors.nav` based on actual navigation structure.
+1. **Login form selectors**: Keep `selectors.login` aligned with the actual login form.
+2. **Grouped navigation**: Network and Sharing destinations are hidden until their click-open group is expanded. System destinations are shown only after selecting their section. Open the group or section before asserting a destination.
 3. **Modal selectors**: Share group creation modal may need additional selectors.
 
 ## Next Steps

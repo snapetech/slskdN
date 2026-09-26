@@ -29578,3 +29578,197 @@ could run.
 **Prevention**: Explicitly run process-level API tests in headless mode and set
 `web.content_path` to an existing directory under the test executable's base
 path. This keeps the test setup independent of release packaging.
+
+### 0z914. Keep Release-Note Fragments Append-Only
+
+**The Bug**: Updating an existing release-note fragment to add another
+user-facing change made the release-note gate fail because fragments are
+immutable after they are added.
+
+**Files Affected**:
+- `release-notes/`
+- `scripts/release_notes.py`
+
+**Prevention**: Keep the original fragment unchanged and add a separate
+validated fragment for each later change. Do not edit an existing fragment to
+make it pass a new review or release-note requirement.
+
+### 0z915. Stage Release Inputs in the Docker Publish Context
+
+**The Bug**: The shared publish script copied a VPN guide from the repository's
+`docs/` directory, but the Docker publish stage copied only selected source
+directories, so the guide was missing and the image build failed.
+
+**Files Affected**:
+- `Dockerfile`
+- `bin/publish`
+
+**Prevention**: When a shared publish script gains a new source-file copy,
+check every build context that invokes it and stage that source in each
+context's Dockerfile before running the script.
+
+### 0z916. Match E2E Build and Launch Configurations
+
+**The Bug**: The E2E workflow built the application in Release while its
+`dotnet run --no-build` harness used the default Debug configuration, so the
+expected executable did not exist and every browser test failed at startup.
+
+**Files Affected**:
+- `.github/workflows/e2e-tests.yml`
+- `tests/e2e/harness/SlskdnNode.ts`
+
+**Prevention**: Keep the E2E build configuration aligned with the configuration
+selected by `dotnet run --no-build`; verify the expected apphost path before
+starting browser tests.
+
+### 0z917. Keep Cloudron State Under Its Supported Writable Mount
+
+**The Bug**: The Cloudron draft advertised `/app`, `/downloads`, and `/music`
+as persistent paths even though Cloudron only guarantees writable persistent
+storage at `/app/data`; its version metadata also marked an unvalidated draft
+as published.
+
+**Files Affected**:
+- `packaging/cloudron/CloudronManifest.json`
+- `packaging/cloudron/CloudronVersions.json`
+- `packaging/cloudron/Dockerfile`
+
+**Prevention**: Store app data and configured download/share directories under
+the supported `/app/data` mount, follow Cloudron's published manifest fields,
+and do not mark an unvalidated package version as published.
+
+### 0z918. Detect Binary Git Blobs Before Shell Capture
+
+**The Bug**: The pre-commit and pre-push secret scanners captured Git blobs in
+Bash variables before checking whether they were binary. Bash discarded NUL
+bytes with a warning, so the later binary check inspected altered content.
+
+**Files Affected**:
+- `.githooks/pre-commit`
+- `.githooks/pre-push`
+
+**Prevention**: Inspect blobs as files or streams before loading text into a
+shell variable. Never use command substitution as a binary-content test.
+
+### 0z919. Stage the Web UI Before Building the E2E App
+
+**The Bug**: The E2E workflow built the backend before copying the Web build
+into `src/slskd/wwwroot`. The backend build therefore did not copy the static
+files beside its executable, and startup rejected the default `wwwroot`
+content path as missing.
+
+**Files Affected**:
+- `.github/workflows/e2e-tests.yml`
+
+**Prevention**: Build the Web UI and copy it into the backend project before
+building the backend. Its content items are then copied into the configuration
+specific output directory used by `dotnet run --no-build`.
+
+### 0z920. Keep Ephemeral Ports Distinct in Multi-Forwarder Tests
+
+**The Bug**: A test called its free-port helper twice; each call closed its
+temporary socket before the forwarding listeners started. The OS could then
+return the same ephemeral port for both calls, so the second forwarder failed
+with a duplicate-port error.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/LocalPortForwarderTests.cs`
+
+**Prevention**: When one test needs multiple ephemeral ports, make later
+allocations reject every port already selected by that test. A free-port probe
+alone does not reserve its result after the probe socket is closed.
+
+### 0z921. Avoid Broad `params` Signatures in Test Helpers
+
+**The Bug**: A test fix introduced a private helper with a `params` argument to
+exclude a previously selected ephemeral port. The active bughunt intentionally
+counts every `params` declaration, including private test helpers, so the
+release gate rejected the change because the checked-in candidate count became
+stale.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/LocalPortForwarderTests.cs`
+- `docs/dev/bug-council-active-backlog.md`
+
+**Prevention**: Use a single explicit unavailable port when a helper only needs
+one exclusion. If a scanned change legitimately alters a candidate count,
+refresh the active backlog and run its check before pushing.
+
+### 0z922. Wait for Visible Navigation Shell in E2E Login Helpers
+
+**The Bug**: The E2E login helper treated the Contacts navigation item as proof
+that login had completed. The item moved into the click-open Network dropdown,
+so it was hidden on the main page even after login succeeded. The serial browser
+suite then retried every page against a stale visibility assumption and ran
+past the CI timeout.
+
+**Files Affected**:
+- `tests/e2e/fixtures/helpers.ts`
+- `tests/e2e/fixtures/selectors.ts`
+- `tests/e2e/specs/smoke.spec.ts`
+
+**Prevention**: Use an always-visible application-shell marker to detect login
+completion. Tests that need submenu items must open their navigation group
+before looking for those items.
+
+### 0z923. Follow Current System Sections in E2E Navigation
+
+**The Bug**: System E2E tests expected every settings tab to be visible at once. The current System UI groups tabs by section, so destinations such as Swarm Analytics are hidden until their section is selected.
+
+**Files Affected**:
+- `tests/e2e/specs/analytics.spec.ts`
+- `tests/e2e/specs/jobs.spec.ts`
+
+**Prevention**: Navigate through the visible System section before selecting a nested tab, or use the registered `/system/:tab` route and assert the destination heading. Do not use a tab's hidden text as proof that the System page loaded.
+
+### 0z924. Account for Badges in System Tab Text Selectors
+
+**The Bug**: A System tab label includes its adjacent status badge in the rendered text, so an exact text locator for the label alone cannot find the tab.
+
+**Files Affected**:
+- `tests/e2e/specs/analytics.spec.ts`
+
+**Prevention**: Scope the locator to the System tab menu and match the label as a substring, or navigate through the registered route. Avoid exact-text matching when the tab also renders a badge.
+
+### 0z925. Configure the Solid Client ID URL in Endpoint Tests
+
+**The Bug**: An E2E test expected the anonymous Solid Client ID document to return 200 while its node omitted `solid.clientIdUrl`; the document endpoint intentionally returns 404 when no canonical URL is configured.
+
+**Files Affected**:
+- `tests/e2e/harness/SlskdnNode.ts`
+- `tests/e2e/specs/solid.spec.ts`
+
+**Prevention**: Configure an absolute `solid.clientIdUrl` in tests that expect the Client ID document to be served, then assert that the response publishes that configured canonical URL.
+
+### 0z926. Match Solid Localhost Policy with the Outbound HTTP Client
+
+**The Bug**: `AllowLocalhostForWebId` let the Solid fetch policy accept a localhost WebID, but the resolver still used the public-address-only HTTP client, which rejected the loopback connection.
+
+**Files Affected**:
+- `src/slskd/Solid/SolidFetchPolicy.cs`
+- `src/slskd/Solid/SolidWebIdResolver.cs`
+
+**Prevention**: Permit only explicitly enabled loopback targets in the Solid fetch policy and use the no-redirect local client for those targets. Keep the public-address guard for every other Solid fetch.
+
+### 0z927. Do Not Advertise an Unconfigured Solid Client ID Endpoint
+
+**The Bug**: Solid status reported `/solid/clientid.jsonld` as the Client ID when no canonical URL was configured, even though the document endpoint returned 404.
+
+**Files Affected**:
+- `src/slskd/Solid/API/SolidController.cs`
+- `src/web/src/components/Solid/SolidSettings.jsx`
+
+**Prevention**: Report only the configured canonical URL and show an explicit unconfigured state when it is absent. Do not present a fallback path as a live endpoint.
+
+### 0z928. Typecheck Playwright's Node and Browser Contexts
+
+**The Bug**: The E2E workspace had no typecheck in CI, and its TypeScript configuration excluded browser globals used inside Playwright page callbacks. It also inferred child-process environment variables too narrowly and passed an options object where `test.beforeAll` expects a numeric timeout.
+
+**Files Affected**:
+- `tests/e2e/tsconfig.json`
+- `tests/e2e/harness/SlskdnNode.ts`
+- `tests/e2e/specs/sharing.spec.ts`
+- `tests/e2e/specs/smoke.spec.ts`
+- `.github/workflows/e2e-tests.yml`
+
+**Prevention**: Include the DOM library for page-evaluated browser code, type spawned environments as `NodeJS.ProcessEnv`, set hook timeouts with `test.setTimeout()` inside the hook callback, and run the E2E typecheck in CI before browser tests.
