@@ -29729,3 +29729,13 @@ before looking for those items.
 - `tests/e2e/specs/analytics.spec.ts`
 
 **Prevention**: Scope the locator to the System tab menu and match the label as a substring, or navigate through the registered route. Avoid exact-text matching when the tab also renders a badge.
+
+### 0z925. Configure the Solid Client ID URL in Endpoint Tests
+
+**The Bug**: An E2E test expected the anonymous Solid Client ID document to return 200 while its node omitted `solid.clientIdUrl`; the document endpoint intentionally returns 404 when no canonical URL is configured.
+
+**Files Affected**:
+- `tests/e2e/harness/SlskdnNode.ts`
+- `tests/e2e/specs/solid.spec.ts`
+
+**Prevention**: Configure an absolute `solid.clientIdUrl` in tests that expect the Client ID document to be served, then assert that the response publishes that configured canonical URL.
