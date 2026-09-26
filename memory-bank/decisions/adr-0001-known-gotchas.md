@@ -29474,3 +29474,17 @@ could run.
 **Prevention**: Explicitly run process-level API tests in headless mode and set
 `web.content_path` to an existing directory under the test executable's base
 path. This keeps the test setup independent of release packaging.
+
+### 0z914. Keep Release-Note Fragments Append-Only
+
+**The Bug**: Updating an existing release-note fragment to add another
+user-facing change made the release-note gate fail because fragments are
+immutable after they are added.
+
+**Files Affected**:
+- `release-notes/`
+- `scripts/release_notes.py`
+
+**Prevention**: Keep the original fragment unchanged and add a separate
+validated fragment for each later change. Do not edit an existing fragment to
+make it pass a new review or release-note requirement.
