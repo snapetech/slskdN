@@ -29693,3 +29693,20 @@ stale.
 **Prevention**: Use a single explicit unavailable port when a helper only needs
 one exclusion. If a scanned change legitimately alters a candidate count,
 refresh the active backlog and run its check before pushing.
+
+### 0z922. Wait for Visible Navigation Shell in E2E Login Helpers
+
+**The Bug**: The E2E login helper treated the Contacts navigation item as proof
+that login had completed. The item moved into the click-open Network dropdown,
+so it was hidden on the main page even after login succeeded. The serial browser
+suite then retried every page against a stale visibility assumption and ran
+past the CI timeout.
+
+**Files Affected**:
+- `tests/e2e/fixtures/helpers.ts`
+- `tests/e2e/fixtures/selectors.ts`
+- `tests/e2e/specs/smoke.spec.ts`
+
+**Prevention**: Use an always-visible application-shell marker to detect login
+completion. Tests that need submenu items must open their navigation group
+before looking for those items.
