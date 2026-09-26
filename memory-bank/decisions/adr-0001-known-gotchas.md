@@ -29739,3 +29739,13 @@ before looking for those items.
 - `tests/e2e/specs/solid.spec.ts`
 
 **Prevention**: Configure an absolute `solid.clientIdUrl` in tests that expect the Client ID document to be served, then assert that the response publishes that configured canonical URL.
+
+### 0z926. Match Solid Localhost Policy with the Outbound HTTP Client
+
+**The Bug**: `AllowLocalhostForWebId` let the Solid fetch policy accept a localhost WebID, but the resolver still used the public-address-only HTTP client, which rejected the loopback connection.
+
+**Files Affected**:
+- `src/slskd/Solid/SolidFetchPolicy.cs`
+- `src/slskd/Solid/SolidWebIdResolver.cs`
+
+**Prevention**: Permit only explicitly enabled loopback targets in the Solid fetch policy and use the no-redirect local client for those targets. Keep the public-address guard for every other Solid fetch.
