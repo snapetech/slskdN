@@ -10,7 +10,8 @@
 ### High Priority
 
 - [x] Prepare and submit the slskdN YunoHost package and catalog entry.
-  - Status: package committed and catalog PR #3627 opened (2026-09-25).
+  - Status: package published; catalog PR #3627 remains open for maintainer
+    review (2026-09-25).
   - Priority: P1
   - Notes: Added the YunoHost v2 package under `packaging/yunohost/`, pinned
     stable release `2026092517-slskdn.325` for amd64 and arm64, and published
@@ -19,15 +20,22 @@
     `inprogress` on `testing`, adds the `non-free-network` antifeature and
     logo, and removes the fulfilled `slskd` wishlist entry. The package linter
     passes manifest, script, and general package checks; catalog status remains
-    pending PR merge. `catalog_linter.py` and `logos_check.py` pass. `./bin/lint`
-    and `dotnet test` pass (74 application, 5,161 unit, 284 integration).
-    Full YunoHost package_check was unavailable locally because no LXD runtime
-    is running; maintainers still need to validate install, upgrade, URL
-    changes, backup, and restore.
+    pending PR merge. Fixed Debian apt package selection with YunoHost v2's
+    `packages_from_raw_bash`, documented the alternatives gotcha, and pushed
+    root commit `729bb171e` plus package-repo commit `4a2c89d` to both package
+    branches. `package_check.sh` on YunoHost 12.1.41.2 (Bookworm) passed all
+    seven cases: package linter, root/subpath/multi-instance installs,
+    backup/restore, upgrade, and URL change. Its overall catalog level remains
+    0 while the unmerged app lacks catalog metadata; the lifecycle cases all
+    pass. `catalog_linter.py`, `logos_check.py`, `./bin/lint`, and `dotnet test`
+    pass (74 application, 5,161 unit, 284 integration). Updated PR #3627 with
+    the full test results; keep the app `inprogress` on `testing` until
+    maintainers complete review.
 
 - [ ] Respond to YunoHost catalog PR #3627 review and update the catalog state
   only after YunoHost package CI validates the package.
-  - Status: awaiting maintainer review and package CI (2026-09-25).
+  - Status: awaiting maintainer review; the complete local package-check suite
+    passed on 2026-09-26.
   - Priority: P2
   - Notes: Keep the catalog on the `testing` branch and `inprogress` state
     until maintainers verify the package lifecycle. Do not transfer repository

@@ -1,3 +1,20 @@
+## Update 2026-09-26 00:12:50Z
+
+- Current task: complete. The YunoHost package and catalog submission are
+  published; root commit 729bb171e and package-repository commit 4a2c89d are
+  pushed. Package branches main and testing both point to the fixed manifest.
+- Full YunoHost package_check on YunoHost 12.1.41.2 (Bookworm) passed all seven
+  cases: linter, root/subpath/multi-instance installs, backup/restore, upgrade,
+  and URL changes. The overall catalog level stays 0 because the app is not yet
+  merged into catalog metadata; all lifecycle case summaries are OK. The
+  checker reports one linter warning and three possible improvements.
+- PR #3627 is open and its body now includes the full validation. Keep the
+  catalog entry testing/inprogress until maintainers finish review.
+- Temporary test containers, extra bridge, and firewall exceptions are
+  removed. LXD service/socket are stopped and disabled; its configured default
+  pool and Bookworm test image remain for a future rerun.
+- Next: await YunoHost maintainer review and any requested changes.
+
 ## Update 2026-09-25 22:27:22Z
 
 - Completed the VPN-agent onboarding request and pushed it to `main` in merge

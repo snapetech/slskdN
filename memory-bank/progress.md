@@ -13203,3 +13203,25 @@ export branch has no shared Git history and was not merged.
   in the PR to run their package CI. No PR checks had reported at this update.
 - Unrelated concurrent VPN and packaging edits in the shared checkout were
   preserved and excluded from the commits.
+## Update 2026-09-26 00:12:50Z
+
+- Fixed YunoHost v2 apt dependency selection: manifest package entries do not
+  accept pipe-separated alternatives, so ICU and LTTng candidates are selected
+  from the installed Debian release through packages_from_raw_bash. The root
+  change is 729bb171e with a validated release-note fragment; package-repo
+  commit 4a2c89d is pushed to both testing and main.
+- Full package_check on YunoHost 12.1.41.2 (Bookworm) passed all seven cases:
+  package linter, root install, subpath install, multi-instance,
+  backup/restore, upgrade, and URL change. The checker still reports overall
+  catalog level 0 because the app metadata is not merged into the catalog;
+  this is separate from the passing lifecycle cases. Linter reports one
+  warning and three possible improvements.
+- Updated YunoHost/apps PR #3627 with the completed validation. It remains open
+  for maintainer review; the app stays on testing/inprogress.
+- The checker expects host interface incusbr0, so a temporary LXD bridge was
+  needed after the first HTTP probe failed on the original lxdbr0 name. All
+  test containers and temporary firewall exceptions are removed; lynx was
+  removed, and the LXD service/socket are stopped and disabled. The configured
+  default pool and Bookworm test image remain available for a future rerun.
+- Next: await YunoHost maintainers; do not mark the app working or change
+  ownership while catalog review is pending.
