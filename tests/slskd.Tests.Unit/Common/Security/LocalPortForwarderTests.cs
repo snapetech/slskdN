@@ -55,11 +55,18 @@ public class LocalPortForwarderTests : IDisposable
         _portForwarder.Dispose();
     }
 
-    private static int GetFreeLocalPort()
+    private static int GetFreeLocalPort(params int[] unavailablePorts)
     {
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
+        while (true)
+        {
+            using var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            if (!unavailablePorts.Contains(port))
+            {
+                return port;
+            }
+        }
     }
 
     [Fact]
@@ -170,7 +177,7 @@ public class LocalPortForwarderTests : IDisposable
     {
         // Arrange
         var localPort1 = GetFreeLocalPort();
-        var localPort2 = GetFreeLocalPort();
+        var localPort2 = GetFreeLocalPort(localPort1);
         var response1 = new ServiceReply
         {
             CorrelationId = Guid.NewGuid().ToString(),
