@@ -29649,3 +29649,17 @@ bytes with a warning, so the later binary check inspected altered content.
 
 **Prevention**: Inspect blobs as files or streams before loading text into a
 shell variable. Never use command substitution as a binary-content test.
+
+### 0z919. Stage the Web UI Before Building the E2E App
+
+**The Bug**: The E2E workflow built the backend before copying the Web build
+into `src/slskd/wwwroot`. The backend build therefore did not copy the static
+files beside its executable, and startup rejected the default `wwwroot`
+content path as missing.
+
+**Files Affected**:
+- `.github/workflows/e2e-tests.yml`
+
+**Prevention**: Build the Web UI and copy it into the backend project before
+building the backend. Its content items are then copied into the configuration
+specific output directory used by `dotnet run --no-build`.
