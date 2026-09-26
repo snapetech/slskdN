@@ -29771,4 +29771,4 @@ before looking for those items.
 - `tests/e2e/specs/smoke.spec.ts`
 - `.github/workflows/e2e-tests.yml`
 
-**Prevention**: Include the DOM library for page-evaluated browser code, type spawned environments as `NodeJS.ProcessEnv`, pass hook timeouts using Playwright's numeric parameter, and run the E2E typecheck in CI before browser tests.
+**Prevention**: Include the DOM library for page-evaluated browser code, type spawned environments as `NodeJS.ProcessEnv`, set hook timeouts with `test.setTimeout()` inside the hook callback, and run the E2E typecheck in CI before browser tests.
