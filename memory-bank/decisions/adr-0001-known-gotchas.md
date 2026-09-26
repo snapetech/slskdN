@@ -29759,3 +29759,16 @@ before looking for those items.
 - `src/web/src/components/Solid/SolidSettings.jsx`
 
 **Prevention**: Report only the configured canonical URL and show an explicit unconfigured state when it is absent. Do not present a fallback path as a live endpoint.
+
+### 0z928. Typecheck Playwright's Node and Browser Contexts
+
+**The Bug**: The E2E workspace had no typecheck in CI, and its TypeScript configuration excluded browser globals used inside Playwright page callbacks. It also inferred child-process environment variables too narrowly and passed an options object where `test.beforeAll` expects a numeric timeout.
+
+**Files Affected**:
+- `tests/e2e/tsconfig.json`
+- `tests/e2e/harness/SlskdnNode.ts`
+- `tests/e2e/specs/sharing.spec.ts`
+- `tests/e2e/specs/smoke.spec.ts`
+- `.github/workflows/e2e-tests.yml`
+
+**Prevention**: Include the DOM library for page-evaluated browser code, type spawned environments as `NodeJS.ProcessEnv`, pass hook timeouts using Playwright's numeric parameter, and run the E2E typecheck in CI before browser tests.
