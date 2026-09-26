@@ -55,14 +55,14 @@ public class LocalPortForwarderTests : IDisposable
         _portForwarder.Dispose();
     }
 
-    private static int GetFreeLocalPort(params int[] unavailablePorts)
+    private static int GetFreeLocalPort(int unavailablePort = 0)
     {
         while (true)
         {
             using var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();
             var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            if (!unavailablePorts.Contains(port))
+            if (port != unavailablePort)
             {
                 return port;
             }
