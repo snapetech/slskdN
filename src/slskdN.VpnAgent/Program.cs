@@ -479,6 +479,8 @@ static class Commands
         $app = '{{{EscapePowerShell(appPath)}}}'
         $vpn = '{{{EscapePowerShell(AppConfig.VpnIface)}}}'
         if (-not (Test-Path -LiteralPath $app)) { throw "Application path not found: $app" }
+        $vpnAdapter = Get-NetAdapter -Name $vpn -ErrorAction SilentlyContinue
+        if ($null -eq $vpnAdapter -or $vpnAdapter.Status -ne 'Up') { throw "VPN adapter is missing or not up: $vpn" }
         Get-NetFirewallRule -Group $group -ErrorAction SilentlyContinue | Remove-NetFirewallRule
         $interfaces = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.Name -ne $vpn }
         foreach ($iface in $interfaces) {
@@ -504,6 +506,16 @@ static class Commands
         ValidatePfIdentifier(anchor, "SLSKDN_VPN_PF_ANCHOR");
         ValidatePfIdentifier(AppConfig.VpnIface, "SLSKDN_VPN_IFACE");
         ValidatePfIdentifier(AppConfig.ServiceUser, "SLSKDN_SERVICE_USER");
+        if ((await ProcessUtil.Run("ifconfig", AppConfig.VpnIface)).ExitCode != 0)
+        {
+            Console.Error.WriteLine($"VPN interface not found: {AppConfig.VpnIface}");
+            return 2;
+        }
+        if ((await ProcessUtil.Run("id", "-u", AppConfig.ServiceUser)).ExitCode != 0)
+        {
+            Console.Error.WriteLine($"Service user not found: {AppConfig.ServiceUser}");
+            return 2;
+        }
 
         var rules = $$$"""
         pass out quick on lo0 all

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Setting up slskdN..."
+ynh_setup_source --dest_dir="$install_dir"
+chown -R root:"$app" "$install_dir"
+chmod -R u=rwX,g=rX,o= "$install_dir"
+chmod 750 "$install_dir/slskd"
+patch_lttng_soname
+
+install -d -m 0750 -o "$app" -g "$app" "/var/log/$app"
+install -m 0640 -o "$app" -g "$app" /dev/null "/var/log/$app/$app.log"
+
+web_password="$(ynh_string_random --length=32)"
+ynh_app_setting_set --key=web_password --value="$web_password"
+ynh_config_add --template="slskd.yml" --destination="$data_dir/slskd.yml"
+chmod 600 "$data_dir/slskd.yml"
+chown "$app:$app" "$data_dir/slskd.yml"
+
+ynh_config_add_nginx
+ynh_config_add_systemd
+ynh_config_add_logrotate
+
+yunohost service add "$app" \
+    --description="Soulseek client and server" \
+    --log="/var/log/$app/$app.log" \
+    --needs_exposed_ports="$port_soulseek"
+
+ynh_systemctl --service="$app" --action="start"
+ynh_script_progression "Installation of slskdN completed"

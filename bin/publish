@@ -133,8 +133,13 @@ dotnet publish ../../src/slskdN.VpnAgent/slskdN-vpn-agent.csproj \
     --runtime "$runtime" \
     --output "$output/vpn-agent"
 cp ../../src/slskdN.VpnAgent/README.md "$output/vpn-agent/README.md"
+cp ../../src/slskdN.VpnAgent/GETTING_STARTED.md "$output/vpn-agent/GETTING_STARTED.md"
+cp ../../src/slskdN.VpnAgent/manual-linux-wireguard.md "$output/vpn-agent/manual-linux-wireguard.md"
+cp ../../src/slskdN.VpnAgent/external-tunnel.md "$output/vpn-agent/external-tunnel.md"
 cp ../../src/slskdN.VpnAgent/self-hosted-relay.md "$output/vpn-agent/self-hosted-relay.md"
 cp ../../src/slskdN.VpnAgent/windows-macos.md "$output/vpn-agent/windows-macos.md"
+cp ../../src/slskdN.VpnAgent/api-contract.md "$output/vpn-agent/api-contract.md"
+cp ../../docs/self-hosted-relay-tester-guide.md "$output/vpn-agent/self-hosted-relay-tester-guide.md"
 case "$runtime" in
   linux-*)
     cp -r ../../src/slskdN.VpnAgent/systemd "$output/vpn-agent/"

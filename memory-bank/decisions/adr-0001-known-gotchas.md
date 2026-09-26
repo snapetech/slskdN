@@ -177,6 +177,67 @@ base image and do not inherit that tool setup.
 
 ---
 
+### 0z912. Normalize Date-Based YunoHost Upstream Versions
+
+**The Bug**: Using slskdN's raw date-and-sequence GitHub release tag as a
+YunoHost manifest version fails package linting because the upstream tag is
+not a valid YunoHost `<upstreamversion>~ynhN` version.
+
+**Files Affected**:
+- `packaging/yunohost/slskdn_ynh/manifest.toml`
+
+**Wrong**:
+```toml
+version = "2026092517-slskdn.325~ynh1"
+```
+
+**Correct**: Normalize the numeric components into a PEP 440 compatible
+version and use `autoupdate.version_regex` to derive that same value from
+future GitHub release tags, for example:
+```toml
+version = "2026.09.25.17.325~ynh1"
+autoupdate.version_regex = "^(\\d{4})(\\d{2})(\\d{2})(\\d+)-slskdn\\.(\\d+)$"
+```
+
+**Why This Keeps Happening**: Upstream release identifiers are optimized for
+project release sequencing, while YunoHost validates package versions against
+its own version grammar. Normalize tags consistently in both the current
+manifest and the source updater.
+
+---
+
+### 0z913. Keep Static YunoHost App Binaries Read-Only to the Service
+
+**The Bug**: Giving the service user ownership of a static executable bundle
+lets a compromised service replace its own code and keep that change across a
+restart.
+
+**Files Affected**:
+- `packaging/yunohost/slskdn_ynh/scripts/install`
+- `packaging/yunohost/slskdn_ynh/scripts/upgrade`
+- `packaging/yunohost/slskdn_ynh/scripts/restore`
+- `packaging/yunohost/slskdn_ynh/conf/systemd.service`
+
+**Wrong**:
+```bash
+chown -R "$app:$app" "$install_dir"
+```
+
+**Correct**: Keep static package files root-owned and readable by the app's
+private group, and run the service with a read-only system tree:
+```bash
+chown -R root:"$app" "$install_dir"
+chmod -R u=rwX,g=rX,o= "$install_dir"
+chmod 750 "$install_dir/slskd"
+```
+
+**Why This Keeps Happening**: Generic YunoHost examples often give PHP source
+files to the application user. Self-contained service binaries do not need
+write access to their installation directory; keep mutable configuration,
+state, and logs in their dedicated writable directories instead.
+
+---
+
 ### 0z905. Unraid Port Profiles Must Follow Listener Consolidation
 
 **The Bug**: The Unraid template kept publishing separate mesh TCP/UDP and
@@ -268,6 +329,34 @@ repository-relative workflow path rather than an absolute path.
 accidentally enforce the example instead of the automation. Validator helpers
 may also join paths internally; pass paths in the form their contract expects.
 Prefer checking the live workflow and keep documentation procedural.
+
+### 0z913. Make Packaged VPN Installers Work Without Source Trees
+
+**The Bug**: The Linux release ZIP included a self-contained VPN agent and an
+`install.sh`, but the script always ran `dotnet publish` against a project file
+that was not in the ZIP. It also left provider settings out of the systemd
+environment and did not enable the ingress service, so the advertised release
+setup path could not complete reliably.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/install.sh`
+- `src/slskdN.VpnAgent/systemd/`
+- `packaging/linux/install-from-release.sh`
+- `.github/workflows/build-on-tag.yml`
+- `bin/publish`
+
+**Prevention**: Treat source-checkout and release-ZIP installs as separate
+inputs. A packaged installer must use the self-contained executable already
+beside it, persist tunnel settings for every systemd command that runs the
+agent, adapt app service names to the installed service, enable all required
+units, and ship every guide linked by the bundle README. Verify the resulting
+archive layout as part of release validation.
+
+**Why This Keeps Happening**: A release ZIP contains publish output and selected
+support files, not the source project or the .NET SDK. Scripts that work from a
+checkout can still fail when invoked from a packaged copy, and unit templates
+can keep development defaults that do not match the raw Linux release
+installer.
 
 ---
 
@@ -24026,6 +24115,21 @@ Note: TWO spaces before `--`, specific date format.
 ### 21. Chocolatey v2 push – do not pass path (see gotcha 5b)
 
 **The Bug**: Passing a path to `choco push` causes path+flag gluing. **Correct** (see gotcha 5b): run `choco push` from `packaging/chocolatey` after `choco pack` with no path; use `--api-key $env:CHOCO_API_KEY`. Match master branch.
+
+---
+
+### 22. YunoHost v2 apt resources cannot use pipe alternatives
+
+**The Bug**: Putting a pipe-separated alternative such as
+`"libicu70|libicu72|libicu74|libicu76"` in `[resources.apt].packages` makes
+YunoHost's generated provisioning script parse the separators as shell pipes.
+Dependency provisioning then fails before the app's install script runs.
+
+**Prevention**: Use `packages_from_raw_bash` to select a package for the
+supported Debian release, or list a single package that exists on every
+supported release. The pipe-separated alternative syntax is for the
+`ynh_install_app_dependencies` shell helper, not the v2 apt resource array.
+Run `package_check` on a clean YunoHost guest to validate resource provisioning.
 
 ---
 

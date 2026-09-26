@@ -9,6 +9,51 @@
 
 ### High Priority
 
+- [x] Prepare and submit the slskdN YunoHost package and catalog entry.
+  - Status: package published; catalog PR #3627 remains open for maintainer
+    review (2026-09-25).
+  - Priority: P1
+  - Notes: Added the YunoHost v2 package under `packaging/yunohost/`, pinned
+    stable release `2026092517-slskdn.325` for amd64 and arm64, and published
+    the standalone repository `snapetech/slskdn_ynh` with `main` and `testing`
+    branches. The catalog PR targets `YunoHost/apps`, sets the app to
+    `inprogress` on `testing`, adds the `non-free-network` antifeature and
+    logo, and removes the fulfilled `slskd` wishlist entry. The package linter
+    passes manifest, script, and general package checks; catalog status remains
+    pending PR merge. Fixed Debian apt package selection with YunoHost v2's
+    `packages_from_raw_bash`, documented the alternatives gotcha, and pushed
+    root commit `729bb171e` plus package-repo commit `4a2c89d` to both package
+    branches. `package_check.sh` on YunoHost 12.1.41.2 (Bookworm) passed all
+    seven cases: package linter, root/subpath/multi-instance installs,
+    backup/restore, upgrade, and URL change. Its overall catalog level remains
+    0 while the unmerged app lacks catalog metadata; the lifecycle cases all
+    pass. `catalog_linter.py`, `logos_check.py`, `./bin/lint`, and `dotnet test`
+    pass (74 application, 5,161 unit, 284 integration). Updated PR #3627 with
+    the full test results; keep the app `inprogress` on `testing` until
+    maintainers complete review.
+
+- [ ] Respond to YunoHost catalog PR #3627 review and update the catalog state
+  only after YunoHost package CI validates the package.
+  - Status: awaiting maintainer review; the complete local package-check suite
+    passed on 2026-09-26.
+  - Priority: P2
+  - Notes: Keep the catalog on the `testing` branch and `inprogress` state
+    until maintainers verify the package lifecycle. Do not transfer repository
+    ownership or mark the app working without maintainer direction and passing
+    package checks.
+
+- [x] Make the released VPN agent understandable and runnable across platforms.
+  - Status: completed, validated, and merged to `main` (2026-09-25).
+  - Priority: P1
+  - Notes: Added release-archive first-use guides for Linux, Windows, and macOS;
+    fixed the bundled Linux installer to use its prebuilt helper, persist VPN
+    settings, order external tunnel services before routing, and enable ingress;
+    validated platform interface inputs before applying firewall rules. Updated
+    all release archive builders and artifact checks. `dotnet test` passed 74
+    smoke, 5,161 unit, and 284 integration tests; `./bin/lint`, packaging
+    metadata validation, and shell syntax checks passed. Pushed with the active
+    packaging branch to `main`; no release tag was created.
+
 - [x] Audit the last six months of upstream slskd changes and implement
   applicable parity fixes.
   - Status: merged in PR #338; stable release `2026092418-slskdn.322`

@@ -1,3 +1,63 @@
+## Update 2026-09-26 00:12:50Z
+
+- Current task: complete. The YunoHost package and catalog submission are
+  published; root commit 729bb171e and package-repository commit 4a2c89d are
+  pushed. Package branches main and testing both point to the fixed manifest.
+- Full YunoHost package_check on YunoHost 12.1.41.2 (Bookworm) passed all seven
+  cases: linter, root/subpath/multi-instance installs, backup/restore, upgrade,
+  and URL changes. The overall catalog level stays 0 because the app is not yet
+  merged into catalog metadata; all lifecycle case summaries are OK. The
+  checker reports one linter warning and three possible improvements.
+- PR #3627 is open and its body now includes the full validation. Keep the
+  catalog entry testing/inprogress until maintainers finish review.
+- Temporary test containers, extra bridge, and firewall exceptions are
+  removed. LXD service/socket are stopped and disabled; its configured default
+  pool and Bookworm test image remain for a future rerun.
+- Next: await YunoHost maintainer review and any requested changes.
+
+## Update 2026-09-25 22:27:22Z
+
+- Completed the VPN-agent onboarding request and pushed it to `main` in merge
+  commit `bfba634b6`, together with the active `packaging/yunohost` branch.
+- Added first-use VPN-agent instructions to the release archives for Linux,
+  Windows, and macOS. Fixed the bundled Linux installer to use its prebuilt
+  helper, persist settings, order external tunnels before routing, and enable
+  the ingress unit. Windows and macOS now reject missing VPN interfaces before
+  applying firewall rules.
+- Validation passed: `dotnet test` (74 smoke, 5,161 unit, 284 integration),
+  `./bin/lint`, packaging metadata validation, shell syntax, release-note
+  preview, target verification, and the local-identity leak check. No release
+  tag was created.
+- Other local refs were reviewed: historical PR refs are already integrated or
+  contain stale dependency snapshots; the React 19 refs remain incompatible.
+  The separate YunoHost subtree-export branch has no shared Git history and was
+  not merged.
+- Next: continue with YunoHost catalog PR #3627 review and package CI when
+  maintainers report back; keep the catalog on `testing` and `inprogress`.
+
+## Update 2026-09-25 22:21:00Z
+
+- Current task: complete. Prepared the YunoHost v2 package, committed it to
+  the slskdN workspace, published `snapetech/slskdn_ynh` with `main` and
+  `testing` branches, and opened YunoHost/apps PR #3627. The catalog points to
+  `testing` and remains `inprogress` while maintainers review the package.
+- Added checksum-pinned amd64/arm64 assets from stable release
+  `2026092517-slskdn.325`, subpath-aware NGINX configuration, a generated web
+  password, and one exposed shared Soulseek TCP/UDP listener. Added the
+  `non-free-network` antifeature and removed the fulfilled `slskd` wishlist
+  item from the catalog PR.
+- Validation: package manifest/scripts/general checks pass in package_linter;
+  catalog_linter passes with existing unrelated warnings; logo and shell checks
+  pass; systemd-analyze verify passes with package placeholders resolved;
+  `./bin/lint` passes; `dotnet test` passes 74 application, 5,161 unit, and
+  284 integration tests.
+- Limitation: full YunoHost package_check could not run locally because no
+  LXD runtime is available. The YunoHost PR currently has no reported status
+  checks. Unrelated concurrent VPN/packaging edits remain unstaged.
+- Next steps: await YunoHost maintainer review and package CI for install, URL
+  changes, upgrade, backup, and restore. Keep the catalog on `testing` and
+  `inprogress` until those checks pass.
+
 ## Update 2026-09-25 18:04:00Z
 
 - Completed the requested commit/push of valid repository work and published

@@ -4,6 +4,7 @@ After=slskdN.service slskdN-vpn-ingress.service slskdN-vpn-gluetun-compat.servic
 
 [Service]
 Type=oneshot
+EnvironmentFile=-/etc/default/slskdN-vpn-agent
 ExecStart=/usr/local/bin/slskdN-vpn-agent watchdog
 TimeoutStartSec=45s
 NoNewPrivileges=true

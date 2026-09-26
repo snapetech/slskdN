@@ -13165,3 +13165,63 @@ Docker image built successfully. The exact installer asset passed `bash -n`,
 its checksum matches `SHA256SUMS.txt`, and the latest-download URL returns
 HTTP 200. Launchpad's `.324` publication wait remains in progress and `.325`
 PPA publication is queued behind it; avoid duplicate same-version uploads.
+
+[2026-09-25T22:27:22Z] Fixed the released VPN-agent onboarding path and merged
+the active `packaging/yunohost` branch into `main` at `bfba634b6`, then pushed
+to `snapetech/slskdN`. Release archives now include start-here instructions for
+Linux, Windows, and macOS; the Linux installer uses the bundled binary,
+persists VPN settings, orders external tunnels before applying routing, and
+enables ingress. Windows/macOS fail-closed setup validates the selected VPN
+interface before changing firewall rules. `dotnet test` passed 74 smoke, 5,161
+unit, and 284 integration tests; `./bin/lint`, packaging metadata validation,
+shell syntax, release-note preview, GitHub target verification, and local
+identity leak checks passed. No release tag was created. Historical PR refs
+whose changes are already integrated or whose snapshots are stale were left
+alone; the React 19 updates remain incompatible. The separate YunoHost subtree
+export branch has no shared Git history and was not merged.
+
+
+## Update 2026-09-25 22:21:00Z
+
+- Prepared and committed the YunoHost v2 package at `18319de04`, with
+  known-gotcha commits `c78d15459` and `fc33dbafc`. Published the standalone
+  public package repository `snapetech/slskdn_ynh` with matching `main` and
+  `testing` branches, then opened YunoHost/apps PR #3627. The catalog tracks
+  `testing` with state `inprogress`, includes `non-free-network`, adds the
+  square app logo, and removes the fulfilled `slskd` wishlist request.
+- The package uses checksum-pinned amd64 and arm64 assets from stable release
+  `2026092517-slskdn.325`; the date-based release tag is normalized for the
+  YunoHost version parser and future source updates.
+- Validation passed: `./bin/lint`; `dotnet test` (74 application, 5,161 unit,
+  284 integration); package manifest/scripts/general checks; catalog_linter
+  (pre-existing unrelated warnings only); logo check; shell syntax; and
+  systemd unit syntax. The package_linter process still reports expected
+  catalog lookup/status findings until PR #3627 is merged and the app reaches
+  a validated state.
+- Full YunoHost package_check (install, upgrade, URL change, backup, restore)
+  is not available locally because no LXD runtime is running. Asked maintainers
+  in the PR to run their package CI. No PR checks had reported at this update.
+- Unrelated concurrent VPN and packaging edits in the shared checkout were
+  preserved and excluded from the commits.
+## Update 2026-09-26 00:12:50Z
+
+- Fixed YunoHost v2 apt dependency selection: manifest package entries do not
+  accept pipe-separated alternatives, so ICU and LTTng candidates are selected
+  from the installed Debian release through packages_from_raw_bash. The root
+  change is 729bb171e with a validated release-note fragment; package-repo
+  commit 4a2c89d is pushed to both testing and main.
+- Full package_check on YunoHost 12.1.41.2 (Bookworm) passed all seven cases:
+  package linter, root install, subpath install, multi-instance,
+  backup/restore, upgrade, and URL change. The checker still reports overall
+  catalog level 0 because the app metadata is not merged into the catalog;
+  this is separate from the passing lifecycle cases. Linter reports one
+  warning and three possible improvements.
+- Updated YunoHost/apps PR #3627 with the completed validation. It remains open
+  for maintainer review; the app stays on testing/inprogress.
+- The checker expects host interface incusbr0, so a temporary LXD bridge was
+  needed after the first HTTP probe failed on the original lxdbr0 name. All
+  test containers and temporary firewall exceptions are removed; lynx was
+  removed, and the LXD service/socket are stopped and disabled. The configured
+  default pool and Bookworm test image remain available for a future rerun.
+- Next: await YunoHost maintainers; do not mark the app working or change
+  ownership while catalog review is pending.

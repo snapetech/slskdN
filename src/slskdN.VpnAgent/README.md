@@ -12,6 +12,8 @@ UID split routing, verification, status, watchdog behavior, and ingress cleanup.
 
 ## Guide Map
 
+- [Start Here: VPN Agent](GETTING_STARTED.md): release installation and exact
+  first-use steps for Linux, Windows, and macOS.
 - [Manual Linux WireGuard setup](manual-linux-wireguard.md): full
   WireGuard/NAT-PMP path with outbound routing, ingress configs, services, and
   verification.
@@ -20,7 +22,7 @@ UID split routing, verification, status, watchdog behavior, and ingress cleanup.
 - [Self-hosted relay](self-hosted-relay.md): keep slskdN and shares behind
   CGNAT while a bounded Tailscale or WireGuard VPS companion provides public
   ingress/egress.
-- [Self-hosted relay tester guide](../../docs/self-hosted-relay-tester-guide.md):
+- [Self-hosted relay tester guide](https://github.com/snapetech/slskdn/blob/main/docs/self-hosted-relay-tester-guide.md):
   install a published release and run the exact OCI/home acceptance checks.
 - [Windows and macOS](windows-macos.md): platform fail-closed behavior,
   required inputs, and limitations.
