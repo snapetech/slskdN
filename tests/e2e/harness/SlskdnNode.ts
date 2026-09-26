@@ -115,7 +115,7 @@ flags:
     const args = ['run', '--project', projectPath, '--no-build', '--', '--config', configPath, '--app-dir', this.appDir];
 
     // stdin must be a pipe kept open: when stdin is /dev/null (ignore), the child can see EOF and exit (e.g. dotnet run)
-    const baseEnv = {
+    const baseEnv: NodeJS.ProcessEnv = {
       ...process.env,
       ASPNETCORE_ENVIRONMENT: 'Development',
       DOTNET_CLI_TELEMETRY_OPTOUT: '1',

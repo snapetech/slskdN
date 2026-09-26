@@ -68,6 +68,9 @@ jobs:
         run: |
           pnpm --filter @slskdn/e2e exec playwright install --with-deps chromium
 
+      - name: Typecheck E2E Tests
+        run: pnpm --filter @slskdn/e2e typecheck
+
       - name: Run E2E Tests
         run: pnpm --filter @slskdn/e2e test:e2e:ci
         env:
