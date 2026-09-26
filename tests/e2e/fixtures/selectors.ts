@@ -7,8 +7,12 @@
 export const selectors = {
   // Navigation
   nav: {
+    appShell: '[data-testid="nav-search"]',
+    networkGroup: '[data-testid="nav-group-network"]',
+    sharingGroup: '[data-testid="nav-group-sharing"]',
+    system: '[data-testid="nav-system"]',
     contacts: '[data-testid="nav-contacts"]',
-    shareGroups: '[data-testid="nav-sharegroups"]',
+    shareGroups: '[data-testid="nav-groups"]',
     sharedWithMe: '[data-testid="nav-shared-with-me"]',
     search: '[data-testid="nav-search"]'
   },

@@ -47,7 +47,7 @@ export async function waitForHealth(apiUrl: string, timeout = 30000): Promise<vo
  * Login to a slskdn instance via the web UI.
  */
 export async function login(page: Page, apiUrl: string, username: string, password: string): Promise<void> {
-  const navContacts = '[data-testid="nav-contacts"]';
+  const appShell = '[data-testid="nav-search"]';
   const usernameSelector =
     '[data-testid="login-username"] input, input[placeholder="Username"], input[name="username"]';
   const passwordSelector =
@@ -65,10 +65,10 @@ export async function login(page: Page, apiUrl: string, username: string, passwo
     }
 
     // Wait for either an already-logged-in state or a login form.
-    await page.waitForSelector(`${navContacts}, ${usernameSelector}`, { timeout: 30000 });
+    await page.waitForSelector(`${appShell}, ${usernameSelector}`, { timeout: 30000 });
 
     // Already logged in.
-    if (await page.locator(navContacts).isVisible().catch(() => false)) {
+    if (await page.locator(appShell).isVisible().catch(() => false)) {
       return;
     }
 
@@ -80,7 +80,7 @@ export async function login(page: Page, apiUrl: string, username: string, passwo
     try {
       // Wait for the app chrome to appear.
       // Startup can be a bit slow on cold runs (SignalR hub + initial state fetch).
-      await page.waitForSelector(navContacts, { timeout: 30000 });
+      await page.waitForSelector(appShell, { timeout: 30000 });
       return;
     } catch (error) {
       const lostConnection = await page
@@ -104,7 +104,7 @@ export async function login(page: Page, apiUrl: string, username: string, passwo
 export async function waitForAppReady(page: Page, _apiUrl: string, timeout = 20000): Promise<void> {
   try {
     await page.waitForSelector(
-      '[data-testid="nav-contacts"], [data-testid="nav-search"], [data-testid="nav-solid"]',
+      '[data-testid="nav-search"]',
       { timeout }
     );
     return;

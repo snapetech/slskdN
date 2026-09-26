@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { MultiPeerHarness } from '../harness/MultiPeerHarness';
 import { login, waitForHealth } from '../fixtures/helpers';
+import { selectors } from '../fixtures/selectors';
 
 /**
  * E2E tests for Swarm Analytics functionality.
@@ -34,17 +35,19 @@ test.describe('Swarm Analytics', () => {
     await waitForHealth(alice.apiUrl);
     await login(page, alice.apiUrl, 'admin', 'admin');
 
-    // Navigate to System page
-    await page.goto(`${alice.apiUrl}/system`);
-    await page.waitForLoadState('networkidle');
-
-    // Navigate to Swarm Analytics tab
-    // The tab should be in the System component's tab menu
-    const analyticsTab = page.locator('text=Swarm Analytics').first();
+    // System destinations are grouped by section, and only the active
+    // section's tabs are rendered.
+    await page.locator(selectors.nav.system).click();
+    await page.getByText('Network & Mesh', { exact: true }).click();
+    const analyticsTab = page
+      .locator('.system .ui.tabular.menu .item')
+      .filter({ hasText: 'Swarm Analytics' });
+    await expect(analyticsTab).toHaveCount(1);
     await analyticsTab.click();
 
     // Verify analytics page loaded
-    await expect(page.locator('h2:has-text("Swarm Analytics")')).toBeVisible({ timeout: 10000 });
+    await expect(page).toHaveURL(`${alice.apiUrl}/system/swarm-analytics`);
+    await expect(page.getByRole('heading', { name: 'Swarm Analytics' })).toBeVisible();
   });
 
   test('should display analytics dashboard', async ({ page }) => {
@@ -57,7 +60,7 @@ test.describe('Swarm Analytics', () => {
     await page.waitForLoadState('networkidle');
 
     // Verify main elements are present
-    await expect(page.locator('h2:has-text("Swarm Analytics")')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Swarm Analytics' })).toBeVisible({ timeout: 10000 });
     
     // Check for controls
     const timeWindowLabel = page.locator('text=Time Window').first();
@@ -92,7 +95,7 @@ test.describe('Swarm Analytics', () => {
     }
 
     // Test passes if page loaded successfully
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page.getByRole('heading', { name: 'Swarm Analytics' })).toBeVisible();
   });
 
   test('should display performance metrics when available', async ({ page }) => {
@@ -112,7 +115,7 @@ test.describe('Swarm Analytics', () => {
 
     // Metrics may or may not be visible depending on data availability
     // Test passes if page loaded
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page.getByRole('heading', { name: 'Swarm Analytics' })).toBeVisible();
   });
 
   test('should display peer rankings table when data available', async ({ page }) => {
@@ -131,7 +134,7 @@ test.describe('Swarm Analytics', () => {
 
     // Rankings may or may not be visible depending on data
     // Test passes if page structure is correct
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page.getByRole('heading', { name: 'Swarm Analytics' })).toBeVisible();
   });
 
   test('should display recommendations when available', async ({ page }) => {
@@ -150,7 +153,7 @@ test.describe('Swarm Analytics', () => {
 
     // Recommendations may or may not be visible
     // Test passes if page loaded
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page.getByRole('heading', { name: 'Swarm Analytics' })).toBeVisible();
   });
 
   test('should display no data message when no analytics available', async ({ page }) => {
@@ -169,7 +172,7 @@ test.describe('Swarm Analytics', () => {
 
     // Either data or "no data" message should be present
     // Test passes if page loaded
-    expect(page.url()).toContain(alice.apiUrl);
+    await expect(page.getByRole('heading', { name: 'Swarm Analytics' })).toBeVisible();
   });
 
   test('should refresh analytics data periodically', async ({ page }) => {

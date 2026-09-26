@@ -46,7 +46,7 @@ test.describe('Smoke Tests', () => {
     await login(page, nodeApiUrl, 'admin', 'admin');
     await waitForAppReady(page, nodeApiUrl);
 
-    await expect(page.locator(selectors.nav.contacts)).toBeVisible();
+    await expect(page.locator(selectors.nav.appShell)).toBeVisible();
 
     const url = page.url();
     expect(url).toContain(nodeApiUrl);
@@ -56,7 +56,8 @@ test.describe('Smoke Tests', () => {
     await login(page, nodeApiUrl, 'admin', 'admin');
     await waitForAppReady(page, nodeApiUrl);
 
-    await page.goto(`${nodeApiUrl}/contacts`);
+    await page.locator(selectors.nav.networkGroup).click();
+    await page.locator(selectors.nav.contacts).click();
     await expect(page.locator(selectors.contacts.createInvite)).toBeVisible();
   });
 
@@ -64,7 +65,8 @@ test.describe('Smoke Tests', () => {
     await login(page, nodeApiUrl, 'admin', 'admin');
     await waitForAppReady(page, nodeApiUrl);
 
-    await page.goto(`${nodeApiUrl}/sharegroups`);
+    await page.locator(selectors.nav.sharingGroup).click();
+    await page.locator(selectors.nav.shareGroups).click();
     await expect(page.locator(selectors.shareGroups.createGroup)).toBeVisible();
   });
 });
