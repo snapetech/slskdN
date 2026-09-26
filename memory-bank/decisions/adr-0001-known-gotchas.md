@@ -29592,3 +29592,31 @@ immutable after they are added.
 **Prevention**: Keep the original fragment unchanged and add a separate
 validated fragment for each later change. Do not edit an existing fragment to
 make it pass a new review or release-note requirement.
+
+### 0z915. Stage Release Inputs in the Docker Publish Context
+
+**The Bug**: The shared publish script copied a VPN guide from the repository's
+`docs/` directory, but the Docker publish stage copied only selected source
+directories, so the guide was missing and the image build failed.
+
+**Files Affected**:
+- `Dockerfile`
+- `bin/publish`
+
+**Prevention**: When a shared publish script gains a new source-file copy,
+check every build context that invokes it and stage that source in each
+context's Dockerfile before running the script.
+
+### 0z916. Match E2E Build and Launch Configurations
+
+**The Bug**: The E2E workflow built the application in Release while its
+`dotnet run --no-build` harness used the default Debug configuration, so the
+expected executable did not exist and every browser test failed at startup.
+
+**Files Affected**:
+- `.github/workflows/e2e-tests.yml`
+- `tests/e2e/harness/SlskdnNode.ts`
+
+**Prevention**: Keep the E2E build configuration aligned with the configuration
+selected by `dotnet run --no-build`; verify the expected apphost path before
+starting browser tests.
