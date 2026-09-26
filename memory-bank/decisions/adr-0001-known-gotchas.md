@@ -29749,3 +29749,13 @@ before looking for those items.
 - `src/slskd/Solid/SolidWebIdResolver.cs`
 
 **Prevention**: Permit only explicitly enabled loopback targets in the Solid fetch policy and use the no-redirect local client for those targets. Keep the public-address guard for every other Solid fetch.
+
+### 0z927. Do Not Advertise an Unconfigured Solid Client ID Endpoint
+
+**The Bug**: Solid status reported `/solid/clientid.jsonld` as the Client ID when no canonical URL was configured, even though the document endpoint returned 404.
+
+**Files Affected**:
+- `src/slskd/Solid/API/SolidController.cs`
+- `src/web/src/components/Solid/SolidSettings.jsx`
+
+**Prevention**: Report only the configured canonical URL and show an explicit unconfigured state when it is absent. Do not present a fallback path as a live endpoint.
