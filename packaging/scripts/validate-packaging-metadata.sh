@@ -155,6 +155,39 @@ expect_literal docs/build.md 'scripts/create-release-tag.sh'
 expect_literal memory-bank/decisions/adr-0005-tagging-system.md 'scripts/create-release-tag.sh'
 expect_literal memory-bank/QUICK_REFERENCE.md 'scripts/create-release-tag.sh'
 expect_literal AGENTS.md 'scripts/create-release-tag.sh'
+
+CLOUDRON_VERSION="$(jq -er '.version' packaging/cloudron/CloudronManifest.json)"
+CLOUDRON_CATALOG_VERSION="$(jq -er --arg version "$CLOUDRON_VERSION" '.versions[$version].manifest.version' packaging/cloudron/CloudronVersions.json)"
+if [[ "$CLOUDRON_CATALOG_VERSION" != "$CLOUDRON_VERSION" ]]; then
+  fail "Cloudron version catalog ${CLOUDRON_CATALOG_VERSION} does not match manifest ${CLOUDRON_VERSION}"
+fi
+CLOUDRON_IMAGE="$(jq -er --arg version "$CLOUDRON_VERSION" '.versions[$version].manifest.dockerImage' packaging/cloudron/CloudronVersions.json)"
+CLOUDRON_STABLE_VERSION="$(extract_release_from_formula Formula/slskdn.rb)"
+if [[ "$CLOUDRON_IMAGE" != "docker.io/snapetech/slskdn:${CLOUDRON_STABLE_VERSION}" ]]; then
+  fail "Cloudron image ${CLOUDRON_IMAGE} does not match stable image version ${CLOUDRON_STABLE_VERSION}"
+fi
+if ! jq -e --arg version "$CLOUDRON_VERSION" '
+  .versions[$version] as $entry
+  | $entry.manifest as $manifest
+  | ($entry.publishState == "testing")
+    and ($manifest.minBoxVersion == "10.0.0")
+    and ($manifest.addons.localstorage == {})
+    and (($manifest.mediaLinks | length) > 0)
+    and ($manifest.packagerName == "Snapetech")
+    and ($manifest.packagerUrl == "https://github.com/snapetech")
+' packaging/cloudron/CloudronVersions.json >/dev/null; then
+  fail "Cloudron community metadata is incomplete or is not marked testing"
+fi
+CLOUDRON_MANIFEST_METADATA="$(jq -cS 'del(.dockerImage)' packaging/cloudron/CloudronManifest.json)"
+CLOUDRON_CATALOG_METADATA="$(jq -cS --arg version "$CLOUDRON_VERSION" '.versions[$version].manifest | del(.dockerImage)' packaging/cloudron/CloudronVersions.json)"
+if [[ "$CLOUDRON_MANIFEST_METADATA" != "$CLOUDRON_CATALOG_METADATA" ]]; then
+  fail "CloudronVersions.json manifest does not match CloudronManifest.json"
+fi
+expect_literal packaging/cloudron/Dockerfile 'SLSKD_APP_DIR=/app/data'
+expect_literal packaging/cloudron/Dockerfile 'SLSKD_DOWNLOADS_DIR=/app/data/downloads'
+expect_literal packaging/cloudron/Dockerfile 'SLSKD_SHARED_DIR=/app/data/music'
+expect_literal packaging/cloudron/Dockerfile 'mkdir -p \"$SLSKD_DOWNLOADS_DIR\" \"$SLSKD_SHARED_DIR\"'
+
 reject_literal docs/build.md 'git tag build-main-'
 reject_literal docs/dev/release-checklist.md 'git tag build-main-'
 reject_literal memory-bank/decisions/adr-0005-tagging-system.md 'git tag "build-main-${VERSION}"'

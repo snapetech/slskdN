@@ -16,8 +16,10 @@ TCP port `5030`. TCP port `50300` carries the Soulseek listener and mesh TCP
 traffic; UDP port `50300` is optional and is only needed when DHT, mesh
 rendezvous, or QUIC UDP features are enabled.
 
-Persist `/app`, mount the download destination at `/downloads`, and mount the
-shared music library at `/music` (read-only is recommended). Set
+For Compose-based catalogs, persist `/app`, mount the download destination at
+`/downloads`, and mount the shared music library at `/music` (read-only is
+recommended). The Cloudron adapter instead keeps all three paths under its
+`/app/data` persistent mount. Set
 `SLSKD_SLSK_USERNAME` and `SLSKD_SLSK_PASSWORD` only when credentials should
 be supplied through the platform instead of the web UI.
 
