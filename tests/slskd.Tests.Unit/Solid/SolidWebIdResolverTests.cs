@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Solid;
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using slskd.Common.Security;
 using slskd;
 using slskd.Solid;
 using TestOptionsMonitor = slskd.Tests.Unit.TestOptionsMonitor<slskd.Options>;
@@ -57,9 +59,10 @@ public class SolidWebIdResolverTests : IDisposable
         var webId = new Uri("https://example.com/profile#me");
         _policyMock.Setup(x => x.ValidateAsync(webId, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
-        // Will fail on HTTP call, but policy should be called first
-        await Assert.ThrowsAnyAsync<Exception>(() => resolver.ResolveAsync(webId, CancellationToken.None));
+        var profile = await resolver.ResolveAsync(webId, CancellationToken.None);
 
+        Assert.Equal(webId, profile.WebId);
+        Assert.Contains(new Uri("https://issuer.example"), profile.OidcIssuers);
         _policyMock.Verify(x => x.ValidateAsync(webId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -76,6 +79,27 @@ public class SolidWebIdResolverTests : IDisposable
         Assert.Equal("Blocked", ex.Message);
     }
 
+    [Fact]
+    public async Task ResolveAsync_AllowLocalhostForWebId_UsesLocalNoRedirectClient()
+    {
+        _options = new TestOptionsMonitor(new slskd.Options
+        {
+            Solid = new slskd.Options.SolidOptions
+            {
+                AllowedHosts = new[] { "localhost" },
+                AllowInsecureHttp = true,
+                AllowLocalhostForWebId = true
+            }
+        });
+        var webId = new Uri("http://localhost/profile#me");
+        _policyMock.Setup(x => x.ValidateAsync(webId, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        var resolver = CreateResolver();
+
+        await resolver.ResolveAsync(webId, CancellationToken.None);
+
+        Assert.Equal(OutboundUriGuard.LocalNoRedirectHttpClientName, ((TestHttpClientFactory)_httpFactory).ClientNames.Single());
+    }
+
     // Note: Full integration tests with real HTTP responses would require a test HTTP server
     // or more sophisticated mocking. These tests verify the policy integration and basic structure.
     // For CI-safe tests, we'd use a fake Solid server as mentioned in the implementation map.
@@ -89,7 +113,7 @@ internal class TestHttpMessageHandler : HttpMessageHandler
         // Return a basic response - actual tests would need more sophisticated mocking
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent("@prefix solid: <http://www.w3.org/ns/solid/terms#> .\n<#me> solid:oidcIssuer <https://issuer.example> .", Encoding.UTF8, "text/turtle")
+            Content = new StringContent("@prefix solid: <http://www.w3.org/ns/solid/terms#> .\n<https://example.com/profile#me> solid:oidcIssuer <https://issuer.example> .", Encoding.UTF8, "text/turtle")
         };
         return Task.FromResult(response);
     }

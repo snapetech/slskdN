@@ -63,7 +63,12 @@ export default function SolidSettings() {
 
       {status && status.enabled && (
         <Message info>
-          Client ID: <code>{status.clientId}</code>
+          Client ID:{' '}
+          {status.clientId ? (
+            <code>{status.clientId}</code>
+          ) : (
+            <span>Not configured; endpoint disabled.</span>
+          )}
           <br />
           Redirect path: <code>{status.redirectPath}</code>
         </Message>

@@ -17,7 +17,7 @@ slskdn includes optional Solid integration that allows you to:
 
 ### 1. Enable the Feature
 
-The Solid feature is **enabled by default** (`feature.Solid: true`), but it won't work until you configure allowed hosts for security reasons.
+The Solid feature is **enabled by default** (`feature.Solid: true`), but WebID fetching requires an allow-list. Serving the anonymous Solid-OIDC Client ID document also requires a canonical public URL in `solid.clientIdUrl`.
 
 ### 2. Configure Allowed Hosts
 
@@ -36,12 +36,15 @@ solid:
   maxFetchBytes: 1000000
   allowInsecureHttp: false  # Keep false in production
   redirectPath: "/solid/callback"
+  # Set this to the public HTTPS URL to serve the anonymous Client ID document.
+  clientIdUrl: "https://your-slskdn.example/solid/clientid.jsonld"
 ```
 
 **Important Security Note**: 
 - Empty `allowedHosts: []` = **deny all remote fetches** (SSRF protection)
-- You **must** add at least one hostname for the feature to work
-- Only add hostnames you trust (your Solid IDP, Pod provider, etc.)
+- Add at least one hostname if you want to resolve remote WebIDs
+- Only allow hosts you trust and intend to fetch from (your Solid IDP, Pod provider, etc.)
+- `clientIdUrl` is required only when you need to publish the Solid-OIDC Client ID document; leaving it empty disables that endpoint.
 
 ### 3. Restart slskdn
 
@@ -67,7 +70,7 @@ docker-compose restart slskdn  # Docker
 
 The Solid settings page shows:
 - **Enabled status**: Whether the feature is enabled
-- **Client ID**: The URL where your Client ID document is served (`/solid/clientid.jsonld`)
+- **Client ID**: The configured canonical URL where your Client ID document is served, or an explicit disabled state if no URL is configured
 - **Redirect path**: The OIDC callback path (`/solid/callback`)
 
 ### Resolving a WebID
@@ -187,8 +190,8 @@ solid:
   # OIDC redirect URI path
   redirectPath: "/solid/callback"
   
-  # Optional: Override Client ID URL (leave empty to auto-derive)
-  clientIdUrl: ""  # e.g., "https://your-slskdn.example/solid/clientid.jsonld"
+  # Required to serve the anonymous Client ID document; an empty value disables that endpoint.
+  clientIdUrl: "https://your-slskdn.example/solid/clientid.jsonld"
 ```
 
 ---

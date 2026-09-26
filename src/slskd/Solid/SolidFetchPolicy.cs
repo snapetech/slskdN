@@ -56,8 +56,8 @@ public sealed class SolidFetchPolicy : ISolidFetchPolicy
             throw new InvalidOperationException($"Solid fetch blocked: host '{uri.Host}' not in AllowedHosts.");
         }
 
-        // E2E/testing: allow localhost and loopback when explicitly enabled.
-        if (opts.AllowLocalhostForWebId)
+        // E2E/testing: allow only localhost and loopback literals when explicitly enabled.
+        if (opts.AllowLocalhostForWebId && IsLoopbackHost(uri.DnsSafeHost))
         {
             return;
         }
@@ -111,6 +111,10 @@ public sealed class SolidFetchPolicy : ISolidFetchPolicy
         _dnsCache[host] = (DateTime.UtcNow.Add(DnsCacheTtl), resolved);
         return resolved;
     }
+
+    internal static bool IsLoopbackHost(string host) =>
+        host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+        (IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address));
 
     private static bool IsPrivateOrReserved(IPAddress ip)
     {

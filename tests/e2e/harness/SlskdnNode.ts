@@ -13,6 +13,7 @@ export interface NodeConfig {
   };
   solidEnabled?: boolean;
   solidAllowedHosts?: string[];
+  solidClientIdUrl?: string;
 }
 
 /**
@@ -68,7 +69,7 @@ export class SlskdnNode {
 solid:
   allowedHosts:${allowedHostsYaml}
   allowInsecureHttp: true
-  allowLocalhostForWebId: true`
+  allowLocalhostForWebId: true${this.config.solidClientIdUrl ? `\n  clientIdUrl: "${this.config.solidClientIdUrl}"` : ''}`
       : '';
 
     // slskdn requires absolute paths for shares; repo root when running from tests/e2e is ../..

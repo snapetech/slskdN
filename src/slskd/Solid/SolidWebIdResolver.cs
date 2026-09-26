@@ -50,7 +50,10 @@ public sealed class SolidWebIdResolver : ISolidWebIdResolver
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(Math.Max(1, opts.TimeoutSeconds)));
 
-        using var client = _http.CreateClient(slskd.Common.Security.OutboundUriGuard.NoRedirectHttpClientName);
+        var clientName = opts.AllowLocalhostForWebId && SolidFetchPolicy.IsLoopbackHost(webId.DnsSafeHost)
+            ? slskd.Common.Security.OutboundUriGuard.LocalNoRedirectHttpClientName
+            : slskd.Common.Security.OutboundUriGuard.NoRedirectHttpClientName;
+        using var client = _http.CreateClient(clientName);
         using var req = new HttpRequestMessage(HttpMethod.Get, webId);
         req.Headers.Accept.ParseAdd("text/turtle, application/ld+json;q=0.9, application/rdf+xml;q=0.8");
 

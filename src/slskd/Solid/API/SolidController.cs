@@ -48,11 +48,12 @@ public sealed class SolidController : ControllerBase
     public IActionResult Status()
     {
         if (!Enabled) return NotFound();
+        var solid = _options.CurrentValue.Solid;
         return Ok(new
         {
             enabled = true,
-            clientId = _options.CurrentValue.Solid.ClientIdUrl ?? "/solid/clientid.jsonld",
-            redirectPath = _options.CurrentValue.Solid.RedirectPath
+            clientId = solid.ClientIdUrl,
+            redirectPath = solid.RedirectPath
         });
     }
 

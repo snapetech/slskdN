@@ -24,6 +24,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
+- Clarified that Solid's anonymous Client ID document requires a canonical
+  `solid.clientIdUrl`, made the settings page show when that endpoint is
+  disabled, and fixed explicitly allowed loopback WebID resolution for tests.
 
 ## [2026092517-slskdn.325] — 2026-09-25
 

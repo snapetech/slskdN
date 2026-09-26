@@ -163,6 +163,24 @@ public class SolidFetchPolicyTests
     }
 
     [Fact]
+    public async Task ValidateAsync_PrivateIPv4_WhenAllowLocalhostForWebIdTrue_StillThrows()
+    {
+        _options = new TestOptionsMonitor(new slskd.Options
+        {
+            Solid = new slskd.Options.SolidOptions
+            {
+                AllowedHosts = new[] { "192.168.1.1" },
+                AllowLocalhostForWebId = true
+            }
+        });
+        var policy = CreatePolicy();
+        var uri = new Uri("https://192.168.1.1/profile");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => policy.ValidateAsync(uri, CancellationToken.None));
+        Assert.Contains("resolves to a private or reserved IP", ex.Message);
+    }
+
+    [Fact]
     public async Task ValidateAsync_LocalDomain_Throws()
     {
         _options = new TestOptionsMonitor(new slskd.Options

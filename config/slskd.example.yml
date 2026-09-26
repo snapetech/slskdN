@@ -388,6 +388,7 @@
 #  maxFetchBytes: 1000000
 #  allowInsecureHttp: false    # ONLY for dev/test. Keep false in production
 #  redirectPath: "/solid/callback"
+#  clientIdUrl: "https://your-slskdn.example/solid/clientid.jsonld"  # Canonical HTTPS URL; omit to keep the document endpoint disabled
 #security:
 #  enabled: true  # Enable security features (path traversal protection is ALWAYS enabled)
 #  profile: Standard  # Security profile: Minimal, Standard, Maximum, or Custom
