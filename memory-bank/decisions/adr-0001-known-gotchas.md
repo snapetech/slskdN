@@ -29720,3 +29720,12 @@ before looking for those items.
 - `tests/e2e/specs/jobs.spec.ts`
 
 **Prevention**: Navigate through the visible System section before selecting a nested tab, or use the registered `/system/:tab` route and assert the destination heading. Do not use a tab's hidden text as proof that the System page loaded.
+
+### 0z924. Account for Badges in System Tab Text Selectors
+
+**The Bug**: A System tab label includes its adjacent status badge in the rendered text, so an exact text locator for the label alone cannot find the tab.
+
+**Files Affected**:
+- `tests/e2e/specs/analytics.spec.ts`
+
+**Prevention**: Scope the locator to the System tab menu and match the label as a substring, or navigate through the registered route. Avoid exact-text matching when the tab also renders a badge.
