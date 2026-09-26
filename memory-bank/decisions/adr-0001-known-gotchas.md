@@ -29663,3 +29663,17 @@ content path as missing.
 **Prevention**: Build the Web UI and copy it into the backend project before
 building the backend. Its content items are then copied into the configuration
 specific output directory used by `dotnet run --no-build`.
+
+### 0z920. Keep Ephemeral Ports Distinct in Multi-Forwarder Tests
+
+**The Bug**: A test called its free-port helper twice; each call closed its
+temporary socket before the forwarding listeners started. The OS could then
+return the same ephemeral port for both calls, so the second forwarder failed
+with a duplicate-port error.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/LocalPortForwarderTests.cs`
+
+**Prevention**: When one test needs multiple ephemeral ports, make later
+allocations reject every port already selected by that test. A free-port probe
+alone does not reserve its result after the probe socket is closed.
