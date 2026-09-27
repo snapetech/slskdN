@@ -13436,3 +13436,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:58:18Z
 
 - Excluded short-lived listen-along and listed-radio stream URLs from player session persistence and old-session restore. Recorded gotcha 0z1006 before source changes. The live queue retains these streams until refresh.
+
+## Update 2026-09-27 21:00:31Z
+
+- Excluded temporary radio stream URLs from saved Collection playlists, reusing the same replayability rule for the Save button and saved items. Recorded gotcha 0z1007 before source changes.

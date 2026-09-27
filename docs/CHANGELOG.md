@@ -75,6 +75,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   during playback resumes the graph it needs.
 - Session queue restoration now skips radio and listen-along tracks with
   short-lived stream URLs, so a refresh does not select an expired ticket.
+- Saving a queue as a Collection playlist now skips temporary radio streams
+  as well as browser-local files; Save is unavailable when no replayable
+  server-library track remains.
 - Applied volume, local mute, and playback speed changes to both audio elements
   during crossfades.
 - Clear Upcoming now keeps played-track history available for Previous and

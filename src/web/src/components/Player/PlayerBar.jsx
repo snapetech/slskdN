@@ -506,6 +506,11 @@ const PlayerRadioModal = ({ current, onClose, onOpenSearch, open }) => {
 const getTrackLabel = (item) =>
   item?.title || item?.fileName || item?.contentId || 'Untitled track';
 
+const isSavablePlaylistTrack = (item) =>
+  typeof item?.contentId === 'string' &&
+  !item.contentId.startsWith('local:') &&
+  !item.streamUrl;
+
 const PlayerQueueModal = ({
   current,
   history,
@@ -547,7 +552,7 @@ const PlayerQueueModal = ({
 
   const savePlaylist = async () => {
     const name = playlistName.trim();
-    const items = queue.filter((item) => !item.contentId.startsWith('local:'));
+    const items = queue.filter(isSavablePlaylistTrack);
     if (!name || items.length === 0) return;
     setPlaylistBusy(true);
     let createdPlaylistId = null;
@@ -669,7 +674,7 @@ const PlayerQueueModal = ({
               value={playlistName}
             />
             <Popup content="Save the current server library tracks as a new Collection playlist." trigger={
-              <Button disabled={!playlistName.trim() || playlistBusy || queue.every((item) => item.contentId.startsWith('local:'))} onClick={savePlaylist} size="small" type="button">Save queue</Button>
+              <Button disabled={!playlistName.trim() || playlistBusy || !queue.some(isSavablePlaylistTrack)} onClick={savePlaylist} size="small" type="button">Save queue</Button>
             } />
             <select aria-label="Saved playlist" onChange={(event) => setSelectedPlaylist(event.target.value)} value={selectedPlaylist}>
               <option value="">Choose playlist</option>

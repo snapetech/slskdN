@@ -14252,3 +14252,17 @@ rollback.
   bundle budget, repository lint, whitespace, and local identity checks passed.
   Release preview and fork push remain.
 - Next steps: push this batch, then continue auditing queue and player state.
+
+## Update 2026-09-27 21:00:31Z
+
+- Current task: prevent Save queue from writing expiring radio streams into
+  Collection playlists. Source, docs, gotcha 0z1007, and release fragment are
+  local; validation and push remain.
+- Next steps: complete repository gates and push to the verified fork.
+
+## Update 2026-09-27 21:01:36Z
+
+- Save queue filtering is implemented. Web lint, production build, bundle
+  budget, repository lint, whitespace, and local identity checks passed.
+  Release preview and fork push remain.
+- Next steps: push this batch, then continue reviewing queue edge cases.

@@ -76,6 +76,7 @@ Controls include:
 - An expanded view with stop, rewind/fast-forward, playback speed, shuffle, repeat off/all/one, and additional tools behind **Show player tools**.
 - Queue reorder and Play Next from the player's library browsers. The immediate queue and selected track survive a browser refresh in session storage but do not autoplay; saved playlists use Collections.
 - Browser-local files and listen-along or listed-radio streams with short-lived URLs stay in the live queue but are not restored after a refresh. Remaining server-library tracks can request fresh stream tickets.
+- Saving the queue to a Collection playlist also omits temporary radio streams and browser-local files, because those URLs cannot be replayed from a saved content ID.
 - Clear Upcoming removes future tracks while preserving played history for Previous and repeat-all.
 - Browser-local mute. This mutes only the current browser or installed PWA; it does not stop the stream or mute other listeners.
 - Browser Media Session metadata and transport handlers for supported mobile/PWA lock-screen controls.

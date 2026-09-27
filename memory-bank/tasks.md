@@ -41,6 +41,10 @@
   - Status: implemented (2026-09-27).
   - Notes: Only server-library tracks without explicit stream URLs enter session storage or restore from older sessions; live radio and listen-along playback remain available until refresh.
 
+- [x] Exclude temporary radio streams from saved Collection playlists.
+  - Status: implemented (2026-09-27).
+  - Notes: Save queue and its disabled state use the same replayable-track filter; the saved count reflects only tracks that can stream again by content ID.
+
 - [x] Avoid creating a Web Audio graph for neutral idle player settings.
   - Status: implemented (2026-09-27).
   - Notes: Flat EQ, karaoke off, and output gain one reuse a graph when present but no longer create one for a paused player.
