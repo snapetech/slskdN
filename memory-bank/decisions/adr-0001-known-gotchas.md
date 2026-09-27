@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1023. Make Player Picker Choices Keyboard Operable
+
+**The Bug**: The player Collections picker selected a collection through `onClick` on a table row. That row was absent from keyboard tab order, so keyboard users could reach the modal but could not choose a collection. Listening Stats range buttons also omitted the required explanatory popup.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/Player.css`
+
+**Prevention**: Put selection on a real button inside the table cell, retain visible focus styling, and give player controls a helpful Semantic UI `Popup` explaining their effect.
+
 ### 0z1022. Keep Late File Reads From Overwriting Newer Import Text
 
 **The Bug**: The Listening Stats import dialog called `file.text()` and put its result in the editable import field whenever the promise resolved. If the user chose a file and then typed, pasted, or selected another file while it was loading, the earlier file result could overwrite the newer input.
