@@ -1,3 +1,8 @@
+## Update 2026-09-27 21:20:00Z
+
+- Current task: persisted volume and playback speed are normalized before player state initializes, keeping controls and Media Session on valid values.
+- Next: finish source/release validation, commit and push to the verified fork, then continue high-impact player review. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 21:12:00Z
 
 - Current task: hiding the browser player now exits follow mode for active and idle rooms. Follow controls remain disabled until the player is shown again.

@@ -98,6 +98,7 @@ and metadata events. It does not run a separate fixed polling timer, and hidden
 documents defer position updates until visibility returns.
 
 The browser owns audio output. A listener can keep following a party while locally muted, and the host can keep playing locally while publishing metadata.
+Invalid saved volume or playback speed values reset to usable defaults when the player loads.
 
 ### External Visualizers
 

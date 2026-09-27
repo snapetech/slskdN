@@ -13352,3 +13352,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:12:00Z
 
 - Closed the hidden-player listen-along gap: Follow now exits when the player is hidden, even before a host publishes a track, and both room Follow controls explain why they are disabled while hidden. Recorded gotcha 0z981 and added user documentation and an append-only release fragment.
+
+## Update 2026-09-27 21:20:00Z
+
+- Normalized saved volume into 0–1 and saved playback speed into supported choices before React state creation. Malformed storage no longer leaves the slider, selector, or Media Session with `NaN` while the media element uses a separate fallback. Recorded gotcha 0z982 and added user documentation plus an append-only release fragment.

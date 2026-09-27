@@ -2297,8 +2297,14 @@ const PlayerBar = () => {
   const [transcodeMode, setTranscodeMode] = useState(false);
   const [transcodeAvailable, setTranscodeAvailable] = useState(false);
   const [transcodeOffset, setTranscodeOffset] = useState(0);
-  const [volume, setVolume] = useState(() => Number(getLocalStorageItem(volumeStorageKey, '1')));
-  const [playbackRate, setPlaybackRate] = useState(() => Number(getLocalStorageItem(playbackRateStorageKey, '1')));
+  const [volume, setVolume] = useState(() => {
+    const stored = Number(getLocalStorageItem(volumeStorageKey, '1'));
+    return Number.isFinite(stored) ? Math.max(0, Math.min(1, stored)) : 1;
+  });
+  const [playbackRate, setPlaybackRate] = useState(() => {
+    const stored = Number(getLocalStorageItem(playbackRateStorageKey, '1'));
+    return [0.75, 1, 1.25, 1.5, 2].includes(stored) ? stored : 1;
+  });
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [outputDevices, setOutputDevices] = useState([]);
   const [outputDeviceId, setOutputDeviceId] = useState('default');
