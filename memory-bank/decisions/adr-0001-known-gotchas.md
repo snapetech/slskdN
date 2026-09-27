@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z968. Honor Visualizer Off For A Persisted Visualizer Tile
+
+**The Bug**: The player stored visualizer visibility and tile selection separately. Turning the visualizer off left a saved Butterchurn or MilkDrop tile mounted in inline mode, so heavy rendering and module loading continued despite the Off control.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Derive the visible tile from both settings. Show album art while visualizer visibility is off, preserve the selected engine for later reactivation, and mount the full visualizer only when the effective tile mode actually uses it.
+
 ### 0z967. Defer Visualizer Code Until The Player Tile Uses It
 
 **The Bug**: The always-mounted player statically imported the full visualizer component. Its native MilkDrop renderer and preset tooling became part of the initial player dependency graph even when the visualizer tile was off.
