@@ -13360,3 +13360,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:30:00Z
 
 - Added accessible names to icon-only pod Follow, Broadcast, Stop, and listed-radio Play actions. Wrapped player file breadcrumbs, folder rows, and queue preview removal chips in explanatory Semantic UI Popups, as required by repository control guidance. Recorded gotcha 0z983 and added user documentation and an append-only release fragment. Web lint passes.
+
+## Update 2026-09-27 21:40:00Z
+
+- Bound Collection item responses in the player picker to the most recent selection, cleared old rows during loading, and prevented older requests from replacing the latest result. Recorded gotcha 0z984 before editing source and added an append-only release fragment, changelog note, and listening-guide clarification.

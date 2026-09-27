@@ -1,3 +1,8 @@
+## Update 2026-09-27 21:40:00Z
+
+- Current task: the player Collection picker now clears old rows and ignores delayed item responses for earlier selections.
+- Next: finish source/release validation, commit and push to the verified fork, then continue reviewing picker and transport paths. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 21:30:00Z
 
 - Current task: listen-along icon actions now have accessible names; file-browser navigation and queue preview controls use helpful Semantic UI Popup tooltips.

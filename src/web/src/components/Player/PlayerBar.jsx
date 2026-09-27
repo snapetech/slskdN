@@ -1514,6 +1514,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
   const [selectedCollection, setSelectedCollection] = useState(null);
   const [collectionItems, setCollectionItems] = useState([]);
   const [collectionItemsLoading, setCollectionItemsLoading] = useState(false);
+  const collectionRequestRef = useRef(0);
   const [items, setItems] = useState([]);
   const [browserDirectories, setBrowserDirectories] = useState([]);
   const [browserBreadcrumbs, setBrowserBreadcrumbs] = useState([]);
@@ -1602,13 +1603,23 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
   }, [browserOffset, browserPath, filesOpen, query]);
 
   const selectCollection = (collection) => {
+    const requestId = ++collectionRequestRef.current;
     setSelectedCollection(collection);
+    setCollectionItems([]);
     setCollectionItemsLoading(true);
     collectionsAPI
       .getCollectionItems(collection.id)
-      .then((response) => setCollectionItems(asArray(response.data)))
-      .catch(() => setCollectionItems([]))
-      .finally(() => setCollectionItemsLoading(false));
+      .then((response) => {
+        if (requestId === collectionRequestRef.current) {
+          setCollectionItems(asArray(response.data));
+        }
+      })
+      .catch(() => {
+        if (requestId === collectionRequestRef.current) setCollectionItems([]);
+      })
+      .finally(() => {
+        if (requestId === collectionRequestRef.current) setCollectionItemsLoading(false);
+      });
   };
 
   const playAndClose = (item) => {

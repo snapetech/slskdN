@@ -75,6 +75,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   keeping the controls and browser Media Session consistent.
 - Added clear accessible names to listen-along icon actions and helpful
   mouseover explanations to player file navigation and queue preview controls.
+- Kept the player Collection picker on the latest selected Collection when
+  earlier item requests finish late.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

@@ -58,6 +58,7 @@ The player can start playback from:
 - Audio files chosen from the current device. These play through browser object URLs for this session and are not uploaded or saved to server Collections.
 
 File-browser breadcrumbs and folder rows explain where they navigate on hover. Queue preview chips explain that clicking removes an upcoming track without stopping the current one; listen-along icon actions have spoken labels for assistive technology.
+The Collections picker clears the old track list while a new Collection loads and ignores delayed results from previously selected Collections.
 
 All normal playback uses `GET /api/v0/streams/{contentId}`. That endpoint supports byte ranges, seeking, content-type detection, authenticated access, share-token access where applicable, and per-user stream limiting.
 
