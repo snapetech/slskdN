@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1042. Preserve Bounded Search While Correcting Library Paths
+
+**The Bug**: The first format-code correction built a filename dictionary for every share before converting a limited search page. Wide-miss allocation and early-stop regressions failed because it materialized the entire browse sequence.
+
+**Files Affected**:
+- `src/slskd/API/Native/LibraryItemsController.cs`
+
+**Prevention**: Carry the directory-derived masked filename in each selected candidate while streaming the search. Stop enumeration when the page fills and preserve full paths already present in fixtures. Avoid building a global mapping to resolve a page of results.
+
 ### 0z1041. Reuse Successful Local Resolution Across Stream Requests
 
 **The Bug**: Allowed-root path fallback throttled every scan, including repeated requests for a file just found. Ticket creation could resolve a file but the immediately following media request would return 404 during the five-second scan cooldown.
