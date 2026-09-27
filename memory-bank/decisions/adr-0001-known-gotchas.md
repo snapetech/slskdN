@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1017. Route Listen-Along Pause Through Player Transport
+
+**The Bug**: Listen-along Pause called the context's bare `audioElement.pause()` while the player bar kept a pending autoplay intent for a new stream ticket. The old element could stop, then the selected track could start after its ticket arrived despite the host's Pause.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Route context-level Pause to the mounted player's normal pause handler, which clears pending autoplay and stops an outgoing fade. Use the direct element pause only when that handler is unavailable.
+
 ### 0z1016. Keep Source URL And Track Ownership In One State Value
 
 **The Bug**: Separate URL state and mutable owner refs can diverge under React batching. Clearing a URL and setting the same URL for a newly selected item can collapse into an unchanged string state, leaving no effect pass to bind the new track.
