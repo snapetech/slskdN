@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z996. Preserve Listen-Along Broadcast Command Order
+
+**The Bug**: Broadcast and Stop host actions sent overlapping requests. A slower Broadcast response could arrive after Stop and restore visible room state, while request failures escaped the click handler without a useful message.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Serialize host publish requests in click order, apply only the latest response to local state, and show failures for the latest command so Stop cannot silently fail.
+
 ### 0z995. Scale Crossfade Wall Time With Playback Rate
 
 **The Bug**: Crossfade started five media seconds before track end but used fixed five-second Web Audio ramps and a fixed cleanup timeout. At faster playback speeds, the outgoing media ended before the incoming gain reached full volume; at slower speeds, the fade finished early.
