@@ -2414,6 +2414,7 @@ const PlayerBar = () => {
   const [crossfadeEnabled, setCrossfadeEnabled] = useState(() =>
     readStoredBoolean(crossfadeStorageKey),
   );
+  const crossfadeEnabledRef = useRef(crossfadeEnabled);
   const [listenBrainzToken, setListenBrainzTokenState] = useState(() =>
     listenBrainz.getListenBrainzToken(),
   );
@@ -2429,6 +2430,10 @@ const PlayerBar = () => {
   const [playerAudioElement, setPlayerAudioElement] = useState(null);
   const [playerRating, setPlayerRatingState] = useState(0);
   const [source, setSource] = useState(null);
+
+  useEffect(() => {
+    crossfadeEnabledRef.current = crossfadeEnabled;
+  }, [crossfadeEnabled]);
 
   const refreshExternalVisualizerStatus = useCallback(() => {
     setExternalVisualizerLoading(true);
@@ -2821,9 +2826,15 @@ const PlayerBar = () => {
       selectedItemRef.current = current;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
+      stopOutgoingFade();
+      if (audioRef.current && (!crossfadeEnabledRef.current || current.startPaused)) {
+        audioRef.current.pause();
+        playingRef.current = false;
+        setPlaying(false);
+      }
       autoplayRef.current = !current.startPaused;
       remountPositionRef.current = null;
-      setPlaybackStatus('loading');
+      setPlaybackStatus(current.startPaused ? 'paused' : 'loading');
       setTranscodeMode(false);
       setTranscodeAvailable(false);
       setTranscodeOffset(0);

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stop stale audio during a non-crossfade track selection.
+  - Status: implemented (2026-09-27).
+  - Notes: New selections end an existing outgoing fade and pause the prior
+    stream when crossfade is disabled or the selection starts paused.
+
 - [ ] Inspect the overhauled player with real audio on desktop and mobile browsers.
   - Priority: P1
   - Notes: Check local/server streams, decoded seeking, crossfade interruption,

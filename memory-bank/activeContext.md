@@ -14335,3 +14335,11 @@ rollback.
 - Next steps: the P1 real-audio desktop and mobile review in `memory-bank/tasks.md`
   remains necessary to establish audible behavior, device switching, room
   reconnect, and layout quality. No release tag was created.
+## Update 2026-09-27 22:23:50Z
+
+- Current task: player selection audio boundary fixed locally. The previous
+  stream now stops immediately when the next track cannot crossfade, including
+  a selected paused room track. Validation and release fragment are complete;
+  range preview, commit, and push remain.
+- Next steps: push to the verified fork, then perform the tracked real-audio
+  desktop and mobile review when authorized. No release tag is authorized.

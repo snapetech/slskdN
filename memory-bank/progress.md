@@ -13460,3 +13460,11 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:32:53Z
 
 - Pushed source ownership, same-URL state, and listen-along Pause hardening through `239c42a5f`. Web lint, production build, bundle budget, repository lint, whitespace, identity checks, release previews, and fork targeting passed. Automated or interactive playback tests were not run in this continuation; the outstanding real-audio review remains tracked separately.
+## Update 2026-09-27 22:23:50Z
+
+- Stopped the previous track during non-crossfade or paused track selection
+  while its new stream ticket is pending, and ended an outgoing fade when a
+  second selection starts. Recorded gotcha 0z1018 separately.
+- Web lint and production build, repository lint, whitespace, and identity
+  checks passed. Interactive playback remains the P1 follow-up; no release tag
+  was created.
