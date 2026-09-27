@@ -1,3 +1,8 @@
+## Update 2026-09-27 18:36:06Z
+
+- Current task: broad player controls and listen-along reliability pass completed and pushed to fork `main` through `4d383d254`.
+- Next: live playback and mobile inspection of queue startup, focused controls, buffering recovery, pod position sync, listed radio join, and browser-only broadcast restrictions on a controlled dev instance. No release tag or deployment was created.
+
 ## Update 2026-09-27 18:35:04Z
 
 - Current task: broad player control and listen-along reliability pass implemented. Play Next from an empty queue, restricted session storage, resumed buffering state, focused keyboard controls, live host position, directory join offset and pause state, and browser-only broadcast rejection are addressed.

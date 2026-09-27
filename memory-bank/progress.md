@@ -13288,3 +13288,7 @@ export branch has no shared Git history and was not merged.
 
 - Completed a broader player controls and listen-along pass: Play Next starts an empty player; queue persistence tolerates storage denial; playback clears stale Buffering and error state; shortcuts leave focused controls alone; live playback position reaches pod broadcasts and listed radio announcements; directory joins use the offset and paused action; browser-local files cannot be advertised as shared streams. Recorded gotchas 0z955–0z960 and updated user documentation and release notes.
 - Backend build, Web lint/build, bundle budget, repository lint, release-note fragment validation, whitespace, and identity checks passed. No tests or live audio/mobile inspection were run in this continuation.
+
+## Update 2026-09-27 18:36:06Z
+
+- Verified the fork target, confirmed `origin/main` had no commits ahead of this checkout, and pushed the five-commit player controls and listen-along series through `4d383d254` to fork `main`. Release-note range preview passed.
