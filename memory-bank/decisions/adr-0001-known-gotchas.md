@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1027. Refresh Server Tickets On Explicit Native Media Retry
+
+**The Bug**: Native server media retries reused the previous URL, including its expired stream ticket. Tickets expire after two minutes, so a reload could fail authorization even when the file and server were healthy.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/slskd/Streaming/StreamsController.cs` (ticket lifetime reference)
+
+**Prevention**: On explicit retry of failed native server media, request a fresh source through the existing cancellable ticket effect. Preserve the playback position and pending Pause intent; leave external and local URLs under their existing source ownership.
+
 ### 0z1026. Retry Failed Source Setup And Allow Pause While Loading
 
 **The Bug**: Decoded-stream setup cleared the active source owner before requesting a ticket. If setup failed, Play only set autoplay intent and waited forever for an absent source. Media failures were also retried with `play()` on an errored media element. The main transport offered Play while loading, so users could not cancel pending autoplay with that button.
