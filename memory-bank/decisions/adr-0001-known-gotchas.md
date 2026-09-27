@@ -6,6 +6,43 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z953. Ignore Late Playback Error Metadata After A Track Switch
+
+**The Bug**: Playback error handling fetched server decoding information asynchronously, then applied its duration and fallback availability even if another track or source had become active. The next track could inherit the previous track's fallback action and duration.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Before applying an asynchronous playback-error response, confirm that the selected item, active audio element, and failed source are still the ones that requested it.
+
+### 0z952. Stop Both Audio Elements When Crossfade Is Interrupted
+
+**The Bug**: During crossfade, the outgoing track lives on the standby audio element. Pause and Stop controlled only the new active element, so the outgoing track could continue playing until the fade timer completed. Clearing that timer during a source change could also leave the old element playing.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Cancel the fade timer, stop the outgoing element, and restore active output gain when playback is paused, stopped, or replaced. Keep the two element references aligned through the transition.
+
+### 0z951. Give Browser-Local File Selections Unique Queue IDs
+
+**The Bug**: Browser-local files used their name, size, and modification time as the queue ID. Distinct files with the same metadata collapsed under queue deduplication, while the discarded file's object URL remained allocated.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Assign each selected browser File a unique session-local content ID. Keep the user-visible filename separately and revoke object URLs when queue references disappear.
+
+### 0z950. Count Playback Progress Rather Than Seek Position For Scrobbles
+
+**The Bug**: Local listening history and ListenBrainz submission used the media element's absolute `currentTime` as the listening threshold. A user who sought past half of a track could immediately record a play without listening to it.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Accumulate positive media-time progress while playback is active and reset the position baseline on seeks. Reset the accumulated play time for each new item or repeat-one cycle.
+
 ### 0z949. Render Player Time At The Displayed Precision
 
 **The Bug**: Every media `timeupdate` set fractional playback position in the top-level player. The clock and seek range show whole seconds, but each fractional update rerendered the full player, its visualizer controls, and Media Session position setup without a visible change.
