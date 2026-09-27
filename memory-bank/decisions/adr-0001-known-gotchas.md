@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z949. Render Player Time At The Displayed Precision
+
+**The Bug**: Every media `timeupdate` set fractional playback position in the top-level player. The clock and seek range show whole seconds, but each fractional update rerendered the full player, its visualizer controls, and Media Session position setup without a visible change.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Track the latest rendered position separately and update React state only when the displayed second changes. Keep time-sensitive playback checks in the media event handler, and update the position immediately for explicit seeks, decoded-stream offsets, and track resets.
+
 ### 0z948. Keep Closed Player Dialogs Out Of The Playback Render Loop
 
 **The Bug**: The expanded and collapsed player mounted queue, discovery, radio, and listening-stats dialogs even while closed. Playback position updates rerendered the parent, causing closed dialogs to recalculate suggestions and statistics during normal listening.
