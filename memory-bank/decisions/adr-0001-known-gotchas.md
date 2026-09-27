@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z999. Route Selected Output On The Web Audio Context
+
+**The Bug**: Output selection called `setSinkId` on the media elements even though `createMediaElementSource` reroutes their audio into an `AudioContext`. The selector could report success while the graph continued playing through the system default device.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Set the sink on every audible AudioContext, route newly activated contexts before playback, and expose custom output selection only when context-level `setSinkId` is available. Use the empty sink ID for the system default.
+
 ### 0z998. Reset Listen-Along State When The Selected Room Changes
 
 **The Bug**: The compact listen-along panel stays mounted while the selected pod channel changes. It retained the previous room's state and party ID until the new snapshot arrived, so a fast Broadcast could reuse the old room ID and late publish responses could restore old room details.
