@@ -69,7 +69,7 @@ public sealed class ContentLocator : IContentLocator
             finfo = (ci.Value.MaskedFilename, info.Length);
         }
 
-        if (string.IsNullOrEmpty(finfo.Filename) || finfo.Size <= 0)
+        if (string.IsNullOrEmpty(finfo.Filename))
         {
             _log.LogDebug("[ContentLocator] FindFileInfo returned no path for {Masked}", ci.Value.MaskedFilename);
             return null;
@@ -81,8 +81,10 @@ public sealed class ContentLocator : IContentLocator
             return null;
         }
 
+        var currentSize = new FileInfo(finfo.Filename).Length;
+        if (currentSize <= 0) return null;
         var contentType = GetContentType(finfo.Filename);
-        return new ResolvedContent(finfo.Filename, finfo.Size, contentType);
+        return new ResolvedContent(finfo.Filename, currentSize, contentType);
     }
 
     private ResolvedContent? ResolveFromAllowedLocalRoots(string contentId, CancellationToken cancellationToken)
@@ -236,6 +238,12 @@ public sealed class ContentLocator : IContentLocator
         [".ogg"] = "audio/ogg",
         [".opus"] = "audio/opus",
         [".wav"] = "audio/wav",
+        [".aif"] = "audio/aiff",
+        [".aiff"] = "audio/aiff",
+        [".alac"] = "audio/mp4",
+        [".ape"] = "audio/x-ape",
+        [".m4b"] = "audio/mp4",
+        [".wma"] = "audio/x-ms-wma",
         [".webm"] = "video/webm",
         [".mp4"] = "video/mp4",
         [".mkv"] = "video/x-matroska",

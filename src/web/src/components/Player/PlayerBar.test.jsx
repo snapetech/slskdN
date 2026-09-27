@@ -143,10 +143,14 @@ vi.mock('../../lib/streaming', () => ({
   buildDirectStreamUrl: vi.fn((contentId) =>
     `/api/v0/streams/${encodeURIComponent(contentId)}`,
   ),
+  buildTranscodedStreamUrl: vi.fn((contentId, ticket, startSeconds) =>
+    `/api/v0/streams/${encodeURIComponent(contentId)}/transcoded?ticket=${ticket}&startSeconds=${startSeconds}`,
+  ),
   buildTicketedStreamUrl: vi.fn((contentId, ticket) =>
     `/api/v0/streams/${encodeURIComponent(contentId)}?ticket=${ticket}`,
   ),
   createStreamTicket: vi.fn(() => Promise.resolve('ticket-1')),
+  getPlaybackInfo: vi.fn(() => Promise.resolve({ data: { durationSeconds: 120 } })),
 }));
 
 vi.mock('../../lib/searches', () => ({
@@ -222,19 +226,24 @@ const TestHarness = () => {
   );
 };
 
-const renderPlayer = () =>
-  render(
+const renderPlayer = () => {
+  const result = render(
     <MemoryRouter>
       <PlayerProvider>
         <TestHarness />
       </PlayerProvider>
     </MemoryRouter>,
   );
+  const more = screen.queryByRole('button', { name: 'Show player tools' });
+  if (more) fireEvent.click(more);
+  return result;
+};
 
 describe('PlayerBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    window.sessionStorage.clear();
     // These tests exercise the expanded player UI; the collapsed-by-default
     // behavior itself is covered separately below.
     window.localStorage.setItem('slskdn.player.collapsed', 'false');
@@ -264,6 +273,43 @@ describe('PlayerBar', () => {
     renderPlayer();
 
     expect(document.querySelector('.player-bar-collapsed')).toBeNull();
+  });
+
+  it('seeks and adjusts volume in the compact bar', async () => {
+    window.localStorage.removeItem('slskdn.player.collapsed');
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 120 });
+    fireEvent.loadedMetadata(audio);
+    fireEvent.change(screen.getByLabelText('Seek playback'), { target: { value: '42' } });
+    fireEvent.pointerUp(screen.getByLabelText('Seek playback'));
+    fireEvent.change(screen.getByLabelText('Playback volume'), { target: { value: '0.35' } });
+    expect(audio.currentTime).toBe(42);
+    expect(audio.volume).toBe(0.35);
+  });
+
+  it('publishes Now Playing only after playback starts and clears it at the final end', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    expect(nowPlaying.setNowPlaying).not.toHaveBeenCalled();
+    fireEvent.play(audio);
+    expect(nowPlaying.setNowPlaying).toHaveBeenCalledWith(expect.objectContaining({ title: 'Local stream' }));
+    fireEvent.ended(audio);
+    expect(nowPlaying.clearNowPlaying).toHaveBeenCalled();
+  });
+
+  it('offers on-demand decoding after a server audio error', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+    fireEvent.click(await screen.findByText('Decode for playback'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
   });
 
   it('mutes local browser playback without clearing the stream source', async () => {

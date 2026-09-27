@@ -1,4 +1,5 @@
 import * as collectionsAPI from '../../lib/collections';
+import * as streaming from '../../lib/streaming';
 import PlayCollectionItemButton from '../Player/PlayCollectionItemButton';
 import ErrorSegment from '../Shared/ErrorSegment';
 import LoaderSegment from '../Shared/LoaderSegment';
@@ -47,6 +48,8 @@ export default class Collections extends Component {
       collectionPage: 1,
       collections: [],
       createModalOpen: false,
+      editItem: null,
+      editFileTags: false,
       error: null,
       itemSearchLoading: false,
       itemSearchQuery: '',
@@ -348,6 +351,8 @@ export default class Collections extends Component {
       collectionPage,
       collections,
       createModalOpen,
+      editItem,
+      editFileTags,
       error,
       itemSearchLoading,
       itemSearchQuery,
@@ -556,11 +561,34 @@ export default class Collections extends Component {
                           key={item.id}
                         >
                           <Table.Cell>
-                            {item.fileName || item.contentId || 'N/A'}
+                            {item.title || item.fileName || item.contentId || 'N/A'}
+                            {item.artist ? <small> — {item.artist}</small> : null}
                           </Table.Cell>
                           <Table.Cell>{item.mediaKind || 'Unknown'}</Table.Cell>
                           <Table.Cell>
                             <PlayCollectionItemButton item={item} />
+                            <Popup
+                              content="Edit how this item appears in the collection without changing the audio file."
+                              trigger={
+                                <Button
+                                  aria-label={`Edit ${item.title || item.fileName || 'item'} display metadata`}
+                                  icon="edit"
+                                  onClick={() => this.setState({ editFileTags: false, editItem: { ...item } })}
+                                  size="small"
+                                />
+                              }
+                            />
+                            <Popup
+                              content="Edit the tags in this server audio file. Administrator access and write permission are required."
+                              trigger={
+                                <Button
+                                  aria-label={`Edit ${item.title || item.fileName || 'item'} audio file tags`}
+                                  icon="tags"
+                                  onClick={() => this.setState({ editFileTags: true, editItem: { ...item } })}
+                                  size="small"
+                                />
+                              }
+                            />
                             <Popup
                               content="Remove this item from the collection without deleting the shared file."
                               trigger={
@@ -570,6 +598,7 @@ export default class Collections extends Component {
                                   onClick={async () => {
                                     try {
                                       await collectionsAPI.removeCollectionItem(
+                                        selectedCollection.id,
                                         item.id,
                                       );
                                       await this.loadCollectionItems(
@@ -816,6 +845,59 @@ export default class Collections extends Component {
           </Modal>
 
           {/* Add Item Modal */}
+          <Modal onClose={() => this.setState({ editItem: null })} open={Boolean(editItem)} size="small">
+            <Modal.Header>{editFileTags ? 'Edit audio file tags' : 'Edit collection display metadata'}</Modal.Header>
+            <Modal.Content>
+              <Form>
+                {['title', 'artist', 'album'].map((field) => (
+                  <Form.Input
+                    key={field}
+                    label={field[0].toUpperCase() + field.slice(1)}
+                    onChange={(event) => this.setState({ editItem: { ...editItem, [field]: event.target.value } })}
+                    value={editItem?.[field] || ''}
+                  />
+                ))}
+              </Form>
+            </Modal.Content>
+            <Modal.Actions>
+              <Popup content="Discard changes to this collection entry." trigger={
+                <Button onClick={() => this.setState({ editItem: null })}>Cancel</Button>
+              } />
+              <Popup content={editFileTags ? 'Write tags to the server audio file and update its collection references.' : 'Save this item’s display metadata without writing to the audio file.'} trigger={
+                <Button
+                  disabled={!editItem || !selectedCollection}
+                  onClick={async () => {
+                    try {
+                      let shareScanStarted = true;
+                      if (editFileTags) {
+                        const response = await streaming.updatePlayerTags(editItem.contentId, {
+                          album: editItem.album || '',
+                          artist: editItem.artist || '',
+                          title: editItem.title || editItem.fileName || '',
+                        });
+                        shareScanStarted = response.data?.shareScanStarted !== false;
+                      } else {
+                        await collectionsAPI.updateCollectionItem(selectedCollection.id, editItem.id, {
+                          album: editItem.album || ' ',
+                          artist: editItem.artist || ' ',
+                          title: editItem.title || ' ',
+                        });
+                      }
+                      await this.loadCollectionItems(selectedCollection.id);
+                      this.setState({
+                        editItem: null,
+                        error: shareScanStarted ? null : 'Audio tags were saved, but the share scan could not start. Run a share scan to refresh the library.',
+                      });
+                    } catch (saveError) {
+                      this.setState({ error: getErrorMessage(saveError, 'Could not save display metadata') });
+                    }
+                  }}
+                  primary
+                >Save</Button>
+              } />
+            </Modal.Actions>
+          </Modal>
+
           <Modal
             onClose={() =>
               this.setState({

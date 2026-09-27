@@ -1,3 +1,15 @@
+## Update 2026-09-27 17:51:28Z
+
+- Current task: player suite implementation and follow-up hardening completed in the working tree. Repeat-all, seek behavior, layout remounts, output devices, playlist rollback, file URL cleanup, and tag/stream reference consistency received another review pass.
+- Backend build, repository lint, Web lint/build, and bundle budget passed after the follow-up edits. The earlier focused player and Collections tests preceded the follow-up edits.
+- Next: perform live desktop/mobile playback, fallback decoding, and tag-edit smoke checks when browser workspace control is available; review the code diff before a release. Continue YunoHost catalog PR #3627 separately.
+
+## Update 2026-09-27 17:25:00Z
+
+- Current task: player suite overhaul implemented in the working tree. Compact playback, queue and Collection playlists, browser-local file playback, on-demand FFmpeg fallback, Iris styling, and collection metadata/tag editing are in place.
+- Backend build, Web build, Web lint, repository lint, and release-note fragment validation passed. Focused player and Collections tests passed earlier in the implementation.
+- Next: review and commit the player changes; perform live playback and tag editing smoke checks before release. Continue YunoHost catalog PR #3627 review separately.
+
 ## Update 2026-09-26 00:12:50Z
 
 - Current task: complete. The YunoHost package and catalog submission are

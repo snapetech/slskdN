@@ -4,6 +4,8 @@
 namespace slskd.Streaming;
 
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
@@ -27,6 +29,8 @@ public class StreamsController : ControllerBase
 {
     /// <summary>Max concurrent streams per normal (non-token) user when using normal auth.</summary>
     private const int NormalUserMaxConcurrentStreams = 5;
+    private const int MaxConcurrentTranscodes = 2;
+    private const string TranscodeGlobalLimiterKey = "transcode:global";
 
     private readonly IContentLocator _locator;
     private readonly IShareTokenService _tokens;
@@ -76,6 +80,111 @@ public class StreamsController : ControllerBase
         var ownerKey = "user:" + GetAuthenticatedOwnerKey();
         var ticket = _tickets.Create(contentId, ownerKey, TimeSpan.FromMinutes(2));
         return Ok(new { ticket, expiresInSeconds = 120 });
+    }
+
+    /// <summary>Returns duration for a local audio item when the browser cannot decode its native stream.</summary>
+    [HttpGet("{contentId}/playback-info")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    public IActionResult GetPlaybackInfo([FromRoute] string contentId)
+    {
+        if (!StreamingEnabled) return NotFound();
+        var resolved = _locator.Resolve(contentId, HttpContext.RequestAborted);
+        if (resolved == null || !resolved.ContentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase)) return NotFound();
+        try
+        {
+            using var file = TagLib.File.Create(resolved.AbsolutePath, TagLib.ReadStyle.Average);
+            return Ok(new { durationSeconds = file.Properties.Duration.TotalSeconds, contentType = resolved.ContentType });
+        }
+        catch (Exception)
+        {
+            return Ok(new { durationSeconds = 0d, contentType = resolved.ContentType });
+        }
+    }
+
+    /// <summary>Decodes an authorized local audio file on demand to a browser compatible MP3 stream.</summary>
+    [HttpGet("{contentId}/transcoded")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Transcode(
+        [FromRoute] string contentId,
+        [FromQuery] string? ticket,
+        [FromQuery] double startSeconds,
+        CancellationToken ct)
+    {
+        if (!StreamingEnabled) return NotFound();
+        if (string.IsNullOrWhiteSpace(ticket)) return Unauthorized();
+        var ticketClaims = _tickets.Validate(ticket, contentId);
+        if (ticketClaims == null || !ticketClaims.OwnerKey.StartsWith("user:", StringComparison.Ordinal)) return Unauthorized();
+        if (!double.IsFinite(startSeconds) || startSeconds < 0 || startSeconds > 86400) return BadRequest("Invalid start position.");
+        var resolved = _locator.Resolve(contentId, ct);
+        if (resolved == null || !resolved.ContentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase)) return NotFound();
+
+        var limiterKey = "transcode:" + ticketClaims.OwnerKey;
+        if (!_limiter.TryAcquire(limiterKey, 1)) return StatusCode(429, "A transcode is already running for this user.");
+        if (!_limiter.TryAcquire(TranscodeGlobalLimiterKey, MaxConcurrentTranscodes))
+        {
+            _limiter.Release(limiterKey);
+            return StatusCode(429, "The server is already decoding other audio.");
+        }
+
+        try
+        {
+            var executable = _options.CurrentValue.Integration.Chromaprint.FfmpegPath;
+            var info = new ProcessStartInfo(executable)
+            {
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            };
+            info.ArgumentList.Add("-hide_banner");
+            info.ArgumentList.Add("-loglevel");
+            info.ArgumentList.Add("error");
+            info.ArgumentList.Add("-ss");
+            info.ArgumentList.Add(startSeconds.ToString("0.###", CultureInfo.InvariantCulture));
+            info.ArgumentList.Add("-threads");
+            info.ArgumentList.Add("1");
+            info.ArgumentList.Add("-i");
+            info.ArgumentList.Add(resolved.AbsolutePath);
+            info.ArgumentList.Add("-vn");
+            info.ArgumentList.Add("-map");
+            info.ArgumentList.Add("0:a:0");
+            info.ArgumentList.Add("-ac");
+            info.ArgumentList.Add("2");
+            info.ArgumentList.Add("-codec:a");
+            info.ArgumentList.Add("libmp3lame");
+            info.ArgumentList.Add("-threads");
+            info.ArgumentList.Add("1");
+            info.ArgumentList.Add("-b:a");
+            info.ArgumentList.Add("192k");
+            info.ArgumentList.Add("-f");
+            info.ArgumentList.Add("mp3");
+            info.ArgumentList.Add("pipe:1");
+            using var process = new Process { StartInfo = info };
+            try
+            {
+                process.Start();
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                return StatusCode(503, "FFmpeg is unavailable on this server.");
+            }
+
+            using var registration = ct.Register(() =>
+            {
+                if (!process.HasExited) process.Kill(entireProcessTree: true);
+            });
+            var stderr = process.StandardError.BaseStream.CopyToAsync(Stream.Null, ct);
+            Response.ContentType = "audio/mpeg";
+            Response.Headers.CacheControl = "no-store";
+            await process.StandardOutput.BaseStream.CopyToAsync(Response.Body, ct);
+            await process.WaitForExitAsync(ct);
+            await stderr;
+            return new EmptyResult();
+        }
+        finally
+        {
+            _limiter.Release(TranscodeGlobalLimiterKey);
+            _limiter.Release(limiterKey);
+        }
     }
 
     /// <summary>

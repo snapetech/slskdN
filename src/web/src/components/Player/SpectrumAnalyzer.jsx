@@ -88,8 +88,8 @@ const drawFrequencyBars = (ctx, data, width, height, options = {}) => {
 
   bars.forEach((value, index) => {
     const barHeight = (value / 255) * height * maxHeightRatio;
-    const hue = 132 - (index / bars.length) * 92;
-    ctx.fillStyle = `hsla(${hue}, 74%, 52%, ${alpha})`;
+    const hue = 264 + (index / bars.length) * 24;
+    ctx.fillStyle = `hsla(${hue}, 72%, 68%, ${alpha})`;
     ctx.fillRect(
       index * barWidth,
       topOffset + height - barHeight,
@@ -107,7 +107,7 @@ const drawScopeLine = (ctx, points, width, height, options = {}) => {
   } = options;
   const linePoints = getScopeLinePoints(points);
 
-  ctx.strokeStyle = `rgba(139, 212, 80, ${baselineAlpha})`;
+  ctx.strokeStyle = `rgba(173, 140, 242, ${baselineAlpha})`;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, height / 2);
@@ -115,8 +115,8 @@ const drawScopeLine = (ctx, points, width, height, options = {}) => {
   ctx.stroke();
 
   ctx.shadowBlur = 8;
-  ctx.shadowColor = `rgba(139, 212, 80, ${alpha * 0.45})`;
-  ctx.strokeStyle = `rgba(180, 242, 116, ${alpha})`;
+  ctx.shadowColor = `rgba(173, 140, 242, ${alpha * 0.45})`;
+  ctx.strokeStyle = `rgba(202, 181, 250, ${alpha})`;
   ctx.lineWidth = lineWidth;
   ctx.beginPath();
   linePoints.forEach(({ x, y }, index) => {
@@ -135,6 +135,8 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
 
   const draw = useCallback(
     (analyser, timestamp = 0) => {
+      rafRef.current = null;
+      if (document.hidden) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -178,14 +180,24 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
   useEffect(() => {
     if (!audioElement || mode === 'off') return undefined;
     let cancelled = false;
+    let analyser = null;
+
+    const resumeVisibleRendering = () => {
+      if (!document.hidden && analyser && !rafRef.current) {
+        rafRef.current = window.requestAnimationFrame((timestamp) => draw(analyser, timestamp));
+      }
+    };
+    document.addEventListener('visibilitychange', resumeVisibleRendering);
 
     resumeAudioGraph(audioElement).then((graph) => {
       if (cancelled || !graph) return;
-      draw(graph.analyser);
+      analyser = graph.analyser;
+      if (!document.hidden) draw(analyser);
     });
 
     return () => {
       cancelled = true;
+      document.removeEventListener('visibilitychange', resumeVisibleRendering);
       if (rafRef.current) {
         window.cancelAnimationFrame(rafRef.current);
         rafRef.current = null;

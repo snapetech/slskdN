@@ -644,6 +644,8 @@ const Visualizer = ({
   }, []);
 
   const renderLoop = useCallback((timestamp = performance.now()) => {
+    rafRef.current = null;
+    if (document.hidden) return;
     if (!engineRef.current) return;
     try {
       const fpsCapMs = isNativeEngine(activeEngineType) ? getNativeFpsCapMs(nativeFpsCap) : 0;
@@ -677,6 +679,17 @@ const Visualizer = ({
     }
     rafRef.current = window.requestAnimationFrame(renderLoop);
   }, [activeEngineType, nativeFpsCap, showNativeDebug]);
+
+  useEffect(() => {
+    if (mode === 'off' || !audioElement) return undefined;
+    const resumeVisibleRendering = () => {
+      if (!document.hidden && engineRef.current && !rafRef.current) {
+        rafRef.current = window.requestAnimationFrame(renderLoop);
+      }
+    };
+    document.addEventListener('visibilitychange', resumeVisibleRendering);
+    return () => document.removeEventListener('visibilitychange', resumeVisibleRendering);
+  }, [audioElement, mode, renderLoop]);
 
   const cycleNativeAutomationMode = useCallback(() => {
     setNativeAutomationSettings((current) =>
@@ -1024,7 +1037,7 @@ const Visualizer = ({
           resizeObserver.observe(containerRef.current);
         }
 
-        rafRef.current = window.requestAnimationFrame(renderLoop);
+        if (!document.hidden) rafRef.current = window.requestAnimationFrame(renderLoop);
       } catch (importError) {
         if (createdEngine) {
           try {

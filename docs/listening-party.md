@@ -1,6 +1,6 @@
 # Listening Party
 
-Last updated: 2026-07-15
+Last updated: 2026-09-27
 
 slskdN listening parties are metadata-synchronized playback sessions for pods. They intentionally do not relay music bytes through the host.
 
@@ -47,6 +47,7 @@ The player can start playback from:
 - The player empty-state **Collections** browser, which opens a two-pane modal with collection list and playable items.
 - The player empty-state **Files** browser, which opens a searchable modal over shared and downloaded local audio.
 - Pod/listening-party follow actions that resolve the announced `ContentId`.
+- Audio files chosen from the current device. These play through browser object URLs for this session and are not uploaded or saved to server Collections.
 
 All normal playback uses `GET /api/v0/streams/{contentId}`. That endpoint supports byte ranges, seeking, content-type detection, authenticated access, share-token access where applicable, and per-user stream limiting.
 
@@ -58,12 +59,14 @@ The persistent player is docked above the fixed footer and can collapse into a s
 
 Controls include:
 
-- Play/pause and stop.
-- Previous/next queue navigation.
-- Rewind and fast-forward.
+- A compact bar with play/pause, previous/next, elapsed and remaining time, seek, volume, and queue access.
+- An expanded view with stop, rewind/fast-forward, playback speed, shuffle, repeat off/all/one, and additional tools behind **Show player tools**.
+- Queue reorder and Play Next from the player's library browsers. The immediate queue and selected track survive a browser refresh in session storage but do not autoplay; saved playlists use Collections.
 - Browser-local mute. This mutes only the current browser or installed PWA; it does not stop the stream or mute other listeners.
 - Browser Media Session metadata and transport handlers for supported mobile/PWA lock-screen controls.
 - Optional MilkDrop visualizer, lightweight analyzer, equalizer, synced lyrics, crossfade, karaoke-style center-channel reduction, and ListenBrainz now-playing/scrobble submission when the relevant player controls are enabled.
+
+The player publishes Now Playing after playback begins and clears it on pause, stop, failure, or final track end. Playback errors are shown in the player. If the browser cannot decode a server library audio file, **Decode for playback** requests a short-lived, ticket-bound MP3 stream from the configured FFmpeg executable. It runs only on demand, permits one decode per user and two per server, and never sends browser-chosen files to the server. Server administrators can edit tags on indexed local audio from a Collection item; collection display metadata can be edited separately without changing the file. Tag edits change file bytes and may change its content ID, so the server refreshes the share index and Collection references.
 
 Synced lyric highlighting follows the browser media element's playback, seek,
 and metadata events. It does not run a separate fixed polling timer, and hidden

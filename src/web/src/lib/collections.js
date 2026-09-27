@@ -26,12 +26,12 @@ export const deleteCollection = (id) => api.delete(`/collections/${encodeURIComp
 export const getCollectionItems = (id) => api.get(`/collections/${encodeURIComponent(id)}/items`);
 export const addCollectionItem = (id, data) =>
   api.post(`/collections/${encodeURIComponent(id)}/items`, data);
-export const updateCollectionItem = (itemId, data) =>
-  api.put(`/collections/items/${encodeURIComponent(itemId)}`, data);
-export const removeCollectionItem = (itemId) =>
-  api.delete(`/collections/items/${encodeURIComponent(itemId)}`);
+export const updateCollectionItem = (collectionId, itemId, data) =>
+  api.put(`/collections/${encodeURIComponent(collectionId)}/items/${encodeURIComponent(itemId)}`, data);
+export const removeCollectionItem = (collectionId, itemId) =>
+  api.delete(`/collections/${encodeURIComponent(collectionId)}/items/${encodeURIComponent(itemId)}`);
 export const reorderCollectionItems = (id, itemIds) =>
-  api.put(`/collections/${encodeURIComponent(id)}/items/reorder`, { itemIds });
+  api.post(`/collections/${encodeURIComponent(id)}/items/reorder`, { itemIds });
 
 // Share Grants (Shares)
 export const getShares = () =>

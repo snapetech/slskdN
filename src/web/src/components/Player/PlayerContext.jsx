@@ -17,36 +17,60 @@ export const PlayerContext = createContext({
   followingParty: null,
   history: [],
   next: () => {},
+  moveQueueItem: () => {},
   pause: () => {},
   playItem: () => {},
+  playNext: () => {},
   previous: () => {},
   queue: [],
   queueItems: () => {},
   removeFromQueue: () => {},
+  repeatMode: 'off',
   seekRelative: () => {},
+  setRepeatMode: () => {},
+  setShuffle: () => {},
+  shuffle: false,
   setAudioElement: () => {},
   playerVisible: true,
 });
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const sessionKey = 'slskdn.player.session.v1';
+const readSession = () => {
+  try {
+    const value = JSON.parse(window.sessionStorage.getItem(sessionKey) || '{}');
+    const queue = asArray(value.queue).filter((item) =>
+      typeof item?.contentId === 'string' && !item.contentId.startsWith('local:'));
+    return {
+      current: queue[0] || null,
+      queue,
+      repeatMode: ['off', 'all', 'one'].includes(value.repeatMode) ? value.repeatMode : 'off',
+      shuffle: value.shuffle === true,
+    };
+  } catch {
+    return { current: null, queue: [], repeatMode: 'off', shuffle: false };
+  }
+};
 
 export const PlayerProvider = ({ children }) => {
+  const [initialSession] = useState(readSession);
   const [audioElement, setAudioElement] = useState(null);
-  const [current, setCurrent] = useState(null);
+  const [current, setCurrent] = useState(initialSession.current);
   const [history, setHistory] = useState([]);
-  const [queue, setQueue] = useState([]);
+  const [queue, setQueue] = useState(initialSession.queue);
+  const [repeatMode, setRepeatMode] = useState(initialSession.repeatMode);
+  const [shuffle, setShuffle] = useState(initialSession.shuffle);
   const [followingParty, setFollowingParty] = useState(null);
   const playerVisible = useExperiencePreference('playerVisible', true);
   const previousPlayerVisible = useRef(playerVisible);
 
   useEffect(() => {
-    if (!current?.artist || !current?.title) return;
-    nowPlaying.setNowPlaying({
-      album: current.album,
-      artist: current.artist,
-      title: current.title,
-    });
-  }, [current]);
+    window.sessionStorage.setItem(sessionKey, JSON.stringify({
+      queue: queue.filter((item) => !item.contentId.startsWith('local:')),
+      repeatMode,
+      shuffle,
+    }));
+  }, [queue, repeatMode, shuffle]);
 
   const playItem = useCallback(
     (item, options = {}) => {
@@ -73,19 +97,14 @@ export const PlayerProvider = ({ children }) => {
         ),
       };
 
-      setHistory((existing) => (current ? [current, ...existing].slice(0, 25) : existing));
+      setHistory((existing) => (options.replaceQueue ? [] : current ? [current, ...existing] : existing));
       setCurrent(playable);
       setQueue((existing) =>
-        options.replaceQueue ? [playable] : [playable, ...existing],
+        options.replaceQueue ? [playable] : [playable, ...existing.slice(current ? 1 : 0)],
       );
 
-      window.setTimeout(() => {
-        if (audioElement) {
-          audioElement.play().catch(() => {});
-        }
-      }, 0);
     },
-    [audioElement, current, playerVisible],
+    [current, playerVisible],
   );
 
   const pause = useCallback(() => {
@@ -116,7 +135,26 @@ export const PlayerProvider = ({ children }) => {
 
   const clearQueue = useCallback(() => {
     setQueue((existing) => (current ? [current] : existing.slice(0, 1)));
+    setHistory([]);
   }, [current]);
+
+  const playNext = useCallback((item) => {
+    if (!item?.contentId) return;
+    setQueue((existing) => [
+      ...existing.slice(0, 1),
+      item,
+      ...existing.slice(1).filter((entry) => entry.contentId !== item.contentId),
+    ]);
+  }, []);
+
+  const moveQueueItem = useCallback((fromIndex, toIndex) => {
+    setQueue((existing) => {
+      if (fromIndex < 1 || toIndex < 1 || fromIndex >= existing.length || toIndex >= existing.length) return existing;
+      const updated = [...existing];
+      updated.splice(toIndex, 0, updated.splice(fromIndex, 1)[0]);
+      return updated;
+    });
+  }, []);
 
   const queueItems = useCallback((items = []) => {
     setQueue((existing) => {
@@ -157,15 +195,25 @@ export const PlayerProvider = ({ children }) => {
 
   const next = useCallback(() => {
     setQueue((existing) => {
-      if (existing.length < 2) return existing;
-      const [, nextItem, ...remaining] = existing;
+      if (existing.length < 2) {
+        if (repeatMode === 'all' && history.length > 0) {
+          const [nextItem, ...remaining] = [...history].reverse().concat(existing);
+          setCurrent(nextItem);
+          setHistory([]);
+          return [nextItem, ...remaining];
+        }
+        return existing;
+      }
+      const nextIndex = shuffle ? 1 + Math.floor(Math.random() * (existing.length - 1)) : 1;
+      const nextItem = existing[nextIndex];
+      const remaining = existing.slice(1).filter((_, index) => index + 1 !== nextIndex);
       setHistory((previousHistory) =>
-        current ? [current, ...previousHistory].slice(0, 25) : previousHistory,
+        current ? [current, ...previousHistory] : previousHistory,
       );
       setCurrent(nextItem);
       return [nextItem, ...remaining];
     });
-  }, [current]);
+  }, [current, history, repeatMode, shuffle]);
 
   const previous = useCallback(() => {
     if (history.length === 0) {
@@ -190,15 +238,21 @@ export const PlayerProvider = ({ children }) => {
         followParty,
         followingParty,
         history,
+        moveQueueItem,
         next,
         pause,
         playItem,
+        playNext,
         playerVisible,
         previous,
         queue,
         queueItems,
         removeFromQueue,
+        repeatMode,
         seekRelative,
+        setRepeatMode,
+        setShuffle,
+        shuffle,
         setAudioElement,
       }}
     >

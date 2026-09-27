@@ -26,6 +26,15 @@ export const createShareStreamTicket = async (contentId, shareToken) => {
 export const buildDirectStreamUrl = (contentId) =>
   `${urlBase}/api/v0/streams/${encodeURIComponent(contentId)}`;
 
+export const getPlaybackInfo = (contentId) =>
+  api.get(`/streams/${encodeURIComponent(contentId)}/playback-info`);
+
+export const updatePlayerTags = (contentId, data) =>
+  api.put(`/player-tags/${encodeURIComponent(contentId)}`, data);
+
+export const buildTranscodedStreamUrl = (contentId, ticket, startSeconds = 0) =>
+  `${urlBase}/api/v0/streams/${encodeURIComponent(contentId)}/transcoded?ticket=${encodeURIComponent(ticket)}&startSeconds=${encodeURIComponent(startSeconds)}`;
+
 export const createPeerStreamTicket = async ({ username, filename, size }) => {
   const response = await api.post('/peer-streams/tickets', {
     username,

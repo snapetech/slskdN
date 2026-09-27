@@ -13,6 +13,7 @@ import {
 import * as externalVisualizer from '../../lib/externalVisualizer';
 import { setExperiencePreference } from '../../lib/experiencePreferences';
 import * as listenBrainz from '../../lib/listenBrainz';
+import * as nowPlaying from '../../lib/nowPlaying';
 import {
   clearListeningHistory,
   exportListeningHistoryCsv,
@@ -76,7 +77,56 @@ const karaokeStorageKey = 'slskdn.player.karaokeEnabled';
 const crossfadeStorageKey = 'slskdn.player.crossfadeEnabled';
 const visualTileStorageKey = 'slskdn.player.visualTileMode';
 const analyzerModeStorageKey = 'slskdn.player.analyzerMode';
+const volumeStorageKey = 'slskdn.player.volume';
+const playbackRateStorageKey = 'slskdn.player.rate';
 const playerBrowserPageSize = 80;
+
+const formatTime = (seconds) => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const whole = Math.floor(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+};
+
+const PlayerProgress = ({ current, duration, onSeek, position }) => {
+  const draftRef = useRef(null);
+  const [draft, setDraft] = useState(null);
+  const displayedPosition = draft ?? position;
+  const commitSeek = () => {
+    if (draftRef.current === null) return;
+    const seconds = draftRef.current;
+    draftRef.current = null;
+    setDraft(null);
+    onSeek(seconds);
+  };
+
+  return (
+    <div className="player-progress">
+      <span aria-hidden="true">{formatTime(displayedPosition)}</span>
+      <input
+        aria-label="Seek playback"
+        disabled={!current || duration <= 0}
+        max={duration || 1}
+        min="0"
+        onBlur={commitSeek}
+        onChange={(event) => {
+          const seconds = Number(event.target.value);
+          draftRef.current = seconds;
+          setDraft(seconds);
+        }}
+        onKeyUp={commitSeek}
+        onPointerCancel={() => {
+          draftRef.current = null;
+          setDraft(null);
+        }}
+        onPointerUp={commitSeek}
+        step="1"
+        type="range"
+        value={Math.min(displayedPosition, duration || 1)}
+      />
+      <span aria-hidden="true">-{formatTime(Math.max(0, duration - displayedPosition))}</span>
+    </div>
+  );
+};
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -458,6 +508,8 @@ const PlayerQueueModal = ({
   onClearQueue,
   onAutoQueueSimilar,
   onClose,
+  onLoadPlaylist,
+  onMove,
   onNext,
   onPrevious,
   onRemove,
@@ -468,11 +520,82 @@ const PlayerQueueModal = ({
   const [handoffStatus, setHandoffStatus] = useState('');
   const [searchingSimilar, setSearchingSimilar] = useState(false);
   const [savingSimilarWishlist, setSavingSimilarWishlist] = useState(false);
+  const [playlists, setPlaylists] = useState([]);
+  const [playlistName, setPlaylistName] = useState('');
+  const [selectedPlaylist, setSelectedPlaylist] = useState('');
+  const [playlistBusy, setPlaylistBusy] = useState(false);
   const similarCandidates = buildSimilarQueueCandidates({
     current,
     history,
     queue,
   });
+
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    collectionsAPI.getCollections().then((response) => {
+      if (!cancelled) setPlaylists(asArray(response.data).filter((entry) => entry.type === 'Playlist'));
+    }).catch(() => {
+      if (!cancelled) setPlaylists([]);
+    });
+    return () => { cancelled = true; };
+  }, [open]);
+
+  const savePlaylist = async () => {
+    const name = playlistName.trim();
+    const items = queue.filter((item) => !item.contentId.startsWith('local:'));
+    if (!name || items.length === 0) return;
+    setPlaylistBusy(true);
+    let createdPlaylistId = null;
+    try {
+      const response = await collectionsAPI.createCollection({ title: name, type: 'Playlist' });
+      createdPlaylistId = response.data.id;
+      for (const item of items) {
+        await collectionsAPI.addCollectionItem(createdPlaylistId, {
+          album: item.album,
+          artist: item.artist,
+          contentId: item.contentId,
+          fileName: item.fileName,
+          mediaKind: 'Audio',
+          title: item.title,
+        });
+      }
+      setPlaylists((existing) => [...existing, response.data]);
+      setPlaylistName('');
+      setHandoffStatus(`Saved ${items.length} tracks to ${name}.`);
+    } catch {
+      if (createdPlaylistId) {
+        try {
+          await collectionsAPI.deleteCollection(createdPlaylistId);
+        } catch {
+          setHandoffStatus('The playlist is incomplete and could not be removed. Review it in Collections.');
+          return;
+        }
+      }
+      setHandoffStatus('Could not save the playlist.');
+    } finally {
+      setPlaylistBusy(false);
+    }
+  };
+
+  const loadPlaylist = async () => {
+    if (!selectedPlaylist) return;
+    setPlaylistBusy(true);
+    try {
+      const response = await collectionsAPI.getCollectionItems(selectedPlaylist);
+      const items = asArray(response.data).filter((item) => item.contentId);
+      if (items.length === 0) {
+        setHandoffStatus('This playlist has no playable tracks.');
+      } else {
+        onLoadPlaylist(items);
+        setHandoffStatus(`Loaded ${items.length} tracks.`);
+      }
+    } catch {
+      setHandoffStatus('Could not load the playlist.');
+    } finally {
+      setPlaylistBusy(false);
+    }
+  };
 
   const startSimilarSearches = async () => {
     const queries = getSimilarQueueSearchQueries(similarCandidates, { limit: 3 });
@@ -532,6 +655,26 @@ const PlayerQueueModal = ({
       <Modal.Header>Playback Queue</Modal.Header>
       <Modal.Content>
         <div className="player-queue-manager">
+          <section className="player-playlist-actions">
+            <div className="player-panel-title">Playlists</div>
+            <Input
+              aria-label="New playlist name"
+              onChange={(event) => setPlaylistName(event.target.value)}
+              placeholder="Name this queue"
+              size="small"
+              value={playlistName}
+            />
+            <Popup content="Save the current server library tracks as a new Collection playlist." trigger={
+              <Button disabled={!playlistName.trim() || playlistBusy || queue.every((item) => item.contentId.startsWith('local:'))} onClick={savePlaylist} size="small" type="button">Save queue</Button>
+            } />
+            <select aria-label="Saved playlist" onChange={(event) => setSelectedPlaylist(event.target.value)} value={selectedPlaylist}>
+              <option value="">Choose playlist</option>
+              {playlists.map((playlist) => <option key={playlist.id} value={playlist.id}>{playlist.title}</option>)}
+            </select>
+            <Popup content="Replace the immediate queue with tracks from this saved playlist." trigger={
+              <Button disabled={!selectedPlaylist || playlistBusy} onClick={loadPlaylist} size="small" type="button">Load</Button>
+            } />
+          </section>
           <section>
             <div className="player-panel-title">Now Playing</div>
             <div className="player-queue-manager-row player-queue-manager-current">
@@ -627,6 +770,12 @@ const PlayerQueueModal = ({
                       <strong>{getTrackLabel(item)}</strong>
                       <span>{item.artist || item.album || item.contentId}</span>
                     </div>
+                    <Popup content="Move this track earlier in the queue." trigger={
+                      <Button aria-label={`Move ${getTrackLabel(item)} up`} disabled={index === 0} icon onClick={() => onMove(index + 1, index)} size="mini" type="button"><Icon name="arrow up" /></Button>
+                    } />
+                    <Popup content="Move this track later in the queue." trigger={
+                      <Button aria-label={`Move ${getTrackLabel(item)} down`} disabled={index === upcoming.length - 1} icon onClick={() => onMove(index + 1, index + 2)} size="mini" type="button"><Icon name="arrow down" /></Button>
+                    } />
                     <Popup
                       content="Remove this upcoming item from the local playback queue."
                       trigger={
@@ -1365,7 +1514,7 @@ const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
   );
 };
 
-const PlayerLauncher = ({ compact = false, onPlayItem }) => {
+const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
   const navigate = useNavigate();
   const [collections, setCollections] = useState([]);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
@@ -1618,6 +1767,9 @@ const PlayerLauncher = ({ compact = false, onPlayItem }) => {
                               </Button>
                             }
                           />
+                          <Popup content="Place this collection item next in the playback queue." trigger={
+                            <Button aria-label={`Play ${item.title || item.fileName || 'track'} next`} disabled={!onPlayNext} icon onClick={() => onPlayNext(item)} size="small"><Icon name="level down alternate" /></Button>
+                          } />
                         </Table.Cell>
                       </Table.Row>
                     ))}
@@ -1796,6 +1948,9 @@ const PlayerLauncher = ({ compact = false, onPlayItem }) => {
                                 </Button>
                               }
                             />
+                            <Popup content="Place this file next in the playback queue." trigger={
+                              <Button aria-label={`Play ${item.fileName || 'file'} next`} disabled={!onPlayNext} icon onClick={() => onPlayNext(item)} size="small"><Icon name="level down alternate" /></Button>
+                            } />
                           </Table.Cell>
                         </Table.Row>
                       ))}
@@ -2088,20 +2243,28 @@ const PlayerBar = () => {
   const playerBarRef = useRef(null);
   const scrobbledRef = useRef('');
   const pipRef = useRef({ raf: null, win: null });
+  const fadeTimeoutRef = useRef(null);
+  const crossfadeStartedRef = useRef(null);
   const {
     clearQueue,
     clear,
     current,
     followingParty,
     history,
+    moveQueueItem,
     next,
     pause,
     queue,
+    repeatMode,
     previous,
+    playNext,
     queueItems,
     removeFromQueue,
     seekRelative,
+    setRepeatMode,
+    setShuffle,
     setAudioElement,
+    shuffle,
     playItem,
     playerVisible,
   } = usePlayer();
@@ -2115,6 +2278,50 @@ const PlayerBar = () => {
     return stored === null ? true : stored === 'true';
   });
   const [playing, setPlaying] = useState(false);
+  const playingRef = useRef(false);
+  const [playbackStatus, setPlaybackStatus] = useState('idle');
+  const [playbackError, setPlaybackError] = useState('');
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [transcodeMode, setTranscodeMode] = useState(false);
+  const [transcodeAvailable, setTranscodeAvailable] = useState(false);
+  const [transcodeOffset, setTranscodeOffset] = useState(0);
+  const [volume, setVolume] = useState(() => Number(getLocalStorageItem(volumeStorageKey, '1')));
+  const [playbackRate, setPlaybackRate] = useState(() => Number(getLocalStorageItem(playbackRateStorageKey, '1')));
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [outputDevices, setOutputDevices] = useState([]);
+  const [outputDeviceId, setOutputDeviceId] = useState('default');
+  const outputDeviceIdRef = useRef('default');
+  const seekTo = (seconds) => {
+    if (!audioRef.current || !Number.isFinite(seconds)) return;
+    if (transcodeMode) {
+      startTranscode(seconds);
+      return;
+    }
+    audioRef.current.currentTime = seconds;
+    setPosition(seconds);
+  };
+  const fileInputRef = useRef(null);
+  const localObjectUrlsRef = useRef(new Set());
+  const selectedItemRef = useRef(current);
+  const autoplayRef = useRef(false);
+  const remountPositionRef = useRef(null);
+  const transcodeRequestRef = useRef(0);
+
+  useEffect(() => () => {
+    if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
+    localObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    localObjectUrlsRef.current.clear();
+  }, []);
+
+  useEffect(() => {
+    const referenced = new Set([...queue, ...history, current].map((item) => item?.streamUrl));
+    localObjectUrlsRef.current.forEach((url) => {
+      if (referenced.has(url)) return;
+      URL.revokeObjectURL(url);
+      localObjectUrlsRef.current.delete(url);
+    });
+  }, [current, history, queue]);
   const [visualizerMode, setVisualizerMode] = useState(() =>
     readStoredBoolean(visualizerStorageKey) ? 'inline' : 'off',
   );
@@ -2186,6 +2393,13 @@ const PlayerBar = () => {
   }, [externalVisualizerStatus]);
 
   const bindAudioElement = useCallback((element) => {
+    if (!element && audioRef.current) {
+      remountPositionRef.current = audioRef.current.currentTime;
+    }
+    if (element && audioRef.current !== element) {
+      lastSourceRef.current = '';
+      autoplayRef.current = playingRef.current;
+    }
     audioRef.current = element;
     setPlayerAudioElement(element);
     setAudioElement(element);
@@ -2212,6 +2426,73 @@ const PlayerBar = () => {
     await resumeAudioGraph(audioRef.current);
     await audioRef.current.play();
   }, []);
+
+  const tryPlay = useCallback(() => {
+    setPlaybackError('');
+    setPlaybackStatus('loading');
+    playAudio().catch(() => {
+      setPlaybackStatus('error');
+      setPlaybackError('Playback could not start. Check the file or try again.');
+    });
+  }, [playAudio]);
+
+  const startTranscode = async (seconds = 0) => {
+    if (!current?.contentId || current.contentId.startsWith('local:')) return;
+    const requestId = ++transcodeRequestRef.current;
+    setPlaybackError('');
+    setPlaybackStatus('loading');
+    try {
+      const ticket = await streaming.createStreamTicket(current.contentId);
+      const response = await streaming.getPlaybackInfo(current.contentId);
+      if (requestId !== transcodeRequestRef.current) return;
+      setDuration(Number(response.data?.durationSeconds) || 0);
+      setTranscodeMode(true);
+      setTranscodeOffset(seconds);
+      setPosition(seconds);
+      autoplayRef.current = true;
+      setSource(streaming.buildTranscodedStreamUrl(current.contentId, ticket, seconds));
+    } catch {
+      if (requestId !== transcodeRequestRef.current) return;
+      setPlaybackStatus('error');
+      setPlaybackError('Decoding could not start. The server may be busy or FFmpeg may be unavailable.');
+    }
+  };
+
+  useEffect(() => {
+    if (!playerAudioElement) return;
+    const safeVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
+    playerAudioElement.volume = safeVolume;
+    setLocalStorageItem(volumeStorageKey, String(safeVolume));
+  }, [playerAudioElement, volume]);
+
+  useEffect(() => {
+    if (!playerAudioElement) return;
+    const safeRate = [0.75, 1, 1.25, 1.5, 2].includes(playbackRate) ? playbackRate : 1;
+    playerAudioElement.playbackRate = safeRate;
+    setLocalStorageItem(playbackRateStorageKey, String(safeRate));
+  }, [playbackRate, playerAudioElement]);
+
+  useEffect(() => {
+    if (!advancedOpen || !navigator.mediaDevices?.enumerateDevices || !audioRef.current?.setSinkId) return undefined;
+    let cancelled = false;
+    navigator.mediaDevices.enumerateDevices().then((devices) => {
+      if (!cancelled) setOutputDevices(devices.filter((device) => device.kind === 'audiooutput'));
+    }).catch(() => {
+      if (!cancelled) setOutputDevices([]);
+    });
+    return () => { cancelled = true; };
+  }, [advancedOpen]);
+
+  useEffect(() => {
+    if (!playerAudioElement || outputDeviceIdRef.current === 'default') return;
+    [audioRef.current, fadeAudioRef.current]
+      .filter((element) => element?.setSinkId)
+      .forEach((element) => {
+        element.setSinkId(outputDeviceIdRef.current).catch(() => {
+          setPlaybackError('Could not restore the selected audio output device.');
+        });
+      });
+  }, [playerAudioElement]);
 
   useEffect(() => {
     if (!playerAudioElement) return;
@@ -2306,17 +2587,36 @@ const PlayerBar = () => {
     if (playing) {
       pause();
     } else {
-      playAudio().catch(() => {});
+      tryPlay();
     }
-  }, [current, pause, playAudio, playing]);
+  }, [current, pause, playing, tryPlay]);
 
   useEffect(() => {
     let cancelled = false;
 
     if (!current) {
+      selectedItemRef.current = null;
+      transcodeRequestRef.current += 1;
       setSource('');
+      setPlaybackStatus('idle');
+      localObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      localObjectUrlsRef.current.clear();
       return undefined;
     }
+
+    if (selectedItemRef.current !== current) {
+      selectedItemRef.current = current;
+      transcodeRequestRef.current += 1;
+      autoplayRef.current = true;
+      remountPositionRef.current = null;
+      setPlaybackStatus('loading');
+      setTranscodeMode(false);
+      setTranscodeAvailable(false);
+      setTranscodeOffset(0);
+      setDuration(0);
+      setPosition(0);
+    }
+    setSource('');
 
     if (current.streamUrl) {
       setSource(current.streamUrl);
@@ -2388,26 +2688,56 @@ const PlayerBar = () => {
   useEffect(() => {
     if (!audioRef.current || !source) return;
     const previousSource = lastSourceRef.current;
-    if (crossfadeEnabled && previousSource && previousSource !== source && fadeAudioRef.current) {
-      fadeAudioRef.current.src = previousSource;
-      fadeAudioRef.current.currentTime = audioRef.current.currentTime || 0;
-      fadeAudioRef.current.play().then(() => {
-        fadeOutputGain(fadeAudioRef.current, 1, 0, 5);
-        window.setTimeout(() => fadeAudioRef.current?.pause(), 5200);
-      }).catch(() => {});
-      setOutputGain(audioRef.current, 0);
-      fadeOutputGain(audioRef.current, 0, 1, 5);
+    if (previousSource === source) return;
+    if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
+    const active = audioRef.current;
+    const standby = fadeAudioRef.current;
+    if (crossfadeEnabled && !transcodeMode && previousSource && !active.paused && standby) {
+      standby.src = source;
+      standby.muted = localMuted;
+      standby.volume = volume;
+      standby.playbackRate = playbackRate;
+      standby.load();
+      setOutputGain(standby, 0);
+      audioRef.current = standby;
+      fadeAudioRef.current = active;
+      setAudioElement(standby);
+      setPlayerAudioElement(standby);
+      autoplayRef.current = false;
+      playAudio().then(() => {
+        fadeOutputGain(active, 1, 0, 5);
+        fadeOutputGain(standby, 0, 1, 5);
+        fadeTimeoutRef.current = window.setTimeout(() => {
+          active.pause();
+          active.removeAttribute('src');
+          active.load();
+          setOutputGain(active, 1);
+          fadeTimeoutRef.current = null;
+        }, 5200);
+      }).catch(() => {
+        audioRef.current = active;
+        fadeAudioRef.current = standby;
+        setAudioElement(active);
+        setPlayerAudioElement(active);
+        standby.removeAttribute('src');
+        standby.load();
+        setPlaybackStatus('error');
+        setPlaybackError('The next track could not start.');
+      });
     } else {
-      setOutputGain(audioRef.current, 1);
+      if (standby) standby.pause();
+      active.src = source;
+      setOutputGain(active, 1);
+      active.load();
+      if (autoplayRef.current) {
+        autoplayRef.current = false;
+        tryPlay();
+      }
     }
     lastSourceRef.current = source;
-    audioRef.current.load();
-    playAudio().catch(() => {});
-  }, [crossfadeEnabled, playAudio, source]);
+  }, [crossfadeEnabled, localMuted, playbackRate, playAudio, playerAudioElement, setAudioElement, source, transcodeMode, tryPlay, volume]);
 
   useEffect(() => {
-    if (!current?.artist || !current?.title) return;
-    listenBrainz.submitListen('playing_now', current).catch(() => {});
     scrobbledRef.current = '';
   }, [current]);
 
@@ -2469,7 +2799,7 @@ const PlayerBar = () => {
       const barWidth = width / bars.length;
       bars.forEach((value, index) => {
         const barHeight = (value / 255) * height;
-        ctx.fillStyle = `hsl(${130 - (index / bars.length) * 100}, 75%, 54%)`;
+        ctx.fillStyle = `hsl(${264 + (index / bars.length) * 24}, 72%, 68%)`;
         ctx.fillRect(
           index * barWidth,
           height - barHeight,
@@ -2495,6 +2825,7 @@ const PlayerBar = () => {
     navigator.mediaSession.metadata = new window.MediaMetadata({
       album: current.album || '',
       artist: current.artist || '',
+      artwork: current.artworkUrl ? [{ src: current.artworkUrl }] : [],
       title: current.title || current.fileName || current.contentId,
     });
 
@@ -2526,6 +2857,18 @@ const PlayerBar = () => {
     };
   }, [current, next, pause, previous, seekRelative]);
 
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.playbackState = current ? (playing ? 'playing' : 'paused') : 'none';
+    if (current && duration > 0 && navigator.mediaSession.setPositionState) {
+      navigator.mediaSession.setPositionState({
+        duration,
+        playbackRate,
+        position: Math.min(position, duration),
+      });
+    }
+  }, [current, duration, playbackRate, playing, position]);
+
   if (!playerVisible) {
     return (
       <div
@@ -2547,23 +2890,113 @@ const PlayerBar = () => {
     );
   }
 
+  const handleEnded = () => {
+    if (crossfadeStartedRef.current === current) {
+      setPlaybackStatus('loading');
+      return;
+    }
+    if (repeatMode === 'one' || (repeatMode === 'all' && queue.length === 1 && history.length === 0)) {
+      audioRef.current.currentTime = 0;
+      tryPlay();
+    } else if (queue.length > 1 || (repeatMode === 'all' && history.length > 0)) {
+      next();
+    } else {
+      setPlaying(false);
+      setPlaybackStatus('ended');
+      nowPlaying.clearNowPlaying().catch(() => {});
+    }
+  };
+
+  const handleLocalFiles = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    const [file, ...remaining] = files;
+    const streamUrl = URL.createObjectURL(file);
+    localObjectUrlsRef.current.add(streamUrl);
+    const makeItem = (selectedFile, url) => ({
+      artist: 'Local file',
+      contentId: `local:${selectedFile.name}:${selectedFile.size}:${selectedFile.lastModified}`,
+      fileName: selectedFile.name,
+      streamUrl: url,
+      title: selectedFile.name.replace(/\.[^.]+$/u, ''),
+    });
+    playItem(makeItem(file, streamUrl), { replaceQueue: true });
+    queueItems(remaining.map((selectedFile) => {
+      const url = URL.createObjectURL(selectedFile);
+      localObjectUrlsRef.current.add(url);
+      return makeItem(selectedFile, url);
+    }));
+    event.target.value = '';
+  };
+
+  const loadPlaylist = (items) => {
+    const [first, ...remaining] = items;
+    playItem(first, { replaceQueue: true });
+    queueItems(remaining);
+  };
+
+  const audioHandlers = {
+    onEnded: (event) => {
+      if (event.currentTarget === audioRef.current) handleEnded();
+    },
+    onError: (event) => {
+      if (event.currentTarget !== audioRef.current || !current) return;
+      setPlaybackStatus('error');
+      setPlaybackError('This audio could not be decoded or streamed.');
+      if (!transcodeMode && !current.contentId.startsWith('local:')) {
+        streaming.getPlaybackInfo(current.contentId).then((response) => {
+          setTranscodeAvailable(true);
+          setDuration(Number(response.data?.durationSeconds) || 0);
+        }).catch(() => {});
+      }
+      nowPlaying.clearNowPlaying().catch(() => {});
+    },
+    onLoadedMetadata: (event) => {
+      if (event.currentTarget !== audioRef.current) return;
+      if (!transcodeMode) setDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0);
+      if (remountPositionRef.current !== null) {
+        event.currentTarget.currentTime = remountPositionRef.current;
+        remountPositionRef.current = null;
+      } else if (!transcodeMode && current?.positionSeconds > 0) {
+        event.currentTarget.currentTime = current.positionSeconds;
+      }
+    },
+    onPause: (event) => {
+      if (event.currentTarget !== audioRef.current) return;
+      playingRef.current = false;
+      setPlaying(false);
+      setPlaybackStatus((status) => status === 'ended' ? status : 'paused');
+      nowPlaying.clearNowPlaying().catch(() => {});
+    },
+    onPlay: (event) => {
+      if (event.currentTarget !== audioRef.current) return;
+      playingRef.current = true;
+      setPlaying(true);
+      setPlaybackStatus('playing');
+      if (current?.artist && current?.title) {
+        nowPlaying.setNowPlaying({ album: current.album, artist: current.artist, title: current.title }).catch(() => {});
+        listenBrainz.submitListen('playing_now', current).catch(() => {});
+      }
+    },
+    onTimeUpdate: (event) => {
+      if (event.currentTarget !== audioRef.current) return;
+      setPosition(transcodeOffset + event.currentTarget.currentTime);
+      if (crossfadeEnabled && !transcodeMode && queue.length > 1 &&
+          Number.isFinite(event.currentTarget.duration) && event.currentTarget.duration > 6 &&
+          event.currentTarget.currentTime >= event.currentTarget.duration - 5 &&
+          crossfadeStartedRef.current !== current) {
+        crossfadeStartedRef.current = current;
+        next();
+      }
+    },
+    onWaiting: (event) => {
+      if (event.currentTarget === audioRef.current) setPlaybackStatus('buffering');
+    },
+  };
   const audio = (
     <>
-      <audio
-        onLoadedMetadata={() => {
-          if (audioRef.current && current?.positionSeconds > 0) {
-            audioRef.current.currentTime = current.positionSeconds;
-          }
-        }}
-        onEnded={next}
-        onPause={() => setPlaying(false)}
-        onPlay={() => setPlaying(true)}
-        playsInline
-        preload="metadata"
-        ref={bindAudioElement}
-        src={source || undefined}
-      />
-      <audio preload="metadata" ref={fadeAudioRef} />
+      <audio {...audioHandlers} playsInline preload="metadata" ref={bindAudioElement} />
+      <audio {...audioHandlers} playsInline preload="metadata" ref={fadeAudioRef} />
     </>
   );
   const playerBadges = getPlayerBadges(current);
@@ -2586,7 +3019,38 @@ const PlayerBar = () => {
             </div>
           </div>
         </div>
+        <PlayerProgress current={current} duration={duration} onSeek={seekTo} position={position} />
         <div className="player-controls player-control-cluster">
+          <PlayerToolButton
+            content="Play the previous track or restart this one."
+            aria-label="Previous local track"
+            disabled={!current}
+            icon="step backward"
+            onClick={previous}
+          />
+          <PlayerToolButton
+            content={playing ? 'Pause playback.' : 'Play the selected track.'}
+            aria-label={playing ? 'Pause local playback' : 'Resume local playback'}
+            data-testid="player-collapsed-toggle-playback"
+            disabled={!current}
+            icon={playing ? 'pause' : 'play'}
+            onClick={togglePlayback}
+          />
+          <PlayerToolButton
+            content="Play the next queued track."
+            aria-label="Next local track"
+            disabled={queue.length < 2}
+            icon="step forward"
+            onClick={next}
+          />
+          <PlayerToolButton
+            content="Open the playback queue."
+            className="player-compact-secondary"
+            aria-label="Open playback queue"
+            disabled={!current}
+            icon="list ol"
+            onClick={() => setQueueOpen(true)}
+          />
           <PlayerToolButton
             content="Expand the player drawer."
             aria-label="Expand player"
@@ -2595,19 +3059,12 @@ const PlayerBar = () => {
             onClick={() => setCollapsed(false)}
           />
           <PlayerToolButton
-            content="Hide the player controls and stop local playback. Use Show player to restore this bar."
+            content="Stop playback and hide the player. Use Show player to restore it."
+            className="player-compact-secondary"
             aria-label="Hide player"
             data-testid="player-hide"
             icon="eye slash"
             onClick={() => setExperiencePreference('playerVisible', false)}
-          />
-          <PlayerToolButton
-            content={playing ? 'Pause the current stream.' : 'Resume the current stream.'}
-            aria-label={playing ? 'Pause local playback' : 'Resume local playback'}
-            data-testid="player-collapsed-toggle-playback"
-            disabled={!current}
-            icon={playing ? 'pause' : 'play'}
-            onClick={togglePlayback}
           />
           <PlayerToolButton
             content={
@@ -2615,13 +3072,38 @@ const PlayerBar = () => {
                 ? 'Unmute playback on this device without changing the stream.'
                 : 'Mute playback on this device without changing the stream.'
             }
+            className="player-compact-secondary"
             aria-label={localMuted ? 'Unmute local playback' : 'Mute local playback'}
             data-testid="player-collapsed-toggle-mute"
             disabled={!current}
             icon={localMuted ? 'volume off' : 'volume up'}
             onClick={() => setLocalMuted((muted) => !muted)}
           />
+          <input
+            aria-label="Playback volume"
+            className="player-volume player-compact-secondary"
+            max="1"
+            min="0"
+            onChange={(event) => setVolume(Number(event.target.value))}
+            step="0.01"
+            type="range"
+            value={volume}
+          />
         </div>
+        <PlayerQueueModal
+          current={current}
+          history={history}
+          onAutoQueueSimilar={queueItems}
+          onClearQueue={clearQueue}
+          onClose={() => setQueueOpen(false)}
+          onLoadPlaylist={loadPlaylist}
+          onMove={moveQueueItem}
+          onNext={next}
+          onPrevious={previous}
+          onRemove={removeFromQueue}
+          open={queueOpen}
+          queue={queue}
+        />
       </div>
     );
   }
@@ -2635,7 +3117,7 @@ const PlayerBar = () => {
       <div className="player-main-deck">
         <div className="player-display">
           <PlayerVisualTile
-            audioElement={playerAudioElement}
+            audioElement={playing ? playerAudioElement : null}
             current={current}
             mode={visualizerMode}
             onModeChange={setVisualizerMode}
@@ -2646,7 +3128,14 @@ const PlayerBar = () => {
             <div className="player-track">
               <div>
                 <div className="player-eyebrow">
-                  {playing ? 'Now playing' : current ? 'Paused' : 'Ready'}
+                  {current ? ({
+                    buffering: 'Buffering',
+                    ended: 'Finished',
+                    error: 'Playback error',
+                    loading: 'Loading',
+                    paused: 'Paused',
+                    playing: 'Now playing',
+                  }[playbackStatus] || 'Ready') : 'Ready'}
                 </div>
                 <div className="player-title">
                   {current?.title || 'Nothing playing'}
@@ -2684,15 +3173,31 @@ const PlayerBar = () => {
             </div>
             <div className="player-display-analyzers">
               <PlayerAnalyzerTile
-                audioElement={current ? playerAudioElement : null}
+                audioElement={playing ? playerAudioElement : null}
                 mode={analyzerMode}
                 onModeChange={setAnalyzerMode}
               />
             </div>
+            <PlayerProgress current={current} duration={duration} onSeek={seekTo} position={position} />
+            {playbackError ? <Message negative size="mini">{playbackError}</Message> : null}
+            {transcodeAvailable && !transcodeMode ? (
+              <Popup content="Decode this server library file to MP3 for this playback only. This uses server CPU until playback stops." trigger={
+                <Button onClick={() => startTranscode(0)} size="mini" type="button">Decode for playback</Button>
+              } />
+            ) : null}
           </div>
         </div>
 
         <div className="player-control-pad">
+          <input
+            accept="audio/*"
+            aria-label="Choose audio files"
+            multiple
+            onChange={handleLocalFiles}
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            type="file"
+          />
           <div className="player-control-row player-control-row-transport">
             <PlayerToolButton
               content="Go to the previous queue item, or restart the current stream."
@@ -2743,11 +3248,39 @@ const PlayerBar = () => {
               icon="stop"
               onClick={clear}
             />
+            <PlayerToolButton
+              active={shuffle}
+              aria-label={shuffle ? 'Disable shuffle' : 'Enable shuffle'}
+              content={shuffle ? 'Play upcoming tracks in queue order.' : 'Choose upcoming tracks at random.'}
+              icon="shuffle"
+              onClick={() => setShuffle((enabled) => !enabled)}
+            />
+            <PlayerToolButton
+              active={repeatMode !== 'off'}
+              aria-label={`Repeat ${repeatMode}`}
+              content={`Repeat: ${repeatMode}. Click to cycle off, all tracks, and one track.`}
+              icon="repeat"
+              onClick={() => setRepeatMode((mode) => mode === 'off' ? 'all' : mode === 'all' ? 'one' : 'off')}
+            />
+            <select
+              aria-label="Playback speed"
+              onChange={(event) => setPlaybackRate(Number(event.target.value))}
+              value={playbackRate}
+            >
+              {[0.75, 1, 1.25, 1.5, 2].map((rate) => <option key={rate} value={rate}>{rate}×</option>)}
+            </select>
           </div>
           <div className="player-control-row">
             <PlayerLauncher
               compact
               onPlayItem={(item) => playItem(item, { replaceQueue: true })}
+              onPlayNext={playNext}
+            />
+            <PlayerToolButton
+              aria-label="Open audio files from this device"
+              content="Play files from this device in this browser session. They are not uploaded to the server."
+              icon="folder open"
+              onClick={() => fileInputRef.current?.click()}
             />
             <PlayerToolButton
               active={queueOpen}
@@ -2771,6 +3304,31 @@ const PlayerBar = () => {
               icon={localMuted ? 'volume off' : 'volume up'}
               onClick={() => setLocalMuted((muted) => !muted)}
             />
+            <input
+              aria-label="Playback volume"
+              className="player-volume"
+              max="1"
+              min="0"
+              onChange={(event) => setVolume(Number(event.target.value))}
+              step="0.01"
+              type="range"
+              value={volume}
+            />
+            <PlayerToolButton
+              active={advancedOpen}
+              aria-label={advancedOpen ? 'Hide player tools' : 'Show player tools'}
+              content={advancedOpen ? 'Hide audio, discovery, and visual tools.' : 'Show audio, discovery, and visual tools.'}
+              icon="ellipsis horizontal"
+              onClick={() => setAdvancedOpen((open) => !open)}
+            />
+            <PlayerToolButton
+              content="Stop playback and hide the player. Use Show player to restore it."
+              aria-label="Hide player"
+              data-testid="player-hide"
+              icon="eye slash"
+              onClick={() => setExperiencePreference('playerVisible', false)}
+            />
+            {advancedOpen ? <>
             <PlayerToolButton
               active={visualizerMode !== 'off'}
               content={
@@ -2835,21 +3393,41 @@ const PlayerBar = () => {
               icon="bookmark"
               onClick={() => setShelfOpen(true)}
             />
+            </> : null}
           </div>
-          <div className="player-control-row">
+          {advancedOpen ? <div className="player-control-row">
+            {outputDevices.length > 0 ? (
+              <select
+                aria-label="Audio output device"
+                onChange={(event) => {
+                  const deviceId = event.target.value;
+                  const elements = [audioRef.current, fadeAudioRef.current]
+                    .filter((element) => element?.setSinkId);
+                  Promise.all(elements.map((element) => element.setSinkId(deviceId)))
+                    .then(() => {
+                      outputDeviceIdRef.current = deviceId;
+                      setOutputDeviceId(deviceId);
+                    })
+                    .catch(() => {
+                      Promise.allSettled(elements.map((element) => element.setSinkId(outputDeviceIdRef.current)));
+                      setPlaybackError('Could not switch audio output device.');
+                    });
+                }}
+                value={outputDeviceId}
+              >
+                {outputDevices.map((device, index) => (
+                  <option key={device.deviceId || index} value={device.deviceId || 'default'}>
+                    {device.label || `Audio output ${index + 1}`}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <PlayerToolButton
               content="Collapse the player into a small drawer bar above the footer."
               aria-label="Collapse player"
               data-testid="player-collapse"
               icon="angle down"
               onClick={() => setCollapsed(true)}
-            />
-            <PlayerToolButton
-              content="Hide the player controls and stop local playback. Use Show player to restore this bar."
-              aria-label="Hide player"
-              data-testid="player-hide"
-              icon="eye slash"
-              onClick={() => setExperiencePreference('playerVisible', false)}
             />
             <PlayerToolButton
               active={karaokeEnabled}
@@ -2892,16 +3470,14 @@ const PlayerBar = () => {
               icon="cloud upload"
               onClick={() => setIntegrationsOpen(true)}
             />
-          </div>
+          </div> : null}
         </div>
       </div>
 
       <div className="player-expanded-panels">
-        {eqPanelOpen ? (
-          <div className="player-panel player-panel-eq">
-            <Equalizer audioElement={playerAudioElement} />
-          </div>
-        ) : null}
+        <div className="player-panel player-panel-eq" hidden={!eqPanelOpen}>
+          <Equalizer audioElement={current ? playerAudioElement : null} />
+        </div>
         <LyricsPane
           audioElement={playerAudioElement}
           current={current}
@@ -3064,6 +3640,8 @@ const PlayerBar = () => {
         onAutoQueueSimilar={queueItems}
         onClearQueue={clearQueue}
         onClose={() => setQueueOpen(false)}
+        onLoadPlaylist={loadPlaylist}
+        onMove={moveQueueItem}
         onNext={next}
         onPrevious={previous}
         onRemove={removeFromQueue}

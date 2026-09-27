@@ -9,6 +9,10 @@
 
 ### High Priority
 
+- [x] Overhaul the browser player and collection playback workflow.
+  - Status: implemented (2026-09-27).
+  - Notes: Added a compact transport with seek and volume, queue reordering and saved Collection playlists, browser session queue restoration, shuffle/repeat/speed controls, local file playback, output selection, playback status and error handling, on-demand FFmpeg fallback for unsupported server audio, safer crossfade, Media Session state and artwork, and idle visualizer suspension. Follow-up hardening repaired repeat-all cycles, layout remount position, seek bursts, output routing, playlist rollback, local object URL cleanup, stale stream sizes, and tag hash migration. Collection items can edit display metadata; administrators can write local file tags with content-ID reference updates. Aligned the player palette with Iris and updated the listening guide and release note.
+
 - [x] Merge self-hosted deployment catalog documentation and repair Solid/E2E checks.
   - Status: PR #339 merged to `main` as `efa3805a3` (2026-09-26).
   - Priority: P1

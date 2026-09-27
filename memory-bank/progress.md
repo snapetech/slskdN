@@ -13243,3 +13243,15 @@ export branch has no shared Git history and was not merged.
   a compatible migration is validated.
 - Next: await YunoHost catalog PR #3627 maintainers; no code follow-up remains
   for PR #339. Do not create a release tag without an explicit request.
+
+## Update 2026-09-27 17:25:00Z
+
+- Implemented the player suite overhaul: compact seek/volume transport, persisted queue controls, Collection playlists, browser-local files, on-demand server decoding, richer Media Session state, improved crossfade, and lower idle visualizer work. Added collection display metadata and administrator file-tag editing with content-ID reference updates.
+- Fixed the collection item API route mismatch and playback lifecycle errors; recorded gotchas 0z929–0z935. Updated the listening guide and a validated player release-note fragment.
+- Backend build, Web build, Web lint, and repository lint passed. Focused player and Collections tests passed earlier in the implementation. No release tag or deployment was created.
+
+## Update 2026-09-27 17:51:28Z
+
+- Continued player hardening: repeat-all now retains full queue cycles and resets on playlist replacement; expand/collapse preserves position; transcoded seeks commit once and discard stale async requests; output selection reaches both crossfade elements; abandoned local file URLs are revoked.
+- Bounded fallback decoding to two server-wide processes and one thread per FFmpeg decode, corrected stale stream lengths and matching Collection hashes after tag edits, and rolled back partial playlist saves. Updated the listening guide and gotchas 0z936–0z944.
+- Backend build, repository lint, Web lint/build, and bundle budget passed. Live browser review could not run because the in-app and isolated workspace browser controls were unavailable in this session. No release tag or deployment was created.

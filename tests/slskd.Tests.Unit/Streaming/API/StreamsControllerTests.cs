@@ -79,6 +79,34 @@ public class StreamsControllerTests
     }
 
     [Fact]
+    public async Task Transcode_RejectsShareTicketBeforeResolvingLocalFile()
+    {
+        var controller = CreateController();
+        SetContext(controller);
+        _ticketsServiceMock.Setup(x => x.Validate("share-ticket", "c1"))
+            .Returns(new StreamTicketClaims("c1", "share:grant", DateTimeOffset.UtcNow.AddMinutes(1)));
+
+        var result = await controller.Transcode("c1", "share-ticket", 0, CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result);
+        _locatorMock.Verify(x => x.Resolve(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Transcode_RejectsInvalidSeekBeforeStartingProcess()
+    {
+        var controller = CreateController();
+        SetContext(controller);
+        _ticketsServiceMock.Setup(x => x.Validate("ticket", "c1"))
+            .Returns(new StreamTicketClaims("c1", "user:alice", DateTimeOffset.UtcNow.AddMinutes(1)));
+
+        var result = await controller.Transcode("c1", "ticket", double.NaN, CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _locatorMock.Verify(x => x.Resolve(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Get_WithBlankContentId_ReturnsBadRequest()
     {
         var controller = CreateController();
