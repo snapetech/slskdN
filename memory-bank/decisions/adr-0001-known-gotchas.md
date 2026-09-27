@@ -8,13 +8,13 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 ### 0z1002. Resume A Graph Added During Active Playback
 
-**The Bug**: Deferring Web Audio creation until an effect is enabled can reroute an already playing media element into a newly suspended context. EQ or karaoke then silences playback until the context resumes.
+**The Bug**: Deferring Web Audio creation until an effect or custom output is enabled can reroute an already playing media element into a newly suspended context. EQ, karaoke, or output selection then silences playback until the context resumes.
 
 **Files Affected**:
 - `src/web/src/components/Player/Equalizer.jsx`
 - `src/web/src/components/Player/PlayerBar.jsx`
 
-**Prevention**: After an effect creates or updates a graph for an active element, resume that graph and surface a failure to the player. Keep a paused element paused; its normal Play path resumes the graph later.
+**Prevention**: After an effect or output change creates or updates a graph for an active element, resume that graph and surface a failure to the player. Keep a paused element paused; its normal Play path resumes the graph later.
 
 ### 0z1001. Do Not Allocate Web Audio For Plain Playback
 
