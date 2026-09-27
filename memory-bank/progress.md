@@ -13428,3 +13428,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:47:30Z
 
 - Added a user-activated audio output picker for browsers that hide non-default devices before permission, plus a `devicechange` refresh. Recorded gotcha 0z1000 before source edits and expanded the pending release fragment.
+
+## Update 2026-09-27 20:53:52Z
+
+- Deferred Web Audio graph allocation on plain playback, added an Off state and default for the small analyzer, and resumed graphs created while active playback enables EQ, karaoke, crossfade, or custom output. A failed first output switch now resumes the rolled-back graph. Recorded gotchas 0z1001 through 0z1005 before each source change.

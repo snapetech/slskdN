@@ -69,6 +69,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   sound, including both audible tracks during crossfade and a new context
   before playback. Supported browsers can request access to a speaker or
   headset and refresh the output list when devices change.
+- Plain playback now uses the browser audio element without allocating a Web
+  Audio graph. The small analyzer starts Off and can cycle through Spectrum,
+  Scope, and Off. Enabling EQ, vocal reduction, crossfade, or a custom speaker
+  during playback resumes the graph it needs.
 - Applied volume, local mute, and playback speed changes to both audio elements
   during crossfades.
 - Clear Upcoming now keeps played-track history available for Previous and

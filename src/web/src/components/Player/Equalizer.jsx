@@ -1,4 +1,4 @@
-import { bands, setEqGains } from './audioGraph';
+import { bands, resumeAudioGraph, setEqGains } from './audioGraph';
 import { getLocalStorageItem, setLocalStorageItem } from '../../lib/storage';
 import React, { useEffect, useState } from 'react';
 import { Button, Dropdown, Icon, Popup } from 'semantic-ui-react';
@@ -40,15 +40,21 @@ const readStoredState = () => {
 const formatBand = (frequency) =>
   frequency >= 1000 ? `${frequency / 1000}k` : String(frequency);
 
-const Equalizer = ({ audioElement, fadeAudioElement }) => {
+const Equalizer = ({ audioElement, fadeAudioElement, onAudioError }) => {
   const [state, setState] = useState(readStoredState);
 
   useEffect(() => {
     if (!audioElement) return;
     const gains = state.enabled ? state.gains : presets.Flat;
-    setEqGains(audioElement, gains);
-    if (fadeAudioElement) setEqGains(fadeAudioElement, gains);
-  }, [audioElement, fadeAudioElement, state.enabled, state.gains]);
+    [audioElement, fadeAudioElement].filter(Boolean).forEach((element) => {
+      setEqGains(element, gains);
+      if (!element.paused) {
+        resumeAudioGraph(element, false).catch(() => {
+          onAudioError('Could not enable the equalizer for this track.');
+        });
+      }
+    });
+  }, [audioElement, fadeAudioElement, onAudioError, state.enabled, state.gains]);
 
   useEffect(() => {
     setLocalStorageItem(storageKey, JSON.stringify(state));

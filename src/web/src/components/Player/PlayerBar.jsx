@@ -47,7 +47,7 @@ import * as wishlistAPI from '../../lib/wishlist';
 import Equalizer from './Equalizer';
 import LyricsPane from './LyricsPane';
 import SpectrumAnalyzer, { getFrequencyBars } from './SpectrumAnalyzer';
-import { fadeOutputGain, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
+import { fadeOutputGain, getExistingAudioGraph, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
 import { usePlayer } from './PlayerContext';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -159,7 +159,7 @@ const readStoredTileMode = () => {
 
 const readStoredAnalyzerMode = () => {
   const mode = getLocalStorageItem(analyzerModeStorageKey);
-  return mode === 'scope' ? 'scope' : 'spectrum';
+  return ['off', 'spectrum', 'scope'].includes(mode) ? mode : 'off';
 };
 
 const setPlayerHeightVariable = (element) => {
@@ -2231,19 +2231,24 @@ const PlayerVisualTile = ({
 };
 
 const PlayerAnalyzerTile = ({ audioElement, mode, onModeChange }) => {
-  const nextMode = mode === 'spectrum' ? 'scope' : 'spectrum';
-  const label = mode === 'spectrum' ? 'Spectrum bars' : 'Signal scope';
+  const nextMode = { off: 'spectrum', spectrum: 'scope', scope: 'off' }[mode];
+  const label = {
+    off: 'Analyzer off',
+    spectrum: 'Spectrum bars',
+    scope: 'Signal scope',
+  }[mode];
+  const nextLabel = {
+    off: 'turn off the analyzer',
+    spectrum: 'show spectrum bars',
+    scope: 'show signal scope',
+  }[nextMode];
 
   return (
     <Popup
-      content={
-        mode === 'spectrum'
-          ? 'Show signal scope in this box.'
-          : 'Show spectrum bars in this box.'
-      }
+      content={`Click to ${nextLabel}.`}
       trigger={
         <div
-          aria-label={`Show ${nextMode === 'spectrum' ? 'spectrum bars' : 'signal scope'}`}
+          aria-label={`Click to ${nextLabel}`}
           className="player-analyzer-tile"
           data-testid="player-analyzer-tile"
           onClick={() => onModeChange(nextMode)}
@@ -2257,13 +2262,15 @@ const PlayerAnalyzerTile = ({ audioElement, mode, onModeChange }) => {
           tabIndex={0}
         >
           <div className="player-analyzer-label">{label}</div>
-          <SpectrumAnalyzer
-            audioElement={mode === 'off' ? null : audioElement}
-            className="player-spectrum-switchable"
-            mode={mode}
-          />
+          {mode !== 'off' ? (
+            <SpectrumAnalyzer
+              audioElement={audioElement}
+              className="player-spectrum-switchable"
+              mode={mode}
+            />
+          ) : null}
           <span className="player-analyzer-affordance">
-            <Icon name={mode === 'spectrum' ? 'signal' : 'chart bar'} />
+            <Icon name={{ off: 'power off', spectrum: 'signal', scope: 'chart bar' }[mode]} />
           </span>
         </div>
       }
@@ -2499,10 +2506,12 @@ const PlayerBar = () => {
     try {
       await outputSwitchPromiseRef.current;
       if (request !== playRequestRef.current || audioRef.current !== element) return;
-      const graph = getOrCreateAudioGraph(element);
       const selectedSinkId = outputDeviceIdRef.current === 'default'
         ? ''
         : outputDeviceIdRef.current;
+      const graph = selectedSinkId || crossfadeEnabled
+        ? getOrCreateAudioGraph(element)
+        : getExistingAudioGraph(element);
       if (selectedSinkId) {
         await graph.ctx.setSinkId(selectedSinkId);
         const latestSinkId = outputDeviceIdRef.current === 'default'
@@ -2510,13 +2519,13 @@ const PlayerBar = () => {
           : outputDeviceIdRef.current;
         if (latestSinkId !== selectedSinkId) await graph.ctx.setSinkId(latestSinkId);
       }
-      await resumeAudioGraph(element);
+      await resumeAudioGraph(element, false);
       if (request !== playRequestRef.current || audioRef.current !== element) return;
       await element.play();
     } catch (error) {
       if (request === playRequestRef.current && audioRef.current === element) throw error;
     }
-  }, []);
+  }, [crossfadeEnabled]);
 
   const stopOutgoingFade = useCallback(() => {
     fadeRequestRef.current += 1;
@@ -2664,6 +2673,13 @@ const PlayerBar = () => {
   }, [crossfadeEnabled, stopOutgoingFade]);
 
   useEffect(() => {
+    if (!crossfadeEnabled || !audioRef.current || audioRef.current.paused) return;
+    resumeAudioGraph(audioRef.current).catch(() => {
+      setPlaybackError('Could not prepare crossfade audio.');
+    });
+  }, [crossfadeEnabled]);
+
+  useEffect(() => {
     document.documentElement.classList.toggle('player-collapsed', collapsed);
     return () => {
       document.documentElement.classList.remove('player-collapsed');
@@ -2705,10 +2721,14 @@ const PlayerBar = () => {
       karaokeEnabled ? 'true' : 'false',
     );
     if (playerAudioElement) {
-      setKaraokeEnabled(playerAudioElement, karaokeEnabled);
-      if (fadeOutgoingRef.current) {
-        setKaraokeEnabled(fadeOutgoingRef.current, karaokeEnabled);
-      }
+      [playerAudioElement, fadeOutgoingRef.current].filter(Boolean).forEach((element) => {
+        setKaraokeEnabled(element, karaokeEnabled);
+        if (!element.paused) {
+          resumeAudioGraph(element, false).catch(() => {
+            setPlaybackError('Could not enable vocal reduction for this track.');
+          });
+        }
+      });
     }
   }, [karaokeEnabled, playerAudioElement]);
 
@@ -3103,9 +3123,11 @@ const PlayerBar = () => {
       ? ''
       : outputDeviceIdRef.current;
     const switching = (async () => {
-      const contexts = [audioRef.current, fadeOutgoingRef.current]
-        .filter(Boolean)
-        .map((element) => getOrCreateAudioGraph(element)?.ctx)
+      const elements = [audioRef.current, fadeOutgoingRef.current].filter(Boolean);
+      const contexts = elements
+        .map((element) => (sinkId
+          ? getOrCreateAudioGraph(element)
+          : getExistingAudioGraph(element))?.ctx)
         .filter(Boolean);
       if (contexts.some((context) => !context.setSinkId)) {
         throw new Error('Web Audio output selection is unavailable.');
@@ -3117,10 +3139,21 @@ const PlayerBar = () => {
         await Promise.allSettled(
           contexts.map((context) => context.setSinkId(previousSinkId)),
         );
+        await Promise.allSettled(
+          elements.filter((element) => !element.paused)
+            .map((element) => resumeAudioGraph(element, false)),
+        );
         throw new Error('Audio output switch failed.');
       }
       outputDeviceIdRef.current = deviceId;
       setOutputDeviceId(deviceId);
+      const resumeResults = await Promise.allSettled(
+        elements.filter((element) => !element.paused)
+          .map((element) => resumeAudioGraph(element, false)),
+      );
+      if (resumeResults.some((result) => result.status === 'rejected')) {
+        setPlaybackError('Audio output changed, but playback could not resume.');
+      }
     })();
     outputSwitchPromiseRef.current = switching.catch(() => {});
     try {
@@ -3802,6 +3835,7 @@ const PlayerBar = () => {
           <Equalizer
             audioElement={current ? playerAudioElement : null}
             fadeAudioElement={current ? fadeOutgoingRef.current : null}
+            onAudioError={setPlaybackError}
           />
         </div>
         <LyricsPane

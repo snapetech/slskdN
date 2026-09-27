@@ -1,5 +1,7 @@
 const audioGraphCache = new WeakMap();
 
+export const getExistingAudioGraph = (audioElement) => audioGraphCache.get(audioElement) || null;
+
 const eqBands = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
 const disconnect = (node) => {
@@ -116,8 +118,10 @@ export const releaseAudioGraph = (audioElement) => {
   if (graph.ctx.state !== 'closed') graph.ctx.close().catch(() => {});
 };
 
-export const resumeAudioGraph = async (audioElement) => {
-  const graph = getOrCreateAudioGraph(audioElement);
+export const resumeAudioGraph = async (audioElement, createIfMissing = true) => {
+  const graph = createIfMissing
+    ? getOrCreateAudioGraph(audioElement)
+    : getExistingAudioGraph(audioElement);
   if (graph?.ctx.state === 'suspended') {
     await graph.ctx.resume();
   }

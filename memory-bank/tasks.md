@@ -33,6 +33,10 @@
   - Status: implemented (2026-09-27).
   - Notes: Device changes reach the active and outgoing graphs; newly activated graphs select the chosen sink before playback. Supported browsers offer a permission-triggered speaker picker and refresh the device list; unsupported browsers do not show a misleading selector.
 
+- [x] Keep ordinary player playback on the browser's native audio path.
+  - Status: implemented (2026-09-27).
+  - Notes: Plain playback no longer allocates Web Audio or its EQ/analyzer nodes. The small analyzer starts Off with a saved three-state cycle; EQ, karaoke, crossfade, output changes, and visualizers create and resume graphs only when requested.
+
 - [x] Avoid creating a Web Audio graph for neutral idle player settings.
   - Status: implemented (2026-09-27).
   - Notes: Flat EQ, karaoke off, and output gain one reuse a graph when present but no longer create one for a paused player.

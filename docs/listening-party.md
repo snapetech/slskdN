@@ -84,7 +84,7 @@ Controls include:
 The optional Picture-in-Picture spectrum follows the active audio element across crossfades and player layout changes. It draws less often while playback is paused and closes when the player is hidden.
 The full visualizer module loads only when its tile is activated; ordinary playback and the lightweight analyzer do not need to load it.
 Turning the visualizer off returns its tile to album art while preserving the selected engine for later use.
-The lightweight spectrum and scope canvases cap drawing near 30 frames per second and reuse audio buffers while active; they pause drawing when the document is hidden.
+The lightweight spectrum and scope canvases cap drawing near 30 frames per second and reuse audio buffers while active; they pause drawing when the document is hidden. The small analyzer starts Off in a new browser session and cycles through Spectrum, Scope, and Off when clicked. Its chosen mode is saved in this browser.
 
 The player publishes Now Playing after playback begins and clears it on pause, stop, failure, or final track end. Playback errors are shown in the player. If the browser cannot decode a server library audio file, **Decode for playback** requests a short-lived, ticket-bound MP3 stream from the configured FFmpeg executable. It runs only on demand, permits one decode per user and two per server, and never sends browser-chosen files to the server. Server administrators can edit tags on indexed local audio from a Collection item; collection display metadata can be edited separately without changing the file. Tag edits change file bytes and may change its content ID, so the server refreshes the share index and Collection references.
 Browser Now Playing changes are sent in playback order, so a slow Play update cannot overwrite a later Pause or Stop clear.
@@ -96,7 +96,7 @@ Listening history and optional ListenBrainz scrobbles count actual playback prog
 If the incoming track errors during a crossfade, the outgoing element stops immediately so the visible failure and audible output agree.
 Turning crossfade off or seeking during a fade also stops the outgoing track immediately. A later pass through the end of the track can start a new fade.
 Crossfade uses Web Audio for independent track gains. When a browser does not provide Web Audio, track changes remain direct and the selected volume stays intact.
-The idle player leaves its Web Audio graph unallocated when the equalizer is flat, karaoke is off, and no visual effect needs the graph.
+Plain playback through the system default speaker starts without a Web Audio graph when the equalizer is flat, karaoke, crossfade, and visualizers are off. Enabling an audio effect or choosing a custom speaker during playback creates and resumes the graph then; the active media element keeps that graph until it is replaced.
 Headset and lock-screen Play use the same loading and error behavior as the visible player Play control.
 Crossfade respects Repeat One. With Repeat All, it can also fade from the final queued track back into played history.
 Its gain ramps follow the outgoing track's remaining time and playback speed, including when the incoming track takes time to start.

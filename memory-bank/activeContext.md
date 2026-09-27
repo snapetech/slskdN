@@ -14223,3 +14223,19 @@ rollback.
   local identity checks passed. Release preview and fork push remain.
 - Next steps: preview the release range, push to the verified fork, then keep
   auditing player persistence and lifecycle.
+
+## Update 2026-09-27 20:53:52Z
+
+- Current task: finish the native playback resource pass. Source changes and
+  gotchas 0z1001 through 0z1005 are local. Validation, release fragment,
+  range preview, and push remain.
+- Next steps: complete repository gates and push to the verified fork, then
+  continue player lifecycle review.
+
+## Update 2026-09-27 20:56:54Z
+
+- Native playback resource pass is implemented. Web lint, production build,
+  bundle budget, repository lint, whitespace, and local identity checks pass.
+  The append-only release fragment is ready for range preview and push.
+- Next steps: push to the verified fork and continue the source audit; real
+  desktop and mobile audio behavior still needs interactive observation.
