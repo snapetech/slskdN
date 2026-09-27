@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z971. Local Track Selection Overrides Room Following
+
+**The Bug**: Choosing another track in the player while following a room changed local playback but left the follow subscription active. The next host event could replace the listener's explicit track choice without warning.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Distinguish room-driven track selections from local selections. Clear follow state for local `playItem` calls, preserve it for room events, and let the room panel synchronize its Follow control when the context exits.
+
 ### 0z970. Local Stop Must Leave Listen-Along Follow Mode
 
 **The Bug**: Pressing Stop in the browser player cleared audio and the queue but left the context's followed party and the room panel's follow intent active. A later host update could start audio again after the listener had explicitly stopped.
