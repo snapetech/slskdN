@@ -13513,3 +13513,9 @@ export branch has no shared Git history and was not merged.
   gotchas 0z1023 and 0z1024 in separate commits.
 - Next: static validation, release preview, commit, and push to the verified
   fork. Interactive real-audio browser inspection remains open.
+## Update 2026-09-27 22:44:39Z
+
+- Committed and pushed the player picker/control fixes through `46e434934`.
+  Web lint/build, bundle budget, repository lint, whitespace, identity, and
+  release-range preview passed. Automated and interactive playback checks
+  were not run in this continuation.

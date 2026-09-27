@@ -14391,3 +14391,12 @@ rollback.
 - Next steps: run static checks, preview the release range, commit and push to
   the verified fork. Desktop/mobile real-audio inspection remains P1; no
   release tag is authorized.
+## Update 2026-09-27 22:44:39Z
+
+- Current task: player Collection picker and Listening Stats control polish is
+  committed and pushed to the verified fork through `46e434934`. The working
+  tree is clean and synchronized. The final source pass found no further
+  high-confidence keyboard or focus defect in the inspected transport.
+- Next steps: perform the P1 desktop/mobile real-audio inspection tracked in
+  `memory-bank/tasks.md`. Static checks do not establish audible behavior or
+  layout quality. No release tag was created.
