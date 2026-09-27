@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1033. Match Collection Metadata Tests To The Ownership-Scoped API
+
+**The Bug**: The Collection route-encoding test retained an obsolete two-argument item-update call and unscoped URL after metadata updates moved to a collection-scoped endpoint. It passed a metadata object as the item ID and expected a route that the controller does not expose.
+
+**Files Affected**:
+- `src/web/src/lib/collections.test.js`
+
+**Prevention**: Check client signatures against the controller and actual UI callers. Assert encoding for both collection and item IDs, keeping the payload separate and unchanged.
+
 ### 0z1032. Exercise Queue And Listening Tests Through Actual Playback Ownership
 
 **The Bug**: Older player tests assumed selecting a new track also added the previous track to Upcoming, and emitted listening events before the asynchronous source became owned by the selection. Atomic playback transitions correctly put previous selections in History, while stale-source guards correctly ignored premature listening events, leaving those tests misleading and failing.
