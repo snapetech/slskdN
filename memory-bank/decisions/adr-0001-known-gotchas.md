@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1019. Do Not Replay An Unchanged Room Snapshot
+
+**The Bug**: After a listen-along hub reconnects, the panel fetches the room's current state and unconditionally calls `playItem` for a `play` event. If the fetched state is the same host event already being followed, that replaces the current track and restarts its stream audibly even though the host did nothing.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Track the last applied party event by room, party ID, and server sequence. Apply a snapshot only when it represents a new host command; reset that marker when the follower leaves, changes rooms, or receives Stop.
+
 ### 0z1018. Stop The Old Stream When A New Track Cannot Crossfade
 
 **The Bug**: Selecting Next, Previous, or a new track requested its stream ticket while the previous media element kept playing. With crossfade off, or when the new selection was explicitly paused, the player showed the newly selected track while the old audio remained audible until the request finished. A prior outgoing fade could also continue through another selection.
