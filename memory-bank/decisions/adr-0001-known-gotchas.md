@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1037. Cover Ticket-Authenticated Decoding In The Anonymous Action Contract
+
+**The Bug**: The anonymous-action security contract did not include the newly added ticket-authenticated Transcode action, so the Streaming unit filter failed despite the endpoint explicitly rejecting absent, invalid and share tickets before accessing local content.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Security/PublicProtocolAnonymousActionTests.cs`
+- `tests/slskd.Tests.Unit/Streaming/API/StreamsControllerTests.cs`
+
+**Prevention**: Keep the exact anonymous-action inventory aligned with ticket-backed media transport. Add explicit negative authorization coverage before updating the inventory; do not weaken controller authentication or bypass ticket validation.
+
 ### 0z1036. Check Actual Mobile Player Content And CSS Specificity
 
 **The Bug**: The compact player's narrow-screen secondary-control hide rule was less specific than its Semantic UI button display rule. Queue, Hide and Mute stayed visible, leaving almost no room for the selected title. Viewport-only browser assertions passed despite the title being unreadable. Expanded mobile transport buttons also retained desktop-size touch targets.
