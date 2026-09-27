@@ -13376,3 +13376,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 22:08:00Z
 
 - Kept the outgoing crossfade element's EQ and karaoke processing in sync with the active element while a fade is underway. The standby element still avoids an idle audio graph. Recorded gotcha 0z987 before source edits and added a separate release fragment.
+
+## Update 2026-09-27 22:16:00Z
+
+- Normalized restored EQ gains to finite whole-number values within the ten sliders' supported range. Cleared previous lyrics during new lookups, included filename changes in lookup dependencies, and ignored canceled request results before state updates. Recorded gotchas 0z988 and 0z989 before source edits and added one append-only release fragment.

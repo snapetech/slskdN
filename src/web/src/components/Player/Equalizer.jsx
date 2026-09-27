@@ -26,7 +26,10 @@ const readStoredState = () => {
     if (!stored || !Array.isArray(stored.gains)) return defaultState;
     return {
       enabled: stored.enabled === true,
-      gains: bands.map((_, index) => Number(stored.gains[index]) || 0),
+      gains: bands.map((_, index) => {
+        const gain = Number(stored.gains[index]);
+        return Number.isFinite(gain) ? Math.max(-12, Math.min(12, Math.round(gain))) : 0;
+      }),
       preset: stored.preset || 'Custom',
     };
   } catch {

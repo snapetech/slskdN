@@ -98,6 +98,7 @@ Seeking while paused keeps the player in Paused even if the browser fetches more
 A late Pause event after a media failure leaves the player in Error until the user retries or selects another track.
 Volume, local mute, and playback speed changes affect both audio elements while a crossfade is in progress.
 Equalizer and karaoke changes also affect both tracks during a crossfade.
+Saved equalizer bands are restored within the slider range. Lyrics clear when a new track lookup starts, and a canceled lookup cannot replace the newer result.
 
 Synced lyric highlighting follows the browser media element's playback, seek,
 and metadata events. It does not run a separate fixed polling timer, and hidden

@@ -102,6 +102,7 @@ const LyricsPane = ({ audioElement, current, visible }) => {
       track_name: lookup.title,
     });
 
+    setLyrics([]);
     setStatus('Loading lyrics');
     fetch(`https://lrclib.net/api/get?${params.toString()}`, {
       signal: controller.signal,
@@ -117,6 +118,7 @@ const LyricsPane = ({ audioElement, current, visible }) => {
           .then(firstLyricsCandidate);
       })
       .then((data) => {
+        if (controller.signal.aborted) return;
         const parsed = lyricsFromResponse(data);
         setLyrics(parsed);
         setStatus(parsed.length ? '' : 'No lyrics found');
@@ -129,7 +131,7 @@ const LyricsPane = ({ audioElement, current, visible }) => {
       });
 
     return () => controller.abort();
-  }, [current?.artist, current?.title, visible]);
+  }, [current?.artist, current?.fileName, current?.title, visible]);
 
   useEffect(() => {
     if (!audioElement || !visible) return undefined;

@@ -83,6 +83,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   showed a loading state while the list arrives.
 - Kept equalizer and karaoke processing consistent across both tracks while a
   crossfade is in progress.
+- Bounded restored equalizer gains to the supported control range and kept
+  canceled lyrics lookups from replacing the current track's words.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical
