@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1030. Cancel Pending Picture-in-Picture Opens And Surface Failures
+
+**The Bug**: Picture-in-Picture setup awaited graph resume and window creation without a generation guard or rejection handler. Hiding/unmounting the player or opening another window during those waits could leave an orphan spectrum window; denied window requests produced unhandled promise rejections.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Invalidate pending opens on every close, check request ownership after each await, close any stale returned window, and show current-request failures in the player without changing playback state.
+
 ### 0z1029. Preserve Pending Transport Intent Across Player Layout Remounts
 
 **The Bug**: Compact/expanded layout remounts copied the old audio element's time and playing flag unconditionally. During pending source setup, those values could overwrite the selected seek target and pending autoplay intent with the previous track's position and the intentionally paused element's state.
