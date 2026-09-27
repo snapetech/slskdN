@@ -14408,3 +14408,11 @@ rollback.
 - Next steps: run static checks, preview release notes, commit and push to the
   verified fork. Interactive real-audio browser inspection remains P1; no
   release tag is authorized.
+## Update 2026-09-27 22:49:43Z
+
+- Current task: repeated-track playlist queue behavior is committed and pushed
+  to the verified fork through `34d8eb907`. Collection storage permits
+  repeated content IDs and returns items in ordinal order, so the player fix
+  covers saved playlists end to end. The working tree is clean and synced.
+- Next steps: perform the P1 desktop/mobile real-audio inspection in
+  `memory-bank/tasks.md`. No release tag was created.

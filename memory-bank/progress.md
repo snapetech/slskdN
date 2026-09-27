@@ -13527,3 +13527,10 @@ export branch has no shared Git history and was not merged.
   by content ID. Recorded gotcha 0z1025 separately.
 - Next: static validation, release preview, commit, and push to the verified
   fork. Real-audio desktop/mobile inspection remains open.
+## Update 2026-09-27 22:49:43Z
+
+- Committed and pushed playlist repeat preservation through `34d8eb907`.
+  Confirmed Collection storage allows repeated content IDs and returns rows
+  by ordinal. Web lint/build, bundle budget, repository lint, whitespace,
+  identity, and release-range preview passed. Interactive playback was not
+  run in this continuation.
