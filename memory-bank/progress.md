@@ -13456,3 +13456,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:30:51Z
 
 - Routed listen-along's context-level Pause through the mounted player's pause handler, so pending autoplay and outgoing crossfade stop with the host command. Documented gotcha 0z1017 before source edits.
+
+## Update 2026-09-27 21:32:53Z
+
+- Pushed source ownership, same-URL state, and listen-along Pause hardening through `239c42a5f`. Web lint, production build, bundle budget, repository lint, whitespace, identity checks, release previews, and fork targeting passed. Automated or interactive playback tests were not run in this continuation; the outstanding real-audio review remains tracked separately.

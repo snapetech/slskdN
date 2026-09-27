@@ -14325,3 +14325,13 @@ rollback.
   bundle budget, repository lint, whitespace, and local identity checks
   passed. Release preview and fork push remain.
 - Next steps: push and continue source review of room and queue transitions.
+
+## Update 2026-09-27 21:32:53Z
+
+- Current player source and listen-along Pause hardening is committed and
+  pushed to the fork's `main` through `239c42a5f`. The working tree is clean
+  and synchronized. Source review found no further high-confidence defect in
+  the inspected transition paths.
+- Next steps: the P1 real-audio desktop and mobile review in `memory-bank/tasks.md`
+  remains necessary to establish audible behavior, device switching, room
+  reconnect, and layout quality. No release tag was created.
