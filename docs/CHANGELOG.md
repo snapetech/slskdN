@@ -34,6 +34,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   each completed repeat-one play in listening history and scrobbling.
 - Stopped closed player dialogs from recalculating queue suggestions and
   listening statistics on playback position updates.
+- Reduced player redraws during playback by updating the displayed seek time
+  when its whole-second value changes while preserving immediate seek and crossfade behavior.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

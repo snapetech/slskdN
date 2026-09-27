@@ -1,3 +1,8 @@
+## Update 2026-09-27 18:13:17Z
+
+- Current task: player steady-state resource polish complete. Playback now updates top-level position state at visible whole-second boundaries while keeping direct seeks, track resets, and crossfade checks responsive.
+- Web lint/build, bundle budget, release-note fragment validation, whitespace check, and identity check passed. Next: live playback/mobile inspection on a controlled dev instance when browser control is available; local port 3000 is an authenticated app instance. No tag or deployment is authorized.
+
 ## Update 2026-09-27 18:04:29Z
 
 - Current task: player resource polish completed in commit `b47ff9d60`. Closed player dialogs now mount only when opened, avoiding repeated suggestion and stats work on position updates.

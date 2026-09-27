@@ -2275,6 +2275,7 @@ const PlayerBar = () => {
   const [playbackStatus, setPlaybackStatus] = useState('idle');
   const [playbackError, setPlaybackError] = useState('');
   const [position, setPosition] = useState(0);
+  const renderedPositionRef = useRef(0);
   const [duration, setDuration] = useState(0);
   const [transcodeMode, setTranscodeMode] = useState(false);
   const [transcodeAvailable, setTranscodeAvailable] = useState(false);
@@ -2432,6 +2433,7 @@ const PlayerBar = () => {
       setDuration(Number(response.data?.durationSeconds) || 0);
       setTranscodeMode(true);
       setTranscodeOffset(seconds);
+      renderedPositionRef.current = seconds;
       setPosition(seconds);
       autoplayRef.current = autoPlay;
       setSource(streaming.buildTranscodedStreamUrl(current.contentId, ticket, seconds));
@@ -2450,6 +2452,7 @@ const PlayerBar = () => {
       return;
     }
     audioRef.current.currentTime = target;
+    renderedPositionRef.current = target;
     setPosition(target);
   }, [duration, startTranscode, transcodeMode]);
 
@@ -2622,6 +2625,7 @@ const PlayerBar = () => {
       setTranscodeAvailable(false);
       setTranscodeOffset(0);
       setDuration(0);
+      renderedPositionRef.current = 0;
       setPosition(0);
     }
     setSource('');
@@ -2998,7 +3002,11 @@ const PlayerBar = () => {
     },
     onTimeUpdate: (event) => {
       if (event.currentTarget !== audioRef.current) return;
-      setPosition(transcodeOffset + event.currentTarget.currentTime);
+      const nextPosition = transcodeOffset + event.currentTarget.currentTime;
+      if (Math.floor(nextPosition) !== Math.floor(renderedPositionRef.current)) {
+        renderedPositionRef.current = nextPosition;
+        setPosition(nextPosition);
+      }
       if (crossfadeEnabled && !transcodeMode && queue.length > 1 &&
           Number.isFinite(event.currentTarget.duration) && event.currentTarget.duration > 6 &&
           event.currentTarget.currentTime >= event.currentTarget.duration - 5 &&
