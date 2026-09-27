@@ -6,6 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1038. Keep Player File Search Consistent Before Share Index Readiness
+
+**The Bug**: The library search endpoint could resolve configured local share/download files before index readiness, but the player browser endpoint only searched the share snapshot. Real-browser verification found a local file through ordinary search while the player reported no tracks for the same query.
+
+**Files Affected**:
+- `src/slskd/API/Native/LibraryItemsController.cs`
+- `tests/slskd.Tests.Unit/API/Native/LibraryItemsControllerTests.cs`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Reuse allowed-directory filtering for explicit player searches with no indexed matches. Count matching local files for pagination, but hash only the selected page; honor configured exclusions and cancellation. Do not contact peers or turn an empty unfiltered browser open into a recursive scan.
+
 ### 0z1037. Cover Ticket-Authenticated Decoding In The Anonymous Action Contract
 
 **The Bug**: The anonymous-action security contract did not include the newly added ticket-authenticated Transcode action, so the Streaming unit filter failed despite the endpoint explicitly rejecting absent, invalid and share tickets before accessing local content.
