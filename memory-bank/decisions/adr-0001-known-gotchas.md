@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1029. Preserve Pending Transport Intent Across Player Layout Remounts
+
+**The Bug**: Compact/expanded layout remounts copied the old audio element's time and playing flag unconditionally. During pending source setup, those values could overwrite the selected seek target and pending autoplay intent with the previous track's position and the intentionally paused element's state.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Snapshot time and playing intent only when the media element owns the selected item. While its source is pending, preserve the timeline and autoplay intent already held by the player.
+
 ### 0z1028. Seek Against The Selected Timeline During Source Setup
 
 **The Bug**: Relative seeks during decoded source setup used the old audio element's position. Repeated Forward clicks therefore failed to accumulate, and subsequent seeks used the deliberately paused element to infer intent, discarding pending autoplay. Native seeks during ticket setup could also move the previous track instead of the selected one. Media Session retained the previous seek timeline after Stop or an unknown-duration selection.
