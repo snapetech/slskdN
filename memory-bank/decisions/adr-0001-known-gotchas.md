@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z985. Reset Picker Loading When A Search Is Canceled
+
+**The Bug**: The player's local file browser canceled an in-flight request when the query became shorter than two characters, but the short-query branch did not clear `itemsLoading`. The canceled request's `finally` was deliberately ignored, leaving a permanent Loading message instead of the search prompt.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Reset the loading flag when a picker request is canceled by closing the browser or switching to a query that will not issue a request. Let only the current request clear its own loading flag after completion.
+
 ### 0z984. Ignore Stale Collection Item Responses In The Player Picker
 
 **The Bug**: The player's Collection browser launched an item request for each selected Collection without checking which response was newest. Clicking Collection A then B could leave B selected while A's slower response replaced the visible track list.
