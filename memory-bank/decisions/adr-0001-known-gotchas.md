@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1021. Restore Mounted Ref State In Effect Setup
+
+**The Bug**: A playlist dialog's mounted ref was initialized to true and set false in effect cleanup, without setting it true in effect setup. React Strict Mode can run setup, cleanup, and setup again during development; after that cycle the ref remained false and every playlist load looked canceled.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: When an effect cleanup marks a mounted or active ref false, its setup must mark that ref true. Keep close-time invalidation separate so a deliberate close still cancels pending work.
+
 ### 0z1020. Cancel A Pending Playlist Load When Its Dialog Closes
 
 **The Bug**: Loading a saved playlist awaited Collection items, then replaced the player queue without checking whether the queue dialog was still open. A user could close it and select another track while the request was pending, only for the late playlist response to replace that choice.
