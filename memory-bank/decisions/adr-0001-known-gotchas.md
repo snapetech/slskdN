@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z967. Defer Visualizer Code Until The Player Tile Uses It
+
+**The Bug**: The always-mounted player statically imported the full visualizer component. Its native MilkDrop renderer and preset tooling became part of the initial player dependency graph even when the visualizer tile was off.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Load the full visualizer component only when the tile selects a visualizer mode. Keep the lightweight spectrum analyzer available without pulling in the full renderer, and provide a small loading state while the deferred module arrives.
+
 ### 0z966. Keep Queue, Current Track, And History In One Transition
 
 **The Bug**: Advancing the player queue updated current track and history from inside a `setQueue` updater. React can replay a state updater while rendering, causing duplicate history writes or inconsistent shuffle choices. Next and Previous could also observe separate render snapshots of related playback fields.
