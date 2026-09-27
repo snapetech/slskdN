@@ -2035,12 +2035,18 @@ const PlayerVisualTile = ({
     .toUpperCase() || 'N';
   const artworkUrl = current?.artworkUrl;
   const normalizedTileMode = tileModes.includes(tileMode) ? tileMode : 'art';
-  const showingVisualizer = visualizerTileModes.includes(normalizedTileMode);
-  const showingAnalyzer = ['spectrum', 'scope'].includes(normalizedTileMode);
+  const effectiveTileMode = mode === 'off' && visualizerTileModes.includes(normalizedTileMode)
+    ? 'art'
+    : normalizedTileMode;
+  const showingVisualizer = visualizerTileModes.includes(effectiveTileMode);
+  const showingAnalyzer = ['spectrum', 'scope'].includes(effectiveTileMode);
   const nextTileMode = tileModes[
-    (tileModes.indexOf(normalizedTileMode) + 1) % tileModes.length
+    (tileModes.indexOf(effectiveTileMode) + 1) % tileModes.length
   ];
   const visualizerDisplayMode = mode === 'off' ? 'inline' : mode;
+  const preferredVisualizerMode = visualizerTileModes.includes(normalizedTileMode)
+    ? normalizedTileMode
+    : readStoredVisualizerEngineTileMode();
   const setTileMode = (nextMode) => {
     onTileModeChange(nextMode);
     if (visualizerTileModes.includes(nextMode) && mode === 'off') {
@@ -2057,14 +2063,14 @@ const PlayerVisualTile = ({
   const showVisualizerWindow = (event) => {
     event.stopPropagation();
     if (!showingVisualizer) {
-      onTileModeChange(readStoredVisualizerEngineTileMode());
+      onTileModeChange(preferredVisualizerMode);
     }
     onModeChange('fullwindow');
   };
   const showVisualizerFullscreen = async (event) => {
     event.stopPropagation();
     if (!showingVisualizer) {
-      onTileModeChange(readStoredVisualizerEngineTileMode());
+      onTileModeChange(preferredVisualizerMode);
     }
     if (tileRef.current?.requestFullscreen) {
       try {
@@ -2147,7 +2153,7 @@ const PlayerVisualTile = ({
             trigger={
               <Button
                 aria-label={`Show ${tileModeLabels[option]}`}
-                active={normalizedTileMode === option}
+                active={effectiveTileMode === option}
                 data-testid={`player-visual-tile-mode-${option}`}
                 icon
                 onClick={(event) => switchTileMode(event, option)}

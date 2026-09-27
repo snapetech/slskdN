@@ -1,3 +1,8 @@
+## Update 2026-09-27 19:40:00Z
+
+- Current task: visualizer Off now unmounts a persisted heavy visualizer tile and shows album art, preserving the chosen engine for reactivation. This closes a lifecycle defect that could load and render the module despite the Off setting.
+- Next: validate and push to the verified fork, then review remaining player controls. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 19:35:00Z
 
 - Current task: resource review deferred the full visualizer import until its tile activates. The initial Web entry chunk fell from 279.06 KB (80.37 KB gzip) to 171.51 KB (50.60 KB gzip) in the local production build; the visualizer moved to its own 107.99 KB lazy chunk.

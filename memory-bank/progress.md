@@ -13305,3 +13305,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 19:35:00Z
 
 - Deferred the full visualizer component until the player tile selects a visualizer mode, leaving the lightweight analyzer on the normal player path. The production build shows the initial Web entry chunk reduced from 279.06 KB (80.37 KB gzip) to 171.51 KB (50.60 KB gzip); the deferred visualizer is 107.99 KB (30.30 KB gzip). Web lint/build pass. Recorded gotcha 0z967 and added user documentation and a release fragment.
+
+## Update 2026-09-27 19:40:00Z
+
+- Corrected a visualizer visibility mismatch: a saved Butterchurn/MilkDrop tile no longer keeps rendering when the visualizer setting is Off. Album art appears until the user reactivates the selected engine. Recorded gotcha 0z968 and updated the release fragment and listening guide. Web lint/build and release-note validation pass.
