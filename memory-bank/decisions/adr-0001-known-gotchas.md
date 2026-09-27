@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1028. Seek Against The Selected Timeline During Source Setup
+
+**The Bug**: Relative seeks during decoded source setup used the old audio element's position. Repeated Forward clicks therefore failed to accumulate, and subsequent seeks used the deliberately paused element to infer intent, discarding pending autoplay. Native seeks during ticket setup could also move the previous track instead of the selected one. Media Session retained the previous seek timeline after Stop or an unknown-duration selection.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Publish decoded seek targets before awaiting setup, track pending decoding separately from completed mode, and use pending autoplay intent when replacing a pending seek. Address relative seeks against the selected timeline while its source is absent; defer native seeks until metadata loads. Clear Media Session position state when no known-duration track is selected.
+
 ### 0z1027. Refresh Server Tickets On Explicit Native Media Retry
 
 **The Bug**: Native server media retries reused the previous URL, including its expired stream ticket. Tickets expire after two minutes, so a reload could fail authorization even when the file and server were healthy.
