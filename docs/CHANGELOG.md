@@ -73,6 +73,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   Audio graph. The small analyzer starts Off and can cycle through Spectrum,
   Scope, and Off. Enabling EQ, vocal reduction, crossfade, or a custom speaker
   during playback resumes the graph it needs.
+- Session queue restoration now skips radio and listen-along tracks with
+  short-lived stream URLs, so a refresh does not select an expired ticket.
 - Applied volume, local mute, and playback speed changes to both audio elements
   during crossfades.
 - Clear Upcoming now keeps played-track history available for Previous and

@@ -38,12 +38,15 @@ export const PlayerContext = createContext({
 });
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isRestorableItem = (item) =>
+  typeof item?.contentId === 'string' &&
+  !item.contentId.startsWith('local:') &&
+  !item.streamUrl;
 const sessionKey = 'slskdn.player.session.v1';
 const readSession = () => {
   try {
     const value = JSON.parse(getSessionStorageItem(sessionKey, '{}'));
-    const queue = asArray(value.queue).filter((item) =>
-      typeof item?.contentId === 'string' && !item.contentId.startsWith('local:'));
+    const queue = asArray(value.queue).filter(isRestorableItem);
     return {
       current: queue[0] || null,
       queue,
@@ -82,7 +85,7 @@ export const PlayerProvider = ({ children }) => {
 
   useEffect(() => {
     setSessionStorageItem(sessionKey, JSON.stringify({
-      queue: queue.filter((item) => !item.contentId.startsWith('local:')),
+      queue: queue.filter(isRestorableItem),
       repeatMode,
       shuffle,
     }));

@@ -14239,3 +14239,16 @@ rollback.
   The append-only release fragment is ready for range preview and push.
 - Next steps: push to the verified fork and continue the source audit; real
   desktop and mobile audio behavior still needs interactive observation.
+
+## Update 2026-09-27 20:58:18Z
+
+- Current task: remove expired radio tickets from player session restoration.
+  Source, docs, gotcha 0z1006, and a release fragment are in progress.
+- Next steps: run the repository gates, preview, and push to the verified fork.
+
+## Update 2026-09-27 20:59:24Z
+
+- Expired radio ticket session fix is implemented. Web lint, production build,
+  bundle budget, repository lint, whitespace, and local identity checks passed.
+  Release preview and fork push remain.
+- Next steps: push this batch, then continue auditing queue and player state.

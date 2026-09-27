@@ -13432,3 +13432,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:53:52Z
 
 - Deferred Web Audio graph allocation on plain playback, added an Off state and default for the small analyzer, and resumed graphs created while active playback enables EQ, karaoke, crossfade, or custom output. A failed first output switch now resumes the rolled-back graph. Recorded gotchas 0z1001 through 0z1005 before each source change.
+
+## Update 2026-09-27 20:58:18Z
+
+- Excluded short-lived listen-along and listed-radio stream URLs from player session persistence and old-session restore. Recorded gotcha 0z1006 before source changes. The live queue retains these streams until refresh.
