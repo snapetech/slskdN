@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1000. Request Permission Before Listing Audio Outputs
+
+**The Bug**: The player relied on `enumerateDevices()` alone to populate its output selector. Browsers may omit non-default audio outputs until the user grants access, leaving no way to discover or select a speaker from the player.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Where supported, offer a user-activated `selectAudioOutput()` control. Add the returned device to the selector and refresh the permitted device list when devices change. Keep the native permission request inside the click handler.
+
 ### 0z999. Route Selected Output On The Web Audio Context
 
 **The Bug**: Output selection called `setSinkId` on the media elements even though `createMediaElementSource` reroutes their audio into an `AudioContext`. The selector could report success while the graph continued playing through the system default device.
