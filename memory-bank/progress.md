@@ -13319,3 +13319,8 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 19:55:00Z
 
 - Capped active lightweight spectrum and scope canvas drawing near 30 fps and reused typed audio sample buffers instead of allocating each frame. Hidden-document suspension and teardown remain in place. Recorded gotcha 0z972; added an append-only release fragment and listening-guide note. Web lint/build, release-note validation, and whitespace checks pass.
+
+## Update 2026-09-27 20:02:00Z
+
+- Pushed the broad player follow, Picture-in-Picture, atomic queue, lazy visualizer, visualizer Off, and analyzer-resource batches to verified fork `main` through `fe5a04889`. Release-note range previews passed, including the separate append-only fragment after a rejected edit to a published fragment. No release tag or deployment was created.
+- The source audit is complete for this pass. Live audio, mobile layout, Media Session, output routing, and browser Picture-in-Picture behavior require interactive inspection before any native-player parity claim. Added that as a tracked task.
