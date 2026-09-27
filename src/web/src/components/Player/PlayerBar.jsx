@@ -2343,7 +2343,9 @@ const PlayerBar = () => {
   const [outputDeviceId, setOutputDeviceId] = useState('default');
   const outputDeviceIdRef = useRef('default');
   const [outputSwitching, setOutputSwitching] = useState(false);
+  const [outputChoosing, setOutputChoosing] = useState(false);
   const outputSwitchingRef = useRef(false);
+  const outputSwitchPromiseRef = useRef(Promise.resolve());
   const fileInputRef = useRef(null);
   const localObjectUrlsRef = useRef(new Set());
   const selectedItemRef = useRef(current);
@@ -2495,6 +2497,19 @@ const PlayerBar = () => {
     if (!element) return;
     const request = ++playRequestRef.current;
     try {
+      await outputSwitchPromiseRef.current;
+      if (request !== playRequestRef.current || audioRef.current !== element) return;
+      const graph = getOrCreateAudioGraph(element);
+      const selectedSinkId = outputDeviceIdRef.current === 'default'
+        ? ''
+        : outputDeviceIdRef.current;
+      if (selectedSinkId) {
+        await graph.ctx.setSinkId(selectedSinkId);
+        const latestSinkId = outputDeviceIdRef.current === 'default'
+          ? ''
+          : outputDeviceIdRef.current;
+        if (latestSinkId !== selectedSinkId) await graph.ctx.setSinkId(latestSinkId);
+      }
       await resumeAudioGraph(element);
       if (request !== playRequestRef.current || audioRef.current !== element) return;
       await element.play();
@@ -2613,26 +2628,24 @@ const PlayerBar = () => {
   }, [playbackRate, playerAudioElement]);
 
   useEffect(() => {
-    if (!advancedOpen || !navigator.mediaDevices?.enumerateDevices || !audioRef.current?.setSinkId) return undefined;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!advancedOpen || !navigator.mediaDevices?.enumerateDevices || !AudioCtx?.prototype?.setSinkId) return undefined;
     let cancelled = false;
-    navigator.mediaDevices.enumerateDevices().then((devices) => {
-      if (!cancelled) setOutputDevices(devices.filter((device) => device.kind === 'audiooutput'));
-    }).catch(() => {
-      if (!cancelled) setOutputDevices([]);
-    });
-    return () => { cancelled = true; };
-  }, [advancedOpen]);
-
-  useEffect(() => {
-    if (!playerAudioElement || outputDeviceIdRef.current === 'default') return;
-    [audioRef.current, fadeAudioRef.current]
-      .filter((element) => element?.setSinkId)
-      .forEach((element) => {
-        element.setSinkId(outputDeviceIdRef.current).catch(() => {
-          setPlaybackError('Could not restore the selected audio output device.');
-        });
+    const refreshOutputs = () => {
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        if (!cancelled) setOutputDevices(devices.filter((device) =>
+          device.kind === 'audiooutput' && device.deviceId !== 'default'));
+      }).catch(() => {
+        if (!cancelled) setOutputDevices([]);
       });
-  }, [outputDeviceId, playerAudioElement]);
+    };
+    refreshOutputs();
+    navigator.mediaDevices.addEventListener?.('devicechange', refreshOutputs);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices.removeEventListener?.('devicechange', refreshOutputs);
+    };
+  }, [advancedOpen]);
 
   useEffect(() => {
     if (!playerAudioElement) return;
@@ -3080,6 +3093,65 @@ const PlayerBar = () => {
       });
     }
   }, [current, duration, playbackRate, playing, position]);
+
+  const switchOutputDevice = async (deviceId) => {
+    if (outputSwitchingRef.current) return;
+    outputSwitchingRef.current = true;
+    setOutputSwitching(true);
+    const sinkId = deviceId === 'default' ? '' : deviceId;
+    const previousSinkId = outputDeviceIdRef.current === 'default'
+      ? ''
+      : outputDeviceIdRef.current;
+    const switching = (async () => {
+      const contexts = [audioRef.current, fadeOutgoingRef.current]
+        .filter(Boolean)
+        .map((element) => getOrCreateAudioGraph(element)?.ctx)
+        .filter(Boolean);
+      if (contexts.some((context) => !context.setSinkId)) {
+        throw new Error('Web Audio output selection is unavailable.');
+      }
+      const results = await Promise.allSettled(
+        contexts.map((context) => context.setSinkId(sinkId)),
+      );
+      if (results.some((result) => result.status === 'rejected')) {
+        await Promise.allSettled(
+          contexts.map((context) => context.setSinkId(previousSinkId)),
+        );
+        throw new Error('Audio output switch failed.');
+      }
+      outputDeviceIdRef.current = deviceId;
+      setOutputDeviceId(deviceId);
+    })();
+    outputSwitchPromiseRef.current = switching.catch(() => {});
+    try {
+      await switching;
+    } catch {
+      setPlaybackError('Could not switch audio output device.');
+    } finally {
+      outputSwitchingRef.current = false;
+      setOutputSwitching(false);
+    }
+  };
+
+  const chooseOutputDevice = async () => {
+    if (outputChoosing || outputSwitchingRef.current) return;
+    setOutputChoosing(true);
+    try {
+      const selection = navigator.mediaDevices.selectAudioOutput();
+      const device = await selection;
+      setOutputDevices((devices) => [
+        ...devices.filter((listed) => listed.deviceId !== device.deviceId),
+        device,
+      ]);
+      await switchOutputDevice(device.deviceId);
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        setPlaybackError('Could not choose an audio output device.');
+      }
+    } finally {
+      setOutputChoosing(false);
+    }
+  };
 
   if (!playerVisible) {
     return (
@@ -3644,44 +3716,35 @@ const PlayerBar = () => {
             </> : null}
           </div>
           {advancedOpen ? <div className="player-control-row">
-            {outputDevices.length > 0 ? (
+            {outputDevices.length > 0 || outputDeviceId !== 'default' ? (
               <select
                 aria-label="Audio output device"
-                disabled={outputSwitching}
-                onChange={async (event) => {
-                  if (outputSwitchingRef.current) return;
-                  outputSwitchingRef.current = true;
-                  setOutputSwitching(true);
-                  const deviceId = event.target.value;
-                  const elements = [audioRef.current, fadeAudioRef.current]
-                    .filter((element) => element?.setSinkId);
-                  try {
-                    const results = await Promise.allSettled(
-                      elements.map(async (element) => element.setSinkId(deviceId)),
-                    );
-                    if (results.some((result) => result.status === 'rejected')) {
-                      await Promise.allSettled(
-                        elements.map(async (element) => element.setSinkId(outputDeviceIdRef.current)),
-                      );
-                      setPlaybackError('Could not switch audio output device.');
-                      return;
-                    }
-                    outputDeviceIdRef.current = deviceId;
-                    setOutputDeviceId(deviceId);
-                  } finally {
-                    outputSwitchingRef.current = false;
-                    setOutputSwitching(false);
-                  }
-                }}
+                disabled={outputChoosing || outputSwitching}
+                onChange={(event) => switchOutputDevice(event.target.value)}
                 value={outputDeviceId}
               >
+                <option value="default">System default</option>
+                {outputDeviceId !== 'default' &&
+                  !outputDevices.some((device) => device.deviceId === outputDeviceId) ? (
+                    <option value={outputDeviceId}>Previously selected output</option>
+                  ) : null}
                 {outputDevices.map((device, index) => (
-                  <option key={device.deviceId || index} value={device.deviceId || 'default'}>
+                  <option key={device.deviceId || index} value={device.deviceId}>
                     {device.label || `Audio output ${index + 1}`}
                   </option>
                 ))}
               </select>
             ) : null}
+            {(window.AudioContext || window.webkitAudioContext)?.prototype?.setSinkId &&
+              navigator.mediaDevices?.selectAudioOutput ? (
+                <PlayerToolButton
+                  content="Choose a speaker or headset and allow the browser to play through it."
+                  aria-label="Choose audio output"
+                  disabled={outputChoosing || outputSwitching}
+                  icon="headphones"
+                  onClick={chooseOutputDevice}
+                />
+              ) : null}
             <PlayerToolButton
               content="Collapse the player into a small drawer bar above the footer."
               aria-label="Collapse player"

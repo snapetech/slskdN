@@ -13420,3 +13420,11 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:52:00Z
 
 - Cleared prior room state, connection status, and publish error on pod/channel changes; invalidated old UI publish responses and only reused a party ID from the selected room. Recorded gotcha 0z998 before source edits and expanded the pending user release description.
+
+## Update 2026-09-27 20:43:35Z
+
+- Corrected output routing to call `AudioContext.setSinkId` on the audio graphs rather than `HTMLMediaElement.setSinkId` on rerouted source elements. The selector is gated by context sink support; both audible crossfade graphs switch atomically with rollback, and future active graphs route before playback. Recorded gotcha 0z999 before editing source and added user documentation and an append-only release fragment.
+
+## Update 2026-09-27 20:47:30Z
+
+- Added a user-activated audio output picker for browsers that hide non-default devices before permission, plus a `devicechange` refresh. Recorded gotcha 0z1000 before source edits and expanded the pending release fragment.

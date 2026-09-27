@@ -14207,3 +14207,19 @@ rollback.
   listen-along reconnect, as tracked in `memory-bank/tasks.md`. This source
   review and build validation do not establish audible or visual parity with
   desktop media players.
+
+## Update 2026-09-27 20:43:35Z
+
+- Current task: correct browser output selection at the Web Audio graph boundary.
+  Source and documentation are updated locally; validation and push remain.
+- Next steps: run Web/repository lint and build checks, validate the release
+  fragment, preview the release range, and push to the verified fork. Continue
+  reviewing player persistence and lifecycle afterward.
+
+## Update 2026-09-27 20:48:37Z
+
+- Completed Web Audio output routing and permission-based speaker discovery.
+  Web lint, production build, bundle budget, repository lint, whitespace, and
+  local identity checks passed. Release preview and fork push remain.
+- Next steps: preview the release range, push to the verified fork, then keep
+  auditing player persistence and lifecycle.

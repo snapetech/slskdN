@@ -65,6 +65,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   preserved Error when a late Pause event follows a media failure.
 - Prevented overlapping audio output changes and restored the chosen device
   when the player remounts its audio elements during a pending switch.
+- Routed output selection through the Web Audio contexts that actually play the
+  sound, including both audible tracks during crossfade and a new context
+  before playback. Supported browsers can request access to a speaker or
+  headset and refresh the output list when devices change.
 - Applied volume, local mute, and playback speed changes to both audio elements
   during crossfades.
 - Clear Upcoming now keeps played-track history available for Previous and

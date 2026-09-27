@@ -90,7 +90,7 @@ The player publishes Now Playing after playback begins and clears it on pause, s
 Browser Now Playing changes are sent in playback order, so a slow Play update cannot overwrite a later Pause or Stop clear.
 
 Seeking, rewind/fast-forward, Previous, and repeat use the full track position during decoded playback. Seeking while paused leaves playback paused.
-The audio output selector waits for both player audio elements to switch, rolls back on failure, and restores the selected device after player layout changes.
+The audio output selector switches the Web Audio contexts that carry playback, waits for both audible crossfade tracks, rolls back on failure, and routes a new context before it starts playback. It appears only when the browser supports AudioContext output selection. Where supported, use the adjacent headset button to grant access to another speaker or headset; the list refreshes when devices change.
 
 Listening history and optional ListenBrainz scrobbles count actual playback progress toward the track threshold. Skipping forward does not count the skipped portion as listening. Pause and Stop also silence both audio elements if a crossfade is in progress.
 If the incoming track errors during a crossfade, the outgoing element stops immediately so the visible failure and audible output agree.

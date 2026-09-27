@@ -29,6 +29,10 @@
   - Status: implemented (2026-09-27).
   - Notes: Graph helpers no longer overwrite media volume without a graph; crossfade falls back to direct track changes.
 
+- [x] Route selected audio output through Web Audio contexts.
+  - Status: implemented (2026-09-27).
+  - Notes: Device changes reach the active and outgoing graphs; newly activated graphs select the chosen sink before playback. Supported browsers offer a permission-triggered speaker picker and refresh the device list; unsupported browsers do not show a misleading selector.
+
 - [x] Avoid creating a Web Audio graph for neutral idle player settings.
   - Status: implemented (2026-09-27).
   - Notes: Flat EQ, karaoke off, and output gain one reuse a graph when present but no longer create one for a paused player.
