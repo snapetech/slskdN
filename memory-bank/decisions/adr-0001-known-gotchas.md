@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z964. Rejoin Listen-Along Groups After SignalR Reconnect
+
+**The Bug**: The listen-along panel marked a reconnected SignalR connection Live without joining its pod/channel group again. The replacement connection could miss all later host events. An initial state fetch could also finish after a newer hub event and replace the displayed state with stale metadata.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Rejoin the group after each reconnect, refresh its current state, and discard older HTTP snapshots when a newer hub event has arrived. Apply a refreshed snapshot when follow mode is active.
+
 ### 0z963. Handle Best-Effort Now Playing Cleanup Without Rejecting Stop
 
 **The Bug**: Clearing or hiding the player awaited the profile Now Playing DELETE after local playback state was already cleared. If the network request failed, the event handler returned a rejected promise and could produce an unhandled rejection even though Stop had completed locally.
