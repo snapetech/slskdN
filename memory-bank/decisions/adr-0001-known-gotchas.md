@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z944. Revoke Browser File URLs When Queue Items Disappear
+
+**The Bug**: Choosing browser-local files created object URLs, but replacing the queue kept earlier URLs alive until the whole player was cleared or unmounted. Repeated file selections retained unused file handles and memory.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Keep object URLs only while referenced by the current queue or playback history. Revoke them when those items leave the player, and also on clear or unmount.
+
 ### 0z943. Commit Transcoded Seeks Once Per Slider Interaction
 
 **The Bug**: The seek range called its playback seek handler on every input change. In FFmpeg fallback mode each drag step requested a new ticket and transcode, causing avoidable process churn and rate-limit errors. Overlapping seek requests could also finish out of order and play an older position.
