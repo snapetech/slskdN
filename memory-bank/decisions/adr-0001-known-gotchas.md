@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1041. Reuse Successful Local Resolution Across Stream Requests
+
+**The Bug**: Allowed-root path fallback throttled every scan, including repeated requests for a file just found. Ticket creation could resolve a file but the immediately following media request would return 404 during the five-second scan cooldown.
+
+**Files Affected**:
+- `src/slskd/Streaming/ContentLocator.cs`
+- `tests/slskd.Tests.Unit/Streaming/ContentLocatorTests.cs`
+
+**Prevention**: Keep a bounded cache of successful path resolutions before the scan throttle. Recheck current allowed roots, existence and size identity on every hit; evict stale entries. Keep miss scans throttled and preserve non-advertisable rejection.
+
 ### 0z1040. Soulseek Format Codes Are Not File Identities
 
 **The Bug**: Library browsing mapped each protocol format code to one repository filename. Multiple real audio files share code 1, so unrelated files inherited the first path, disappeared from search, or played the wrong item. A local fallback then tried to insert an absolute filename into content_items, whose foreign key requires an indexed masked filename, so stream tickets returned 404.
