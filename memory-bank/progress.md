@@ -13372,3 +13372,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:58:00Z
 
 - Deferred the player Collections list request until the user opens that browser, with a visible loading state and canceled-response guard on close. Expanded transport controls no longer cause an unrelated library fetch. Recorded gotcha 0z986 and added user documentation and an append-only release fragment.
+
+## Update 2026-09-27 22:08:00Z
+
+- Kept the outgoing crossfade element's EQ and karaoke processing in sync with the active element while a fade is underway. The standby element still avoids an idle audio graph. Recorded gotcha 0z987 before source edits and added a separate release fragment.

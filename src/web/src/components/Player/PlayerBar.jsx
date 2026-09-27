@@ -2687,6 +2687,9 @@ const PlayerBar = () => {
     );
     if (playerAudioElement) {
       setKaraokeEnabled(playerAudioElement, karaokeEnabled);
+      if (fadeOutgoingRef.current) {
+        setKaraokeEnabled(fadeOutgoingRef.current, karaokeEnabled);
+      }
     }
   }, [karaokeEnabled, playerAudioElement]);
 
@@ -3721,7 +3724,10 @@ const PlayerBar = () => {
 
       <div className="player-expanded-panels">
         <div className="player-panel player-panel-eq" hidden={!eqPanelOpen}>
-          <Equalizer audioElement={current ? playerAudioElement : null} />
+          <Equalizer
+            audioElement={current ? playerAudioElement : null}
+            fadeAudioElement={current ? fadeOutgoingRef.current : null}
+          />
         </div>
         <LyricsPane
           audioElement={playerAudioElement}

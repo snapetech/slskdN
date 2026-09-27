@@ -97,6 +97,7 @@ If the incoming track errors during a crossfade, the outgoing element stops imme
 Seeking while paused keeps the player in Paused even if the browser fetches more audio data.
 A late Pause event after a media failure leaves the player in Error until the user retries or selects another track.
 Volume, local mute, and playback speed changes affect both audio elements while a crossfade is in progress.
+Equalizer and karaoke changes also affect both tracks during a crossfade.
 
 Synced lyric highlighting follows the browser media element's playback, seek,
 and metadata events. It does not run a separate fixed polling timer, and hidden

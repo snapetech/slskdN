@@ -37,13 +37,15 @@ const readStoredState = () => {
 const formatBand = (frequency) =>
   frequency >= 1000 ? `${frequency / 1000}k` : String(frequency);
 
-const Equalizer = ({ audioElement }) => {
+const Equalizer = ({ audioElement, fadeAudioElement }) => {
   const [state, setState] = useState(readStoredState);
 
   useEffect(() => {
     if (!audioElement) return;
-    setEqGains(audioElement, state.enabled ? state.gains : presets.Flat);
-  }, [audioElement, state.enabled, state.gains]);
+    const gains = state.enabled ? state.gains : presets.Flat;
+    setEqGains(audioElement, gains);
+    if (fadeAudioElement) setEqGains(fadeAudioElement, gains);
+  }, [audioElement, fadeAudioElement, state.enabled, state.gains]);
 
   useEffect(() => {
     setLocalStorageItem(storageKey, JSON.stringify(state));

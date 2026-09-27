@@ -81,6 +81,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   characters or the file picker is closed.
 - Deferred the player Collections list request until its browser opens and
   showed a loading state while the list arrives.
+- Kept equalizer and karaoke processing consistent across both tracks while a
+  crossfade is in progress.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical
