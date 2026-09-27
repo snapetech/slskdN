@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1011. Pair Pending Source Ownership With Its URL
+
+**The Bug**: A source owner ref set to the newly selected track can update before React applies its new `source` state. The source-binding effect can then mistake the old URL for the new track's source and briefly reload or play the wrong audio.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Store the pending URL and its track together. Bind only when both match the effect's current `source` string and selected track object.
+
 ### 0z1010. Treat Replaying The Same URL As A New Track Selection
 
 **The Bug**: Source activation compared only URL strings. Selecting the same browser-local file or a direct stream URL again can leave `source` unchanged after batched state updates, so the player never reloads or starts the newly selected track object.
