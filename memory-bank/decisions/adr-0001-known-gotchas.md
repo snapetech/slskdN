@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z991. Preserve Native Volume Without Web Audio
+
+**The Bug**: When Web Audio was unavailable, graph gain helpers wrote directly to `audioElement.volume`. Normal source loading reset the saved volume to full, and the crossfade fallback became a hard cut that also changed the user's volume.
+
+**Files Affected**:
+- `src/web/src/components/Player/audioGraph.js`
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Leave media-element volume to the player's volume control when no graph exists, and only enter the timed crossfade path when Web Audio is available for independent output gain.
+
 ### 0z990. End Active Crossfades On Direct Transport Changes
 
 **The Bug**: Turning crossfade off or scrubbing during its five-second overlap left the outgoing track audible until the original fade timeout. The setting and seek position changed while two tracks continued playing.
