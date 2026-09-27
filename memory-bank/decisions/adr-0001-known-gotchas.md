@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z995. Scale Crossfade Wall Time With Playback Rate
+
+**The Bug**: Crossfade started five media seconds before track end but used fixed five-second Web Audio ramps and a fixed cleanup timeout. At faster playback speeds, the outgoing media ended before the incoming gain reached full volume; at slower speeds, the fade finished early.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Convert the five media-second overlap to wall-clock duration using the playback rate captured when the fade starts, and apply that duration to both gain ramps and outgoing cleanup.
+
 ### 0z994. Make Near-End Crossfade Follow Repeat Rules
 
 **The Bug**: The near-end crossfade trigger advanced to the next queued track even under Repeat One, overriding the user's repeat choice. At the last queue item under Repeat All, it did not fade into the first history item even though the normal ended path would advance there.
