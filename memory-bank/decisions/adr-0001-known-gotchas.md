@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1020. Cancel A Pending Playlist Load When Its Dialog Closes
+
+**The Bug**: Loading a saved playlist awaited Collection items, then replaced the player queue without checking whether the queue dialog was still open. A user could close it and select another track while the request was pending, only for the late playlist response to replace that choice.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Invalidate a pending playlist load when the dialog closes or unmounts. Check that validity after the request resolves and before calling the queue replacement callback.
+
 ### 0z1019. Do Not Replay An Unchanged Room Snapshot
 
 **The Bug**: After a listen-along hub reconnects, the panel fetches the room's current state and unconditionally calls `playItem` for a `play` event. If the fetched state is the same host event already being followed, that replaces the current track and restarts its stream audibly even though the host did nothing.
