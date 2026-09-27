@@ -13283,3 +13283,8 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 18:24:05Z
 
 - Verified the GitHub target as the fork, fetched `origin/main`, confirmed it had no commits ahead of the checkout, and pushed the 39-commit player overhaul and hardening series through `d77bafb94` to fork `main`.
+
+## Update 2026-09-27 18:35:04Z
+
+- Completed a broader player controls and listen-along pass: Play Next starts an empty player; queue persistence tolerates storage denial; playback clears stale Buffering and error state; shortcuts leave focused controls alone; live playback position reaches pod broadcasts and listed radio announcements; directory joins use the offset and paused action; browser-local files cannot be advertised as shared streams. Recorded gotchas 0z955–0z960 and updated user documentation and release notes.
+- Backend build, Web lint/build, bundle budget, repository lint, release-note fragment validation, whitespace, and identity checks passed. No tests or live audio/mobile inspection were run in this continuation.

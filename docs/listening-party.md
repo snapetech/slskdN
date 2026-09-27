@@ -35,6 +35,8 @@ The protocol payload is JSON in the pod message body:
 
 `serverTimeUnixMs` and `positionSeconds` let listeners compensate for elapsed time when joining a currently playing party. Clients should treat host state as advisory and keep user control local: following a party can be toggled off without leaving the pod.
 
+Broadcasts use the host player's current absolute position, including a decoded stream's start offset. A listed radio announcement also carries its latest action and position so a directory listener can join at the advertised point and stay paused if the host is paused. Browser-only files cannot be broadcast because other listeners cannot access their object URLs.
+
 ## Web Player
 
 The Web UI player is part of slskdN itself. It is not a separate streaming server, and it does not require an external media service.
@@ -64,6 +66,7 @@ Controls include:
 - Queue reorder and Play Next from the player's library browsers. The immediate queue and selected track survive a browser refresh in session storage but do not autoplay; saved playlists use Collections.
 - Browser-local mute. This mutes only the current browser or installed PWA; it does not stop the stream or mute other listeners.
 - Browser Media Session metadata and transport handlers for supported mobile/PWA lock-screen controls.
+- Keyboard shortcuts apply when focus is outside buttons, links, sliders, and text controls, leaving normal keyboard operation of those controls intact.
 - Optional MilkDrop visualizer, lightweight analyzer, equalizer, synced lyrics, crossfade, karaoke-style center-channel reduction, and ListenBrainz now-playing/scrobble submission when the relevant player controls are enabled.
 
 The player publishes Now Playing after playback begins and clears it on pause, stop, failure, or final track end. Playback errors are shown in the player. If the browser cannot decode a server library audio file, **Decode for playback** requests a short-lived, ticket-bound MP3 stream from the configured FFmpeg executable. It runs only on demand, permits one decode per user and two per server, and never sends browser-chosen files to the server. Server administrators can edit tags on indexed local audio from a Collection item; collection display metadata can be edited separately without changing the file. Tag edits change file bytes and may change its content ID, so the server refreshes the share index and Collection references.

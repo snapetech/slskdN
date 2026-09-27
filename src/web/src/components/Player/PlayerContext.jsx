@@ -1,5 +1,6 @@
 import * as nowPlaying from '../../lib/nowPlaying';
 import { useExperiencePreference } from '../../lib/experiencePreferences';
+import { getSessionStorageItem, setSessionStorageItem } from '../../lib/storage';
 import React, {
   createContext,
   useCallback,
@@ -15,6 +16,7 @@ export const PlayerContext = createContext({
   current: null,
   followParty: () => {},
   followingParty: null,
+  getPlaybackPosition: () => 0,
   history: [],
   next: () => {},
   moveQueueItem: () => {},
@@ -30,6 +32,7 @@ export const PlayerContext = createContext({
   setShuffle: () => {},
   shuffle: false,
   setAudioElement: () => {},
+  setPlaybackPosition: () => {},
   playerVisible: true,
 });
 
@@ -37,7 +40,7 @@ const asArray = (value) => (Array.isArray(value) ? value : []);
 const sessionKey = 'slskdn.player.session.v1';
 const readSession = () => {
   try {
-    const value = JSON.parse(window.sessionStorage.getItem(sessionKey) || '{}');
+    const value = JSON.parse(getSessionStorageItem(sessionKey, '{}'));
     const queue = asArray(value.queue).filter((item) =>
       typeof item?.contentId === 'string' && !item.contentId.startsWith('local:'));
     return {
@@ -62,9 +65,15 @@ export const PlayerProvider = ({ children }) => {
   const [followingParty, setFollowingParty] = useState(null);
   const playerVisible = useExperiencePreference('playerVisible', true);
   const previousPlayerVisible = useRef(playerVisible);
+  const playbackPositionRef = useRef(initialSession.current?.positionSeconds || 0);
+
+  const getPlaybackPosition = useCallback(() => playbackPositionRef.current, []);
+  const setPlaybackPosition = useCallback((seconds) => {
+    if (Number.isFinite(seconds)) playbackPositionRef.current = Math.max(0, seconds);
+  }, []);
 
   useEffect(() => {
-    window.sessionStorage.setItem(sessionKey, JSON.stringify({
+    setSessionStorageItem(sessionKey, JSON.stringify({
       queue: queue.filter((item) => !item.contentId.startsWith('local:')),
       repeatMode,
       shuffle,
@@ -83,7 +92,10 @@ export const PlayerProvider = ({ children }) => {
         contentId: item.contentId,
         fileName: item.fileName || item.title || item.contentId,
         genre: item.genre || '',
-        positionSeconds: options.positionSeconds || 0,
+        positionSeconds: Number.isFinite(options.positionSeconds)
+          ? Math.max(0, options.positionSeconds)
+          : 0,
+        startPaused: options.startPaused === true,
         sourceProviders: asArray(item.sourceProviders || item.providers),
         streamUrl: item.streamUrl || options.streamUrl || '',
         tags: asArray(item.tags || item.genres),
@@ -96,6 +108,7 @@ export const PlayerProvider = ({ children }) => {
         ),
       };
 
+      playbackPositionRef.current = playable.positionSeconds;
       setHistory((existing) => (options.replaceQueue ? [] : current ? [current, ...existing] : existing));
       setCurrent(playable);
       setQueue((existing) =>
@@ -120,6 +133,7 @@ export const PlayerProvider = ({ children }) => {
     }
 
     setCurrent(null);
+    playbackPositionRef.current = 0;
     setHistory([]);
     setQueue([]);
     await nowPlaying.clearNowPlaying();
@@ -139,12 +153,16 @@ export const PlayerProvider = ({ children }) => {
 
   const playNext = useCallback((item) => {
     if (!item?.contentId) return;
+    if (!current) {
+      playItem(item, { replaceQueue: true });
+      return;
+    }
     setQueue((existing) => [
       ...existing.slice(0, 1),
       item,
       ...existing.slice(1).filter((entry) => entry.contentId !== item.contentId),
     ]);
-  }, []);
+  }, [current, playItem]);
 
   const moveQueueItem = useCallback((fromIndex, toIndex) => {
     setQueue((existing) => {
@@ -183,6 +201,7 @@ export const PlayerProvider = ({ children }) => {
       if (existing.length < 2) {
         if (repeatMode === 'all' && history.length > 0) {
           const [nextItem, ...remaining] = [...history].reverse().concat(existing);
+          playbackPositionRef.current = nextItem.positionSeconds || 0;
           setCurrent(nextItem);
           setHistory([]);
           return [nextItem, ...remaining];
@@ -191,6 +210,7 @@ export const PlayerProvider = ({ children }) => {
       }
       const nextIndex = shuffle ? 1 + Math.floor(Math.random() * (existing.length - 1)) : 1;
       const nextItem = existing[nextIndex];
+      playbackPositionRef.current = nextItem.positionSeconds || 0;
       const remaining = existing.slice(1).filter((_, index) => index + 1 !== nextIndex);
       setHistory((previousHistory) =>
         current ? [current, ...previousHistory] : previousHistory,
@@ -209,6 +229,7 @@ export const PlayerProvider = ({ children }) => {
     }
 
     const [previousItem, ...remainingHistory] = history;
+    playbackPositionRef.current = previousItem.positionSeconds || 0;
     setHistory(remainingHistory);
     setCurrent(previousItem);
     setQueue((existing) => [previousItem, ...existing]);
@@ -222,6 +243,7 @@ export const PlayerProvider = ({ children }) => {
         current,
         followParty,
         followingParty,
+        getPlaybackPosition,
         history,
         moveQueueItem,
         next,
@@ -238,6 +260,7 @@ export const PlayerProvider = ({ children }) => {
         setShuffle,
         shuffle,
         setAudioElement,
+        setPlaybackPosition,
       }}
     >
       {children}

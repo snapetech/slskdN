@@ -1,3 +1,8 @@
+## Update 2026-09-27 18:35:04Z
+
+- Current task: broad player control and listen-along reliability pass implemented. Play Next from an empty queue, restricted session storage, resumed buffering state, focused keyboard controls, live host position, directory join offset and pause state, and browser-only broadcast rejection are addressed.
+- Backend build, Web lint/build, bundle budget, repository lint, release-note validation, whitespace, and identity checks passed. Next: commit and push to the verified fork. Live desktop/mobile playback remains a separate pending inspection; no tag or deployment is authorized.
+
 ## Update 2026-09-27 18:24:05Z
 
 - Current task: broader player hardening completed and pushed to the verified fork `main` at `d77bafb94`. The push included the full player overhaul and follow-up local commits.

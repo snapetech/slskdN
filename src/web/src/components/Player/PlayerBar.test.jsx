@@ -787,6 +787,11 @@ describe('PlayerBar', () => {
       configurable: true,
       value: 120,
     });
+    Object.defineProperty(audio, 'paused', {
+      configurable: true,
+      value: false,
+    });
+    fireEvent.play(audio);
     Object.defineProperty(audio, 'currentTime', {
       configurable: true,
       value: 61,

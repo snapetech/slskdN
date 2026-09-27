@@ -20,6 +20,8 @@ public sealed record ListeningPartyAnnouncement
     public string Artist { get; init; } = string.Empty;
     public string? Album { get; init; }
     public string ContentId { get; init; } = string.Empty;
+    public string Action { get; init; } = string.Empty;
+    public double PositionSeconds { get; init; }
     public string Description { get; init; } = string.Empty;
     public List<string> Tags { get; init; } = new();
     public bool AllowMeshStreaming { get; init; }

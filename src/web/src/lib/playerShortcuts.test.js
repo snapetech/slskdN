@@ -36,7 +36,7 @@ describe('playerShortcuts', () => {
 
     expect(isEditableShortcutTarget(input)).toBe(true);
     expect(isEditableShortcutTarget(richText)).toBe(true);
-    expect(isEditableShortcutTarget(button)).toBe(false);
+    expect(isEditableShortcutTarget(button)).toBe(true);
     expect(getPlayerShortcutAction({ key: 'k', target: input })).toBeNull();
   });
 });

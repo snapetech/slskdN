@@ -186,6 +186,8 @@ public sealed class ListeningPartyService : IListeningPartyService
             Artist = partyEvent.Artist,
             Album = partyEvent.Album,
             ContentId = partyEvent.ContentId,
+            Action = partyEvent.Action,
+            PositionSeconds = partyEvent.PositionSeconds,
             Description = partyEvent.Description,
             Tags = partyEvent.Tags.ToList(),
             AllowMeshStreaming = partyEvent.AllowMeshStreaming,
@@ -277,7 +279,9 @@ public sealed class ListeningPartyService : IListeningPartyService
             Title = (partyEvent.Title ?? string.Empty).Trim(),
             Artist = (partyEvent.Artist ?? string.Empty).Trim(),
             Album = string.IsNullOrWhiteSpace(partyEvent.Album) ? null : partyEvent.Album.Trim(),
-            PositionSeconds = Math.Max(0, partyEvent.PositionSeconds),
+            PositionSeconds = double.IsFinite(partyEvent.PositionSeconds)
+                ? Math.Max(0, partyEvent.PositionSeconds)
+                : 0,
             ServerTimeUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             Sequence = Interlocked.Increment(ref _sequence),
             Description = (partyEvent.Description ?? string.Empty).Trim(),

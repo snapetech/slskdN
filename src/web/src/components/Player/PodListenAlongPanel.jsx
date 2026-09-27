@@ -18,6 +18,9 @@ const sameDirectory = (previous, next) =>
       party.artist === next[index]?.artist &&
       party.album === next[index]?.album &&
       party.contentId === next[index]?.contentId &&
+      party.action === next[index]?.action &&
+      party.positionSeconds === next[index]?.positionSeconds &&
+      party.startedAtUnixMs === next[index]?.startedAtUnixMs &&
       party.allowMeshStreaming === next[index]?.allowMeshStreaming &&
       party.streamPath === next[index]?.streamPath,
   );
@@ -52,6 +55,9 @@ const applyPartyState = (state, player) => {
 
 const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const player = usePlayer();
+  const canBroadcastCurrent = Boolean(
+    player.current?.contentId && !player.current.contentId.startsWith('local:'),
+  );
   const [connected, setConnected] = useState(false);
   const [directory, setDirectory] = useState([]);
   const [following, setFollowing] = useState(false);
@@ -170,7 +176,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
 
   const publish = async (action) => {
     const current = player.current;
-    if (action !== 'stop' && !current?.contentId) return;
+    if (action !== 'stop' && !canBroadcastCurrent) return;
 
     const state = await listeningParty.publishPartyState(podId, channelId, {
       action,
@@ -181,7 +187,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       hostPeerId: user || 'local-peer',
       listed: globalRadio,
       partyId: partyState?.partyId || '',
-      positionSeconds: current?.positionSeconds || 0,
+      positionSeconds: action === 'stop' ? 0 : player.getPlaybackPosition(),
       title: current?.title || current?.fileName || '',
     });
     setPartyState(state);
@@ -192,6 +198,13 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
 
   const joinListedParty = (party) => {
     const streamUrl = listeningParty.buildRadioStreamUrl(party);
+    const elapsed = party.action === 'play' && Number.isFinite(party.startedAtUnixMs) &&
+      party.startedAtUnixMs > 0
+      ? Math.max(0, (Date.now() - party.startedAtUnixMs) / 1000)
+      : 0;
+    const positionSeconds = Number.isFinite(party.positionSeconds)
+      ? Math.max(0, party.positionSeconds)
+      : 0;
     player.followParty(party);
     player.playItem(
       {
@@ -203,7 +216,9 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       },
       {
         replaceQueue: true,
+        positionSeconds: positionSeconds + elapsed,
         streamUrl,
+        startPaused: party.action === 'pause',
       },
     );
   };
@@ -257,11 +272,11 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             }
           />
           <Popup
-            content="Broadcast your current local player track to this room."
+            content="Broadcast the current server-backed track to this room. Browser-only files cannot be streamed to other listeners."
             trigger={
               <Button
                 aria-label="Broadcast current track to room"
-                disabled={!player.current}
+                disabled={!canBroadcastCurrent}
                 icon
                 onClick={() => publish('play')}
                 size="mini"
@@ -384,10 +399,10 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           }
         />
         <Popup
-          content="Publish your current local player track as the pod listen-along host."
+          content="Publish the current server-backed track as the pod listen-along host. Browser-only files cannot be streamed to other listeners."
           trigger={
             <Button
-              disabled={!player.current}
+              disabled={!canBroadcastCurrent}
               icon
               onClick={() => publish('play')}
             >
@@ -418,7 +433,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                     content="Join this listed radio party and stream from the host's integrated slskdN endpoint when available."
                     trigger={
                       <Button
-                        disabled={!party.allowMeshStreaming}
+                        disabled={!party.allowMeshStreaming || !party.streamPath}
                         icon
                         onClick={() => joinListedParty(party)}
                         size="mini"

@@ -1,28 +1,9 @@
-const editableInputTypes = new Set([
-  'email',
-  'number',
-  'password',
-  'search',
-  'tel',
-  'text',
-  'url',
-]);
+const interactiveSelector =
+  'a, button, input, select, textarea, [contenteditable="true"], [role="button"], [role="slider"]';
 
 export const isEditableShortcutTarget = (target) => {
   if (!target) return false;
-  const tagName = target.tagName?.toLowerCase();
-
-  if (
-    target.isContentEditable ||
-    target.getAttribute?.('contenteditable') === 'true'
-  ) {
-    return true;
-  }
-  if (tagName === 'textarea' || tagName === 'select') return true;
-  if (tagName !== 'input') return false;
-
-  const type = target.getAttribute('type') || 'text';
-  return editableInputTypes.has(type.toLowerCase());
+  return Boolean(target.isContentEditable || target.closest?.(interactiveSelector));
 };
 
 export const getPlayerShortcutAction = (event = {}) => {

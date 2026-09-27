@@ -2263,6 +2263,7 @@ const PlayerBar = () => {
     setRepeatMode,
     setShuffle,
     setAudioElement,
+    setPlaybackPosition,
     shuffle,
     playItem,
     playerVisible,
@@ -2488,6 +2489,7 @@ const PlayerBar = () => {
       setDuration(Number(response.data?.durationSeconds) || 0);
       setTranscodeMode(true);
       setTranscodeOffset(seconds);
+      setPlaybackPosition(seconds);
       renderedPositionRef.current = seconds;
       setPosition(seconds);
       autoplayRef.current = autoPlay;
@@ -2497,7 +2499,7 @@ const PlayerBar = () => {
       setPlaybackStatus('error');
       setPlaybackError('Decoding could not start. The server may be busy or FFmpeg may be unavailable.');
     }
-  }, [current]);
+  }, [current, setPlaybackPosition]);
 
   const seekTo = useCallback((seconds) => {
     if (!audioRef.current || !Number.isFinite(seconds)) return;
@@ -2507,9 +2509,10 @@ const PlayerBar = () => {
       return;
     }
     audioRef.current.currentTime = target;
+    setPlaybackPosition(target);
     renderedPositionRef.current = target;
     setPosition(target);
-  }, [duration, startTranscode, transcodeMode]);
+  }, [duration, setPlaybackPosition, startTranscode, transcodeMode]);
 
   const seekBy = useCallback((seconds) => {
     if (!audioRef.current) return;
@@ -2676,15 +2679,17 @@ const PlayerBar = () => {
       selectedItemRef.current = current;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
-      autoplayRef.current = true;
+      autoplayRef.current = !current.startPaused;
       remountPositionRef.current = null;
       setPlaybackStatus('loading');
       setTranscodeMode(false);
       setTranscodeAvailable(false);
       setTranscodeOffset(0);
       setDuration(0);
-      renderedPositionRef.current = 0;
-      setPosition(0);
+      const startingPosition = current.positionSeconds || 0;
+      setPlaybackPosition(startingPosition);
+      renderedPositionRef.current = startingPosition;
+      setPosition(startingPosition);
     }
     setSource('');
 
@@ -2714,7 +2719,7 @@ const PlayerBar = () => {
     return () => {
       cancelled = true;
     };
-  }, [current, stopOutgoingFade]);
+  }, [current, setPlaybackPosition, stopOutgoingFade]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -2763,7 +2768,8 @@ const PlayerBar = () => {
     stopOutgoingFade();
     const active = audioRef.current;
     const standby = fadeAudioRef.current;
-    if (crossfadeEnabled && !transcodeMode && previousSource && !active.paused && standby) {
+    if (crossfadeEnabled && !transcodeMode && autoplayRef.current &&
+        previousSource && !active.paused && standby) {
       fadeOutgoingRef.current = active;
       const fadeRequest = ++fadeRequestRef.current;
       standby.src = source;
@@ -2810,6 +2816,8 @@ const PlayerBar = () => {
       if (autoplayRef.current) {
         autoplayRef.current = false;
         tryPlay();
+      } else {
+        setPlaybackStatus('paused');
       }
     }
     lastSourceRef.current = source;
@@ -2999,11 +3007,13 @@ const PlayerBar = () => {
       if (transcodeMode) startTranscode(0);
       else {
         audioRef.current.currentTime = 0;
+        setPlaybackPosition(0);
         tryPlay();
       }
     } else if (queue.length > 1 || (repeatMode === 'all' && history.length > 0)) {
       next();
     } else {
+      playingRef.current = false;
       setPlaying(false);
       setPlaybackStatus('ended');
       nowPlaying.clearNowPlaying().catch(() => {});
@@ -3046,6 +3056,8 @@ const PlayerBar = () => {
       if (event.currentTarget !== audioRef.current || !current) return;
       const failedElement = event.currentTarget;
       const failedSource = failedElement.currentSrc || failedElement.src;
+      playingRef.current = false;
+      setPlaying(false);
       setPlaybackStatus('error');
       setPlaybackError('This audio could not be decoded or streamed.');
       if (!transcodeMode && !current.contentId.startsWith('local:')) {
@@ -3063,9 +3075,11 @@ const PlayerBar = () => {
       if (!transcodeMode) setDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0);
       if (remountPositionRef.current !== null) {
         event.currentTarget.currentTime = remountPositionRef.current;
+        setPlaybackPosition(transcodeOffset + remountPositionRef.current);
         remountPositionRef.current = null;
       } else if (!transcodeMode && current?.positionSeconds > 0) {
         event.currentTarget.currentTime = current.positionSeconds;
+        setPlaybackPosition(current.positionSeconds);
       }
     },
     onPause: (event) => {
@@ -3089,9 +3103,16 @@ const PlayerBar = () => {
         }
       }
     },
+    onPlaying: (event) => {
+      if (event.currentTarget !== audioRef.current) return;
+      playingRef.current = true;
+      setPlaying(true);
+      setPlaybackStatus('playing');
+    },
     onTimeUpdate: (event) => {
       if (event.currentTarget !== audioRef.current) return;
       const nextPosition = transcodeOffset + event.currentTarget.currentTime;
+      setPlaybackPosition(nextPosition);
       if (Math.floor(nextPosition) !== Math.floor(renderedPositionRef.current)) {
         renderedPositionRef.current = nextPosition;
         setPosition(nextPosition);
