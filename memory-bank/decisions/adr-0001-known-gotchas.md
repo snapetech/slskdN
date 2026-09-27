@@ -16,6 +16,15 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **Prevention**: Publish Now Playing from the media element's successful play event and clear it on stop, terminal playback, and media failure. Selection and queue state alone do not prove that audio is audible.
 
+### 0z930. Clear Session Storage in Player Test Setup
+
+**The Bug**: Adding session queue restoration made later player tests inherit tracks from earlier tests, creating duplicate queue rows and unexpected initial playback selections.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+
+**Prevention**: Clear both `localStorage` and `sessionStorage` in player test setup when the player reads from both. Keep a dedicated restoration test to exercise saved state deliberately.
+
 ---
 
 ## ⚠️ FOR AI AGENTS: ADD TO THIS FILE IMMEDIATELY
