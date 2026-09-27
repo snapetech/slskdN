@@ -27,6 +27,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   improved crossfade and output routing, and lower idle visualizer work.
   Collection items can edit display metadata, and administrators can write
   audio file tags with updated content references.
+- Fixed keyboard, drawer, and lock-screen seeking in decoded audio, including
+  repeat and Previous from a decoded offset, and kept tag-edit working files
+  out of concurrent share scans.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

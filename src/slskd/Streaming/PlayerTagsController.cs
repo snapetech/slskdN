@@ -59,7 +59,8 @@ public sealed class PlayerTagsController : ControllerBase
         if (oldItem == null) return Conflict("This file must be indexed before its tags can be edited.");
 
         var path = resolved.AbsolutePath;
-        var temporary = Path.Combine(Path.GetDirectoryName(path)!, $".{Path.GetFileNameWithoutExtension(path)}.{Guid.NewGuid():N}{Path.GetExtension(path)}");
+        var workingDirectory = Path.Combine(Path.GetDirectoryName(path)!, $".slskdn-tag-edit-{Guid.NewGuid():N}");
+        var temporary = Path.Combine(workingDirectory, Path.GetFileName(path));
         var backup = temporary + ".backup";
         var replaced = false;
         var committed = false;
@@ -68,6 +69,9 @@ public sealed class PlayerTagsController : ControllerBase
         {
             // A live stream opens the source for shared reading, so an exclusive probe fails.
             using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+            Directory.CreateDirectory(workingDirectory);
+            if (OperatingSystem.IsWindows())
+                System.IO.File.SetAttributes(workingDirectory, System.IO.File.GetAttributes(workingDirectory) | FileAttributes.Hidden);
             System.IO.File.Copy(path, temporary);
             using (var file = TagLib.File.Create(temporary))
             {
@@ -131,6 +135,7 @@ public sealed class PlayerTagsController : ControllerBase
 
             if (System.IO.File.Exists(temporary)) System.IO.File.Delete(temporary);
             if (committed && System.IO.File.Exists(backup)) System.IO.File.Delete(backup);
+            if (Directory.Exists(workingDirectory) && !System.IO.File.Exists(backup)) Directory.Delete(workingDirectory);
         }
 
         // Working copies must be gone before the share scanner sees this directory.

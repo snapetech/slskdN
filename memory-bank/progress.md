@@ -13255,3 +13255,8 @@ export branch has no shared Git history and was not merged.
 - Continued player hardening: repeat-all now retains full queue cycles and resets on playlist replacement; expand/collapse preserves position; transcoded seeks commit once and discard stale async requests; output selection reaches both crossfade elements; abandoned local file URLs are revoked.
 - Bounded fallback decoding to two server-wide processes and one thread per FFmpeg decode, corrected stale stream lengths and matching Collection hashes after tag edits, and rolled back partial playlist saves. Updated the listening guide and gotchas 0z936–0z944.
 - Backend build, repository lint, Web lint/build, and bundle budget passed. Live browser review could not run because the in-app and isolated workspace browser controls were unavailable in this session. No release tag or deployment was created.
+
+## Update 2026-09-27 17:58:41Z
+
+- Continued player fallback review: keyboard, drawer, Previous, repeat, and Media Session seek controls now use absolute track position during FFmpeg playback. Paused seeks preserve pause state, and seek drafts clear on track changes.
+- Tag edits now keep working files in a unique hidden sibling directory so a concurrent Windows share scan skips them. Added a separate validated release-note fragment, Unreleased changelog entry, and listening guide update. Backend build, repository lint, Web build/lint, bundle budget, and identity check passed. No release tag or deployment was created.

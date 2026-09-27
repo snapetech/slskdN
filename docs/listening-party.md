@@ -68,6 +68,8 @@ Controls include:
 
 The player publishes Now Playing after playback begins and clears it on pause, stop, failure, or final track end. Playback errors are shown in the player. If the browser cannot decode a server library audio file, **Decode for playback** requests a short-lived, ticket-bound MP3 stream from the configured FFmpeg executable. It runs only on demand, permits one decode per user and two per server, and never sends browser-chosen files to the server. Server administrators can edit tags on indexed local audio from a Collection item; collection display metadata can be edited separately without changing the file. Tag edits change file bytes and may change its content ID, so the server refreshes the share index and Collection references.
 
+Seeking, rewind/fast-forward, Previous, and repeat use the full track position during decoded playback. Seeking while paused leaves playback paused.
+
 Synced lyric highlighting follows the browser media element's playback, seek,
 and metadata events. It does not run a separate fixed polling timer, and hidden
 documents defer position updates until visibility returns.

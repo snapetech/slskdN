@@ -91,6 +91,10 @@ const PlayerProgress = ({ current, duration, onSeek, position }) => {
   const draftRef = useRef(null);
   const [draft, setDraft] = useState(null);
   const displayedPosition = draft ?? position;
+  useEffect(() => {
+    draftRef.current = null;
+    setDraft(null);
+  }, [current]);
   const commitSeek = () => {
     if (draftRef.current === null) return;
     const seconds = draftRef.current;
@@ -2260,7 +2264,6 @@ const PlayerBar = () => {
     playNext,
     queueItems,
     removeFromQueue,
-    seekRelative,
     setRepeatMode,
     setShuffle,
     setAudioElement,
@@ -2292,15 +2295,6 @@ const PlayerBar = () => {
   const [outputDevices, setOutputDevices] = useState([]);
   const [outputDeviceId, setOutputDeviceId] = useState('default');
   const outputDeviceIdRef = useRef('default');
-  const seekTo = (seconds) => {
-    if (!audioRef.current || !Number.isFinite(seconds)) return;
-    if (transcodeMode) {
-      startTranscode(seconds);
-      return;
-    }
-    audioRef.current.currentTime = seconds;
-    setPosition(seconds);
-  };
   const fileInputRef = useRef(null);
   const localObjectUrlsRef = useRef(new Set());
   const selectedItemRef = useRef(current);
@@ -2436,11 +2430,11 @@ const PlayerBar = () => {
     });
   }, [playAudio]);
 
-  const startTranscode = async (seconds = 0) => {
+  const startTranscode = useCallback(async (seconds = 0, autoPlay = true) => {
     if (!current?.contentId || current.contentId.startsWith('local:')) return;
     const requestId = ++transcodeRequestRef.current;
     setPlaybackError('');
-    setPlaybackStatus('loading');
+    setPlaybackStatus(autoPlay ? 'loading' : 'paused');
     try {
       const ticket = await streaming.createStreamTicket(current.contentId);
       const response = await streaming.getPlaybackInfo(current.contentId);
@@ -2449,14 +2443,38 @@ const PlayerBar = () => {
       setTranscodeMode(true);
       setTranscodeOffset(seconds);
       setPosition(seconds);
-      autoplayRef.current = true;
+      autoplayRef.current = autoPlay;
       setSource(streaming.buildTranscodedStreamUrl(current.contentId, ticket, seconds));
     } catch {
       if (requestId !== transcodeRequestRef.current) return;
       setPlaybackStatus('error');
       setPlaybackError('Decoding could not start. The server may be busy or FFmpeg may be unavailable.');
     }
-  };
+  }, [current]);
+
+  const seekTo = useCallback((seconds) => {
+    if (!audioRef.current || !Number.isFinite(seconds)) return;
+    const target = Math.max(0, Math.min(duration > 0 ? duration : Number.MAX_SAFE_INTEGER, seconds));
+    if (transcodeMode) {
+      startTranscode(target, playingRef.current);
+      return;
+    }
+    audioRef.current.currentTime = target;
+    setPosition(target);
+  }, [duration, startTranscode, transcodeMode]);
+
+  const seekBy = useCallback((seconds) => {
+    if (!audioRef.current) return;
+    seekTo(transcodeOffset + audioRef.current.currentTime + seconds);
+  }, [seekTo, transcodeOffset]);
+
+  const previousTrack = useCallback(() => {
+    if (history.length === 0) {
+      seekTo(0);
+      return;
+    }
+    previous();
+  }, [history.length, previous, seekTo]);
 
   useEffect(() => {
     if (!playerAudioElement) return;
@@ -2656,11 +2674,11 @@ const PlayerBar = () => {
       if (action === 'togglePlayback') {
         togglePlayback();
       } else if (action === 'seekBackward') {
-        seekRelative(-15);
+        seekBy(-15);
       } else if (action === 'seekForward') {
-        seekRelative(30);
+        seekBy(30);
       } else if (action === 'previous') {
-        previous();
+        previousTrack();
       } else if (action === 'next') {
         next();
       } else if (action === 'toggleMute') {
@@ -2679,8 +2697,8 @@ const PlayerBar = () => {
   }, [
     current,
     next,
-    previous,
-    seekRelative,
+    previousTrack,
+    seekBy,
     togglePlayback,
     toggleVisualizer,
   ]);
@@ -2833,9 +2851,10 @@ const PlayerBar = () => {
       nexttrack: next,
       pause,
       play: () => playAudio().catch(() => {}),
-      previoustrack: previous,
-      seekbackward: () => seekRelative(-15),
-      seekforward: () => seekRelative(30),
+      previoustrack: previousTrack,
+      seekbackward: (details) => seekBy(-(details?.seekOffset || 15)),
+      seekforward: (details) => seekBy(details?.seekOffset || 30),
+      seekto: (details) => seekTo(details?.seekTime),
     };
 
     Object.entries(handlers).forEach(([action, handler]) => {
@@ -2855,7 +2874,7 @@ const PlayerBar = () => {
         }
       });
     };
-  }, [current, next, pause, previous, seekRelative]);
+  }, [current, next, pause, previousTrack, seekBy, seekTo]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
@@ -2896,8 +2915,11 @@ const PlayerBar = () => {
       return;
     }
     if (repeatMode === 'one' || (repeatMode === 'all' && queue.length === 1 && history.length === 0)) {
-      audioRef.current.currentTime = 0;
-      tryPlay();
+      if (transcodeMode) startTranscode(0);
+      else {
+        audioRef.current.currentTime = 0;
+        tryPlay();
+      }
     } else if (queue.length > 1 || (repeatMode === 'all' && history.length > 0)) {
       next();
     } else {
@@ -3026,7 +3048,7 @@ const PlayerBar = () => {
             aria-label="Previous local track"
             disabled={!current}
             icon="step backward"
-            onClick={previous}
+            onClick={previousTrack}
           />
           <PlayerToolButton
             content={playing ? 'Pause playback.' : 'Play the selected track.'}
@@ -3099,7 +3121,7 @@ const PlayerBar = () => {
           onLoadPlaylist={loadPlaylist}
           onMove={moveQueueItem}
           onNext={next}
-          onPrevious={previous}
+          onPrevious={previousTrack}
           onRemove={removeFromQueue}
           open={queueOpen}
           queue={queue}
@@ -3205,7 +3227,7 @@ const PlayerBar = () => {
               data-testid="player-previous"
               disabled={!current}
               icon="step backward"
-              onClick={previous}
+              onClick={previousTrack}
             />
             <PlayerToolButton
               content="Rewind local playback by 15 seconds."
@@ -3213,7 +3235,7 @@ const PlayerBar = () => {
               data-testid="player-rewind"
               disabled={!current}
               icon="backward"
-              onClick={() => seekRelative(-15)}
+              onClick={() => seekBy(-15)}
             />
             <PlayerToolButton
               content={playing ? 'Pause the current stream.' : 'Resume the current stream.'}
@@ -3230,7 +3252,7 @@ const PlayerBar = () => {
               data-testid="player-fast-forward"
               disabled={!current}
               icon="forward"
-              onClick={() => seekRelative(30)}
+              onClick={() => seekBy(30)}
             />
             <PlayerToolButton
               content="Play the next queue item."
@@ -3643,7 +3665,7 @@ const PlayerBar = () => {
         onLoadPlaylist={loadPlaylist}
         onMove={moveQueueItem}
         onNext={next}
-        onPrevious={previous}
+        onPrevious={previousTrack}
         onRemove={removeFromQueue}
         open={queueOpen}
         queue={queue}

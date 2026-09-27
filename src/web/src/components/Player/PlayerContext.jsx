@@ -26,7 +26,6 @@ export const PlayerContext = createContext({
   queueItems: () => {},
   removeFromQueue: () => {},
   repeatMode: 'off',
-  seekRelative: () => {},
   setRepeatMode: () => {},
   setShuffle: () => {},
   shuffle: false,
@@ -179,20 +178,6 @@ export const PlayerProvider = ({ children }) => {
     setFollowingParty(partyState);
   }, []);
 
-  const seekRelative = useCallback(
-    (seconds) => {
-      if (!audioElement) return;
-      const duration = Number.isFinite(audioElement.duration)
-        ? audioElement.duration
-        : Number.MAX_SAFE_INTEGER;
-      audioElement.currentTime = Math.max(
-        0,
-        Math.min(duration, audioElement.currentTime + seconds),
-      );
-    },
-    [audioElement],
-  );
-
   const next = useCallback(() => {
     setQueue((existing) => {
       if (existing.length < 2) {
@@ -249,7 +234,6 @@ export const PlayerProvider = ({ children }) => {
         queueItems,
         removeFromQueue,
         repeatMode,
-        seekRelative,
         setRepeatMode,
         setShuffle,
         shuffle,

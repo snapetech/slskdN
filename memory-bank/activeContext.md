@@ -1,3 +1,8 @@
+## Update 2026-09-27 17:58:41Z
+
+- Current task: further player hardening completed after commit `15875440b`. The changes route all seek/restart controls through the absolute track timeline and isolate tag-edit copies from concurrent scans on Windows. Backend build, repository lint, Web build/lint, bundle budget, and identity check passed.
+- Next: perform live browser/audio smoke checks when a supported browser control surface is available, then review before release. No tag or deployment is authorized.
+
 ## Update 2026-09-27 17:51:28Z
 
 - Current task: player suite implementation and follow-up hardening completed in the working tree. Repeat-all, seek behavior, layout remounts, output devices, playlist rollback, file URL cleanup, and tag/stream reference consistency received another review pass.
