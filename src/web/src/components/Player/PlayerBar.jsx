@@ -535,11 +535,24 @@ const PlayerQueueModal = ({
   const [playlistName, setPlaylistName] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState('');
   const [playlistBusy, setPlaylistBusy] = useState(false);
+  const activeRef = useRef(true);
   const similarCandidates = buildSimilarQueueCandidates({
     current,
     history,
     queue,
   });
+
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+    };
+  }, []);
+
+  const closeModal = () => {
+    activeRef.current = false;
+    onClose();
+  };
 
   useEffect(() => {
     if (!open) return undefined;
@@ -594,6 +607,7 @@ const PlayerQueueModal = ({
     setPlaylistBusy(true);
     try {
       const response = await collectionsAPI.getCollectionItems(selectedPlaylist);
+      if (!activeRef.current) return;
       const items = asArray(response.data).filter((item) => item.contentId);
       if (items.length === 0) {
         setHandoffStatus('This playlist has no playable tracks.');
@@ -602,9 +616,9 @@ const PlayerQueueModal = ({
         setHandoffStatus(`Loaded ${items.length} tracks.`);
       }
     } catch {
-      setHandoffStatus('Could not load the playlist.');
+      if (activeRef.current) setHandoffStatus('Could not load the playlist.');
     } finally {
-      setPlaylistBusy(false);
+      if (activeRef.current) setPlaylistBusy(false);
     }
   };
 
@@ -659,7 +673,7 @@ const PlayerQueueModal = ({
   return (
     <Modal
       className="player-browser-modal player-queue-modal"
-      onClose={onClose}
+      onClose={closeModal}
       open={open}
       size="small"
     >
@@ -875,7 +889,7 @@ const PlayerQueueModal = ({
           trigger={
             <Button
               data-testid="player-queue-close"
-              onClick={onClose}
+              onClick={closeModal}
               primary
               type="button"
             >

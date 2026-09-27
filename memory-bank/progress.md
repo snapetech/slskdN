@@ -13481,3 +13481,11 @@ export branch has no shared Git history and was not merged.
   Web lint, production build, bundle budget, repository lint, whitespace,
   identity, and release-range preview passed. The checkout is synchronized;
   real-audio browser inspection remains open.
+## Update 2026-09-27 22:32:22Z
+
+- Canceled a pending Collection playlist Load when the queue dialog closes,
+  preventing a delayed response from replacing a later track selection.
+  Recorded gotchas 0z1020 and 0z1021, including the Strict Mode mounted-ref
+  setup requirement.
+- Next: finish static validation and release-range preview, then push to the
+  verified fork. Real-audio browser inspection remains a separate P1 item.

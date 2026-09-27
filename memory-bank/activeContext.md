@@ -14359,3 +14359,10 @@ rollback.
 - Next steps: inspect the overhauled player with real audio on desktop and
   mobile, as tracked in `memory-bank/tasks.md`. Static lint/build checks do not
   establish audible behavior or layout quality. No release tag was created.
+## Update 2026-09-27 22:32:22Z
+
+- Current task: queue dialog playlist-load cancellation is implemented locally
+  with a new release fragment and gotchas 0z1020/0z1021 committed separately.
+- Next steps: run static checks, preview release notes, commit and push to the
+  verified fork. Interactive real-audio browser inspection remains open; no
+  release tag is authorized.

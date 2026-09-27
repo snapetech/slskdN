@@ -91,6 +91,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   pending start and ending an outgoing crossfade before the new ticket arrives.
 - Reconnecting to a listen-along room now keeps the current audio playing when
   the room snapshot repeats the host command already applied.
+- Closing the playback queue now cancels a pending saved-playlist Load, so a
+  late response cannot replace a track chosen afterward.
 - Selecting another track now stops the previous audio immediately when
   crossfade is off or the new track starts paused; a second selection also
   ends any outgoing fade while its stream ticket is pending.

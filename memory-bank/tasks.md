@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Cancel pending saved-playlist loads when the queue dialog closes.
+  - Status: implemented (2026-09-27).
+  - Notes: Late Collection item responses no longer replace playback after
+    closing the queue manager; mounted state is restored in effect setup.
+
 - [x] Avoid replaying an unchanged listen-along room snapshot.
   - Status: implemented (2026-09-27).
   - Notes: Following a room tracks the last applied sequenced host event and
