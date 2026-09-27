@@ -13,7 +13,7 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 **Files Affected**:
 - `src/web/src/components/Player/PlayerBar.jsx`
 
-**Prevention**: Convert the five media-second overlap to wall-clock duration using the playback rate captured when the fade starts, and apply that duration to both gain ramps and outgoing cleanup.
+**Prevention**: Convert the outgoing track's remaining media time to wall-clock duration using the playback rate captured when the fade starts, and apply that duration to both gain ramps and outgoing cleanup.
 
 ### 0z994. Make Near-End Crossfade Follow Repeat Rules
 
