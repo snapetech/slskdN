@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z969. Never Edit A Published Release-Note Fragment
+
+**The Bug**: A follow-up player fix changed a release-note fragment that had already been pushed. The release-note range preview rejected the new commit because fragments are append-only, even though the updated text and metadata were valid.
+
+**Files Affected**:
+- `release-notes/`
+
+**Prevention**: Once a fragment has landed on the shared branch, leave its bytes unchanged. Give each later user-facing change a new fragment, even when it relates to the same feature and date. Run the range preview before pushing.
+
 ### 0z968. Honor Visualizer Off For A Persisted Visualizer Tile
 
 **The Bug**: The player stored visualizer visibility and tile selection separately. Turning the visualizer off left a saved Butterchurn or MilkDrop tile mounted in inline mode, so heavy rendering and module loading continued despite the Off control.
