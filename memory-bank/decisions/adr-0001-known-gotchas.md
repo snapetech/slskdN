@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z935. Rebind The Audio Source After Player Layout Remounts
+
+**The Bug**: Expanding or collapsing the player swaps conditional render branches containing the audio elements. The new element had no source because source synchronization only watched the URL, which had not changed.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: When a new media element is bound, invalidate the last applied source and reapply the current source. Preserve whether playback was active so a layout change resumes it.
+
 ### 0z934. Clean Up Tag Edit Copies Before Scanning Shares
 
 **The Bug**: A manual audio tag edit started a share scan while its temporary edited file and backup copy were still in the shared directory. The scanner could index and advertise those copies as separate tracks.
