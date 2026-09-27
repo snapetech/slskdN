@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1010. Treat Replaying The Same URL As A New Track Selection
+
+**The Bug**: Source activation compared only URL strings. Selecting the same browser-local file or a direct stream URL again can leave `source` unchanged after batched state updates, so the player never reloads or starts the newly selected track object.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Run source activation when the selected item changes and compare both the URL and the item that owns the active source. Rebind the same URL when it belongs to a newly selected track object.
+
 ### 0z1009. Bind Media Events To The Track Whose Source Is Active
 
 **The Bug**: Next changes `current` before the new stream ticket resolves, while the old audio element can still emit `timeupdate`, `ended`, `play`, and scrobble events. Those events can update the new track's position or listening history and can advance the queue a second time. The near-end crossfade marker also remains set after source replacement, blocking a later repeat-all pass over the same track object.
