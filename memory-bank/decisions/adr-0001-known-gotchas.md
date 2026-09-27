@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1004. Prepare The Playing Track Before A Lazy Crossfade
+
+**The Bug**: Making plain playback native can leave the current track without an audio graph when crossfade starts. Creating the outgoing graph only after the incoming track starts reroutes the audible element into a suspended context and can cut sound during the fade.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: When crossfade is enabled, create and resume the active track's graph before the fade path needs it, including when crossfade is turned on during playback. The incoming track's normal start path then resumes its own graph.
+
 ### 0z1003. An Always-On Analyzer Defeats Native Playback
 
 **The Bug**: The lightweight analyzer defaulted to Spectrum and offered only Spectrum/Scope switching. Its mounted canvas created a Web Audio graph as soon as playback began, even after the main Play path stopped allocating one for plain playback. Users had no Off state.
