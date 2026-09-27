@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z965. Do Not Label A Radio Snapshot As Live Following
+
+**The Bug**: Joining a listed radio announcement played its advertised track once but also set the global following-party state. The directory is a periodic metadata snapshot; that action has no live cross-pod subscription, so the player could show "Following" indefinitely while missing track changes and Stop.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Treat a directory entry as a one-time tune-in until a genuine live update channel exists. Reserve following-party state for a subscribed pod room, and describe the snapshot behavior in the control tooltip and user guide.
+
 ### 0z964. Rejoin Listen-Along Groups After SignalR Reconnect
 
 **The Bug**: The listen-along panel marked a reconnected SignalR connection Live without joining its pod/channel group again. The replacement connection could miss all later host events. An initial state fetch could also finish after a newer hub event and replace the displayed state with stale metadata.
