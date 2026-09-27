@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1008. Migrate An Automatically Saved Default When Changing It
+
+**The Bug**: The old analyzer default was Spectrum and was written to browser storage on mount. Changing the source-code default to Off alone left existing installations on Spectrum, so the intended native playback resource saving did not reach most existing users.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Version the analyzer preference when changing its default. Treat the old automatically written Spectrum value as Off; preserve the old Scope value because reaching Scope required an explicit user action.
+
 ### 0z1007. Do Not Save Temporary Radio Streams As Playlists
 
 **The Bug**: Save queue excluded browser-local files but accepted listed-radio entries with temporary `streamUrl` tickets. It saved only their content IDs to Collections, producing playlist tracks that could not request a new stream after the radio ticket expired.
