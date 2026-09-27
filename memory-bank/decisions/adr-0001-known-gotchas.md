@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z945. Update Unreleased Changelog Alongside Release Fragments
+
+**The Bug**: A feature commit with a valid new `release-notes/` fragment was rejected by the local changelog hook because `docs/CHANGELOG.md` lacked a new `## [Unreleased]` entry.
+
+**Files Affected**:
+- `docs/CHANGELOG.md`
+- `release-notes/`
+
+**Prevention**: For release-worthy feature or fix commits, add both a validated release-note fragment and an Unreleased changelog bullet before committing. The fragment satisfies the release-note contract; the changelog satisfies the local commit hook.
+
 ### 0z944. Revoke Browser File URLs When Queue Items Disappear
 
 **The Bug**: Choosing browser-local files created object URLs, but replacing the queue kept earlier URLs alive until the whole player was cleared or unmounted. Repeated file selections retained unused file handles and memory.
