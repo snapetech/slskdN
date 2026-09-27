@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z934. Clean Up Tag Edit Copies Before Scanning Shares
+
+**The Bug**: A manual audio tag edit started a share scan while its temporary edited file and backup copy were still in the shared directory. The scanner could index and advertise those copies as separate tracks.
+
+**Files Affected**:
+- `src/slskd/Streaming/PlayerTagsController.cs`
+
+**Prevention**: Finish the atomic replacement and collection reference updates, remove temporary and backup files, then start a share scan. Never scan a shared directory while tag edit working copies remain there.
+
 ### 0z929. Drive Now Playing From Actual Audio Events
 
 **The Bug**: Selecting a player item published Now Playing before audio started, while ending the last queued item left that status in place.
