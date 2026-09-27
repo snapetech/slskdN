@@ -85,6 +85,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   starts the selected track again; Play and Pause during ticket or decode setup
   determine whether it starts. A failed crossfade start keeps the selected
   track ready for retry.
+- Kept the pending track and URL in one player state value so a same-URL
+  reselection still activates after React batches rapid source updates.
 - Applied volume, local mute, and playback speed changes to both audio elements
   during crossfades.
 - Clear Upcoming now keeps played-track history available for Previous and

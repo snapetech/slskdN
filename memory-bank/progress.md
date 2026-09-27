@@ -13448,3 +13448,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:24:54Z
 
 - Bound media events to the track that owns the active source while a new ticket is pending; prevented old Ended/timeupdate/play/error events from mutating the new track. Same-URL selections now rebind, crossfade start failure retains the incoming source for retry, and Play/Pause intent survives ticket and decoded-seek setup. Documented gotchas 0z1009 through 0z1015 before source changes.
+
+## Update 2026-09-27 21:27:51Z
+
+- Replaced separate source URL state and owner ref with a single `{ item, url }` source value, preventing React batching from suppressing same-URL reselection. Documented gotcha 0z1016 before source edits.

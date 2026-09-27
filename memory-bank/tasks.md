@@ -47,7 +47,7 @@
 
 - [x] Bind player media events and pending transport intent to the selected source.
   - Status: implemented (2026-09-27).
-  - Notes: Old media events cannot skip the next item or count listening time while a ticket loads; same-URL reselection rebinds, failed crossfade starts retain the incoming track for retry, and Play/Pause during ticket or decode setup apply to the new source.
+  - Notes: Old media events cannot skip the next item or count listening time while a ticket loads; track and URL share one state value so same-URL reselection rebinds even under batching. Failed crossfade starts retain the incoming track for retry, and Play/Pause during ticket or decode setup apply to the new source.
 
 - [x] Avoid creating a Web Audio graph for neutral idle player settings.
   - Status: implemented (2026-09-27).

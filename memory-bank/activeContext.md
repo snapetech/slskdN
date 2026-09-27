@@ -14296,3 +14296,18 @@ rollback.
   identity checks passed. Release preview and fork push remain.
 - Next steps: push this batch, then inspect remaining crossfade transition
   failure paths and keep real audio validation on the task ledger.
+
+## Update 2026-09-27 21:27:51Z
+
+- Current task: harden batched same-URL player source selection. Source, docs,
+  and gotcha 0z1016 are local; validation and append-only release fragment
+  remain.
+- Next steps: run repository gates, preview the release range, and push.
+
+## Update 2026-09-27 21:28:58Z
+
+- Batched same-URL source ownership is implemented. Web lint, production
+  build, bundle budget, repository lint, whitespace, and local identity
+  checks passed. Release preview and fork push remain.
+- Next steps: push this batch, then continue static source review while real
+  desktop and mobile playback observation remains on the task ledger.

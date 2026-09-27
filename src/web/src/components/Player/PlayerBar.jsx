@@ -2292,7 +2292,6 @@ const PlayerBar = () => {
   const renderedPrimaryAudioRef = useRef(null);
   const renderedSecondaryAudioRef = useRef(null);
   const lastSourceRef = useRef('');
-  const sourceItemRef = useRef(null);
   const activeItemRef = useRef(null);
   const playerBarRef = useRef(null);
   const scrobbledRef = useRef('');
@@ -2428,7 +2427,7 @@ const PlayerBar = () => {
   const [externalVisualizerMessage, setExternalVisualizerMessage] = useState('');
   const [playerAudioElement, setPlayerAudioElement] = useState(null);
   const [playerRating, setPlayerRatingState] = useState(0);
-  const [source, setSource] = useState('');
+  const [source, setSource] = useState(null);
 
   const refreshExternalVisualizerStatus = useCallback(() => {
     setExternalVisualizerLoading(true);
@@ -2586,8 +2585,8 @@ const PlayerBar = () => {
     const requestId = ++transcodeRequestRef.current;
     autoplayRef.current = autoPlay;
     playRequestRef.current += 1;
-    sourceItemRef.current = null;
     activeItemRef.current = null;
+    setSource(null);
     audioRef.current?.pause();
     playingRef.current = false;
     setPlaying(false);
@@ -2605,8 +2604,7 @@ const PlayerBar = () => {
       renderedPositionRef.current = seconds;
       setPosition(seconds);
       const transcodedSource = streaming.buildTranscodedStreamUrl(current.contentId, ticket, seconds);
-      sourceItemRef.current = { item: current, url: transcodedSource };
-      setSource(transcodedSource);
+      setSource({ item: current, url: transcodedSource });
     } catch {
       if (requestId !== transcodeRequestRef.current) return;
       setPlaybackStatus('error');
@@ -2802,12 +2800,11 @@ const PlayerBar = () => {
 
     if (!current) {
       selectedItemRef.current = null;
-      sourceItemRef.current = null;
       activeItemRef.current = null;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
       stopOutgoingFade();
-      setSource('');
+      setSource(null);
       setPlaybackStatus('idle');
       localObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
       localObjectUrlsRef.current.clear();
@@ -2830,17 +2827,15 @@ const PlayerBar = () => {
       renderedPositionRef.current = startingPosition;
       setPosition(startingPosition);
     }
-    sourceItemRef.current = null;
-    setSource('');
+    setSource(null);
 
     if (current.streamUrl) {
-      sourceItemRef.current = { item: current, url: current.streamUrl };
-      setSource(current.streamUrl);
+      setSource({ item: current, url: current.streamUrl });
       return undefined;
     }
 
     if (!current.contentId) {
-      setSource('');
+      setSource(null);
       return undefined;
     }
 
@@ -2851,15 +2846,13 @@ const PlayerBar = () => {
           const nextSource = ticket
             ? streaming.buildTicketedStreamUrl(current.contentId, ticket)
             : streaming.buildDirectStreamUrl(current.contentId);
-          sourceItemRef.current = { item: current, url: nextSource };
-          setSource(nextSource);
+          setSource({ item: current, url: nextSource });
         }
       })
       .catch(() => {
         if (!cancelled) {
           const directSource = streaming.buildDirectStreamUrl(current.contentId);
-          sourceItemRef.current = { item: current, url: directSource };
-          setSource(directSource);
+          setSource({ item: current, url: directSource });
         }
       });
 
@@ -2908,10 +2901,9 @@ const PlayerBar = () => {
   ]);
 
   useEffect(() => {
-    if (!audioRef.current || !source ||
-        sourceItemRef.current?.item !== current || sourceItemRef.current.url !== source) return;
+    if (!audioRef.current || !source || source.item !== current) return;
     const previousSource = lastSourceRef.current;
-    if (previousSource === source && activeItemRef.current === current) return;
+    if (previousSource === source.url && activeItemRef.current === current) return;
     playRequestRef.current += 1;
     stopOutgoingFade();
     const active = audioRef.current;
@@ -2921,7 +2913,7 @@ const PlayerBar = () => {
         previousSource && !active.paused && standby) {
       fadeOutgoingRef.current = active;
       const fadeRequest = ++fadeRequestRef.current;
-      standby.src = source;
+      standby.src = source.url;
       standby.muted = localMuted;
       standby.volume = volume;
       standby.playbackRate = playbackRate;
@@ -2963,7 +2955,7 @@ const PlayerBar = () => {
       });
     } else {
       if (standby) standby.pause();
-      active.src = source;
+      active.src = source.url;
       activeItemRef.current = current;
       crossfadeStartedRef.current = null;
       setOutputGain(active, 1);
@@ -2975,7 +2967,7 @@ const PlayerBar = () => {
         setPlaybackStatus('paused');
       }
     }
-    lastSourceRef.current = source;
+    lastSourceRef.current = source.url;
   }, [crossfadeEnabled, current, localMuted, playbackRate, playAudio, playerAudioElement, setAudioElement, source, stopOutgoingFade, transcodeMode, tryPlay, volume]);
 
   useEffect(() => {
