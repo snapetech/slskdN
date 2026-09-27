@@ -13,7 +13,7 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 **Files Affected**:
 - `src/web/src/components/Player/PodListenAlongPanel.jsx`
 
-**Prevention**: Store the ID returned by a successful host publish even when a newer command is queued, and resolve Stop's party ID when its queued request executes. The server uses that ID to remove the directory announcement.
+**Prevention**: Store the ID returned by a successful host publish with its pod and channel even when a newer command is queued, and resolve Stop's party ID when its queued request executes for that same room. The server uses that ID to remove the directory announcement; the panel can remain mounted while the selected channel changes.
 
 ### 0z996. Preserve Listen-Along Broadcast Command Order
 
