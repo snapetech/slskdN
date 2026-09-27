@@ -2292,6 +2292,8 @@ const PlayerBar = () => {
   const renderedPrimaryAudioRef = useRef(null);
   const renderedSecondaryAudioRef = useRef(null);
   const lastSourceRef = useRef('');
+  const sourceItemRef = useRef(null);
+  const activeItemRef = useRef(null);
   const playerBarRef = useRef(null);
   const scrobbledRef = useRef('');
   const playedSecondsRef = useRef(0);
@@ -2556,6 +2558,7 @@ const PlayerBar = () => {
 
   const pausePlayback = useCallback(() => {
     playRequestRef.current += 1;
+    autoplayRef.current = false;
     stopOutgoingFade();
     audioRef.current?.pause();
     playingRef.current = false;
@@ -2565,17 +2568,30 @@ const PlayerBar = () => {
   }, [stopOutgoingFade]);
 
   const tryPlay = useCallback(() => {
+    if (!current) return;
     setPlaybackError('');
     setPlaybackStatus('loading');
+    if (activeItemRef.current !== current) {
+      autoplayRef.current = true;
+      return;
+    }
     playAudio().catch(() => {
       setPlaybackStatus('error');
       setPlaybackError('Playback could not start. Check the file or try again.');
     });
-  }, [playAudio]);
+  }, [current, playAudio]);
 
   const startTranscode = useCallback(async (seconds = 0, autoPlay = true) => {
     if (!current?.contentId || current.contentId.startsWith('local:')) return;
     const requestId = ++transcodeRequestRef.current;
+    autoplayRef.current = autoPlay;
+    playRequestRef.current += 1;
+    sourceItemRef.current = null;
+    activeItemRef.current = null;
+    audioRef.current?.pause();
+    playingRef.current = false;
+    setPlaying(false);
+    nowPlaying.clearNowPlaying().catch(() => {});
     setPlaybackError('');
     setPlaybackStatus(autoPlay ? 'loading' : 'paused');
     try {
@@ -2588,8 +2604,9 @@ const PlayerBar = () => {
       setPlaybackPosition(seconds);
       renderedPositionRef.current = seconds;
       setPosition(seconds);
-      autoplayRef.current = autoPlay;
-      setSource(streaming.buildTranscodedStreamUrl(current.contentId, ticket, seconds));
+      const transcodedSource = streaming.buildTranscodedStreamUrl(current.contentId, ticket, seconds);
+      sourceItemRef.current = { item: current, url: transcodedSource };
+      setSource(transcodedSource);
     } catch {
       if (requestId !== transcodeRequestRef.current) return;
       setPlaybackStatus('error');
@@ -2785,6 +2802,8 @@ const PlayerBar = () => {
 
     if (!current) {
       selectedItemRef.current = null;
+      sourceItemRef.current = null;
+      activeItemRef.current = null;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
       stopOutgoingFade();
@@ -2811,9 +2830,11 @@ const PlayerBar = () => {
       renderedPositionRef.current = startingPosition;
       setPosition(startingPosition);
     }
+    sourceItemRef.current = null;
     setSource('');
 
     if (current.streamUrl) {
+      sourceItemRef.current = { item: current, url: current.streamUrl };
       setSource(current.streamUrl);
       return undefined;
     }
@@ -2827,13 +2848,19 @@ const PlayerBar = () => {
       .createStreamTicket(current.contentId)
       .then((ticket) => {
         if (!cancelled) {
-          setSource(ticket
+          const nextSource = ticket
             ? streaming.buildTicketedStreamUrl(current.contentId, ticket)
-            : streaming.buildDirectStreamUrl(current.contentId));
+            : streaming.buildDirectStreamUrl(current.contentId);
+          sourceItemRef.current = { item: current, url: nextSource };
+          setSource(nextSource);
         }
       })
       .catch(() => {
-        if (!cancelled) setSource(streaming.buildDirectStreamUrl(current.contentId));
+        if (!cancelled) {
+          const directSource = streaming.buildDirectStreamUrl(current.contentId);
+          sourceItemRef.current = { item: current, url: directSource };
+          setSource(directSource);
+        }
       });
 
     return () => {
@@ -2881,9 +2908,10 @@ const PlayerBar = () => {
   ]);
 
   useEffect(() => {
-    if (!audioRef.current || !source) return;
+    if (!audioRef.current || !source ||
+        sourceItemRef.current?.item !== current || sourceItemRef.current.url !== source) return;
     const previousSource = lastSourceRef.current;
-    if (previousSource === source) return;
+    if (previousSource === source && activeItemRef.current === current) return;
     playRequestRef.current += 1;
     stopOutgoingFade();
     const active = audioRef.current;
@@ -2901,6 +2929,8 @@ const PlayerBar = () => {
       setOutputGain(standby, 0);
       audioRef.current = standby;
       fadeAudioRef.current = active;
+      activeItemRef.current = current;
+      crossfadeStartedRef.current = null;
       setAudioElement(standby);
       setPlayerAudioElement(standby);
       autoplayRef.current = false;
@@ -2924,18 +2954,18 @@ const PlayerBar = () => {
       }).catch(() => {
         if (fadeRequest !== fadeRequestRef.current) return;
         stopOutgoingFade();
-        audioRef.current = active;
-        fadeAudioRef.current = standby;
-        setAudioElement(active);
-        setPlayerAudioElement(active);
-        standby.removeAttribute('src');
-        standby.load();
+        standby.pause();
+        playingRef.current = false;
+        setPlaying(false);
         setPlaybackStatus('error');
         setPlaybackError('The next track could not start.');
+        nowPlaying.clearNowPlaying().catch(() => {});
       });
     } else {
       if (standby) standby.pause();
       active.src = source;
+      activeItemRef.current = current;
+      crossfadeStartedRef.current = null;
       setOutputGain(active, 1);
       active.load();
       if (autoplayRef.current) {
@@ -2946,7 +2976,7 @@ const PlayerBar = () => {
       }
     }
     lastSourceRef.current = source;
-  }, [crossfadeEnabled, localMuted, playbackRate, playAudio, playerAudioElement, setAudioElement, source, stopOutgoingFade, transcodeMode, tryPlay, volume]);
+  }, [crossfadeEnabled, current, localMuted, playbackRate, playAudio, playerAudioElement, setAudioElement, source, stopOutgoingFade, transcodeMode, tryPlay, volume]);
 
   useEffect(() => {
     scrobbledRef.current = '';
@@ -2961,6 +2991,7 @@ const PlayerBar = () => {
     let lastPosition = audioElement.currentTime;
     const resetPosition = () => { lastPosition = audioElement.currentTime; };
     const handleTimeUpdate = () => {
+      if (activeItemRef.current !== current) return;
       const mediaPosition = audioElement.currentTime;
       if (!audioElement.paused && !audioElement.seeking) {
         playedSecondsRef.current += Math.max(0, mediaPosition - lastPosition);
@@ -3215,8 +3246,12 @@ const PlayerBar = () => {
   }
 
   const handleEnded = () => {
-    if (crossfadeStartedRef.current === current) {
+    if (!current) return;
+    if (activeItemRef.current !== current || crossfadeStartedRef.current === current) {
+      playingRef.current = false;
+      setPlaying(false);
       setPlaybackStatus('loading');
+      nowPlaying.clearNowPlaying().catch(() => {});
       return;
     }
     if (repeatMode === 'one' || (repeatMode === 'all' && queue.length === 1 && history.length === 0)) {
@@ -3273,6 +3308,12 @@ const PlayerBar = () => {
     },
     onError: (event) => {
       if (event.currentTarget !== audioRef.current || !current) return;
+      if (activeItemRef.current !== current) {
+        playingRef.current = false;
+        setPlaying(false);
+        nowPlaying.clearNowPlaying().catch(() => {});
+        return;
+      }
       const failedElement = event.currentTarget;
       const failedSource = failedElement.currentSrc || failedElement.src;
       playRequestRef.current += 1;
@@ -3292,7 +3333,7 @@ const PlayerBar = () => {
       nowPlaying.clearNowPlaying().catch(() => {});
     },
     onLoadedMetadata: (event) => {
-      if (event.currentTarget !== audioRef.current) return;
+      if (event.currentTarget !== audioRef.current || activeItemRef.current !== current) return;
       if (!transcodeMode) setDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0);
       if (remountPositionRef.current !== null) {
         event.currentTarget.currentTime = remountPositionRef.current;
@@ -3305,6 +3346,12 @@ const PlayerBar = () => {
     },
     onPause: (event) => {
       if (event.currentTarget !== audioRef.current) return;
+      if (activeItemRef.current !== current) {
+        playingRef.current = false;
+        setPlaying(false);
+        nowPlaying.clearNowPlaying().catch(() => {});
+        return;
+      }
       stopOutgoingFade();
       playingRef.current = false;
       setPlaying(false);
@@ -3312,7 +3359,7 @@ const PlayerBar = () => {
       nowPlaying.clearNowPlaying().catch(() => {});
     },
     onPlay: (event) => {
-      if (event.currentTarget !== audioRef.current) return;
+      if (event.currentTarget !== audioRef.current || activeItemRef.current !== current) return;
       playingRef.current = true;
       setPlaying(true);
       setPlaybackStatus('playing');
@@ -3325,13 +3372,13 @@ const PlayerBar = () => {
       }
     },
     onPlaying: (event) => {
-      if (event.currentTarget !== audioRef.current) return;
+      if (event.currentTarget !== audioRef.current || activeItemRef.current !== current) return;
       playingRef.current = true;
       setPlaying(true);
       setPlaybackStatus('playing');
     },
     onTimeUpdate: (event) => {
-      if (event.currentTarget !== audioRef.current) return;
+      if (event.currentTarget !== audioRef.current || activeItemRef.current !== current) return;
       const nextPosition = transcodeOffset + event.currentTarget.currentTime;
       setPlaybackPosition(nextPosition);
       if (Math.floor(nextPosition) !== Math.floor(renderedPositionRef.current)) {
@@ -3348,7 +3395,7 @@ const PlayerBar = () => {
       }
     },
     onWaiting: (event) => {
-      if (event.currentTarget === audioRef.current && playingRef.current) {
+      if (event.currentTarget === audioRef.current && activeItemRef.current === current && playingRef.current) {
         setPlaybackStatus('buffering');
       }
     },

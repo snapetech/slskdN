@@ -80,6 +80,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
   server-library track remains.
 - Migrated the old automatically saved Spectrum analyzer default to Off for
   existing browsers; previously selected Scope remains enabled.
+- Bound playback, seeking, errors, and listening history to the track whose
+  source is active while the next stream ticket loads. Replaying the same URL
+  starts the selected track again; Play and Pause during ticket or decode setup
+  determine whether it starts. A failed crossfade start keeps the selected
+  track ready for retry.
 - Applied volume, local mute, and playback speed changes to both audio elements
   during crossfades.
 - Clear Upcoming now keeps played-track history available for Previous and

@@ -13444,3 +13444,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:02:49Z
 
 - Versioned the small analyzer preference so existing browsers no longer retain the old automatically persisted Spectrum default. Kept old Scope selections, which required an explicit user action. Recorded gotcha 0z1008 before source changes.
+
+## Update 2026-09-27 21:24:54Z
+
+- Bound media events to the track that owns the active source while a new ticket is pending; prevented old Ended/timeupdate/play/error events from mutating the new track. Same-URL selections now rebind, crossfade start failure retains the incoming source for retry, and Play/Pause intent survives ticket and decoded-seek setup. Documented gotchas 0z1009 through 0z1015 before source changes.

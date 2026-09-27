@@ -14280,3 +14280,19 @@ rollback.
   bundle budget, repository lint, whitespace, and local identity checks passed.
   Release preview and fork push remain.
 - Next steps: push this batch and continue reviewing the player state model.
+
+## Update 2026-09-27 21:24:54Z
+
+- Current task: finish source ownership and pending transport hardening for the
+  player. Source and gotchas 0z1009 through 0z1015 are local; lint, build,
+  release fragment, range preview, and push remain.
+- Next steps: complete repository gates and push to the verified fork, then
+  continue reviewing crossfade and queue transitions.
+
+## Update 2026-09-27 21:26:24Z
+
+- Source ownership and pending transport changes are implemented. Web lint,
+  production build, bundle budget, repository lint, whitespace, and local
+  identity checks passed. Release preview and fork push remain.
+- Next steps: push this batch, then inspect remaining crossfade transition
+  failure paths and keep real audio validation on the task ledger.

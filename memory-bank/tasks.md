@@ -45,6 +45,10 @@
   - Status: implemented (2026-09-27).
   - Notes: Save queue and its disabled state use the same replayable-track filter; the saved count reflects only tracks that can stream again by content ID.
 
+- [x] Bind player media events and pending transport intent to the selected source.
+  - Status: implemented (2026-09-27).
+  - Notes: Old media events cannot skip the next item or count listening time while a ticket loads; same-URL reselection rebinds, failed crossfade starts retain the incoming track for retry, and Play/Pause during ticket or decode setup apply to the new source.
+
 - [x] Avoid creating a Web Audio graph for neutral idle player settings.
   - Status: implemented (2026-09-27).
   - Notes: Flat EQ, karaoke off, and output gain one reuse a graph when present but no longer create one for a paused player.
