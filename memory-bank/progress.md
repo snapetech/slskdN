@@ -13309,3 +13309,5 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 19:40:00Z
 
 - Corrected a visualizer visibility mismatch: a saved Butterchurn/MilkDrop tile no longer keeps rendering when the visualizer setting is Off. Album art appears until the user reactivates the selected engine. Recorded gotcha 0z968 and updated the release fragment and listening guide. Web lint/build and release-note validation pass.
+
+- The first release-note range preview rejected an edit to an already-published fragment. Restored the original bytes, added a separate append-only fragment for visualizer Off, and recorded gotcha 0z969 before the correction.
