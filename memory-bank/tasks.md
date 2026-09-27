@@ -9,6 +9,16 @@
 
 ### High Priority
 
+- [x] Clear stale Collection picker requests on close.
+  - Status: implemented (2026-09-27).
+  - Notes: Every close path invalidates the pending item request and clears
+    the old selection before the picker can be opened again.
+
+- [x] Make player Collection selection keyboard operable and explain stats ranges.
+  - Status: implemented (2026-09-27).
+  - Notes: Collection choices now include a focused button and explanatory
+    Popup; stats time ranges have accessible names and Popup help.
+
 - [x] Keep Listening Stats import text on the user's latest input.
   - Status: implemented (2026-09-27).
   - Notes: Older file reads cannot replace later manual edits, later file

@@ -13503,3 +13503,13 @@ export branch has no shared Git history and was not merged.
   `3662abb47`. Web lint/build, bundle budget, repository lint, whitespace,
   identity, and release-range preview passed. Automated and interactive
   playback checks were not run in this continuation.
+## Update 2026-09-27 22:42:48Z
+
+- Made player Collection choices keyboard operable with focus indication and
+  explanatory Popup help. Listening Stats range buttons now have scope help
+  and accessible names.
+- Closing the Collection picker now clears its selection and invalidates a
+  pending item request before it can repopulate a later opening. Recorded
+  gotchas 0z1023 and 0z1024 in separate commits.
+- Next: static validation, release preview, commit, and push to the verified
+  fork. Interactive real-audio browser inspection remains open.

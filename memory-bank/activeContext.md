@@ -14382,3 +14382,12 @@ rollback.
   remaining player dialogs.
 - Next steps: the P1 real-audio desktop/mobile inspection in
   `memory-bank/tasks.md` remains open. No release tag was created.
+## Update 2026-09-27 22:42:48Z
+
+- Current task: player Collection picker keyboard access, Listening Stats
+  range help, and picker-close request invalidation are implemented locally.
+  Gotchas 0z1023 and 0z1024 are committed separately; two new release-note
+  fragments are ready.
+- Next steps: run static checks, preview the release range, commit and push to
+  the verified fork. Desktop/mobile real-audio inspection remains P1; no
+  release tag is authorized.

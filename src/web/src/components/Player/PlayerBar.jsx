@@ -1294,16 +1294,26 @@ const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
             { label: '90D', value: 90 },
             { label: 'All', value: null },
           ].map((range) => (
-            <Button
-              active={rangeDays === range.value}
-              data-testid={`player-stats-range-${range.label}`}
+            <Popup
+              content={range.value
+                ? `Show listening statistics from the last ${range.value} days.`
+                : 'Show listening statistics from all recorded plays.'}
               key={range.label}
-              onClick={() => updateRange(range.value)}
-              size="mini"
-              type="button"
-            >
-              {range.label}
-            </Button>
+              trigger={
+                <Button
+                  active={rangeDays === range.value}
+                  aria-label={range.value
+                    ? `Show last ${range.value} days of listening statistics`
+                    : 'Show all listening statistics'}
+                  data-testid={`player-stats-range-${range.label}`}
+                  onClick={() => updateRange(range.value)}
+                  size="mini"
+                  type="button"
+                >
+                  {range.label}
+                </Button>
+              }
+            />
           ))}
         </div>
         <div className="player-stats-grid">
@@ -1661,10 +1671,18 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
       });
   };
 
+  const closeCollections = () => {
+    collectionRequestRef.current += 1;
+    setCollectionsOpen(false);
+    setSelectedCollection(null);
+    setCollectionItems([]);
+    setCollectionItemsLoading(false);
+  };
+
   const playAndClose = (item) => {
     onPlayItem(item);
     setFilesOpen(false);
-    setCollectionsOpen(false);
+    closeCollections();
   };
 
   const openFileBrowser = () => {
@@ -1737,7 +1755,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
       <Modal
         className="player-browser-modal"
         data-testid="player-collection-browser-modal"
-        onClose={() => setCollectionsOpen(false)}
+        onClose={closeCollections}
         open={collectionsOpen}
         size="large"
       >
@@ -1761,10 +1779,26 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
                         onClick={() => selectCollection(collection)}
                       >
                         <Table.Cell>
-                          <strong>{collection.title}</strong>
-                          <div className="player-picker-meta">
-                            {collection.type || 'Playlist'}
-                          </div>
+                          <Popup
+                            content={`Show tracks in ${collection.title} so you can choose one to play or queue.`}
+                            trigger={
+                              <button
+                                aria-label={`Show tracks in ${collection.title}`}
+                                aria-pressed={selectedCollection?.id === collection.id}
+                                className="player-collection-select"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  selectCollection(collection);
+                                }}
+                                type="button"
+                              >
+                                <strong>{collection.title}</strong>
+                                <span className="player-picker-meta">
+                                  {collection.type || 'Playlist'}
+                                </span>
+                              </button>
+                            }
+                          />
                         </Table.Cell>
                       </Table.Row>
                     ))}
@@ -1834,7 +1868,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
               <Button
                 data-testid="player-manage-collections"
                 onClick={() => {
-                  setCollectionsOpen(false);
+                  closeCollections();
                   navigate('/collections');
                 }}
               >
@@ -1846,7 +1880,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
           <Popup
             content="Close the collection picker without changing playback."
             trigger={
-              <Button onClick={() => setCollectionsOpen(false)}>Close</Button>
+              <Button onClick={closeCollections}>Close</Button>
             }
           />
         </Modal.Actions>

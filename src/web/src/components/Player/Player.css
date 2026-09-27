@@ -695,6 +695,28 @@ body:has(.ui.modal) .player-bar {
   background: rgba(156, 124, 240, 0.1) !important;
 }
 
+.player-collection-select {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.player-collection-select .player-picker-meta {
+  display: block;
+}
+
+.player-collection-select:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid #9c7cf0;
+  outline-offset: 3px;
+}
+
 .player-browser-results {
   margin-top: 1rem;
   max-height: 58vh;

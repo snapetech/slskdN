@@ -95,6 +95,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
   late response cannot replace a track chosen afterward.
 - A slow Listening Stats file read no longer overwrites newer typed, pasted,
   or separately selected import text.
+- Collection choices in the player browser are now keyboard operable, with a
+  visible focus outline; Listening Stats range controls explain their scope
+  on hover and have clear accessible names.
+- Closing the player Collection picker now clears its selected rows and
+  ignores a pending item response, so reopening starts from a fresh choice.
 - Selecting another track now stops the previous audio immediately when
   crossfade is off or the new track starts paused; a second selection also
   ends any outgoing fade while its stream ticket is pending.
