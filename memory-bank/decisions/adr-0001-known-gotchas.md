@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z973. Preserve Now Playing Update Order Across Pause And Stop
+
+**The Bug**: The player sent Now Playing PUT on Play and DELETE on Pause/Stop without ordering them. A slow PUT could finish after the DELETE, leaving a stale server-side track visible even though local audio had stopped.
+
+**Files Affected**:
+- `src/web/src/lib/nowPlaying.js`
+
+**Prevention**: Serialize writes to the browser's Now Playing endpoint in the order the player requests them. Keep the queue usable after a failed request so a later Stop can still clear status.
+
 ### 0z972. Bound Analyzer Work While Playback Is Active
 
 **The Bug**: Each lightweight analyzer canvas repainted at the browser's full animation rate and allocated a fresh audio sample array on every frame. The full player can display two analyzer canvases, multiplying work even though audio samples and UI motion do not need that rate.
