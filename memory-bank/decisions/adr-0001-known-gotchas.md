@@ -6,6 +6,33 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z963. Handle Best-Effort Now Playing Cleanup Without Rejecting Stop
+
+**The Bug**: Clearing or hiding the player awaited the profile Now Playing DELETE after local playback state was already cleared. If the network request failed, the event handler returned a rejected promise and could produce an unhandled rejection even though Stop had completed locally.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Stop local media and clear queue state synchronously, then attempt profile cleanup as best effort. A remote status failure must not make local Stop fail.
+
+### 0z962. Rebind And Stop Player Picture-in-Picture Work
+
+**The Bug**: The Picture-in-Picture spectrum captured the audio graph active when it opened. Crossfade and layout remounts switched or closed that graph, but the animation kept reading it. Reopening could leave the old animation loop running, and unmount did not close the window.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Read the current active graph while drawing, cap animation work, and cancel timers or animation frames when the window is replaced, closed, or the player unmounts.
+
+### 0z961. Apply Pause And Stop To Followed Party State
+
+**The Bug**: A follower joining an already paused room only called `pause()` on the old local player, so the host track was never selected. A stop event left the following indicator and subscription intent active, allowing later state to take over local playback again.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Load the host track at its advertised position in a paused state when joining a paused broadcast. On stop, clear playback and leave follow mode in both local UI and player context.
+
 ### 0z960. Do Not Broadcast A Browser-Only File As A Shared Stream
 
 **The Bug**: Listen-along allowed a host to broadcast a `local:` browser File as if it were a server content ID. Peers cannot resolve that browser's object URL. The radio directory also enabled Join when mesh streaming was marked available even if the announcement lacked a usable stream path.
