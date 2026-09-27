@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1022. Keep Late File Reads From Overwriting Newer Import Text
+
+**The Bug**: The Listening Stats import dialog called `file.text()` and put its result in the editable import field whenever the promise resolved. If the user chose a file and then typed, pasted, or selected another file while it was loading, the earlier file result could overwrite the newer input.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Give each file read an incrementing request ID and invalidate it on manual input changes. Apply file contents and read errors only while their request ID is still current.
+
 ### 0z1021. Restore Mounted Ref State In Effect Setup
 
 **The Bug**: A playlist dialog's mounted ref was initialized to true and set false in effect cleanup, without setting it true in effect setup. React Strict Mode can run setup, cleanup, and setup again during development; after that cycle the ref remained false and every playlist load looked canceled.
