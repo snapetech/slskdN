@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1014. Do Not Overwrite Transport Intent After Decode Setup
+
+**The Bug**: On-demand decode setup captured an `autoPlay` value, awaited a stream ticket and playback metadata, then wrote that old value to the autoplay ref. A Pause or Play during those requests was overwritten when setup completed.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Set the initial decode autoplay intent before the awaits. Later transport actions update the same ref, and completion must use its latest value.
+
 ### 0z1013. Apply Play And Pause Intent While A Stream Ticket Is Pending
 
 **The Bug**: The selected track can change before its source URL is ready. Play during that interval can replay the old media element, while Pause can stop the old element yet leave an autoplay flag that starts the new track later against the user's last command.
