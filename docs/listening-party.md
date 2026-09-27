@@ -70,6 +70,8 @@ The player publishes Now Playing after playback begins and clears it on pause, s
 
 Seeking, rewind/fast-forward, Previous, and repeat use the full track position during decoded playback. Seeking while paused leaves playback paused.
 
+Listening history and optional ListenBrainz scrobbles count actual playback progress toward the track threshold. Skipping forward does not count the skipped portion as listening. Pause and Stop also silence both audio elements if a crossfade is in progress.
+
 Synced lyric highlighting follows the browser media element's playback, seek,
 and metadata events. It does not run a separate fixed polling timer, and hidden
 documents defer position updates until visibility returns.

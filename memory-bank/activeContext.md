@@ -1,3 +1,8 @@
+## Update 2026-09-27 18:23:15Z
+
+- Current task: broader player lifecycle hardening implemented. Crossfade interruption, seek-based scrobble inflation, duplicate local-file queue IDs, stale decode metadata, and remount audio-context cleanup are addressed. Pending playback requests are canceled on Pause, source change, and track change.
+- Web lint/build, bundle budget, repository lint, release-note validation, whitespace, and identity checks passed. Next: commit and push to the verified fork origin. Live audio and mobile inspection remains pending on a controlled dev instance; no release tag or deployment is authorized.
+
 ## Update 2026-09-27 18:13:17Z
 
 - Current task: player steady-state resource polish complete. Playback now updates top-level position state at visible whole-second boundaries while keeping direct seeks, track resets, and crossfade checks responsive.

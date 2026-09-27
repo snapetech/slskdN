@@ -109,6 +109,13 @@ export const getOrCreateAudioGraph = (audioElement) => {
   return graph;
 };
 
+export const releaseAudioGraph = (audioElement) => {
+  const graph = audioGraphCache.get(audioElement);
+  if (!graph) return;
+  audioGraphCache.delete(audioElement);
+  if (graph.ctx.state !== 'closed') graph.ctx.close().catch(() => {});
+};
+
 export const resumeAudioGraph = async (audioElement) => {
   const graph = getOrCreateAudioGraph(audioElement);
   if (graph?.ctx.state === 'suspended') {

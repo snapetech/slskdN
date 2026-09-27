@@ -47,7 +47,7 @@ import * as wishlistAPI from '../../lib/wishlist';
 import Equalizer from './Equalizer';
 import LyricsPane from './LyricsPane';
 import SpectrumAnalyzer, { getFrequencyBars } from './SpectrumAnalyzer';
-import { fadeOutputGain, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
+import { fadeOutputGain, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
 import { usePlayer } from './PlayerContext';
 import Visualizer from './Visualizer';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -2232,13 +2232,20 @@ const PlayerBar = () => {
   const navigate = useNavigate();
   const audioRef = useRef(null);
   const fadeAudioRef = useRef(null);
+  const renderedPrimaryAudioRef = useRef(null);
+  const renderedSecondaryAudioRef = useRef(null);
   const lastSourceRef = useRef('');
   const playerBarRef = useRef(null);
   const scrobbledRef = useRef('');
+  const playedSecondsRef = useRef(0);
   const playingNowSentRef = useRef(false);
   const pipRef = useRef({ raf: null, win: null });
   const fadeTimeoutRef = useRef(null);
+  const fadeOutgoingRef = useRef(null);
+  const fadeRequestRef = useRef(0);
+  const playRequestRef = useRef(0);
   const crossfadeStartedRef = useRef(null);
+  const localFileSequenceRef = useRef(0);
   const {
     clearQueue,
     clear,
@@ -2247,7 +2254,6 @@ const PlayerBar = () => {
     history,
     moveQueueItem,
     next,
-    pause,
     queue,
     repeatMode,
     previous,
@@ -2381,6 +2387,10 @@ const PlayerBar = () => {
     if (!element && audioRef.current) {
       remountPositionRef.current = audioRef.current.currentTime;
     }
+    if (!element && renderedPrimaryAudioRef.current) {
+      releaseAudioGraph(renderedPrimaryAudioRef.current);
+    }
+    renderedPrimaryAudioRef.current = element;
     if (element && audioRef.current !== element) {
       lastSourceRef.current = '';
       autoplayRef.current = playingRef.current;
@@ -2389,6 +2399,14 @@ const PlayerBar = () => {
     setPlayerAudioElement(element);
     setAudioElement(element);
   }, [setAudioElement]);
+
+  const bindFadeAudioElement = useCallback((element) => {
+    if (!element && renderedSecondaryAudioRef.current) {
+      releaseAudioGraph(renderedSecondaryAudioRef.current);
+    }
+    renderedSecondaryAudioRef.current = element;
+    fadeAudioRef.current = element;
+  }, []);
 
   useLayoutEffect(() => {
     const element = playerBarRef.current;
@@ -2407,10 +2425,47 @@ const PlayerBar = () => {
   }, [collapsed, current, eqPanelOpen, lyricsOpen, playerVisible]);
 
   const playAudio = useCallback(async () => {
-    if (!audioRef.current) return;
-    await resumeAudioGraph(audioRef.current);
-    await audioRef.current.play();
+    const element = audioRef.current;
+    if (!element) return;
+    const request = ++playRequestRef.current;
+    try {
+      await resumeAudioGraph(element);
+      if (request !== playRequestRef.current || audioRef.current !== element) return;
+      await element.play();
+    } catch (error) {
+      if (request === playRequestRef.current && audioRef.current === element) throw error;
+    }
   }, []);
+
+  const stopOutgoingFade = useCallback(() => {
+    fadeRequestRef.current += 1;
+    if (fadeTimeoutRef.current) {
+      window.clearTimeout(fadeTimeoutRef.current);
+      fadeTimeoutRef.current = null;
+    }
+    const outgoing = fadeOutgoingRef.current;
+    fadeOutgoingRef.current = null;
+    if (!outgoing) return;
+    outgoing.pause();
+    outgoing.removeAttribute('src');
+    outgoing.load();
+    if (audioRef.current) {
+      setOutputGain(outgoing, 1);
+      setOutputGain(audioRef.current, 1);
+    }
+  }, []);
+
+  useEffect(() => () => stopOutgoingFade(), [stopOutgoingFade]);
+
+  const pausePlayback = useCallback(() => {
+    playRequestRef.current += 1;
+    stopOutgoingFade();
+    audioRef.current?.pause();
+    playingRef.current = false;
+    setPlaying(false);
+    setPlaybackStatus('paused');
+    nowPlaying.clearNowPlaying().catch(() => {});
+  }, [stopOutgoingFade]);
 
   const tryPlay = useCallback(() => {
     setPlaybackError('');
@@ -2596,11 +2651,11 @@ const PlayerBar = () => {
   const togglePlayback = useCallback(() => {
     if (!audioRef.current || !current) return;
     if (playing) {
-      pause();
+      pausePlayback();
     } else {
       tryPlay();
     }
-  }, [current, pause, playing, tryPlay]);
+  }, [current, pausePlayback, playing, tryPlay]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2608,6 +2663,8 @@ const PlayerBar = () => {
     if (!current) {
       selectedItemRef.current = null;
       transcodeRequestRef.current += 1;
+      playRequestRef.current += 1;
+      stopOutgoingFade();
       setSource('');
       setPlaybackStatus('idle');
       localObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -2618,6 +2675,7 @@ const PlayerBar = () => {
     if (selectedItemRef.current !== current) {
       selectedItemRef.current = current;
       transcodeRequestRef.current += 1;
+      playRequestRef.current += 1;
       autoplayRef.current = true;
       remountPositionRef.current = null;
       setPlaybackStatus('loading');
@@ -2656,7 +2714,7 @@ const PlayerBar = () => {
     return () => {
       cancelled = true;
     };
-  }, [current]);
+  }, [current, stopOutgoingFade]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -2701,10 +2759,13 @@ const PlayerBar = () => {
     if (!audioRef.current || !source) return;
     const previousSource = lastSourceRef.current;
     if (previousSource === source) return;
-    if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
+    playRequestRef.current += 1;
+    stopOutgoingFade();
     const active = audioRef.current;
     const standby = fadeAudioRef.current;
     if (crossfadeEnabled && !transcodeMode && previousSource && !active.paused && standby) {
+      fadeOutgoingRef.current = active;
+      const fadeRequest = ++fadeRequestRef.current;
       standby.src = source;
       standby.muted = localMuted;
       standby.volume = volume;
@@ -2717,16 +2778,21 @@ const PlayerBar = () => {
       setPlayerAudioElement(standby);
       autoplayRef.current = false;
       playAudio().then(() => {
+        if (fadeRequest !== fadeRequestRef.current || audioRef.current !== standby) return;
         fadeOutputGain(active, 1, 0, 5);
         fadeOutputGain(standby, 0, 1, 5);
         fadeTimeoutRef.current = window.setTimeout(() => {
+          if (fadeRequest !== fadeRequestRef.current) return;
           active.pause();
           active.removeAttribute('src');
           active.load();
           setOutputGain(active, 1);
+          fadeOutgoingRef.current = null;
           fadeTimeoutRef.current = null;
         }, 5200);
       }).catch(() => {
+        if (fadeRequest !== fadeRequestRef.current) return;
+        stopOutgoingFade();
         audioRef.current = active;
         fadeAudioRef.current = standby;
         setAudioElement(active);
@@ -2747,10 +2813,11 @@ const PlayerBar = () => {
       }
     }
     lastSourceRef.current = source;
-  }, [crossfadeEnabled, localMuted, playbackRate, playAudio, playerAudioElement, setAudioElement, source, transcodeMode, tryPlay, volume]);
+  }, [crossfadeEnabled, localMuted, playbackRate, playAudio, playerAudioElement, setAudioElement, source, stopOutgoingFade, transcodeMode, tryPlay, volume]);
 
   useEffect(() => {
     scrobbledRef.current = '';
+    playedSecondsRef.current = 0;
     playingNowSentRef.current = false;
   }, [current]);
 
@@ -2758,25 +2825,41 @@ const PlayerBar = () => {
     const audioElement = playerAudioElement;
     if (!audioElement || !current) return undefined;
 
+    let lastPosition = audioElement.currentTime;
+    const resetPosition = () => { lastPosition = audioElement.currentTime; };
     const handleTimeUpdate = () => {
-      const duration = Number.isFinite(audioElement.duration)
-        ? audioElement.duration
+      const mediaPosition = audioElement.currentTime;
+      if (!audioElement.paused && !audioElement.seeking) {
+        playedSecondsRef.current += Math.max(0, mediaPosition - lastPosition);
+      }
+      lastPosition = mediaPosition;
+      const trackDuration = transcodeMode ? duration : audioElement.duration;
+      const scrobbleDuration = Number.isFinite(trackDuration)
+        ? trackDuration
         : 0;
-      const threshold = duration > 0
-        ? Math.min(duration / 2, 240)
+      const threshold = scrobbleDuration > 0
+        ? Math.min(scrobbleDuration / 2, 240)
         : 240;
       const scrobbleKey = `${current.contentId}:${current.title}`;
 
-        if (audioElement.currentTime >= threshold && scrobbledRef.current !== scrobbleKey) {
-          scrobbledRef.current = scrobbleKey;
-          recordLocalPlay(current);
-          listenBrainz.submitListen('single', current).catch(() => {});
-        }
+      if (playedSecondsRef.current >= threshold && scrobbledRef.current !== scrobbleKey) {
+        scrobbledRef.current = scrobbleKey;
+        recordLocalPlay(current);
+        listenBrainz.submitListen('single', current).catch(() => {});
+      }
     };
 
+    audioElement.addEventListener('play', resetPosition);
+    audioElement.addEventListener('seeking', resetPosition);
+    audioElement.addEventListener('seeked', resetPosition);
     audioElement.addEventListener('timeupdate', handleTimeUpdate);
-    return () => audioElement.removeEventListener('timeupdate', handleTimeUpdate);
-  }, [current, playerAudioElement]);
+    return () => {
+      audioElement.removeEventListener('play', resetPosition);
+      audioElement.removeEventListener('seeking', resetPosition);
+      audioElement.removeEventListener('seeked', resetPosition);
+      audioElement.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [current, duration, playerAudioElement, transcodeMode]);
 
   const openPictureInPicture = async () => {
     if (!audioRef.current || !window.documentPictureInPicture) return;
@@ -2844,7 +2927,7 @@ const PlayerBar = () => {
 
     const handlers = {
       nexttrack: next,
-      pause,
+      pause: pausePlayback,
       play: () => playAudio().catch(() => {}),
       previoustrack: previousTrack,
       seekbackward: (details) => seekBy(-(details?.seekOffset || 15)),
@@ -2869,7 +2952,7 @@ const PlayerBar = () => {
         }
       });
     };
-  }, [current, next, pause, previousTrack, seekBy, seekTo]);
+  }, [current, next, pausePlayback, previousTrack, seekBy, seekTo]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
@@ -2912,6 +2995,7 @@ const PlayerBar = () => {
     if (repeatMode === 'one' || (repeatMode === 'all' && queue.length === 1 && history.length === 0)) {
       playingNowSentRef.current = false;
       scrobbledRef.current = '';
+      playedSecondsRef.current = 0;
       if (transcodeMode) startTranscode(0);
       else {
         audioRef.current.currentTime = 0;
@@ -2934,7 +3018,7 @@ const PlayerBar = () => {
     localObjectUrlsRef.current.add(streamUrl);
     const makeItem = (selectedFile, url) => ({
       artist: 'Local file',
-      contentId: `local:${selectedFile.name}:${selectedFile.size}:${selectedFile.lastModified}`,
+      contentId: `local:${Date.now()}:${++localFileSequenceRef.current}`,
       fileName: selectedFile.name,
       streamUrl: url,
       title: selectedFile.name.replace(/\.[^.]+$/u, ''),
@@ -2960,10 +3044,14 @@ const PlayerBar = () => {
     },
     onError: (event) => {
       if (event.currentTarget !== audioRef.current || !current) return;
+      const failedElement = event.currentTarget;
+      const failedSource = failedElement.currentSrc || failedElement.src;
       setPlaybackStatus('error');
       setPlaybackError('This audio could not be decoded or streamed.');
       if (!transcodeMode && !current.contentId.startsWith('local:')) {
         streaming.getPlaybackInfo(current.contentId).then((response) => {
+          if (selectedItemRef.current !== current || audioRef.current !== failedElement ||
+              (failedElement.currentSrc || failedElement.src) !== failedSource) return;
           setTranscodeAvailable(true);
           setDuration(Number(response.data?.durationSeconds) || 0);
         }).catch(() => {});
@@ -2982,6 +3070,7 @@ const PlayerBar = () => {
     },
     onPause: (event) => {
       if (event.currentTarget !== audioRef.current) return;
+      stopOutgoingFade();
       playingRef.current = false;
       setPlaying(false);
       setPlaybackStatus((status) => status === 'ended' ? status : 'paused');
@@ -3022,7 +3111,7 @@ const PlayerBar = () => {
   const audio = (
     <>
       <audio {...audioHandlers} playsInline preload="metadata" ref={bindAudioElement} />
-      <audio {...audioHandlers} playsInline preload="metadata" ref={fadeAudioRef} />
+      <audio {...audioHandlers} playsInline preload="metadata" ref={bindFadeAudioElement} />
     </>
   );
   const playerBadges = getPlayerBadges(current);

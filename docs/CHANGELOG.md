@@ -36,6 +36,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   listening statistics on playback position updates.
 - Reduced player redraws during playback by updating the displayed seek time
   when its whole-second value changes while preserving immediate seek and crossfade behavior.
+- Fixed crossfade audio continuing after Pause or Stop, prevented seeks from
+  counting as listens, kept duplicate local files in the queue, and ignored
+  delayed decoding details from a track that is no longer active. Player layout
+  changes also close the old Web Audio contexts.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical
