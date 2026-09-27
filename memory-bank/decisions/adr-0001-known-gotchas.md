@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z972. Bound Analyzer Work While Playback Is Active
+
+**The Bug**: Each lightweight analyzer canvas repainted at the browser's full animation rate and allocated a fresh audio sample array on every frame. The full player can display two analyzer canvases, multiplying work even though audio samples and UI motion do not need that rate.
+
+**Files Affected**:
+- `src/web/src/components/Player/SpectrumAnalyzer.jsx`
+
+**Prevention**: Cap canvas drawing to a useful rate, reuse typed sample buffers for each analyzer mode, and keep the existing hidden-document suspension and cleanup paths intact.
+
 ### 0z971. Local Track Selection Overrides Room Following
 
 **The Bug**: Choosing another track in the player while following a room changed local playback but left the follow subscription active. The next host event could replace the listener's explicit track choice without warning.
