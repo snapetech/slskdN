@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z938. Update Collection Hashes Alongside Tag-Changed Content IDs
+
+**The Bug**: Writing audio tags changed a file's SHA-256 content ID and updated collection references, but matching `ContentHash` values in those entries still described the previous bytes.
+
+**Files Affected**:
+- `src/slskd/Streaming/PlayerTagsController.cs`
+
+**Prevention**: When a content ID changes because file bytes changed, update any collection hash that matches the previous hash in the same reference migration. Preserve unrelated hashes and curated display metadata.
+
 ### 0z937. Do Not Apply A Native Seek To A Transcoded Offset
 
 **The Bug**: FFmpeg's transcoded stream began at the requested start offset, then the browser's metadata handler reapplied the original saved position to that new stream. Resuming could jump twice as far as requested.
