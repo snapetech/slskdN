@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z939. Roll Back Partially Saved Queue Playlists
+
+**The Bug**: Saving a playback queue created a Collection and added tracks one by one. If an add failed halfway through, the UI reported failure but left a partial playlist behind.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: If any item add fails after creating a playlist, delete that newly created Collection. If rollback also fails, tell the user a partial playlist remains so it can be reviewed.
+
 ### 0z938. Update Collection Hashes Alongside Tag-Changed Content IDs
 
 **The Bug**: Writing audio tags changed a file's SHA-256 content ID and updated collection references, but matching `ContentHash` values in those entries still described the previous bytes.
