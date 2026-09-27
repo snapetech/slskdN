@@ -44,6 +44,15 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **Prevention**: Use `AuthRole.AdministratorOnly` for administrator-only controller actions; check `AuthRole` definitions or nearby attributes before adding role policies.
 
+### 0z933. Crossfade The Existing Audio Elements
+
+**The Bug**: The player opened the previous stream again in its second audio element after a track change, so a five-second crossfade re-requested old media and could start at the wrong position.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Keep the outgoing audio element and its active stream playing while the standby element starts the next source; fade their output gains, then release the outgoing source. Do not reconstruct the outgoing playback from its URL.
+
 ---
 
 ## ⚠️ FOR AI AGENTS: ADD TO THIS FILE IMMEDIATELY
