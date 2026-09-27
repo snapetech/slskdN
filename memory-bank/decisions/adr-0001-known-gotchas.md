@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z979. Update Existing UI Assertions When Code Becomes Lazy
+
+**The Bug**: The full player visualizer was moved to `React.lazy`, but existing UI assertions still expected its canvas immediately after a click or shortcut. The component now legitimately shows a loading state until the deferred module resolves.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+
+**Prevention**: When code splitting an existing component, update its existing assertions to await the rendered result. Keep synchronous assertions only for UI that still mounts synchronously.
+
 ### 0z978. Apply Player Controls To Both Crossfade Elements
 
 **The Bug**: Volume, local mute, and playback speed effects updated only the active audio element. During a crossfade, the outgoing element kept its previous setting until it stopped, so muting or lowering volume could leave audible old audio and speed changes felt inconsistent.
