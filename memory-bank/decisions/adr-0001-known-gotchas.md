@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z982. Normalize Persisted Player Numbers Before State Creation
+
+**The Bug**: Saved volume and playback speed were converted with `Number()` directly into React state. The media element effects corrected invalid values, but the slider, speed selector, and Media Session position payload still read the invalid state, including `NaN` from malformed storage.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Validate and clamp persisted values before initializing state. The media element, visible controls, and Media Session should all receive the same valid value.
+
 ### 0z981. Hidden Player Must Not Keep Idle Room Follow Intent
 
 **The Bug**: Hiding the browser player cleared playback and followed-party state, but a room with no active broadcast had no followed-party object to transition away from. Its Follow control could remain armed. A later host event then marked the hidden player as following even though `playItem` correctly refused to start while hidden.
