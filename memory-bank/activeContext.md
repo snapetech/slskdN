@@ -14422,3 +14422,7 @@ rollback.
 Implemented source setup retry and pending playback Pause. Failed decode setup retains its requested seek target; media errors reload native playback or restart decoded playback at its timeline position. Failure state clears on track changes and Stop. Web lint, production build, bundle budget, repository lint, whitespace and identity checks passed. Commit and push are the remaining completion steps. Real-audio desktop/mobile P1 remains open; no release tag requested.
 
 Explicit native server retries now renew the two-minute stream ticket through the cancellable source effect, preserving position and pending Pause intent.
+
+## Player recovery completion — 2026-09-27T23:17:29Z
+
+Committed and pushed `15e3f7159` to fork `main` with both gotcha records. Release-note preview passed; tree was clean and synced after push. Source recovery batch complete. Next Steps: continue player review; real-audio desktop/mobile P1 remains open. No automated tests, interactive playback checks, or release tags in this batch.

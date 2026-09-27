@@ -13538,3 +13538,5 @@ export branch has no shared Git history and was not merged.
 - 2026-09-27T23:15:16Z Player failure recovery: preserve failed decoded setup target for explicit Play retry; reload native media errors with position restoration; regenerate failed decoded streams at the displayed position; stop outgoing fades before setup; expose Pause during pending loading in compact/expanded controls and keyboard toggle. Automated and real-audio tests were not run.
 
 Explicit native server retries now renew the two-minute stream ticket through the cancellable source effect, preserving position and pending Pause intent.
+
+- 2026-09-27T23:17:29Z Pushed player recovery batch `15e3f7159`: fresh native retry tickets, decoded setup/media recovery and Pause during loading. Web/repository lint, build, bundle budget, release-note preview, whitespace and identity checks passed. Real-audio P1 still open.
