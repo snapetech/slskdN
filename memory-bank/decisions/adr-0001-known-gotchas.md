@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z986. Fetch Player Collections Only When Opened
+
+**The Bug**: Expanding the player mounted its library launcher and immediately fetched all Collections, even when the user was only using transport controls. The picker then showed a misleading empty state while a deferred request would load its rows.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Fetch Collections when their browser opens, cancel stale responses on close, and show a loading state until the request resolves. Keep transport-only player use free of unnecessary library requests.
+
 ### 0z985. Reset Picker Loading When A Search Is Canceled
 
 **The Bug**: The player's local file browser canceled an in-flight request when the query became shorter than two characters, but the short-query branch did not clear `itemsLoading`. The canceled request's `finally` was deliberately ignored, leaving a permanent Loading message instead of the search prompt.
