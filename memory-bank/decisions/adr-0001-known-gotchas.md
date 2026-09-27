@@ -35,6 +35,15 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **Prevention**: Pass the collection ID with item mutations and match the controller's HTTP methods. Exercise the actual client/controller route pair when adding collection actions.
 
+### 0z932. Use The Repository's Administrator Role Constant
+
+**The Bug**: A new tag editing controller used `AuthRole.Administrator`, which does not exist, and failed to compile.
+
+**Files Affected**:
+- `src/slskd/Streaming/PlayerTagsController.cs`
+
+**Prevention**: Use `AuthRole.AdministratorOnly` for administrator-only controller actions; check `AuthRole` definitions or nearby attributes before adding role policies.
+
 ---
 
 ## ⚠️ FOR AI AGENTS: ADD TO THIS FILE IMMEDIATELY
