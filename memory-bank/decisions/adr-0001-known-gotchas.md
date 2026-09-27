@@ -8,13 +8,13 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 ### 0z946. Seek Against The Track Timeline In Fallback Playback
 
-**The Bug**: Keyboard, drawer, and Media Session rewind/forward changed the audio element's `currentTime` directly. An FFmpeg fallback stream starts at a server-side offset, so these controls could not seek before that offset and did not restart decoding at the requested absolute position.
+**The Bug**: Keyboard, drawer, and Media Session rewind/forward changed the audio element's `currentTime` directly. An FFmpeg fallback stream starts at a server-side offset, so these controls could not seek before that offset. Repeat and Previous also restarted the decoded segment rather than the full track, while seeking a paused fallback always resumed playback.
 
 **Files Affected**:
 - `src/web/src/components/Player/PlayerBar.jsx`
 - `src/web/src/components/Player/PlayerContext.jsx`
 
-**Prevention**: Route all seek controls through the player's absolute seek handler. Compute the current track position as the fallback start offset plus the media element's relative time, then request one new decoded stream for a fallback seek.
+**Prevention**: Route all seek and restart controls through the player's absolute seek handler. Compute the current track position as the fallback start offset plus the media element's relative time, request one new decoded stream for a fallback seek, and preserve pause state for user seeks.
 
 ### 0z945. Update Unreleased Changelog Alongside Release Fragments
 
