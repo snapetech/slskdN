@@ -13440,3 +13440,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:00:31Z
 
 - Excluded temporary radio stream URLs from saved Collection playlists, reusing the same replayability rule for the Save button and saved items. Recorded gotcha 0z1007 before source changes.
+
+## Update 2026-09-27 21:02:49Z
+
+- Versioned the small analyzer preference so existing browsers no longer retain the old automatically persisted Spectrum default. Kept old Scope selections, which required an explicit user action. Recorded gotcha 0z1008 before source changes.

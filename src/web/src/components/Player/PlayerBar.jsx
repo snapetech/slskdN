@@ -75,7 +75,8 @@ const lyricsStorageKey = 'slskdn.player.lyricsOpen';
 const karaokeStorageKey = 'slskdn.player.karaokeEnabled';
 const crossfadeStorageKey = 'slskdn.player.crossfadeEnabled';
 const visualTileStorageKey = 'slskdn.player.visualTileMode';
-const analyzerModeStorageKey = 'slskdn.player.analyzerMode';
+const legacyAnalyzerModeStorageKey = 'slskdn.player.analyzerMode';
+const analyzerModeStorageKey = 'slskdn.player.analyzerMode.v2';
 const volumeStorageKey = 'slskdn.player.volume';
 const playbackRateStorageKey = 'slskdn.player.rate';
 const playerBrowserPageSize = 80;
@@ -159,7 +160,8 @@ const readStoredTileMode = () => {
 
 const readStoredAnalyzerMode = () => {
   const mode = getLocalStorageItem(analyzerModeStorageKey);
-  return ['off', 'spectrum', 'scope'].includes(mode) ? mode : 'off';
+  if (['off', 'spectrum', 'scope'].includes(mode)) return mode;
+  return getLocalStorageItem(legacyAnalyzerModeStorageKey) === 'scope' ? 'scope' : 'off';
 };
 
 const setPlayerHeightVariable = (element) => {

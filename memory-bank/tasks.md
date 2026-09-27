@@ -35,7 +35,7 @@
 
 - [x] Keep ordinary player playback on the browser's native audio path.
   - Status: implemented (2026-09-27).
-  - Notes: Plain playback no longer allocates Web Audio or its EQ/analyzer nodes. The small analyzer starts Off with a saved three-state cycle; EQ, karaoke, crossfade, output changes, and visualizers create and resume graphs only when requested.
+  - Notes: Plain playback no longer allocates Web Audio or its EQ/analyzer nodes. The small analyzer starts Off with a saved three-state cycle; the old automatically saved Spectrum default migrates to Off while explicit Scope survives. EQ, karaoke, crossfade, output changes, and visualizers create and resume graphs only when requested.
 
 - [x] Exclude short-lived radio URLs from restored player sessions.
   - Status: implemented (2026-09-27).

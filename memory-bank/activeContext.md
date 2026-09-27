@@ -14266,3 +14266,17 @@ rollback.
   budget, repository lint, whitespace, and local identity checks passed.
   Release preview and fork push remain.
 - Next steps: push this batch, then continue reviewing queue edge cases.
+
+## Update 2026-09-27 21:02:49Z
+
+- Current task: migrate the old analyzer default in browser storage so the
+  native playback resource reduction reaches existing installations. Source,
+  docs, and gotcha 0z1008 are local; validation and release fragment remain.
+- Next steps: validate the migration, preview release notes, and push.
+
+## Update 2026-09-27 21:03:56Z
+
+- Analyzer preference migration is implemented. Web lint, production build,
+  bundle budget, repository lint, whitespace, and local identity checks passed.
+  Release preview and fork push remain.
+- Next steps: push this batch and continue reviewing the player state model.

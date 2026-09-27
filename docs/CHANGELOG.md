@@ -78,6 +78,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Saving a queue as a Collection playlist now skips temporary radio streams
   as well as browser-local files; Save is unavailable when no replayable
   server-library track remains.
+- Migrated the old automatically saved Spectrum analyzer default to Off for
+  existing browsers; previously selected Scope remains enabled.
 - Applied volume, local mute, and playback speed changes to both audio elements
   during crossfades.
 - Clear Upcoming now keeps played-track history available for Previous and
