@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z943. Commit Transcoded Seeks Once Per Slider Interaction
+
+**The Bug**: The seek range called its playback seek handler on every input change. In FFmpeg fallback mode each drag step requested a new ticket and transcode, causing avoidable process churn and rate-limit errors.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Preview the selected time locally while the user drags or uses keys, then commit one seek on release or blur. Keep native and transcoded sources on the same interaction model.
+
 ### 0z942. Do Not Requeue The Track Being Replaced
 
 **The Bug**: Selecting another track without replacing the whole queue prepended it ahead of the old current track. The just-interrupted track then played again on Next and also remained in history, producing duplicate repeat-all cycles.
