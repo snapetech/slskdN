@@ -14400,3 +14400,11 @@ rollback.
 - Next steps: perform the P1 desktop/mobile real-audio inspection tracked in
   `memory-bank/tasks.md`. Static checks do not establish audible behavior or
   layout quality. No release tag was created.
+## Update 2026-09-27 22:47:53Z
+
+- Current task: saved-playlist repeat support and per-occurrence queue removal
+  are implemented locally with a new release fragment and gotcha 0z1025
+  committed separately.
+- Next steps: run static checks, preview release notes, commit and push to the
+  verified fork. Interactive real-audio browser inspection remains P1; no
+  release tag is authorized.

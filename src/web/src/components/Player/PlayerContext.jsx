@@ -186,14 +186,17 @@ export const PlayerProvider = ({ children }) => {
       playItem(item, { replaceQueue: true });
       return;
     }
-    setPlayback((existing) => ({
-      ...existing,
-      queue: [
-        ...existing.queue.slice(0, 1),
-        item,
-        ...existing.queue.slice(1).filter((entry) => entry.contentId !== item.contentId),
-      ],
-    }));
+    setPlayback((existing) => {
+      const upcoming = existing.queue.slice(1);
+      const existingIndex = upcoming.findIndex((entry) => entry.contentId === item.contentId);
+      const nextItem = existingIndex >= 0
+        ? upcoming.splice(existingIndex, 1)[0]
+        : item;
+      return {
+        ...existing,
+        queue: [...existing.queue.slice(0, 1), nextItem, ...upcoming],
+      };
+    });
   }, [current, playItem]);
 
   const moveQueueItem = useCallback((fromIndex, toIndex) => {
@@ -205,8 +208,16 @@ export const PlayerProvider = ({ children }) => {
     });
   }, []);
 
-  const queueItems = useCallback((items = []) => {
+  const queueItems = useCallback((items = [], { allowDuplicates = false } = {}) => {
     setPlayback((existing) => {
+      if (allowDuplicates) {
+        const additions = items
+          .filter((item) => item?.contentId)
+          .map((item) => ({ ...item }));
+        return additions.length > 0
+          ? { ...existing, queue: [...existing.queue, ...additions] }
+          : existing;
+      }
       const queuedIds = new Set(existing.queue.map((item) => item.contentId));
       const additions = items.filter((item) => {
         if (!item?.contentId || queuedIds.has(item.contentId)) return false;
@@ -220,11 +231,14 @@ export const PlayerProvider = ({ children }) => {
     });
   }, []);
 
-  const removeFromQueue = useCallback((contentId) => {
-    setPlayback((existing) => ({
-      ...existing,
-      queue: existing.queue.filter((item, index) => index === 0 || item.contentId !== contentId),
-    }));
+  const removeFromQueue = useCallback((queueIndex) => {
+    setPlayback((existing) => {
+      if (queueIndex < 1 || queueIndex >= existing.queue.length) return existing;
+      return {
+        ...existing,
+        queue: existing.queue.filter((_, index) => index !== queueIndex),
+      };
+    });
   }, []);
 
   const followParty = useCallback((partyState) => {

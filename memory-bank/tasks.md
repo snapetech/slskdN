@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Preserve repeated tracks when loading saved playlists.
+  - Status: implemented (2026-09-27).
+  - Notes: Playlist load keeps every row in order; upcoming removal targets
+    one queue position, and Play Next preserves other occurrences.
+
 - [x] Clear stale Collection picker requests on close.
   - Status: implemented (2026-09-27).
   - Notes: Every close path invalidates the pending item request and clears

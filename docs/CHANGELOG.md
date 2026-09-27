@@ -100,6 +100,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   on hover and have clear accessible names.
 - Closing the player Collection picker now clears its selected rows and
   ignores a pending item response, so reopening starts from a fresh choice.
+- Saved playlists now keep repeated occurrences of a track in playback order.
+  Removing an upcoming occurrence affects only that queue position, and Play
+  Next moves one existing occurrence forward without deleting other repeats.
 - Selecting another track now stops the previous audio immediately when
   crossfade is off or the new track starts paused; a second selection also
   ends any outgoing fade while its stream ticket is pending.

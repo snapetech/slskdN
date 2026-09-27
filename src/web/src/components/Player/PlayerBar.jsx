@@ -808,7 +808,7 @@ const PlayerQueueModal = ({
                           aria-label={`Remove ${getTrackLabel(item)} from queue`}
                           data-testid={`player-remove-queue-${item.contentId}`}
                           icon
-                          onClick={() => onRemove(item.contentId)}
+                          onClick={() => onRemove(index + 1)}
                           size="mini"
                           type="button"
                         >
@@ -3365,7 +3365,7 @@ const PlayerBar = () => {
   const loadPlaylist = (items) => {
     const [first, ...remaining] = items;
     playItem(first, { replaceQueue: true });
-    queueItems(remaining);
+    queueItems(remaining, { allowDuplicates: true });
   };
 
   const audioHandlers = {
@@ -4142,15 +4142,15 @@ const PlayerBar = () => {
       /> : null}
       {current && queue.length > 1 ? (
         <div className="player-queue">
-          {queue.slice(1, 4).map((item) => (
+          {queue.slice(1, 4).map((item, index) => (
             <Popup
               content={`Remove ${item.title || item.fileName || item.contentId} from upcoming playback without stopping the current track.`}
-              key={item.contentId}
+              key={`${item.contentId}-${index}`}
               trigger={
                 <button
                   aria-label={`Remove ${item.title || item.fileName || item.contentId} from queue`}
                   className="player-queue-item"
-                  onClick={() => removeFromQueue(item.contentId)}
+                  onClick={() => removeFromQueue(index + 1)}
                   type="button"
                 >
                   {item.title || item.fileName || item.contentId}

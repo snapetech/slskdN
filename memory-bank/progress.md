@@ -13519,3 +13519,11 @@ export branch has no shared Git history and was not merged.
   Web lint/build, bundle budget, repository lint, whitespace, identity, and
   release-range preview passed. Automated and interactive playback checks
   were not run in this continuation.
+## Update 2026-09-27 22:47:53Z
+
+- Saved Collection playlist loading now preserves repeated track rows.
+  Upcoming removal uses queue position, and Play Next moves one matching
+  occurrence without deleting the others. Auto-fill Similar still deduplicates
+  by content ID. Recorded gotcha 0z1025 separately.
+- Next: static validation, release preview, commit, and push to the verified
+  fork. Real-audio desktop/mobile inspection remains open.
