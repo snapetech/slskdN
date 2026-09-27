@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1012. Keep The Selected Track Active After Crossfade Start Failure
+
+**The Bug**: If the incoming crossfade element rejects `play()`, the player selects the next track in state but swaps its active audio ref back to the outgoing track. A later Play retry can replay that old source while the UI and Now Playing identify the new track.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Stop and clear the outgoing element, keep the incoming element bound as active for retry or Decode, and show the start failure for the selected track.
+
 ### 0z1011. Pair Pending Source Ownership With Its URL
 
 **The Bug**: A source owner ref set to the newly selected track can update before React applies its new `source` state. The source-binding effect can then mistake the old URL for the new track's source and briefly reload or play the wrong audio.
