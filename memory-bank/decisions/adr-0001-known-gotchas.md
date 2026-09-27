@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z954. Close Web Audio Contexts When Player Elements Unmount
+
+**The Bug**: The player remounts its two audio elements when it collapses, expands, or hides. Their Web Audio graphs lived in a WeakMap with no explicit context closure, so repeated layout changes could leave browser audio resources allocated until collection.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/audioGraph.js`
+
+**Prevention**: Release the graph and close its AudioContext when its concrete media element unmounts. Track both rendered audio elements independently because crossfade swaps the logical active and standby refs without changing the DOM elements.
+
 ### 0z953. Ignore Late Playback Error Metadata After A Track Switch
 
 **The Bug**: Playback error handling fetched server decoding information asynchronously, then applied its duration and fallback availability even if another track or source had become active. The next track could inherit the previous track's fallback action and duration.
