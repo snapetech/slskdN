@@ -13315,3 +13315,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 19:48:00Z
 
 - Made local Stop and explicit local track selection exit listen-along follow mode. Host-driven `playItem` calls carry a scoped option so they retain follow intent; the room panel synchronizes its Follow control when context state clears. Recorded gotchas 0z970–0z971 and added an append-only release fragment. Web lint/build and release-note validation pass.
+
+## Update 2026-09-27 19:55:00Z
+
+- Capped active lightweight spectrum and scope canvas drawing near 30 fps and reused typed audio sample buffers instead of allocating each frame. Hidden-document suspension and teardown remain in place. Recorded gotcha 0z972; added an append-only release fragment and listening-guide note. Web lint/build, release-note validation, and whitespace checks pass.

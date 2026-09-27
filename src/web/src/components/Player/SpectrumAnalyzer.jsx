@@ -6,6 +6,7 @@ const scopeTargetPeak = 0.78;
 const maxScopeGain = 4;
 const scopeDisplaySamples = 192;
 const scopeReadIntervalMs = 45;
+const drawIntervalMs = 33;
 
 export const getFrequencyBars = (data, barCount) => {
   if (!data?.length || barCount <= 0) return [];
@@ -130,6 +131,8 @@ const drawScopeLine = (ctx, points, width, height, options = {}) => {
 const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
+  const sampleRef = useRef(null);
+  const lastDrawRef = useRef(0);
   const scopeLastReadRef = useRef(0);
   const scopePointsRef = useRef(null);
 
@@ -139,6 +142,12 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
       if (document.hidden) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
+      if (timestamp && timestamp - lastDrawRef.current < drawIntervalMs) {
+        rafRef.current = window.requestAnimationFrame((nextTimestamp) =>
+          draw(analyser, nextTimestamp));
+        return;
+      }
+      lastDrawRef.current = timestamp;
 
       const rect = canvas.getBoundingClientRect();
       const width = Math.max(1, Math.floor(rect.width));
@@ -157,7 +166,10 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
           || timestamp - scopeLastReadRef.current >= scopeReadIntervalMs;
 
         if (shouldRead) {
-          const data = new Uint8Array(analyser.fftSize);
+          if (sampleRef.current?.length !== analyser.fftSize) {
+            sampleRef.current = new Uint8Array(analyser.fftSize);
+          }
+          const data = sampleRef.current;
           analyser.getByteTimeDomainData(data);
           points = getScopePoints(data, width, height, scopePointsRef.current);
           scopePointsRef.current = points;
@@ -166,7 +178,10 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
 
         drawScopeLine(ctx, points, width, height);
       } else {
-        const data = new Uint8Array(analyser.frequencyBinCount);
+        if (sampleRef.current?.length !== analyser.frequencyBinCount) {
+          sampleRef.current = new Uint8Array(analyser.frequencyBinCount);
+        }
+        const data = sampleRef.current;
         analyser.getByteFrequencyData(data);
         drawFrequencyBars(ctx, data, width, height);
       }
@@ -204,6 +219,8 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
       }
       scopeLastReadRef.current = 0;
       scopePointsRef.current = null;
+      lastDrawRef.current = 0;
+      sampleRef.current = null;
     };
   }, [audioElement, draw, mode]);
 

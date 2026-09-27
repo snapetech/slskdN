@@ -1,3 +1,8 @@
+## Update 2026-09-27 19:55:00Z
+
+- Current task: lightweight analyzer frame work reduced. Spectrum and scope canvases now draw near 30 fps and reuse typed audio sample buffers, retaining hidden-document suspension.
+- Next: finish repository checks, commit and push to the verified fork. Continue targeted lifecycle review. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 19:48:00Z
 
 - Current task: local Stop and explicit local track selection now exit listen-along follow mode, preventing a later host update from restarting or replacing playback. Host-driven selections preserve follow state.
