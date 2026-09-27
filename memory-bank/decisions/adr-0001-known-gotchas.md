@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z984. Ignore Stale Collection Item Responses In The Player Picker
+
+**The Bug**: The player's Collection browser launched an item request for each selected Collection without checking which response was newest. Clicking Collection A then B could leave B selected while A's slower response replaced the visible track list.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Give each Collection item request an increasing selection ID and apply its result only if it still belongs to the latest selected Collection. Clear the old list while the new one loads.
+
 ### 0z983. Give Icon And File-Browser Actions Clear Names And Tooltips
 
 **The Bug**: Several listen-along actions were icon-only buttons without accessible names. Player file-browser breadcrumbs, folders, and queue preview buttons used native `title` text instead of the Semantic UI Popup tooltips required for controls in this repository.
