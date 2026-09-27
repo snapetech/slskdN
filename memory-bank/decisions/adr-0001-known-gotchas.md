@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z947. Announce ListenBrainz Playing Now Once Per Track Start
+
+**The Bug**: Every pause/resume cycle called ListenBrainz `playing_now` for the same track. Repeated use of the player generated unnecessary external requests without a new track start.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Track the announcement state for the selected item. Reset it when a new item starts or the same item repeats, while letting local Now Playing resume after pauses.
+
 ### 0z946. Seek Against The Track Timeline In Fallback Playback
 
 **The Bug**: Keyboard, drawer, and Media Session rewind/forward changed the audio element's `currentTime` directly. An FFmpeg fallback stream starts at a server-side offset, so these controls could not seek before that offset. Repeat and Previous also restarted the decoded segment rather than the full track, while seeking a paused fallback always resumed playback.
