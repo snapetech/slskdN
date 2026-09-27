@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1035. Rebuild The Web Artifact Before Direct Browser Regression Runs
+
+**The Bug**: Direct Playwright execution after a source fix still served the prior Web build. The isolated node harness copies an existing production artifact and rebuilds only when that artifact is absent, so the browser reproduced behavior that had already changed in source.
+
+**Files Affected**:
+- `src/web/e2e/harness/SlskdnNode.ts`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Run the Web production build before direct Playwright execution after every source change. Record evidence against the artifact actually served; passing source tests do not establish what the browser loaded.
+
 ### 0z1034. Keep Player Collapse In The Primary Controls
 
 **The Bug**: Expanded player Collapse was inside the optional advanced tools. The normal player exposed Hide, which stops playback, while the control for reducing its footprint without stopping audio required opening a tools drawer first. Real-browser transport verification could not find Collapse with tools closed.
