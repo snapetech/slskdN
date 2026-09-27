@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z980. Clearing Upcoming Must Preserve Played History
+
+**The Bug**: The queue dialog's Clear Upcoming action called a context method that emptied both future queue entries and the already-played history. Previous then became unavailable even though the user had asked only to remove upcoming tracks.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Keep queue and history as separate user concepts within the atomic playback state. Clear only upcoming entries for the Clear Upcoming action, leaving Previous and repeat-all history intact.
+
 ### 0z979. Update Existing UI Assertions When Code Becomes Lazy
 
 **The Bug**: The full player visualizer was moved to `React.lazy`, but existing UI assertions still expected its canvas immediately after a click or shortcut. The component now legitimately shows a loading state until the deferred module resolves.
