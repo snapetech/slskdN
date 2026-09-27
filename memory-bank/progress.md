@@ -13392,3 +13392,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:24:00Z
 
 - Made neutral audio-graph settings no-ops until a graph exists, avoiding an idle AudioContext and ten filter nodes for the default paused player. Active playback and non-neutral settings still create the graph when needed. Recorded gotcha 0z992 before source edits and added an append-only release fragment.
+
+## Update 2026-09-27 20:28:00Z
+
+- Routed Media Session Play through the visible player's status-aware start handler, so external controls clear stale errors and surface failed playback attempts. Recorded gotcha 0z993 before source edits and added an append-only release fragment.

@@ -3039,7 +3039,7 @@ const PlayerBar = () => {
     const handlers = {
       nexttrack: next,
       pause: pausePlayback,
-      play: () => playAudio().catch(() => {}),
+      play: tryPlay,
       previoustrack: previousTrack,
       seekbackward: (details) => seekBy(-(details?.seekOffset || 15)),
       seekforward: (details) => seekBy(details?.seekOffset || 30),
@@ -3063,7 +3063,7 @@ const PlayerBar = () => {
         }
       });
     };
-  }, [current, next, pausePlayback, previousTrack, seekBy, seekTo]);
+  }, [current, next, pausePlayback, previousTrack, seekBy, seekTo, tryPlay]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
