@@ -13311,3 +13311,7 @@ export branch has no shared Git history and was not merged.
 - Corrected a visualizer visibility mismatch: a saved Butterchurn/MilkDrop tile no longer keeps rendering when the visualizer setting is Off. Album art appears until the user reactivates the selected engine. Recorded gotcha 0z968 and updated the release fragment and listening guide. Web lint/build and release-note validation pass.
 
 - The first release-note range preview rejected an edit to an already-published fragment. Restored the original bytes, added a separate append-only fragment for visualizer Off, and recorded gotcha 0z969 before the correction.
+
+## Update 2026-09-27 19:48:00Z
+
+- Made local Stop and explicit local track selection exit listen-along follow mode. Host-driven `playItem` calls carry a scoped option so they retain follow intent; the room panel synchronizes its Follow control when context state clears. Recorded gotchas 0z970–0z971 and added an append-only release fragment. Web lint/build and release-note validation pass.

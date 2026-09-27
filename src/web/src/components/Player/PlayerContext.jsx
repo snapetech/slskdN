@@ -91,6 +91,7 @@ export const PlayerProvider = ({ children }) => {
   const playItem = useCallback(
     (item, options = {}) => {
       if (!playerVisible || !item?.contentId) return;
+      if (!options.fromParty) setFollowingParty(null);
 
       const playable = {
         album: item.album || item.collectionTitle || '',
@@ -148,6 +149,7 @@ export const PlayerProvider = ({ children }) => {
 
     playbackPositionRef.current = 0;
     setPlayback({ current: null, history: [], queue: [] });
+    setFollowingParty(null);
     nowPlaying.clearNowPlaying().catch(() => {});
   }, [audioElement]);
 

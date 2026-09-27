@@ -1,3 +1,8 @@
+## Update 2026-09-27 19:48:00Z
+
+- Current task: local Stop and explicit local track selection now exit listen-along follow mode, preventing a later host update from restarting or replacing playback. Host-driven selections preserve follow state.
+- Next: complete repository validation and push to the verified fork; review remaining high-impact player paths. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 19:40:00Z
 
 - Current task: visualizer Off now unmounts a persisted heavy visualizer tile and shows album art, preserving the chosen engine for reactivation. This closes a lifecycle defect that could load and render the module despite the Off setting.

@@ -54,6 +54,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Deferred the full visualizer code until its tile is activated, reducing the
   initial Web entry chunk while keeping the lightweight analyzer available.
   Turning the visualizer off now shows album art and releases its renderer.
+- Local Stop or choosing another track now leaves listen-along follow mode, so
+  later host updates do not restart or replace the listener's playback.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

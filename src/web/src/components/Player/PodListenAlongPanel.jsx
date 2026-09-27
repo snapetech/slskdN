@@ -43,6 +43,7 @@ const applyPartyState = (state, player) => {
         title: state.title || state.contentId,
       },
       {
+        fromParty: true,
         positionSeconds: (state.positionSeconds || 0) + elapsed,
         replaceQueue: true,
       },
@@ -63,6 +64,7 @@ const applyPartyState = (state, player) => {
           title: state.title || state.contentId,
         },
         {
+          fromParty: true,
           positionSeconds,
           replaceQueue: true,
           startPaused: true,
@@ -88,6 +90,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const directoryFetchInFlightRef = useRef(false);
   const mountedRef = useRef(false);
   const followingRef = useRef(false);
+  const followedPartyRef = useRef(player.followingParty);
   const playerRef = useRef(player);
 
   useEffect(() => {
@@ -100,6 +103,14 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   useEffect(() => {
     followingRef.current = following;
   }, [following]);
+
+  useEffect(() => {
+    if (followedPartyRef.current && !player.followingParty && followingRef.current) {
+      followingRef.current = false;
+      setFollowing(false);
+    }
+    followedPartyRef.current = player.followingParty;
+  }, [player.followingParty]);
 
   useEffect(() => {
     playerRef.current = player;
