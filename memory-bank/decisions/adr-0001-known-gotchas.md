@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z937. Do Not Apply A Native Seek To A Transcoded Offset
+
+**The Bug**: FFmpeg's transcoded stream began at the requested start offset, then the browser's metadata handler reapplied the original saved position to that new stream. Resuming could jump twice as far as requested.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Use the saved media position only when loading a natively seekable source. For transcoded output, use the server start offset as the absolute position and the media element time as relative progress.
+
 ### 0z936. Keep The Last Track In Repeat-All Cycles
 
 **The Bug**: When repeat-all rebuilt the queue at its final item, it used only playback history. The current final track disappeared from the next cycle. A single-track queue also stopped instead of repeating.
