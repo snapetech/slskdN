@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z929. Drive Now Playing From Actual Audio Events
+
+**The Bug**: Selecting a player item published Now Playing before audio started, while ending the last queued item left that status in place.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Publish Now Playing from the media element's successful play event and clear it on stop, terminal playback, and media failure. Selection and queue state alone do not prove that audio is audible.
+
 ---
 
 ## ⚠️ FOR AI AGENTS: ADD TO THIS FILE IMMEDIATELY
