@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z990. End Active Crossfades On Direct Transport Changes
+
+**The Bug**: Turning crossfade off or scrubbing during its five-second overlap left the outgoing track audible until the original fade timeout. The setting and seek position changed while two tracks continued playing.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Cancel an active outgoing fade when disabling crossfade or seeking. Reset the near-end crossfade marker after an explicit seek so the track can transition normally when it reaches its end again.
+
 ### 0z989. Reject Superseded Lyrics Results
 
 **The Bug**: A lyrics response could finish parsing after its request was aborted and overwrite the newer track's lyrics. The effect also omitted filename changes from its lookup dependencies and left the prior track's words visible while loading.
