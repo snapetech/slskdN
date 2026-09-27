@@ -2,10 +2,12 @@ import PlayerBar from './PlayerBar';
 import React from 'react';
 import { PlayerProvider, usePlayer } from './PlayerContext';
 import { MemoryRouter } from 'react-router-dom';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import * as externalVisualizer from '../../lib/externalVisualizer';
 import * as collectionsAPI from '../../lib/collections';
+import * as audioGraph from './audioGraph';
+import * as streaming from '../../lib/streaming';
 import * as nowPlaying from '../../lib/nowPlaying';
 import * as searches from '../../lib/searches';
 import * as wishlistAPI from '../../lib/wishlist';
@@ -162,7 +164,7 @@ vi.mock('../../lib/wishlist', () => ({
 }));
 
 const TestHarness = () => {
-  const { playItem } = usePlayer();
+  const { playItem, queueItems } = usePlayer();
 
   return (
     <>
@@ -221,6 +223,15 @@ const TestHarness = () => {
       >
         Play third fixture
       </button>
+      <button
+        onClick={() => queueItems([
+          { contentId: 'sha256:second', title: 'Second stream', artist: 'slskdN' },
+          { contentId: 'sha256:test', title: 'Local stream', artist: 'slskdN' },
+        ])}
+        type="button"
+      >
+        Queue prior fixtures
+      </button>
       <PlayerBar />
     </>
   );
@@ -240,6 +251,7 @@ const renderPlayer = () => {
 };
 
 describe('PlayerBar', () => {
+  const originalMediaSession = Object.getOwnPropertyDescriptor(navigator, 'mediaSession');
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
@@ -256,6 +268,8 @@ describe('PlayerBar', () => {
   });
 
   afterEach(() => {
+    if (originalMediaSession) Object.defineProperty(navigator, 'mediaSession', originalMediaSession);
+    else delete navigator.mediaSession;
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -310,6 +324,158 @@ describe('PlayerBar', () => {
     fireEvent.error(audio);
     fireEvent.click(await screen.findByText('Decode for playback'));
     await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
+  });
+
+  it('accumulates decoded seeks while setup is pending and preserves Play intent', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+    const decode = await screen.findByText('Decode for playback');
+    let finishInitialSetup;
+    streaming.getPlaybackInfo.mockImplementationOnce(() => new Promise((resolve) => {
+      finishInitialSetup = resolve;
+    }));
+    fireEvent.click(decode);
+    await waitFor(() => expect(finishInitialSetup).toBeDefined());
+    HTMLMediaElement.prototype.play.mockClear();
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('startSeconds=60'));
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
+    await act(async () => finishInitialSetup({ data: { durationSeconds: 120 } }));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('startSeconds=60'));
+    expect(screen.getByLabelText('Seek playback')).toHaveAttribute('aria-valuetext', '1:00 of 2:00');
+  });
+
+  it('keeps pending decoded seeks paused after transport Pause', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+    const decode = await screen.findByText('Decode for playback');
+    let finishInitialSetup;
+    streaming.getPlaybackInfo.mockImplementationOnce(() => new Promise((resolve) => {
+      finishInitialSetup = resolve;
+    }));
+    fireEvent.click(decode);
+    await waitFor(() => expect(finishInitialSetup).toBeDefined());
+    fireEvent.click(screen.getByTestId('player-toggle-playback'));
+    HTMLMediaElement.prototype.play.mockClear();
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('startSeconds=60'));
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    expect(screen.getByTestId('player-toggle-playback')).toHaveAccessibleName('Resume local playback');
+    await act(async () => finishInitialSetup({ data: { durationSeconds: 120 } }));
+  });
+
+  it('preserves native pending seek and autoplay across layout remounts', async () => {
+    renderPlayer();
+    let finishTicket;
+    streaming.createStreamTicket.mockImplementationOnce(() => new Promise((resolve) => {
+      finishTicket = resolve;
+    }));
+    fireEvent.click(screen.getByText('Play fixture'));
+    await waitFor(() => expect(finishTicket).toBeDefined());
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    fireEvent.click(screen.getByTestId('player-collapse'));
+    HTMLMediaElement.prototype.play.mockClear();
+    await act(async () => finishTicket('pending-ticket'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('pending-ticket'));
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 120 });
+    fireEvent.loadedMetadata(audio);
+    expect(audio.currentTime).toBe(60);
+  });
+
+  it('retries failed decoded setup instead of waiting for an absent source', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+    const decode = await screen.findByText('Decode for playback');
+    streaming.createStreamTicket.mockRejectedValueOnce(new Error('busy'));
+    fireEvent.click(decode);
+    await screen.findByText(/Decoding could not start/u);
+    fireEvent.click(screen.getByTestId('player-toggle-playback'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
+  });
+
+  it('refreshes failed native server media tickets and restores its position', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('ticket-1'));
+    audio.currentTime = 37;
+    Object.defineProperty(audio, 'error', { configurable: true, value: { code: 2 } });
+    HTMLMediaElement.prototype.load.mockImplementation(() => {
+      Object.defineProperty(audio, 'error', { configurable: true, value: null });
+    });
+    fireEvent.error(audio);
+    streaming.createStreamTicket.mockResolvedValueOnce('fresh-ticket');
+    fireEvent.click(screen.getByTestId('player-toggle-playback'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('fresh-ticket'));
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 120 });
+    fireEvent.loadedMetadata(audio);
+    expect(audio.currentTime).toBe(37);
+  });
+
+  it('closes a stale Picture-in-Picture window after the player is hidden', async () => {
+    vi.spyOn(audioGraph, 'resumeAudioGraph').mockResolvedValue({});
+    let finishWindow;
+    const requestWindow = vi.fn(() => new Promise((resolve) => { finishWindow = resolve; }));
+    vi.stubGlobal('documentPictureInPicture', { requestWindow });
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.click(screen.getByTestId('player-document-pip'));
+    await waitFor(() => expect(finishWindow).toBeDefined());
+    fireEvent.click(screen.getByTestId('player-hide'));
+    const staleWindow = { close: vi.fn() };
+    await act(async () => finishWindow(staleWindow));
+    expect(staleWindow.close).toHaveBeenCalledOnce();
+  });
+
+  it('reports a rejected Picture-in-Picture request without stopping playback', async () => {
+    vi.spyOn(audioGraph, 'resumeAudioGraph').mockResolvedValue({});
+    vi.stubGlobal('documentPictureInPicture', {
+      requestWindow: vi.fn(() => Promise.reject(new Error('denied'))),
+    });
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.play(audio);
+    fireEvent.click(screen.getByTestId('player-document-pip'));
+    await screen.findByText(/Picture-in-Picture could not open/u);
+    expect(screen.getByTestId('player-toggle-playback')).toHaveAccessibleName('Pause local playback');
+    window.documentPictureInPicture.requestWindow.mockImplementationOnce(() => new Promise(() => {}));
+    fireEvent.click(screen.getByTestId('player-document-pip'));
+    expect(screen.queryByText(/Picture-in-Picture could not open/u)).not.toBeInTheDocument();
+  });
+
+  it('clears stale Media Session position after Stop', async () => {
+    const setPositionState = vi.fn();
+    Object.defineProperty(navigator, 'mediaSession', {
+      configurable: true,
+      value: { setActionHandler: vi.fn(), setPositionState },
+    });
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 120 });
+    fireEvent.loadedMetadata(audio);
+    expect(setPositionState).toHaveBeenLastCalledWith(expect.objectContaining({ duration: 120 }));
+    fireEvent.click(screen.getByTestId('player-stop'));
+    expect(setPositionState).toHaveBeenLastCalledWith();
   });
 
   it('mutes local browser playback without clearing the stream source', async () => {
@@ -536,6 +702,7 @@ describe('PlayerBar', () => {
     fireEvent.click(screen.getByText('Play second fixture'));
 
     expect(screen.getByText('Second stream')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Queue prior fixtures'));
     expect(screen.getByText('Local stream')).toBeInTheDocument();
     expect(document.querySelector('.player-queue')?.textContent).not.toContain(
       'Second stream',
@@ -727,6 +894,7 @@ describe('PlayerBar', () => {
     fireEvent.click(screen.getByText('Play fixture'));
     fireEvent.click(screen.getByText('Play second fixture'));
     fireEvent.click(screen.getByText('Play third fixture'));
+    fireEvent.click(screen.getByText('Queue prior fixtures'));
     fireEvent.click(screen.getByTestId('player-open-queue'));
 
     expect(await screen.findByText('Playback Queue')).toBeInTheDocument();
@@ -785,6 +953,7 @@ describe('PlayerBar', () => {
 
     fireEvent.click(screen.getByText('Play fixture'));
     const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
 
     Object.defineProperty(audio, 'duration', {
       configurable: true,

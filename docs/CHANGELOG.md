@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed repeated seeks during stream setup and preserved pending position and
+  Play/Pause intent across player layout changes. Lock-screen seek state now
+  clears when no track duration is known, and Picture-in-Picture opens cancel
+  safely when the player closes or hides.
+
 - Fixed Play retry after decoded-stream setup or media failure, retained the
   retry position, renewed failed server stream tickets, and made Pause
   available while playback is loading.

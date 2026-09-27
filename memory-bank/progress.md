@@ -13540,3 +13540,7 @@ export branch has no shared Git history and was not merged.
 Explicit native server retries now renew the two-minute stream ticket through the cancellable source effect, preserving position and pending Pause intent.
 
 - 2026-09-27T23:17:29Z Pushed player recovery batch `15e3f7159`: fresh native retry tickets, decoded setup/media recovery and Pause during loading. Web/repository lint, build, bundle budget, release-note preview, whitespace and identity checks passed. Real-audio P1 still open.
+
+- 2026-09-27T23:27:34Z Player lifecycle batch: eager decoded seek targets, accumulating pending relative seeks with preserved autoplay intent, deferred native seeking, layout remount ownership guards, cleared unknown Media Session timelines, formatted slider announcements, and generation-guarded Picture-in-Picture with visible failures. Added eight transport/recovery regressions and corrected three older fixture assumptions. Validation pending.
+
+- 2026-09-27T23:29:56Z Verification: focused player/listen-along/shortcut suite passed 41 tests; full Web suite passed 959 tests across 164 files after correcting outdated queue/listening and Collection API fixtures. No unhandled test errors. Web/repository lint, production build, bundle budget and identity checks passed. Runtime desktop/mobile playback remains unverified. Final retry-feedback regression rerun and commit/push pending.

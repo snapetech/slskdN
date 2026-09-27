@@ -84,7 +84,7 @@ Controls include:
 - Keyboard shortcuts apply when focus is outside buttons, links, sliders, and text controls, leaving normal keyboard operation of those controls intact.
 - Optional MilkDrop visualizer, lightweight analyzer, equalizer, synced lyrics, crossfade, karaoke-style center-channel reduction, and ListenBrainz now-playing/scrobble submission when the relevant player controls are enabled.
 
-The optional Picture-in-Picture spectrum follows the active audio element across crossfades and player layout changes. It draws less often while playback is paused and closes when the player is hidden.
+The optional Picture-in-Picture spectrum follows the active audio element across crossfades and player layout changes. It draws less often while playback is paused and closes when the player is hidden. Hiding the player also cancels a pending window open; an opening failure appears in the player without stopping playback.
 The full visualizer module loads only when its tile is activated; ordinary playback and the lightweight analyzer do not need to load it.
 Turning the visualizer off returns its tile to album art while preserving the selected engine for later use.
 The lightweight spectrum and scope canvases cap drawing near 30 frames per second and reuse audio buffers while active; they pause drawing when the document is hidden. The small analyzer starts Off and cycles through Spectrum, Scope, and Off when clicked. Its chosen mode is saved in this browser. When upgrading from the older always-on analyzer, the automatically saved Spectrum default becomes Off; a previously selected Scope mode is preserved.
@@ -93,7 +93,7 @@ The player publishes Now Playing after playback begins and clears it on pause, s
 Browser Now Playing changes are sent in playback order, so a slow Play update cannot overwrite a later Pause or Stop clear.
 While a new track's stream ticket is loading, events from the previous media source do not advance the queue or count toward the new track's listening history. Play and Pause during ticket or decode setup apply to the selected track when its source is ready. Re-selecting a track with the same URL restarts it; if an incoming crossfade cannot start, retry targets the selected track.
 
-Seeking, rewind/fast-forward, Previous, and repeat use the full track position during decoded playback. Seeking while paused leaves playback paused.
+Seeking, rewind/fast-forward, Previous, and repeat use the full track position during decoded playback. Seeking while paused leaves playback paused. Repeated rewind/forward actions during decoded stream setup accumulate from the requested position, and collapsing or expanding the player preserves pending playback intent. The seek slider announces elapsed and total time to assistive technology.
 The audio output selector switches the Web Audio contexts that carry playback, waits for both audible crossfade tracks, rolls back on failure, and routes a new context before it starts playback. It appears only when the browser supports AudioContext output selection. Where supported, use the adjacent headset button to grant access to another speaker or headset; the list refreshes when devices change.
 
 Listening history and optional ListenBrainz scrobbles count actual playback progress toward the track threshold. Skipping forward does not count the skipped portion as listening. Pause and Stop also silence both audio elements if a crossfade is in progress.

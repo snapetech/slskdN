@@ -109,6 +109,7 @@ const PlayerProgress = ({ current, duration, onSeek, position }) => {
       <span aria-hidden="true">{formatTime(displayedPosition)}</span>
       <input
         aria-label="Seek playback"
+        aria-valuetext={`${formatTime(displayedPosition)} of ${formatTime(duration)}`}
         disabled={!current || duration <= 0}
         max={duration || 1}
         min="0"
@@ -2355,6 +2356,7 @@ const PlayerBar = () => {
   const playedSecondsRef = useRef(0);
   const playingNowSentRef = useRef(false);
   const pipRef = useRef({ data: null, raf: null, timer: null, win: null });
+  const pipRequestRef = useRef(0);
   const fadeTimeoutRef = useRef(null);
   const fadeOutgoingRef = useRef(null);
   const fadeRequestRef = useRef(0);
@@ -2427,8 +2429,10 @@ const PlayerBar = () => {
   const remountPositionRef = useRef(null);
   const transcodeRequestRef = useRef(0);
   const failedTranscodeRef = useRef(null);
+  const pendingTranscodeRef = useRef(false);
 
   const closePictureInPicture = useCallback(() => {
+    pipRequestRef.current += 1;
     const { raf, timer, win } = pipRef.current;
     pipRef.current = { data: null, raf: null, timer: null, win: null };
     if (!win) return;
@@ -2532,7 +2536,7 @@ const PlayerBar = () => {
   }, [externalVisualizerStatus]);
 
   const bindAudioElement = useCallback((element) => {
-    if (!element && audioRef.current) {
+    if (!element && audioRef.current && activeItemRef.current === selectedItemRef.current) {
       remountPositionRef.current = audioRef.current.currentTime;
     }
     if (!element && renderedPrimaryAudioRef.current) {
@@ -2541,7 +2545,7 @@ const PlayerBar = () => {
     renderedPrimaryAudioRef.current = element;
     if (element && audioRef.current !== element) {
       lastSourceRef.current = '';
-      autoplayRef.current = playingRef.current;
+      if (activeItemRef.current === selectedItemRef.current) autoplayRef.current = playingRef.current;
     }
     audioRef.current = element;
     setPlayerAudioElement(element);
@@ -2640,6 +2644,8 @@ const PlayerBar = () => {
     if (!current?.contentId || current.contentId.startsWith('local:')) return;
     const requestId = ++transcodeRequestRef.current;
     failedTranscodeRef.current = null;
+    pendingTranscodeRef.current = true;
+    remountPositionRef.current = null;
     stopOutgoingFade();
     autoplayRef.current = autoPlay;
     playRequestRef.current += 1;
@@ -2651,20 +2657,22 @@ const PlayerBar = () => {
     nowPlaying.clearNowPlaying().catch(() => {});
     setPlaybackError('');
     setPlaybackStatus(autoPlay ? 'loading' : 'paused');
+    setPlaybackPosition(seconds);
+    renderedPositionRef.current = seconds;
+    setPosition(seconds);
     try {
       const ticket = await streaming.createStreamTicket(current.contentId);
       const response = await streaming.getPlaybackInfo(current.contentId);
       if (requestId !== transcodeRequestRef.current) return;
+      pendingTranscodeRef.current = false;
       setDuration(Number(response.data?.durationSeconds) || 0);
       setTranscodeMode(true);
       setTranscodeOffset(seconds);
-      setPlaybackPosition(seconds);
-      renderedPositionRef.current = seconds;
-      setPosition(seconds);
       const transcodedSource = streaming.buildTranscodedStreamUrl(current.contentId, ticket, seconds);
       setSource({ item: current, url: transcodedSource });
     } catch {
       if (requestId !== transcodeRequestRef.current) return;
+      pendingTranscodeRef.current = false;
       setPlaybackStatus('error');
       failedTranscodeRef.current = seconds;
       setPlaybackError('Decoding could not start. Press Play to retry. The server may be busy or FFmpeg may be unavailable.');
@@ -2710,24 +2718,31 @@ const PlayerBar = () => {
   }, [current, playAudio, startTranscode, transcodeMode]);
 
   const seekTo = useCallback((seconds) => {
-    if (!audioRef.current || !Number.isFinite(seconds)) return;
+    if (!current || !audioRef.current || !Number.isFinite(seconds)) return;
     const target = Math.max(0, Math.min(duration > 0 ? duration : Number.MAX_SAFE_INTEGER, seconds));
     stopOutgoingFade();
     crossfadeStartedRef.current = null;
-    if (transcodeMode) {
-      startTranscode(target, playingRef.current);
+    if (transcodeMode || pendingTranscodeRef.current || failedTranscodeRef.current !== null) {
+      const autoPlay = activeItemRef.current === current
+        ? playingRef.current
+        : autoplayRef.current;
+      startTranscode(target, autoPlay);
       return;
     }
-    audioRef.current.currentTime = target;
+    if (activeItemRef.current === current) audioRef.current.currentTime = target;
+    else remountPositionRef.current = target;
     setPlaybackPosition(target);
     renderedPositionRef.current = target;
     setPosition(target);
-  }, [duration, setPlaybackPosition, startTranscode, stopOutgoingFade, transcodeMode]);
+  }, [current, duration, setPlaybackPosition, startTranscode, stopOutgoingFade, transcodeMode]);
 
   const seekBy = useCallback((seconds) => {
     if (!audioRef.current) return;
-    seekTo(transcodeOffset + audioRef.current.currentTime + seconds);
-  }, [seekTo, transcodeOffset]);
+    const basePosition = activeItemRef.current === current
+      ? transcodeOffset + audioRef.current.currentTime
+      : renderedPositionRef.current;
+    seekTo(basePosition + seconds);
+  }, [current, seekTo, transcodeOffset]);
 
   const previousTrack = useCallback(() => {
     if (history.length === 0) {
@@ -2898,6 +2913,7 @@ const PlayerBar = () => {
     if (!current) {
       selectedItemRef.current = null;
       failedTranscodeRef.current = null;
+      pendingTranscodeRef.current = false;
       activeItemRef.current = null;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
@@ -2912,6 +2928,7 @@ const PlayerBar = () => {
     if (selectedItemRef.current !== current) {
       selectedItemRef.current = current;
       failedTranscodeRef.current = null;
+      pendingTranscodeRef.current = false;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
       stopOutgoingFade();
@@ -3126,70 +3143,82 @@ const PlayerBar = () => {
     if (!audioRef.current || !window.documentPictureInPicture) return;
 
     closePictureInPicture();
-    const graph = await resumeAudioGraph(audioRef.current);
-    if (!graph) return;
+    setPlaybackError((error) => error.startsWith('Picture-in-Picture could not open.') ? '' : error);
+    const request = pipRequestRef.current;
+    try {
+      const graph = await resumeAudioGraph(audioRef.current);
+      if (!graph || request !== pipRequestRef.current) return;
 
-    const pipWindow = await window.documentPictureInPicture.requestWindow({
-      height: 220,
-      width: 360,
-    });
-    pipWindow.document.body.style.margin = '0';
-    pipWindow.document.body.style.background = '#050608';
-    const canvas = pipWindow.document.createElement('canvas');
-    canvas.style.height = '100%';
-    canvas.style.width = '100%';
-    pipWindow.document.body.appendChild(canvas);
-    pipRef.current.win = pipWindow;
-    pipWindow.addEventListener('pagehide', () => {
-      if (pipRef.current.win === pipWindow) closePictureInPicture();
-    }, { once: true });
-
-    const draw = () => {
-      if (pipRef.current.win !== pipWindow) return;
-      if (pipWindow.closed) {
-        closePictureInPicture();
+      const pipWindow = await window.documentPictureInPicture.requestWindow({
+        height: 220,
+        width: 360,
+      });
+      if (request !== pipRequestRef.current) {
+        pipWindow.close();
         return;
       }
-      pipRef.current.raf = null;
-      pipRef.current.timer = null;
-      const width = Math.max(1, pipWindow.innerWidth);
-      const height = Math.max(1, pipWindow.innerHeight);
-      if (canvas.width !== width) canvas.width = width;
-      if (canvas.height !== height) canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#050608';
-      ctx.fillRect(0, 0, width, height);
-      const activeGraph = audioRef.current && playingRef.current
-        ? getOrCreateAudioGraph(audioRef.current)
-        : null;
-      if (activeGraph) {
-        if (pipRef.current.data?.length !== activeGraph.analyser.frequencyBinCount) {
-          pipRef.current.data = new Uint8Array(activeGraph.analyser.frequencyBinCount);
-        }
-        const data = pipRef.current.data;
-        activeGraph.analyser.getByteFrequencyData(data);
-        const barCount = Math.min(72, Math.max(16, Math.floor(width / 7)));
-        const bars = getFrequencyBars(data, barCount);
-        const barWidth = width / bars.length;
-        bars.forEach((value, index) => {
-          const barHeight = (value / 255) * height;
-          ctx.fillStyle = `hsl(${264 + (index / bars.length) * 24}, 72%, 68%)`;
-          ctx.fillRect(
-            index * barWidth,
-            height - barHeight,
-            Math.max(1, barWidth - 1),
-            barHeight,
-          );
-        });
-      }
-      pipRef.current.timer = pipWindow.setTimeout(() => {
-        if (pipRef.current.win === pipWindow) {
-          pipRef.current.raf = pipWindow.requestAnimationFrame(draw);
-        }
-      }, playingRef.current ? 33 : 250);
-    };
+      pipWindow.document.body.style.margin = '0';
+      pipWindow.document.body.style.background = '#050608';
+      const canvas = pipWindow.document.createElement('canvas');
+      canvas.style.height = '100%';
+      canvas.style.width = '100%';
+      pipWindow.document.body.appendChild(canvas);
+      pipRef.current.win = pipWindow;
+      pipWindow.addEventListener('pagehide', () => {
+        if (pipRef.current.win === pipWindow) closePictureInPicture();
+      }, { once: true });
 
-    draw();
+      const draw = () => {
+        if (pipRef.current.win !== pipWindow) return;
+        if (pipWindow.closed) {
+          closePictureInPicture();
+          return;
+        }
+        pipRef.current.raf = null;
+        pipRef.current.timer = null;
+        const width = Math.max(1, pipWindow.innerWidth);
+        const height = Math.max(1, pipWindow.innerHeight);
+        if (canvas.width !== width) canvas.width = width;
+        if (canvas.height !== height) canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#050608';
+        ctx.fillRect(0, 0, width, height);
+        const activeGraph = audioRef.current && playingRef.current
+          ? getOrCreateAudioGraph(audioRef.current)
+          : null;
+        if (activeGraph) {
+          if (pipRef.current.data?.length !== activeGraph.analyser.frequencyBinCount) {
+            pipRef.current.data = new Uint8Array(activeGraph.analyser.frequencyBinCount);
+          }
+          const data = pipRef.current.data;
+          activeGraph.analyser.getByteFrequencyData(data);
+          const barCount = Math.min(72, Math.max(16, Math.floor(width / 7)));
+          const bars = getFrequencyBars(data, barCount);
+          const barWidth = width / bars.length;
+          bars.forEach((value, index) => {
+            const barHeight = (value / 255) * height;
+            ctx.fillStyle = `hsl(${264 + (index / bars.length) * 24}, 72%, 68%)`;
+            ctx.fillRect(
+              index * barWidth,
+              height - barHeight,
+              Math.max(1, barWidth - 1),
+              barHeight,
+            );
+          });
+        }
+        pipRef.current.timer = pipWindow.setTimeout(() => {
+          if (pipRef.current.win === pipWindow) {
+            pipRef.current.raf = pipWindow.requestAnimationFrame(draw);
+          }
+        }, playingRef.current ? 33 : 250);
+      };
+
+      draw();
+    } catch {
+      if (request !== pipRequestRef.current) return;
+      closePictureInPicture();
+      setPlaybackError('Picture-in-Picture could not open. Try again from the player tools.');
+    }
   };
 
   useEffect(() => {
@@ -3246,6 +3275,8 @@ const PlayerBar = () => {
         playbackRate,
         position: Math.min(position, duration),
       });
+    } else if (navigator.mediaSession.setPositionState) {
+      navigator.mediaSession.setPositionState();
     }
   }, [current, duration, playbackRate, playing, position]);
 

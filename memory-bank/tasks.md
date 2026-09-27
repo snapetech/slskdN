@@ -5110,3 +5110,7 @@
   implementation; the full unit suite passes 5,156 tests.
 
 - [x] 2026-09-27T23:15:16Z Player: retry failed decode setup at the requested offset, reload errored native media, restart failed decoded streams at the timeline position, and allow transport Pause while loading.
+
+- [x] 2026-09-27T23:27:34Z Fix pending native/decoded seeking, remount intent, stale Media Session position and Picture-in-Picture cancellation; add focused regressions for source recovery and transport behavior.
+
+- 2026-09-27T23:29:56Z Player verification evidence: 41 focused tests and 959 full Web tests passed, including eight new source/transport regressions. P1 real-audio desktop/mobile inspection remains open; these tests use simulated media events.

@@ -14426,3 +14426,7 @@ Explicit native server retries now renew the two-minute stream ticket through th
 ## Player recovery completion — 2026-09-27T23:17:29Z
 
 Committed and pushed `15e3f7159` to fork `main` with both gotcha records. Release-note preview passed; tree was clean and synced after push. Source recovery batch complete. Next Steps: continue player review; real-audio desktop/mobile P1 remains open. No automated tests, interactive playback checks, or release tags in this batch.
+
+## Player pending transport lifecycle — 2026-09-27T23:27:34Z
+
+Current task: pending seek/remount intent and Picture-in-Picture fixes, with focused regression coverage. Next Steps: finish checks, release preview, commit/push; continue runtime desktop/mobile and performance completion audit. Full player goal remains active.
