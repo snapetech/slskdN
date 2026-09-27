@@ -14430,3 +14430,7 @@ Committed and pushed `15e3f7159` to fork `main` with both gotcha records. Releas
 ## Player pending transport lifecycle — 2026-09-27T23:27:34Z
 
 Current task: pending seek/remount intent and Picture-in-Picture fixes, with focused regression coverage. Next Steps: finish checks, release preview, commit/push; continue runtime desktop/mobile and performance completion audit. Full player goal remains active.
+
+## Player lifecycle completion — 2026-09-27T23:30:37Z
+
+Pushed `25a058f3f` to fork `main`. Final full Web rerun: 959/959 tests across 164 files; eight new regression cases cover pending seeks, Pause, remount, source retry, ticket renewal, Media Session clear, and Picture-in-Picture lifecycle/error handling. Web/repository lint, build, bundle budget, release preview, whitespace and identity checks passed. Source batch complete; overall player goal remains active. Next Steps: establish isolated real-browser playback evidence for desktop/mobile layouts, native/decoded audio, crossfade, outputs, session/playlist workflows and idle resource use. In-app browser execution tool is unavailable; evaluate supported browser fallback. No release tag created.
