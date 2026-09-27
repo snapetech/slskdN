@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1039. Initialize Immutable Test Options At Construction
+
+**The Bug**: The player library fallback regression assigned share directories, exclusions and download paths after constructing Options. Those properties are init-only, so the regression failed to compile.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/API/Native/LibraryItemsControllerTests.cs`
+
+**Prevention**: Inspect option model setters and construct nested Options records with object initializers. Compile the relevant regression before relying on its assertions.
+
 ### 0z1038. Keep Player File Search Consistent Before Share Index Readiness
 
 **The Bug**: The library search endpoint could resolve configured local share/download files before index readiness, but the player browser endpoint only searched the share snapshot. Real-browser verification found a local file through ordinary search while the player reported no tracks for the same query.
