@@ -8,12 +8,12 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 ### 0z936. Keep The Last Track In Repeat-All Cycles
 
-**The Bug**: When repeat-all rebuilt the queue at its final item, it used only playback history. The current final track disappeared from the next cycle.
+**The Bug**: When repeat-all rebuilt the queue at its final item, it used only playback history. The current final track disappeared from the next cycle. A single-track queue also stopped instead of repeating.
 
 **Files Affected**:
 - `src/web/src/components/Player/PlayerContext.jsx`
 
-**Prevention**: Build a fresh repeat-all cycle from history in original order plus the current final item. Check the next cycle still contains every track.
+**Prevention**: Build a fresh repeat-all cycle from history in original order plus the current final item. Restart the current media element for a single-track queue. Check both single and multi-track cycles.
 
 ### 0z935. Rebind The Audio Source After Player Layout Remounts
 
