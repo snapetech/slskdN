@@ -89,6 +89,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   immediately; seeking also allows a fresh fade near the track end.
 - Preserved the chosen native volume in browsers without Web Audio; those
   browsers now switch tracks directly instead of attempting an abrupt fade.
+- Kept the idle player from creating a Web Audio graph for flat EQ, disabled
+  karaoke, or neutral output gain before playback or an active effect needs it.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

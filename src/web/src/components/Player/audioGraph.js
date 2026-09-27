@@ -125,7 +125,8 @@ export const resumeAudioGraph = async (audioElement) => {
 };
 
 export const setEqGains = (audioElement, gains) => {
-  const graph = getOrCreateAudioGraph(audioElement);
+  const graph = audioGraphCache.get(audioElement) ||
+    (gains.some((gain) => gain !== 0) ? getOrCreateAudioGraph(audioElement) : null);
   if (!graph) return;
   graph.eq.forEach((filter, index) => {
     filter.gain.value = gains[index] || 0;
@@ -133,14 +134,16 @@ export const setEqGains = (audioElement, gains) => {
 };
 
 export const setKaraokeEnabled = (audioElement, enabled) => {
-  const graph = getOrCreateAudioGraph(audioElement);
+  const graph = audioGraphCache.get(audioElement) ||
+    (enabled ? getOrCreateAudioGraph(audioElement) : null);
   if (!graph || graph.karaokeEnabled === enabled) return;
   graph.karaokeEnabled = enabled;
   rebuildGraph(graph);
 };
 
 export const setOutputGain = (audioElement, value) => {
-  const graph = getOrCreateAudioGraph(audioElement);
+  const graph = audioGraphCache.get(audioElement) ||
+    (value !== 1 ? getOrCreateAudioGraph(audioElement) : null);
   if (!graph) return;
   graph.outputGain.gain.cancelScheduledValues(graph.ctx.currentTime);
   graph.outputGain.gain.setValueAtTime(value, graph.ctx.currentTime);

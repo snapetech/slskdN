@@ -96,6 +96,7 @@ Listening history and optional ListenBrainz scrobbles count actual playback prog
 If the incoming track errors during a crossfade, the outgoing element stops immediately so the visible failure and audible output agree.
 Turning crossfade off or seeking during a fade also stops the outgoing track immediately. A later pass through the end of the track can start a new fade.
 Crossfade uses Web Audio for independent track gains. When a browser does not provide Web Audio, track changes remain direct and the selected volume stays intact.
+The idle player leaves its Web Audio graph unallocated when the equalizer is flat, karaoke is off, and no visual effect needs the graph.
 Seeking while paused keeps the player in Paused even if the browser fetches more audio data.
 A late Pause event after a media failure leaves the player in Error until the user retries or selects another track.
 Volume, local mute, and playback speed changes affect both audio elements while a crossfade is in progress.
