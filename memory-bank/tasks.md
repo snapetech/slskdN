@@ -5108,3 +5108,5 @@
   visualizer chunk exception.
 - [x] Align RateLimiter unit tests with the atomic execution-slot
   implementation; the full unit suite passes 5,156 tests.
+
+- [x] 2026-09-27T23:15:16Z Player: retry failed decode setup at the requested offset, reload errored native media, restart failed decoded streams at the timeline position, and allow transport Pause while loading.

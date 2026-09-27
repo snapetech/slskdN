@@ -14416,3 +14416,9 @@ rollback.
   covers saved playlists end to end. The working tree is clean and synced.
 - Next steps: perform the P1 desktop/mobile real-audio inspection in
   `memory-bank/tasks.md`. No release tag was created.
+
+## Player failure recovery — 2026-09-27T23:15:16Z
+
+Implemented source setup retry and pending playback Pause. Failed decode setup retains its requested seek target; media errors reload native playback or restart decoded playback at its timeline position. Failure state clears on track changes and Stop. Web lint, production build, bundle budget, repository lint, whitespace and identity checks passed. Commit and push are the remaining completion steps. Real-audio desktop/mobile P1 remains open; no release tag requested.
+
+Explicit native server retries now renew the two-minute stream ticket through the cancellable source effect, preserving position and pending Pause intent.

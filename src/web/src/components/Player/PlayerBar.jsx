@@ -2403,6 +2403,7 @@ const PlayerBar = () => {
   const [transcodeMode, setTranscodeMode] = useState(false);
   const [transcodeAvailable, setTranscodeAvailable] = useState(false);
   const [transcodeOffset, setTranscodeOffset] = useState(0);
+  const [sourceRetryRevision, setSourceRetryRevision] = useState(0);
   const [volume, setVolume] = useState(() => {
     const stored = Number(getLocalStorageItem(volumeStorageKey, '1'));
     return Number.isFinite(stored) ? Math.max(0, Math.min(1, stored)) : 1;
@@ -2425,6 +2426,7 @@ const PlayerBar = () => {
   const autoplayRef = useRef(false);
   const remountPositionRef = useRef(null);
   const transcodeRequestRef = useRef(0);
+  const failedTranscodeRef = useRef(null);
 
   const closePictureInPicture = useCallback(() => {
     const { raf, timer, win } = pipRef.current;
@@ -2634,23 +2636,11 @@ const PlayerBar = () => {
     return () => setPauseHandler(null);
   }, [pausePlayback, setPauseHandler]);
 
-  const tryPlay = useCallback(() => {
-    if (!current) return;
-    setPlaybackError('');
-    setPlaybackStatus('loading');
-    if (activeItemRef.current !== current) {
-      autoplayRef.current = true;
-      return;
-    }
-    playAudio().catch(() => {
-      setPlaybackStatus('error');
-      setPlaybackError('Playback could not start. Check the file or try again.');
-    });
-  }, [current, playAudio]);
-
   const startTranscode = useCallback(async (seconds = 0, autoPlay = true) => {
     if (!current?.contentId || current.contentId.startsWith('local:')) return;
     const requestId = ++transcodeRequestRef.current;
+    failedTranscodeRef.current = null;
+    stopOutgoingFade();
     autoplayRef.current = autoPlay;
     playRequestRef.current += 1;
     activeItemRef.current = null;
@@ -2676,9 +2666,48 @@ const PlayerBar = () => {
     } catch {
       if (requestId !== transcodeRequestRef.current) return;
       setPlaybackStatus('error');
-      setPlaybackError('Decoding could not start. The server may be busy or FFmpeg may be unavailable.');
+      failedTranscodeRef.current = seconds;
+      setPlaybackError('Decoding could not start. Press Play to retry. The server may be busy or FFmpeg may be unavailable.');
     }
-  }, [current, setPlaybackPosition]);
+  }, [current, setPlaybackPosition, stopOutgoingFade]);
+
+  const tryPlay = useCallback(() => {
+    if (!current) return;
+    if (failedTranscodeRef.current !== null) {
+      startTranscode(failedTranscodeRef.current);
+      return;
+    }
+    setPlaybackError('');
+    setPlaybackStatus('loading');
+    if (activeItemRef.current !== current) {
+      autoplayRef.current = true;
+      return;
+    }
+    const element = audioRef.current;
+    if (element?.error) {
+      if (transcodeMode) {
+        startTranscode(renderedPositionRef.current);
+        return;
+      }
+      remountPositionRef.current = element.currentTime;
+      if (!current.streamUrl) {
+        playRequestRef.current += 1;
+        activeItemRef.current = null;
+        autoplayRef.current = true;
+        element.pause();
+        playingRef.current = false;
+        setPlaying(false);
+        setSource(null);
+        setSourceRetryRevision((revision) => revision + 1);
+        return;
+      }
+      element.load();
+    }
+    playAudio().catch(() => {
+      setPlaybackStatus('error');
+      setPlaybackError('Playback could not start. Check the file or try again.');
+    });
+  }, [current, playAudio, startTranscode, transcodeMode]);
 
   const seekTo = useCallback((seconds) => {
     if (!audioRef.current || !Number.isFinite(seconds)) return;
@@ -2856,18 +2885,19 @@ const PlayerBar = () => {
 
   const togglePlayback = useCallback(() => {
     if (!audioRef.current || !current) return;
-    if (playing) {
+    if (playing || playbackStatus === 'loading') {
       pausePlayback();
     } else {
       tryPlay();
     }
-  }, [current, pausePlayback, playing, tryPlay]);
+  }, [current, pausePlayback, playbackStatus, playing, tryPlay]);
 
   useEffect(() => {
     let cancelled = false;
 
     if (!current) {
       selectedItemRef.current = null;
+      failedTranscodeRef.current = null;
       activeItemRef.current = null;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
@@ -2881,6 +2911,7 @@ const PlayerBar = () => {
 
     if (selectedItemRef.current !== current) {
       selectedItemRef.current = current;
+      failedTranscodeRef.current = null;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
       stopOutgoingFade();
@@ -2933,7 +2964,7 @@ const PlayerBar = () => {
     return () => {
       cancelled = true;
     };
-  }, [current, setPlaybackPosition, stopOutgoingFade]);
+  }, [current, setPlaybackPosition, sourceRetryRevision, stopOutgoingFade]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -3473,6 +3504,7 @@ const PlayerBar = () => {
     </>
   );
   const playerBadges = getPlayerBadges(current);
+  const canPause = playing || playbackStatus === 'loading';
 
   if (collapsed) {
     return (
@@ -3502,11 +3534,11 @@ const PlayerBar = () => {
             onClick={previousTrack}
           />
           <PlayerToolButton
-            content={playing ? 'Pause playback.' : 'Play the selected track.'}
-            aria-label={playing ? 'Pause local playback' : 'Resume local playback'}
+            content={canPause ? 'Pause playback or cancel pending autoplay.' : 'Play the selected track; retry if playback failed.'}
+            aria-label={canPause ? 'Pause local playback' : 'Resume local playback'}
             data-testid="player-collapsed-toggle-playback"
             disabled={!current}
-            icon={playing ? 'pause' : 'play'}
+            icon={canPause ? 'pause' : 'play'}
             onClick={togglePlayback}
           />
           <PlayerToolButton
@@ -3689,12 +3721,12 @@ const PlayerBar = () => {
               onClick={() => seekBy(-15)}
             />
             <PlayerToolButton
-              content={playing ? 'Pause the current stream.' : 'Resume the current stream.'}
-              aria-label={playing ? 'Pause local playback' : 'Resume local playback'}
+              content={canPause ? 'Pause the current stream or cancel pending autoplay.' : 'Resume the current stream; retry if playback failed.'}
+              aria-label={canPause ? 'Pause local playback' : 'Resume local playback'}
               className="player-play-button"
               data-testid="player-toggle-playback"
               disabled={!current}
-              icon={playing ? 'pause' : 'play'}
+              icon={canPause ? 'pause' : 'play'}
               onClick={togglePlayback}
             />
             <PlayerToolButton

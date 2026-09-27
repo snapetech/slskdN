@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Play retry after decoded-stream setup or media failure, retained the
+  retry position, renewed failed server stream tickets, and made Pause
+  available while playback is loading.
+
 - Overhauled the browser player with compact transport and queue controls,
   saved playlists, local file playback, on-demand server audio decoding,
   improved crossfade and output routing, and lower idle visualizer work.

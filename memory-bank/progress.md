@@ -13534,3 +13534,7 @@ export branch has no shared Git history and was not merged.
   by ordinal. Web lint/build, bundle budget, repository lint, whitespace,
   identity, and release-range preview passed. Interactive playback was not
   run in this continuation.
+
+- 2026-09-27T23:15:16Z Player failure recovery: preserve failed decoded setup target for explicit Play retry; reload native media errors with position restoration; regenerate failed decoded streams at the displayed position; stop outgoing fades before setup; expose Pause during pending loading in compact/expanded controls and keyboard toggle. Automated and real-audio tests were not run.
+
+Explicit native server retries now renew the two-minute stream ticket through the cancellable source effect, preserving position and pending Pause intent.
