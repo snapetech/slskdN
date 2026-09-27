@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1036. Check Actual Mobile Player Content And CSS Specificity
+
+**The Bug**: The compact player's narrow-screen secondary-control hide rule was less specific than its Semantic UI button display rule. Queue, Hide and Mute stayed visible, leaving almost no room for the selected title. Viewport-only browser assertions passed despite the title being unreadable. Expanded mobile transport buttons also retained desktop-size touch targets.
+
+**Files Affected**:
+- `src/web/src/components/Player/Player.css`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Match button selector specificity when hiding secondary controls, keep primary transport and Expand usable, and verify text width and touch bounds as well as viewport placement. Keep secondary actions reachable in the expanded player.
+
 ### 0z1035. Rebuild The Web Artifact Before Direct Browser Regression Runs
 
 **The Bug**: Direct Playwright execution after a source fix still served the prior Web build. The isolated node harness copies an existing production artifact and rebuilds only when that artifact is absent, so the browser reproduced behavior that had already changed in source.
