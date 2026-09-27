@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1005. Resume Playback After A Failed First Output Switch
+
+**The Bug**: With native playback, choosing a custom speaker creates a Web Audio graph before switching its sink. If sink selection fails, restoring the default sink alone leaves the newly created context suspended and the currently playing track silent.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: On output-switch failure, roll back the sink and resume every graph whose media element was already playing before reporting the error.
+
 ### 0z1004. Prepare The Playing Track Before A Lazy Crossfade
 
 **The Bug**: Making plain playback native can leave the current track without an audio graph when crossfade starts. Creating the outgoing graph only after the incoming track starts reroutes the audible element into a suspended context and can cut sound during the fade.
