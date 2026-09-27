@@ -32,8 +32,10 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 - `src/web/src/components/Player/PlayerContext.jsx`
 - `src/web/src/components/Player/PlayerBar.jsx`
 - `src/web/src/components/Player/PodListenAlongPanel.jsx`
+- `src/slskd/ListeningParty/ListeningPartyAnnouncement.cs`
+- `src/slskd/ListeningParty/ListeningPartyService.cs`
 
-**Prevention**: Keep the current absolute media position in a context ref without per-second provider renders. Update it on playback, seek, fallback offset, and track reset; publish that value and apply the listed party's offset when joining.
+**Prevention**: Keep the current absolute media position in a context ref without per-second provider renders. Update it on playback, seek, fallback offset, and track reset; publish that value. Include action and position in directory announcements so a remote listener can join at the advertised offset.
 
 ### 0z956. Queue Storage Must Tolerate Browser Restrictions
 
