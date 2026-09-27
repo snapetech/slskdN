@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z970. Local Stop Must Leave Listen-Along Follow Mode
+
+**The Bug**: Pressing Stop in the browser player cleared audio and the queue but left the context's followed party and the room panel's follow intent active. A later host update could start audio again after the listener had explicitly stopped.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Clear the followed-party state with local Stop, and let the room panel cancel its follow intent when that context state transitions to empty. Keep a user who merely enables Follow before a host starts subscribed until an explicit Stop or unfollow.
+
 ### 0z969. Never Edit A Published Release-Note Fragment
 
 **The Bug**: A follow-up player fix changed a release-note fragment that had already been pushed. The release-note range preview rejected the new commit because fragments are append-only, even though the updated text and metadata were valid.
