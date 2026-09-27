@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z966. Keep Queue, Current Track, And History In One Transition
+
+**The Bug**: Advancing the player queue updated current track and history from inside a `setQueue` updater. React can replay a state updater while rendering, causing duplicate history writes or inconsistent shuffle choices. Next and Previous could also observe separate render snapshots of related playback fields.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Store the three playback fields together and update them in one pure functional transition. Choose any shuffle random value before the transition, and apply media-position effects after commit rather than inside the updater.
+
 ### 0z965. Do Not Label A Radio Snapshot As Live Following
 
 **The Bug**: Joining a listed radio announcement played its advertised track once but also set the global following-party state. The directory is a periodic metadata snapshot; that action has no live cross-pod subscription, so the player could show "Following" indefinitely while missing track changes and Stop.
