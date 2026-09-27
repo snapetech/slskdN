@@ -14351,3 +14351,11 @@ rollback.
 - Next steps: run static validation and release preview, commit and push the
   reconnect fix, then continue the player review. Real-audio desktop/mobile
   inspection remains P1; no release tag is authorized.
+## Update 2026-09-27 22:29:02Z
+
+- Current task: two further player source fixes are committed and pushed to
+  the verified fork through `c51054386`; the working tree is clean and synced.
+  The source pass found no further high-confidence transport defect.
+- Next steps: inspect the overhauled player with real audio on desktop and
+  mobile, as tracked in `memory-bank/tasks.md`. Static lint/build checks do not
+  establish audible behavior or layout quality. No release tag was created.

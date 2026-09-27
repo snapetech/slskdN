@@ -13475,3 +13475,9 @@ export branch has no shared Git history and was not merged.
   or changing rooms clears the last-applied marker. Recorded gotcha 0z1019.
 - The earlier track-selection fix was committed and pushed to the fork.
   Interactive desktop/mobile audio inspection remains the P1 follow-up.
+## Update 2026-09-27 22:29:02Z
+
+- Committed and pushed the unchanged-room-snapshot fix through `c51054386`.
+  Web lint, production build, bundle budget, repository lint, whitespace,
+  identity, and release-range preview passed. The checkout is synchronized;
+  real-audio browser inspection remains open.
