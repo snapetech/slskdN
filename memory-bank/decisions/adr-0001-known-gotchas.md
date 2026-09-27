@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1006. Do Not Restore Expired Party Stream URLs
+
+**The Bug**: The player saved the full queue to browser session storage, including listen-along and listed-radio `streamUrl` values that contain short-lived tickets. After a refresh, the restored selected track reused the expired URL and could not play.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Persist and restore only server-library tracks that can request a fresh stream ticket by content ID. Exclude browser-local and explicitly supplied stream URLs from the session queue; keep live playback unchanged.
+
 ### 0z1005. Resume Playback After A Failed First Output Switch
 
 **The Bug**: With native playback, choosing a custom speaker creates a Web Audio graph before switching its sink. If sink selection fails, restoring the default sink alone leaves the newly created context suspended and the currently playing track silent.
