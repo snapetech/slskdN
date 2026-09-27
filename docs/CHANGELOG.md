@@ -97,6 +97,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   from the last queued track into play history.
 - Matched crossfade ramp time to the outgoing track's remaining media time and
   playback speed, avoiding volume dips at faster speeds.
+- Sent listen-along Broadcast and Stop commands in click order and showed a
+  visible error when the latest command fails. A rapid Stop also removes the
+  correct listed radio entry after the Broadcast ID arrives. Switching rooms
+  clears old room details and keeps party IDs scoped to their room.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

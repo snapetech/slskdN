@@ -87,8 +87,12 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const [globalRadio, setGlobalRadio] = useState(false);
   const [meshStreaming, setMeshStreaming] = useState(false);
   const [partyState, setPartyState] = useState(null);
+  const [publishError, setPublishError] = useState('');
   const directoryFetchInFlightRef = useRef(false);
   const mountedRef = useRef(false);
+  const publishedPartyIdsRef = useRef(new Map());
+  const publishChainRef = useRef(Promise.resolve());
+  const publishRequestRef = useRef(0);
   const followingRef = useRef(false);
   const followedPartyRef = useRef(player.followingParty);
   const playerRef = useRef(player);
@@ -127,6 +131,10 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   useEffect(() => {
     if (!podId || !channelId) return undefined;
 
+    publishRequestRef.current += 1;
+    setConnected(false);
+    setPartyState(null);
+    setPublishError('');
     let disposed = false;
     let hubVersion = 0;
     let snapshotVersion = 0;
@@ -252,11 +260,17 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     };
   }, [compact, refreshDirectory]);
 
-  const publish = async (action) => {
+  const publish = (action) => {
     const current = player.current;
     if (action !== 'stop' && !canBroadcastCurrent) return;
 
-    const state = await listeningParty.publishPartyState(podId, channelId, {
+    const requestId = ++publishRequestRef.current;
+    const roomKey = JSON.stringify([podId, channelId]);
+    const existingPartyId = publishedPartyIdsRef.current.get(roomKey) ||
+      (partyState?.podId === podId && partyState?.channelId === channelId
+        ? partyState.partyId
+        : '');
+    const payload = {
       action,
       album: current?.album || '',
       allowMeshStreaming: meshStreaming,
@@ -264,14 +278,34 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       contentId: current?.contentId || '',
       hostPeerId: user || 'local-peer',
       listed: globalRadio,
-      partyId: partyState?.partyId || '',
+      partyId: existingPartyId,
       positionSeconds: action === 'stop' ? 0 : player.getPlaybackPosition(),
       title: current?.title || current?.fileName || '',
+    };
+    setPublishError('');
+    const request = publishChainRef.current.then(async () => {
+      const state = await listeningParty.publishPartyState(podId, channelId, {
+        ...payload,
+        partyId: action === 'stop'
+          ? publishedPartyIdsRef.current.get(roomKey) || payload.partyId
+          : payload.partyId,
+      });
+      if (action === 'stop') publishedPartyIdsRef.current.delete(roomKey);
+      else publishedPartyIdsRef.current.set(roomKey, state?.partyId || payload.partyId);
+      return state;
     });
-    setPartyState(action === 'stop' ? null : state);
-    if (!compact) {
-      await refreshDirectory();
-    }
+    publishChainRef.current = request.catch(() => {});
+    request.then((state) => {
+      if (!mountedRef.current || requestId !== publishRequestRef.current) return;
+      setPartyState(action === 'stop' ? null : state);
+      if (!compact) refreshDirectory();
+    }).catch(() => {
+      if (mountedRef.current && requestId === publishRequestRef.current) {
+        setPublishError(action === 'stop'
+          ? 'Could not stop the room broadcast. Try again.'
+          : 'Could not start the room broadcast. Try again.');
+      }
+    });
   };
 
   const joinListedParty = (party) => {
@@ -416,6 +450,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             }
           />
         </div>
+        {publishError ? <div className="pod-listen-along-error" role="alert">{publishError}</div> : null}
       </Segment>
     );
   }
@@ -513,6 +548,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           }
         />
       </Button.Group>
+      {publishError ? <div className="pod-listen-along-error" role="alert">{publishError}</div> : null}
       {directory.length > 0 && (
         <div className="pod-listen-along-directory">
           <strong>Listed radio</strong>

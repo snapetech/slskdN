@@ -13404,3 +13404,19 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:39:00Z
 
 - Scaled crossfade gain ramps and outgoing cleanup to the remaining media time at incoming playback start and the selected playback speed. Recorded and clarified gotcha 0z995 before completion, and added user documentation plus an append-only release fragment.
+
+## Update 2026-09-27 20:44:00Z
+
+- Serialized listen-along Broadcast and Stop requests from the pod controls, ignored superseded responses, and showed a local retry message for failed latest requests in compact and full views. Recorded gotcha 0z996 before source edits and added user documentation and an append-only release fragment.
+
+## Update 2026-09-27 20:47:00Z
+
+- Caught and corrected a queued Stop ID race before committing the publish batch: Stop now reads the ID returned by the preceding Broadcast so the server removes the matching listed directory entry. Recorded gotcha 0z997 immediately, then updated the pending implementation and user documentation.
+
+## Update 2026-09-27 20:49:00Z
+
+- Scoped saved publish IDs by pod and channel because the compact panel stays mounted across room selection changes; a queued Stop cannot use an ID from a previously selected room. Clarified gotcha 0z997 before completing the pending batch.
+
+## Update 2026-09-27 20:52:00Z
+
+- Cleared prior room state, connection status, and publish error on pod/channel changes; invalidated old UI publish responses and only reused a party ID from the selected room. Recorded gotcha 0z998 before source edits and expanded the pending user release description.

@@ -100,6 +100,7 @@ The idle player leaves its Web Audio graph unallocated when the equalizer is fla
 Headset and lock-screen Play use the same loading and error behavior as the visible player Play control.
 Crossfade respects Repeat One. With Repeat All, it can also fade from the final queued track back into played history.
 Its gain ramps follow the outgoing track's remaining time and playback speed, including when the incoming track takes time to start.
+Listen-along Broadcast and Stop actions are sent in click order. A rapid Stop uses the Broadcast party ID to remove its listed radio entry. Switching rooms clears the prior room's details and keeps party IDs in their own rooms. A failed latest action shows an error next to the room controls so it can be retried.
 Seeking while paused keeps the player in Paused even if the browser fetches more audio data.
 A late Pause event after a media failure leaves the player in Error until the user retries or selects another track.
 Volume, local mute, and playback speed changes affect both audio elements while a crossfade is in progress.

@@ -1844,6 +1844,12 @@ body:has(.ui.modal) .player-bar {
   white-space: nowrap;
 }
 
+.pod-listen-along-error {
+  color: var(--slskdn-warning, #d9a441);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
 .pod-listen-along-directory {
   border-top: 1px solid var(--slskd-tertiary-border-color, rgba(34, 36, 38, 0.15));
   margin-top: 0.85rem;
@@ -1853,6 +1859,7 @@ body:has(.ui.modal) .player-bar {
 .pod-listen-along-compact.ui.segment {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: space-between;
   margin: 0 0 0.5rem !important;
@@ -1863,8 +1870,14 @@ body:has(.ui.modal) .player-bar {
 .pod-listen-along-compact-status {
   align-items: center;
   display: flex;
+  flex: 1 1 auto;
   gap: 0.45rem;
   min-width: 0;
+}
+
+.pod-listen-along-compact .pod-listen-along-error {
+  flex-basis: 100%;
+  margin-top: 0;
 }
 
 .pod-listen-along-orb {
