@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1024. Invalidate Collection Item Requests When Closing The Picker
+
+**The Bug**: The player Collection browser retained its selected collection and in-flight item request after closing. A late response could populate hidden rows, which then appeared as stale choices the next time the browser opened.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Increment the item request generation and clear selected items on every picker close path. Reopening should fetch the current Collection list and require a fresh item selection.
+
 ### 0z1023. Make Player Picker Choices Keyboard Operable
 
 **The Bug**: The player Collections picker selected a collection through `onClick` on a table row. That row was absent from keyboard tab order, so keyboard users could reach the modal but could not choose a collection. Listening Stats range buttons also omitted the required explanatory popup.
