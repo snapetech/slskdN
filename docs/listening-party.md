@@ -80,6 +80,7 @@ Turning the visualizer off returns its tile to album art while preserving the se
 The lightweight spectrum and scope canvases cap drawing near 30 frames per second and reuse audio buffers while active; they pause drawing when the document is hidden.
 
 The player publishes Now Playing after playback begins and clears it on pause, stop, failure, or final track end. Playback errors are shown in the player. If the browser cannot decode a server library audio file, **Decode for playback** requests a short-lived, ticket-bound MP3 stream from the configured FFmpeg executable. It runs only on demand, permits one decode per user and two per server, and never sends browser-chosen files to the server. Server administrators can edit tags on indexed local audio from a Collection item; collection display metadata can be edited separately without changing the file. Tag edits change file bytes and may change its content ID, so the server refreshes the share index and Collection references.
+Browser Now Playing changes are sent in playback order, so a slow Play update cannot overwrite a later Pause or Stop clear.
 
 Seeking, rewind/fast-forward, Previous, and repeat use the full track position during decoded playback. Seeking while paused leaves playback paused.
 

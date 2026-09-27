@@ -58,6 +58,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   later host updates do not restart or replace the listener's playback.
 - Reduced active spectrum and scope drawing to about 30 frames per second and
   reused audio sample buffers across frames.
+- Kept browser Now Playing updates in playback order, so a slow Play update
+  cannot restore stale server status after Pause or Stop.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

@@ -13324,3 +13324,7 @@ export branch has no shared Git history and was not merged.
 
 - Pushed the broad player follow, Picture-in-Picture, atomic queue, lazy visualizer, visualizer Off, and analyzer-resource batches to verified fork `main` through `fe5a04889`. Release-note range previews passed, including the separate append-only fragment after a rejected edit to a published fragment. No release tag or deployment was created.
 - The source audit is complete for this pass. Live audio, mobile layout, Media Session, output routing, and browser Picture-in-Picture behavior require interactive inspection before any native-player parity claim. Added that as a tracked task.
+
+## Update 2026-09-27 20:15:00Z
+
+- Serialized browser Now Playing PUT/DELETE writes so a slow Play request cannot complete after a later Pause/Stop clear. Failed requests leave the write chain usable for subsequent state changes. Recorded gotcha 0z973, updated the listening guide and Unreleased changelog, and added an append-only release fragment. Web lint/build, release-note validation, and whitespace checks pass.
