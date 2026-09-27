@@ -2321,6 +2321,7 @@ const PlayerBar = () => {
     setRepeatMode,
     setShuffle,
     setAudioElement,
+    setPauseHandler,
     setPlaybackPosition,
     shuffle,
     playItem,
@@ -2565,6 +2566,11 @@ const PlayerBar = () => {
     setPlaybackStatus((status) => status === 'ended' || status === 'error' ? status : 'paused');
     nowPlaying.clearNowPlaying().catch(() => {});
   }, [stopOutgoingFade]);
+
+  useEffect(() => {
+    setPauseHandler(pausePlayback);
+    return () => setPauseHandler(null);
+  }, [pausePlayback, setPauseHandler]);
 
   const tryPlay = useCallback(() => {
     if (!current) return;

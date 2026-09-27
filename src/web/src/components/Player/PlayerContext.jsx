@@ -33,6 +33,7 @@ export const PlayerContext = createContext({
   setShuffle: () => {},
   shuffle: false,
   setAudioElement: () => {},
+  setPauseHandler: () => {},
   setPlaybackPosition: () => {},
   playerVisible: true,
 });
@@ -70,6 +71,7 @@ export const PlayerProvider = ({ children }) => {
   const [repeatMode, setRepeatMode] = useState(initialSession.repeatMode);
   const [shuffle, setShuffle] = useState(initialSession.shuffle);
   const [followingParty, setFollowingParty] = useState(null);
+  const pauseHandlerRef = useRef(null);
   const playerVisible = useExperiencePreference('playerVisible', true);
   const previousPlayerVisible = useRef(playerVisible);
   const playbackPositionRef = useRef(initialSession.current?.positionSeconds || 0);
@@ -137,7 +139,15 @@ export const PlayerProvider = ({ children }) => {
     [playerVisible],
   );
 
+  const setPauseHandler = useCallback((handler) => {
+    pauseHandlerRef.current = handler;
+  }, []);
+
   const pause = useCallback(() => {
+    if (pauseHandlerRef.current) {
+      pauseHandlerRef.current();
+      return;
+    }
     if (audioElement) {
       audioElement.pause();
     }
@@ -289,6 +299,7 @@ export const PlayerProvider = ({ children }) => {
         setShuffle,
         shuffle,
         setAudioElement,
+        setPauseHandler,
         setPlaybackPosition,
       }}
     >

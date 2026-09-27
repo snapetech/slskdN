@@ -14311,3 +14311,17 @@ rollback.
   checks passed. Release preview and fork push remain.
 - Next steps: push this batch, then continue static source review while real
   desktop and mobile playback observation remains on the task ledger.
+
+## Update 2026-09-27 21:30:51Z
+
+- Current task: align listen-along Pause with the player's pending transport
+  state. Source, docs, and gotcha 0z1017 are local; validation and release
+  fragment remain.
+- Next steps: complete repository gates, preview, and push to the fork.
+
+## Update 2026-09-27 21:31:59Z
+
+- Listen-along Pause routing is implemented. Web lint, production build,
+  bundle budget, repository lint, whitespace, and local identity checks
+  passed. Release preview and fork push remain.
+- Next steps: push and continue source review of room and queue transitions.

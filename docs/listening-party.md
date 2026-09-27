@@ -36,6 +36,7 @@ The protocol payload is JSON in the pod message body:
 `serverTimeUnixMs` and `positionSeconds` let listeners compensate for elapsed time when joining a currently playing party. Clients should treat host state as advisory and keep user control local: following a party can be toggled off without leaving the pod.
 
 Following an already paused room selects the host track at its paused position. A host Stop event ends following and clears the local player.
+If a host Pause arrives while the listener is still obtaining a stream ticket, the player cancels the pending start so the track remains paused when its source becomes ready.
 After a connection interruption, a follower rejoins the room and refreshes the host's current state before continuing.
 Pressing Stop or choosing another track in the local player also leaves follow mode; later host updates will not restart or replace the listener's playback.
 Hiding the browser player leaves Follow even if a room is idle. Show the player again before following a room.

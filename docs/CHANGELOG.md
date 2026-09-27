@@ -87,6 +87,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   track ready for retry.
 - Kept the pending track and URL in one player state value so a same-URL
   reselection still activates after React batches rapid source updates.
+- Listen-along Pause now uses the player's transport handler, canceling a
+  pending start and ending an outgoing crossfade before the new ticket arrives.
 - Applied volume, local mute, and playback speed changes to both audio elements
   during crossfades.
 - Clear Upcoming now keeps played-track history available for Previous and

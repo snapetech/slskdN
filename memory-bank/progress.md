@@ -13452,3 +13452,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:27:51Z
 
 - Replaced separate source URL state and owner ref with a single `{ item, url }` source value, preventing React batching from suppressing same-URL reselection. Documented gotcha 0z1016 before source edits.
+
+## Update 2026-09-27 21:30:51Z
+
+- Routed listen-along's context-level Pause through the mounted player's pause handler, so pending autoplay and outgoing crossfade stop with the host command. Documented gotcha 0z1017 before source edits.

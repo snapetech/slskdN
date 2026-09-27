@@ -49,6 +49,10 @@
   - Status: implemented (2026-09-27).
   - Notes: Old media events cannot skip the next item or count listening time while a ticket loads; track and URL share one state value so same-URL reselection rebinds even under batching. Failed crossfade starts retain the incoming track for retry, and Play/Pause during ticket or decode setup apply to the new source.
 
+- [x] Apply listen-along Pause through the full player transport path.
+  - Status: implemented (2026-09-27).
+  - Notes: Context-level Pause reaches the mounted player handler, clearing pending autoplay and outgoing crossfade audio before a delayed ticket can start playback.
+
 - [x] Avoid creating a Web Audio graph for neutral idle player settings.
   - Status: implemented (2026-09-27).
   - Notes: Flat EQ, karaoke off, and output gain one reuse a graph when present but no longer create one for a paused player.
