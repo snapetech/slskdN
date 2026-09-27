@@ -1,3 +1,8 @@
+## Update 2026-09-27 21:30:00Z
+
+- Current task: listen-along icon actions now have accessible names; file-browser navigation and queue preview controls use helpful Semantic UI Popup tooltips.
+- Next: finish source/release validation, commit and push to the verified fork, then continue reviewing player control behavior. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 21:20:00Z
 
 - Current task: persisted volume and playback speed are normalized before player state initializes, keeping controls and Media Session on valid values.

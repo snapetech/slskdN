@@ -57,6 +57,8 @@ The player can start playback from:
 - Pod/listening-party follow actions that resolve the announced `ContentId`.
 - Audio files chosen from the current device. These play through browser object URLs for this session and are not uploaded or saved to server Collections.
 
+File-browser breadcrumbs and folder rows explain where they navigate on hover. Queue preview chips explain that clicking removes an upcoming track without stopping the current one; listen-along icon actions have spoken labels for assistive technology.
+
 All normal playback uses `GET /api/v0/streams/{contentId}`. That endpoint supports byte ranges, seeking, content-type detection, authenticated access, share-token access where applicable, and per-user stream limiting.
 
 For local browser picking, slskdN can resolve streamable IDs from configured non-excluded share directories and the configured downloads directory. This keeps downloaded/shared audio playable even before a row has been persisted into `content_items`, while still keeping file access scoped to configured local roots.

@@ -13356,3 +13356,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:20:00Z
 
 - Normalized saved volume into 0–1 and saved playback speed into supported choices before React state creation. Malformed storage no longer leaves the slider, selector, or Media Session with `NaN` while the media element uses a separate fallback. Recorded gotcha 0z982 and added user documentation plus an append-only release fragment.
+
+## Update 2026-09-27 21:30:00Z
+
+- Added accessible names to icon-only pod Follow, Broadcast, Stop, and listed-radio Play actions. Wrapped player file breadcrumbs, folder rows, and queue preview removal chips in explanatory Semantic UI Popups, as required by repository control guidance. Recorded gotcha 0z983 and added user documentation and an append-only release fragment. Web lint passes.

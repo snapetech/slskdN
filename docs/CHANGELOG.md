@@ -73,6 +73,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   idle room, and Follow controls wait until the player is shown again.
 - Invalid saved volume and playback speed values now load as valid defaults,
   keeping the controls and browser Media Session consistent.
+- Added clear accessible names to listen-along icon actions and helpful
+  mouseover explanations to player file navigation and queue preview controls.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

@@ -468,6 +468,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           trigger={
             <Button
               active={following}
+              aria-label="Follow pod broadcast"
               disabled={player.playerVisible === false}
               icon
               onClick={() => {
@@ -490,6 +491,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           content="Publish the current server-backed track as the pod listen-along host. Browser-only files cannot be streamed to other listeners."
           trigger={
             <Button
+              aria-label="Broadcast current track to pod"
               disabled={!canBroadcastCurrent}
               icon
               onClick={() => publish('play')}
@@ -502,6 +504,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           content="Stop hosting listen-along metadata for this pod."
           trigger={
             <Button
+              aria-label="Stop pod broadcast"
               icon
               onClick={() => publish('stop')}
             >
@@ -521,6 +524,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                     content="Play this listed radio snapshot through the host's stream endpoint. Rejoin for later track changes."
                     trigger={
                       <Button
+                        aria-label={`Play ${party.title || party.contentId} from listed radio`}
                         disabled={!party.allowMeshStreaming || !party.streamPath}
                         icon
                         onClick={() => joinListedParty(party)}

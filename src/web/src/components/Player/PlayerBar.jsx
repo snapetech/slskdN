@@ -1832,15 +1832,19 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
                 : [{ name: 'Library', path: '' }]).map((breadcrumb, index) => (
                   <React.Fragment key={breadcrumb.path || 'library'}>
                     {index > 0 ? <Icon name="angle right" /> : null}
-                    <button
-                      className="player-file-breadcrumb"
-                      data-testid={`player-file-breadcrumb-${index}`}
-                      onClick={() => openBrowserPath(breadcrumb.path)}
-                      title={`Open ${breadcrumb.name}`}
-                      type="button"
-                    >
-                      {breadcrumb.name}
-                    </button>
+                    <Popup
+                      content={`Open ${breadcrumb.name} to browse files from that folder.`}
+                      trigger={
+                        <button
+                          className="player-file-breadcrumb"
+                          data-testid={`player-file-breadcrumb-${index}`}
+                          onClick={() => openBrowserPath(breadcrumb.path)}
+                          type="button"
+                        >
+                          {breadcrumb.name}
+                        </button>
+                      }
+                    />
                   </React.Fragment>
               ))}
             </div>
@@ -1860,25 +1864,29 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
                   </Message>
                 ) : (
                   browserDirectories.map((directory) => (
-                    <button
-                      className="player-file-folder-row"
-                      data-testid={`player-file-folder-${directory.path}`}
+                    <Popup
+                      content={`Open ${directory.name} to browse its tracks and subfolders.`}
                       key={directory.path}
-                      onClick={() => openBrowserPath(directory.path)}
-                      title={`Open ${directory.name}`}
-                      type="button"
-                    >
-                      <Icon name="folder" />
-                      <span>
-                        <strong>{directory.name}</strong>
-                        <small>
-                          {directory.fileCount} tracks
-                          {directory.childDirectoryCount
-                            ? `, ${directory.childDirectoryCount} folders`
-                            : ''}
-                        </small>
-                      </span>
-                    </button>
+                      trigger={
+                        <button
+                          className="player-file-folder-row"
+                          data-testid={`player-file-folder-${directory.path}`}
+                          onClick={() => openBrowserPath(directory.path)}
+                          type="button"
+                        >
+                          <Icon name="folder" />
+                          <span>
+                            <strong>{directory.name}</strong>
+                            <small>
+                              {directory.fileCount} tracks
+                              {directory.childDirectoryCount
+                                ? `, ${directory.childDirectoryCount} folders`
+                                : ''}
+                            </small>
+                          </span>
+                        </button>
+                      }
+                    />
                   ))
                 )}
               </aside>
@@ -3875,15 +3883,20 @@ const PlayerBar = () => {
       {current && queue.length > 1 ? (
         <div className="player-queue">
           {queue.slice(1, 4).map((item) => (
-            <button
-              className="player-queue-item"
+            <Popup
+              content={`Remove ${item.title || item.fileName || item.contentId} from upcoming playback without stopping the current track.`}
               key={item.contentId}
-              onClick={() => removeFromQueue(item.contentId)}
-              title="Remove this item from the visible queue."
-              type="button"
-            >
-              {item.title || item.fileName || item.contentId}
-            </button>
+              trigger={
+                <button
+                  aria-label={`Remove ${item.title || item.fileName || item.contentId} from queue`}
+                  className="player-queue-item"
+                  onClick={() => removeFromQueue(item.contentId)}
+                  type="button"
+                >
+                  {item.title || item.fileName || item.contentId}
+                </button>
+              }
+            />
           ))}
         </div>
       ) : null}
