@@ -125,7 +125,7 @@ export const PlayerProvider = ({ children }) => {
     }
   }, [audioElement]);
 
-  const clear = useCallback(async () => {
+  const clear = useCallback(() => {
     if (audioElement) {
       audioElement.pause();
       audioElement.removeAttribute('src');
@@ -136,7 +136,7 @@ export const PlayerProvider = ({ children }) => {
     playbackPositionRef.current = 0;
     setHistory([]);
     setQueue([]);
-    await nowPlaying.clearNowPlaying();
+    nowPlaying.clearNowPlaying().catch(() => {});
   }, [audioElement]);
 
   useEffect(() => {

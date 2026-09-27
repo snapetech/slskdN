@@ -35,7 +35,11 @@ The protocol payload is JSON in the pod message body:
 
 `serverTimeUnixMs` and `positionSeconds` let listeners compensate for elapsed time when joining a currently playing party. Clients should treat host state as advisory and keep user control local: following a party can be toggled off without leaving the pod.
 
+Following an already paused room selects the host track at its paused position. A host Stop event ends following and clears the local player.
+After a connection interruption, a follower rejoins the room and refreshes the host's current state before continuing.
+
 Broadcasts use the host player's current absolute position, including a decoded stream's start offset. A listed radio announcement also carries its latest action and position so a directory listener can join at the advertised point and stay paused if the host is paused. Browser-only files cannot be broadcast because other listeners cannot access their object URLs.
+Listed radio starts playback from the latest directory snapshot. It does not subscribe to later changes from a different pod; use the room's Follow control for live updates in a pod you have joined.
 
 ## Web Player
 
@@ -68,6 +72,8 @@ Controls include:
 - Browser Media Session metadata and transport handlers for supported mobile/PWA lock-screen controls.
 - Keyboard shortcuts apply when focus is outside buttons, links, sliders, and text controls, leaving normal keyboard operation of those controls intact.
 - Optional MilkDrop visualizer, lightweight analyzer, equalizer, synced lyrics, crossfade, karaoke-style center-channel reduction, and ListenBrainz now-playing/scrobble submission when the relevant player controls are enabled.
+
+The optional Picture-in-Picture spectrum follows the active audio element across crossfades and player layout changes. It draws less often while playback is paused and closes when the player is hidden.
 
 The player publishes Now Playing after playback begins and clears it on pause, stop, failure, or final track end. Playback errors are shown in the player. If the browser cannot decode a server library audio file, **Decode for playback** requests a short-lived, ticket-bound MP3 stream from the configured FFmpeg executable. It runs only on demand, permits one decode per user and two per server, and never sends browser-chosen files to the server. Server administrators can edit tags on indexed local audio from a Collection item; collection display metadata can be edited separately without changing the file. Tag edits change file bytes and may change its content ID, so the server refreshes the share index and Collection references.
 

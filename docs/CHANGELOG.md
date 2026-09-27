@@ -44,6 +44,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
   controls, stale Buffering status, and queue updates when session storage is
   unavailable. Listen-along now publishes live playback position, advertises
   the offset to directory listeners, and rejects browser-only broadcasts.
+- Fixed joining an already paused listen-along room and leaving follow mode
+  when a host stops. Followers now rejoin and refresh the room after reconnecting.
+  Listed radio tune-in no longer incorrectly claims to be live following.
+  The Picture-in-Picture spectrum now follows crossfades,
+  reduces paused animation work, and releases its window on player teardown.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

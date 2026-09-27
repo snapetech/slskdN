@@ -1,3 +1,8 @@
+## Update 2026-09-27 19:23:00Z
+
+- Current task: broad player lifecycle and listen-along follow hardening is implemented locally. Paused room joins, Stop cleanup, reconnect group membership, stale snapshots, truthful listed-radio tune-in, Picture-in-Picture teardown and active-graph binding, and local Stop cleanup are addressed.
+- Next: finish source and repository validation, commit and push to the verified fork, then continue auditing remaining player behavior. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 18:36:06Z
 
 - Current task: broad player controls and listen-along reliability pass completed and pushed to fork `main` through `4d383d254`.

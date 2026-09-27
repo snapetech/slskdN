@@ -30,7 +30,8 @@ const applyPartyState = (state, player) => {
 
   if (state.action === 'play' || state.action === 'seek') {
     const elapsed =
-      state.action === 'play'
+      state.action === 'play' && Number.isFinite(state.serverTimeUnixMs) &&
+      state.serverTimeUnixMs > 0
         ? Math.max(0, (Date.now() - state.serverTimeUnixMs) / 1000)
         : 0;
     player.playItem(
@@ -48,6 +49,26 @@ const applyPartyState = (state, player) => {
     );
   } else if (state.action === 'pause') {
     player.pause();
+    const positionSeconds = Number.isFinite(state.positionSeconds)
+      ? Math.max(0, state.positionSeconds)
+      : 0;
+    if (player.current?.contentId !== state.contentId ||
+        Math.abs(player.getPlaybackPosition() - positionSeconds) > 2) {
+      player.playItem(
+        {
+          album: state.album,
+          artist: state.artist || state.hostPeerId,
+          contentId: state.contentId,
+          streamUrl: state.streamUrl,
+          title: state.title || state.contentId,
+        },
+        {
+          positionSeconds,
+          replaceQueue: true,
+          startPaused: true,
+        },
+      );
+    }
   } else if (state.action === 'stop') {
     player.clear();
   }
@@ -88,18 +109,59 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     if (!podId || !channelId) return undefined;
 
     let disposed = false;
+    let hubVersion = 0;
+    let snapshotVersion = 0;
     const hub = createListeningPartyHubConnection();
 
-    hub.on('partyState', (state) => {
-      setPartyState(state);
+    const receiveState = (state) => {
+      setPartyState(state?.action === 'stop' ? null : state);
       if (followingRef.current) {
-        playerRef.current.followParty(state);
-        applyPartyState(state, playerRef.current);
+        if (!state || state.action === 'stop') {
+          setFollowing(false);
+          followingRef.current = false;
+          playerRef.current.followParty(null);
+          playerRef.current.clear();
+        } else {
+          playerRef.current.followParty(state);
+          applyPartyState(state, playerRef.current);
+        }
+      }
+    };
+    const refreshState = async () => {
+      const requestVersion = ++snapshotVersion;
+      const eventVersion = hubVersion;
+      try {
+        const state = await listeningParty.getPartyState(podId, channelId);
+        if (!disposed && requestVersion === snapshotVersion && eventVersion === hubVersion) {
+          receiveState(state);
+        }
+      } catch {
+        // A live hub event can still update the room after a snapshot failure.
+      }
+    };
+
+    hub.on('partyState', (state) => {
+      if (disposed) return;
+      hubVersion += 1;
+      receiveState(state);
+    });
+    hub.onreconnecting(() => {
+      if (!disposed) setConnected(false);
+    });
+    hub.onreconnected(async () => {
+      try {
+        await hub.invoke('JoinParty', podId, channelId);
+        if (!disposed) {
+          setConnected(true);
+          refreshState();
+        }
+      } catch {
+        if (!disposed) setConnected(false);
       }
     });
-    hub.onreconnecting(() => setConnected(false));
-    hub.onreconnected(() => setConnected(true));
-    hub.onclose(() => setConnected(false));
+    hub.onclose(() => {
+      if (!disposed) setConnected(false);
+    });
 
     hub
       .start()
@@ -107,14 +169,11 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       .then(() => {
         if (!disposed) setConnected(true);
       })
-      .catch(() => setConnected(false));
+      .catch(() => {
+        if (!disposed) setConnected(false);
+      });
 
-    listeningParty
-      .getPartyState(podId, channelId)
-      .then((state) => {
-        if (!disposed) setPartyState(state);
-      })
-      .catch(() => {});
+    refreshState();
 
     return () => {
       disposed = true;
@@ -190,7 +249,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       positionSeconds: action === 'stop' ? 0 : player.getPlaybackPosition(),
       title: current?.title || current?.fileName || '',
     });
-    setPartyState(state);
+    setPartyState(action === 'stop' ? null : state);
     if (!compact) {
       await refreshDirectory();
     }
@@ -205,7 +264,9 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     const positionSeconds = Number.isFinite(party.positionSeconds)
       ? Math.max(0, party.positionSeconds)
       : 0;
-    player.followParty(party);
+    setFollowing(false);
+    followingRef.current = false;
+    player.followParty(null);
     player.playItem(
       {
         album: party.album,
@@ -257,6 +318,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                 onClick={() => {
                   const next = !following;
                   setFollowing(next);
+                  followingRef.current = next;
                   if (next && partyState) {
                     player.followParty(partyState);
                     applyPartyState(partyState, player);
@@ -386,6 +448,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
               onClick={() => {
                 const next = !following;
                 setFollowing(next);
+                followingRef.current = next;
                 if (next && partyState) {
                   player.followParty(partyState);
                   applyPartyState(partyState, player);
@@ -430,7 +493,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
               <List.Item key={party.partyId}>
                 <List.Content floated="right">
                   <Popup
-                    content="Join this listed radio party and stream from the host's integrated slskdN endpoint when available."
+                    content="Play this listed radio snapshot through the host's stream endpoint. Rejoin for later track changes."
                     trigger={
                       <Button
                         disabled={!party.allowMeshStreaming || !party.streamPath}

@@ -47,7 +47,7 @@ import * as wishlistAPI from '../../lib/wishlist';
 import Equalizer from './Equalizer';
 import LyricsPane from './LyricsPane';
 import SpectrumAnalyzer, { getFrequencyBars } from './SpectrumAnalyzer';
-import { fadeOutputGain, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
+import { fadeOutputGain, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
 import { usePlayer } from './PlayerContext';
 import Visualizer from './Visualizer';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -2239,7 +2239,7 @@ const PlayerBar = () => {
   const scrobbledRef = useRef('');
   const playedSecondsRef = useRef(0);
   const playingNowSentRef = useRef(false);
-  const pipRef = useRef({ raf: null, win: null });
+  const pipRef = useRef({ data: null, raf: null, timer: null, win: null });
   const fadeTimeoutRef = useRef(null);
   const fadeOutgoingRef = useRef(null);
   const fadeRequestRef = useRef(0);
@@ -2300,11 +2300,25 @@ const PlayerBar = () => {
   const remountPositionRef = useRef(null);
   const transcodeRequestRef = useRef(0);
 
+  const closePictureInPicture = useCallback(() => {
+    const { raf, timer, win } = pipRef.current;
+    pipRef.current = { data: null, raf: null, timer: null, win: null };
+    if (!win) return;
+    if (raf !== null) win.cancelAnimationFrame(raf);
+    if (timer !== null) win.clearTimeout(timer);
+    if (!win.closed) win.close();
+  }, []);
+
   useEffect(() => () => {
     if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
+    closePictureInPicture();
     localObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     localObjectUrlsRef.current.clear();
-  }, []);
+  }, [closePictureInPicture]);
+
+  useEffect(() => {
+    if (!playerVisible) closePictureInPicture();
+  }, [closePictureInPicture, playerVisible]);
 
   useEffect(() => {
     const referenced = new Set([...queue, ...history, current].map((item) => item?.streamUrl));
@@ -2872,6 +2886,7 @@ const PlayerBar = () => {
   const openPictureInPicture = async () => {
     if (!audioRef.current || !window.documentPictureInPicture) return;
 
+    closePictureInPicture();
     const graph = await resumeAudioGraph(audioRef.current);
     if (!graph) return;
 
@@ -2886,32 +2901,53 @@ const PlayerBar = () => {
     canvas.style.width = '100%';
     pipWindow.document.body.appendChild(canvas);
     pipRef.current.win = pipWindow;
+    pipWindow.addEventListener('pagehide', () => {
+      if (pipRef.current.win === pipWindow) closePictureInPicture();
+    }, { once: true });
 
     const draw = () => {
-      if (pipWindow.closed) return;
+      if (pipRef.current.win !== pipWindow) return;
+      if (pipWindow.closed) {
+        closePictureInPicture();
+        return;
+      }
+      pipRef.current.raf = null;
+      pipRef.current.timer = null;
       const width = Math.max(1, pipWindow.innerWidth);
       const height = Math.max(1, pipWindow.innerHeight);
-      canvas.width = width;
-      canvas.height = height;
+      if (canvas.width !== width) canvas.width = width;
+      if (canvas.height !== height) canvas.height = height;
       const ctx = canvas.getContext('2d');
-      const data = new Uint8Array(graph.analyser.frequencyBinCount);
-      graph.analyser.getByteFrequencyData(data);
       ctx.fillStyle = '#050608';
       ctx.fillRect(0, 0, width, height);
-      const barCount = Math.min(72, Math.max(16, Math.floor(width / 7)));
-      const bars = getFrequencyBars(data, barCount);
-      const barWidth = width / bars.length;
-      bars.forEach((value, index) => {
-        const barHeight = (value / 255) * height;
-        ctx.fillStyle = `hsl(${264 + (index / bars.length) * 24}, 72%, 68%)`;
-        ctx.fillRect(
-          index * barWidth,
-          height - barHeight,
-          Math.max(1, barWidth - 1),
-          barHeight,
-        );
-      });
-      pipRef.current.raf = pipWindow.requestAnimationFrame(draw);
+      const activeGraph = audioRef.current && playingRef.current
+        ? getOrCreateAudioGraph(audioRef.current)
+        : null;
+      if (activeGraph) {
+        if (pipRef.current.data?.length !== activeGraph.analyser.frequencyBinCount) {
+          pipRef.current.data = new Uint8Array(activeGraph.analyser.frequencyBinCount);
+        }
+        const data = pipRef.current.data;
+        activeGraph.analyser.getByteFrequencyData(data);
+        const barCount = Math.min(72, Math.max(16, Math.floor(width / 7)));
+        const bars = getFrequencyBars(data, barCount);
+        const barWidth = width / bars.length;
+        bars.forEach((value, index) => {
+          const barHeight = (value / 255) * height;
+          ctx.fillStyle = `hsl(${264 + (index / bars.length) * 24}, 72%, 68%)`;
+          ctx.fillRect(
+            index * barWidth,
+            height - barHeight,
+            Math.max(1, barWidth - 1),
+            barHeight,
+          );
+        });
+      }
+      pipRef.current.timer = pipWindow.setTimeout(() => {
+        if (pipRef.current.win === pipWindow) {
+          pipRef.current.raf = pipWindow.requestAnimationFrame(draw);
+        }
+      }, playingRef.current ? 33 : 250);
     };
 
     draw();

@@ -13292,3 +13292,8 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 18:36:06Z
 
 - Verified the fork target, confirmed `origin/main` had no commits ahead of this checkout, and pushed the five-commit player controls and listen-along series through `4d383d254` to fork `main`. Release-note range preview passed.
+
+## Update 2026-09-27 19:23:00Z
+
+- Continued the player lifecycle review across listen-along reconnection and Picture-in-Picture. Followers rejoin the SignalR group after reconnecting, refresh room state, and discard stale HTTP snapshots. A paused room selects the host track; Stop leaves follow mode. Listed radio tune-in no longer claims a live subscription it does not provide. PiP reads the active graph, limits paused work, and closes on player teardown. Local Stop no longer rejects when profile Now Playing cleanup fails.
+- Recorded gotchas 0z961–0z965 before related fixes; updated the listening guide, changelog, and validated release fragment. Web lint/build and bundle budget passed; live playback inspection remains pending.
