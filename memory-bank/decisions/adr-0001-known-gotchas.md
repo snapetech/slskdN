@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z976. Preserve A Playback Error Through Late Pause Events
+
+**The Bug**: A media failure sets the player status to Error, but a subsequent `pause` event from the same element changed it to Paused. The message might remain while the main status misleadingly claimed a normal pause.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Treat Error and Finished as terminal labels for the current playback attempt. A later Pause event must not overwrite them; a new Play attempt can explicitly reset status.
+
 ### 0z975. Do Not Show Buffering For A Paused Seek
 
 **The Bug**: A media element can emit `waiting` while fetching data for a seek made in the paused state. The player treated every active-element `waiting` event as playback buffering, leaving the label stuck on Buffering until audio resumed.
