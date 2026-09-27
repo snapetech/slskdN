@@ -2866,8 +2866,12 @@ const PlayerBar = () => {
       autoplayRef.current = false;
       playAudio().then(() => {
         if (fadeRequest !== fadeRequestRef.current || audioRef.current !== standby) return;
-        fadeOutputGain(active, 1, 0, 5);
-        fadeOutputGain(standby, 0, 1, 5);
+        const remainingMediaSeconds = Number.isFinite(active.duration)
+          ? Math.max(0, active.duration - active.currentTime)
+          : 5;
+        const fadeDurationSeconds = Math.max(0.1, Math.min(5, remainingMediaSeconds) / playbackRate);
+        fadeOutputGain(active, 1, 0, fadeDurationSeconds);
+        fadeOutputGain(standby, 0, 1, fadeDurationSeconds);
         fadeTimeoutRef.current = window.setTimeout(() => {
           if (fadeRequest !== fadeRequestRef.current) return;
           active.pause();
@@ -2876,7 +2880,7 @@ const PlayerBar = () => {
           setOutputGain(active, 1);
           fadeOutgoingRef.current = null;
           fadeTimeoutRef.current = null;
-        }, 5200);
+        }, fadeDurationSeconds * 1000 + 200);
       }).catch(() => {
         if (fadeRequest !== fadeRequestRef.current) return;
         stopOutgoingFade();

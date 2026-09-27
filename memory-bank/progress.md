@@ -13400,3 +13400,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:33:00Z
 
 - Aligned near-end crossfade availability with normal repeat transitions. Repeat One waits for a full track end and repeats the current item, while Repeat All can crossfade from the last queue item into history. Recorded gotcha 0z994 before source edits and added user documentation plus an append-only release fragment.
+
+## Update 2026-09-27 20:39:00Z
+
+- Scaled crossfade gain ramps and outgoing cleanup to the remaining media time at incoming playback start and the selected playback speed. Recorded and clarified gotcha 0z995 before completion, and added user documentation plus an append-only release fragment.

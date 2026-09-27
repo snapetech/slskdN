@@ -95,6 +95,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   loading and failure status.
 - Made crossfade honor Repeat One and continue smoothly when Repeat All wraps
   from the last queued track into play history.
+- Matched crossfade ramp time to the outgoing track's remaining media time and
+  playback speed, avoiding volume dips at faster speeds.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical
