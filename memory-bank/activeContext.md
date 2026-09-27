@@ -1,3 +1,8 @@
+## Update 2026-09-27 18:02:22Z
+
+- Current task: continued player resource polish after seek/tag hardening. Pause/resume no longer repeats ListenBrainz playing-now calls, while repeat-one resets the scrobble marker for each play.
+- Web lint/build, release-note fragment validation, and identity check passed. Next: commit the fix, then perform live audio and mobile smoke checks when browser workspace control is available. No tag or deployment is authorized.
+
 ## Update 2026-09-27 17:58:41Z
 
 - Current task: further player hardening completed after commit `15875440b`. The changes route all seek/restart controls through the absolute track timeline and isolate tag-edit copies from concurrent scans on Windows. Backend build, repository lint, Web build/lint, bundle budget, and identity check passed.

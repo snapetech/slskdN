@@ -2246,6 +2246,7 @@ const PlayerBar = () => {
   const lastSourceRef = useRef('');
   const playerBarRef = useRef(null);
   const scrobbledRef = useRef('');
+  const playingNowSentRef = useRef(false);
   const pipRef = useRef({ raf: null, win: null });
   const fadeTimeoutRef = useRef(null);
   const crossfadeStartedRef = useRef(null);
@@ -2757,6 +2758,7 @@ const PlayerBar = () => {
 
   useEffect(() => {
     scrobbledRef.current = '';
+    playingNowSentRef.current = false;
   }, [current]);
 
   useEffect(() => {
@@ -2915,6 +2917,8 @@ const PlayerBar = () => {
       return;
     }
     if (repeatMode === 'one' || (repeatMode === 'all' && queue.length === 1 && history.length === 0)) {
+      playingNowSentRef.current = false;
+      scrobbledRef.current = '';
       if (transcodeMode) startTranscode(0);
       else {
         audioRef.current.currentTime = 0;
@@ -2997,7 +3001,10 @@ const PlayerBar = () => {
       setPlaybackStatus('playing');
       if (current?.artist && current?.title) {
         nowPlaying.setNowPlaying({ album: current.album, artist: current.artist, title: current.title }).catch(() => {});
-        listenBrainz.submitListen('playing_now', current).catch(() => {});
+        if (!playingNowSentRef.current && listenBrainzToken) {
+          playingNowSentRef.current = true;
+          listenBrainz.submitListen('playing_now', current).catch(() => {});
+        }
       }
     },
     onTimeUpdate: (event) => {

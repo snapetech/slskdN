@@ -13260,3 +13260,7 @@ export branch has no shared Git history and was not merged.
 
 - Continued player fallback review: keyboard, drawer, Previous, repeat, and Media Session seek controls now use absolute track position during FFmpeg playback. Paused seeks preserve pause state, and seek drafts clear on track changes.
 - Tag edits now keep working files in a unique hidden sibling directory so a concurrent Windows share scan skips them. Added a separate validated release-note fragment, Unreleased changelog entry, and listening guide update. Backend build, repository lint, Web build/lint, bundle budget, and identity check passed. No release tag or deployment was created.
+
+## Update 2026-09-27 18:02:22Z
+
+- Reduced ListenBrainz `playing_now` requests to once per track start and reset scrobbling for each repeat-one play. Added a separate validated release-note fragment and Unreleased changelog bullet. Web lint/build and identity checks passed. No release tag or deployment was created.

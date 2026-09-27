@@ -30,6 +30,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed keyboard, drawer, and lock-screen seeking in decoded audio, including
   repeat and Previous from a decoded offset, and kept tag-edit working files
   out of concurrent share scans.
+- Reduced repeat ListenBrainz playing-now requests on pause/resume and counted
+  each completed repeat-one play in listening history and scrobbling.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical
