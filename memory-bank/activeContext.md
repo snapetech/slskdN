@@ -1,3 +1,8 @@
+## Update 2026-09-27 18:24:05Z
+
+- Current task: broader player hardening completed and pushed to the verified fork `main` at `d77bafb94`. The push included the full player overhaul and follow-up local commits.
+- Next: live desktop/mobile playback inspection on a controlled dev instance, including crossfade interruption, local duplicate files, scrobble thresholds, decoded audio, and tag editing. No release tag or deployment was created.
+
 ## Update 2026-09-27 18:23:15Z
 
 - Current task: broader player lifecycle hardening implemented. Crossfade interruption, seek-based scrobble inflation, duplicate local-file queue IDs, stale decode metadata, and remount audio-context cleanup are addressed. Pending playback requests are canceled on Pause, source change, and track change.

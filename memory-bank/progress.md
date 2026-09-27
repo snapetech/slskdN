@@ -13279,3 +13279,7 @@ export branch has no shared Git history and was not merged.
 - Audited the player across queue identity, playback errors, scrobbling, crossfade interruption, and Web Audio lifetime. Fixed five concrete defects: skipped media time no longer counts as a listen; identical local File entries keep separate queue IDs and object URLs; Pause/Stop silence outgoing crossfade audio; late decode metadata cannot alter a newer track; remounted audio elements close their old AudioContexts. Also cancel pending playback requests when Pause or source changes wins the race.
 - Recorded gotchas 0z950–0z954 before code edits, updated the listening guide and a new release fragment. Live playback and mobile inspection remain pending on a controlled dev instance.
 - Web lint/build, bundle budget, repository lint, release-note fragment validation, whitespace, and identity checks passed. No release tag or deployment was created.
+
+## Update 2026-09-27 18:24:05Z
+
+- Verified the GitHub target as the fork, fetched `origin/main`, confirmed it had no commits ahead of the checkout, and pushed the 39-commit player overhaul and hardening series through `d77bafb94` to fork `main`.
