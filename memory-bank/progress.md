@@ -13297,3 +13297,7 @@ export branch has no shared Git history and was not merged.
 
 - Continued the player lifecycle review across listen-along reconnection and Picture-in-Picture. Followers rejoin the SignalR group after reconnecting, refresh room state, and discard stale HTTP snapshots. A paused room selects the host track; Stop leaves follow mode. Listed radio tune-in no longer claims a live subscription it does not provide. PiP reads the active graph, limits paused work, and closes on player teardown. Local Stop no longer rejects when profile Now Playing cleanup fails.
 - Recorded gotchas 0z961–0z965 before related fixes; updated the listening guide, changelog, and validated release fragment. Web lint/build and bundle budget passed; live playback inspection remains pending.
+
+## Update 2026-09-27 19:30:00Z
+
+- Consolidated player current track, queue, and history into one state value. Next and Previous no longer update other state fields from inside a queue updater; shuffle selection is chosen before the pure transition. Playback position follows committed track changes. Added gotcha 0z966 and a new user-facing release fragment. Web lint/build and whitespace checks pass; live playback inspection remains pending.

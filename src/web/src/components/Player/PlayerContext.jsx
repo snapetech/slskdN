@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -57,9 +58,12 @@ const readSession = () => {
 export const PlayerProvider = ({ children }) => {
   const [initialSession] = useState(readSession);
   const [audioElement, setAudioElement] = useState(null);
-  const [current, setCurrent] = useState(initialSession.current);
-  const [history, setHistory] = useState([]);
-  const [queue, setQueue] = useState(initialSession.queue);
+  const [playback, setPlayback] = useState(() => ({
+    current: initialSession.current,
+    history: [],
+    queue: initialSession.queue,
+  }));
+  const { current, history, queue } = playback;
   const [repeatMode, setRepeatMode] = useState(initialSession.repeatMode);
   const [shuffle, setShuffle] = useState(initialSession.shuffle);
   const [followingParty, setFollowingParty] = useState(null);
@@ -71,6 +75,10 @@ export const PlayerProvider = ({ children }) => {
   const setPlaybackPosition = useCallback((seconds) => {
     if (Number.isFinite(seconds)) playbackPositionRef.current = Math.max(0, seconds);
   }, []);
+
+  useLayoutEffect(() => {
+    playbackPositionRef.current = current?.positionSeconds || 0;
+  }, [current]);
 
   useEffect(() => {
     setSessionStorageItem(sessionKey, JSON.stringify({
@@ -109,14 +117,20 @@ export const PlayerProvider = ({ children }) => {
       };
 
       playbackPositionRef.current = playable.positionSeconds;
-      setHistory((existing) => (options.replaceQueue ? [] : current ? [current, ...existing] : existing));
-      setCurrent(playable);
-      setQueue((existing) =>
-        options.replaceQueue ? [playable] : [playable, ...existing.slice(current ? 1 : 0)],
-      );
+      setPlayback((existing) => ({
+        current: playable,
+        history: options.replaceQueue
+          ? []
+          : existing.current
+            ? [existing.current, ...existing.history]
+            : existing.history,
+        queue: options.replaceQueue
+          ? [playable]
+          : [playable, ...existing.queue.slice(existing.current ? 1 : 0)],
+      }));
 
     },
-    [current, playerVisible],
+    [playerVisible],
   );
 
   const pause = useCallback(() => {
@@ -132,10 +146,8 @@ export const PlayerProvider = ({ children }) => {
       audioElement.load();
     }
 
-    setCurrent(null);
     playbackPositionRef.current = 0;
-    setHistory([]);
-    setQueue([]);
+    setPlayback({ current: null, history: [], queue: [] });
     nowPlaying.clearNowPlaying().catch(() => {});
   }, [audioElement]);
 
@@ -147,9 +159,12 @@ export const PlayerProvider = ({ children }) => {
   }, [clear, playerVisible]);
 
   const clearQueue = useCallback(() => {
-    setQueue((existing) => (current ? [current] : existing.slice(0, 1)));
-    setHistory([]);
-  }, [current]);
+    setPlayback((existing) => ({
+      ...existing,
+      history: [],
+      queue: existing.current ? [existing.current] : existing.queue.slice(0, 1),
+    }));
+  }, []);
 
   const playNext = useCallback((item) => {
     if (!item?.contentId) return;
@@ -157,39 +172,45 @@ export const PlayerProvider = ({ children }) => {
       playItem(item, { replaceQueue: true });
       return;
     }
-    setQueue((existing) => [
-      ...existing.slice(0, 1),
-      item,
-      ...existing.slice(1).filter((entry) => entry.contentId !== item.contentId),
-    ]);
+    setPlayback((existing) => ({
+      ...existing,
+      queue: [
+        ...existing.queue.slice(0, 1),
+        item,
+        ...existing.queue.slice(1).filter((entry) => entry.contentId !== item.contentId),
+      ],
+    }));
   }, [current, playItem]);
 
   const moveQueueItem = useCallback((fromIndex, toIndex) => {
-    setQueue((existing) => {
-      if (fromIndex < 1 || toIndex < 1 || fromIndex >= existing.length || toIndex >= existing.length) return existing;
-      const updated = [...existing];
+    setPlayback((existing) => {
+      if (fromIndex < 1 || toIndex < 1 || fromIndex >= existing.queue.length || toIndex >= existing.queue.length) return existing;
+      const updated = [...existing.queue];
       updated.splice(toIndex, 0, updated.splice(fromIndex, 1)[0]);
-      return updated;
+      return { ...existing, queue: updated };
     });
   }, []);
 
   const queueItems = useCallback((items = []) => {
-    setQueue((existing) => {
-      const queuedIds = new Set(existing.map((item) => item.contentId));
+    setPlayback((existing) => {
+      const queuedIds = new Set(existing.queue.map((item) => item.contentId));
       const additions = items.filter((item) => {
         if (!item?.contentId || queuedIds.has(item.contentId)) return false;
         queuedIds.add(item.contentId);
         return true;
       });
 
-      return additions.length > 0 ? [...existing, ...additions] : existing;
+      return additions.length > 0
+        ? { ...existing, queue: [...existing.queue, ...additions] }
+        : existing;
     });
   }, []);
 
   const removeFromQueue = useCallback((contentId) => {
-    setQueue((existing) =>
-      existing.filter((item, index) => index === 0 || item.contentId !== contentId),
-    );
+    setPlayback((existing) => ({
+      ...existing,
+      queue: existing.queue.filter((item, index) => index === 0 || item.contentId !== contentId),
+    }));
   }, []);
 
   const followParty = useCallback((partyState) => {
@@ -197,42 +218,46 @@ export const PlayerProvider = ({ children }) => {
   }, []);
 
   const next = useCallback(() => {
-    setQueue((existing) => {
-      if (existing.length < 2) {
-        if (repeatMode === 'all' && history.length > 0) {
-          const [nextItem, ...remaining] = [...history].reverse().concat(existing);
-          playbackPositionRef.current = nextItem.positionSeconds || 0;
-          setCurrent(nextItem);
-          setHistory([]);
-          return [nextItem, ...remaining];
+    const random = Math.random();
+    setPlayback((existing) => {
+      if (existing.queue.length < 2) {
+        if (repeatMode === 'all' && existing.history.length > 0) {
+          const [nextItem, ...remaining] = [...existing.history].reverse().concat(existing.queue);
+          return { current: nextItem, history: [], queue: [nextItem, ...remaining] };
         }
         return existing;
       }
-      const nextIndex = shuffle ? 1 + Math.floor(Math.random() * (existing.length - 1)) : 1;
-      const nextItem = existing[nextIndex];
-      playbackPositionRef.current = nextItem.positionSeconds || 0;
-      const remaining = existing.slice(1).filter((_, index) => index + 1 !== nextIndex);
-      setHistory((previousHistory) =>
-        current ? [current, ...previousHistory] : previousHistory,
-      );
-      setCurrent(nextItem);
-      return [nextItem, ...remaining];
+      const nextIndex = shuffle ? 1 + Math.floor(random * (existing.queue.length - 1)) : 1;
+      const nextItem = existing.queue[nextIndex];
+      const remaining = existing.queue.slice(1).filter((_, index) => index + 1 !== nextIndex);
+      return {
+        current: nextItem,
+        history: existing.current
+          ? [existing.current, ...existing.history]
+          : existing.history,
+        queue: [nextItem, ...remaining],
+      };
     });
-  }, [current, history, repeatMode, shuffle]);
+  }, [repeatMode, shuffle]);
 
   const previous = useCallback(() => {
     if (history.length === 0) {
       if (audioElement) {
         audioElement.currentTime = 0;
       }
+      playbackPositionRef.current = 0;
       return;
     }
 
-    const [previousItem, ...remainingHistory] = history;
-    playbackPositionRef.current = previousItem.positionSeconds || 0;
-    setHistory(remainingHistory);
-    setCurrent(previousItem);
-    setQueue((existing) => [previousItem, ...existing]);
+    setPlayback((existing) => {
+      if (existing.history.length === 0) return existing;
+      const [previousItem, ...remainingHistory] = existing.history;
+      return {
+        current: previousItem,
+        history: remainingHistory,
+        queue: [previousItem, ...existing.queue],
+      };
+    });
   }, [audioElement, history]);
 
   return (
