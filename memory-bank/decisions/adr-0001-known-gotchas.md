@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z960. Do Not Broadcast A Browser-Only File As A Shared Stream
+
+**The Bug**: Listen-along allowed a host to broadcast a `local:` browser File as if it were a server content ID. Peers cannot resolve that browser's object URL. The radio directory also enabled Join when mesh streaming was marked available even if the announcement lacked a usable stream path.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Allow host publication only for server-backed content IDs and enable directory Join only when the announced stream path is present. Keep the button tooltip aligned with those requirements.
+
 ### 0z959. Leave Focused Player Controls To The Browser
 
 **The Bug**: Global player shortcuts intercepted Space on focused buttons and arrow keys on focused range sliders because only text inputs were treated as editable targets. Keyboard activation and precise seek or volume adjustment could trigger unrelated playback actions.
