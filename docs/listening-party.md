@@ -85,6 +85,9 @@ Browser Now Playing changes are sent in playback order, so a slow Play update ca
 Seeking, rewind/fast-forward, Previous, and repeat use the full track position during decoded playback. Seeking while paused leaves playback paused.
 
 Listening history and optional ListenBrainz scrobbles count actual playback progress toward the track threshold. Skipping forward does not count the skipped portion as listening. Pause and Stop also silence both audio elements if a crossfade is in progress.
+If the incoming track errors during a crossfade, the outgoing element stops immediately so the visible failure and audible output agree.
+Seeking while paused keeps the player in Paused even if the browser fetches more audio data.
+A late Pause event after a media failure leaves the player in Error until the user retries or selects another track.
 
 Synced lyric highlighting follows the browser media element's playback, seek,
 and metadata events. It does not run a separate fixed polling timer, and hidden

@@ -2488,7 +2488,7 @@ const PlayerBar = () => {
     audioRef.current?.pause();
     playingRef.current = false;
     setPlaying(false);
-    setPlaybackStatus('paused');
+    setPlaybackStatus((status) => status === 'ended' || status === 'error' ? status : 'paused');
     nowPlaying.clearNowPlaying().catch(() => {});
   }, [stopOutgoingFade]);
 
@@ -3102,6 +3102,8 @@ const PlayerBar = () => {
       if (event.currentTarget !== audioRef.current || !current) return;
       const failedElement = event.currentTarget;
       const failedSource = failedElement.currentSrc || failedElement.src;
+      playRequestRef.current += 1;
+      stopOutgoingFade();
       playingRef.current = false;
       setPlaying(false);
       setPlaybackStatus('error');
@@ -3133,7 +3135,7 @@ const PlayerBar = () => {
       stopOutgoingFade();
       playingRef.current = false;
       setPlaying(false);
-      setPlaybackStatus((status) => status === 'ended' ? status : 'paused');
+      setPlaybackStatus((status) => status === 'ended' || status === 'error' ? status : 'paused');
       nowPlaying.clearNowPlaying().catch(() => {});
     },
     onPlay: (event) => {
@@ -3172,7 +3174,9 @@ const PlayerBar = () => {
       }
     },
     onWaiting: (event) => {
-      if (event.currentTarget === audioRef.current) setPlaybackStatus('buffering');
+      if (event.currentTarget === audioRef.current && playingRef.current) {
+        setPlaybackStatus('buffering');
+      }
     },
   };
   const audio = (

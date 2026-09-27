@@ -1,3 +1,8 @@
+## Update 2026-09-27 20:25:00Z
+
+- Current task: playback error and buffering status pass implemented locally. Incoming crossfade errors stop outgoing audio, paused seeks do not show Buffering, and late Pause events preserve Error.
+- Next: complete source and release validation, commit and push to the verified fork, then continue the remaining transport review. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 20:15:00Z
 
 - Current task: async Now Playing write ordering is implemented locally. Browser Play, Pause, and Stop requests now reach the server in event order even when one request responds slowly.

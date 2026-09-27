@@ -13328,3 +13328,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:15:00Z
 
 - Serialized browser Now Playing PUT/DELETE writes so a slow Play request cannot complete after a later Pause/Stop clear. Failed requests leave the write chain usable for subsequent state changes. Recorded gotcha 0z973, updated the listening guide and Unreleased changelog, and added an append-only release fragment. Web lint/build, release-note validation, and whitespace checks pass.
+
+## Update 2026-09-27 20:25:00Z
+
+- Tightened three player status transitions: active-track error cancels outgoing crossfade audio and stale play requests; `waiting` only shows Buffering while trying to play; and late Pause events preserve Error/Finished until a new attempt. Recorded gotchas 0z974–0z976 before source edits, updated user docs/changelog, and added one append-only release fragment.
