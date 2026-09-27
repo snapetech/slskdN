@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z942. Do Not Requeue The Track Being Replaced
+
+**The Bug**: Selecting another track without replacing the whole queue prepended it ahead of the old current track. The just-interrupted track then played again on Next and also remained in history, producing duplicate repeat-all cycles.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: When a new selection takes over playback, move the old current track into history and preserve only the upcoming queue behind the new selection.
+
 ### 0z941. Set The Output Device On Both Crossfade Elements
 
 **The Bug**: The player changed `setSinkId` only on its active audio element. Crossfade starts the next track on a standby element, so playback could jump to the default output device. Expanding or collapsing also remounted both elements and lost the selection.
