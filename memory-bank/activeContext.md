@@ -14191,3 +14191,19 @@ rollback.
   remain closed and unmerged, with React 19 as a compatibility follow-up.
 - Next steps: await maintainers on YunoHost catalog PR #3627. No further work
   is required for this task.
+
+## Update 2026-09-27 20:33:28Z
+
+- Current task: player suite source hardening is implemented and pushed to the
+  fork's `main` through `4bbb9f2c7`. This pass covered crossfade processing and
+  repeat behavior, playback speed, native volume fallback, idle audio graph
+  allocation, saved EQ and lyrics state, Media Session Play, and ordered
+  listen-along host commands scoped to their pod channel.
+- Validation: Web lint and production build, bundle budget, repository lint,
+  release fragment preview, identity check, and whitespace check passed for the
+  final batch. Automated tests and interactive playback checks were not run in
+  this continuation. No release tag was created.
+- Next steps: inspect real audio playback on desktop and mobile, including
+  listen-along reconnect, as tracked in `memory-bank/tasks.md`. This source
+  review and build validation do not establish audible or visual parity with
+  desktop media players.
