@@ -44,12 +44,12 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 ### 0z935. Rebind The Audio Source After Player Layout Remounts
 
-**The Bug**: Expanding or collapsing the player swaps conditional render branches containing the audio elements. The new element had no source because source synchronization only watched the URL, which had not changed.
+**The Bug**: Expanding or collapsing the player swaps conditional render branches containing the audio elements. The new element had no source because source synchronization only watched the URL, which had not changed. Rebinding the source alone restarted the track at its beginning.
 
 **Files Affected**:
 - `src/web/src/components/Player/PlayerBar.jsx`
 
-**Prevention**: When a new media element is bound, invalidate the last applied source and reapply the current source. Preserve whether playback was active so a layout change resumes it.
+**Prevention**: When a new media element is bound, invalidate the last applied source and reapply the current source. Preserve play state and the element's media position so a layout change resumes where it left off.
 
 ### 0z934. Clean Up Tag Edit Copies Before Scanning Shares
 
