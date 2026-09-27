@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z946. Seek Against The Track Timeline In Fallback Playback
+
+**The Bug**: Keyboard, drawer, and Media Session rewind/forward changed the audio element's `currentTime` directly. An FFmpeg fallback stream starts at a server-side offset, so these controls could not seek before that offset and did not restart decoding at the requested absolute position.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Route all seek controls through the player's absolute seek handler. Compute the current track position as the fallback start offset plus the media element's relative time, then request one new decoded stream for a fallback seek.
+
 ### 0z945. Update Unreleased Changelog Alongside Release Fragments
 
 **The Bug**: A feature commit with a valid new `release-notes/` fragment was rejected by the local changelog hook because `docs/CHANGELOG.md` lacked a new `## [Unreleased]` entry.
