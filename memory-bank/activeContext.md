@@ -1,3 +1,8 @@
+## Update 2026-09-27 21:58:00Z
+
+- Current task: expanded transport no longer fetches Collections on mount. The list loads when its browser opens and shows a loading state while the request is pending.
+- Next: finish source/release validation, commit and push to the verified fork, then continue resource review. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 21:48:00Z
 
 - Current task: canceled local file searches no longer leave the picker stuck on Loading when the query becomes too short or the modal closes.

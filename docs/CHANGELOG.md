@@ -79,6 +79,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   earlier item requests finish late.
 - Cleared stale loading state when a local file search is shortened below two
   characters or the file picker is closed.
+- Deferred the player Collections list request until its browser opens and
+  showed a loading state while the list arrives.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

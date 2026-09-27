@@ -1510,6 +1510,7 @@ const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
 const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
   const navigate = useNavigate();
   const [collections, setCollections] = useState([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState(null);
   const [collectionItems, setCollectionItems] = useState([]);
@@ -1531,6 +1532,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
   const [itemsLoading, setItemsLoading] = useState(false);
 
   useEffect(() => {
+    if (!collectionsOpen) return undefined;
     let canceled = false;
     collectionsAPI
       .getCollections()
@@ -1539,12 +1541,15 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
       })
       .catch(() => {
         if (!canceled) setCollections([]);
+      })
+      .finally(() => {
+        if (!canceled) setCollectionsLoading(false);
       });
 
     return () => {
       canceled = true;
     };
-  }, []);
+  }, [collectionsOpen]);
 
   useEffect(() => {
     if (!filesOpen) {
@@ -1667,7 +1672,10 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
             data-testid="player-open-collections-browser"
             icon
             labelPosition={compact ? undefined : 'left'}
-            onClick={() => setCollectionsOpen(true)}
+            onClick={() => {
+              setCollectionsLoading(true);
+              setCollectionsOpen(true);
+            }}
             size="small"
             title="Open collections browser"
           >
@@ -1708,7 +1716,9 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
           <div className="player-browser-grid">
             <Segment className="player-browser-panel">
               <Header as="h4">Collections</Header>
-              {collections.length === 0 ? (
+              {collectionsLoading ? (
+                <Message info>Loading collections...</Message>
+              ) : collections.length === 0 ? (
                 <Message info>No collections found.</Message>
               ) : (
                 <Table compact selectable>

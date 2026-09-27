@@ -13368,3 +13368,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:48:00Z
 
 - Reset player file-picker loading state when closing the modal or shortening a search below two characters, while canceled request callbacks remain ignored. Recorded gotcha 0z985 before the fix and added an append-only release fragment, changelog entry, and listening-guide note.
+
+## Update 2026-09-27 21:58:00Z
+
+- Deferred the player Collections list request until the user opens that browser, with a visible loading state and canceled-response guard on close. Expanded transport controls no longer cause an unrelated library fetch. Recorded gotcha 0z986 and added user documentation and an append-only release fragment.
