@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z948. Keep Closed Player Dialogs Out Of The Playback Render Loop
+
+**The Bug**: The expanded and collapsed player mounted queue, discovery, radio, and listening-stats dialogs even while closed. Playback position updates rerendered the parent, causing closed dialogs to recalculate suggestions and statistics during normal listening.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Mount player dialogs only while open. Reinitialize their local view state when reopened and keep heavyweight calculations out of the frequent playback position render path.
+
 ### 0z947. Announce ListenBrainz Playing Now Once Per Track Start
 
 **The Bug**: Every pause/resume cycle called ListenBrainz `playing_now` for the same track. Repeated use of the player generated unnecessary external requests without a new track start. Conversely, repeat-one kept the prior scrobble marker, so later complete plays of that track were not counted.
