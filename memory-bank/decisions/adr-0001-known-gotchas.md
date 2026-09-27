@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z997. Carry The Published Party ID Into A Queued Stop
+
+**The Bug**: The first serialized listen-along implementation captured Stop's payload at click time. If Stop followed a still-pending Broadcast, the client had not received its party ID, so the server removed room state but left the listed radio directory entry behind.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Store the ID returned by a successful host publish even when a newer command is queued, and resolve Stop's party ID when its queued request executes. The server uses that ID to remove the directory announcement.
+
 ### 0z996. Preserve Listen-Along Broadcast Command Order
 
 **The Bug**: Broadcast and Stop host actions sent overlapping requests. A slower Broadcast response could arrive after Stop and restore visible room state, while request failures escaped the click handler without a useful message.
