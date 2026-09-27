@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1031. Keep Native Navigator Identity In Browser Tests
+
+**The Bug**: A Media Session regression fixture replaced Navigator with an object inheriting from it. Popper later accessed a branded Navigator getter on the replacement, causing an unhandled rejection and contaminating unrelated tests.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+
+**Prevention**: Install optional API fixtures on the real Navigator object and restore its original property descriptor during cleanup. Do not simulate Web IDL objects with prototype-only copies.
+
 ### 0z1030. Cancel Pending Picture-in-Picture Opens And Surface Failures
 
 **The Bug**: Picture-in-Picture setup awaited graph resume and window creation without a generation guard or rejection handler. Hiding/unmounting the player or opening another window during those waits could leave an orphan spectrum window; denied window requests produced unhandled promise rejections.
