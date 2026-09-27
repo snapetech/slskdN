@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z977. Serialize Audio Output Changes And Restore After Remount
+
+**The Bug**: The output selector accepted overlapping `setSinkId` requests, allowing a slower earlier choice to overwrite the final selection. If the player remounted its audio elements while a choice was pending, the resolved device ID was not reapplied to the new elements because the restoration effect watched only the audio-element reference.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Disable the selector during an output change, roll both elements back on failure, and rerun output restoration when either the chosen device ID or active audio element changes.
+
 ### 0z976. Preserve A Playback Error Through Late Pause Events
 
 **The Bug**: A media failure sets the player status to Error, but a subsequent `pause` event from the same element changed it to Paused. The message might remain while the main status misleadingly claimed a normal pause.
