@@ -6,6 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1040. Soulseek Format Codes Are Not File Identities
+
+**The Bug**: Library browsing mapped each protocol format code to one repository filename. Multiple real audio files share code 1, so unrelated files inherited the first path, disappeared from search, or played the wrong item. A local fallback then tried to insert an absolute filename into content_items, whose foreign key requires an indexed masked filename, so stream tickets returned 404.
+
+**Files Affected**:
+- `src/slskd/API/Native/LibraryItemsController.cs`
+- `src/web/e2e/player.spec.ts`
+- `tests/slskd.Tests.Unit/API/Native/LibraryItemsControllerTests.cs`
+
+**Prevention**: Derive masked paths from each browse directory and filename. Never identify a file by its protocol format code. Register indexed content only against existing masked filenames; unindexed local files must use the allowed-root path identity rather than claiming a durable hash mapping that was never stored. Verify browser playback against real SQLite, not only repository mocks.
+
 ### 0z1039. Initialize Immutable Test Options At Construction
 
 **The Bug**: The player library fallback regression assigned share directories, exclusions and download paths after constructing Options. Those properties are init-only, so the regression failed to compile.
