@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1015. Stop The Old Decode Stream While Preparing A Seek
+
+**The Bug**: Seeking within decoded playback starts asynchronous ticket and metadata requests while the prior media element can continue playing and emitting time updates. The display moves to the requested absolute position while audio and listening history still follow the old stream, and Play during setup can restart it.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Mark the old media source inactive and pause it as soon as decode setup begins. Preserve the latest Play or Pause intent while the new URL is prepared; bind and start only the new stream.
+
 ### 0z1014. Do Not Overwrite Transport Intent After Decode Setup
 
 **The Bug**: On-demand decode setup captured an `autoPlay` value, awaited a stream ticket and playback metadata, then wrote that old value to the autoplay ref. A Pause or Play during those requests was overwritten when setup completed.
