@@ -2848,7 +2848,8 @@ const PlayerBar = () => {
     stopOutgoingFade();
     const active = audioRef.current;
     const standby = fadeAudioRef.current;
-    if (crossfadeEnabled && !transcodeMode && autoplayRef.current &&
+    if (crossfadeEnabled && (window.AudioContext || window.webkitAudioContext) &&
+        !transcodeMode && autoplayRef.current &&
         previousSource && !active.paused && standby) {
       fadeOutgoingRef.current = active;
       const fadeRequest = ++fadeRequestRef.current;

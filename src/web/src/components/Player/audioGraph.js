@@ -141,20 +141,14 @@ export const setKaraokeEnabled = (audioElement, enabled) => {
 
 export const setOutputGain = (audioElement, value) => {
   const graph = getOrCreateAudioGraph(audioElement);
-  if (!graph) {
-    audioElement.volume = Math.max(0, Math.min(1, value));
-    return;
-  }
+  if (!graph) return;
   graph.outputGain.gain.cancelScheduledValues(graph.ctx.currentTime);
   graph.outputGain.gain.setValueAtTime(value, graph.ctx.currentTime);
 };
 
 export const fadeOutputGain = (audioElement, from, to, durationSeconds) => {
   const graph = getOrCreateAudioGraph(audioElement);
-  if (!graph) {
-    audioElement.volume = Math.max(0, Math.min(1, to));
-    return;
-  }
+  if (!graph) return;
 
   const now = graph.ctx.currentTime;
   graph.outputGain.gain.cancelScheduledValues(now);

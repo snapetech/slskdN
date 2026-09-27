@@ -13384,3 +13384,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:15:00Z
 
 - Stopped outgoing crossfade audio when crossfade is disabled or a seek occurs, and reset the near-end marker after a seek. Recorded gotcha 0z990 before source edits and added user documentation and an append-only release fragment.
+
+## Update 2026-09-27 20:19:00Z
+
+- Prevented graph gain helpers from changing media volume when Web Audio is absent. Crossfade now requires Web Audio, so unsupported browsers retain the saved volume and use direct track transitions. Recorded gotcha 0z991 before source edits and added an append-only release fragment.

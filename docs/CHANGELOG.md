@@ -87,6 +87,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   canceled lyrics lookups from replacing the current track's words.
 - Turning crossfade off or seeking during a fade now stops the outgoing track
   immediately; seeking also allows a fresh fade near the track end.
+- Preserved the chosen native volume in browsers without Web Audio; those
+  browsers now switch tracks directly instead of attempting an abrupt fade.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical
