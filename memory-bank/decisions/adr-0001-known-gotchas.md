@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1003. An Always-On Analyzer Defeats Native Playback
+
+**The Bug**: The lightweight analyzer defaulted to Spectrum and offered only Spectrum/Scope switching. Its mounted canvas created a Web Audio graph as soon as playback began, even after the main Play path stopped allocating one for plain playback. Users had no Off state.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Provide an explicit Off state, default new sessions to Off, and mount the analyzer only when selected. Persist the user's choice so a deliberately enabled analyzer still works.
+
 ### 0z1002. Resume A Graph Added During Active Playback
 
 **The Bug**: Deferring Web Audio creation until an effect or custom output is enabled can reroute an already playing media element into a newly suspended context. EQ, karaoke, or output selection then silences playback until the context resumes.
