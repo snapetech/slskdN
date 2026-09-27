@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z978. Apply Player Controls To Both Crossfade Elements
+
+**The Bug**: Volume, local mute, and playback speed effects updated only the active audio element. During a crossfade, the outgoing element kept its previous setting until it stopped, so muting or lowering volume could leave audible old audio and speed changes felt inconsistent.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Apply element-level transport settings to both rendered media elements. Keep the persisted preference update once per change, and let the crossfade gain envelope remain separate.
+
 ### 0z977. Serialize Audio Output Changes And Restore After Remount
 
 **The Bug**: The output selector accepted overlapping `setSinkId` requests, allowing a slower earlier choice to overwrite the final selection. If the player remounted its audio elements while a choice was pending, the resolved device ID was not reapplied to the new elements because the restoration effect watched only the audio-element reference.
