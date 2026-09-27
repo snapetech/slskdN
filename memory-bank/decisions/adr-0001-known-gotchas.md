@@ -44,7 +44,7 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 - `src/slskd/ListeningParty/ListeningPartyAnnouncement.cs`
 - `src/slskd/ListeningParty/ListeningPartyService.cs`
 
-**Prevention**: Keep the current absolute media position in a context ref without per-second provider renders. Update it on playback, seek, fallback offset, and track reset; publish that value. Include action and position in directory announcements so a remote listener can join at the advertised offset.
+**Prevention**: Keep the current absolute media position in a context ref without per-second provider renders. Update it on playback, seek, fallback offset, and track reset; publish that value. Include action and position in directory announcements so a remote listener can join at the advertised offset and remain paused when the host is paused.
 
 ### 0z956. Queue Storage Must Tolerate Browser Restrictions
 
