@@ -42,6 +42,8 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **Prevention**: Invalidate pending opens on every close, check request ownership after each await, close any stale returned window, and show current-request failures in the player without changing playback state.
 
+**Retry feedback**: Clear a previous Picture-in-Picture opening error on the next explicit attempt so a successful retry does not leave stale failure text. Preserve unrelated playback errors.
+
 ### 0z1029. Preserve Pending Transport Intent Across Player Layout Remounts
 
 **The Bug**: Compact/expanded layout remounts copied the old audio element's time and playing flag unconditionally. During pending source setup, those values could overwrite the selected seek target and pending autoplay intent with the previous track's position and the intentionally paused element's state.
