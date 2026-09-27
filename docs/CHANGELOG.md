@@ -93,6 +93,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   the room snapshot repeats the host command already applied.
 - Closing the playback queue now cancels a pending saved-playlist Load, so a
   late response cannot replace a track chosen afterward.
+- A slow Listening Stats file read no longer overwrites newer typed, pasted,
+  or separately selected import text.
 - Selecting another track now stops the previous audio immediately when
   crossfade is off or the new track starts paused; a second selection also
   ends any outgoing fade while its stream ticket is pending.

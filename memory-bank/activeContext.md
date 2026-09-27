@@ -14366,3 +14366,11 @@ rollback.
 - Next steps: run static checks, preview release notes, commit and push to the
   verified fork. Interactive real-audio browser inspection remains open; no
   release tag is authorized.
+## Update 2026-09-27 22:34:45Z
+
+- Current task: queue playlist-load cancellation is pushed through `3f05f7be5`.
+  Listening Stats import file-read ordering is implemented locally with a new
+  release fragment and gotcha 0z1022 committed separately.
+- Next steps: validate, commit, and push to the verified fork. The tracked
+  desktop/mobile real-audio inspection remains open; no release tag is
+  authorized.

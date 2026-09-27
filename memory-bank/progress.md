@@ -13489,3 +13489,11 @@ export branch has no shared Git history and was not merged.
   setup requirement.
 - Next: finish static validation and release-range preview, then push to the
   verified fork. Real-audio browser inspection remains a separate P1 item.
+## Update 2026-09-27 22:34:45Z
+
+- Guarded Listening Stats local-file reads with a request ID so older reads
+  cannot overwrite later typed text, file choices, or an import action.
+  Recorded gotcha 0z1022. The queue playlist-load cancellation was pushed to
+  the verified fork through `3f05f7be5`.
+- Next: static checks, release preview, commit, and push. Real-audio browser
+  inspection remains open.

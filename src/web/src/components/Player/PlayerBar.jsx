@@ -1121,6 +1121,7 @@ const PlayerDiscoveryShelfModal = ({ onClose, open }) => {
 
 const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
   const fileInputRef = useRef(null);
+  const importFileRequestRef = useRef(0);
   const [rangeDays, setRangeDays] = useState(30);
   const [importText, setImportText] = useState('');
   const [importStatus, setImportStatus] = useState(null);
@@ -1147,6 +1148,7 @@ const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
   };
 
   const importHistory = () => {
+    importFileRequestRef.current += 1;
     const result = importListeningHistory(importText);
     setImportStatus(
       `${result.imported} imported, ${result.skipped} skipped as duplicates or incomplete rows.`,
@@ -1237,11 +1239,15 @@ const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const requestId = ++importFileRequestRef.current;
     file.text().then((content) => {
+      if (requestId !== importFileRequestRef.current) return;
       setImportText(content);
       setImportStatus(`Loaded ${file.name} for review.`);
     }).catch(() => {
-      setImportStatus(`Could not read ${file.name}.`);
+      if (requestId === importFileRequestRef.current) {
+        setImportStatus(`Could not read ${file.name}.`);
+      }
     });
     event.target.value = '';
   };
@@ -1396,7 +1402,10 @@ const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
           <TextArea
             aria-label="Paste exported media server play history"
             data-testid="player-listening-history-import-text"
-            onChange={(event) => setImportText(event.target.value)}
+            onChange={(event) => {
+              importFileRequestRef.current += 1;
+              setImportText(event.target.value);
+            }}
             placeholder="Paste Plex, Jellyfin, Navidrome, or generic CSV/JSON play history here for local import."
             rows={4}
             value={importText}

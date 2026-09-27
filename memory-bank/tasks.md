@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Keep Listening Stats import text on the user's latest input.
+  - Status: implemented (2026-09-27).
+  - Notes: Older file reads cannot replace later manual edits, later file
+    choices, or text already submitted for import.
+
 - [x] Cancel pending saved-playlist loads when the queue dialog closes.
   - Status: implemented (2026-09-27).
   - Notes: Late Collection item responses no longer replace playback after
