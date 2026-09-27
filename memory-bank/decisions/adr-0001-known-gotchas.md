@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z936. Keep The Last Track In Repeat-All Cycles
+
+**The Bug**: When repeat-all rebuilt the queue at its final item, it used only playback history. The current final track disappeared from the next cycle.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Build a fresh repeat-all cycle from history in original order plus the current final item. Check the next cycle still contains every track.
+
 ### 0z935. Rebind The Audio Source After Player Layout Remounts
 
 **The Bug**: Expanding or collapsing the player swaps conditional render branches containing the audio elements. The new element had no source because source synchronization only watched the URL, which had not changed.
