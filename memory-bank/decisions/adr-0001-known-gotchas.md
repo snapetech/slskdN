@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z981. Hidden Player Must Not Keep Idle Room Follow Intent
+
+**The Bug**: Hiding the browser player cleared playback and followed-party state, but a room with no active broadcast had no followed-party object to transition away from. Its Follow control could remain armed. A later host event then marked the hidden player as following even though `playItem` correctly refused to start while hidden.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Leave follow mode when the player becomes hidden, including while the room is idle. Disable Follow controls while hidden and explain that the player must be shown first.
+
 ### 0z980. Clearing Upcoming Must Preserve Played History
 
 **The Bug**: The queue dialog's Clear Upcoming action called a context method that emptied both future queue entries and the already-played history. Previous then became unavailable even though the user had asked only to remove upcoming tracks.
