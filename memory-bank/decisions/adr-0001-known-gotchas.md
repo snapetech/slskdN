@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1025. Treat Repeated Playlist Tracks As Separate Queue Entries
+
+**The Bug**: Loading a saved Collection playlist fed its items through the queue's content-ID deduplication, silently dropping intentional repeats of the same track. Upcoming removal also matched by content ID, so once repeated entries were allowed it would remove every copy instead of the chosen occurrence.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Preserve playlist rows in order when loading them. Address upcoming queue mutations by position and keep any content-ID deduplication limited to the explicit auto-fill behavior that needs it.
+
 ### 0z1024. Invalidate Collection Item Requests When Closing The Picker
 
 **The Bug**: The player Collection browser retained its selected collection and in-flight item request after closing. A late response could populate hidden rows, which then appeared as stale choices the next time the browser opened.
