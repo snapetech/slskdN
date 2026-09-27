@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z993. Use The Player Start Path For Media Session Play
+
+**The Bug**: Headset and lock-screen Play called `playAudio()` directly and discarded its rejection. Unlike the visible Play control, it did not clear a prior error, show Loading, or report a failed start, leaving the player status stale.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Route external Play actions through the same `tryPlay` handler as the visible transport control, including its status and error transitions.
+
 ### 0z992. Do Not Open An Idle Graph For Neutral Audio Settings
 
 **The Bug**: Mounting a paused player with default flat EQ and disabled karaoke still created an AudioContext and ten filter nodes. The EQ, karaoke, and neutral output-gain helpers each called the graph constructor even though their desired values already matched native playback.
