@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z987. Keep EQ And Karaoke Processing Aligned During Crossfade
+
+**The Bug**: Changing equalizer gains or center-channel reduction during a crossfade updated only the incoming active audio graph. The outgoing element continued with its earlier processing until fade completion, so the same control affected the two audible tracks differently.
+
+**Files Affected**:
+- `src/web/src/components/Player/Equalizer.jsx`
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Apply graph processing changes to the active element and, while a crossfade is underway, its outgoing element. Avoid creating an idle standby audio graph solely to mirror a setting.
+
 ### 0z986. Fetch Player Collections Only When Opened
 
 **The Bug**: Expanding the player mounted its library launcher and immediately fetched all Collections, even when the user was only using transport controls. The picker then showed a misleading empty state while a deferred request would load its rows.
