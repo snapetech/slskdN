@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1032. Exercise Queue And Listening Tests Through Actual Playback Ownership
+
+**The Bug**: Older player tests assumed selecting a new track also added the previous track to Upcoming, and emitted listening events before the asynchronous source became owned by the selection. Atomic playback transitions correctly put previous selections in History, while stale-source guards correctly ignored premature listening events, leaving those tests misleading and failing.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+
+**Prevention**: Populate Upcoming explicitly through queue operations, assert History separately, and wait for source binding before emitting media events. Keep listening threshold checks tied to actual owned playback progress.
+
 ### 0z1031. Keep Native Navigator Identity In Browser Tests
 
 **The Bug**: A Media Session regression fixture replaced Navigator with an object inheriting from it. Popper later accessed a branded Navigator getter on the replacement, causing an unhandled rejection and contaminating unrelated tests.
