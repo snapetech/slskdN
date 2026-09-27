@@ -65,6 +65,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   preserved Error when a late Pause event follows a media failure.
 - Prevented overlapping audio output changes and restored the chosen device
   when the player remounts its audio elements during a pending switch.
+- Applied volume, local mute, and playback speed changes to both audio elements
+  during crossfades.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

@@ -1,3 +1,8 @@
+## Update 2026-09-27 20:42:00Z
+
+- Current task: volume, local mute, and playback speed now update both audio elements during crossfade, keeping outgoing audio aligned with the transport controls.
+- Next: finish repository checks, commit and push to the verified fork, then continue reviewing playback lifecycle edges. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 20:35:00Z
 
 - Current task: audio output switching is single-flight. The selector waits for both elements, rolls both back on failure, and reapplies a late-resolving device choice after player remount.

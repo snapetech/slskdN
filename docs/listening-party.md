@@ -89,6 +89,7 @@ Listening history and optional ListenBrainz scrobbles count actual playback prog
 If the incoming track errors during a crossfade, the outgoing element stops immediately so the visible failure and audible output agree.
 Seeking while paused keeps the player in Paused even if the browser fetches more audio data.
 A late Pause event after a media failure leaves the player in Error until the user retries or selects another track.
+Volume, local mute, and playback speed changes affect both audio elements while a crossfade is in progress.
 
 Synced lyric highlighting follows the browser media element's playback, seek,
 and metadata events. It does not run a separate fixed polling timer, and hidden

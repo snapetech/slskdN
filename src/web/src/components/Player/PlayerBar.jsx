@@ -2556,14 +2556,18 @@ const PlayerBar = () => {
   useEffect(() => {
     if (!playerAudioElement) return;
     const safeVolume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1;
-    playerAudioElement.volume = safeVolume;
+    [audioRef.current, fadeAudioRef.current].filter(Boolean).forEach((element) => {
+      element.volume = safeVolume;
+    });
     setLocalStorageItem(volumeStorageKey, String(safeVolume));
   }, [playerAudioElement, volume]);
 
   useEffect(() => {
     if (!playerAudioElement) return;
     const safeRate = [0.75, 1, 1.25, 1.5, 2].includes(playbackRate) ? playbackRate : 1;
-    playerAudioElement.playbackRate = safeRate;
+    [audioRef.current, fadeAudioRef.current].filter(Boolean).forEach((element) => {
+      element.playbackRate = safeRate;
+    });
     setLocalStorageItem(playbackRateStorageKey, String(safeRate));
   }, [playbackRate, playerAudioElement]);
 
@@ -2591,7 +2595,9 @@ const PlayerBar = () => {
 
   useEffect(() => {
     if (!playerAudioElement) return;
-    playerAudioElement.muted = localMuted;
+    [audioRef.current, fadeAudioRef.current].filter(Boolean).forEach((element) => {
+      element.muted = localMuted;
+    });
     setLocalStorageItem(localMuteStorageKey, localMuted ? 'true' : 'false');
   }, [localMuted, playerAudioElement]);
 

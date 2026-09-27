@@ -13336,3 +13336,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:35:00Z
 
 - Prevented overlapping `setSinkId` selections, waited for both audio elements before accepting a device, rolled both back after partial failure, and reapplied the selected sink when player elements change. Recorded gotcha 0z977 and added an append-only user release fragment. Web lint/build, release-note validation, and whitespace checks pass.
+
+## Update 2026-09-27 20:42:00Z
+
+- Applied volume, local mute, and playback speed effects to both crossfade audio elements rather than the active element alone. Recorded gotcha 0z978 before the fix, updated user docs/changelog, and added a new append-only release fragment. Web lint/build, release-note validation, and whitespace checks pass.
