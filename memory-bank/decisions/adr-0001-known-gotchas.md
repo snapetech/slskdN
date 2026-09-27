@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1009. Bind Media Events To The Track Whose Source Is Active
+
+**The Bug**: Next changes `current` before the new stream ticket resolves, while the old audio element can still emit `timeupdate`, `ended`, `play`, and scrobble events. Those events can update the new track's position or listening history and can advance the queue a second time. The near-end crossfade marker also remains set after source replacement, blocking a later repeat-all pass over the same track object.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Record which track owns the source bound to the active media element. Ignore transport, position, and listening events when that owner differs from `current`. Clear the near-end crossfade marker only after binding the next source; do not clear it while a stream ticket is pending.
+
 ### 0z1008. Migrate An Automatically Saved Default When Changing It
 
 **The Bug**: The old analyzer default was Spectrum and was written to browser storage on mount. Changing the source-code default to Off alone left existing installations on Spectrum, so the intended native playback resource saving did not reach most existing users.
