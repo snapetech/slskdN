@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z975. Do Not Show Buffering For A Paused Seek
+
+**The Bug**: A media element can emit `waiting` while fetching data for a seek made in the paused state. The player treated every active-element `waiting` event as playback buffering, leaving the label stuck on Buffering until audio resumed.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Only show Buffering when the active element is trying to play. Preserve Paused while a user seeks without resuming playback.
+
 ### 0z974. Stop Outgoing Crossfade Audio On Incoming Error
 
 **The Bug**: If the incoming track emitted a media error after crossfade startup, the player marked playback failed but could leave the outgoing audio element running until the fade timer expired. The visible error and audible output disagreed.
