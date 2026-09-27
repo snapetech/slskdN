@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1007. Do Not Save Temporary Radio Streams As Playlists
+
+**The Bug**: Save queue excluded browser-local files but accepted listed-radio entries with temporary `streamUrl` tickets. It saved only their content IDs to Collections, producing playlist tracks that could not request a new stream after the radio ticket expired.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Save only queue entries that can be replayed by content ID without an explicit temporary stream URL. Disable Save when the queue has no such entries, and report the actual saved count.
+
 ### 0z1006. Do Not Restore Expired Party Stream URLs
 
 **The Bug**: The player saved the full queue to browser session storage, including listen-along and listed-radio `streamUrl` values that contain short-lived tickets. After a refresh, the restored selected track reused the expired URL and could not play.
