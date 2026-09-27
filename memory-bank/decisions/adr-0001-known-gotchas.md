@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1034. Keep Player Collapse In The Primary Controls
+
+**The Bug**: Expanded player Collapse was inside the optional advanced tools. The normal player exposed Hide, which stops playback, while the control for reducing its footprint without stopping audio required opening a tools drawer first. Real-browser transport verification could not find Collapse with tools closed.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Keep Collapse beside the always-visible layout controls. Advanced audio and discovery tools may stay behind the tools toggle; reducing the player's footprint must remain one click away while audio continues.
+
 ### 0z1033. Match Collection Metadata Tests To The Ownership-Scoped API
 
 **The Bug**: The Collection route-encoding test retained an obsolete two-argument item-update call and unscoped URL after metadata updates moved to a collection-scoped endpoint. It passed a metadata object as the item ID and expected a route that the controller does not expose.
