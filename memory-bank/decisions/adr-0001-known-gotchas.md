@@ -6,6 +6,53 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z959. Leave Focused Player Controls To The Browser
+
+**The Bug**: Global player shortcuts intercepted Space on focused buttons and arrow keys on focused range sliders because only text inputs were treated as editable targets. Keyboard activation and precise seek or volume adjustment could trigger unrelated playback actions.
+
+**Files Affected**:
+- `src/web/src/lib/playerShortcuts.js`
+
+**Prevention**: Ignore player shortcuts when the key event comes from a focused interactive control or contenteditable descendant. Let buttons, links, and all input types handle their own keys.
+
+### 0z958. Clear Buffering State When Media Resumes
+
+**The Bug**: The player set its status to buffering on `waiting`, but listened only for `play` to return to playing. A media element can emit `playing` after a buffer stall without another `play`, leaving the player visibly stuck on Buffering.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Handle the media element's `playing` event and clear active playback state on error or terminal end.
+
+### 0z957. Publish The Live Listen-Along Position
+
+**The Bug**: Listen-along publication read `current.positionSeconds`, which records the selection's starting offset and does not change as audio plays. Later play, pause, and seek broadcasts advertised stale positions; joining a listed party also ignored its current offset.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Keep the current absolute media position in a context ref without per-second provider renders. Update it on playback, seek, fallback offset, and track reset; publish that value and apply the listed party's offset when joining.
+
+### 0z956. Queue Storage Must Tolerate Browser Restrictions
+
+**The Bug**: The player used `window.sessionStorage.setItem` directly from an effect. Browser policy, private modes, or a full storage quota could throw during a queue update and break the player render lifecycle.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Use the existing storage helper that returns failure without throwing. Keep playback usable even when session persistence is unavailable.
+
+### 0z955. Play Next Needs A Current Queue Head
+
+**The Bug**: The library browser exposed Play Next before any track was selected. It added an item to the queue but left `current` null, so the queued item had no playable head and could not start from transport controls.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: When Play Next is chosen on an empty player, start the selected item as the queue head. Reserve queue insertion for a player that already has a current track.
+
 ### 0z954. Close Web Audio Contexts When Player Elements Unmount
 
 **The Bug**: The player remounts its two audio elements when it collapses, expands, or hides. Their Web Audio graphs lived in a WeakMap with no explicit context closure, so repeated layout changes could leave browser audio resources allocated until collection.
