@@ -6,6 +6,24 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z989. Reject Superseded Lyrics Results
+
+**The Bug**: A lyrics response could finish parsing after its request was aborted and overwrite the newer track's lyrics. The effect also omitted filename changes from its lookup dependencies and left the prior track's words visible while loading.
+
+**Files Affected**:
+- `src/web/src/components/Player/LyricsPane.jsx`
+
+**Prevention**: Clear lyrics when starting a new lookup, include every lookup input in the effect dependencies, and check the abort signal immediately before applying an asynchronous result.
+
+### 0z988. Bound Restored Equalizer Gains
+
+**The Bug**: Stored equalizer gains were converted to numbers without enforcing the slider's -12 to 12 dB range. Corrupted or older storage could feed extreme finite gains into Web Audio while the controls displayed a different limit.
+
+**Files Affected**:
+- `src/web/src/components/Player/Equalizer.jsx`
+
+**Prevention**: Normalize each restored band to a finite whole-number gain within the control's supported range before creating component state or applying audio filters.
+
 ### 0z987. Keep EQ And Karaoke Processing Aligned During Crossfade
 
 **The Bug**: Changing equalizer gains or center-channel reduction during a crossfade updated only the incoming active audio graph. The outgoing element continued with its earlier processing until fade completion, so the same control affected the two audible tracks differently.
