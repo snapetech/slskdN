@@ -1547,9 +1547,13 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
   }, []);
 
   useEffect(() => {
-    if (!filesOpen) return undefined;
+    if (!filesOpen) {
+      setItemsLoading(false);
+      return undefined;
+    }
 
     if (query && query.length < 2) {
+      setItemsLoading(false);
       setItems([]);
       setBrowserDirectories([]);
       setBrowserBreadcrumbs([]);

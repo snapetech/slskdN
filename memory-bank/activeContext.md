@@ -1,3 +1,8 @@
+## Update 2026-09-27 21:48:00Z
+
+- Current task: canceled local file searches no longer leave the picker stuck on Loading when the query becomes too short or the modal closes.
+- Next: finish source/release validation, commit and push to the verified fork, then continue reviewing picker and playback paths. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 21:40:00Z
 
 - Current task: the player Collection picker now clears old rows and ignores delayed item responses for earlier selections.
