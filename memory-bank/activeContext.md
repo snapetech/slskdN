@@ -14374,3 +14374,11 @@ rollback.
 - Next steps: validate, commit, and push to the verified fork. The tracked
   desktop/mobile real-audio inspection remains open; no release tag is
   authorized.
+## Update 2026-09-27 22:36:10Z
+
+- Current task: queue playlist-load and Listening Stats file-read races are
+  committed and pushed to the verified fork through `3662abb47`. The source
+  pass found no further high-confidence async playback mutation in the
+  remaining player dialogs.
+- Next steps: the P1 real-audio desktop/mobile inspection in
+  `memory-bank/tasks.md` remains open. No release tag was created.

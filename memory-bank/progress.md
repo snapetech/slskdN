@@ -13497,3 +13497,9 @@ export branch has no shared Git history and was not merged.
   the verified fork through `3f05f7be5`.
 - Next: static checks, release preview, commit, and push. Real-audio browser
   inspection remains open.
+## Update 2026-09-27 22:36:10Z
+
+- Committed and pushed the Listening Stats input-order fix through
+  `3662abb47`. Web lint/build, bundle budget, repository lint, whitespace,
+  identity, and release-range preview passed. Automated and interactive
+  playback checks were not run in this continuation.
