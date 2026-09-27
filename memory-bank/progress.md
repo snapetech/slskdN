@@ -13340,3 +13340,11 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:42:00Z
 
 - Applied volume, local mute, and playback speed effects to both crossfade audio elements rather than the active element alone. Recorded gotcha 0z978 before the fix, updated user docs/changelog, and added a new append-only release fragment. Web lint/build, release-note validation, and whitespace checks pass.
+
+## Update 2026-09-27 20:50:00Z
+
+- Updated three existing player UI assertions to wait for the visualizer canvas after the earlier `React.lazy` split. Recorded gotcha 0z979 first. This is an internal-only assertion alignment; no runtime or documentation behavior changed. Web lint and whitespace checks pass. No tests were run in this continuation.
+
+## Update 2026-09-27 21:02:00Z
+
+- Fixed Clear Upcoming so it leaves played history intact. Previous and repeat-all remain usable after future tracks are removed. Recorded gotcha 0z980 before the code fix and added a new user release fragment. The existing lazy-visualizer assertions are included in this batch because the pre-commit changelog gate treats Web test files as release-worthy; the first test-only commit attempt was rejected before any commit was created.

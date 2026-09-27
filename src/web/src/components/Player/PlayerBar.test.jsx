@@ -454,14 +454,15 @@ describe('PlayerBar', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
-  it('switches the visual tile from album art to the MilkDrop canvas', () => {
+  it('switches the visual tile from album art to the MilkDrop canvas', async () => {
     renderPlayer();
 
     expect(screen.getByTestId('player-album-art')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('player-visual-tile'));
 
-    expect(document.querySelector('.player-visualizer-canvas')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(document.querySelector('.player-visualizer-canvas')).toBeInTheDocument());
     expect(screen.queryByTestId('player-album-art')).not.toBeInTheDocument();
   });
 
@@ -473,7 +474,8 @@ describe('PlayerBar', () => {
     fireEvent.click(tile);
     await waitFor(() =>
       expect(window.localStorage.getItem('slskdn.player.visualTileMode')).toBe('butterchurn'));
-    expect(document.querySelector('.player-visualizer-canvas')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(document.querySelector('.player-visualizer-canvas')).toBeInTheDocument());
 
     fireEvent.click(tile);
     await waitFor(() =>
@@ -661,7 +663,8 @@ describe('PlayerBar', () => {
     expect(document.querySelector('.player-panel-eq')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'v' });
-    expect(document.querySelector('.player-visualizer-canvas')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(document.querySelector('.player-visualizer-canvas')).toBeInTheDocument());
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(audio.currentTime).toBe(30);

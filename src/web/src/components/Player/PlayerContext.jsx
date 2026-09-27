@@ -163,7 +163,6 @@ export const PlayerProvider = ({ children }) => {
   const clearQueue = useCallback(() => {
     setPlayback((existing) => ({
       ...existing,
-      history: [],
       queue: existing.current ? [existing.current] : existing.queue.slice(0, 1),
     }));
   }, []);

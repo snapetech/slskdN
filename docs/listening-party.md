@@ -69,6 +69,7 @@ Controls include:
 - A compact bar with play/pause, previous/next, elapsed and remaining time, seek, volume, and queue access.
 - An expanded view with stop, rewind/fast-forward, playback speed, shuffle, repeat off/all/one, and additional tools behind **Show player tools**.
 - Queue reorder and Play Next from the player's library browsers. The immediate queue and selected track survive a browser refresh in session storage but do not autoplay; saved playlists use Collections.
+- Clear Upcoming removes future tracks while preserving played history for Previous and repeat-all.
 - Browser-local mute. This mutes only the current browser or installed PWA; it does not stop the stream or mute other listeners.
 - Browser Media Session metadata and transport handlers for supported mobile/PWA lock-screen controls.
 - Keyboard shortcuts apply when focus is outside buttons, links, sliders, and text controls, leaving normal keyboard operation of those controls intact.

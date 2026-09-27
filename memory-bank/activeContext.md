@@ -1,3 +1,13 @@
+## Update 2026-09-27 21:02:00Z
+
+- Current task: Clear Upcoming now preserves played history, keeping Previous and repeat-all available. Existing visualizer assertions await the lazy canvas in the same user-facing batch.
+- Next: finish source and release validation, commit and push to the verified fork. No release tag or deployment is authorized.
+
+## Update 2026-09-27 20:50:00Z
+
+- Current task: existing player UI assertions have been aligned with deferred visualizer loading. They now await the canvas after activation or shortcut input.
+- Next: finish repository lint and push the internal-only assertion correction to the verified fork. Continue source review afterward. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 20:42:00Z
 
 - Current task: volume, local mute, and playback speed now update both audio elements during crossfade, keeping outgoing audio aligned with the transport controls.
