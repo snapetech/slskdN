@@ -38,6 +38,7 @@ The protocol payload is JSON in the pod message body:
 Following an already paused room selects the host track at its paused position. A host Stop event ends following and clears the local player.
 After a connection interruption, a follower rejoins the room and refreshes the host's current state before continuing.
 Pressing Stop or choosing another track in the local player also leaves follow mode; later host updates will not restart or replace the listener's playback.
+Hiding the browser player leaves Follow even if a room is idle. Show the player again before following a room.
 
 Broadcasts use the host player's current absolute position, including a decoded stream's start offset. A listed radio announcement also carries its latest action and position so a directory listener can join at the advertised point and stay paused if the host is paused. Browser-only files cannot be broadcast because other listeners cannot access their object URLs.
 Listed radio starts playback from the latest directory snapshot. It does not subscribe to later changes from a different pod; use the room's Follow control for live updates in a pod you have joined.

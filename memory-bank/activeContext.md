@@ -1,3 +1,8 @@
+## Update 2026-09-27 21:12:00Z
+
+- Current task: hiding the browser player now exits follow mode for active and idle rooms. Follow controls remain disabled until the player is shown again.
+- Next: validate source and release notes, then commit and push to the verified fork. Continue player interaction review. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 21:02:00Z
 
 - Current task: Clear Upcoming now preserves played history, keeping Previous and repeat-all available. Existing visualizer assertions await the lazy canvas in the same user-facing batch.

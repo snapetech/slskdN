@@ -113,6 +113,14 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   }, [player.followingParty]);
 
   useEffect(() => {
+    if (player.playerVisible === false && followingRef.current) {
+      followingRef.current = false;
+      setFollowing(false);
+      player.followParty(null);
+    }
+  }, [player.followParty, player.playerVisible]);
+
+  useEffect(() => {
     playerRef.current = player;
   }, [player]);
 
@@ -320,11 +328,14 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
         </div>
         <div className="pod-listen-along-compact-actions">
           <Popup
-            content="Follow this room's broadcast using your own stream access."
+            content={player.playerVisible === false
+              ? 'Show the browser player before following this room.'
+              : "Follow this room's broadcast using your own stream access."}
             trigger={
               <Button
                 active={following}
                 aria-label="Follow room broadcast"
+                disabled={player.playerVisible === false}
                 icon
                 onClick={() => {
                   const next = !following;
@@ -451,10 +462,13 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       </div>
       <Button.Group size="small">
         <Popup
-          content="Follow this pod's host playback using your own stream access."
+          content={player.playerVisible === false
+            ? 'Show the browser player before following this pod.'
+            : "Follow this pod's host playback using your own stream access."}
           trigger={
             <Button
               active={following}
+              disabled={player.playerVisible === false}
               icon
               onClick={() => {
                 const next = !following;

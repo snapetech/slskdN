@@ -13348,3 +13348,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 21:02:00Z
 
 - Fixed Clear Upcoming so it leaves played history intact. Previous and repeat-all remain usable after future tracks are removed. Recorded gotcha 0z980 before the code fix and added a new user release fragment. The existing lazy-visualizer assertions are included in this batch because the pre-commit changelog gate treats Web test files as release-worthy; the first test-only commit attempt was rejected before any commit was created.
+
+## Update 2026-09-27 21:12:00Z
+
+- Closed the hidden-player listen-along gap: Follow now exits when the player is hidden, even before a host publishes a track, and both room Follow controls explain why they are disabled while hidden. Recorded gotcha 0z981 and added user documentation and an append-only release fragment.
