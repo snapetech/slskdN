@@ -25,6 +25,16 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **Prevention**: Clear both `localStorage` and `sessionStorage` in player test setup when the player reads from both. Keep a dedicated restoration test to exercise saved state deliberately.
 
+### 0z931. Keep Collection Item Client Routes Aligned With The Controller
+
+**The Bug**: The web client used `/collections/items/{itemId}` for updates and deletes and `PUT` for reorder, while the controller requires `/collections/{collectionId}/items/{itemId}` and `POST` for reorder.
+
+**Files Affected**:
+- `src/web/src/lib/collections.js`
+- `src/web/src/components/Collections/Collections.jsx`
+
+**Prevention**: Pass the collection ID with item mutations and match the controller's HTTP methods. Exercise the actual client/controller route pair when adding collection actions.
+
 ---
 
 ## ⚠️ FOR AI AGENTS: ADD TO THIS FILE IMMEDIATELY
