@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z994. Make Near-End Crossfade Follow Repeat Rules
+
+**The Bug**: The near-end crossfade trigger advanced to the next queued track even under Repeat One, overriding the user's repeat choice. At the last queue item under Repeat All, it did not fade into the first history item even though the normal ended path would advance there.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Use the same repeat-aware next-track availability rule for near-end crossfade and normal end handling. Repeat One must finish and restart the current track without advancing.
+
 ### 0z993. Use The Player Start Path For Media Session Play
 
 **The Bug**: Headset and lock-screen Play called `playAudio()` directly and discarded its rejection. Unlike the visible Play control, it did not clear a prior error, show Loading, or report a failed start, leaving the player status stale.
