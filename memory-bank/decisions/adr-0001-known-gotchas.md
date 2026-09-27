@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z974. Stop Outgoing Crossfade Audio On Incoming Error
+
+**The Bug**: If the incoming track emitted a media error after crossfade startup, the player marked playback failed but could leave the outgoing audio element running until the fade timer expired. The visible error and audible output disagreed.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: When the active audio element errors, cancel its pending playback request and stop the outgoing fade element before reporting the error. Keep delayed decode-info responses bound to the failed track and source.
+
 ### 0z973. Preserve Now Playing Update Order Across Pause And Stop
 
 **The Bug**: The player sent Now Playing PUT on Play and DELETE on Pause/Stop without ordering them. A slow PUT could finish after the DELETE, leaving a stale server-side track visible even though local audio had stopped.
