@@ -63,6 +63,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Stopped outgoing crossfade audio immediately if the incoming track reports
   a playback error, kept paused seeks from showing a false Buffering state, and
   preserved Error when a late Pause event follows a media failure.
+- Prevented overlapping audio output changes and restored the chosen device
+  when the player remounts its audio elements during a pending switch.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

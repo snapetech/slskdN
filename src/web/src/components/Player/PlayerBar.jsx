@@ -2303,6 +2303,8 @@ const PlayerBar = () => {
   const [outputDevices, setOutputDevices] = useState([]);
   const [outputDeviceId, setOutputDeviceId] = useState('default');
   const outputDeviceIdRef = useRef('default');
+  const [outputSwitching, setOutputSwitching] = useState(false);
+  const outputSwitchingRef = useRef(false);
   const fileInputRef = useRef(null);
   const localObjectUrlsRef = useRef(new Set());
   const selectedItemRef = useRef(current);
@@ -2585,7 +2587,7 @@ const PlayerBar = () => {
           setPlaybackError('Could not restore the selected audio output device.');
         });
       });
-  }, [playerAudioElement]);
+  }, [outputDeviceId, playerAudioElement]);
 
   useEffect(() => {
     if (!playerAudioElement) return;
@@ -3585,19 +3587,31 @@ const PlayerBar = () => {
             {outputDevices.length > 0 ? (
               <select
                 aria-label="Audio output device"
-                onChange={(event) => {
+                disabled={outputSwitching}
+                onChange={async (event) => {
+                  if (outputSwitchingRef.current) return;
+                  outputSwitchingRef.current = true;
+                  setOutputSwitching(true);
                   const deviceId = event.target.value;
                   const elements = [audioRef.current, fadeAudioRef.current]
                     .filter((element) => element?.setSinkId);
-                  Promise.all(elements.map((element) => element.setSinkId(deviceId)))
-                    .then(() => {
-                      outputDeviceIdRef.current = deviceId;
-                      setOutputDeviceId(deviceId);
-                    })
-                    .catch(() => {
-                      Promise.allSettled(elements.map((element) => element.setSinkId(outputDeviceIdRef.current)));
+                  try {
+                    const results = await Promise.allSettled(
+                      elements.map(async (element) => element.setSinkId(deviceId)),
+                    );
+                    if (results.some((result) => result.status === 'rejected')) {
+                      await Promise.allSettled(
+                        elements.map(async (element) => element.setSinkId(outputDeviceIdRef.current)),
+                      );
                       setPlaybackError('Could not switch audio output device.');
-                    });
+                      return;
+                    }
+                    outputDeviceIdRef.current = deviceId;
+                    setOutputDeviceId(deviceId);
+                  } finally {
+                    outputSwitchingRef.current = false;
+                    setOutputSwitching(false);
+                  }
                 }}
                 value={outputDeviceId}
               >

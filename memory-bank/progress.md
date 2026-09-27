@@ -13332,3 +13332,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 20:25:00Z
 
 - Tightened three player status transitions: active-track error cancels outgoing crossfade audio and stale play requests; `waiting` only shows Buffering while trying to play; and late Pause events preserve Error/Finished until a new attempt. Recorded gotchas 0z974–0z976 before source edits, updated user docs/changelog, and added one append-only release fragment.
+
+## Update 2026-09-27 20:35:00Z
+
+- Prevented overlapping `setSinkId` selections, waited for both audio elements before accepting a device, rolled both back after partial failure, and reapplied the selected sink when player elements change. Recorded gotcha 0z977 and added an append-only user release fragment. Web lint/build, release-note validation, and whitespace checks pass.

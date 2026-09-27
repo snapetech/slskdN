@@ -1,3 +1,8 @@
+## Update 2026-09-27 20:35:00Z
+
+- Current task: audio output switching is single-flight. The selector waits for both elements, rolls both back on failure, and reapplies a late-resolving device choice after player remount.
+- Next: finish repository validation, commit and push to the verified fork, then continue the player controls review. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 20:25:00Z
 
 - Current task: playback error and buffering status pass implemented locally. Incoming crossfade errors stop outgoing audio, paused seeks do not show Buffering, and late Pause events preserve Error.
