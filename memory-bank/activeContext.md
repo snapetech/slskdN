@@ -1,3 +1,8 @@
+## Update 2026-09-27 19:35:00Z
+
+- Current task: resource review deferred the full visualizer import until its tile activates. The initial Web entry chunk fell from 279.06 KB (80.37 KB gzip) to 171.51 KB (50.60 KB gzip) in the local production build; the visualizer moved to its own 107.99 KB lazy chunk.
+- Next: finish repository validation, commit and push to the verified fork. Continue checking player resource and control paths. No release tag or deployment is authorized.
+
 ## Update 2026-09-27 19:30:00Z
 
 - Current task: player queue consistency pass implemented locally. Current track, upcoming queue, and history now update in a single pure state transition, including repeat-all and shuffle.

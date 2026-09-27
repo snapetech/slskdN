@@ -51,6 +51,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   reduces paused animation work, and releases its window on player teardown.
 - Kept the current track, upcoming queue, and play history together during
   Next and Previous so shuffle and repeat transitions stay consistent.
+- Deferred the full visualizer code until its tile is activated, reducing the
+  initial Web entry chunk while keeping the lightweight analyzer available.
 - Fixed VPN agent release setup: Linux uses the bundled helper and saved systemd
   settings, and each platform release now includes clear setup instructions.
 - Clarified that Solid's anonymous Client ID document requires a canonical

@@ -49,7 +49,6 @@ import LyricsPane from './LyricsPane';
 import SpectrumAnalyzer, { getFrequencyBars } from './SpectrumAnalyzer';
 import { fadeOutputGain, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
 import { usePlayer } from './PlayerContext';
-import Visualizer from './Visualizer';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -80,6 +79,7 @@ const analyzerModeStorageKey = 'slskdn.player.analyzerMode';
 const volumeStorageKey = 'slskdn.player.volume';
 const playbackRateStorageKey = 'slskdn.player.rate';
 const playerBrowserPageSize = 80;
+const Visualizer = React.lazy(() => import('./Visualizer'));
 
 const formatTime = (seconds) => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -2102,15 +2102,19 @@ const PlayerVisualTile = ({
             tabIndex={0}
           >
             {showingVisualizer ? (
-              <Visualizer
-                audioElement={audioElement}
-                compactControls
-                engineOverride={normalizedTileMode}
-                key={`${normalizedTileMode}-${visualizerRevision}`}
-                mode={visualizerDisplayMode}
-                onEngineChange={onTileModeChange}
-                onModeChange={onModeChange}
-              />
+              <React.Suspense fallback={
+                <span className="player-visualizer-loading" role="status">Loading visualizer</span>
+              }>
+                <Visualizer
+                  audioElement={audioElement}
+                  compactControls
+                  engineOverride={normalizedTileMode}
+                  key={`${normalizedTileMode}-${visualizerRevision}`}
+                  mode={visualizerDisplayMode}
+                  onEngineChange={onTileModeChange}
+                  onModeChange={onModeChange}
+                />
+              </React.Suspense>
             ) : showingAnalyzer ? (
               <SpectrumAnalyzer
                 audioElement={audioElement}

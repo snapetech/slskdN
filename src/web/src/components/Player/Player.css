@@ -1599,6 +1599,16 @@ body:has(.ui.modal) .player-bar {
   width: 100%;
 }
 
+.player-visualizer-loading {
+  align-items: center;
+  display: flex;
+  font-size: 0.75rem;
+  height: 100%;
+  justify-content: center;
+  opacity: 0.7;
+  width: 100%;
+}
+
 .player-visualizer-inline {
   border: 1px solid var(--slskd-tertiary-border-color, rgba(255, 255, 255, 0.18));
   border-radius: 6px;

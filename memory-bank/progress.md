@@ -13301,3 +13301,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 19:30:00Z
 
 - Consolidated player current track, queue, and history into one state value. Next and Previous no longer update other state fields from inside a queue updater; shuffle selection is chosen before the pure transition. Playback position follows committed track changes. Added gotcha 0z966 and a new user-facing release fragment. Web lint/build and whitespace checks pass; live playback inspection remains pending.
+
+## Update 2026-09-27 19:35:00Z
+
+- Deferred the full visualizer component until the player tile selects a visualizer mode, leaving the lightweight analyzer on the normal player path. The production build shows the initial Web entry chunk reduced from 279.06 KB (80.37 KB gzip) to 171.51 KB (50.60 KB gzip); the deferred visualizer is 107.99 KB (30.30 KB gzip). Web lint/build pass. Recorded gotcha 0z967 and added user documentation and a release fragment.
