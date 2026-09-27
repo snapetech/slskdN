@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z983. Give Icon And File-Browser Actions Clear Names And Tooltips
+
+**The Bug**: Several listen-along actions were icon-only buttons without accessible names. Player file-browser breadcrumbs, folders, and queue preview buttons used native `title` text instead of the Semantic UI Popup tooltips required for controls in this repository.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Give icon-only actions stable `aria-label` text and wrap interactive player buttons in concise Popup explanations of both the action and when it is useful.
+
 ### 0z982. Normalize Persisted Player Numbers Before State Creation
 
 **The Bug**: Saved volume and playback speed were converted with `Number()` directly into React state. The media element effects corrected invalid values, but the slider, speed selector, and Media Session position payload still read the invalid state, including `NaN` from malformed storage.
