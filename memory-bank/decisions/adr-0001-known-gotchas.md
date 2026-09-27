@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z940. Use Current File Length For Stream Responses
+
+**The Bug**: A tag edit could change file length before the next share scan updated its cached file row. `ContentLocator` returned the cached size, so stream headers and range handling could disagree with the file on disk.
+
+**Files Affected**:
+- `src/slskd/Streaming/ContentLocator.cs`
+
+**Prevention**: Resolve the path through the indexed repository, then read the current file length for stream responses. A scan cache is not authoritative after local file mutation.
+
 ### 0z939. Roll Back Partially Saved Queue Playlists
 
 **The Bug**: Saving a playback queue created a Collection and added tracks one by one. If an add failed halfway through, the UI reported failure but left a partial playlist behind.
