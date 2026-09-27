@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1026. Retry Failed Source Setup And Allow Pause While Loading
+
+**The Bug**: Decoded-stream setup cleared the active source owner before requesting a ticket. If setup failed, Play only set autoplay intent and waited forever for an absent source. Media failures were also retried with `play()` on an errored media element. The main transport offered Play while loading, so users could not cancel pending autoplay with that button.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Retain the failed decoded seek target and rerun setup on explicit retry. Reload failed native media before playing, restart failed decoded media at the displayed timeline position, and expose Pause during a pending playback request. Clear failed setup state on track changes and Stop, and stop outgoing fades before decoding setup.
+
 ### 0z1025. Treat Repeated Playlist Tracks As Separate Queue Entries
 
 **The Bug**: Loading a saved Collection playlist fed its items through the queue's content-ID deduplication, silently dropping intentional repeats of the same track. Upcoming removal also matched by content ID, so once repeated entries were allowed it would remove every copy instead of the chosen occurrence.
