@@ -1,7 +1,7 @@
 ## Update 2026-09-27 18:04:29Z
 
-- Current task: player resource polish continues after commit `cce65f7a8`. Closed player dialogs now mount only when opened, avoiding repeated suggestion and stats work on position updates.
-- Web lint/build, bundle budget, release-note validation, and identity check passed. Next: commit this change and perform live playback/mobile inspection when browser control is available. No tag or deployment is authorized.
+- Current task: player resource polish completed in commit `b47ff9d60`. Closed player dialogs now mount only when opened, avoiding repeated suggestion and stats work on position updates.
+- Web lint/build, bundle budget, release-note validation, and identity check passed. Next: perform live playback/mobile inspection in a controlled dev instance when browser control is available. The local port 3000 is an authenticated app instance, not this checkout's Vite target. No tag or deployment is authorized.
 
 ## Update 2026-09-27 18:02:22Z
 

@@ -13267,4 +13267,4 @@ export branch has no shared Git history and was not merged.
 
 ## Update 2026-09-27 18:04:29Z
 
-- Removed closed queue, radio, discovery, and listening-stats dialogs from the playback render path. Opening them now mounts and reads current data; ordinary playback no longer recalculates their suggestions and statistics. Added a validated operational release note and Unreleased changelog entry. Web lint/build, bundle budget, and identity check passed.
+- Removed closed queue, radio, discovery, and listening-stats dialogs from the playback render path in commit `b47ff9d60`. Opening them now mounts and reads current data; ordinary playback no longer recalculates their suggestions and statistics. Added a validated operational release note and Unreleased changelog entry. Web lint/build, bundle budget, and identity check passed. Live browser QA remains pending because the browser controls were unavailable and local port 3000 is an authenticated app instance rather than the checkout's Vite target.
