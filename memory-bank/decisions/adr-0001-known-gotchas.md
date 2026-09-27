@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z992. Do Not Open An Idle Graph For Neutral Audio Settings
+
+**The Bug**: Mounting a paused player with default flat EQ and disabled karaoke still created an AudioContext and ten filter nodes. The EQ, karaoke, and neutral output-gain helpers each called the graph constructor even though their desired values already matched native playback.
+
+**Files Affected**:
+- `src/web/src/components/Player/audioGraph.js`
+
+**Prevention**: Apply neutral settings to an existing graph when present, but do not create one solely for flat EQ, disabled karaoke, or gain one. Create the graph on playback or when a non-neutral feature needs it.
+
 ### 0z991. Preserve Native Volume Without Web Audio
 
 **The Bug**: When Web Audio was unavailable, graph gain helpers wrote directly to `audioElement.volume`. Normal source loading reset the saved volume to full, and the crossfade fallback became a hard cut that also changed the user's volume.
