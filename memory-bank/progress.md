@@ -13264,3 +13264,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 18:02:22Z
 
 - Reduced ListenBrainz `playing_now` requests to once per track start and reset scrobbling for each repeat-one play. Added a separate validated release-note fragment and Unreleased changelog bullet. Web lint/build and identity checks passed. No release tag or deployment was created.
+
+## Update 2026-09-27 18:04:29Z
+
+- Removed closed queue, radio, discovery, and listening-stats dialogs from the playback render path. Opening them now mounts and reads current data; ordinary playback no longer recalculates their suggestions and statistics. Added a validated operational release note and Unreleased changelog entry. Web lint/build, bundle budget, and identity check passed.

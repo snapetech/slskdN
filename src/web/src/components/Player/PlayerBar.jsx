@@ -898,13 +898,6 @@ const PlayerDiscoveryShelfModal = ({ onClose, open }) => {
     setItems(getDiscoveryShelf());
   };
 
-  useEffect(() => {
-    if (open) {
-      refreshShelf();
-      setMessage('');
-    }
-  }, [open]);
-
   const previewAction = (item) => {
     setMessage(
       `${getDiscoveryShelfActionLabel(item.action)} prepared for ${item.title}. No files were moved or deleted.`,
@@ -1120,10 +1113,6 @@ const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
   const refreshStats = useCallback((nextRangeDays = rangeDays) => {
     setStats(getListeningStats({ rangeDays: nextRangeDays }));
   }, [rangeDays]);
-
-  useEffect(() => {
-    if (open) refreshStats();
-  }, [open, refreshStats]);
 
   const clearStats = () => {
     clearListeningHistory();
@@ -3119,7 +3108,7 @@ const PlayerBar = () => {
             value={volume}
           />
         </div>
-        <PlayerQueueModal
+        {queueOpen ? <PlayerQueueModal
           current={current}
           history={history}
           onAutoQueueSimilar={queueItems}
@@ -3132,7 +3121,7 @@ const PlayerBar = () => {
           onRemove={removeFromQueue}
           open={queueOpen}
           queue={queue}
-        />
+        /> : null}
       </div>
     );
   }
@@ -3657,13 +3646,13 @@ const PlayerBar = () => {
           />
         </Modal.Actions>
       </Modal>
-      <PlayerRadioModal
+      {radioOpen ? <PlayerRadioModal
         current={current}
         onClose={() => setRadioOpen(false)}
         onOpenSearch={openRadioSearch}
         open={radioOpen}
-      />
-      <PlayerQueueModal
+      /> : null}
+      {queueOpen ? <PlayerQueueModal
         current={current}
         history={history}
         onAutoQueueSimilar={queueItems}
@@ -3676,19 +3665,19 @@ const PlayerBar = () => {
         onRemove={removeFromQueue}
         open={queueOpen}
         queue={queue}
-      />
-      <PlayerDiscoveryShelfModal
+      /> : null}
+      {shelfOpen ? <PlayerDiscoveryShelfModal
         onClose={() => setShelfOpen(false)}
         open={shelfOpen}
-      />
-      <PlayerStatsModal
+      /> : null}
+      {statsOpen ? <PlayerStatsModal
         onClose={() => setStatsOpen(false)}
         onOpenSearch={(query) => {
           setStatsOpen(false);
           openRadioSearch(query);
         }}
         open={statsOpen}
-      />
+      /> : null}
       {current && queue.length > 1 ? (
         <div className="player-queue">
           {queue.slice(1, 4).map((item) => (

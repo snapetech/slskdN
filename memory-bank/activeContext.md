@@ -1,3 +1,8 @@
+## Update 2026-09-27 18:04:29Z
+
+- Current task: player resource polish continues after commit `cce65f7a8`. Closed player dialogs now mount only when opened, avoiding repeated suggestion and stats work on position updates.
+- Web lint/build, bundle budget, release-note validation, and identity check passed. Next: commit this change and perform live playback/mobile inspection when browser control is available. No tag or deployment is authorized.
+
 ## Update 2026-09-27 18:02:22Z
 
 - Current task: continued player resource polish after seek/tag hardening. Pause/resume no longer repeats ListenBrainz playing-now calls, while repeat-one resets the scrobble marker for each play.
