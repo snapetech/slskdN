@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z941. Set The Output Device On Both Crossfade Elements
+
+**The Bug**: The player changed `setSinkId` only on its active audio element. Crossfade starts the next track on a standby element, so playback could jump to the default output device. Expanding or collapsing also remounted both elements and lost the selection.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Apply output selection to both media elements and reapply it when layout remounts them. Keep the UI selection aligned with successful device switches.
+
 ### 0z940. Use Current File Length For Stream Responses
 
 **The Bug**: A tag edit could change file length before the next share scan updated its cached file row. `ContentLocator` returned the cached size, so stream headers and range handling could disagree with the file on disk.
