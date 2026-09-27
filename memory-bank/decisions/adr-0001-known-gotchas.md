@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1001. Do Not Allocate Web Audio For Plain Playback
+
+**The Bug**: Starting any track created a Web Audio context, ten EQ filters, and an analyser even when playback used the system default output with no active audio effect or visualizer. This imposed graph setup and browser audio work on the common plain-playback path.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/audioGraph.js`
+
+**Prevention**: Let the media element play directly until a feature needs the graph. Resume an existing graph when one exists, but create one for a custom output, active processing, a visualizer, or crossfade. Keep native element volume and mute behavior intact.
+
 ### 0z1000. Request Permission Before Listing Audio Outputs
 
 **The Bug**: The player relied on `enumerateDevices()` alone to populate its output selector. Browsers may omit non-default audio outputs until the user grants access, leaving no way to discover or select a speaker from the player.
