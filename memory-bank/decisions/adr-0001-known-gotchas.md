@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z998. Reset Listen-Along State When The Selected Room Changes
+
+**The Bug**: The compact listen-along panel stays mounted while the selected pod channel changes. It retained the previous room's state and party ID until the new snapshot arrived, so a fast Broadcast could reuse the old room ID and late publish responses could restore old room details.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Clear room-specific state and invalidate pending UI publish responses when pod or channel changes. Only send an existing party ID when its state belongs to the selected room.
+
 ### 0z997. Carry The Published Party ID Into A Queued Stop
 
 **The Bug**: The first serialized listen-along implementation captured Stop's payload at click time. If Stop followed a still-pending Broadcast, the client had not received its party ID, so the server removed room state but left the listed radio directory entry behind.
