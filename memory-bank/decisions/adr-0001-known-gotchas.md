@@ -8,12 +8,12 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 ### 0z947. Announce ListenBrainz Playing Now Once Per Track Start
 
-**The Bug**: Every pause/resume cycle called ListenBrainz `playing_now` for the same track. Repeated use of the player generated unnecessary external requests without a new track start.
+**The Bug**: Every pause/resume cycle called ListenBrainz `playing_now` for the same track. Repeated use of the player generated unnecessary external requests without a new track start. Conversely, repeat-one kept the prior scrobble marker, so later complete plays of that track were not counted.
 
 **Files Affected**:
 - `src/web/src/components/Player/PlayerBar.jsx`
 
-**Prevention**: Track the announcement state for the selected item. Reset it when a new item starts or the same item repeats, while letting local Now Playing resume after pauses.
+**Prevention**: Track the announcement and scrobble state for the selected item. Reset both when a new item starts or the same item repeats, while letting local Now Playing resume after pauses.
 
 ### 0z946. Seek Against The Track Timeline In Fallback Playback
 
