@@ -13468,3 +13468,10 @@ export branch has no shared Git history and was not merged.
 - Web lint and production build, repository lint, whitespace, and identity
   checks passed. Interactive playback remains the P1 follow-up; no release tag
   was created.
+## Update 2026-09-27 22:27:07Z
+
+- Prevented a follower from restarting audio when a room reconnect returns
+  the same sequenced host event. A new host event still applies, and leaving
+  or changing rooms clears the last-applied marker. Recorded gotcha 0z1019.
+- The earlier track-selection fix was committed and pushed to the fork.
+  Interactive desktop/mobile audio inspection remains the P1 follow-up.

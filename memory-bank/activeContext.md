@@ -14343,3 +14343,11 @@ rollback.
   range preview, commit, and push remain.
 - Next steps: push to the verified fork, then perform the tracked real-audio
   desktop and mobile review when authorized. No release tag is authorized.
+## Update 2026-09-27 22:27:07Z
+
+- Current task: the previous track-selection audio fix is pushed through
+  `08743153e`. Listen-along reconnect replay prevention is implemented
+  locally with a new release fragment and gotcha 0z1019.
+- Next steps: run static validation and release preview, commit and push the
+  reconnect fix, then continue the player review. Real-audio desktop/mobile
+  inspection remains P1; no release tag is authorized.

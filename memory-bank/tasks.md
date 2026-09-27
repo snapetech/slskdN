@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Avoid replaying an unchanged listen-along room snapshot.
+  - Status: implemented (2026-09-27).
+  - Notes: Following a room tracks the last applied sequenced host event and
+    preserves current audio when reconnect returns that same event.
+
 - [x] Stop stale audio during a non-crossfade track selection.
   - Status: implemented (2026-09-27).
   - Notes: New selections end an existing outgoing fade and pause the prior

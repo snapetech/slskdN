@@ -5,6 +5,17 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Checkbox, Icon, Label, List, Popup, Segment } from 'semantic-ui-react';
 
 const DIRECTORY_POLL_INTERVAL_MS = 60_000;
+const partyEventKey = (state) => JSON.stringify([
+  state.podId,
+  state.channelId,
+  state.partyId,
+  state.sequence,
+  state.serverTimeUnixMs,
+  state.action,
+  state.contentId,
+  state.positionSeconds,
+  state.streamUrl,
+]);
 
 const sameDirectory = (previous, next) =>
   previous.length === next.length &&
@@ -94,6 +105,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const publishChainRef = useRef(Promise.resolve());
   const publishRequestRef = useRef(0);
   const followingRef = useRef(false);
+  const lastAppliedPartyRef = useRef(null);
   const followedPartyRef = useRef(player.followingParty);
   const playerRef = useRef(player);
 
@@ -111,6 +123,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   useEffect(() => {
     if (followedPartyRef.current && !player.followingParty && followingRef.current) {
       followingRef.current = false;
+      lastAppliedPartyRef.current = null;
       setFollowing(false);
     }
     followedPartyRef.current = player.followingParty;
@@ -119,6 +132,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   useEffect(() => {
     if (player.playerVisible === false && followingRef.current) {
       followingRef.current = false;
+      lastAppliedPartyRef.current = null;
       setFollowing(false);
       player.followParty(null);
     }
@@ -132,6 +146,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     if (!podId || !channelId) return undefined;
 
     publishRequestRef.current += 1;
+    lastAppliedPartyRef.current = null;
     setConnected(false);
     setPartyState(null);
     setPublishError('');
@@ -146,9 +161,11 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
         if (!state || state.action === 'stop') {
           setFollowing(false);
           followingRef.current = false;
+          lastAppliedPartyRef.current = null;
           playerRef.current.followParty(null);
           playerRef.current.clear();
-        } else {
+        } else if (lastAppliedPartyRef.current !== partyEventKey(state)) {
+          lastAppliedPartyRef.current = partyEventKey(state);
           playerRef.current.followParty(state);
           applyPartyState(state, playerRef.current);
         }
@@ -319,6 +336,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       : 0;
     setFollowing(false);
     followingRef.current = false;
+    lastAppliedPartyRef.current = null;
     player.followParty(null);
     player.playItem(
       {
@@ -376,9 +394,11 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                   setFollowing(next);
                   followingRef.current = next;
                   if (next && partyState) {
+                    lastAppliedPartyRef.current = partyEventKey(partyState);
                     player.followParty(partyState);
                     applyPartyState(partyState, player);
                   } else {
+                    lastAppliedPartyRef.current = null;
                     player.followParty(null);
                   }
                 }}
@@ -511,9 +531,11 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                 setFollowing(next);
                 followingRef.current = next;
                 if (next && partyState) {
+                  lastAppliedPartyRef.current = partyEventKey(partyState);
                   player.followParty(partyState);
                   applyPartyState(partyState, player);
                 } else {
+                  lastAppliedPartyRef.current = null;
                   player.followParty(null);
                 }
               }}
