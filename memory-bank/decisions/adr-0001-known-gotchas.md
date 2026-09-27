@@ -13,7 +13,7 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 **Files Affected**:
 - `src/web/src/components/Player/PlayerBar.jsx`
 
-**Prevention**: Record which track owns the source bound to the active media element. Ignore transport, position, and listening events when that owner differs from `current`. Clear the near-end crossfade marker only after binding the next source; do not clear it while a stream ticket is pending.
+**Prevention**: Record which track owns the source bound to the active media element. Ignore transport, position, and listening events when that owner differs from `current`, and verify the element is still ended before handling a queued Ended event. Clear the near-end crossfade marker only after binding the next source; do not clear it while a stream ticket is pending.
 
 ### 0z1008. Migrate An Automatically Saved Default When Changing It
 
