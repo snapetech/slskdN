@@ -98,6 +98,7 @@ Turning crossfade off or seeking during a fade also stops the outgoing track imm
 Crossfade uses Web Audio for independent track gains. When a browser does not provide Web Audio, track changes remain direct and the selected volume stays intact.
 The idle player leaves its Web Audio graph unallocated when the equalizer is flat, karaoke is off, and no visual effect needs the graph.
 Headset and lock-screen Play use the same loading and error behavior as the visible player Play control.
+Crossfade respects Repeat One. With Repeat All, it can also fade from the final queued track back into played history.
 Seeking while paused keeps the player in Paused even if the browser fetches more audio data.
 A late Pause event after a media failure leaves the player in Error until the user retries or selects another track.
 Volume, local mute, and playback speed changes affect both audio elements while a crossfade is in progress.

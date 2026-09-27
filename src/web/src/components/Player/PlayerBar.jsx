@@ -3222,7 +3222,8 @@ const PlayerBar = () => {
         renderedPositionRef.current = nextPosition;
         setPosition(nextPosition);
       }
-      if (crossfadeEnabled && !transcodeMode && queue.length > 1 &&
+      if (crossfadeEnabled && !transcodeMode && repeatMode !== 'one' &&
+          (queue.length > 1 || (repeatMode === 'all' && history.length > 0)) &&
           Number.isFinite(event.currentTarget.duration) && event.currentTarget.duration > 6 &&
           event.currentTarget.currentTime >= event.currentTarget.duration - 5 &&
           crossfadeStartedRef.current !== current) {
