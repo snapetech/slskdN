@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1016. Keep Source URL And Track Ownership In One State Value
+
+**The Bug**: Separate URL state and mutable owner refs can diverge under React batching. Clearing a URL and setting the same URL for a newly selected item can collapse into an unchanged string state, leaving no effect pass to bind the new track.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Store the URL and selected track object together in one source state value. A new assignment must have a new state identity even when its URL string matches the previous one.
+
 ### 0z1015. Stop The Old Decode Stream While Preparing A Seek
 
 **The Bug**: Seeking within decoded playback starts asynchronous ticket and metadata requests while the prior media element can continue playing and emitting time updates. The display moves to the requested absolute position while audio and listening history still follow the old stream, and Play during setup can restart it.
