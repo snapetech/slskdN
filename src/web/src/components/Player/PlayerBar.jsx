@@ -2569,6 +2569,8 @@ const PlayerBar = () => {
   const seekTo = useCallback((seconds) => {
     if (!audioRef.current || !Number.isFinite(seconds)) return;
     const target = Math.max(0, Math.min(duration > 0 ? duration : Number.MAX_SAFE_INTEGER, seconds));
+    stopOutgoingFade();
+    crossfadeStartedRef.current = null;
     if (transcodeMode) {
       startTranscode(target, playingRef.current);
       return;
@@ -2577,7 +2579,7 @@ const PlayerBar = () => {
     setPlaybackPosition(target);
     renderedPositionRef.current = target;
     setPosition(target);
-  }, [duration, setPlaybackPosition, startTranscode, transcodeMode]);
+  }, [duration, setPlaybackPosition, startTranscode, stopOutgoingFade, transcodeMode]);
 
   const seekBy = useCallback((seconds) => {
     if (!audioRef.current) return;
@@ -2643,6 +2645,10 @@ const PlayerBar = () => {
   useEffect(() => {
     setLocalStorageItem(collapsedStorageKey, collapsed ? 'true' : 'false');
   }, [collapsed]);
+
+  useEffect(() => {
+    if (!crossfadeEnabled) stopOutgoingFade();
+  }, [crossfadeEnabled, stopOutgoingFade]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('player-collapsed', collapsed);

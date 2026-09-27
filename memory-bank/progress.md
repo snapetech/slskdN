@@ -13380,3 +13380,7 @@ export branch has no shared Git history and was not merged.
 ## Update 2026-09-27 22:16:00Z
 
 - Normalized restored EQ gains to finite whole-number values within the ten sliders' supported range. Cleared previous lyrics during new lookups, included filename changes in lookup dependencies, and ignored canceled request results before state updates. Recorded gotchas 0z988 and 0z989 before source edits and added one append-only release fragment.
+
+## Update 2026-09-27 20:15:00Z
+
+- Stopped outgoing crossfade audio when crossfade is disabled or a seek occurs, and reset the near-end marker after a seek. Recorded gotcha 0z990 before source edits and added user documentation and an append-only release fragment.

@@ -94,6 +94,7 @@ The audio output selector waits for both player audio elements to switch, rolls 
 
 Listening history and optional ListenBrainz scrobbles count actual playback progress toward the track threshold. Skipping forward does not count the skipped portion as listening. Pause and Stop also silence both audio elements if a crossfade is in progress.
 If the incoming track errors during a crossfade, the outgoing element stops immediately so the visible failure and audible output agree.
+Turning crossfade off or seeking during a fade also stops the outgoing track immediately. A later pass through the end of the track can start a new fade.
 Seeking while paused keeps the player in Paused even if the browser fetches more audio data.
 A late Pause event after a media failure leaves the player in Error until the user retries or selects another track.
 Volume, local mute, and playback speed changes affect both audio elements while a crossfade is in progress.
