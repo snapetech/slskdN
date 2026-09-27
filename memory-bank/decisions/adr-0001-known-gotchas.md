@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1018. Stop The Old Stream When A New Track Cannot Crossfade
+
+**The Bug**: Selecting Next, Previous, or a new track requested its stream ticket while the previous media element kept playing. With crossfade off, or when the new selection was explicitly paused, the player showed the newly selected track while the old audio remained audible until the request finished. A prior outgoing fade could also continue through another selection.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: At track selection, stop any outgoing fade and pause the old active element unless an enabled crossfade can carry it into the next source. Invalidate pending Play work at the same boundary; keep the source owner tied to the old item until a new source is actually bound.
+
 ### 0z1017. Route Listen-Along Pause Through Player Transport
 
 **The Bug**: Listen-along Pause called the context's bare `audioElement.pause()` while the player bar kept a pending autoplay intent for a new stream ticket. The old element could stop, then the selected track could start after its ticket arrived despite the host's Pause.
