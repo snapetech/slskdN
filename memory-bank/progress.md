@@ -15019,3 +15019,14 @@ tracked candidate counts were stale. Ran the prescribed active-bughunt scanner,
 updated `Remote/user text in diagnostics or HTTP errors` to 474 and `Red-team
 abuse lens` to 11,446, and reran the focused backlog check successfully. No
 product code changed; rerun the full release gate before tagging.
+
+## Stable `.328` candidate release gate — 2026-09-28 21:07 UTC
+
+The full release gate now passes on the pushed candidate. Frontend unit tests,
+production build, bundle budget and subpath smoke pass; backend validation
+passes 5,337 unit tests, 74 smoke/regression tests, and release smoke with 104
+unit plus 40 integration tests. Packaging, remediation, council-count,
+identity, branch-sync and release-note checks pass. Build output includes two
+existing Microsoft package target-framework compatibility warnings. The `.327`
+workflow still waits for Launchpad PPA publication before the guarded `.328`
+tag can run.

@@ -1,3 +1,10 @@
+## Stable release gate passed — 2026-09-28 21:07 UTC
+
+- The complete release gate passes on the pushed `.328` candidate: packaging metadata, remediation and active-bughunt baselines, frontend tests/build/bundle/subpath smoke, 5,337 backend unit tests, 74 backend smoke tests, and release smoke (104 unit plus 40 integration tests). Existing MSBuild target-framework compatibility warnings remain; there are no gate failures.
+- `.327` still has one hosted Launchpad PPA publication wait active. Wait for that workflow to complete before running `scripts/create-release-tag.sh build-main-2026092820-slskdn.328`; the helper will repeat the full gate against the exact pushed head.
+
+Next Steps: confirm `.327` PPA publication, create the guarded `.328` tag, verify the published release assets, then update stable metadata.
+
 ## Release gate baseline refresh — 2026-09-28 21:01 UTC
 
 - The first full gate passed branch sync, packaging validation, and the other remediation checks, then stopped at the active council backlog because two counts lagged the current scan. Refreshed the two stale counts (474 remote/user-text candidates; 11,446 red-team candidates); the focused backlog check now passes. This changed documentation only.
