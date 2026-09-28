@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026092822-slskdn.329] — 2026-09-28
+
 ### Radio fairness accounting
 
 - Include active and completed Soulseek download payload in fairness totals, excluding resumed bytes already present locally.
