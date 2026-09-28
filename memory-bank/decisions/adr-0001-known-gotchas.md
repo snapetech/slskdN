@@ -31698,3 +31698,17 @@ room state alone does not remove an announcement keyed by a different party ID.
 When an explicit Stop has no known ID, fetch one abortable room snapshot inside
 the existing serialized writer before sending Stop. Verify directory cleanup
 after reload/manual Stop as well as Stop from a retained host session.
+
+### 0z1154 — Stopping an unowned room must not detach another followed room (2026-09-28)
+
+**What went wrong:** Review found that creating a transient session for manual
+Stop also cleared player following, even when that playback belonged to another
+room. Stopping metadata is not the same as starting host playback ownership.
+
+**Why:** The new publication path shared initialization for Play and Stop.
+Following must detach when beginning to host, while an unowned Stop only changes
+the requested room's server state.
+
+**Prevention:** Detach following only for a non-Stop host start. Keep manual Stop
+scoped to its room and preserve the observed party identity. Unit coverage checks
+that Stop does not call the following ownership method.
