@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1159. Reset Staged Sharing Choices When Changing Rooms
+
+**The Bug**: A route-change regression reproduced another room inheriting listing and streaming choices from the retained host. The panel kept its local checkbox state when its room props changed, even though those choices were not that room's broadcast settings.
+
+**Prevention**: Reset staged choices when subscribing to a different room. Restore confirmed settings only for the browser-owned host in the matching room. Stage choices in other rooms without changing the retained host or starting a new broadcast. Exercise return navigation with the original host still active.
+
 ### 0z1158. Apply Active Broadcast Settings Through the Owned Writer
 
 **The Bug**: Both compact and expanded listing controls changed only local checkbox state. Two negative regressions reproduced no publication after changing a running paused host. The broadcast retained its previous directory and streaming permissions until Broadcast was clicked again.
