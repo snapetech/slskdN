@@ -50,6 +50,22 @@ connection count or confirm the peer in status. Accept `connected: false` when
 the connection is already active; reserve exact `connected: true` assertions
 for tests that control a fresh node pair.
 
+### 0z1213. Isolate Radio Fairness State Between Browser Scenarios
+
+**What went wrong:** A second radio browser case reused a listener node after
+an earlier case had already consumed its radio fairness budget. The new case's
+first ticket was therefore correctly rejected before its constrained-link
+scenario began.
+
+**Why:** `MultiPeerHarness` keeps backend nodes and their traffic database alive
+for the whole spec file. Unique party IDs do not reset the listener's persisted
+or accumulated fairness totals.
+
+**Prevention:** When a radio test needs a fresh admission, start a fresh
+listener node or explicitly assert the intended budget state. Keep tests that
+expect additional admissions on one node only when they also establish the
+reciprocal upload credit required by the fairness policy.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
