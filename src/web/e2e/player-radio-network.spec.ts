@@ -291,7 +291,10 @@ test.describe('listed radio between isolated nodes', () => {
       headers: listenerHeaders,
       data: { address: '127.0.0.1', port: host.getOverlayPort() },
     });
-    expect(await overlayConnection.text()).toContain('"connected":true');
+    expect(overlayConnection.ok()).toBe(true);
+    const overlayConnectionResult = await overlayConnection.json();
+    expect(overlayConnectionResult.connected).toBe(true);
+    expect(overlayConnectionResult.activeConnections).toBeGreaterThanOrEqual(1);
     for (const [node, headers] of [[host, hostHeaders], [listener, listenerHeaders]] as const) {
       const status = await request.get(`${node.apiUrl}/api/v0/dht/status`, { headers });
       expect(status.ok()).toBe(true);
