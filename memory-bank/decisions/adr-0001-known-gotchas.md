@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1140. Describe Waiting Follow State Without a Missing Host
+
+**The Bug**: The new player-owned follow state can represent a room waiting for its first broadcast. The subtitle interpolated a missing hostPeerId as Following undefined. A focused rendered-player regression reproduced the bad label.
+
+**Prevention**: Render Waiting for room broadcast until a real host identity is available. Keep the room identity for ownership and pressed state; do not fabricate a host identifier merely to satisfy a display field.
+
 ### 0z1139. Keep Room Follow Ownership Outside Route Components
 
 **The Bug**: The room panel owned the listen-along hub. Navigating through the real Downloads link unmounted it and closed the hub while the persistent player still displayed following state. A real-browser regression published Pause at 16 seconds after navigation and the follower never aligned. Remounting also initialized its local Follow toggle to false.
