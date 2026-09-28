@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1087. Make Manual Radio Refresh Reach the Directory Source
+
+**The Bug**: The listed-radio Refresh button repeated a normal directory GET while the service reused a one-minute cache. Host permission/content changes therefore remained invisible after an explicit refresh.
+
+**Prevention**: Use an explicit refresh query for manual refreshes, retain normal polling cache behavior, coalesce in-flight refreshes and bound repeated forced refreshes. Verify a manual request bypasses a current cache without turning background polling into peer scans.
+
 ### 0z1086. Verify Both Directions of Overlay Fairness Accounting
 
 **The Gotcha**: Radio playback records overlay download bytes, but a source search found no production AddOverlayUploadAsync call sites. Serving audio therefore cannot be assumed to earn fairness credit, and a successful first ticket does not prove repeated playback admission or renewal.
