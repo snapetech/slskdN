@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1125. Use Semantic UI Toggle Semantics for Pressed State
+
+**The Bug**: Adding aria-pressed directly to Semantic UI Button still rendered no attribute. Its implementation overwrites that prop with undefined unless toggle is enabled. The accessibility regression stayed negative after the initial implementation.
+
+**Prevention**: Use Button's toggle prop with active state; the component then emits aria-pressed itself. Assert the rendered DOM rather than assuming JSX attributes survive wrapper rendering. Keep keyboard and compact/expanded behavior covered.
+
 ### 0z1124. Expose Follow Toggle State to Assistive Controls
 
 **The Bug**: Room follow buttons used only Semantic UI's visual active state. A negative accessibility regression found no aria-pressed value, so assistive controls could not determine whether following was enabled.
