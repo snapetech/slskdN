@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1117. Keep Release Fragment Bodies Within the Validated Limit
+
+**The Bug**: A new room-integrity fragment combined detailed publication, storage and quota explanations into a body exceeding 400 characters. Exact-range preview rejected the unpublished source commit and prevented the push.
+
+**Prevention**: Keep fragment bodies between 30 and 400 characters and describe user impact concisely. Put detailed evidence in the audit and changelog. Validate the exact commit range before pushing; repair an unpublished new fragment before treating its commit as release-ready.
+
 ### 0z1116. Charge Mesh Message Quota Only After Receiving a Frame
 
 **The Bug**: The inbound mesh loop charged message quota before waiting for the next frame. After ten permitted messages it immediately charged an eleventh pending read and disconnected an otherwise idle connection. A real TLS negative test received ten valid Pong replies but observed the server connection removed; the eleven-frame rejection case already passed.
