@@ -691,6 +691,12 @@ appropriate typed assertion such as `Assert.IsType<T>(value)`.
 
 **Prevention**: Separate methods with a blank line and inspect build/test warnings as well as lint exit codes. Remove newly introduced style warnings before full validation; an error-only formatting check does not prove warning-free source.
 
+### 0z1123. Include Active Soulseek Writes in Fairness Reads
+
+**The Bug**: Persisting Soulseek upload bytes only when an attempt exits leaves a long-running transfer invisible to new radio admissions. The fairness guard can therefore read stale totals while reciprocal payload is already being written.
+
+**Prevention**: Add each confirmed payload write to a process-local pending counter and include it in fairness totals. Serialize total reads with the final database upsert, then remove only that attempt's pending bytes after persistence so the counter-to-database handoff neither double counts nor drops credit. Do not add a database write per transfer chunk.
+
 ### 0z1122. Back Successful Upload Lifecycle Events with a Database
 
 **The Bug**: A success-path upload lifecycle fixture used `EventService` with a mocked `IDbContextFactory`. `UploadService` raises `UploadFileCompleteEvent` after a successful transfer, and the event service dereferenced the missing context before the test could reach its accounting assertion.
