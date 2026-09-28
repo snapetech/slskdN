@@ -8,6 +8,9 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Mesh;
+using slskd.Mesh.ServiceFabric;
+using slskd.Mesh.ServiceFabric.Services;
+using slskd.Shares;
 using slskd.Streaming;
 using slskd.Transfers.MultiSource.Metrics;
 using Xunit;
@@ -142,11 +145,129 @@ public class MeshStreamServiceTests
         Assert.NotNull(lease);
         await using (var stream = lease.Stream)
         {
-            var actual = await ReadAllAsync(stream);
-            Assert.Empty(actual);
+            await Assert.ThrowsAsync<MeshStreamException>(() => ReadAllAsync(stream));
         }
 
         limiter.Verify(x => x.Release("user:alice"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(3000)]
+    [InlineData(4096)]
+    public async Task OpenAsync_UnknownLength_PreservesTailAndAcceptsEndOfFile(int size)
+    {
+        var payload = Enumerable.Range(0, size).Select(index => (byte)(index % 251)).ToArray();
+        var tickets = new Mock<IMeshStreamTicketService>();
+        tickets.Setup(instance => instance.Validate("tail-ticket"))
+            .Returns(new MeshStreamTicket("tail-ticket", "tail-content", "track.wav", "host-peer", null, null, "user:test", DateTimeOffset.UtcNow.AddMinutes(1), "audio/wav"));
+        var limiter = new Mock<IStreamSessionLimiter>();
+        limiter.Setup(instance => instance.TryAcquire("user:test", 1)).Returns(true);
+        var fetcher = new Mock<IMeshContentFetcher>();
+        fetcher.Setup(instance => instance.FetchAsync("host-peer", "tail-content", It.IsAny<long?>(), null, It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns((string peer, string content, long? expected, string? hash, long offset, int length, CancellationToken token) =>
+            {
+                var bytes = payload.Skip((int)offset).Take(length).ToArray();
+                return Task.FromResult(new MeshContentFetchResult
+                {
+                    Data = new MemoryStream(bytes),
+                    Size = bytes.Length,
+                    SizeValid = !expected.HasValue || bytes.Length == expected.Value,
+                });
+            });
+        var service = new MeshStreamService(tickets.Object, limiter.Object, Mock.Of<IMeshDirectory>(), fetcher.Object, Mock.Of<ILogger<MeshStreamService>>());
+        var lease = await service.OpenAsync("tail-ticket", CancellationToken.None);
+        Assert.NotNull(lease);
+        await using (var stream = lease.Stream)
+        {
+            Assert.Equal(payload, await ReadAllAsync(stream));
+        }
+        limiter.Verify(instance => instance.Release("user:test"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OpenAsync_ProducerFailure_ThrowsToReaderAndReleasesLimiter(bool peerAvailable)
+    {
+        var tickets = new Mock<IMeshStreamTicketService>();
+        tickets.Setup(instance => instance.Validate("failed-ticket"))
+            .Returns(new MeshStreamTicket("failed-ticket", "failed-content", "track.wav", null, null, null, "user:test", DateTimeOffset.UtcNow.AddMinutes(1), "audio/wav"));
+        var limiter = new Mock<IStreamSessionLimiter>();
+        limiter.Setup(instance => instance.TryAcquire("user:test", 1)).Returns(true);
+        var directory = new Mock<IMeshDirectory>();
+        directory.Setup(instance => instance.FindPeersByContentAsync("failed-content", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(peerAvailable ? new[] { new MeshPeerDescriptor("host-peer") } : Array.Empty<MeshPeerDescriptor>());
+        var fetcher = new Mock<IMeshContentFetcher>();
+        fetcher.Setup(instance => instance.FetchAsync("host-peer", "failed-content", It.IsAny<long?>(), null, It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("Peer disconnected"));
+        var service = new MeshStreamService(tickets.Object, limiter.Object, directory.Object, fetcher.Object, Mock.Of<ILogger<MeshStreamService>>());
+
+        var lease = await service.OpenAsync("failed-ticket", CancellationToken.None);
+        Assert.NotNull(lease);
+        await using (var stream = lease.Stream)
+        {
+            var error = await Record.ExceptionAsync(() => ReadAllAsync(stream));
+            if (peerAvailable)
+            {
+                Assert.IsType<IOException>(error);
+            }
+            else
+            {
+                Assert.IsType<MeshStreamException>(error);
+            }
+        }
+
+        limiter.Verify(instance => instance.Release("user:test"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(3000)]
+    [InlineData(4096)]
+    public async Task OpenAsync_RealHostAndFetcher_PreserveUnknownLengthBytes(int size)
+    {
+        var payload = Enumerable.Range(0, size).Select(index => (byte)(index % 251)).ToArray();
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllBytesAsync(tempFile, payload);
+            var repository = new Mock<IShareRepository>();
+            repository.Setup(instance => instance.FindContentItem("content:audio:track:test"))
+                .Returns((Domain: "audio", WorkId: "work-1", MaskedFilename: "track.wav", IsAdvertisable: true, ModerationReason: string.Empty, CheckedAt: DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
+            repository.Setup(instance => instance.FindFileInfo("track.wav"))
+                .Returns((Filename: tempFile, Size: (long)size));
+            var shares = new Mock<IShareService>();
+            shares.Setup(instance => instance.GetLocalRepository()).Returns(repository.Object);
+            var host = new MeshContentMeshService(Mock.Of<ILogger<MeshContentMeshService>>(), shares.Object);
+            var client = new Mock<IMeshServiceClient>();
+            client.Setup(instance => instance.CallAsync("host-peer", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+                .Returns((string peer, ServiceCall call, CancellationToken token) =>
+                    host.HandleCallAsync(call, new MeshServiceContext { RemotePeerId = "listener-peer" }, token));
+            var tickets = new Mock<IMeshStreamTicketService>();
+            tickets.Setup(instance => instance.Validate("host-ticket"))
+                .Returns(new MeshStreamTicket("host-ticket", "content:audio:track:test", "track.wav", "host-peer", null, null, "user:test", DateTimeOffset.UtcNow.AddMinutes(1), "audio/wav"));
+            var limiter = new Mock<IStreamSessionLimiter>();
+            limiter.Setup(instance => instance.TryAcquire("user:test", 1)).Returns(true);
+            var service = new MeshStreamService(
+                tickets.Object,
+                limiter.Object,
+                Mock.Of<IMeshDirectory>(),
+                new MeshContentFetcher(client.Object, Mock.Of<ILogger<MeshContentFetcher>>()),
+                Mock.Of<ILogger<MeshStreamService>>());
+
+            var lease = await service.OpenAsync("host-ticket", CancellationToken.None);
+            Assert.NotNull(lease);
+            await using (var stream = lease.Stream)
+            {
+                Assert.Equal(payload, await ReadAllAsync(stream));
+            }
+
+            client.Verify(instance => instance.CallAsync("host-peer", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()), Times.Exactly(size / 2048 + 1));
+            limiter.Verify(instance => instance.Release("user:test"), Times.Once);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
 
     private static async Task<byte[]> ReadAllAsync(Stream stream)

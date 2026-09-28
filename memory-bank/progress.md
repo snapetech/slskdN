@@ -13665,3 +13665,11 @@ Latest build: 16/16 browser workflows, 982/982 Web tests across 165 files, backe
 ## Listening batch pushed — 2026-09-28 01:22:37Z
 
 `4e4d1ab34` and its separate gotcha records are pushed to fork main. Full-range release preview passes with both fragments; the tree was clean and synced after the source push. Current implementation batch is cleared. Next Steps: repair the open remote-radio routing/ticket boundary through established mesh streaming and verify isolated host/room recovery. Overall player goal remains active; no release tag was created.
+
+## Mesh playback completion prerequisites — 2026-09-28
+
+Reproduced 3,000-byte unknown-length playback truncating at 2,048 bytes. Fixed tail/EOF handling, oversized reply rejection and pipe failure propagation; reused the copy buffer. Added controlled host/fetcher/reader regression coverage and separate missing-peer/I/O failure checks. All 26 focused tests pass and repository lint passes. Full backend gates are being finalized before commit/push. Remote radio transport and the broader player completion audit remain open.
+
+### Mesh transport final gates — 2026-09-28
+
+All 26 focused regressions pass, including controlled RPC through the real host range handler, fetcher and reader. Final-source unit rerun: 5,198 passed; solution smoke: 74 passed; integration: 284 passed. Repository lint, whitespace and local-identity checks pass. Remote listed-radio routing remains open.

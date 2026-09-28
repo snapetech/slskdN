@@ -68,3 +68,23 @@ moderate; repeated warm-baseline and sustained-session measurements remain due.
   stray timers and active contexts.
 - Inspect accessibility with keyboard-only and assistive-technology workflows.
 - Resolve newly discovered defects and update this audit with direct evidence.
+
+
+## Mesh transport prerequisites — 2026-09-28
+
+A negative regression reproduced truncation of a 3,000-byte unknown-length
+stream at 2,048 bytes. The transport now permits bounded short/empty final
+range responses, accepts an exact host EOF offset, retains exact validation
+for known lengths, and rejects replies exceeding the requested range.
+Producer failures complete the pipe with their error instead of normal EOF;
+the copy buffer is reused across chunks.
+
+Focused tests cover unknown-length tails, aligned EOF, missing peers, producer
+I/O errors, hash mismatch, response bounds and host range handling. These
+checks establish transport behavior with controlled dependencies; they do not
+establish remote listed-radio routing. The host-scoped radio transport and
+dual-participant checks remain required.
+
+### Mesh transport final gates — 2026-09-28
+
+All 26 focused regressions pass, including controlled RPC through the real host range handler, fetcher and reader. Final-source unit rerun: 5,198 passed; solution smoke: 74 passed; integration: 284 passed. Repository lint, whitespace and local-identity checks pass. Remote listed-radio routing remains open.

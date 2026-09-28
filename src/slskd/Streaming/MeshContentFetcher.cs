@@ -87,7 +87,7 @@ public sealed class MeshContentFetcher : IMeshContentFetcher
                 };
             }
 
-            if (reply.Payload == null || reply.Payload.Length == 0)
+            if (reply.Payload == null || (reply.Payload.Length == 0 && (length <= 0 || expectedSize is > 0)))
             {
                 return new MeshContentFetchResult
                 {
@@ -98,6 +98,15 @@ public sealed class MeshContentFetcher : IMeshContentFetcher
             }
 
             var actualSize = reply.Payload.Length;
+            if (length > 0 && actualSize > length)
+            {
+                return new MeshContentFetchResult
+                {
+                    Error = "Mesh content response exceeded the requested range.",
+                    SizeValid = false,
+                    HashValid = false,
+                };
+            }
             var result = new MeshContentFetchResult
             {
                 Data = new MemoryStream(reply.Payload),

@@ -15,6 +15,48 @@ using Xunit;
 
 public class MeshContentMeshServiceTests
 {
+    [Theory]
+    [InlineData(4L, true)]
+    [InlineData(5L, false)]
+    public async Task HandleCallAsync_RangeAtEndOfFile_ReturnsEmptySuccessOnlyAtExactEnd(long offset, bool valid)
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllBytesAsync(tempFile, new byte[] { 1, 2, 3, 4 });
+            var repo = new Mock<IShareRepository>();
+            repo.Setup(repository => repository.FindContentItem("content:audio:track:test"))
+                .Returns((Domain: "audio", WorkId: "work-1", MaskedFilename: "masked.flac", IsAdvertisable: true, ModerationReason: string.Empty, CheckedAt: DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
+            repo.Setup(repository => repository.FindFileInfo("masked.flac"))
+                .Returns((Filename: tempFile, Size: 4L));
+            var shares = new Mock<IShareService>();
+            shares.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+            var service = new MeshContentMeshService(Mock.Of<ILogger<MeshContentMeshService>>(), shares.Object);
+
+            var reply = await service.HandleCallAsync(
+                new ServiceCall
+                {
+                    ServiceName = "MeshContent",
+                    Method = "GetByContentId",
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    Payload = JsonSerializer.SerializeToUtf8Bytes(new
+                    {
+                        contentId = "content:audio:track:test",
+                        range = new { offset, length = 2048 },
+                    }),
+                },
+                new MeshServiceContext { RemotePeerId = "peer-1" },
+                CancellationToken.None);
+
+            Assert.Equal(valid, reply.StatusCode == ServiceStatusCodes.OK);
+            Assert.Empty(reply.Payload);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
     [Fact]
     public async Task HandleStreamAsync_GetByContentIdRequest_SendsContentAndCloses()
     {

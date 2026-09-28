@@ -5178,3 +5178,10 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] 2026-09-28 Add listen-along manual recovery controls, snapshot failure reporting and disposed-callback guards.
 - [x] 2026-09-28 Exclude custom radio URLs from local-library decode probes.
 - [ ] P1: repair and verify remote listed-radio host routing and ticket renewal through established mesh streaming; verify dual-participant room recovery. See gotcha 0z1065 and the player quality audit.
+
+## Mesh playback completion prerequisites — 2026-09-28
+
+- [x] Preserve unknown-length mesh preview tails and exact EOF replies.
+- [x] Propagate producer failures to readers; preserve strict known-length and bounded-range checks.
+- [x] Verify the real host range handler, fetcher and preview reader together through controlled RPC, including limiter release.
+- [ ] Complete host-scoped remote listed-radio routing and permission revocation checks; distinguish web-account display identity from mesh transport identity. Existing radio routing task remains open.

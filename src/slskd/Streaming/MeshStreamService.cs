@@ -95,13 +95,13 @@ public sealed class MeshStreamService : IMeshStreamService
 
     private async Task ProduceAsync(MeshStreamTicket claims, PipeWriter writer, CancellationToken cancellationToken)
     {
+        Exception? failure = null;
         try
         {
             var peerId = await ResolvePeerIdAsync(claims, cancellationToken).ConfigureAwait(false);
             if (peerId == null)
             {
-                await writer.CompleteAsync(new MeshStreamException("No fresh mesh peer is advertising this content.")).ConfigureAwait(false);
-                return;
+                throw new MeshStreamException("No fresh mesh peer is advertising this content.");
             }
 
             await using var output = writer.AsStream(leaveOpen: true);
@@ -113,21 +113,24 @@ public sealed class MeshStreamService : IMeshStreamService
 
             await FetchAndCopyAsync(claims, peerId, output, cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
+            failure = ex;
             _logger.LogDebug("Mesh preview stream of {ContentId} was cancelled.", claims.ContentId);
         }
         catch (Exception ex) when (IsExpectedMeshStreamFailure(ex))
         {
+            failure = ex;
             _logger.LogWarning("Mesh preview stream of {ContentId} ended because the mesh peer is unavailable: {Message}", claims.ContentId, ex.Message);
         }
         catch (Exception ex)
         {
+            failure = ex;
             _logger.LogError(ex, "Mesh preview stream of {ContentId} failed: {Message}", claims.ContentId, ex.Message);
         }
         finally
         {
-            await writer.CompleteAsync().ConfigureAwait(false);
+            await writer.CompleteAsync(failure).ConfigureAwait(false);
         }
     }
 
@@ -164,6 +167,7 @@ public sealed class MeshStreamService : IMeshStreamService
     {
         var expectedSize = claims.ExpectedSize;
         long offset = 0;
+        var buffer = new byte[MeshStreamChunkBytes];
         while (!expectedSize.HasValue || offset < expectedSize.Value)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -177,7 +181,7 @@ public sealed class MeshStreamService : IMeshStreamService
             var result = await _contentFetcher.FetchAsync(
                 peerId,
                 claims.ContentId,
-                expectedSize: length,
+                expectedSize: expectedSize.HasValue ? length : null,
                 expectedHash: null,
                 offset: offset,
                 length: length,
@@ -190,7 +194,6 @@ public sealed class MeshStreamService : IMeshStreamService
 
             using (result.Data)
             {
-                var buffer = new byte[MeshStreamChunkBytes];
                 int read;
                 while ((read = await result.Data.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
                 {

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Player mesh stream completion
+
+- Preserve short final chunks for unknown-length mesh previews and accept exact end-of-file range responses.
+- Propagate producer failures to the playback reader, reject oversized range responses, and reuse one copy buffer per stream.
+- Keep remote listed-radio routing open pending a host-scoped transport and permission check.
+
+
 ### Player listening recovery and listed radio
 
 - Add a player-tools listed-radio picker with manual refresh, host-permission labels, metadata-only controls and explicit snapshot playback.

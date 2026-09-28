@@ -166,7 +166,7 @@ public sealed class MeshContentMeshService : IMeshService
             }
 
             offset = req.Range.Offset;
-            if (offset >= finfo.Size)
+            if (offset > finfo.Size)
             {
                 return new ServiceReply
                 {
