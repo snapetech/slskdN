@@ -31658,3 +31658,16 @@ server acknowledgment.
 **Prevention:** Reject queued requests when an in-flight publication fails.
 Require a returned Stop state before switching host ownership to following.
 Keep explicit Retry/Stop controls available after transport failures.
+
+### 0z1151 — Bounded host queues do not limit publication frequency (2026-09-28)
+
+**What went wrong:** Review of the new host writer found that one active request
+and one pending update bounded memory but still allowed rapid sequential writes
+to a fast server. Repeated seeks could therefore create excessive room traffic.
+
+**Why:** Pending-count limits do not impose a rate limit; the same distinction
+previously caused mesh RPC quota exhaustion.
+
+**Prevention:** Space host writes by at least 250 milliseconds using a monotonic
+clock and one cancelable timer. Coalesce pending positions, preserve ordered
+Stop and release timers on ownership loss. Never add periodic position polling.
