@@ -6,6 +6,19 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1185. Repeat The Existing Admin Role On Player Tag Writes
+
+**The Bug**: `PlayerTagsController.Update` relied on the controller-level
+administrator requirement, so the mutating-role baseline rejected the action
+for lacking an explicit method-level role.
+
+**Why**: The repository's mutation audit requires write roles to be declared
+at the action, even when the controller already imposes the same role.
+
+**Prevention**: Repeat the existing administrator-only policy on the `PUT`
+action and regenerate `docs/system-surfaces-current.md` after controller
+authorization changes. Runtime access remains admin-only.
+
 ### 0z1184. Serialize Audio Graph Changes Against Latest Playback Intent
 
 **The Bug**: A controlled real-browser race held an outgoing AudioContext.suspend() through transport Pause, started newer playback while the context still reported running, then released the old suspend. Audio resumed but processing stayed suspended.
