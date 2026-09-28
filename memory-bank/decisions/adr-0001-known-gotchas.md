@@ -31644,3 +31644,17 @@ reuse the existing room connection and authorization, and publish meaningful
 playback events rather than time ticks. Bound/coalesce pending updates, serialize
 Stop after in-flight writes, preserve paused seeks and release on revocation.
 Stop hosting before following another room.
+
+### 0z1150 — Failed in-flight publication must not acknowledge a queued Stop (2026-09-28)
+
+**What went wrong:** Review of the new bounded host queue found that an in-flight
+failure discarded its pending Stop by resolving it with no state. A caller that
+waited for Stop before following could then proceed without a confirmed Stop.
+
+**Why:** Coalesced informational updates and ownership-changing Stop requests
+have different completion requirements. A discarded update is not a successful
+server acknowledgment.
+
+**Prevention:** Reject queued requests when an in-flight publication fails.
+Require a returned Stop state before switching host ownership to following.
+Keep explicit Retry/Stop controls available after transport failures.
