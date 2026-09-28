@@ -31610,3 +31610,19 @@ these artificial lifecycle failures.
 **Prevention:** Fixtures that exercise disposal must invoke the actual private
 constructor with owned test TCP/TLS resources instead of maintaining a parallel
 field list. Keep the full suite gate alongside focused real-transport evidence.
+
+### 0z1148 — Caller cancellation must not interrupt committed mesh frames (2026-09-28)
+
+**What went wrong:** Review of the new service writer found that it passed the
+caller token through an active frame. The framer writes length header, payload
+and flush separately; cancellation after the header can leave a malformed stream
+if later service writes continue.
+
+**Why:** Canceling a queued operation and canceling an already committed frame
+have different transport consequences. Completing a caller promptly does not
+require interrupting the active frame.
+
+**Prevention:** Check caller cancellation before committing a write, then use the
+connection shutdown token and existing write timeout to finish it. Keep canceled
+queue entries skippable. A real TLS regression holds post-send work, cancels its
+caller and verifies that committed work remains owned until release.
