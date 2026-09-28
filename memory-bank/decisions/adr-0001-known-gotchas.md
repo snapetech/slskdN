@@ -31671,3 +31671,16 @@ previously caused mesh RPC quota exhaustion.
 **Prevention:** Space host writes by at least 250 milliseconds using a monotonic
 clock and one cancelable timer. Coalesce pending positions, preserve ordered
 Stop and release timers on ownership loss. Never add periodic position polling.
+
+### 0z1152 — Compact mode must expose retained host ownership (2026-09-28)
+
+**What went wrong:** The initial host implementation exposed controls and
+feedback only in the expanded player. Collapsing it hid that broadcasting
+remained active and could hide publication errors.
+
+**Why:** Retained ownership survives presentation-mode changes, so every player
+mode must communicate that ownership even when secondary actions are collapsed.
+
+**Prevention:** Show active broadcasting and accessible error text in the compact
+subtitle. Explain Retry/Stop in the existing Expand tooltip. Keep direct host
+actions in the expanded deck and verify collapse/expand in the real host workflow.
