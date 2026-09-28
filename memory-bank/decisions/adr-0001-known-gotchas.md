@@ -66,6 +66,27 @@ listener node or explicitly assert the intended budget state. Keep tests that
 expect additional admissions on one node only when they also establish the
 reciprocal upload credit required by the fairness policy.
 
+### 0z1214. Model Firefox Layout And Keyboard Modality In Browser Assertions
+
+**What went wrong:** Cross-browser player checks treated an exact 44 CSS-pixel
+touch target as failed when Firefox reported `43.99999237060547`, and inferred
+keyboard focus styling after Playwright called `.focus()` directly. Firefox's
+subpixel layout rounding and programmatic-focus modality made those assertions
+fail despite the authored 44-pixel size and the test not simulating keyboard
+navigation.
+
+**Why:** `boundingBox()` can expose fractional CSS pixels across browser
+engines, while `:focus-visible` depends on input modality that direct DOM focus
+does not consistently establish. Chromium-specific expectations are not a
+portable proof of the same UI contract.
+
+**Prevention:** Allow only a small measurement epsilon when asserting exact CSS
+pixel minima, and keep the authored size at the required threshold. Test
+keyboard focus indicators by navigating with Tab and activating with the
+keyboard; do not call `.focus()` and assume that it emulates keyboard modality.
+Inspect the visible focus treatment itself rather than requiring one particular
+computed `outline-style` when another visible indicator is valid.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
