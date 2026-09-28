@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1171. Disclose CDP Resource Enumeration Boundaries
+
+**The Bug**: Native resource summaries described CDP-enumerated PSS and CPU as whole-browser totals. A live Linux browser-tree inspection found seven OS processes while CDP reported five; the two zygotes held about 18 MiB combined PSS in that snapshot. Zero unavailable readings proved coverage of the CDP list, not every OS browser process.
+
+**Prevention**: Label these retained measurements as CDP-reported browser-process totals, preserve their values and disclose the omitted OS processes. Compare enumeration against the owned browser tree before claiming complete browser coverage. Future full-tree measurements must include descendants, process churn and per-process availability; retain CDP renderer metrics separately. Do not modify a running probe or silently relabel older values as full-tree measurements.
+
 ### 0z1170. Match Resource Probe File Backing to the User Workflow
 
 **The Gotcha**: The extended native probe supplied a Buffer payload. Installed Playwright code shows that this constructs an in-memory File from decoded bytes, while path input uses the browser's file-input path API. Its memory readings describe RAM-backed generated media, not an ordinary disk selection; scaling that payload with session duration can obscure the cost being measured.
