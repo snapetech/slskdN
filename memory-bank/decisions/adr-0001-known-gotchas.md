@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1163. Await Every Peer Cleanup Before Reporting Failure
+
+**The Bug**: A negative regression proved the multi-peer harness rejected cleanup while another node's shutdown was still pending. Promise.all returned the first rejection and skipped clearing the registry, so the test teardown could finish while peer cleanup still owned processes and output.
+
+**Prevention**: Await all node cleanup results before clearing the registry and report every failure in an AggregateError. Test with one failed cleanup and another held open; teardown must remain pending until that second cleanup finishes.
+
 ### 0z1162. Own Test-Node Log Drains and Shutdown Deadlines
 
 **The Bug**: Repeated player runtime runs reported log descriptors closed by garbage collection. Successful startup never closed its locally owned log handles; async data listeners had unobserved write failures, stderr was retained twice and diagnostic strings grew without a bound. A negative lifecycle regression also proved graceful shutdown left its hard-kill timer active. Failed startup escaped the harness registry without stopping its child.
