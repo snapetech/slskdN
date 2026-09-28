@@ -691,6 +691,12 @@ appropriate typed assertion such as `Assert.IsType<T>(value)`.
 
 **Prevention**: Separate methods with a blank line and inspect build/test warnings as well as lint exit codes. Remove newly introduced style warnings before full validation; an error-only formatting check does not prove warning-free source.
 
+### 0z1122. Back Successful Upload Lifecycle Events with a Database
+
+**The Bug**: A success-path upload lifecycle fixture used `EventService` with a mocked `IDbContextFactory`. `UploadService` raises `UploadFileCompleteEvent` after a successful transfer, and the event service dereferenced the missing context before the test could reach its accounting assertion.
+
+**Prevention**: Successful upload lifecycle tests must back `EventService` with a real initialized `EventsDbContext` (an in-memory SQLite database is sufficient). A null-backed mock only covers paths that never raise persisted events.
+
 ### 0z1121. Qualify File I/O in Transfer Fixtures
 
 **The Bug**: Tests importing `slskd.Files` resolved unqualified `File` to the project namespace type, which has no `WriteAllBytesAsync` or `Delete` methods. The focused upload build failed before the regression could run.
