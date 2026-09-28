@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1132. Verify LAN-Only DHT Behavior Beyond Its Startup Warning
+
+**The Bug**: Retained radio-node logs claimed LanOnly=true disabled public bootstrap, then reported dozens of DHT nodes and public peer discovery. The service starts the engine with an empty router array, but the installed dependency's actual behavior must be established before treating that as isolation.
+
+**Prevention**: Do not run further LAN-only radio fixtures until the engine boundary is repaired and verified. Check the installed dependency version, bootstrap behavior, announcements and discovered endpoints rather than trusting configuration or warning text. Offline non-radio fixtures now disable DHT entirely; that evidence does not establish LAN-only radio isolation.
+
 ### 0z1131. Choose Icons Present in the Bundled Semantic UI Font
 
 **The Bug**: The compact radio-directory button used broadcast tower, which has no glyph in the bundled Semantic UI icon overrides. Mobile screenshots showed a blank control despite its accessible name and popup.
