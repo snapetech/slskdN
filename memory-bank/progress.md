@@ -14972,3 +14972,28 @@ remain in progress. Authenticated cross-node room-state delivery warrants
 candidate `.328`; its release fragment and changelog are prepared. Full release
 gate, exact `.327`-to-candidate preview, push, tag and `.328` artifact check are
 still pending.
+
+## Local-first room-state delivery — 2026-09-28 20:41 UTC
+
+ADR-0001 gotcha 0z1155 identified that slow remote member fan-out could hold
+local room feedback behind network work. Local subscribers are now notified
+before mesh delivery, while the router caps total fan-out at two seconds and
+eight concurrent calls. Focused ordering and fan-out-budget tests pass 2/2; the
+real two-node playback/update/revocation E2E still passes 1/1. Repository format
+lint and strict ES2022 TypeScript checks for the modified Playwright spec and
+harness pass. A separate user-facing fragment records local responsiveness.
+
+## Bounded authenticated cross-node room delivery — 2026-09-28 20:47 UTC
+
+Remote room state now routes before optional DHT/radio-directory work. A
+regression verifies local SignalR delivery, mesh routing, then the directory
+failure in that order. Remote fan-out has a two-second total deadline and eight
+parallel calls; the 40-unresponsive-member test passes within the budget.
+ADR-0025 documents transport identity, membership checks, bounded remote state
+and process/reconnect limits.
+
+Final validation: `dotnet test` passes 5,337 unit, 74 smoke and 284 integration
+tests; the complete PlayerBar follow browser file passes 2/2 after a fresh
+Release build; repository format, Web ESLint and strict Playwright TypeScript
+checks pass. Release compilation has zero errors and two existing package TFM
+warnings. Release-note range preview, fork/identity checks and push remain.

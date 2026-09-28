@@ -837,8 +837,22 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
             _nowPlaying.SetTrack(normalized.Artist, normalized.Title, normalized.Album);
         }
 
-        // Local room controls must not wait on directory I/O or offline mesh members.
+        // ADR-0025: Commit local playback feedback before bounded mesh delivery and directory work.
         await SendToSubscribersAsync(normalized, cancellationToken).ConfigureAwait(false);
+
+        // Room delivery is independent of optional radio-directory availability.
+        var routing = await _messageRouter.RouteListenAlongMessageAsync(message, cancellationToken).ConfigureAwait(false);
+        if (!routing.Success)
+        {
+            var error = routing.ErrorMessage ?? "one or more peers rejected or did not acknowledge the state";
+            _logger.LogWarning(
+                "Failed to route listen-along message {MessageId}: {Error}; routed {SuccessCount}/{TargetCount}, failed peers: {FailedPeerIds}",
+                routing.MessageId,
+                error,
+                routing.SuccessfullyRoutedCount,
+                routing.TargetPeerCount,
+                string.Join(", ", routing.FailedPeerIds ?? Array.Empty<string>()));
+        }
 
         if (normalized.Action != "stop" && normalized.Listed)
         {
@@ -852,19 +866,6 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
         lock (_directoryStateLock)
         {
             _pendingDirectoryWithdrawals.Remove(key);
-        }
-
-        var routing = await _messageRouter.RouteListenAlongMessageAsync(message, cancellationToken);
-        if (!routing.Success)
-        {
-            var error = routing.ErrorMessage ?? "one or more peers rejected or did not acknowledge the state";
-            _logger.LogWarning(
-                "Failed to route listen-along message {MessageId}: {Error}; routed {SuccessCount}/{TargetCount}, failed peers: {FailedPeerIds}",
-                routing.MessageId,
-                error,
-                routing.SuccessfullyRoutedCount,
-                routing.TargetPeerCount,
-                string.Join(", ", routing.FailedPeerIds ?? Array.Empty<string>()));
         }
 
         return normalized;

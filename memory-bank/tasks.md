@@ -5247,7 +5247,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Explain fresh remote radio fairness limits before playback; preserve host permission priority, local playback and same-ticket admission.
 - [x] Verify elapsed local radio ticket expiry and successful manual reselection with actual HTTP and Chromium playback.
 - [ ] Explain the intermittent reverse-directory failure seen during the initial full runtime run; standalone and three repeated diagnostic runs passed. Retain logs on further full runs.
-- [x] 2026-09-28 Implement authenticated mesh room application with transport-bound sender identity, active membership checks, ordered snapshot application and no re-routing loop. The mesh JSON payload round-trip is covered by a parser-boundary unit assertion.
+- [x] 2026-09-28 Implement authenticated mesh room application with transport-bound sender identity, active membership checks, ordered snapshot application and no re-routing loop. Notify local subscribers before the bounded mesh fan-out; parser wire casing and the two-second overall budget have regression coverage.
 - [x] 2026-09-28 Complete local ticket reselection coverage and long host capability renewal/fencing; controlled-clock and connected two-backend regressions pass.
 - [ ] Complete remaining player quality audit requirements, including repeated admissions, sustained throughput and device/accessibility coverage.
 

@@ -65,6 +65,7 @@ public class PodMessageRouter : IPodMessageRouter
         _deduplicationFilter = new TimeWindowedBloomFilter(10_000, TimeSpan.FromHours(24), 0.01);
     }
 
+    // ADR-0025: Isolate authenticated room-state delivery from generic overlay routing and bound its latency.
     /// <inheritdoc/>
     public async Task<PodMessageRoutingResult> RouteListenAlongMessageAsync(PodMessage message, CancellationToken cancellationToken = default)
     {

@@ -185,6 +185,55 @@ public sealed class ListeningPartyServiceTests
     }
 
     [Fact]
+    public async Task Publish_NotifiesLocalAndRoutesRoomStateBeforeDirectoryFailure()
+    {
+        var order = new List<string>();
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.PutAsync(
+                It.IsAny<string>(), It.IsAny<object>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback((string key, object? value, int ttl, CancellationToken token) => order.Add("directory"))
+            .ThrowsAsync(new InvalidOperationException("Directory unavailable"));
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteListenAlongMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .Callback((PodMessage message, CancellationToken token) => order.Add("mesh"))
+            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        var target = new Mock<IClientProxy>();
+        target.Setup(instance => instance.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), It.IsAny<CancellationToken>()))
+            .Callback((string method, object?[] arguments, CancellationToken token) => order.Add("local"))
+            .Returns(Task.CompletedTask);
+        var clients = new Mock<IHubClients>();
+        clients.Setup(instance => instance.Clients(It.IsAny<IReadOnlyList<string>>())).Returns(target.Object);
+        var hub = new Mock<IHubContext<ListeningPartyHub>>();
+        hub.SetupGet(instance => instance.Clients).Returns(clients.Object);
+        using var service = new ListeningPartyService(
+            hub.Object, dht.Object, router.Object, provider.GetRequiredService<IServiceScopeFactory>(),
+            new NowPlayingService(), Mock.Of<IStreamTicketService>(), Mock.Of<ILogger<ListeningPartyService>>(),
+            new TestOptionsMonitor<Options>(new Options()));
+        var administrator = new ClaimsPrincipal(new ClaimsIdentity(
+            new[] { new Claim(ClaimTypes.Name, "admin"), new Claim(ClaimTypes.Role, "Administrator") }, "test"));
+        Assert.True(service.Subscribe("local-listener", "pod-a", "channel-a", administrator));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.PublishAsync(new ListeningPartyEvent
+        {
+            PartyId = "party-a",
+            PodId = "pod-a",
+            ChannelId = "channel-a",
+            HostPeerId = "host",
+            ContentId = "track",
+            Action = "play",
+            Listed = true,
+        }));
+
+        Assert.Equal(new[] { "local", "mesh", "directory" }, order);
+        Assert.Equal("track", (await service.GetStateAsync("pod-a", "channel-a"))?.ContentId);
+    }
+
+    [Fact]
     public async Task HostSessions_RenewExpiredAnnouncementsAndFenceReplacedTabs()
     {
         var now = DateTimeOffset.FromUnixTimeMilliseconds(1_800_000_000_000);

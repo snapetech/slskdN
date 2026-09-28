@@ -1,3 +1,23 @@
+## Cross-node room-state responsiveness — 2026-09-28 20:47 UTC
+
+- Host publication now commits and notifies local listeners first, then sends
+  authenticated state to active mesh members before optional radio-directory
+  work. Fan-out is limited to eight concurrent peers, one second per peer and
+  two seconds total. Remote delivery rechecks identity/membership, stores and
+  applies state without re-routing; ADR-0025 records the architecture and its
+  process-local cache/reconnect limits.
+- Verification on this exact tree: 5,337 unit, 74 smoke and 284 integration
+  tests; both PlayerBar follow browser workflows including real two-node
+  playback; repository format gate, Web ESLint and strict browser-spec TS pass.
+  Release build has zero errors and two existing package TFM warnings.
+- `.327` to current release-note preview, local-identity/fork checks, final
+  commit and push remain. No release tag is authorized in this turn.
+
+Next Steps: finish the exact release-note preview and push the validated tree,
+then continue the player audit: publication fairness, sustained resource and
+radio throughput, supported formats/devices, accessibility and focus/contrast.
+The overall player objective remains active.
+
 ## Stable releases and cross-node room state — 2026-09-28 20:27 UTC
 
 - Issue #340's numeric-position regression shipped in `.326`; the `.325`
@@ -7,10 +27,11 @@
   Linux payload and embedded version passed `verify-release-artifacts.sh`.
   Remaining Docker/PPA workflow jobs are still running.
 - Authenticated cross-node listen-along now routes room state to active mesh
-  members and applies remote snapshots locally without re-routing. The old
-  camelCase payload reproduced as a 204 on the listener; default wire casing
-  now produces a 200 snapshot. Focused backend tests pass 6/6 and the two-node
-  Playwright playback/update/revocation scenario passes 1/1.
+  members and applies remote snapshots locally without re-routing. Local
+  followers are notified before fan-out, which has a two-second total budget.
+  The old camelCase payload reproduced as a 204 on the listener; default wire
+  casing now produces a 200 snapshot. Focused backend tests pass 6/6 and the
+  two-node Playwright playback/update/revocation scenario passes 1/1.
 - Candidate `.328` release notes and changelog are prepared. Next: preview the
   `.327` to candidate range, commit/push the complete tree, pass lint and the
   guarded full release gate, then create the requested stable tag.
