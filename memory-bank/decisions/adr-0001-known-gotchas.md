@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1044. Keep Audio Discovery Aligned With Decoding Support
+
+**The Bug**: Streaming recognized AIFF, ALAC and WMA as audio and could offer FFmpeg decoding, but library media-kind classification hid them from the Audio-only player picker. Supported server files were therefore unreachable through the normal workflow.
+
+**Files Affected**:
+- `src/slskd/API/Native/LibraryItemsController.cs`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Keep audio media-kind extensions aligned with the content locator's supported audio MIME list. Exercise an actual browser-unsupported server file through discovery, decode, Pause and absolute seeking, rather than validating only mocked transcode URLs.
+
 ### 0z1043. Prime Found Local Files Before Playback Selection
 
 **The Bug**: Positive fallback caching repaired repeated requests for one download, but switching to a second unindexed file still hit the global five-second scan cooldown and returned 404. The Files picker already knows the requested page's real local paths, so scanning again on selection wasted disk work.
