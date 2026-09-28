@@ -20,6 +20,21 @@ session without allowing a cleanup error to replace the original test failure.
 Use a separate browser context when a network override must not outlive the
 test.
 
+### 0z1211. Bound Browser Event Waits And Account For Media Buffer Reuse
+
+**What went wrong:** A radio recovery test awaited a new range response after a
+seek without setting a `waitForResponse` timeout. The audio element reused
+already-buffered bytes and sent no new request, so the wait lasted until the
+entire test deadline.
+
+**Why:** Browser event waits can have no default timeout, and a media seek does
+not guarantee a network request when the requested bytes are already buffered.
+
+**Prevention:** Give `waitForResponse` and other event waits an explicit
+diagnostic timeout shorter than the test deadline. Check `audio.buffered` and
+choose a seek beyond the buffered interval before asserting that a new range
+request must occur. Test playback progress independently from request counts.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
