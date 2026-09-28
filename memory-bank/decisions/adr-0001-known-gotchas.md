@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1075. Update Concrete Test Fetchers with Radio Interface Changes
+
+**The Bug**: Adding FetchRadioAsync compiled in unit tests but broke the integration fixture's concrete IMeshContentFetcher implementation with CS0535.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/StubWebApplicationFactory.cs`
+
+**Prevention**: Search every concrete implementation before adding interface members. Test fetchers must explicitly seed party/capability scope for radio; do not silently route scoped reads through unrestricted fixture content.
+
 ### 0z1073. Preserve Radio Scope Through Queue Normalization
 
 **The Bug**: The player source effect requested scoped radio tickets, but PlayerContext's explicit item normalization dropped radioPartyId. Playback bypassed ticket acquisition and used the obsolete host-relative path; initial host failure and retry were therefore unreachable.
