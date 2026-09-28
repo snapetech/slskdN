@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1168. Order SQLite Membership Events Beyond Wall-Clock Resolution
+
+**The Bug**: The full backend gate failed ordinary leave/rejoin. SQLite keys membership history by pod, peer and Unix milliseconds, so rapid actions can share a key. Two frozen/backward-clock negative regressions reproduced rejected rejoin and a ban failure with a unique-constraint exception. Wall-clock milliseconds also cannot preserve event order after rollback.
+
+**Prevention**: Allocate max(current time, previous event plus one) per pod/peer inside the same write transaction as the membership change. Keep persisted history as the source so new service instances preserve ordering. Wrap leave and ban in the same transaction discipline as join. Verify frozen clocks, rollback, restored instances and preserved bans without sleeps or weakening assertions. See ADR-0022.
+
 ### 0z1167. Isolate Resource Probe Worker Options at File Scope
 
 **The Bug**: The first video-removal implementation placed video and trace overrides inside a describe group. Playwright rejected discovery because these options force a new worker and cannot be changed there.
