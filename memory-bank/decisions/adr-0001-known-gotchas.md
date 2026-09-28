@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1106. Make Missing DHT Fixture Values Explicit
+
+**The Bug**: An unconfigured DHT mock returned an empty byte array rather than null. The room publication ordering regression failed while parsing directory state before it could exercise the suspected race.
+
+**Prevention**: Configure absent raw DHT values as null in publication fixtures. Inspect the failure stack before treating a negative test as evidence of the intended defect.
+
 ### 0z1105. Explain Fresh Radio Admission Limits Before Native Playback
 
 **The Bug**: Fresh radio tickets were issued before their first HTTP range checked fairness. Native playback could buffer on a 429 with no useful reason, and a rejected ticket acquisition was always described as a host failure. A Web negative regression reproduced that misleading feedback.
