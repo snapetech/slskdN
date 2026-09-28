@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1135. Isolate Full-Instance Integration Fixtures from Public Rendezvous
+
+**The Bug**: The full-instance integration runner explicitly configured public BitTorrent bootstrap routers while its workflows use local Soulfind, direct mesh peers or no-connect mode. Offline flags only covered Soulseek, so the same validation could contact unrelated public DHT peers.
+
+**Prevention**: Configure LAN-only rendezvous and an empty router list in the integration runner, backed by the production engine bypass rather than empty-list semantics. Keep local Soulseek interoperability and known-peer mesh enabled as required. Verify complete integration workflows under the isolated configuration.
+
 ### 0z1134. Clear Rendezvous Startup State After Initialization Has Stopped
 
 **The Bug**: A regression held overlay initialization open while Stop began, then released it. The startup task wrote StartedAt after Stop had cleared the new idempotency marker, leaving stopped status populated and preventing a later normal start.
