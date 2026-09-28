@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1199. Assert Mesh Reply Payloads Against Their Wire Contract
+
+**What went wrong:** The new `ApplyListenAlong` service returned success, but
+its payload failed the test for the required `applied` JSON field with a
+`KeyNotFoundException`.
+
+**Why:** A successful service status does not guarantee that a separately
+serialized reply payload matches the consumer's expected property names.
+
+**Prevention:** Assert serialized mesh reply fields at the boundary and keep
+their JSON naming policy explicit and consistent with the service contract.
+
 ### 0z1198. Assert Existing Overlay Links by Status, Not Connect Result
 
 **What went wrong:** A radio-network test required the overlay connect response
