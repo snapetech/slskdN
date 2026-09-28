@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Radio fairness accounting
+
+- Count Soulseek upload payload bytes only after successful network writes, including partial payloads sent before an interrupted upload, so reciprocal sharing can restore later radio admission.
+
 ## [2026092820-slskdn.328] — 2026-09-28
 
 ### Authenticated cross-node listen-along

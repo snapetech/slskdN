@@ -106,6 +106,12 @@ focus/contrast. The overall player objective remains active.
 
 ## Update 2026-09-28 18:19 UTC
 
+## Update 2026-09-28 21:19 UTC — Player fairness accounting
+
+Production Soulseek uploads now contribute only payload bytes confirmed written by the transfer reporter, batched once per upload attempt and retained on partial failure. Accounting persistence failure does not change the upload result. The focused upload lifecycle suite passes; full validation, release-fragment preview, commit and push remain for this batch. No release tag or deployment was created.
+
+Next: run full backend and lint gates, validate the release fragment and fork target, then commit and push. Keep real-node repeated admission during an active/sustained Soulseek upload open; continue accessibility, browser format, device and long-session resource coverage. The overall player goal remains active.
+
 - Current batch: listed host renewal and browser-session fencing are
   implemented. A five-minute request renews the 30-minute host lease and, while
   listed, refreshes the announcement, DHT index and 900-second stream ticket

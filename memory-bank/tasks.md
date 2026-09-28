@@ -5213,6 +5213,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] 2026-09-28 Credit successful radio TLS payload writes and verify host/listener totals plus bidirectional transport accounting.
 - [x] 2026-09-28 Validate expired local radio-ticket denial and manual reselection; validate listed-host renewal after the 900-second service-clock advance and real two-node capability refresh/stale-tab fencing.
 - [ ] Verify repeated radio admissions and fairness behavior under sustained use.
+  - 2026-09-28 update: production Soulseek uploads now credit payload bytes confirmed written, including partial writes before failure. Real-node re-admission during an active/sustained Soulseek upload remains unverified and this task stays open.
 - [x] 2026-09-28 Verify and enforce membership revocation after live join; two actual authenticated clients demonstrate stopped state delivery, notification and denied rejoin/snapshot.
 
 ## Radio accounting and recovery — 2026-09-28

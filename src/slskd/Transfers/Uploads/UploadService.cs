@@ -39,6 +39,7 @@ namespace slskd.Transfers.Uploads
     using slskd.Relay;
     using slskd.Shares;
     using slskd.SoulseekExceptions;
+    using slskd.Transfers.MultiSource.Metrics;
     using slskd.Users;
 
     /// <summary>
@@ -184,6 +185,7 @@ namespace slskd.Transfers.Uploads
             IRelayService relayService,
             IDbContextFactory<TransfersDbContext> contextFactory,
             EventBus eventBus,
+            ITrafficAccountingService trafficAccountingService,
             IScheduledRateLimitService? scheduledRateLimitService = null)
         {
             var log = Serilog.Log.ForContext<UploadService>();
@@ -196,6 +198,7 @@ namespace slskd.Transfers.Uploads
             ContextFactory = contextFactory;
             OptionsMonitor = optionsMonitor;
             EventBus = eventBus;
+            _trafficAccountingService = trafficAccountingService;
 
             log.Debug("[UploadService] Creating UploadGovernor");
             Governor = new UploadGovernor(userService, optionsMonitor, scheduledRateLimitService);
@@ -229,6 +232,7 @@ namespace slskd.Transfers.Uploads
         private IShareService Shares { get; set; }
         private IUserService Users { get; set; }
         private EventBus EventBus { get; }
+        private readonly ITrafficAccountingService _trafficAccountingService;
         private Timer FailedPeerCooldownCleanupTimer { get; }
         private ConcurrentDictionary<string, DateTime> FailedPeerCooldowns { get; } = new(StringComparer.OrdinalIgnoreCase);
         private ConcurrentDictionary<string, bool> Locks { get; } = new();
@@ -285,6 +289,7 @@ namespace slskd.Transfers.Uploads
             string? host = null;
             string localFilename = string.Empty;
             long localFileLength = default;
+            long soulseekUploadBytesSent = 0;
 
             var lockName = $"{nameof(UploadAsync)}:{transfer.Username}:{transfer.Filename}";
 
@@ -416,7 +421,15 @@ namespace slskd.Transfers.Uploads
                     seekInputStreamAutomatically: false,
                     disposeInputStreamOnCompletion: true, // note: don't set this to false!
                     governor: (tx, req, ct) => Governor.GetBytesAsync(tx.Username, req, ct),
-                    reporter: (tx, att, grant, act) => Governor.ReturnBytes(tx.Username, att, grant, act),
+                    reporter: (tx, att, grant, act) =>
+                    {
+                        if (act > 0)
+                        {
+                            Interlocked.Add(ref soulseekUploadBytesSent, act);
+                        }
+
+                        Governor.ReturnBytes(tx.Username, att, grant, act);
+                    },
                     slotAwaiter: (tx, ct) => Queue.AwaitStartAsync(tx.Username, tx.Filename),
                     slotReleased: (tx) => Queue.Complete(tx.Username, tx.Filename));
 
@@ -523,6 +536,19 @@ namespace slskd.Transfers.Uploads
             }
             finally
             {
+                var bytesSent = Interlocked.Read(ref soulseekUploadBytesSent);
+                if (bytesSent > 0)
+                {
+                    try
+                    {
+                        await _trafficAccountingService.AddSoulseekUploadAsync(bytesSent, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Failed to record {BytesSent} Soulseek upload bytes for {Filename} to {Username}", bytesSent, transfer.Filename, transfer.Username);
+                    }
+                }
+
                 if (!string.IsNullOrEmpty(host) && host != Program.LocalHostName)
                 {
                     try

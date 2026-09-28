@@ -249,7 +249,9 @@ public static class CoreApplicationServiceCollectionExtensions
             Log.Debug("[DI] All UploadService dependencies resolved, creating instance...");
             var service = new UploadService(
                 fileService, userService, soulseekClient, optionsMonitor,
-                shareService, relayService, contextFactory, eventBus, scheduledRateLimitService);
+                shareService, relayService, contextFactory, eventBus,
+                sp.GetRequiredService<Transfers.MultiSource.Metrics.ITrafficAccountingService>(),
+                scheduledRateLimitService);
             Log.Debug("[DI] UploadService constructed");
             return service;
         });

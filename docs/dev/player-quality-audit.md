@@ -1252,3 +1252,26 @@ repeat-cycle queue/visualizer and graph-enabled resource measurements before
 making a whole-session efficiency claim. Physical output, cross-browser behavior
 and the broader player audit remain open. Confidence: high for the sampled
 windows, moderate for comparative steady-state use and full OS-tree coverage.
+
+## Soulseek fairness accounting — 2026-09-28
+
+The earlier audit noted that `AddOverlayUploadAsync` had no production call
+sites. The current source now credits successful radio payload writes on both
+mesh handlers, so that historical observation is stale. A new source audit
+found the corresponding Soulseek gap: the fairness guard divides overlay
+uploads by Soulseek uploads, but no production path incremented the Soulseek
+upload total. Once overlay traffic accumulated, actual Soulseek sharing could
+not restore the denominator.
+
+`UploadService` now counts the transfer reporter's `actualBytes`, emitted after
+the Soulseek payload write completes, and persists one aggregate per attempt.
+This includes payload written before a failure and excludes requested size,
+queued bytes, and unsent stream reads. A traffic-store error is logged without
+changing the peer transfer result. Lifecycle regressions cover completed and
+partial transfers, zero-byte callbacks, and accounting-store failure.
+
+Repeated admission during sustained traffic and while a Soulseek upload is
+still in progress remains open. The LAN-only two-node radio fixture has no real
+Soulseek download path, so current proof stops at the actual upload service
+reporter and unit-level accounting. Do not close the sustained-use task based
+only on completed-attempt accounting.

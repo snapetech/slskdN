@@ -15030,3 +15030,10 @@ identity, branch-sync and release-note checks pass. Build output includes two
 existing Microsoft package target-framework compatibility warnings. The `.327`
 workflow still waits for Launchpad PPA publication before the guarded `.328`
 tag can run.
+
+## Soulseek fairness accounting — 2026-09-28 21:19 UTC
+
+- Found that the fairness denominator `SoulseekUploadBytes` had no production writers. After overlay traffic accumulated, the ratio could remain infinite and actual Soulseek sharing could not restore radio admission.
+- Connected `UploadService` to the transfer reporter's `actualBytes`, emitted after a successful payload socket write. Each attempt persists one aggregate from `finally`, including partial writes on failure; it does not count queue or file-read bytes.
+- Accounting persistence failures are logged without changing upload state. Added lifecycle regressions for completed and failed partial uploads, zero-byte callbacks, and failed accounting persistence; focused suite passes all 5 tests.
+- Real sustained/repeated admission during an active Soulseek upload remains open because the LAN-only two-node radio harness does not exercise Soulseek data transfer.
