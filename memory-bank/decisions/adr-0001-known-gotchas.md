@@ -697,6 +697,8 @@ appropriate typed assertion such as `Assert.IsType<T>(value)`.
 
 **Prevention**: Make the accounting service disposable and let dependency injection dispose it after its consumers. Lifecycle tests should dispose directly constructed instances after awaited work completes.
 
+**Implementation Note**: The service has no inheritance contract; seal it when using direct `Dispose` for the semaphore. An unsealed class must use the full overridable disposal pattern and can add needless lifecycle surface.
+
 ### 0z1123. Include Active Soulseek Writes in Fairness Reads
 
 **The Bug**: Persisting Soulseek upload bytes only when an attempt exits leaves a long-running transfer invisible to new radio admissions. The fairness guard can therefore read stale totals while reciprocal payload is already being written.
