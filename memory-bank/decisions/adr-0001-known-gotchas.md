@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1191. Show Pending Stop Before Awaiting Lease Renewal
+
+**What went wrong:** Serializing Stop behind an active renewal delayed the
+visible stopping state until that network request settled. A stalled renewal
+made the player look idle even though Stop had already been requested.
+
+**Why:** The ownership write must wait for renewal ordering, but presentation
+feedback does not need to wait for network serialization.
+
+**Prevention:** Mark the host session as stopping and publish that status before
+awaiting the current renewal. Cancel the next renewal timer immediately; send
+Stop afterward and keep callers gated on its server acknowledgment.
+
 ### 0z1190. Serialize Host Stop Behind an In-Flight Lease Renewal
 
 **What went wrong:** Adding an independent host-renewal request lets Stop and
