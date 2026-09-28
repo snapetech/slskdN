@@ -238,6 +238,8 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **The Bug**: A player batch updated the root CHANGELOG.md but the commit hook requires a new Unreleased entry in docs/CHANGELOG.md. The hook correctly rejected the source commit before any push.
 
+**Repeated on 2026-09-28**: The directory-withdrawal batch reproduced the same rejection after editing only the legacy root changelog. Corrected the canonical docs/CHANGELOG.md entry and removed the unnecessary root edit. Read the canonical file before authoring release text; a prior warning alone did not prevent this repeat.
+
 **Prevention**: Read the current canonical changelog and hook contract before staging release-worthy work. Match the actual Unreleased heading, keep the release fragment, and validate the canonical entry. When documenting a rejection with source already staged, use an isolated path-only documentation commit.
 
 ### 0z1110. Distinguish Radio Transport Evidence from Valid Room Publication
