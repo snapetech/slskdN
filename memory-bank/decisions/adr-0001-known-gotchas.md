@@ -48,6 +48,8 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **Prevention**: Apply touch layout for narrow screens or a coarse primary pointer, and reserve enough expanded-deck height in either case. Verify matchMedia(pointer: coarse), rendered control bounds and visible playback through a touch-enabled context independently of viewport width. Browser emulation remains separate from physical-device evidence.
 
+**Room-action follow-up — 2026-09-28**: A newly introduced room Retry control sat outside the existing player-deck touch selectors. Give room actions their own narrow/coarse-pointer 44-pixel rule; deck selectors do not cover controls rendered elsewhere. Validate the Retry control's width and height in the actual 320-pixel workflow.
+
 ### 0z1144. Return to the Main Deck After Closing Player Tools
 
 **The Bug**: After using the expanded tool controls, closing Tools retained the drawer's lower scroll offset. The retained mobile screenshot hid the track header, and focus stayed on the former closing location rather than returning to playback.
