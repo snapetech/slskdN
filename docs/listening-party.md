@@ -283,3 +283,11 @@ Radio traffic totals count successful audio payload bytes after overlay reply
 writes, excluding metadata and framing overhead. The host records uploads and
 the listener records received data. Expired capabilities and revoked reads earn
 no upload credit. New playback tickets still check the existing fairness policy.
+
+### Existing radio transport links
+
+Remote radio and directory discovery reuse established mesh service links in
+either direction, preferring an outbound link when both exist. They do not
+open another connection automatically. Host stream limits treat username case
+variants as the same transport peer; account owners and opaque capabilities
+keep their separate scopes.

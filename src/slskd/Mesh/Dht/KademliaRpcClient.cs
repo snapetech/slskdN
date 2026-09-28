@@ -291,11 +291,13 @@ public sealed class KademliaRpcClient : IDisposable
                 return;
 
             var addresses = _neighbors.GetAllConnections()
-                .Where(connection => connection.IsOutbound && connection.IsConnected && connection.IsHandshakeComplete
+                .Where(connection => connection.IsConnected && connection.IsHandshakeComplete
                     && connection.Features.Contains(OverlayFeatures.MeshService, StringComparer.OrdinalIgnoreCase))
+                .OrderByDescending(connection => connection.IsOutbound)
+                .ThenByDescending(connection => connection.ConnectedAt)
                 .Select(connection => connection.Username)
                 .Where(username => !string.IsNullOrWhiteSpace(username))
-                .Distinct(StringComparer.Ordinal)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Take(Alpha);
             foreach (var address in addresses)
             {

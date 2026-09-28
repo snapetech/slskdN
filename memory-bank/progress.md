@@ -13732,3 +13732,24 @@ gates pass. Separate immediate gotcha commits record each reproduced defect.
 Next Steps: commit/push this verified batch, then audit host identity casing,
 bidirectional service routing, expiry renewal and live participant recovery.
 The full player goal remains active; no tag or deployment is authorized.
+
+## Player transport identities final gates — 2026-09-28
+
+Completed mixed-case host and peer limits, existing inbound service routing and
+bounded discovery, and signed-store transport addresses. Negative regressions
+failed before fixes; all 34 focused tests now pass. Production TLS verifies
+reverse radio delivery, empty-table inbound bootstrap, ten held mixed-case
+calls and reservation release. Two-backend Chromium verifies reverse directory
+publication over the original connection.
+
+Final gates: 5,234 unit, 74 smoke, 284 integration and 17 browser workflows pass.
+Repository/Web lint, Release build, bundle/output, CSRF, anonymous endpoints,
+identity and whitespace pass. Web implementation is unchanged from its 989-test
+validated build. Completed batch is ready for commit/push with a new release
+fragment; no tag or deployment.
+
+Next Steps: elapsed renewal and fairness feedback; real room participant
+disconnect/rejoin and continuous membership authorization; then sustained
+resources, browser/format, accessibility and physical-device coverage. Inspect
+remote message reception before claiming cross-node room state propagation.
+The complete player goal remains active.

@@ -188,28 +188,64 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
 
             // Exercise the connector's inbound RPC handler on the same real TLS link.
             var inbound = Assert.Single(serverRegistry.GetAllConnections());
-            var reverse = Read(0, 15);
-            var reverseReply = serverRequests.WaitForMeshServiceReplyAsync(inbound, reverse.CorrelationId, timeout.Token);
-            await inbound.WriteMessageAsync(new slskd.DhtRendezvous.Messages.MeshServiceCallMessage
-            {
-                CorrelationId = reverse.CorrelationId,
-                ServiceName = reverse.ServiceName,
-                Method = reverse.Method,
-                Payload = reverse.Payload,
-            }, timeout.Token);
-            Assert.Equal(bytes[..15], (await reverseReply).Payload);
-            var barrier = Read(0, 15) with { Method = "Metadata" };
-            var barrierReply = serverRequests.WaitForMeshServiceReplyAsync(inbound, barrier.CorrelationId, timeout.Token);
-            await inbound.WriteMessageAsync(new slskd.DhtRendezvous.Messages.MeshServiceCallMessage
-            {
-                CorrelationId = barrier.CorrelationId,
-                ServiceName = barrier.ServiceName,
-                Method = barrier.Method,
-                Payload = barrier.Payload,
-            }, timeout.Token);
-            Assert.Equal(ServiceStatusCodes.OK, (await barrierReply).StatusCode);
+            Assert.False(inbound.IsOutbound);
+            var reverseClient = new MeshServiceClient(NullLogger<MeshServiceClient>.Instance, Mock.Of<IMeshServiceDirectory>(), Mock.Of<IControlSigner>(), serverRegistry, serverRequests);
+            var reverseReply = await reverseClient.CallAsync("RADIO-LISTENER", Read(0, 15), timeout.Token);
+            Assert.Equal(ServiceStatusCodes.OK, reverseReply.StatusCode);
+            Assert.Equal(bytes[..15], reverseReply.Payload);
+            var barrier = await reverseClient.CallAsync("radio-listener", Read(0, 15) with { Method = "Metadata" }, timeout.Token);
+            Assert.Equal(ServiceStatusCodes.OK, barrier.StatusCode);
+            Assert.Single(serverRegistry.GetAllConnections());
+            Assert.Single(registry.GetAllConnections());
+            var remoteNodeId = Enumerable.Repeat((byte)2, 20).ToArray();
+            serviceRouter.RegisterService(new slskd.Mesh.ServiceFabric.Services.DhtMeshService(
+                NullLogger<slskd.Mesh.ServiceFabric.Services.DhtMeshService>.Instance,
+                new slskd.Mesh.Dht.KademliaRoutingTable(remoteNodeId), Mock.Of<slskd.VirtualSoulfind.ShadowIndex.IDhtClient>(), Mock.Of<slskd.Mesh.IMeshMessageSigner>()));
+            var hostRouting = new slskd.Mesh.Dht.KademliaRoutingTable(Enumerable.Repeat((byte)1, 20).ToArray());
+            using var dht = new slskd.Mesh.Dht.KademliaRpcClient(
+                NullLogger<slskd.Mesh.Dht.KademliaRpcClient>.Instance, reverseClient, hostRouting, Mock.Of<slskd.VirtualSoulfind.ShadowIndex.IDhtClient>(), neighbors: serverRegistry);
+            await dht.FindNodeAsync(remoteNodeId, timeout.Token);
+            var discovered = Assert.Single(hostRouting.GetAllNodes());
+            Assert.Equal(remoteNodeId, discovered.NodeId);
+            Assert.Equal("radio-listener", discovered.Address);
+            Assert.Single(serverRegistry.GetAllConnections());
             clientAccounting.Verify(service => service.AddOverlayUploadAsync(15, It.IsAny<CancellationToken>()), Times.Once);
             clientAccounting.VerifyNoOtherCalls();
+
+            // Keep the ten-call client quota probe within the real ten-message
+            // per-second overlay budget, independently of preceding RPC checks.
+            await Task.Delay(TimeSpan.FromMilliseconds(1100), timeout.Token);
+            var releaseCalls = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var heldService = new Mock<IMeshService>();
+            heldService.SetupGet(service => service.ServiceName).Returns("held-calls");
+            heldService.Setup(service => service.HandleCallAsync(It.IsAny<ServiceCall>(), It.IsAny<MeshServiceContext>(), It.IsAny<CancellationToken>()))
+                .Returns(async (ServiceCall call, MeshServiceContext context, CancellationToken cancellation) =>
+                {
+                    await releaseCalls.Task.WaitAsync(cancellation);
+                    return new ServiceReply { CorrelationId = call.CorrelationId, StatusCode = ServiceStatusCodes.OK };
+                });
+            serviceRouter.RegisterService(heldService.Object);
+            var pendingCalls = Enumerable.Range(0, 10).Select(index => reverseClient.CallAsync(
+                index % 2 == 0 ? "radio-listener" : "RADIO-LISTENER",
+                new ServiceCall { ServiceName = "held-calls", Method = "Wait", CorrelationId = Guid.NewGuid().ToString("N") }, timeout.Token)).ToArray();
+            try
+            {
+                Assert.Equal(10, reverseClient.GetMetrics().TotalPendingCalls);
+                Assert.Equal(1, reverseClient.GetMetrics().PeersWithPendingCalls);
+                var limited = await reverseClient.CallAsync("Radio-Listener",
+                    new ServiceCall { ServiceName = "held-calls", Method = "Wait", CorrelationId = Guid.NewGuid().ToString("N") }, timeout.Token);
+                Assert.Equal(ServiceStatusCodes.RateLimited, limited.StatusCode);
+            }
+            finally
+            {
+                releaseCalls.TrySetResult(true);
+                await Task.WhenAll(pendingCalls);
+            }
+
+            Assert.All(pendingCalls, pending => Assert.Equal(ServiceStatusCodes.OK, pending.Result.StatusCode));
+            Assert.Equal(0, reverseClient.GetMetrics().TotalPendingCalls);
+            Assert.Equal(0, reverseClient.GetMetrics().PeersWithPendingCalls);
+            await Task.Delay(TimeSpan.FromMilliseconds(1100), timeout.Token);
 
             state = state with { AllowMeshStreaming = false };
             var revoked = await client.CallAsync("radio-host", Read(0, 15), timeout.Token);

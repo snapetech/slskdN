@@ -31,12 +31,11 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in headless Chromium / high; physical window sizing and focus unverified |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Controlled Chromium workflow and real loopback TLS host delivery/revocation verified / high; sustained two-backend browser playback unverified |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters and reverse directory publication verified / high; elapsed expiry renewal and sustained sessions unverified |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Simulated regression checks / high; dual-participant runtime recovery unverified |
 
-Final gates: 982 Web tests across 165 files; backend 74 smoke, 5,185 unit and
-284 integration tests; Web/repository lint, production build, bundle budget,
-build-output, whitespace and identity checks passed.
+See the dated validation sections below for latest gate counts; earlier counts
+record the source version validated at that time.
 
 ## Resource sample
 
@@ -57,7 +56,7 @@ moderate; repeated warm-baseline and sustained-session measurements remain due.
 
 ## Remaining completion work
 
-- Complete runtime remote-radio verification: the host-scoped route now has controlled gateway/reader tests and real loopback TLS delivery/revocation checks. Verify sustained playback, HTTP seeking and capability expiry with full browser/backend participants across realistic latency.
+- Complete remote-radio expiry/renewal, repeated admissions, source replacement and sustained playback across realistic latency. Real two-backend discovery, decoded HTTP seeking, revocation, accounting and reverse publication are verified.
 - Verify dual-participant listen-along reconnect and host state recovery. Controlled radio stream retry is covered; real host/ticket boundaries remain due.
 - Exercise supported browser engines and additional audio formats, including
   failures, decode cancellation and recovery.
@@ -174,3 +173,21 @@ builds, bundle/output, CSRF, anonymous-endpoint, identity and whitespace checks
 pass. Open work includes expiry/renewal and repeated admissions, source changes,
 dual-participant recovery, sustained resource measurements and the remaining
 browser, format, accessibility and physical-device coverage above.
+
+## Existing-link transport and identity limits — 2026-09-28
+
+Three negative tests reproduced case-sensitive host reservation bypass,
+production-client rejection of an established inbound TLS link and signed DHT
+storage replacing a reachable transport address with a cryptographic ID. The
+fixes retain publisher signature/quota checks and network budgets.
+
+The production reverse client now delivers radio bytes over the same TLS link,
+bootstraps an empty DHT through that inbound neighbor and shares a ten-call
+reservation across username case variants. All pending calls release after
+responses. The real two-backend browser workflow also verifies a publication
+in the opposite direction reaches the original host without another connect.
+Confidence is high for these checks. Thirty-four focused regressions, 5,234
+full unit tests, 74 smoke, 284 integration and 17 browser workflows pass;
+repository/Web lint, Release build, bundle/output, endpoint security, identity
+and whitespace gates pass. The unchanged Web implementation retains its
+989-test validated suite.

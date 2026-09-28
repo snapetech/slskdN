@@ -5184,7 +5184,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Preserve unknown-length mesh preview tails and exact EOF replies.
 - [x] Propagate producer failures to readers; preserve strict known-length and bounded-range checks.
 - [x] Verify the real host range handler, fetcher and preview reader together through controlled RPC, including limiter release.
-- [ ] Complete host-scoped remote listed-radio routing and permission revocation checks; distinguish web-account display identity from mesh transport identity. Existing radio routing task remains open.
+- [x] 2026-09-28 Complete host-scoped remote radio routing and permission revocation checks, with separate web-account and mesh transport identities; real TLS and two-backend Chromium evidence is recorded in the player quality audit.
 
 
 ## Host-scoped remote listed radio — 2026-09-28 02:04 UTC
@@ -5213,4 +5213,17 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Expose explicit retry for native radio buffering in expanded and compact layouts.
 - [x] Force bounded manual directory refresh, prune withdrawn remote entries and return newest locally retained DHT values.
 - [x] Verify actual remote permission revocation and refreshed disabled playback through two backends and Chromium.
-- [ ] Audit transport identity casing, inbound service routing and signed DHT routing addresses before broadening connected-peer radio coverage.
+- [x] 2026-09-28 Reproduce and fix transport identity casing, inbound service routing and signed DHT routing addresses; verify production reverse TLS RPC, empty-table bootstrap, shared call budgets and real reverse publication.
+
+## Next player lifecycle coverage — 2026-09-28
+
+- Verify elapsed local ticket expiry followed by explicit renewal, separately
+  from already covered expired-token denial. Fresh tickets still evaluate
+  fairness; do not disable policy to manufacture successful renewal.
+- Verify long snapshots against the fifteen-minute host capability lifetime;
+  the current manual publication does not establish background renewal.
+- Verify two active room participants against actual SignalR disconnect/rejoin
+  and membership revocation after a subscription already joined. Joining is
+  authorized; continuing fan-out after revocation remains unverified.
+- Continue sustained resource, format/browser and keyboard/assistive coverage
+  in the player quality audit. Overall goal remains active.

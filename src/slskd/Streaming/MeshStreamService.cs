@@ -112,7 +112,7 @@ public sealed class MeshStreamService : IMeshStreamService
             }
         }
 
-        var hostLimiterKey = claims.Radio == null ? null : $"mesh-radio-host:{claims.PeerId}";
+        var hostLimiterKey = claims.Radio == null ? null : $"mesh-radio-host:{claims.PeerId!.ToUpperInvariant()}";
         var attempts = claims.Radio == null ? 1 : 41;
         var acquired = false;
         for (var attempt = 0; attempt < attempts; attempt++)

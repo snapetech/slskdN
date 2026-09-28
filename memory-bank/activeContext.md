@@ -14612,3 +14612,37 @@ gates pass. Separate immediate gotcha commits record each reproduced defect.
 Next Steps: commit/push this verified batch, then audit host identity casing,
 bidirectional service routing, expiry renewal and live participant recovery.
 The full player goal remains active; no tag or deployment is authorized.
+
+## Next player lifecycle coverage — 2026-09-28
+
+- Verify elapsed local ticket expiry followed by explicit renewal, separately
+  from already covered expired-token denial. Fresh tickets still evaluate
+  fairness; do not disable policy to manufacture successful renewal.
+- Verify long snapshots against the fifteen-minute host capability lifetime;
+  the current manual publication does not establish background renewal.
+- Verify two active room participants against actual SignalR disconnect/rejoin
+  and membership revocation after a subscription already joined. Joining is
+  authorized; continuing fan-out after revocation remains unverified.
+- Continue sustained resource, format/browser and keyboard/assistive coverage
+  in the player quality audit. Overall goal remains active.
+
+## Player transport identities final gates — 2026-09-28
+
+Completed mixed-case host and peer limits, existing inbound service routing and
+bounded discovery, and signed-store transport addresses. Negative regressions
+failed before fixes; all 34 focused tests now pass. Production TLS verifies
+reverse radio delivery, empty-table inbound bootstrap, ten held mixed-case
+calls and reservation release. Two-backend Chromium verifies reverse directory
+publication over the original connection.
+
+Final gates: 5,234 unit, 74 smoke, 284 integration and 17 browser workflows pass.
+Repository/Web lint, Release build, bundle/output, CSRF, anonymous endpoints,
+identity and whitespace pass. Web implementation is unchanged from its 989-test
+validated build. Completed batch is ready for commit/push with a new release
+fragment; no tag or deployment.
+
+Next Steps: elapsed renewal and fairness feedback; real room participant
+disconnect/rejoin and continuous membership authorization; then sustained
+resources, browser/format, accessibility and physical-device coverage. Inspect
+remote message reception before claiming cross-node room state propagation.
+The complete player goal remains active.

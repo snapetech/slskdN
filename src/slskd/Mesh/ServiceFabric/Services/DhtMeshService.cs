@@ -326,7 +326,7 @@ public class DhtMeshService : IMeshService
             await _dhtClient.PutAsync(request.Key, request.Value, ttlSeconds, cancellationToken);
 
             // Update routing table with the storing peer
-            await _routingTable.TouchAsync(request.RequesterId, publisherPeerId!);
+            await _routingTable.TouchAsync(request.RequesterId, context.RemotePeerId);
 
             var response = new StoreResponse
             {

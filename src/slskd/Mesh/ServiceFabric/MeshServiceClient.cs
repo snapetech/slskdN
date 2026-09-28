@@ -31,7 +31,7 @@ public class MeshServiceClient : IMeshServiceClient
     private readonly ConcurrentDictionary<string, TaskCompletionSource<ServiceReply>> _pendingCalls = new();
 
     // Per-peer concurrent call tracking: peerId -> call count
-    private readonly ConcurrentDictionary<string, int> _perPeerCallCounts = new();
+    private readonly ConcurrentDictionary<string, int> _perPeerCallCounts = new(StringComparer.OrdinalIgnoreCase);
 
     // Configuration
     private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(30);
@@ -143,18 +143,18 @@ public class MeshServiceClient : IMeshServiceClient
 
             var connection = _neighborRegistry?.GetAllConnections()
                 .Where(candidate =>
-                    candidate.IsOutbound
-                    && candidate.IsHandshakeComplete
+                    candidate.IsHandshakeComplete
                     && candidate.IsConnected
                     && string.Equals(candidate.Username, normalizedTargetPeerId, StringComparison.OrdinalIgnoreCase)
                     && candidate.Features.Contains(OverlayFeatures.MeshService, StringComparer.OrdinalIgnoreCase))
-                .OrderByDescending(candidate => candidate.ConnectedAt)
+                .OrderByDescending(candidate => candidate.IsOutbound)
+                .ThenByDescending(candidate => candidate.ConnectedAt)
                 .FirstOrDefault();
 
             if (connection == null || _requestRouter == null)
             {
                 _logger.LogWarning(
-                    "[ServiceClient] No outbound mesh service transport to {PeerId} for {Service}.{Method}",
+                    "[ServiceClient] No connected mesh service transport to {PeerId} for {Service}.{Method}",
                     normalizedTargetPeerId,
                     normalizedCall.ServiceName,
                     normalizedCall.Method);

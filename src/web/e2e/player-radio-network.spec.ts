@@ -48,6 +48,7 @@ test.describe('listed radio between isolated nodes', () => {
     await harness.startNode('A', [], { noConnect: true, radioMesh: true });
     await harness.startNode('B', [], { noConnect: true, radioMesh: true });
     await fs.writeFile(path.join(harness.getNode('A').getAppDir(), 'downloads', 'Radio network tone.wav'), radioTone());
+    await fs.writeFile(path.join(harness.getNode('B').getAppDir(), 'downloads', 'Reverse radio tone.wav'), radioTone(5));
   });
 
   test.afterAll(async () => {
@@ -132,6 +133,22 @@ test.describe('listed radio between isolated nodes', () => {
     await page.getByTestId('player-open-listed-radio').click();
     await page.getByRole('button', { name: 'Refresh listed radio' }).click();
     await expect(page.getByRole('button', { name: 'Play Radio network tone from listed radio' })).toBeDisabled();
+
+    // The original host has only the inbound TLS link. Its directory must still
+    // learn a publication sent in the opposite direction without another connect.
+    const reverseLibrary = await request.get(`${listener.apiUrl}/api/v0/library/items/browser?query=Reverse%20radio%20tone&kinds=Audio`, { headers: listenerHeaders });
+    expect(reverseLibrary.ok()).toBe(true);
+    const reverseItem = (await reverseLibrary.json()).files[0];
+    expect(reverseItem.contentId).toBeTruthy();
+    const reversePublish = await request.post(`${listener.apiUrl}/api/v0/listening-party/radio-pod/reverse-room`, {
+      headers: listenerHeaders,
+      data: { partyId: 'reverse-radio', action: 'play', contentId: reverseItem.contentId, title: 'Reverse radio tone', listed: true, allowMeshStreaming: false, positionSeconds: 0 },
+    });
+    expect(reversePublish.ok(), await reversePublish.text()).toBe(true);
+    const hostRefresh = await request.get(`${host.apiUrl}/api/v0/listening-party?refresh=true`, { headers: hostHeaders });
+    expect(hostRefresh.ok()).toBe(true);
+    expect((await hostRefresh.json()).some((party: { partyId: string; transportUsername: string }) => party.partyId === 'reverse-radio' && party.transportUsername === 'nodeB')).toBe(true);
+
 
   });
 });

@@ -33,14 +33,17 @@ public class DhtMeshServiceTests
         var requesterId = SHA256.HashData(keyPair.PublicKey).AsSpan(0, 20).ToArray();
         var peerId = Ed25519Signer.DerivePeerId(keyPair.PublicKey);
         var dhtClient = new Mock<IDhtClient>();
+        var routingTable = new KademliaRoutingTable(CreateNodeId(0x01));
         var service = new DhtMeshService(
             Mock.Of<ILogger<DhtMeshService>>(),
-            new KademliaRoutingTable(CreateNodeId(0x01)),
+            routingTable,
             dhtClient.Object,
             signer);
 
         var signedFromDifferentOverlayUsername = await StoreAsync(service, signer, requesterId, 0, remotePeerId: "soulseek-user");
         Assert.Equal(ServiceStatusCodes.OK, signedFromDifferentOverlayUsername.StatusCode);
+        Assert.Equal("soulseek-user", Assert.Single(routingTable.GetAllNodes()).Address);
+        Assert.Equal(requesterId, Assert.Single(routingTable.GetAllNodes()).NodeId);
 
         for (var index = 1; index < 64; index++)
         {

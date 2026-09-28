@@ -26,7 +26,7 @@ Do not discover alternate peers or fall back to general shared-content reads.
 
 Revocation and track changes stop further reads. Legacy announcements lacking
 transport metadata cannot supply remote playback; the UI must report this.
-The transport requires an existing outbound mesh connection and does not
+The transport requires an existing mesh connection and does not
 automatically contact additional peers. Its paced throughput is bounded;
 high bitrate media may buffer. Physical and sustained playback checks remain
 necessary to establish performance beyond controlled transport tests.
@@ -35,7 +35,7 @@ necessary to establish performance beyond controlled transport tests.
 
 A real two-backend browser workflow found that a connected overlay did not seed
 the mesh DHT. Empty routing tables now bootstrap on demand through at most three
-existing outbound neighbors. FIND_NODE responses optionally include the real
+existing connected neighbors. FIND_NODE responses optionally include the real
 responder node ID, preserving older response compatibility; known seed contacts
 remain in closest-node results. Local values bypass remote bootstrap. This adds
 no periodic discovery sweep and creates no new peer connections.
@@ -66,3 +66,16 @@ preserving current local publications. The bounded in-memory DHT returns newest
 locally received values first and promotes duplicate refreshes; this is local
 receipt ordering, not distributed version agreement. Read pacing, concurrency
 and fairness checks remain enforced.
+
+## Transport identity and inbound reuse — 2026-09-28
+
+Service calls and empty-table bootstrap may reuse handshaken, connected inbound
+links advertising mesh service support. Outbound links retain preference when
+both directions exist. No new connection or periodic discovery is added. Radio
+host reservations normalize transport username casing, and per-peer call
+counters use the same case-insensitive identity semantics as link selection;
+owner keys and opaque capabilities retain their original identity semantics.
+
+A signed Store keeps its cryptographically verified requester node ID and
+publisher quota, but records the actual remote transport username as its
+routing address. Cryptographic publisher IDs do not name overlay connections.

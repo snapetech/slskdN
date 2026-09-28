@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Radio transport identity and existing links
+
+- Keep one radio host reservation and one peer call counter across transport username case variants.
+- Reuse established inbound mesh service links for radio calls and bounded DHT bootstrap, retaining outbound preference without opening additional links.
+- Preserve the connected transport username as the routing address after a signed DHT store; publisher signatures and quotas remain unchanged.
+
 ### Radio accounting and stalled playback recovery
 
 - Prefer the most recently stored retained DHT value so mutable directory announcements expose updates; refresh identical values and evict oldest retained values at capacity.
