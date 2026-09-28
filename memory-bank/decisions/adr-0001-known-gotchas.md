@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1105. Explain Fresh Radio Admission Limits Before Native Playback
+
+**The Bug**: Fresh radio tickets were issued before their first HTTP range checked fairness. Native playback could buffer on a 429 with no useful reason, and a rejected ticket acquisition was always described as a host failure. A Web negative regression reproduced that misleading feedback.
+
+**Prevention**: After host metadata validates permission, check fairness before issuing a remote ticket and return a stable limit code. Keep the stream admission check and same-ticket seek policy. Distinguish fairness, ticket capacity and unavailable snapshots in the player without exposing raw server error text or adding retry loops.
+
 ### 0z1104. Order Join Completion Against Access Revocation
 
 **The Bug**: A pending initial or reconnect join could finish after access-revoked notification and clear the revocation latch, mark the room live and refresh stale metadata. Both orderings failed focused Web regressions.
