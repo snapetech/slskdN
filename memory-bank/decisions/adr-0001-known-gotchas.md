@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1170. Match Resource Probe File Backing to the User Workflow
+
+**The Gotcha**: The extended native probe supplied a Buffer payload. Installed Playwright code shows that this constructs an in-memory File from decoded bytes, while path input uses the browser's file-input path API. Its memory readings describe RAM-backed generated media, not an ordinary disk selection; scaling that payload with session duration can obscure the cost being measured.
+
+**Prevention**: Generate a private disk fixture outside the measured phases, pass its path and clean it after browser teardown. Record input kind, byte size, duration and actual CDP browser version per window. Preserve prior RAM-backed results under their stated workload; do not silently relabel them or infer a player leak from source-backing differences. Verify types, real decoding, workload continuity and a longer unrecorded run.
+
 ### 0z1169. Separate Cold Certificate Preparation From Writer Protocol Deadlines
 
 **The Bug**: The full gate canceled a writer-control scenario at its ten-second handshake deadline before any writer assertions. The timer started before cold server/client RSA certificate generation and bootstrap; all four modes passed in isolation. The exact scheduling contribution was not measured, so the failure is not proof of a writer defect or proof that certificate generation alone caused it.
