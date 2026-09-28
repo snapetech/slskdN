@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1095. Keep Signed Publisher Identity Separate from Routing Address
+
+**The Bug**: A valid signed DHT Store touched the routing table using the cryptographic publisher ID as its address. Service routing matches the connected Soulseek transport username, so the accepted store replaced a reachable address with an unroutable identifier. The signed-store regression reproduced the wrong address.
+
+**Prevention**: Verify signatures and quota against the cryptographic publisher as before, retain the signed requester node ID, and record the actual remote transport identity as the routing address. Assert both node ID and transport address when publisher and transport names differ.
+
 ### 0z1094. Reuse Established Inbound Mesh Service Links
 
 **The Bug**: The production service client selected only outbound links even though both overlay handlers support calls and correlated replies in either direction. A real TLS reverse call through the client returned unavailable while direct writes on the same inbound connection succeeded.
