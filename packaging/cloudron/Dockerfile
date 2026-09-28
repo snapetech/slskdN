@@ -1,4 +1,4 @@
-FROM docker.io/snapetech/slskdn:2026092816-slskdn.326
+FROM docker.io/snapetech/slskdn:2026092818-slskdn.327
 
 ENV SLSKD_APP_DIR=/app/data \
     SLSKD_DOWNLOADS_DIR=/app/data/downloads \
