@@ -22,15 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-### Player modal visibility
-
-- Restore usable player controls after closing the file-browser modal across browsers while playback continues behind the modal.
-
 ## [2026092823-slskdn.329] — 2026-09-28
 
 ### Radio fairness accounting
 
 - Include active and completed Soulseek download payload in fairness totals, excluding resumed bytes already present locally.
+
+### Player modal visibility
+
+- Restore usable player controls after closing the file-browser modal across browsers while playback continues behind the modal.
 
 ## [2026092820-slskdn.328] — 2026-09-28
 
