@@ -14,6 +14,7 @@ export type NodeConfig = {
     noConnect?: boolean;
     radioMesh?: boolean;
     listenAlongMembers?: boolean;
+    listenAlongPeers?: string[];
   };
   nodeName: string;
   shareDir: string | string[]; // Single dir or array for multiple shares
@@ -446,6 +447,16 @@ ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
   directories: []`;
     const noConnect = this.config.flags?.noConnect ?? process.env.SLSKDN_TEST_NO_CONNECT === 'true';
     const radioMesh = this.config.flags?.radioMesh === true;
+    const listenAlongApiKeys = [
+      ...(this.config.flags?.listenAlongMembers ? [
+        ['roomlistener', 'room-listener-fixture-key'],
+        ['roomobserver', 'room-observer-fixture-key'],
+      ] : []),
+      ...[...new Set(this.config.flags?.listenAlongPeers ?? [])].map((peerId) => [peerId, `listen-${peerId}-fixture-key`]),
+    ];
+    const listenAlongApiKeysYaml = listenAlongApiKeys.length > 0
+      ? `    api_keys:\n${listenAlongApiKeys.map(([name, key]) => `      ${name}:\n        key: ${key}\n        role: readwrite`).join('\n')}\n`
+      : '';
     const configYaml = `web:
   port: ${this.apiPort}
   host: 127.0.0.1
@@ -455,14 +466,7 @@ ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
   authentication:
     username: ${nodeCreds.username}
     password: ${nodeCreds.password}
-${this.config.flags?.listenAlongMembers ? `    api_keys:
-      roomlistener:
-        key: room-listener-fixture-key
-        role: readwrite
-      roomobserver:
-        key: room-observer-fixture-key
-        role: readwrite
-` : ''}  rateLimiting:
+${listenAlongApiKeysYaml}  rateLimiting:
     enabled: false
   cors:
     enabled: true

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Privacy;
+using slskd.Mesh.ServiceFabric;
 using slskd.PodCore;
 using Xunit;
 
@@ -19,6 +20,123 @@ namespace slskd.Tests.Unit.PodCore;
 /// </summary>
 public class PodMessageRouterTests
 {
+    [Fact]
+    public async Task RouteListenAlongMessageAsync_UsesAuthenticatedPodsServiceAndSkipsSenderAndBannedMembers()
+    {
+        var logger = new Mock<ILogger<PodMessageRouter>>();
+        var podService = new Mock<IPodService>();
+        var overlayClient = new Mock<IOverlayClient>();
+        var controlSigner = new Mock<IControlSigner>();
+        var peerResolution = new Mock<IPeerResolutionService>();
+        var meshClient = new Mock<IMeshServiceClient>();
+        ServiceCall? routedCall = null;
+        podService.Setup(service => service.GetChannelAsync("pod1", "music", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodChannel { ChannelId = "music" });
+        podService.Setup(service => service.GetMembersAsync("pod1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PodMember>
+            {
+                new() { PeerId = "PEER-HOST" },
+                new() { PeerId = "peer-listener" },
+                new() { PeerId = "peer-banned", IsBanned = true },
+            });
+        meshClient.Setup(client => client.CallAsync("peer-listener", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .Callback<string, ServiceCall, CancellationToken>((_, call, _) => routedCall = call)
+            .ReturnsAsync(new ServiceReply { StatusCode = ServiceStatusCodes.OK });
+
+        var router = new PodMessageRouter(
+            logger.Object, podService.Object, overlayClient.Object, controlSigner.Object,
+            peerResolution.Object, meshServiceClient: meshClient.Object);
+        var message = new PodMessage
+        {
+            MessageId = "listen-1",
+            PodId = "pod1",
+            ChannelId = "music",
+            SenderPeerId = "peer-host",
+            Body = "{}",
+            TimestampUnixMs = 1,
+        };
+
+        var result = await router.RouteListenAlongMessageAsync(message);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.TargetPeerCount);
+        Assert.Equal(1, result.SuccessfullyRoutedCount);
+        Assert.Equal("{}", ServicePayloadParser.TryParseJson<PodMessage>(routedCall!).Value?.Body);
+        meshClient.Verify(client => client.CallAsync("peer-listener", It.Is<ServiceCall>(call =>
+            call.ServiceName == "pods" && call.Method == "ApplyListenAlong"), It.IsAny<CancellationToken>()), Times.Once);
+        meshClient.Verify(client => client.CallAsync("peer-host", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()), Times.Never);
+        meshClient.Verify(client => client.CallAsync("peer-banned", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()), Times.Never);
+        overlayClient.Verify(client => client.SendAsync(It.IsAny<ControlEnvelope>(), It.IsAny<IPEndPoint>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RouteListenAlongMessageAsync_ReportsUnavailableAuthenticatedPeer()
+    {
+        var podService = new Mock<IPodService>();
+        var meshClient = new Mock<IMeshServiceClient>();
+        podService.Setup(service => service.GetChannelAsync("pod1", "music", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodChannel { ChannelId = "music" });
+        podService.Setup(service => service.GetMembersAsync("pod1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PodMember> { new() { PeerId = "peer-listener" } });
+        meshClient.Setup(client => client.CallAsync("peer-listener", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ServiceReply { StatusCode = ServiceStatusCodes.ServiceUnavailable });
+        var router = new PodMessageRouter(
+            Mock.Of<ILogger<PodMessageRouter>>(), podService.Object, Mock.Of<IOverlayClient>(),
+            Mock.Of<IControlSigner>(), Mock.Of<IPeerResolutionService>(), meshServiceClient: meshClient.Object);
+
+        var result = await router.RouteListenAlongMessageAsync(new PodMessage
+        {
+            MessageId = "listen-2",
+            PodId = "pod1",
+            ChannelId = "music",
+            SenderPeerId = "peer-host",
+            Body = "{}",
+            TimestampUnixMs = 1,
+        });
+
+        Assert.False(result.Success);
+        Assert.Equal(1, result.FailedRoutingCount);
+        Assert.Equal(new[] { "peer-listener" }, result.FailedPeerIds);
+    }
+
+    [Fact]
+    public async Task RouteListenAlongMessageAsync_StopsFanOutAtTheOverallBudget()
+    {
+        var podService = new Mock<IPodService>();
+        var meshClient = new Mock<IMeshServiceClient>();
+        podService.Setup(service => service.GetChannelAsync("pod1", "music", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodChannel { ChannelId = "music" });
+        podService.Setup(service => service.GetMembersAsync("pod1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Range(0, 40).Select(index => new PodMember { PeerId = $"peer-{index}" }).ToList());
+        meshClient.Setup(client => client.CallAsync(It.IsAny<string>(), It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, ServiceCall _, CancellationToken token) => WaitForCancellationAsync(token));
+        var router = new PodMessageRouter(
+            Mock.Of<ILogger<PodMessageRouter>>(), podService.Object, Mock.Of<IOverlayClient>(),
+            Mock.Of<IControlSigner>(), Mock.Of<IPeerResolutionService>(), meshServiceClient: meshClient.Object);
+
+        var result = await router.RouteListenAlongMessageAsync(new PodMessage
+        {
+            MessageId = "listen-budget",
+            PodId = "pod1",
+            ChannelId = "music",
+            SenderPeerId = "peer-host",
+            Body = "{}",
+            TimestampUnixMs = 1,
+        });
+
+        Assert.False(result.Success);
+        Assert.Equal(40, result.TargetPeerCount);
+        Assert.Equal(40, result.FailedRoutingCount);
+        Assert.Contains("2-second time budget", result.ErrorMessage);
+        Assert.True(result.RoutingDuration < TimeSpan.FromSeconds(4), $"Routing took {result.RoutingDuration}");
+    }
+
+    private static async Task<ServiceReply> WaitForCancellationAsync(CancellationToken cancellationToken)
+    {
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+        return new ServiceReply { StatusCode = ServiceStatusCodes.OK };
+    }
+
     [Fact]
     public async Task RouteMessageToPeersAsync_when_peer_resolution_returns_null_fails_for_that_peer()
     {

@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Cross-node listen-along room state
+
+- Deliver Play, Pause, Seek and Stop room updates over authenticated mesh services to active pod members. Remote snapshots update local followers without re-routing, and current membership is checked for every delivery.
+
 ## [2026092818-slskdn.327] — 2026-09-28
 
 ### Listed radio host renewal and tab ownership

@@ -6,6 +6,7 @@ namespace slskd.Tests.Unit.Mesh.ServiceFabric;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using slskd.ListeningParty;
 using Moq;
 using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.ServiceFabric.Services;
@@ -14,6 +15,65 @@ using Xunit;
 
 public class PodsMeshServiceTests
 {
+    [Fact]
+    public async Task ApplyListenAlong_RequiresAuthenticatedSenderAndActiveMembership()
+    {
+        var message = new PodMessage
+        {
+            MessageId = "listen-1",
+            PodId = PodId,
+            ChannelId = "music",
+            SenderPeerId = "peer-1",
+            Body = "{}",
+            TimestampUnixMs = 1,
+        };
+        var pods = CreatePods(true, member: new PodMember { PeerId = "peer-1" });
+        pods.Setup(service => service.GetChannelAsync(PodId, "music", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodChannel { ChannelId = "music" });
+        var listeningParty = new Mock<IListeningPartyService>();
+        listeningParty.Setup(service => service.ApplyRemoteMessageAsync(
+                It.Is<PodMessage>(received => received.MessageId == message.MessageId &&
+                    received.PodId == message.PodId && received.ChannelId == message.ChannelId &&
+                    received.SenderPeerId == message.SenderPeerId),
+                "PEER-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ListeningPartyRemoteApplyResult.Applied);
+        var service = CreateService(pods: pods.Object, listeningPartyService: listeningParty.Object);
+
+        var accepted = await service.HandleCallAsync(Call("ApplyListenAlong", message), new MeshServiceContext { RemotePeerId = "PEER-1" });
+        var spoofed = await service.HandleCallAsync(Call("ApplyListenAlong", message), new MeshServiceContext { RemotePeerId = "peer-2" });
+
+        Assert.Equal(ServiceStatusCodes.OK, accepted.StatusCode);
+        Assert.True(JsonDocument.Parse(accepted.Payload).RootElement.GetProperty("applied").GetBoolean());
+        Assert.Equal(ServiceStatusCodes.Forbidden, spoofed.StatusCode);
+        listeningParty.Verify(handler => handler.ApplyRemoteMessageAsync(
+            It.Is<PodMessage>(received => received.MessageId == message.MessageId &&
+                received.PodId == message.PodId && received.ChannelId == message.ChannelId &&
+                received.SenderPeerId == message.SenderPeerId),
+            "PEER-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApplyListenAlong_RejectsBannedMemberBeforeApplyingState()
+    {
+        var message = new PodMessage
+        {
+            MessageId = "listen-2",
+            PodId = PodId,
+            ChannelId = "music",
+            SenderPeerId = "peer-1",
+            Body = "{}",
+            TimestampUnixMs = 1,
+        };
+        var pods = CreatePods(true, member: new PodMember { PeerId = "peer-1", IsBanned = true });
+        var listeningParty = new Mock<IListeningPartyService>();
+        var service = CreateService(pods: pods.Object, listeningPartyService: listeningParty.Object);
+
+        var reply = await service.HandleCallAsync(Call("ApplyListenAlong", message), new MeshServiceContext { RemotePeerId = "peer-1" });
+
+        Assert.Equal(ServiceStatusCodes.Forbidden, reply.StatusCode);
+        listeningParty.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task HandleCallAsync_UnknownMethod_ReturnsSanitizedMethodNotFound()
     {
@@ -418,7 +478,10 @@ public class PodsMeshServiceTests
         }
     }
 
-    private static PodsMeshService CreateService(IPodMessaging? podMessaging = null, IPodService? pods = null)
+    private static PodsMeshService CreateService(
+        IPodMessaging? podMessaging = null,
+        IPodService? pods = null,
+        IListeningPartyService? listeningPartyService = null)
     {
         var services = new ServiceCollection();
         services.AddScoped(_ => podMessaging ?? Mock.Of<IPodMessaging>());
@@ -427,6 +490,7 @@ public class PodsMeshServiceTests
         return new PodsMeshService(
             Mock.Of<ILogger<PodsMeshService>>(),
             pods ?? CreatePods(false, member: new PodMember { PeerId = "peer-1" }).Object,
-            provider.GetRequiredService<IServiceScopeFactory>());
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            listeningPartyService: listeningPartyService);
     }
 }

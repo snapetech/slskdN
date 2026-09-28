@@ -5237,8 +5237,8 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Release subscriptions on explicit leave/disconnect; verify per-connection and global capacity.
 - [x] Keep revoked access ahead of queued room events and in-flight initial/reconnect join completions.
 - [x] Verify two real authenticated SignalR clients against actual service publication, leave/rejoin, disconnect/snapshot and live ban.
-- [x] 2026-09-28 Verify actual Chromium PlayerBar follow, then interrupt its real SignalR transport, restore it, and confirm automatic rejoin plus current-state snapshot catch-up. Cross-node application remains open.
-- [ ] Establish authenticated cross-node room state application; metadata routed as pod messages does not by itself prove local room state/hub delivery.
+- [x] 2026-09-28 Verify actual Chromium PlayerBar follow, then interrupt its real SignalR transport, restore it, and confirm automatic rejoin plus current-state snapshot catch-up.
+- [x] 2026-09-28 Establish authenticated cross-node room-state application; the two-node Playwright regression verifies snapshots, live Play/Pause/Seek/Stop, playback following and membership revocation.
 - [ ] Verify concurrent room publication ordering and elapsed radio ticket/capability renewal with useful fairness feedback.
 
 ## Player publication and admission reliability — 2026-09-28
@@ -5247,7 +5247,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Explain fresh remote radio fairness limits before playback; preserve host permission priority, local playback and same-ticket admission.
 - [x] Verify elapsed local radio ticket expiry and successful manual reselection with actual HTTP and Chromium playback.
 - [ ] Explain the intermittent reverse-directory failure seen during the initial full runtime run; standalone and three repeated diagnostic runs passed. Retain logs on further full runs.
-- [ ] Implement authenticated cross-node room application. Source inspection finds a pod_message sender but no matching control dispatcher handler; bind sender authority before applying state and prevent republishing loops.
+- [x] 2026-09-28 Implement authenticated mesh room application with transport-bound sender identity, active membership checks, ordered snapshot application and no re-routing loop. The mesh JSON payload round-trip is covered by a parser-boundary unit assertion.
 - [x] 2026-09-28 Complete local ticket reselection coverage and long host capability renewal/fencing; controlled-clock and connected two-backend regressions pass.
 - [ ] Complete remaining player quality audit requirements, including repeated admissions, sustained throughput and device/accessibility coverage.
 
@@ -5267,8 +5267,8 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Bind all mesh room calls to nonempty transport identity; deny private/approval admission and grant fresh joins only member roles.
 - [x] Preserve existing approved roles/keys; protect private metadata and RPC/stream history or posting with active membership.
 - [x] Reproduce banned leave in both in-memory and SQLite services and preserve ban records; verify ordinary members can still leave/rejoin.
-- [ ] Verify permission calls through two actual authenticated mesh endpoints, including revocation and replay/ordering before cross-node state application.
-- [ ] Implement actual cross-node state receiver and browser follow/recovery; this admission repair does not establish those workflows.
+- [x] 2026-09-28 Verify room-state permission checks through two real authenticated mesh endpoints, including banned-member revocation; unit coverage rejects stale sequence numbers.
+- [x] 2026-09-28 Implement the cross-node state receiver and verify browser follow/playback recovery with two live test nodes.
 
 - [x] 2026-09-28 Verify banned HTTP leave/rejoin cannot restore room subscription access with actual service and two clients; observer delivery remains available.
 - [x] 2026-09-28: Close and drain test-node logs, bound diagnostic tails, own startup/output failures, clear stop deadlines and await every peer cleanup. Ten lifecycle regressions and the final 22-case real run pass with zero descriptor-GC warnings. Keep fixture overhead separate from player resource claims.
@@ -5357,10 +5357,11 @@ relisting, and serializes same-server index writes. Never-listed playback stays
 independent of directory reads. Gotchas 0z1155 and 0z1156 were committed immediately.
 Full validation and real browser/cross-node directory checks are in progress.
 
-Next Steps remain authenticated distributed room state, host error/auth/lease
-and renewal behavior, sustained resource and throughput evidence, supported
+Next Steps remain host error/auth/lease and renewal behavior, sustained resource
+and throughput evidence, supported
 browser/format/device/accessibility/focus contrast checks, and fixture cleanup.
-Cross-node index conflict resolution is still open. Full player goal is active.
+Cross-node room-state delivery is implemented and verified; index conflict
+resolution is still open. Full player goal is active.
 
 - [x] 2026-09-28: Apply browser-owned listing and streaming changes immediately,
   with confirmed settings, failure Retry, queued Stop and room-navigation coverage.
@@ -5454,10 +5455,11 @@ suite. The internal-only validation release fragment parses without errors.
 Fixture lifecycle cleanup is complete for source publication. Next Steps:
 establish sustained idle/native playback/paused CPU and memory samples without
 tracing or concurrent builds, ensure playback remains active for the full sample,
-and extend to queue/visualizer/radio throughput. Distributed room state/index
-ownership, host error/auth/lease/renewal, compatibility/device/accessibility
-and focus contrast remain open. Ten-second trace samples are diagnostic evidence
-and do not prove sustained low resource use. The full player goal remains active.
+and extend to queue/visualizer/radio throughput. Cross-node room-state delivery
+is implemented and verified; distributed index ownership, host error/auth/lease/
+renewal, compatibility/device/accessibility and focus contrast remain open.
+Ten-second trace samples are diagnostic evidence and do not prove sustained low
+resource use. The full player goal remains active.
 
 ## Isolated repeated native resource measurement — 2026-09-28
 
@@ -5577,10 +5579,11 @@ production transport timeout or database migration is introduced.
 - [ ] Extend resource budgets to queue, analyzer, visualizer, Picture in Picture,
   remote radio/high-rate formats and backend cost under sustained workloads.
 
-Next Steps also retain distributed room state/index ownership, host media
-error/auth/lease/renewal and browser/format/device/accessibility/focus contrast
-coverage. The full player goal remains active; this batch does not establish
-whole-session resource completion.
+Next Steps retain distributed room-index ownership/conflict resolution, host
+media error/auth/lease/renewal and browser/format/device/accessibility/focus
+contrast coverage. Cross-node room-state delivery is implemented and verified.
+The full player goal remains active; this batch does not establish whole-session
+resource completion.
 
 
 ## Player native resource and media-error batch — 2026-09-28
@@ -5596,7 +5599,9 @@ whole-session resource completion.
   separate clean repeated observed OS-tree baseline; disclose three global proc
   stat gaps with unknown ancestry rather than claim complete enumeration.
 - [ ] Continue failed playback setup/crossfade, host lease/renewal, distributed
-  state/index, broader resource/format/device/accessibility completion work.
+  room-index ownership/conflict resolution, and broader resource/format/device/
+  accessibility completion work. Cross-node room-state delivery is implemented
+  and verified.
 
 - [ ] Improve census coverage for transient unreadable proc entries; retain honest
   endpoint/churn limits and validate broader sustained player workloads.

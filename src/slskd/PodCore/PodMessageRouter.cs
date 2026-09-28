@@ -14,18 +14,22 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Privacy;
+using slskd.Mesh.ServiceFabric;
 
 /// <summary>
 /// Service for routing pod messages through the decentralized overlay network.
 /// </summary>
 public class PodMessageRouter : IPodMessageRouter
 {
+    private static readonly SemaphoreSlim ListenAlongRoutingGate = new(8, 8);
+    private static readonly TimeSpan ListenAlongRoutingBudget = TimeSpan.FromSeconds(2);
     private readonly ILogger<PodMessageRouter> _logger;
     private readonly IPodService _podService;
     private readonly IOverlayClient _overlayClient;
     private readonly IControlSigner _controlSigner;
     private readonly IPeerResolutionService _peerResolution;
     private readonly IPrivacyLayer? _privacyLayer;
+    private readonly IMeshServiceClient? _meshServiceClient;
 
     // Time-windowed Bloom filter for efficient deduplication
     private readonly TimeWindowedBloomFilter _deduplicationFilter;
@@ -45,7 +49,8 @@ public class PodMessageRouter : IPodMessageRouter
         IOverlayClient overlayClient,
         IControlSigner controlSigner,
         IPeerResolutionService peerResolution,
-        IPrivacyLayer? privacyLayer = null)
+        IPrivacyLayer? privacyLayer = null,
+        IMeshServiceClient? meshServiceClient = null)
     {
         _logger = logger;
         _podService = podService;
@@ -53,10 +58,176 @@ public class PodMessageRouter : IPodMessageRouter
         _controlSigner = controlSigner ?? throw new ArgumentNullException(nameof(controlSigner));
         _peerResolution = peerResolution ?? throw new ArgumentNullException(nameof(peerResolution));
         _privacyLayer = privacyLayer;
+        _meshServiceClient = meshServiceClient;
 
         // Initialize time-windowed Bloom filter for efficient deduplication
         // 24-hour windows, expected 10,000 messages per window, 1% false positive rate
         _deduplicationFilter = new TimeWindowedBloomFilter(10_000, TimeSpan.FromHours(24), 0.01);
+    }
+
+    /// <inheritdoc/>
+    public async Task<PodMessageRoutingResult> RouteListenAlongMessageAsync(PodMessage message, CancellationToken cancellationToken = default)
+    {
+        var startedAt = DateTimeOffset.UtcNow;
+        var podId = message?.PodId?.Trim() ?? string.Empty;
+        var channelId = message?.ChannelId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(channelId) || string.IsNullOrWhiteSpace(message?.SenderPeerId))
+        {
+            return new PodMessageRoutingResult(
+                false, message?.MessageId ?? string.Empty, podId, 0, 0, 0,
+                DateTimeOffset.UtcNow - startedAt,
+                "PodId, ChannelId and SenderPeerId are required");
+        }
+
+        var validation = PodValidation.ValidateMessage(message);
+        if (string.IsNullOrWhiteSpace(message.MessageId) ||
+            !message.MessageId.StartsWith("listen-", StringComparison.Ordinal) || !validation.IsValid)
+        {
+            return new PodMessageRoutingResult(
+                false, message.MessageId ?? string.Empty, podId, 0, 0, 0,
+                DateTimeOffset.UtcNow - startedAt,
+                "A valid listen-along message is required");
+        }
+
+        if (_meshServiceClient == null)
+        {
+            return new PodMessageRoutingResult(
+                false, message.MessageId, podId, 0, 0, 0,
+                DateTimeOffset.UtcNow - startedAt,
+                "Authenticated mesh service transport is unavailable");
+        }
+
+        try
+        {
+            if (await _podService.GetChannelAsync(podId, channelId, cancellationToken).ConfigureAwait(false) == null)
+            {
+                return new PodMessageRoutingResult(
+                    false, message.MessageId, podId, 0, 0, 0,
+                    DateTimeOffset.UtcNow - startedAt,
+                    $"Channel {channelId} does not exist in pod {podId}");
+            }
+
+            var members = await _podService.GetMembersAsync(podId, cancellationToken).ConfigureAwait(false);
+            var targets = members
+                .Where(member => !member.IsBanned && !string.Equals(member.PeerId, message.SenderPeerId, StringComparison.OrdinalIgnoreCase))
+                .Select(member => member.PeerId)
+                .Where(peerId => !string.IsNullOrWhiteSpace(peerId))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            if (targets.Length == 0)
+            {
+                return new PodMessageRoutingResult(
+                    true, message.MessageId, podId, 0, 0, 0,
+                    DateTimeOffset.UtcNow - startedAt);
+            }
+
+            var outcomes = new bool[targets.Length];
+            using var routeBudget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            routeBudget.CancelAfter(ListenAlongRoutingBudget);
+            try
+            {
+                await Parallel.ForEachAsync(
+                    Enumerable.Range(0, targets.Length),
+                    new ParallelOptions { CancellationToken = routeBudget.Token, MaxDegreeOfParallelism = 8 },
+                    async (index, token) =>
+                    {
+                        outcomes[index] = await RouteListenAlongMessageToPeerAsync(message, targets[index], token).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // The fixed fan-out budget bounds how long offline members can delay a room update.
+            }
+
+            var successful = outcomes.Count(outcome => outcome);
+            var failedPeers = targets.Where((_, index) => !outcomes[index]).ToArray();
+            var budgetExpired = routeBudget.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
+            var duration = DateTimeOffset.UtcNow - startedAt;
+            Interlocked.Add(ref _totalMessagesRouted, 1);
+            Interlocked.Add(ref _totalRoutingAttempts, targets.Length);
+            Interlocked.Add(ref _successfulRoutingCount, successful);
+            Interlocked.Add(ref _failedRoutingCount, failedPeers.Length);
+            Interlocked.Add(ref _totalRoutingTimeMs, (long)duration.TotalMilliseconds);
+            _routingStatsByPod.AddOrUpdate(podId, 1, (_, count) => count + 1);
+            _lastRoutingOperation = DateTimeOffset.UtcNow;
+
+            return new PodMessageRoutingResult(
+                failedPeers.Length == 0,
+                message.MessageId,
+                podId,
+                targets.Length,
+                successful,
+                failedPeers.Length,
+                duration,
+                ErrorMessage: budgetExpired ? "Listen-along mesh fan-out exceeded its 2-second time budget" : null,
+                FailedPeerIds: failedPeers);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[PodMessageRouter] Failed to route listen-along message {MessageId}", message.MessageId);
+            return new PodMessageRoutingResult(
+                false, message.MessageId, podId, 0, 0, 0,
+                DateTimeOffset.UtcNow - startedAt,
+                "Failed to route listen-along message");
+        }
+    }
+
+    private async Task<bool> RouteListenAlongMessageToPeerAsync(PodMessage message, string peerId, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        try
+        {
+            await ListenAlongRoutingGate.WaitAsync(timeout.Token).ConfigureAwait(false);
+            try
+            {
+                timeout.CancelAfter(TimeSpan.FromSeconds(1));
+                var reply = await _meshServiceClient!.CallAsync(peerId, new ServiceCall
+                {
+                    ServiceName = "pods",
+                    Method = "ApplyListenAlong",
+                    CorrelationId = Guid.NewGuid().ToString("N"),
+                    Payload = JsonSerializer.SerializeToUtf8Bytes(message),
+                }, timeout.Token).ConfigureAwait(false);
+
+                if (reply.StatusCode == ServiceStatusCodes.OK)
+                {
+                    return true;
+                }
+
+                _logger.LogDebug(
+                    "[PodMessageRouter] Peer {PeerId} rejected listen-along message {MessageId} with status {StatusCode}: {ErrorMessage}",
+                    peerId, message.MessageId, reply.StatusCode, reply.ErrorMessage);
+                return false;
+            }
+            finally
+            {
+                ListenAlongRoutingGate.Release();
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogDebug(
+                "[PodMessageRouter] Timed out routing listen-along message {MessageId} to peer {PeerId}",
+                message.MessageId, peerId);
+            return false;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex,
+                "[PodMessageRouter] Could not route listen-along message {MessageId} to peer {PeerId}",
+                message.MessageId, peerId);
+            return false;
+        }
     }
 
     /// <inheritdoc/>

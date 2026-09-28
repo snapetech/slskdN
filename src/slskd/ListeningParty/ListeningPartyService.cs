@@ -5,6 +5,7 @@
 namespace slskd.ListeningParty;
 
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
@@ -38,6 +39,10 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
     private readonly ILogger<ListeningPartyService> _logger;
     private readonly Microsoft.Extensions.Options.IOptionsMonitor<Options> _options;
     private readonly ConcurrentDictionary<string, ListeningPartyEvent> _states = new();
+    private readonly object _remoteStatesLock = new();
+    private readonly Dictionary<(string PodId, string ChannelId), ListeningPartyEvent> _remoteStates = new();
+    private readonly HashSet<(string PodId, string ChannelId)> _remoteStateReservations = new();
+    private readonly Dictionary<(string PodId, string ChannelId), Queue<string>> _retiredRemoteParties = new();
     private readonly ConcurrentDictionary<string, ListeningPartyAnnouncement> _directory = new();
 
     // Directory ownership, withdrawal lifetime and same-server index ordering: ADR-0020.
@@ -57,6 +62,9 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
     private readonly Dictionary<(string ConnectionId, string PodId, string ChannelId), PartySubscription> _subscriptions = new();
     private const int MaxSubscriptions = 4096;
     private const int MaxSubscriptionsPerConnection = 16;
+    private const int MaxRemoteStates = 256;
+    private const int MaxRetiredRemoteRooms = 256;
+    private const int MaxRetiredPartiesPerRoom = 16;
 
     // Per-room ordering and bounded queue ownership: ADR-0015.
     private readonly object _publicationLock = new();
@@ -180,8 +188,22 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
 
     public Task<ListeningPartyEvent?> GetStateAsync(string podId, string channelId, CancellationToken cancellationToken = default)
     {
-        _states.TryGetValue(StateKey(podId, channelId), out var state);
-        return Task.FromResult(state);
+        var key = StateKey(podId, channelId);
+        if (_states.TryGetValue(key, out var localState))
+        {
+            return Task.FromResult<ListeningPartyEvent?>(localState);
+        }
+
+        lock (_remoteStatesLock)
+        {
+            if (_states.TryGetValue(key, out localState))
+            {
+                return Task.FromResult<ListeningPartyEvent?>(localState);
+            }
+
+            _remoteStates.TryGetValue((podId?.Trim() ?? string.Empty, channelId?.Trim() ?? string.Empty), out var remoteState);
+            return Task.FromResult<ListeningPartyEvent?>(remoteState);
+        }
     }
 
     public Task<ListeningPartyEvent?> GetStateByPartyIdAsync(string partyId, CancellationToken cancellationToken = default)
@@ -189,6 +211,210 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
         var normalizedPartyId = partyId?.Trim() ?? string.Empty;
         var state = _states.Values.FirstOrDefault(x => string.Equals(x.PartyId, normalizedPartyId, StringComparison.Ordinal));
         return Task.FromResult(state);
+    }
+
+    public async Task<ListeningPartyRemoteApplyResult> ApplyRemoteMessageAsync(
+        PodMessage message,
+        string authenticatedPeerId,
+        CancellationToken cancellationToken = default)
+    {
+        var peerId = authenticatedPeerId?.Trim() ?? string.Empty;
+        if (message == null || string.IsNullOrWhiteSpace(peerId) ||
+            !string.Equals(message.SenderPeerId?.Trim(), peerId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ListeningPartyRemoteApplyResult.Forbidden;
+        }
+
+        var state = ParseRemoteState(message);
+        var podId = state.PodId;
+        var channelId = state.ChannelId;
+        var room = (podId, channelId);
+
+        return await RunInPublicationQueueAsync(podId, channelId, async () =>
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var pods = scope.ServiceProvider.GetRequiredService<IPodService>();
+            var channel = await pods.GetChannelAsync(podId, channelId, cancellationToken).ConfigureAwait(false);
+            if (channel == null)
+            {
+                throw new ListeningPartyRoomNotFoundException();
+            }
+
+            var members = await pods.GetMembersAsync(podId, cancellationToken).ConfigureAwait(false);
+            if (!members.Any(member => !member.IsBanned &&
+                string.Equals(member.PeerId, peerId, StringComparison.OrdinalIgnoreCase)))
+            {
+                return ListeningPartyRemoteApplyResult.Forbidden;
+            }
+
+            var reserveRemoteRoom = false;
+            lock (_remoteStatesLock)
+            {
+                if (_states.ContainsKey(StateKey(podId, channelId)) || IsRetiredRemotePartyNoLock(room, state.PartyId))
+                {
+                    return ListeningPartyRemoteApplyResult.Ignored;
+                }
+
+                _remoteStates.TryGetValue(room, out var current);
+                if (current == null)
+                {
+                    if (state.Action == "stop")
+                    {
+                        return ListeningPartyRemoteApplyResult.Ignored;
+                    }
+
+                    if (!_remoteStateReservations.Contains(room))
+                    {
+                        if (_remoteStates.Count + _remoteStateReservations.Count >= MaxRemoteStates)
+                        {
+                            return ListeningPartyRemoteApplyResult.Ignored;
+                        }
+
+                        _remoteStateReservations.Add(room);
+                        reserveRemoteRoom = true;
+                    }
+                }
+                else if (string.Equals(current.PartyId, state.PartyId, StringComparison.Ordinal))
+                {
+                    if (state.Sequence <= current.Sequence)
+                    {
+                        return ListeningPartyRemoteApplyResult.Ignored;
+                    }
+                }
+                else
+                {
+                    if (state.Action == "stop")
+                    {
+                        return ListeningPartyRemoteApplyResult.Ignored;
+                    }
+                }
+            }
+
+            try
+            {
+                var storage = scope.ServiceProvider.GetRequiredService<IPodMessageStorage>();
+                if (!await storage.StoreMessageAsync(podId, channelId, message, cancellationToken).ConfigureAwait(false))
+                {
+                    return ListeningPartyRemoteApplyResult.Ignored;
+                }
+
+                lock (_remoteStatesLock)
+                {
+                    if (state.Action == "stop")
+                    {
+                        RetireRemotePartyNoLock(room, state.PartyId);
+                        _remoteStates.Remove(room);
+                    }
+                    else
+                    {
+                        if (_remoteStates.TryGetValue(room, out var previous) &&
+                            !string.Equals(previous.PartyId, state.PartyId, StringComparison.Ordinal))
+                        {
+                            RetireRemotePartyNoLock(room, previous.PartyId);
+                        }
+
+                        _remoteStates[room] = state;
+                    }
+
+                    if (reserveRemoteRoom)
+                    {
+                        _remoteStateReservations.Remove(room);
+                        reserveRemoteRoom = false;
+                    }
+                }
+
+                await SendToSubscribersAsync(state, cancellationToken).ConfigureAwait(false);
+                return ListeningPartyRemoteApplyResult.Applied;
+            }
+            finally
+            {
+                if (reserveRemoteRoom)
+                {
+                    lock (_remoteStatesLock)
+                    {
+                        _remoteStateReservations.Remove(room);
+                    }
+                }
+            }
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    private ListeningPartyEvent ParseRemoteState(PodMessage message)
+    {
+        if (string.IsNullOrWhiteSpace(message.MessageId) || !message.MessageId.StartsWith("listen-", StringComparison.Ordinal) ||
+            string.IsNullOrWhiteSpace(message.Body) ||
+            !PodValidation.IsValidPodId(message.PodId) || !PodValidation.IsValidChannelId(message.ChannelId) ||
+            !PodValidation.IsValidPeerId(message.SenderPeerId))
+        {
+            throw new ArgumentException("Listen-along message identity is invalid.", nameof(message));
+        }
+
+        var messageValidation = PodValidation.ValidateMessage(message);
+        if (!messageValidation.IsValid)
+        {
+            throw new ArgumentException(messageValidation.Error, nameof(message));
+        }
+
+        ListeningPartyEvent? state;
+        try
+        {
+            state = JsonSerializer.Deserialize<ListeningPartyEvent>(message.Body, JsonOptions);
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException("Listen-along message body is invalid.", nameof(message), exception);
+        }
+
+        if (state == null || state.Kind != ListeningPartyEvent.KindName ||
+            !string.Equals(state.PodId, message.PodId, StringComparison.Ordinal) ||
+            !string.Equals(state.ChannelId, message.ChannelId, StringComparison.Ordinal) ||
+            !string.Equals(state.HostPeerId, message.SenderPeerId, StringComparison.Ordinal) ||
+            string.IsNullOrWhiteSpace(state.PartyId) || state.PartyId.Length > 128 ||
+            state.Action is not ("play" or "pause" or "seek" or "stop") ||
+            (state.Action != "stop" && string.IsNullOrWhiteSpace(state.ContentId)) ||
+            (state.ContentId?.Length ?? 0) > 512 || (state.Title?.Length ?? 0) > 512 || (state.Artist?.Length ?? 0) > 512 ||
+            (state.Album?.Length ?? 0) > 512 || state.Tags == null || state.Tags.Count > 10 ||
+            state.Tags.Any(tag => tag == null || tag.Length > 128) ||
+            !double.IsFinite(state.PositionSeconds) || state.PositionSeconds < 0 ||
+            state.Sequence <= 0 || state.ServerTimeUnixMs <= 0 || message.TimestampUnixMs != state.ServerTimeUnixMs)
+        {
+            throw new ArgumentException("Listen-along state is invalid.", nameof(message));
+        }
+
+        var now = _timeProvider.GetUtcNow().ToUnixTimeMilliseconds();
+        if (Math.Abs(now - state.ServerTimeUnixMs) > TimeSpan.FromMinutes(2).TotalMilliseconds)
+        {
+            throw new ArgumentException("Listen-along state is outside the accepted time window.", nameof(message));
+        }
+
+        return state;
+    }
+
+    private bool IsRetiredRemotePartyNoLock((string PodId, string ChannelId) room, string partyId)
+        => _retiredRemoteParties.TryGetValue(room, out var retired) && retired.Contains(partyId, StringComparer.Ordinal);
+
+    private void RetireRemotePartyNoLock((string PodId, string ChannelId) room, string partyId)
+    {
+        if (!_retiredRemoteParties.TryGetValue(room, out var retired))
+        {
+            if (_retiredRemoteParties.Count >= MaxRetiredRemoteRooms)
+            {
+                _retiredRemoteParties.Remove(_retiredRemoteParties.Keys.First());
+            }
+
+            _retiredRemoteParties[room] = retired = new Queue<string>();
+        }
+
+        if (retired.Contains(partyId, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        retired.Enqueue(partyId);
+        while (retired.Count > MaxRetiredPartiesPerRoom)
+        {
+            retired.Dequeue();
+        }
     }
 
     public Task<IReadOnlyList<ListeningPartyAnnouncement>> ListDirectoryAsync(CancellationToken cancellationToken = default)
@@ -578,11 +804,25 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
 
             if (normalized.Action == "stop")
             {
-                _states.TryRemove(key, out _);
+                lock (_remoteStatesLock)
+                {
+                    _states.TryRemove(key, out _);
+                    if (_remoteStates.Remove((normalized.PodId, normalized.ChannelId), out var previousRemote))
+                    {
+                        RetireRemotePartyNoLock((normalized.PodId, normalized.ChannelId), previousRemote.PartyId);
+                    }
+                }
             }
             else
             {
-                _states[key] = normalized;
+                lock (_remoteStatesLock)
+                {
+                    _states[key] = normalized;
+                    if (_remoteStates.Remove((normalized.PodId, normalized.ChannelId), out var previousRemote))
+                    {
+                        RetireRemotePartyNoLock((normalized.PodId, normalized.ChannelId), previousRemote.PartyId);
+                    }
+                }
             }
 
             hostStateCommitted?.Invoke(normalized);
@@ -596,6 +836,9 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
         {
             _nowPlaying.SetTrack(normalized.Artist, normalized.Title, normalized.Album);
         }
+
+        // Local room controls must not wait on directory I/O or offline mesh members.
+        await SendToSubscribersAsync(normalized, cancellationToken).ConfigureAwait(false);
 
         if (normalized.Action != "stop" && normalized.Listed)
         {
@@ -611,13 +854,18 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
             _pendingDirectoryWithdrawals.Remove(key);
         }
 
-        var routing = await _messageRouter.RouteMessageAsync(message, cancellationToken);
+        var routing = await _messageRouter.RouteListenAlongMessageAsync(message, cancellationToken);
         if (!routing.Success)
         {
-            _logger.LogWarning("Failed to route listen-along message {MessageId}: {Error}", routing.MessageId, routing.ErrorMessage);
+            var error = routing.ErrorMessage ?? "one or more peers rejected or did not acknowledge the state";
+            _logger.LogWarning(
+                "Failed to route listen-along message {MessageId}: {Error}; routed {SuccessCount}/{TargetCount}, failed peers: {FailedPeerIds}",
+                routing.MessageId,
+                error,
+                routing.SuccessfullyRoutedCount,
+                routing.TargetPeerCount,
+                string.Join(", ", routing.FailedPeerIds ?? Array.Empty<string>()));
         }
-
-        await SendToSubscribersAsync(normalized, cancellationToken).ConfigureAwait(false);
 
         return normalized;
     }

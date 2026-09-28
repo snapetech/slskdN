@@ -14953,3 +14953,22 @@ The guarded local release gate passed and pushed
 workflow is running; a duplicate run for the same tag and commit was cancelled
 before its publishing jobs executed. Artifact verification is pending until
 the retained workflow creates the GitHub release assets.
+
+## Authenticated cross-node room state — 2026-09-28 20:27 UTC
+
+The two-node regression first reproduced a receiver-side `InvalidPayload`: the
+mesh sender used camelCase JSON while the safe parser expects case-sensitive
+CLR property names, so the listener returned 204 instead of a room snapshot.
+The sender now uses the parser's established wire casing, and a unit assertion
+round-trips the exact service payload through `ServicePayloadParser`. The same
+Playwright scenario now passes 1/1 across initial snapshot, real playback,
+Pause/Seek/Stop updates and banned-member denial; the focused backend tests pass
+6/6 and `./bin/lint` passes. Gotcha 0z1206 was recorded in ADR-0001 and committed
+as `6b075bdd3` immediately after the fix.
+
+Stable `.327` is published. `verify-release-artifacts.sh` validates all six
+platform archives, checksums and Linux payload/version; Docker/PPA workflow jobs
+remain in progress. Authenticated cross-node room-state delivery warrants
+candidate `.328`; its release fragment and changelog are prepared. Full release
+gate, exact `.327`-to-candidate preview, push, tag and `.328` artifact check are
+still pending.

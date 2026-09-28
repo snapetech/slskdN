@@ -1,16 +1,19 @@
-## Release tag and build status — 2026-09-28 19:21 UTC
+## Stable releases and cross-node room state — 2026-09-28 20:27 UTC
 
-- The guarded release gate passed and tag `build-main-2026092818-slskdn.327`
-  was pushed at the validated `main` commit. The `.326` to `main` release
-  preview contains the audio-graph intent and listed-radio host-renewal fixes.
-- Issue #340's numeric-position regression is already included in `.326`; the
-  `.325` baseline reproduces its numeric-token `JsonException`, and current
-  code passes the same regression cases.
-- The retained Build-on-Tag run is queued/in progress; the duplicate run was
-  cancelled before publishing. GitHub has not published `.327` assets yet.
-- Next: wait for the retained workflow, then run the published-artifact
-  verifier. Cross-node room-state propagation, WAN radio latency and sustained
-  throughput remain separate open follow-ups.
+- Issue #340's numeric-position regression shipped in `.326`; the `.325`
+  baseline reproduces its numeric-token `JsonException`, and current code
+  passes the same numeric/string cases.
+- `.327` is published and its six platform archives, support files, checksums,
+  Linux payload and embedded version passed `verify-release-artifacts.sh`.
+  Remaining Docker/PPA workflow jobs are still running.
+- Authenticated cross-node listen-along now routes room state to active mesh
+  members and applies remote snapshots locally without re-routing. The old
+  camelCase payload reproduced as a 204 on the listener; default wire casing
+  now produces a 200 snapshot. Focused backend tests pass 6/6 and the two-node
+  Playwright playback/update/revocation scenario passes 1/1.
+- Candidate `.328` release notes and changelog are prepared. Next: preview the
+  `.327` to candidate range, commit/push the complete tree, pass lint and the
+  guarded full release gate, then create the requested stable tag.
 
 ## PlayerBar follow-up — 2026-09-28 19:12 UTC
 

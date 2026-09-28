@@ -69,7 +69,8 @@ public static class MediaCorePodServiceCollectionExtensions
             var controlSigner = sp.GetRequiredService<Mesh.Overlay.IControlSigner>();
             var peerResolution = sp.GetRequiredService<PodCore.IPeerResolutionService>();
             var privacyLayer = sp.GetService<Mesh.Privacy.IPrivacyLayer>();
-            return new PodCore.PodMessageRouter(logger, podService, overlayClient, controlSigner, peerResolution, privacyLayer);
+            var meshServiceClient = sp.GetRequiredService<Mesh.ServiceFabric.IMeshServiceClient>();
+            return new PodCore.PodMessageRouter(logger, podService, overlayClient, controlSigner, peerResolution, privacyLayer, meshServiceClient);
         });
         services.AddSingleton<PodCore.IMessageSigner, PodCore.MessageSigner>();
 

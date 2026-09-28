@@ -21,6 +21,11 @@ public interface IPodMessageRouter
     Task<PodMessageRoutingResult> RouteMessageAsync(PodMessage message, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Routes a listen-along state message through the authenticated pod mesh service.
+    /// </summary>
+    Task<PodMessageRoutingResult> RouteListenAlongMessageAsync(PodMessage message, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Routes a pod message to a specific subset of pod members.
     /// </summary>
     /// <param name="message">The pod message to route.</param>

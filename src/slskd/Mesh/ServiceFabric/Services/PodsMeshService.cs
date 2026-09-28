@@ -8,6 +8,7 @@ using slskd.Mesh;
 using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.Transport;
 using slskd.PodCore;
+using slskd.ListeningParty;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -23,8 +24,10 @@ namespace slskd.Mesh.ServiceFabric.Services;
 /// </summary>
 public class PodsMeshService : IMeshService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly ILogger<PodsMeshService> _logger;
     private readonly IPodService _podService;
+    private readonly IListeningPartyService? _listeningPartyService;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly int _maxPayload;
     private const int MaxMessageBodyBytes = 4096;
@@ -33,11 +36,13 @@ public class PodsMeshService : IMeshService
         ILogger<PodsMeshService> logger,
         IPodService podService,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<MeshOptions>? meshOptions = null)
+        IOptions<MeshOptions>? meshOptions = null,
+        IListeningPartyService? listeningPartyService = null)
     {
         _logger = logger;
         _podService = podService;
         _serviceScopeFactory = serviceScopeFactory;
+        _listeningPartyService = listeningPartyService;
         _maxPayload = meshOptions?.Value?.Security?.GetEffectiveMaxPayloadSize() ?? SecurityUtils.MaxRemotePayloadSize;
     }
 
@@ -71,6 +76,7 @@ public class PodsMeshService : IMeshService
                 "Join" => await HandleJoinAsync(call, context, cancellationToken),
                 "Leave" => await HandleLeaveAsync(call, context, cancellationToken),
                 "PostMessage" => await HandlePostMessageAsync(call, context, cancellationToken),
+                "ApplyListenAlong" => await HandleApplyListenAlongAsync(call, context, cancellationToken),
                 "GetMessages" => await HandleGetMessagesAsync(call, context, cancellationToken),
                 _ => new ServiceReply
                 {
@@ -88,6 +94,140 @@ public class PodsMeshService : IMeshService
                 CorrelationId = call.CorrelationId,
                 StatusCode = ServiceStatusCodes.UnknownError,
                 ErrorMessage = "Internal error"
+            };
+        }
+    }
+
+    private async Task<ServiceReply> HandleApplyListenAlongAsync(
+        ServiceCall call,
+        MeshServiceContext context,
+        CancellationToken cancellationToken)
+    {
+        if (_listeningPartyService == null)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.ServiceUnavailable,
+                ErrorMessage = "Listen-along state receiver is unavailable"
+            };
+        }
+
+        var (message, error) = ServicePayloadParser.TryParseJson<PodMessage>(call, _maxPayload);
+        if (error != null)
+        {
+            _logger.LogDebug("[PodsMeshService] Invalid ApplyListenAlong payload from {PeerId}: {Error}", context.RemotePeerId, error.ErrorMessage);
+            return error;
+        }
+
+        if (message == null)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.InvalidPayload,
+                ErrorMessage = "Invalid listen-along message"
+            };
+        }
+
+        var bodyByteCount = Encoding.UTF8.GetByteCount(message.Body ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(message.Body) || bodyByteCount > MaxMessageBodyBytes)
+        {
+            _logger.LogDebug(
+                "[PodsMeshService] Invalid listen-along body from {PeerId}: empty={IsEmpty}, bytes={BodyByteCount}, limit={BodyLimit}",
+                context.RemotePeerId,
+                string.IsNullOrWhiteSpace(message.Body),
+                bodyByteCount,
+                MaxMessageBodyBytes);
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.InvalidPayload,
+                ErrorMessage = "Listen-along message body is invalid"
+            };
+        }
+
+        var authenticatedPeerId = context.RemotePeerId.Trim();
+        if (!string.Equals(message.SenderPeerId?.Trim(), authenticatedPeerId, StringComparison.OrdinalIgnoreCase))
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.Forbidden,
+                ErrorMessage = "Listen-along sender does not match the authenticated peer"
+            };
+        }
+
+        var podId = message.PodId?.Trim();
+        var channelId = message.ChannelId?.Trim();
+        if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(channelId))
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.InvalidPayload,
+                ErrorMessage = "Pod and channel are required"
+            };
+        }
+
+        var member = await GetMemberAsync(podId, context, cancellationToken);
+        if (member == null || member.IsBanned)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.Forbidden,
+                ErrorMessage = "Active pod membership is required"
+            };
+        }
+
+        if (await _podService.GetChannelAsync(podId, channelId, cancellationToken) == null)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.ServiceNotFound,
+                ErrorMessage = "Pod channel not found"
+            };
+        }
+
+        try
+        {
+            var result = await _listeningPartyService.ApplyRemoteMessageAsync(message, authenticatedPeerId, cancellationToken);
+            if (result == ListeningPartyRemoteApplyResult.Forbidden)
+            {
+                return new ServiceReply
+                {
+                    CorrelationId = call.CorrelationId,
+                    StatusCode = ServiceStatusCodes.Forbidden,
+                    ErrorMessage = "Active pod membership is required"
+                };
+            }
+
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.OK,
+                Payload = JsonSerializer.SerializeToUtf8Bytes(new { Applied = result == ListeningPartyRemoteApplyResult.Applied }, JsonOptions)
+            };
+        }
+        catch (ArgumentException exception)
+        {
+            _logger.LogDebug(exception, "[PodsMeshService] Rejected invalid listen-along message from {PeerId}", context.RemotePeerId);
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.InvalidPayload,
+                ErrorMessage = "Listen-along message is invalid"
+            };
+        }
+        catch (ListeningPartyRoomNotFoundException)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.ServiceNotFound,
+                ErrorMessage = "Pod channel not found"
             };
         }
     }
@@ -488,7 +628,7 @@ public class PodsMeshService : IMeshService
     private async Task<PodMember?> GetMemberAsync(string podId, MeshServiceContext context, CancellationToken cancellationToken)
     {
         var members = await _podService.GetMembersAsync(podId, cancellationToken);
-        return members.FirstOrDefault(member => string.Equals(member.PeerId, context.RemotePeerId.Trim(), StringComparison.Ordinal));
+        return members.FirstOrDefault(member => string.Equals(member.PeerId, context.RemotePeerId.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
 }

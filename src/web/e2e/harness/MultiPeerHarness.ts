@@ -16,7 +16,7 @@ export class MultiPeerHarness {
   async startNode(
     name: string,
     shareDir: string | string[],
-    flags?: { noConnect?: boolean; radioMesh?: boolean; listenAlongMembers?: boolean },
+    flags?: { noConnect?: boolean; radioMesh?: boolean; listenAlongMembers?: boolean; listenAlongPeers?: string[] },
   ): Promise<SlskdnNode> {
     if (this.nodes.has(name)) {
       throw new Error(`Node ${name} already exists`);

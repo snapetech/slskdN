@@ -5,6 +5,7 @@
 namespace slskd.ListeningParty;
 
 using System.Security.Claims;
+using slskd.PodCore;
 
 public interface IListeningPartyService
 {
@@ -36,4 +37,16 @@ public interface IListeningPartyService
         string partyId,
         string hostSessionId,
         CancellationToken cancellationToken = default);
+
+    Task<ListeningPartyRemoteApplyResult> ApplyRemoteMessageAsync(
+        PodMessage message,
+        string authenticatedPeerId,
+        CancellationToken cancellationToken = default);
+}
+
+public enum ListeningPartyRemoteApplyResult
+{
+    Applied,
+    Ignored,
+    Forbidden,
 }
