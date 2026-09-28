@@ -48,6 +48,7 @@ public sealed class PlayerTagsController : ControllerBase
 
     /// <summary>Updates tags on a local audio file and its collection references.</summary>
     [HttpPut("{contentId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<IActionResult> Update([FromRoute] string contentId, [FromBody] PlayerTagEdit edit, CancellationToken ct)
     {
         if (!_options.CurrentValue.Feature.Streaming) return NotFound();

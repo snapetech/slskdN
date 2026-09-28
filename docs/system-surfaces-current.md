@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-09-28T16:35:50Z
+Generated: 2026-09-28T16:41:44Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -120,7 +120,7 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/SourceFeeds/API/SpotifyConnectionController.cs` | `"api/integrations/spotify"<br>"api/v{version:apiVersion}/integrations/spotify"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 4 |
 | `src/slskd/Streaming/MeshStreamsController.cs` | `"api/v{version:apiVersion}/mesh-streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 2 |
 | `src/slskd/Streaming/PeerStreamsController.cs` | `"api/v{version:apiVersion}/peer-streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 2 |
-| `src/slskd/Streaming/PlayerTagsController.cs` | `"api/v{version:apiVersion}/player-tags"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] | yes | no | 1 |
+| `src/slskd/Streaming/PlayerTagsController.cs` | `"api/v{version:apiVersion}/player-tags"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] | yes | no | 1 |
 | `src/slskd/Streaming/StreamsController.cs` | `"api/v{version:apiVersion}/streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] /// <summary>Stream content by ID. Auth: ?ticket=, ?token=, Authorization: Bearer (share:token), or normal [Authorize]. Single byte-range only; multi-range returns 400.</summary> | yes | yes | 5 |
 | `src/slskd/Telemetry/API/MetricsController.cs` | `"api/v{version:apiVersion}/telemetry/prometheus"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
 | `src/slskd/Telemetry/API/ReportsController.cs` | `"api/v{version:apiVersion}/telemetry/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |

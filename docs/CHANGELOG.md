@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Internal validation
+
+- Player tag writes now repeat the controller's existing administrator-only role on the action; runtime access is unchanged.
+
 ## [2026092816-slskdn.326] — 2026-09-28
 
 ### Failed player startup and decoded seek recovery
