@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1063. Scope Browser Alerts to Their Feature
+
+**The Bug**: The radio browser regression selected every alert on the page. Semantic UI's acquisition-profile selection also uses role=alert, so the locator matched two elements and failed despite the correct directory failure being visible.
+
+**Files Affected**:
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Scope alert locators to their feature or use the exact visible failure text. A whole-page alert role is not a unique error selector in the application shell.
+
 ### 0z1062. Locate Playback Errors Through Rendered Text
 
 **The Bug**: The radio runtime regression guessed a player-playback-error CSS class. PlayerBar renders its failure as a Semantic UI Message without that class, so the selector could not observe the actual error.
