@@ -5340,3 +5340,38 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [ ] Verify and retract prior radio announcements when listing is disabled or a new host replaces the party identity. Backend directory reads currently filter expiry, while explicit removal is in the Stop path; reproduce local and remote directory behavior before fixing.
 
 - [ ] Measure host publication delay and listener position drift under slow responses and background-tab scheduling, alongside sustained CPU/memory/throughput work.
+
+## Room radio directory withdrawal — 2026-09-28
+
+Reproduced stale entries on unlisting, party replacement and Stop with a
+mismatched ID. The service now retracts prior room ownership, guards stale DHT
+refreshes for the announcement lifetime, supports failed-index retries and
+relisting, and serializes same-server index writes. Never-listed playback stays
+independent of directory reads. Gotchas 0z1155 and 0z1156 were committed immediately.
+Full validation and real browser/cross-node directory checks are in progress.
+
+Next Steps remain authenticated distributed room state, host error/auth/lease
+and renewal behavior, sustained resource and throughput evidence, supported
+browser/format/device/accessibility/focus contrast checks, and fixture cleanup.
+Cross-node index conflict resolution is still open. Full player goal is active.
+
+- [ ] Player follow-up: listing and mesh-streaming toggles currently stage settings
+  until Broadcast is clicked again. Make active-host application explicit in the
+  UI or publish owned changes immediately, with failure and concurrency coverage.
+
+### Cross-room withdrawal correction — 2026-09-28
+
+Two stronger negative cases reproduced collateral deletion when a Stop/unlist
+request supplied another active room's ID. Stop now uses current room identity;
+withdrawal removes only the prior listed state, and pending index work belongs
+to the room separately from the 15-minute stale-read guard. Confirmed private
+playback avoids repeated index writes after cleanup. Both concurrent room cases
+preserve the other listing, including repeated Stop. ADR-0020 and gotcha 0z1157
+record the correction. All 30 focused service cases pass; final rebuilt gates
+are required again before source publication.
+
+- [x] 2026-09-28: Complete room-owned radio directory withdrawal, retry/relist,
+  stale-read suppression and same-server index ordering. Validate 13 added
+  service cases and the final 22-case runtime suite; preserve neighboring listings.
+- [ ] Audit ownership of explicitly supplied listed party IDs across rooms and
+  nodes, including collision rejection and distributed index conflict handling.

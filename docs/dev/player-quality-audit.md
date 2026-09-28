@@ -735,3 +735,58 @@ radio unlisting/replacement cleanup, publication delay/drift and sustained
 resources, supported browser/format/device/assistive-technology/focus contrast
 coverage and fixture cleanup. Full player goal remains active. No tag, release
 or deployment is included.
+
+## Radio directory withdrawal — 2026-09-28
+
+Three negative service cases reproduced stale directory entries after unlisting,
+replacement and Stop with a different ID. The fix keeps accepted room state
+and local directory cleanup together, rejects stale refresh resurrection,
+retains withdrawal retries and relisting, and serializes index mutations from
+separate rooms on one server. Ordinary never-listed playback adds no DHT lookup.
+Service race/retry and actual host/two-node runtime coverage are being validated.
+Cross-node DHT index compare-and-swap remains unimplemented; Distributed conflict resolution remains open.
+
+Fixture follow-up evidence: the node harness retains open stdout/stderr file
+handles after successful startup, appends unbounded output strings, appends
+stderr twice outside DEBUG mode, and leaves a five-second force-kill timer after
+normal exit. Async data listeners also leave file-write failures unowned. These
+need deterministic cleanup before using the harness for sustained measurements
+of an entire session. Browser-only samples remain distinct from harness usage.
+
+Ownership review additionally reproduced both live listings disappearing when
+Stop or unlist referenced another room's ID. Cleanup now binds to accepted room
+state; Stop messages use current room identity, and pending cleanup is tracked
+separately from stale-read suppression. Thirteen added service cases cover these
+boundaries and private playback after confirmed withdrawal. ADR-0020 records
+ownership, retries, lifetime and the remaining distributed-index limitation.
+A final build-worker failure (MSB4166) was terminal; its diagnostic directory
+was unavailable. Retrying the same source with one build worker succeeded with
+only the two existing support warnings. Its cause remains unknown.
+
+### Final room-directory withdrawal evidence — 2026-09-28
+
+The final corrected source passes all 5,317 unit / 74 smoke / 284 integration
+tests and 1,040 Web tests in 167 files. Thirteen added service cases cover
+withdrawal, stale refreshes, failed-index retry, renewal/relisting, private
+playback after confirmed cleanup, concurrent rooms and preservation of another
+room's listing on mismatched/repeated Stop or unlist.
+
+The complete final rebuilt browser suite passes all 22 cases in 5.3 minutes.
+Actual host API actions unlist/relist/replace/Stop while preserving a second
+listed room. Actual two-node TLS directory reads observe unlisting, relisting,
+replacement and Stop without a party ID. Final browser metadata reports passed
+with no failed tests; the expanded 320-pixel host screenshot was inspected.
+Retained node logs contain no quota disconnect or public DHT startup.
+
+Repository/Web lint, final Release, controller/fetch CSRF, anonymous endpoint,
+identity and whitespace gates pass. Both new release fragments validate. One
+terminal MSBuild worker failure was retried successfully with one worker;
+its cause remains unknown. Release retains the two existing support warnings.
+Fixture file-handle warnings remain tracked, and short trace-enabled browser
+samples do not establish sustained performance.
+
+The room-directory task is complete. Next Steps: active-host settings application,
+fixture lifecycle cleanup, authenticated distributed room state and index
+conflict handling, host error/auth/lease/renewal behavior, sustained resources
+and throughput, supported browser/format/device/accessibility/focus contrast
+coverage. The full player goal remains active.

@@ -14159,3 +14159,72 @@ radio unlisting/replacement cleanup, publication delay/drift and sustained
 resources, supported browser/format/device/assistive-technology/focus contrast
 coverage and fixture cleanup. Full player goal remains active. No tag, release
 or deployment is included.
+
+## Room radio directory withdrawal — 2026-09-28
+
+Reproduced stale entries on unlisting, party replacement and Stop with a
+mismatched ID. The service now retracts prior room ownership, guards stale DHT
+refreshes for the announcement lifetime, supports failed-index retries and
+relisting, and serializes same-server index writes. Never-listed playback stays
+independent of directory reads. Gotchas 0z1155 and 0z1156 were committed immediately.
+Full validation and real browser/cross-node directory checks are in progress.
+
+Next Steps remain authenticated distributed room state, host error/auth/lease
+and renewal behavior, sustained resource and throughput evidence, supported
+browser/format/device/accessibility/focus contrast checks, and fixture cleanup.
+Cross-node index conflict resolution is still open. Full player goal is active.
+
+### Final backend and build gates — 2026-09-28
+
+The corrected source passes all 5,316 unit / 74 smoke / 284 integration tests,
+including 29 listening-party service cases. The 12 new cases cover withdrawal,
+stale reads, failed-index retries, same-ID renewal/relisting, unrelated private
+rooms and concurrent room index updates. All 1,040 Web tests in 167 files and
+repository/Web lint pass. Final Release has zero errors and the two existing
+build-task dependency support warnings. Controller/fetch CSRF, anonymous endpoint,
+identity, whitespace and fragment validation pass. The first browser run passed
+all 22 cases in 4.9 minutes; the complete run against the final rebuilt source
+is now active. Browser TypeScript fixtures are exercised by Playwright; they
+are excluded by the Web ESLint configuration.
+
+The full player goal remains active. Source publication awaits the final rebuilt
+runtime results and exact-range release preview.
+
+### Cross-room withdrawal correction — 2026-09-28
+
+Two stronger negative cases reproduced collateral deletion when a Stop/unlist
+request supplied another active room's ID. Stop now uses current room identity;
+withdrawal removes only the prior listed state, and pending index work belongs
+to the room separately from the 15-minute stale-read guard. Confirmed private
+playback avoids repeated index writes after cleanup. Both concurrent room cases
+preserve the other listing, including repeated Stop. ADR-0020 and gotcha 0z1157
+record the correction. All 30 focused service cases pass; final rebuilt gates
+are required again before source publication.
+
+### Final room-directory withdrawal evidence — 2026-09-28
+
+The final corrected source passes all 5,317 unit / 74 smoke / 284 integration
+tests and 1,040 Web tests in 167 files. Thirteen added service cases cover
+withdrawal, stale refreshes, failed-index retry, renewal/relisting, private
+playback after confirmed cleanup, concurrent rooms and preservation of another
+room's listing on mismatched/repeated Stop or unlist.
+
+The complete final rebuilt browser suite passes all 22 cases in 5.3 minutes.
+Actual host API actions unlist/relist/replace/Stop while preserving a second
+listed room. Actual two-node TLS directory reads observe unlisting, relisting,
+replacement and Stop without a party ID. Final browser metadata reports passed
+with no failed tests; the expanded 320-pixel host screenshot was inspected.
+Retained node logs contain no quota disconnect or public DHT startup.
+
+Repository/Web lint, final Release, controller/fetch CSRF, anonymous endpoint,
+identity and whitespace gates pass. Both new release fragments validate. One
+terminal MSBuild worker failure was retried successfully with one worker;
+its cause remains unknown. Release retains the two existing support warnings.
+Fixture file-handle warnings remain tracked, and short trace-enabled browser
+samples do not establish sustained performance.
+
+The room-directory task is complete. Next Steps: active-host settings application,
+fixture lifecycle cleanup, authenticated distributed room state and index
+conflict handling, host error/auth/lease/renewal behavior, sustained resources
+and throughput, supported browser/format/device/accessibility/focus contrast
+coverage. The full player goal remains active.

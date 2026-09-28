@@ -384,3 +384,24 @@ controls use larger touch targets. Visual mode buttons are available through
 Play; without a track, focus returns to the visual tile. Rating and visual-mode
 buttons expose their selected state. Space activates a focused rating without
 pausing playback; selecting the same rating again clears it.
+
+### Withdrawing a listed room broadcast
+
+Publishing again with listing turned off withdraws the room from the radio directory while keeping
+its room playback state. Replacing the broadcast identity withdraws the previous
+entry. Stop also removes the current room's entry when a client omits its party
+ID. Another node learns the change on its next directory refresh; the Refresh
+control requests an update with the existing short debounce.
+
+If a directory write fails, retry the action. The hosting server retains the
+withdrawal for the announcement's 15-minute lifetime so an older refresh cannot
+restore that listing locally. Relisting the same party ID is supported.
+Concurrent room updates on one server are serialized for the shared directory
+index. The DHT index still lacks distributed compare-and-swap between separate
+servers; this change does not establish cross-node conflict resolution.
+
+Cleanup uses the accepted room's broadcast identity. Supplying a different
+room's party ID to Stop or unlist does not remove that room's listing. Once
+withdrawal succeeds, subsequent private playback does not keep rewriting the
+index; retained suppression protects against stale reads without a poller.
+See [ADR-0020](../memory-bank/decisions/adr-0020-room-radio-directory-withdrawal.md) for the ownership and retry design.

@@ -163,6 +163,35 @@ test.describe('listed radio between isolated nodes', () => {
     await page.getByRole('button', { name: 'Refresh listed radio' }).click();
     await expect(page.getByRole('button', { name: 'Play Radio network tone from listed radio' })).toBeDisabled();
 
+    const remotePartyIds = async () => {
+      const response = await request.get(`${listener.apiUrl}/api/v0/listening-party?refresh=true`, { headers: listenerHeaders });
+      expect(response.ok()).toBe(true);
+      return (await response.json()).map((party: { partyId: string }) => party.partyId).sort();
+    };
+    const unlist = await request.post(`${host.apiUrl}/api/v0/listening-party/${radioPod}/music`, {
+      headers: hostHeaders,
+      data: { partyId: 'network-radio', action: 'play', contentId: item.contentId, listed: false },
+    });
+    expect(unlist.ok(), await unlist.text()).toBe(true);
+    await expect.poll(remotePartyIds, { intervals: [500, 1000, 2000] }).toEqual([]);
+    const relist = await request.post(`${host.apiUrl}/api/v0/listening-party/${radioPod}/music`, {
+      headers: hostHeaders,
+      data: { partyId: 'network-radio', action: 'play', contentId: item.contentId, listed: true },
+    });
+    expect(relist.ok(), await relist.text()).toBe(true);
+    await expect.poll(remotePartyIds, { intervals: [500, 1000, 2000] }).toEqual(['network-radio']);
+    const replacement = await request.post(`${host.apiUrl}/api/v0/listening-party/${radioPod}/music`, {
+      headers: hostHeaders,
+      data: { partyId: 'network-radio-replacement', action: 'play', contentId: item.contentId, listed: true },
+    });
+    expect(replacement.ok(), await replacement.text()).toBe(true);
+    await expect.poll(remotePartyIds, { intervals: [500, 1000, 2000] }).toEqual(['network-radio-replacement']);
+    const stopReplacement = await request.post(`${host.apiUrl}/api/v0/listening-party/${radioPod}/music`, {
+      headers: hostHeaders, data: { action: 'stop' },
+    });
+    expect(stopReplacement.ok(), await stopReplacement.text()).toBe(true);
+    await expect.poll(remotePartyIds, { intervals: [500, 1000, 2000] }).toEqual([]);
+
     // The original host has only the inbound TLS link. Its directory must still
     // learn a publication sent in the opposite direction without another connect.
     const reverseLibrary = await request.get(`${listener.apiUrl}/api/v0/library/items/browser?query=Reverse%20radio%20tone&kinds=Audio`, { headers: listenerHeaders });

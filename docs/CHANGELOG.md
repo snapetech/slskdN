@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Room-owned radio directory cleanup
+
+- Withdraw prior radio entries when a room is unlisted, replaced or stopped; preserve another room's listing when a client supplies its ID.
+- Guard against stale refreshes, retry failed index writes, and preserve concurrent room updates from one server.
+- Keep private playback independent of directory work after confirmed cleanup; cross-node index conflict handling remains open.
+
+
 ### Ongoing room host controls
 
 - Keep explicitly started broadcasts synchronized with Play, Pause, Seek and server track changes across navigation.

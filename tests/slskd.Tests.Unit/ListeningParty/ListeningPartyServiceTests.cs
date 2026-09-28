@@ -427,6 +427,181 @@ public sealed class ListeningPartyServiceTests
         Assert.Null(await service.GetStateAsync("pod-a", "music"));
     }
 
+    [Theory]
+    [InlineData("unlist", false, false)]
+    [InlineData("replace", false, false)]
+    [InlineData("stop", false, false)]
+    [InlineData("unlist", true, false)]
+    [InlineData("replace", true, false)]
+    [InlineData("stop", true, false)]
+    [InlineData("unlist", false, true)]
+    [InlineData("replace", false, true)]
+    [InlineData("stop", false, true)]
+    [InlineData("renew", false, false)]
+    [InlineData("renew", true, false)]
+    public async Task Publish_WithdrawsPreviousRoomListing(string change, bool staleRefresh, bool failedIndexWrite)
+    {
+        var values = new System.Collections.Concurrent.ConcurrentDictionary<string, byte[]>();
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string key, CancellationToken token) => values.TryGetValue(key, out var value) ? value : null);
+        dht.Setup(instance => instance.PutAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback((string key, object value, int ttl, CancellationToken token) => values[key] = (byte[])value);
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        var service = new ListeningPartyService(Mock.Of<IHubContext<ListeningPartyHub>>(), dht.Object, router.Object,
+            provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(), Mock.Of<IStreamTicketService>(),
+            Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+        var initial = await service.PublishAsync(new ListeningPartyEvent
+        {
+            PartyId = "party-a",
+            PodId = "pod-a",
+            ChannelId = "music",
+            ContentId = "track",
+            HostPeerId = "host",
+            Action = "play",
+            Listed = true,
+        });
+        Assert.Equal("party-a", Assert.Single(await CreateService(dht.Object).ListDirectoryAsync()).PartyId);
+        var readStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var readRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (staleRefresh)
+        {
+            dht.Setup(instance => instance.GetRawAsync(PartyKey, It.IsAny<CancellationToken>()))
+                .Returns(async () =>
+                {
+                    var snapshot = values[PartyKey];
+                    readStarted.TrySetResult();
+                    await readRelease.Task;
+                    return snapshot;
+                });
+        }
+
+        var refresh = staleRefresh ? service.RefreshDirectoryAsync() : null;
+        if (refresh != null)
+        {
+            await readStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        var update = initial with
+        {
+            PartyId = change is "unlist" or "renew" ? "party-a" : "party-b",
+            Title = "Updated title",
+            Action = change == "stop" ? "stop" : "play",
+            Listed = change != "unlist",
+        };
+        if (failedIndexWrite)
+        {
+            dht.Setup(instance => instance.PutAsync(DirectoryIndexKey, It.IsAny<object>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("Index unavailable"));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.PublishAsync(update));
+            Assert.DoesNotContain(await service.RefreshDirectoryAsync(), item => item.PartyId == "party-a");
+            dht.Setup(instance => instance.PutAsync(DirectoryIndexKey, It.IsAny<object>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Callback((string key, object value, int ttl, CancellationToken token) => values[key] = (byte[])value)
+                .Returns(Task.CompletedTask);
+        }
+
+        await service.PublishAsync(update);
+        readRelease.TrySetResult();
+        if (refresh != null)
+        {
+            await refresh.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        var expected = change == "replace" ? new[] { "party-b" } : change == "renew" ? new[] { "party-a" } : Array.Empty<string>();
+        Assert.Equal(expected, (await service.RefreshDirectoryAsync()).Select(item => item.PartyId));
+        Assert.Equal(expected, (await CreateService(dht.Object).ListDirectoryAsync()).Select(item => item.PartyId));
+        if (change == "renew")
+        {
+            Assert.Equal("Updated title", Assert.Single(await service.ListDirectoryAsync()).Title);
+        }
+
+        if (change == "unlist")
+        {
+            var reads = dht.Invocations.Count(call => call.Method.Name == nameof(IMeshDhtClient.GetRawAsync) && Equals(call.Arguments[0], DirectoryIndexKey));
+            await service.PublishAsync(update with { Action = "pause" });
+            Assert.Equal(reads, dht.Invocations.Count(call => call.Method.Name == nameof(IMeshDhtClient.GetRawAsync) && Equals(call.Arguments[0], DirectoryIndexKey)));
+            await service.PublishAsync(initial with { PartyId = "private-room", ChannelId = "private", Listed = false });
+            Assert.Equal(reads, dht.Invocations.Count(call => call.Method.Name == nameof(IMeshDhtClient.GetRawAsync) && Equals(call.Arguments[0], DirectoryIndexKey)));
+            await service.PublishAsync(initial);
+            Assert.Equal("party-a", Assert.Single(await service.RefreshDirectoryAsync()).PartyId);
+            Assert.Equal("party-a", Assert.Single(await CreateService(dht.Object).ListDirectoryAsync()).PartyId);
+        }
+    }
+
+    [Theory]
+    [InlineData("stop")]
+    [InlineData("unlist")]
+    public async Task Publish_ConcurrentRoomsPreserveBothDirectoryEntries(string change)
+    {
+        var values = new System.Collections.Concurrent.ConcurrentDictionary<string, byte[]>();
+        var firstIndexWrite = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFirstWrite = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondAnnouncement = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var indexReads = 0;
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string key, CancellationToken token) =>
+            {
+                if (key == DirectoryIndexKey)
+                {
+                    Interlocked.Increment(ref indexReads);
+                }
+
+                return values.TryGetValue(key, out var value) ? value : null;
+            });
+        dht.Setup(instance => instance.PutAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(async (string key, object value, int ttl, CancellationToken token) =>
+            {
+                if (key == DirectoryIndexKey && !firstIndexWrite.Task.IsCompleted)
+                {
+                    firstIndexWrite.TrySetResult();
+                    await releaseFirstWrite.Task.WaitAsync(token);
+                }
+
+                values[key] = (byte[])value;
+                if (key == "slskdn:listening-party:party:party-b")
+                {
+                    secondAnnouncement.TrySetResult();
+                }
+            });
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        var service = new ListeningPartyService(Mock.Of<IHubContext<ListeningPartyHub>>(), dht.Object, router.Object,
+            provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(), Mock.Of<IStreamTicketService>(),
+            Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+        var initial = new ListeningPartyEvent
+        {
+            PartyId = "party-a",
+            PodId = "pod-a",
+            ChannelId = "music",
+            ContentId = "track",
+            HostPeerId = "host",
+            Action = "play",
+            Listed = true,
+        };
+        var first = service.PublishAsync(initial);
+        await firstIndexWrite.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var second = service.PublishAsync(initial with { PartyId = "party-b", ChannelId = "other" });
+        await secondAnnouncement.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, Volatile.Read(ref indexReads));
+        releaseFirstWrite.TrySetResult();
+        await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(new[] { "party-a", "party-b" }, (await CreateService(dht.Object).ListDirectoryAsync()).Select(item => item.PartyId).Order());
+        await service.PublishAsync(initial with { PartyId = "party-b", Action = change == "stop" ? "stop" : "play", Listed = false });
+        Assert.Equal("party-b", Assert.Single(await CreateService(dht.Object).ListDirectoryAsync()).PartyId);
+        await service.PublishAsync(initial with { PartyId = "party-b", Action = "stop", Listed = false });
+        Assert.Equal("party-b", Assert.Single(await CreateService(dht.Object).ListDirectoryAsync()).PartyId);
+    }
+
     private static IPodService AvailableRooms()
     {
         var pods = new Mock<IPodService>();

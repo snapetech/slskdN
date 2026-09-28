@@ -20,7 +20,7 @@ using slskd.Streaming;
 /// <summary>
 ///     Stores and publishes metadata-only listen-along state for pods.
 /// </summary>
-public sealed class ListeningPartyService : IListeningPartyService
+public sealed class ListeningPartyService : IListeningPartyService, IDisposable
 {
     private const int AnnouncementTtlSeconds = 900;
     private const string DirectoryIndexKey = "slskdn:listening-party:index:v1";
@@ -38,6 +38,12 @@ public sealed class ListeningPartyService : IListeningPartyService
     private readonly Microsoft.Extensions.Options.IOptionsMonitor<Options> _options;
     private readonly ConcurrentDictionary<string, ListeningPartyEvent> _states = new();
     private readonly ConcurrentDictionary<string, ListeningPartyAnnouncement> _directory = new();
+
+    // Directory ownership, withdrawal lifetime and same-server index ordering: ADR-0020.
+    private readonly object _directoryStateLock = new();
+    private readonly Dictionary<string, (string RoomKey, long ExpiresAt)> _withdrawnListings = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _pendingDirectoryWithdrawals = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim _directoryIndexGate = new(1, 1);
     private readonly object _directoryRefreshLock = new();
     private Task? _directoryRefreshTask;
     private DateTimeOffset _directoryLastRefreshedAt;
@@ -296,6 +302,10 @@ public sealed class ListeningPartyService : IListeningPartyService
     {
         var normalized = Normalize(partyEvent);
         var key = StateKey(normalized.PodId, normalized.ChannelId);
+        if (normalized.Action == "stop" && _states.TryGetValue(key, out var current))
+        {
+            normalized = normalized with { PartyId = current.PartyId };
+        }
 
         var message = new PodMessage
         {
@@ -326,28 +336,54 @@ public sealed class ListeningPartyService : IListeningPartyService
             throw new ListeningPartyStorageException();
         }
 
-        if (normalized.Action == "stop")
+        bool updateIndex;
+        lock (_directoryStateLock)
         {
-            _states.TryRemove(key, out _);
-            _nowPlaying.Clear();
-            if (!string.IsNullOrWhiteSpace(normalized.PartyId))
+            PruneWithdrawnListings();
+            if (_states.TryGetValue(key, out var previous) && previous.Listed &&
+                (normalized.Action == "stop" || !normalized.Listed || previous.PartyId != normalized.PartyId))
             {
-                _directory.TryRemove(normalized.PartyId, out _);
-                await UpdateDirectoryIndexAsync(normalized.PartyId, add: false, cancellationToken);
-            }
-        }
-        else
-        {
-            _states[key] = normalized;
-            if (normalized.Action == "play" && !string.IsNullOrWhiteSpace(normalized.Artist) && !string.IsNullOrWhiteSpace(normalized.Title))
-            {
-                _nowPlaying.SetTrack(normalized.Artist, normalized.Title, normalized.Album);
+                WithdrawListing(previous.PartyId, key);
             }
 
-            if (normalized.Listed)
+            if (normalized.Action != "stop" && normalized.Listed)
             {
-                await PublishAnnouncementAsync(normalized, cancellationToken);
+                _withdrawnListings.Remove(normalized.PartyId);
             }
+
+            updateIndex = _pendingDirectoryWithdrawals.Contains(key);
+
+            if (normalized.Action == "stop")
+            {
+                _states.TryRemove(key, out _);
+            }
+            else
+            {
+                _states[key] = normalized;
+            }
+        }
+
+        if (normalized.Action == "stop")
+        {
+            _nowPlaying.Clear();
+        }
+        else if (normalized.Action == "play" && !string.IsNullOrWhiteSpace(normalized.Artist) && !string.IsNullOrWhiteSpace(normalized.Title))
+        {
+            _nowPlaying.SetTrack(normalized.Artist, normalized.Title, normalized.Album);
+        }
+
+        if (normalized.Action != "stop" && normalized.Listed)
+        {
+            await PublishAnnouncementAsync(normalized, cancellationToken);
+        }
+        else if (updateIndex)
+        {
+            await UpdateDirectoryIndexAsync(normalized.PartyId, add: false, cancellationToken);
+        }
+
+        lock (_directoryStateLock)
+        {
+            _pendingDirectoryWithdrawals.Remove(key);
         }
 
         var routing = await _messageRouter.RouteMessageAsync(message, cancellationToken);
@@ -363,7 +399,7 @@ public sealed class ListeningPartyService : IListeningPartyService
 
     private async Task PublishAnnouncementAsync(ListeningPartyEvent partyEvent, CancellationToken cancellationToken)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = _timeProvider.GetUtcNow();
         var streamTicket = partyEvent.AllowMeshStreaming
             ? _streamTickets.Create(
                 partyEvent.ContentId,
@@ -396,7 +432,11 @@ public sealed class ListeningPartyService : IListeningPartyService
             ExpiresAtUnixMs = now.AddSeconds(AnnouncementTtlSeconds).ToUnixTimeMilliseconds(),
         };
 
-        _directory[announcement.PartyId] = announcement;
+        lock (_directoryStateLock)
+        {
+            _directory[announcement.PartyId] = announcement;
+        }
+
         await _dht.PutAsync(AnnouncementKey(announcement.PartyId), Serialize(announcement), AnnouncementTtlSeconds, cancellationToken);
         await UpdateDirectoryIndexAsync(announcement.PartyId, add: true, cancellationToken);
     }
@@ -410,10 +450,14 @@ public sealed class ListeningPartyService : IListeningPartyService
         }
 
         var indexed = index.PartyIds.ToHashSet(StringComparer.Ordinal);
-        var local = _states.Values.Where(state => state.Listed).Select(state => state.PartyId).ToHashSet(StringComparer.Ordinal);
-        foreach (var partyId in _directory.Keys.Where(partyId => !indexed.Contains(partyId) && !local.Contains(partyId)))
+        lock (_directoryStateLock)
         {
-            _directory.TryRemove(partyId, out _);
+            PruneWithdrawnListings();
+            var local = _states.Values.Where(state => state.Listed).Select(state => state.PartyId).ToHashSet(StringComparer.Ordinal);
+            foreach (var partyId in _directory.Keys.Where(partyId => !indexed.Contains(partyId) && !local.Contains(partyId)))
+            {
+                _directory.TryRemove(partyId, out _);
+            }
         }
 
         foreach (var partyId in index.PartyIds)
@@ -421,38 +465,83 @@ public sealed class ListeningPartyService : IListeningPartyService
             var announcement = await GetAsync<ListeningPartyAnnouncement>(AnnouncementKey(partyId), cancellationToken);
             if (announcement != null)
             {
-                _directory[announcement.PartyId] = announcement;
+                lock (_directoryStateLock)
+                {
+                    // Recheck after the await: a publication may have withdrawn or renewed this listing.
+                    if (!_withdrawnListings.ContainsKey(announcement.PartyId) &&
+                        !_states.Values.Any(state => state.Listed && state.PartyId == announcement.PartyId))
+                    {
+                        _directory[announcement.PartyId] = announcement;
+                    }
+                }
             }
         }
     }
 
     private async Task UpdateDirectoryIndexAsync(string partyId, bool add, CancellationToken cancellationToken)
     {
-        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var index = await GetAsync<ListeningPartyIndex>(DirectoryIndexKey, cancellationToken) ?? new ListeningPartyIndex();
-        var partyIds = index.PartyIds
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-
-        if (add && !partyIds.Contains(partyId, StringComparer.Ordinal))
+        await _directoryIndexGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            partyIds.Add(partyId);
-        }
-        else if (!add)
-        {
-            partyIds.RemoveAll(x => string.Equals(x, partyId, StringComparison.Ordinal));
-        }
-
-        await _dht.PutAsync(
-            DirectoryIndexKey,
-            Serialize(new ListeningPartyIndex
+            var index = await GetAsync<ListeningPartyIndex>(DirectoryIndexKey, cancellationToken) ?? new ListeningPartyIndex();
+            List<string> partyIds;
+            lock (_directoryStateLock)
             {
-                PartyIds = partyIds,
-                UpdatedAtUnixMs = now,
-            }),
-            AnnouncementTtlSeconds,
-            cancellationToken);
+                PruneWithdrawnListings();
+                partyIds = index.PartyIds
+                    .Where(id => !string.IsNullOrWhiteSpace(id) && !_withdrawnListings.ContainsKey(id))
+                    .Distinct(StringComparer.Ordinal)
+                    .ToList();
+            }
+
+            if (add && !partyIds.Contains(partyId, StringComparer.Ordinal))
+            {
+                partyIds.Add(partyId);
+            }
+
+            await _dht.PutAsync(
+                DirectoryIndexKey,
+                Serialize(new ListeningPartyIndex
+                {
+                    PartyIds = partyIds,
+                    UpdatedAtUnixMs = _timeProvider.GetUtcNow().ToUnixTimeMilliseconds(),
+                }),
+                AnnouncementTtlSeconds,
+                cancellationToken);
+        }
+        finally
+        {
+            _directoryIndexGate.Release();
+        }
+    }
+
+    // Called under _directoryStateLock; keep withdrawals for the announcement lifetime
+    // so an older in-flight DHT refresh cannot resurrect an explicitly removed listing.
+    private void WithdrawListing(string partyId, string roomKey)
+    {
+        _withdrawnListings[partyId] = (roomKey, _timeProvider.GetUtcNow().AddSeconds(AnnouncementTtlSeconds).ToUnixTimeMilliseconds());
+        _pendingDirectoryWithdrawals.Add(roomKey);
+        _directory.TryRemove(partyId, out _);
+    }
+
+    public void Dispose()
+    {
+        _directoryIndexGate.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    private void PruneWithdrawnListings()
+    {
+        var now = _timeProvider.GetUtcNow().ToUnixTimeMilliseconds();
+        foreach (var partyId in _withdrawnListings.Where(entry => entry.Value.ExpiresAt <= now).Select(entry => entry.Key).ToArray())
+        {
+            var roomKey = _withdrawnListings[partyId].RoomKey;
+            _withdrawnListings.Remove(partyId);
+            if (!_withdrawnListings.Values.Any(entry => entry.RoomKey == roomKey))
+            {
+                _pendingDirectoryWithdrawals.Remove(roomKey);
+            }
+        }
     }
 
     private ListeningPartyEvent Normalize(ListeningPartyEvent partyEvent)

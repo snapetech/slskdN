@@ -145,13 +145,39 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     await expect.poll(async () => (await snapshot())?.partyId).toBeTruthy();
     const reloadedPartyId = (await snapshot()).partyId;
     expect((await directory()).some((entry: { partyId: string }) => entry.partyId === reloadedPartyId)).toBe(true);
+    const listed = await snapshot();
+    const neighbor = await request.post(`${node.apiUrl}/api/v0/pods`, {
+      headers, data: { requestingPeerId: node.nodeCfg.username, pod: { name: 'Protected listed room', visibility: 'Unlisted', isPublic: true, channels: [{ channelId: 'music', name: 'Music' }] } },
+    });
+    expect(neighbor.ok(), await neighbor.text()).toBe(true);
+    const neighborPodId = (await neighbor.json()).podId;
+    const neighborPartyId = `${reloadedPartyId}-neighbor`;
+    const neighborPublication = await request.post(`${node.apiUrl}/api/v0/listening-party/${encodeURIComponent(neighborPodId)}/music`, {
+      headers, data: { ...listed, partyId: neighborPartyId },
+    });
+    expect(neighborPublication.ok(), await neighborPublication.text()).toBe(true);
+    const unlist = await request.post(stateUrl, { headers, data: { ...listed, partyId: neighborPartyId, listed: false } });
+    expect(unlist.ok(), await unlist.text()).toBe(true);
+    expect((await directory()).some((entry: { partyId: string }) => entry.partyId === reloadedPartyId)).toBe(false);
+    expect((await directory()).some((entry: { partyId: string }) => entry.partyId === neighborPartyId)).toBe(true);
+    const relist = await request.post(stateUrl, { headers, data: listed });
+    expect(relist.ok(), await relist.text()).toBe(true);
+    expect((await directory()).some((entry: { partyId: string }) => entry.partyId === reloadedPartyId)).toBe(true);
+    const replacementId = `${reloadedPartyId}-replacement`;
+    const replace = await request.post(stateUrl, { headers, data: { ...listed, partyId: replacementId } });
+    expect(replace.ok(), await replace.text()).toBe(true);
+    const replacedDirectory = await directory();
+    expect(replacedDirectory.some((entry: { partyId: string }) => entry.partyId === reloadedPartyId)).toBe(false);
+    expect(replacedDirectory.some((entry: { partyId: string }) => entry.partyId === replacementId)).toBe(true);
+    expect(replacedDirectory.some((entry: { partyId: string }) => entry.partyId === neighborPartyId)).toBe(true);
     // Reload ends browser ownership; the panel must still stop the existing
     // server broadcast using its actual identity, including directory cleanup.
     await page.reload();
     await expect(page.getByRole('status', { name: 'Listen Along live' })).toBeVisible();
     await page.getByRole('button', { name: 'Stop room broadcast', exact: true }).click();
     await expect.poll(snapshot).toBeNull();
-    expect((await directory()).some((entry: { partyId: string }) => entry.partyId === reloadedPartyId)).toBe(false);
+    expect((await directory()).some((entry: { partyId: string }) => entry.partyId === replacementId)).toBe(false);
+    expect((await directory()).some((entry: { partyId: string }) => entry.partyId === neighborPartyId)).toBe(true);
     expect(publications).toBeLessThan(40);
     await testInfo.attach('host-publication-count', { body: JSON.stringify({ publications }), contentType: 'application/json' });
   } finally {
