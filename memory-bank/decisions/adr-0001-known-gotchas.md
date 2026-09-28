@@ -4,6 +4,23 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1205. Use The Authenticated Identity For Pod Join Assertions
+
+**What went wrong:** The cross-node listen-along E2E test supplied `nodeB` in
+the join request body and expected that spelling in the member list. The join
+endpoint binds membership to the authenticated API-key identity, and the
+fixture's configured identity was returned as `nodeb`, so an assertion against
+the request body's value failed.
+
+**Why:** A request DTO field is not necessarily the identity used by an
+authorization boundary. Pod membership and access checks use the authenticated
+principal, and exact peer identity comparisons are intentional.
+
+**Prevention:** Read the member identity from the authenticated principal or
+the resulting membership record. Keep that exact value consistent in later
+membership, ban and message-routing assertions; do not infer it from a body
+field or compare peer identities case-insensitively.
+
 ### 0z1202. Use One Authentication Identity Per Mesh E2E Request
 
 **What went wrong:** A two-node test sent both a node's session bearer token and
