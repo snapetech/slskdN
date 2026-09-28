@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1077. Model Missing DHT Records as Null in Publish Tests
+
+**The Bug**: The new announcement publish regression left GetRawAsync unconfigured. Moq returned an empty byte array, which is invalid JSON, rather than the null returned for a missing directory index.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/ListeningParty/ListeningPartyServiceTests.cs`
+
+**Prevention**: Configure missing raw DHT records as null explicitly before testing publication and index creation. Do not change production parsing to accommodate an inaccurate mock.
+
 ### 0z1076. Resolve Filtered Command Log Paths from the Shell Directory
 
 **The Bug**: A filtered browser command redirected to a path relative to the web package, but shell redirection is resolved from the checkout root before pnpm changes package context. The log directory did not exist and the browser run never started.
