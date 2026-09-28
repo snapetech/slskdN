@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1090. Freeze Time in Directory Refresh Rate Tests
+
+**The Bug**: The forced-refresh test assumed its two-second cooldown could not expire while awaiting a shared result. Under the full suite's CPU load the continuation took fifteen seconds, allowing a valid third refresh that exhausted the mock sequence.
+
+**Prevention**: Inject the standard TimeProvider for refresh timestamps and freeze it in cooldown tests. Advance time explicitly when testing expiry; never use scheduler speed as evidence that a cooldown remains active.
+
 ### 0z1089. Surface Initial Radio Read Failure Before Sending the Audio Response
 
 **The Bug**: Radio leases were returned before their first peer read completed. A revoked host then failed inside FileStreamResult execution, producing an internal 500 instead of an expected unavailable response.
