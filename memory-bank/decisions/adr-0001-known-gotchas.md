@@ -6,6 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1064. Keep Radio Failures Out of Local Decode Probing
+
+**The Bug**: A failed custom radio URL triggered a local-library playback-info request and produced an unrelated 404. A regression with a radio content ID matching an indexed fixture also exposed the risk of offering local decoding for a custom stream.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Probe on-demand local decoding only for server-library playback without a supplied stream URL. Retry a radio stream through its own source, and verify failed radio playback causes no local decode metadata request.
+
 ### 0z1063. Scope Browser Alerts to Their Feature
 
 **The Bug**: The radio browser regression selected every alert on the page. Semantic UI's acquisition-profile selection also uses role=alert, so the locator matched two elements and failed despite the correct directory failure being visible.
