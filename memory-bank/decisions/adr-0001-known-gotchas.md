@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1174. Recheck Process Identity After Reading Memory
+
+**The Bug**: The new OS-tree collector used start time to guard CPU deltas but trusted a later PSS read by PID alone. A deterministic negative case replaced the process identity during memory sampling; the collector incorrectly charged the replacement process's memory.
+
+**Prevention**: Read stat again after PSS and require the same PID/start-time identity. Count changed or missing identity as unavailable memory instead of a valid or zero reading. Bound both stat and memory reads to 32 concurrent operations. Keep the race regression before connecting the collector to live measurements.
+
 ### 0z1173. Report Active Media Failures to Broadcast Followers
 
 **The Bug**: Two negative regressions showed that active native and decoded media errors set local error state without reporting stopped playback. A decode error need not emit a pause event, so an active host could leave followers with a playing snapshot. Decoded positions also need their source offset.
