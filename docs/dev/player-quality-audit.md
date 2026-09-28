@@ -670,3 +670,68 @@ authenticated distributed room state and renewal; sustained resources and
 throughput; supported browser/format/device/assistive-technology and focus
 contrast validation; fixture cleanup. The full player goal remains active.
 No tag, release or deployment is included.
+
+## Persistent room host controls — 2026-09-28
+
+PlayerProvider now owns an explicitly started host session through a dedicated
+React hook. The panel delegates publication; Play/Pause/Seek and loaded-track
+events publish mapped positions across navigation. Paused seeks preserve Pause.
+One active request and one coalesced pending update bound work; a monotonic
+250-millisecond interval limits publication without periodic position polling.
+Stop follows in-flight work, failed queued requests reject, and Follow requires
+a confirmed host Stop. Existing room connections and server authorization are
+reused. Revocation, replacement, ended broadcast, local Stop, hide and unshareable
+source selection release ownership. Persistent Retry/Stop controls expose failure.
+
+All 1,036 Web tests in 167 files and 5,304 unit / 74 smoke / 284 integration
+tests pass. Repository/Web lint, frontend/Release builds and bundle/output gates
+pass before the new real two-browser workflow. Focused and complete browser
+evidence remains pending. ADR-0019 and gotchas 0z1149–0z1151 record ownership,
+Stop acknowledgment and publication-frequency decisions.
+
+This does not establish authenticated cross-node delivery, long capability or
+server lease renewal/cleanup, sustained resources, browser/format/device/assistive
+coverage, focus contrast or fixture cleanup. Those remain open; full player goal
+remains active. No release tag or deployment is included.
+
+### Host publication identity and compact-mode checks — 2026-09-28
+
+The complete pre-polish gate passed all 22 cases. Strengthened actual host
+workflows then passed compact broadcasting feedback, collapse/expand ownership,
+Tools closure and full title/Stop bounds at 320 pixels. A clean screenshot was
+inspected without popups. The listed-radio workflow also verifies directory
+removal after both retained-host Stop and reload/manual Stop.
+
+Review repaired lost observed party identity: new host sessions seed from the
+room snapshot, and unknown explicit Stop identity uses one abortable snapshot
+inside the owned writer. Manual Stop of an unowned room no longer detaches a
+different followed room. Gotchas 0z1152–0z1154 record these corrections. Final
+rebuilt complete runtime and updated Web gates are running before publication.
+The full player goal remains active; remaining scope is unchanged.
+
+### Final persistent-host gates — 2026-09-28
+
+The final source passes all 1,040 Web tests in 167 files and the rebuilt complete
+22-case runtime suite in 5.2 minutes. Actual two-browser hosting covers SPA
+navigation, Pause, paused/playing Seek, steady playback without extra
+publications, track replacement with stable party identity, compact ownership
+text fitting at 320 pixels, title/44-pixel Stop bounds with Tools closed, and
+Stop that leaves host audio available while ending listener following. Listed
+directory entries are removed by retained-host Stop and reload/manual Stop.
+Clean compact and expanded screenshots were inspected. Final runtime metadata
+reports passed with no failed tests.
+
+The backend gate passes 5,304 unit / 74 smoke / 284 integration tests. Repository
+and Web lint, frontend/Release builds, bundle/output, controller/fetch CSRF,
+anonymous endpoint, local identity and whitespace gates pass. The final bundle
+remains 94 assets / 3.68 MB with its lazy visualizer exception. Release retains
+two existing dependency support warnings. Retained nodes show no quota
+disconnect or public DHT startup. Fixture file-handle GC warnings remain open;
+trace-enabled samples do not establish sustained resource performance.
+
+This host-control batch is complete for validated source publication. Next Steps:
+media-error/auth/lease/renewal behavior, authenticated distributed room state,
+radio unlisting/replacement cleanup, publication delay/drift and sustained
+resources, supported browser/format/device/assistive-technology/focus contrast
+coverage and fixture cleanup. Full player goal remains active. No tag, release
+or deployment is included.

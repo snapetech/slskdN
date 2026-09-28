@@ -39,12 +39,34 @@ Following an already paused room selects the host track at its paused position. 
 If a host Pause arrives while the listener is still obtaining a stream ticket, the player cancels the pending start so the track remains paused when its source becomes ready.
 After a connection interruption, a follower rejoins the room and refreshes the host's current state before continuing.
 Following continues when navigating to other pages or rooms within the app. Returning to the followed room restores its selected Follow control and reuses the same connection. Other rooms show Follow as off; their access changes do not affect the followed room. Access revocation in the followed room stops its playback and requires an explicit authorized retry. The player displays connection feedback while its room panel is offscreen.
-Following an empty room waits for its first broadcast. At most two room connections are kept: the viewed room and the followed room. Connections close when neither a panel nor following needs them. Reloading the page starts a new session and does not restore network following automatically.
+Following an empty room waits for its first broadcast. At most two room connections are kept: the viewed room and one retained followed or hosted room. Connections close when neither a panel nor retained player ownership needs them. Reloading the page starts a new session and does not restore network following automatically.
 Pressing Stop or choosing another track in the local player also leaves follow mode; later host updates will not restart or replace the listener's playback.
 Hiding the browser player leaves Follow even if a room is idle. Show the player again before following a room.
 
 Broadcasts use the host player's current absolute position, including a decoded stream's start offset. A listed radio announcement also carries its latest action and position so a directory listener can join at the advertised point and stay paused if the host is paused. Browser-only files cannot be broadcast because other listeners cannot access their object URLs.
 Listed radio starts playback from the latest directory snapshot. It does not subscribe to later changes from a different pod; use the room's Follow control for live updates in a pod you have joined.
+
+## Host a room from the player
+
+Choose a server-backed track and use **Broadcast current track to room** in its
+room controls. This explicitly starts hosting; playing a track alone does not
+start a broadcast. Play, Pause, Seek and track changes then update the room even
+when you navigate elsewhere in the app. Seeking while paused keeps listeners
+paused at the selected position. Steady playback does not send periodic position
+updates.
+
+The compact player shows **Broadcasting**. Expand it to use **Stop broadcast**,
+which ends the room broadcast while keeping your local playback available.
+After a publication failure, automatic updates pause and the player offers
+**Retry broadcast** or Stop. Following another room waits for a confirmed host
+Stop so received playback is not republished as your own broadcast.
+
+Local player Stop, hide, browser-only/relayed-radio source selection, revoked
+access, or replacement by another host releases this host session. Reloading
+ends browser ownership; the room panel can still stop the existing server
+broadcast and remove its directory entry. Use Stop before closing the page if
+you want to end the broadcast. Use room Follow for live state; selecting listed
+radio still joins its latest track snapshot.
 
 ## Web Player
 

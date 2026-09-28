@@ -6,20 +6,21 @@ export const getPartyDirectory = async ({ refresh = false } = {}) => {
   return Array.isArray(data) ? data : [];
 };
 
-export const getPartyState = async (podId, channelId) => {
+export const getPartyState = async (podId, channelId, { signal } = {}) => {
   const response = await api.get(
     `/listening-party/${encodeURIComponent(podId)}/${encodeURIComponent(channelId)}`,
-    { validateStatus: (status) => status === 200 || status === 204 },
+    { signal, validateStatus: (status) => status === 200 || status === 204 },
   );
 
   return response.status === 204 ? null : response.data;
 };
 
-export const publishPartyState = async (podId, channelId, event) => {
+export const publishPartyState = async (podId, channelId, event, { signal } = {}) => {
   return (
     await api.post(
       `/listening-party/${encodeURIComponent(podId)}/${encodeURIComponent(channelId)}`,
       event,
+      { signal },
     )
   ).data;
 };

@@ -1,3 +1,4 @@
+import useListeningPartyBroadcast from './useListeningPartyBroadcast';
 import useListeningPartyRooms from './useListeningPartyRooms';
 import * as nowPlaying from '../../lib/nowPlaying';
 import { useExperiencePreference } from '../../lib/experiencePreferences';
@@ -13,6 +14,11 @@ import React, {
 } from 'react';
 
 export const PlayerContext = createContext({
+  broadcastStatus: null,
+  publishBroadcast: () => Promise.resolve(null),
+  reportPlaybackEvent: () => {},
+  retryBroadcast: () => Promise.resolve(null),
+  stopBroadcast: () => Promise.resolve(null),
   clearQueue: () => {},
   clear: () => {},
   current: null,
@@ -269,6 +275,16 @@ export const PlayerProvider = ({ children }) => {
     clear, current, followingParty, getPlaybackPosition, pause, playItem, playerVisible,
   }, setFollowingParty);
   useLayoutEffect(() => { followPartyRef.current = followParty; }, [followParty]);
+  const { broadcastStatus, publishBroadcast, reportPlaybackEvent, retryBroadcast, stopBroadcast } = useListeningPartyBroadcast({
+    audioElement, current, followParty, getPlaybackPosition, observePartyRoom, playerVisible,
+  });
+  const followPartyWithOwnership = useCallback((state) => {
+    if (state && broadcastStatus?.active) {
+      stopBroadcast().then((stopped) => {
+        if (stopped?.action === 'stop') followParty(state);
+      }).catch(() => {});
+    } else followParty(state);
+  }, [broadcastStatus?.active, followParty, stopBroadcast]);
 
   const next = useCallback(() => {
     const random = Math.random();
@@ -318,10 +334,15 @@ export const PlayerProvider = ({ children }) => {
   return (
     <PlayerContext.Provider
       value={{
+        broadcastStatus,
+        publishBroadcast,
+        reportPlaybackEvent,
+        retryBroadcast,
+        stopBroadcast,
         clearQueue,
         clear,
         current,
-        followParty,
+        followParty: followPartyWithOwnership,
         followingParty,
         followingPartyStatus,
         observePartyRoom,

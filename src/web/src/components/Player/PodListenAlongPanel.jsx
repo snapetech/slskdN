@@ -28,7 +28,7 @@ const sameDirectory = (previous, next) =>
 const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const player = usePlayer();
   const canBroadcastCurrent = Boolean(
-    player.current?.contentId && !player.current.contentId.startsWith('local:'),
+    player.current?.contentId && !player.current.contentId.startsWith('local:') && !player.current.radioPartyId,
   );
   const [room, setRoom] = useState({ connected: false, error: '', pending: true, state: null });
   const { connected, error: connectionError, pending: connectionPending, state: roomState } = room;
@@ -41,8 +41,6 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const [publishError, setPublishError] = useState('');
   const directoryFetchInFlightRef = useRef(false);
   const mountedRef = useRef(false);
-  const publishedPartyIdsRef = useRef(new Map());
-  const publishChainRef = useRef(Promise.resolve());
   const publishRequestRef = useRef(0);
 
   useEffect(() => {
@@ -60,6 +58,13 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   }, [channelId, player.observePartyRoom, podId]);
 
   useEffect(() => { setPartyState(roomState); }, [roomState]);
+  const ownBroadcast = player.broadcastStatus?.podId === podId && player.broadcastStatus?.channelId === channelId;
+  useEffect(() => {
+    if (ownBroadcast) {
+      setGlobalRadio(Boolean(player.broadcastStatus.globalRadio));
+      setMeshStreaming(Boolean(player.broadcastStatus.meshStreaming));
+    }
+  }, [ownBroadcast, player.broadcastStatus?.globalRadio, player.broadcastStatus?.meshStreaming]);
 
   const refreshDirectory = useCallback(async () => {
     if (compact || document.hidden || directoryFetchInFlightRef.current) return;
@@ -113,47 +118,22 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   }, [compact, refreshDirectory]);
 
   const publish = (action) => {
-    const current = player.current;
     if (action !== 'stop' && !canBroadcastCurrent) return;
 
     const requestId = ++publishRequestRef.current;
-    const roomKey = JSON.stringify([podId, channelId]);
-    const existingPartyId = publishedPartyIdsRef.current.get(roomKey) ||
-      (partyState?.podId === podId && partyState?.channelId === channelId
-        ? partyState.partyId
-        : '');
-    const payload = {
-      action,
-      album: current?.album || '',
-      allowMeshStreaming: meshStreaming,
-      artist: current?.artist || user || '',
-      contentId: current?.contentId || '',
-      hostPeerId: user || 'local-peer',
-      listed: globalRadio,
-      partyId: existingPartyId,
-      positionSeconds: action === 'stop' ? 0 : player.getPlaybackPosition(),
-      title: current?.title || current?.fileName || '',
-    };
     setPublishError('');
-    const request = publishChainRef.current.then(async () => {
-      const state = await listeningParty.publishPartyState(podId, channelId, {
-        ...payload,
-        partyId: action === 'stop'
-          ? publishedPartyIdsRef.current.get(roomKey) || payload.partyId
-          : payload.partyId,
-      });
-      if (action === 'stop') publishedPartyIdsRef.current.delete(roomKey);
-      else publishedPartyIdsRef.current.set(roomKey, state?.partyId || payload.partyId);
-      return state;
-    });
-    publishChainRef.current = request.catch(() => {});
+    const request = player.publishBroadcast({ channelId, globalRadio, meshStreaming, podId, user,
+      partyId: partyState?.podId === podId && partyState?.channelId === channelId ? partyState.partyId : '',
+    }, action);
     request.then((state) => {
       if (!mountedRef.current || requestId !== publishRequestRef.current) return;
-      setPartyState(action === 'stop' ? null : state);
+      if (state) setPartyState(action === 'stop' ? null : state);
       if (!compact) refreshDirectory();
     }).catch((error) => {
       if (mountedRef.current && requestId === publishRequestRef.current) {
-        setPublishError(error?.response?.status === 429
+        setPublishError(error?.message === 'Stop the active broadcast before starting another room.'
+          ? error.message
+          : error?.response?.status === 429
           ? 'Room updates are at capacity. Retry later.'
           : error?.response?.status === 404
             ? 'This room is unavailable. Choose an existing room.'

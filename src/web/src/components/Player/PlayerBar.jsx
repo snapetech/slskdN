@@ -2373,6 +2373,10 @@ const PlayerBar = () => {
   const crossfadeStartedRef = useRef(null);
   const localFileSequenceRef = useRef(0);
   const {
+    broadcastStatus,
+    reportPlaybackEvent,
+    retryBroadcast,
+    stopBroadcast,
     clearQueue,
     clear,
     current,
@@ -3552,6 +3556,7 @@ const PlayerBar = () => {
         event.currentTarget.currentTime = current.positionSeconds;
         setPlaybackPosition(current.positionSeconds);
       }
+      if (event.currentTarget.paused) reportPlaybackEvent?.('pause', transcodeOffset + event.currentTarget.currentTime);
     },
     onPause: (event) => {
       if (event.currentTarget !== audioRef.current) return;
@@ -3565,13 +3570,19 @@ const PlayerBar = () => {
       playingRef.current = false;
       setPlaying(false);
       setPlaybackStatus((status) => status === 'ended' || status === 'error' ? status : 'paused');
+      reportPlaybackEvent?.('pause', transcodeOffset + event.currentTarget.currentTime);
       nowPlaying.clearNowPlaying().catch(() => {});
+    },
+    onSeeked: (event) => {
+      if (event.currentTarget !== audioRef.current || activeItemRef.current !== current) return;
+      reportPlaybackEvent?.(event.currentTarget.paused ? 'pause' : 'seek', transcodeOffset + event.currentTarget.currentTime);
     },
     onPlay: (event) => {
       if (event.currentTarget !== audioRef.current || activeItemRef.current !== current) return;
       playingRef.current = true;
       setPlaying(true);
       setPlaybackStatus('playing');
+      reportPlaybackEvent?.('play', transcodeOffset + event.currentTarget.currentTime);
       if (current?.artist && current?.title) {
         nowPlaying.setNowPlaying({ album: current.album, artist: current.artist, title: current.title }).catch(() => {});
         if (!playingNowSentRef.current && listenBrainzToken) {
@@ -3640,8 +3651,9 @@ const PlayerBar = () => {
             <div className="player-title">
               {current?.title || 'Player'}
             </div>
-            <div className="player-subtitle">
-              {current?.artist || 'Ready'}
+            <div className="player-subtitle" role={broadcastStatus?.error ? 'alert' : undefined}
+              aria-label={broadcastStatus?.error || undefined} title={broadcastStatus?.error || undefined}>
+              {broadcastStatus?.error ? 'Broadcast updates failed' : broadcastStatus?.active ? 'Broadcasting' : current?.artist || 'Ready'}
             </div>
           </div>
         </div>
@@ -3679,7 +3691,7 @@ const PlayerBar = () => {
             onClick={() => setQueueOpen(true)}
           />
           <PlayerToolButton
-            content="Expand the player drawer."
+            content={broadcastStatus ? 'Expand the player to view this room broadcast and use Retry or Stop.' : 'Expand the player drawer.'}
             aria-label="Expand player"
             data-testid="player-expand"
             icon="angle up"
@@ -3774,9 +3786,19 @@ const PlayerBar = () => {
                   {followingParty ? followingParty.hostPeerId
                     ? ` | Following ${followingParty.hostPeerId}`
                     : ' | Waiting for room broadcast' : ''}
+                  {broadcastStatus?.active ? ' | Broadcasting to room' : ''}
                   {followingPartyStatus?.pending ? ' (connecting to room)'
                     : followingPartyStatus?.error ? ' (room updates unavailable)' : ''}
                 </div>
+                {broadcastStatus ? (
+                  <div className="player-broadcast-controls">
+                    {broadcastStatus.error ? <span role="alert">{broadcastStatus.error}</span> : null}
+                    {broadcastStatus.active ? <>
+                      {broadcastStatus.error ? <Popup content="Retry publishing this room's current playback state after an update failure." trigger={<Button aria-label="Retry room broadcast" onClick={() => retryBroadcast().catch(() => {})} size="mini">Retry broadcast</Button>} /> : null}
+                      <Popup content="Stop this room broadcast while keeping your own playback available." trigger={<Button aria-label="Stop active room broadcast" onClick={() => stopBroadcast().catch(() => {})} size="mini">Stop broadcast</Button>} />
+                    </> : null}
+                  </div>
+                ) : null}
                 {current ? (
                   <div className="player-now-playing-meta">
                     <div className="player-now-playing-badges">

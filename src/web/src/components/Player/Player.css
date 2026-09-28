@@ -2048,3 +2048,21 @@ body:has(.ui.modal) .player-bar {
   flex: 0 0 auto;
   gap: 0.25rem;
 }
+
+.player-broadcast-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.player-broadcast-controls .ui.button {
+  min-height: 32px;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .player-broadcast-controls .ui.button {
+    min-height: 44px;
+  }
+}

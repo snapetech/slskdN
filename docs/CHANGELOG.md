@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Ongoing room host controls
+
+- Keep explicitly started broadcasts synchronized with Play, Pause, Seek and server track changes across navigation.
+- Preserve paused seeks, bound/coalesce publication work and keep steady position ticks local.
+- Expose persistent Retry/Stop controls and release hosting on revocation, replacement, player Stop, hide or unshareable source selection.
+
+
 ### Listed-radio mesh request reliability
 
 - Pace service calls and replies through a bounded connection-owned writer so ordinary RPC bursts preserve the inbound quota.

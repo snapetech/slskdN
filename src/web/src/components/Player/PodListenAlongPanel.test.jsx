@@ -6,6 +6,7 @@ import { createListeningPartyHubConnection } from '../../lib/hubFactory';
 import * as listeningParty from '../../lib/listeningParty';
 import PodListenAlongPanel from './PodListenAlongPanel';
 import { usePlayer } from './PlayerContext';
+import useListeningPartyBroadcast from './useListeningPartyBroadcast';
 import useListeningPartyRooms from './useListeningPartyRooms';
 import { act, cleanup, fireEvent, render as renderView, screen } from '@testing-library/react';
 import React, { createContext, useContext, useRef, useState } from 'react';
@@ -49,8 +50,9 @@ const TestPlayer = ({ children }) => {
   const base = useRef(usePlayer()).current;
   const [followingParty, setFollowingParty] = useState(null);
   const methods = useListeningPartyRooms({ ...base, followingParty }, setFollowingParty);
+  const broadcast = useListeningPartyBroadcast({ ...base, ...methods });
   usePlayer.mockImplementation(() => useContext(TestPlayerContext));
-  return <TestPlayerContext.Provider value={{ ...base, ...methods, followingParty }}>{children}</TestPlayerContext.Provider>;
+  return <TestPlayerContext.Provider value={{ ...base, ...methods, ...broadcast, followingParty }}>{children}</TestPlayerContext.Provider>;
 };
 const render = (ui) => renderView(ui, { wrapper: TestPlayer });
 

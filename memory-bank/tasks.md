@@ -5327,3 +5327,16 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Repair constructor-bypassing lifecycle fixtures exposed by the full gate.
 - [x] 2026-09-28 Complete final backend, Release and all 21 runtime cases; publish after exact-range release preview and fork verification.
 - [ ] Establish sustained radio throughput for supported high-rate formats.
+
+## Persistent host controls — 2026-09-28
+
+- [x] Own explicit host broadcasting in the persistent player across navigation.
+- [x] Publish actual Play/Pause/Seek/track events with paused seeks and mapped positions.
+- [x] Bound/coalesce pending updates and pace publication without idle polling.
+- [x] Require acknowledged Stop before following; expose failure Retry/Stop and release revoked/replaced host ownership.
+- [x] 2026-09-28 Verify the actual host/listener workflow and final complete 22-case runtime gate; publish after validated release preview and fork verification.
+- [ ] Complete host document-close lease cleanup, long capability renewal and media-error synchronization.
+
+- [ ] Verify and retract prior radio announcements when listing is disabled or a new host replaces the party identity. Backend directory reads currently filter expiry, while explicit removal is in the Stop path; reproduce local and remote directory behavior before fixing.
+
+- [ ] Measure host publication delay and listener position drift under slow responses and background-tab scheduling, alongside sustained CPU/memory/throughput work.
