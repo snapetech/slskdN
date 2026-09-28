@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1182. Do Not Chain xUnit Null Assertions
+
+**The Bug**: A regression test chained `Assert.NotNull(value).Property`, but the
+repository's xUnit assertion returns `void`; compilation failed with CS0023.
+
+**Prevention**: Keep `Assert.NotNull(value)` as a standalone assertion, then
+access the value separately. When a value-returning assertion is needed, use an
+appropriate typed assertion such as `Assert.IsType<T>(value)`.
+
 ### 0z1181. Close the Owned Readiness Page Before Its Backend
 
 **The Bug**: The corrected login-readiness scenario passed, but stopping its backend while the authenticated page remained open generated reconnect and connection-refused errors during teardown.
