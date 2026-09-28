@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1099. Reauthorize Listen-Along Recipients After Join
+
+**The Bug**: JoinParty checked membership once, but publication sent to the entire SignalR group. Group membership persists until leave/disconnect and does not recheck pod membership, so removing or banning a member did not prevent subsequent room state delivery.
+
+**Prevention**: Track bounded connection/room subscriptions, resolve current pod members before every live publication, send only to eligible subscribed connections and remove denied subscriptions. Clean up on explicit leave and disconnect; reconnect must join again. Check members once per publication rather than adding polling or one lookup per recipient.
+
 ### 0z1098. Anchor Changelog Insertions to Actual Headings
 
 **The Bug**: A scripted insertion searched for the first Unreleased heading text and matched its inline mention in the introduction. New bullets landed above the actual section instead of belonging to the release range.
