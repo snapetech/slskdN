@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1053. Register Media Session Stop Alongside Transport Actions
+
+**The Bug**: Browser media metadata, seeking, Play/Pause and queue navigation worked, but the player never registered a Stop handler. A real-browser regression reached Stop and found no action callback.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Register Stop with the same clear action as the player toolbar. Verify the action clears native audio sources, metadata, playback state and position; preserve partial-browser support through existing handler registration guards.
+
 ### 0z1052. Reset Initial Playback Intent When Navigating Queues
 
 **The Bug**: Previous reused a restored queue entry carrying its saved offset and initial paused intent. Runtime navigation back to a restored track resumed from the old position rather than starting playback at zero.
