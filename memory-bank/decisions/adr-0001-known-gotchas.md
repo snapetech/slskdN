@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1089. Surface Initial Radio Read Failure Before Sending the Audio Response
+
+**The Bug**: Radio leases were returned before their first peer read completed. A revoked host then failed inside FileStreamResult execution, producing an internal 500 instead of an expected unavailable response.
+
+**Prevention**: For radio, await the first successful buffered write before returning the lease. Signal initial producer failures to the opener, dispose failed leases and map expected MeshStreamException failures to 503. Preserve bounded pipe buffering and generic-preview behavior; verify revocation through the real browser rather than only the host handler.
+
 ### 0z1088. Remove Withdrawn Remote Listings on a Successful Directory Refresh
 
 **The Bug**: Directory refresh only added or updated announcements. Entries removed from a valid DHT index remained in the local dictionary until their fifteen-minute TTL, even after the host stopped listing them.
