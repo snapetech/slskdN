@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1080. Use Browser Helpers with Their Declared Argument Types
+
+**The Bug**: The new two-node radio browser regression passed an APIRequestContext into getAuthToken, which accepts a logged-in Page. The test failed before exercising transport. Its feature YAML also used a literal escaped newline instead of a real line break.
+
+**Prevention**: Read shared helper signatures before reuse, obtain API sessions through the existing session endpoint, and generate feature configuration with actual newlines. Run TypeScript checking as well as lint because unused argument types can pass ESLint.
+
 ### 0z1079. Authorize Listen-Along Group Subscriptions
 
 **The Bug**: The listen-along HTTP state endpoint checked pod membership, but the SignalR JoinParty method allowed any authenticated account to subscribe to that pod's playback metadata.
