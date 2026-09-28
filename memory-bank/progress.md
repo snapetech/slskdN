@@ -14997,3 +14997,17 @@ tests; the complete PlayerBar follow browser file passes 2/2 after a fresh
 Release build; repository format, Web ESLint and strict Playwright TypeScript
 checks pass. Release compilation has zero errors and two existing package TFM
 warnings. Release-note range preview, fork/identity checks and push remain.
+
+## Cross-node Listen Along delivery pushed — 2026-09-28 20:53 UTC
+
+The authenticated cross-node room-state feature, local-first responsiveness
+guard, directory-independent fan-out, ADR-0025 and three validated release-note
+fragments are pushed to `snapetech/slskdN/main`. The exact `.327` to `.328`
+preview lists all three audience-facing changes. A post-push fetch confirms
+local `main` and `origin/main` at the same commit with a clean tree. No tag or
+release was created.
+
+Validation is complete: all 5,337 unit, 74 smoke and 284 integration tests;
+both PlayerBar follow E2E workflows; Release build; repository formatting;
+Web ESLint and strict browser-spec TypeScript; release-note check; fork-target,
+identity and whitespace gates. The broader player audit remains active.

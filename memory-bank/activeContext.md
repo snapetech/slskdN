@@ -1,4 +1,4 @@
-## Cross-node room-state responsiveness — 2026-09-28 20:47 UTC
+## Cross-node room-state responsiveness — 2026-09-28 20:53 UTC
 
 - Host publication now commits and notifies local listeners first, then sends
   authenticated state to active mesh members before optional radio-directory
@@ -10,14 +10,14 @@
   tests; both PlayerBar follow browser workflows including real two-node
   playback; repository format gate, Web ESLint and strict browser-spec TS pass.
   Release build has zero errors and two existing package TFM warnings.
-- The exact `.327` to current HEAD preview validates three user-facing
-  fragments. Local-identity and fork-target checks pass; a fetch found no
-  remote divergence. The source push is authorized by the user. A release tag
-  was not requested in this turn and remains unauthorized.
+- The exact `.327` to `.328` preview validates three user-facing fragments.
+  Local-identity and fork-target checks pass. The validated 17-commit source
+  range is pushed to `snapetech/slskdN/main`; post-push fetch confirms a clean
+  0/0 parity. No release tag was created.
 
-Next Steps: push the validated tree, then continue the player audit: publication
-fairness, sustained resource and radio throughput, supported formats/devices,
-accessibility and focus/contrast. The overall player objective remains active.
+Next Steps: continue the player audit: publication fairness, sustained resource
+and radio throughput, supported formats/devices, accessibility and
+focus/contrast. The overall player objective remains active.
 
 ## Stable releases and cross-node room state — 2026-09-28 20:27 UTC
 
