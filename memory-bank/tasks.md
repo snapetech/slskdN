@@ -5593,3 +5593,7 @@ whole-session resource completion.
 
 - [ ] Improve census coverage for transient unreadable proc entries; retain honest
   endpoint/churn limits and validate broader sustained player workloads.
+
+- [x] 2026-09-28: Commit and push native disk/OS resource reporting and active
+  host media-error repairs with validated fragments and exact-range gates;
+  final source publication verified through e8f57fe73.

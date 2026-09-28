@@ -14644,3 +14644,29 @@ active/standby regressions, 12 OS collector cases and all 1,082 Web tests pass.
 All 22 rebuilt browser cases, 5,321 backend unit / 74 smoke / 284 integration,
 expanded types, lint, builds and ancillary gates pass. Release retains its two
 existing support warnings. The full player goal remains active.
+
+
+### Native resources and host-error batch published — 2026-09-28
+
+Source is committed in d93fba1d3; the validated batch, including immediate
+gotchas and the shortened unpublished release-note draft, was pushed through
+e8f57fe73 to origin/main. Fetch/push completed with terminal zero, clean
+worktree and origin parity 0–0. Both release fragments validate over base
+4b7eb651c; privacy, whitespace and fork targeting pass. No tag, release,
+deployment or workflow change was made. All jobs are terminal.
+
+This batch is complete: active native/decoded host failures pause and share
+the full stopped position; standby isolation and explicit recovery pass in
+regressions and the rebuilt browser. Disk-file native measurements retain
+browser/input/DOM metadata, separate CDP and observed OS-tree scope, guard
+PID reuse and disclose unknown proc-read gaps. All 1,082 Web / 5,321 unit /
+74 smoke / 284 integration tests and 22 final browser cases pass, with builds,
+types, lint and ancillary gates. The clean six-window OS run and 30-window
+CDP run are retained with their stated coverage/workload limitations.
+
+Next Steps: failed playback/decode/crossfade setup and recovery; host
+lease/renewal and multi-tab ownership; authenticated distributed room state
+and directory conflict ownership; broader queue/analyzer/visualizer/radio/
+format/device/accessibility/resource validation. Improve transient proc
+census coverage without hiding endpoint limitations. Current batch is
+finished; the full player goal remains active and is not proven complete.
