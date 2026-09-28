@@ -51,7 +51,7 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in headless Chromium / high; physical window sizing and focus unverified |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters and reverse directory publication verified / high; local elapsed expiry/reselection verified; remote renewal, host capability renewal and sustained sessions unverified |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication and refreshed host ticket verified / high; service clock advances beyond 900 seconds; 15-minute wall-clock soak and sustained throughput remain open |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Two authenticated real SignalR clients on one backend verify leave, explicit disconnect/rejoin, snapshot recovery and live ban / high; automatic transport recovery and cross-node propagation unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
@@ -76,8 +76,8 @@ moderate; repeated warm-baseline and sustained-session measurements remain due.
 
 ## Remaining completion work
 
-- Complete remote-radio expiry/renewal, repeated admissions, source replacement and sustained playback across realistic latency. Real two-backend discovery, decoded HTTP seeking, revocation, accounting and reverse publication are verified.
-- Verify automatic transport reconnect and cross-node listen-along state propagation. Same-node explicit disconnect/rejoin, snapshot recovery and live membership revocation now have real-client coverage; elapsed radio renewal remains due.
+- Complete a 15-minute wall-clock host/listener soak, repeated admissions, source replacement and sustained playback across realistic latency. Controlled-time 900-second renewal and real two-backend directory refresh are verified.
+- Verify automatic transport reconnect and cross-node listen-along state propagation. Same-node explicit disconnect/rejoin, snapshot recovery and live membership revocation now have real-client coverage; automatic transport recovery remains due.
 - Exercise supported browser engines and additional audio formats, including
   failures, decode cancellation and recovery.
 - Verify physical mobile interactions, physical output routing/media buttons,

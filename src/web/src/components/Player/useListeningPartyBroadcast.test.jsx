@@ -6,7 +6,7 @@ import * as listeningParty from '../../lib/listeningParty';
 import useListeningPartyBroadcast from './useListeningPartyBroadcast';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 
-vi.mock('../../lib/listeningParty', () => ({ getPartyState: vi.fn(), publishPartyState: vi.fn() }));
+vi.mock('../../lib/listeningParty', () => ({ getPartyState: vi.fn(), publishPartyState: vi.fn(), renewHostSession: vi.fn() }));
 const config = { channelId: 'music', globalRadio: true, meshStreaming: true, podId: 'pod', user: 'host' };
 const track = { contentId: 'first', title: 'First' };
 let observer;
@@ -46,10 +46,18 @@ describe('persistent host publication', () => {
     expect(player.followParty).toHaveBeenCalledWith(null);
   });
 
-  it.each(['play', 'stop'])('preserves observed party identity for manual %s', async (action) => {
+  it.each(['play', 'stop'])('uses a fresh host fence for manual %s while preserving Stop identity', async (action) => {
     const { result } = renderHook(() => useListeningPartyBroadcast(player));
     await act(async () => result.current.publishBroadcast({ ...config, partyId: 'observed' }, action));
-    expect(listeningParty.publishPartyState.mock.calls[0][2].partyId).toBe('observed');
+    const [podId, channelId, event, options] = listeningParty.publishPartyState.mock.calls[0];
+    expect({
+      partyId: event.partyId,
+      hasHostSessionId: /^[a-f0-9]{32}$/u.test(options.hostSessionId || ''),
+      startHostSession: options.startHostSession,
+    }).toEqual(action === 'play'
+      ? { partyId: '', hasHostSessionId: true, startHostSession: true }
+      : { partyId: 'observed', hasHostSessionId: false, startHostSession: false });
+    expect([podId, channelId]).toEqual(['pod', 'music']);
     expect(listeningParty.getPartyState).not.toHaveBeenCalled();
     expect(player.followParty).toHaveBeenCalledTimes(action === 'stop' ? 0 : 1);
   });
@@ -233,7 +241,7 @@ describe('persistent host publication', () => {
       expect(result.current.broadcastStatus).toMatchObject({ globalRadio: false, meshStreaming: false, settingsPending: false, pending: false });
       expect(player.observePartyRoom).toHaveBeenCalledOnce();
       expect(player.followParty).toHaveBeenCalledOnce();
-      expect(vi.getTimerCount()).toBe(0);
+      expect(vi.getTimerCount()).toBe(1);
     } finally { unmount(); vi.useRealTimers(); }
   });
 
@@ -287,7 +295,7 @@ describe('persistent host publication', () => {
     } finally { unmount(); vi.useRealTimers(); }
   });
 
-  it('paces writes without an idle polling timer', async () => {
+  it('paces writes while keeping one bounded host renewal timer', async () => {
     vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
     const times = [];
     listeningParty.publishPartyState.mockImplementation(async (podId, channelId, event) => {
@@ -308,7 +316,7 @@ describe('persistent host publication', () => {
       await act(async () => vi.advanceTimersByTimeAsync(250));
       expect(times[1] - times[0]).toBeGreaterThanOrEqual(250);
       expect(times[2] - times[1]).toBeGreaterThanOrEqual(250);
-      expect(vi.getTimerCount()).toBe(0);
+      expect(vi.getTimerCount()).toBe(1);
     } finally {
       unmount();
       vi.useRealTimers();
@@ -322,12 +330,105 @@ describe('persistent host publication', () => {
       await start(result);
       let update;
       act(() => { update = result.current.reportPlaybackEvent('seek', 50); });
-      expect(vi.getTimerCount()).toBe(1);
+      expect(vi.getTimerCount()).toBe(2);
       act(() => observer({ error: 'Room access was revoked.', state: null }));
       await act(async () => update);
       expect(vi.getTimerCount()).toBe(0);
       expect(listeningParty.publishPartyState).toHaveBeenCalledOnce();
       expect(releaseRoom).toHaveBeenCalledOnce();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it('renews host ownership and listed capability every five minutes', async () => {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+    const { result, unmount } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      const sessionId = listeningParty.publishPartyState.mock.calls[0][3].hostSessionId;
+      expect(vi.getTimerCount()).toBe(1);
+      await act(async () => vi.advanceTimersByTimeAsync(5 * 60 * 1000));
+      expect(listeningParty.renewHostSession).toHaveBeenCalledExactlyOnceWith('pod', 'music', 'party', {
+        signal: expect.any(AbortSignal), hostSessionId: sessionId,
+      });
+      expect(listeningParty.publishPartyState).toHaveBeenCalledOnce();
+      expect(vi.getTimerCount()).toBe(1);
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it('releases a replaced host session and cancels its renewal timer', async () => {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+    listeningParty.renewHostSession.mockRejectedValueOnce({
+      response: { status: 409, data: { code: 'host_session_replaced' } },
+    });
+    const { result, unmount } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      await act(async () => vi.advanceTimersByTimeAsync(5 * 60 * 1000));
+      expect(result.current.broadcastStatus).toMatchObject({ active: false, error: /Another browser replaced/ });
+      expect(vi.getTimerCount()).toBe(0);
+      act(() => result.current.reportPlaybackEvent('pause', 12));
+      expect(listeningParty.publishPartyState).toHaveBeenCalledOnce();
+      expect(releaseRoom).toHaveBeenCalledOnce();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it('surfaces renewal storage failures and restores the timer after Retry', async () => {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+    listeningParty.renewHostSession.mockRejectedValueOnce({
+      response: { status: 503, data: { code: 'room_storage_unavailable' } },
+    });
+    const { result, unmount } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      const sessionId = listeningParty.publishPartyState.mock.calls[0][3].hostSessionId;
+      await act(async () => vi.advanceTimersByTimeAsync(5 * 60 * 1000));
+      expect(result.current.broadcastStatus).toMatchObject({ active: true, error: /could not be saved/ });
+      expect(vi.getTimerCount()).toBe(0);
+      await act(async () => result.current.retryBroadcast());
+      expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(2);
+      expect(listeningParty.publishPartyState.mock.calls.at(-1)[3]).toMatchObject({
+        hostSessionId: sessionId, startHostSession: false,
+      });
+      expect(result.current.broadcastStatus.error).toBe('');
+      expect(vi.getTimerCount()).toBe(1);
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it('waits for an in-flight renewal before Stop and preserves Stop acknowledgment on lease expiry', async () => {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+    const renewal = deferred();
+    listeningParty.renewHostSession.mockReturnValueOnce(renewal.promise);
+    const { result, unmount } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      await act(async () => vi.advanceTimersByTimeAsync(5 * 60 * 1000));
+      expect(listeningParty.renewHostSession).toHaveBeenCalledOnce();
+
+      let stopped;
+      act(() => { stopped = result.current.stopBroadcast(); });
+      expect(result.current.broadcastStatus.stopping).toBe(true);
+      expect(listeningParty.publishPartyState).toHaveBeenCalledOnce();
+
+      await act(async () => {
+        renewal.reject({ response: { status: 409, data: { code: 'host_session_expired' } } });
+        await stopped;
+      });
+      expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(2);
+      expect(listeningParty.publishPartyState.mock.calls.at(-1)[2].action).toBe('stop');
+      expect(result.current.broadcastStatus).toBeNull();
+      expect(vi.getTimerCount()).toBe(0);
     } finally {
       unmount();
       vi.useRealTimers();

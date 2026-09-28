@@ -7,8 +7,18 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 const shareable = (current) => current?.contentId && !current.contentId.startsWith('local:') && !current.radioPartyId;
 const sameRoom = (a, b) => a?.podId === b?.podId && a?.channelId === b?.channelId;
+const HOST_SESSION_RENEWAL_INTERVAL_MS = 5 * 60 * 1000;
+const createHostSessionId = () => {
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return [...bytes].map((value) => value.toString(16).padStart(2, '0')).join('');
+};
 const publicationError = (error) => error?.response?.status === 429
   ? 'Room updates are at capacity. Retry later.'
+  : error?.response?.status === 409 && error?.response?.data?.code === 'host_session_replaced'
+    ? 'Another browser replaced this host session. Start a new broadcast to host again.'
+    : error?.response?.status === 409 && error?.response?.data?.code === 'host_session_expired'
+      ? 'This host session expired. Start a new broadcast to host again.'
   : error?.response?.status === 404
     ? 'This room is unavailable. Choose an existing room.'
     : error?.response?.status === 403
@@ -18,7 +28,8 @@ const publicationError = (error) => error?.response?.status === 429
         : 'Room broadcast updates failed. Retry or stop the broadcast.';
 
 // An explicitly started host session survives route changes. One active request
-// and one coalesced update bound publication work; see ADR-0019.
+// and one coalesced update bound publication work; see ADR-0019. One five-minute
+// timer renews its lease without sending periodic position updates.
 // Requested and confirmed sharing settings remain separate; see ADR-0021.
 export default function useListeningPartyBroadcast(player) {
   const playerRef = useRef(player);
@@ -42,12 +53,44 @@ export default function useListeningPartyBroadcast(player) {
   const release = useCallback((session, error = '') => {
     if (sessionRef.current !== session) return;
     sessionRef.current = null;
+    if (session.renewalTimer !== null) {
+      window.clearTimeout(session.renewalTimer);
+      session.renewalTimer = null;
+    }
     session.abort.abort();
     session.pending?.resolve(null);
     session.pending = null;
     session.releaseRoom?.();
     if (mountedRef.current) setBroadcastStatus(error ? { ...session.config, ...session.confirmedConfig, active: false, error, pending: false } : null);
   }, []);
+
+  const scheduleRenewal = useCallback((session) => {
+    if (sessionRef.current !== session || !session.hostSessionId || !session.partyId || session.stopping) return;
+    if (session.renewalTimer !== null) window.clearTimeout(session.renewalTimer);
+    session.renewalTimer = window.setTimeout(async () => {
+      session.renewalTimer = null;
+      try {
+        session.renewalRequest = listeningParty.renewHostSession(session.config.podId, session.config.channelId, session.partyId,
+          { signal: session.abort.signal, hostSessionId: session.hostSessionId });
+        await session.renewalRequest;
+      } catch (error) {
+        if (sessionRef.current !== session) return;
+        session.error = publicationError(error);
+        if ([403, 404].includes(error?.response?.status) ||
+            (error?.response?.status === 409 && !session.stopping)) release(session, session.error);
+        else status(session, { error: session.error });
+        return;
+      } finally {
+        session.renewalRequest = null;
+      }
+
+      if (sessionRef.current === session) {
+        session.error = '';
+        status(session);
+        session.scheduleRenewal?.();
+      }
+    }, HOST_SESSION_RENEWAL_INTERVAL_MS);
+  }, [release, status]);
 
   const send = useCallback(async function send(session, update) {
     session.inFlight = true;
@@ -77,14 +120,20 @@ export default function useListeningPartyBroadcast(player) {
       session.abort.signal.throwIfAborted();
       lastSentRef.current = performance.now();
       const state = await listeningParty.publishPartyState(session.config.podId, session.config.channelId,
-        { ...update.payload, partyId: session.partyId }, { signal: session.abort.signal });
+        { ...update.payload, partyId: session.startPending ? '' : session.partyId }, {
+          signal: session.abort.signal,
+          hostSessionId: session.hostSessionId,
+          startHostSession: session.startPending,
+        });
       if (sessionRef.current !== session) { update.resolve(null); return; }
       session.partyId = state?.partyId || session.partyId;
+      session.startPending = false;
       session.lastState = state;
       session.confirmedConfig = { globalRadio: state?.listed ?? update.payload.listed,
         meshStreaming: state?.allowMeshStreaming ?? update.payload.allowMeshStreaming };
       session.error = '';
       update.resolve(state);
+      scheduleRenewal(session);
       if (update.payload.action === 'stop') release(session);
     } catch (error) {
       update.reject(error);
@@ -93,7 +142,7 @@ export default function useListeningPartyBroadcast(player) {
       session.pending?.reject(error);
       session.pending = null;
       session.stopping = false;
-      if ([403, 404].includes(error?.response?.status)) release(session, session.error);
+      if ([403, 404, 409].includes(error?.response?.status)) release(session, session.error);
     } finally {
       session.inFlight = false;
       if (sessionRef.current === session) {
@@ -103,7 +152,7 @@ export default function useListeningPartyBroadcast(player) {
         if (pending) send(session, pending);
       }
     }
-  }, [release, status]);
+  }, [release, scheduleRenewal, status]);
 
   const queue = useCallback((session, payload) => {
     session.lastDesired = payload;
@@ -128,8 +177,25 @@ export default function useListeningPartyBroadcast(player) {
     const session = sessionRef.current;
     if (!session) return Promise.resolve(null);
     session.stopping = true;
-    return queue(session, payload(session, 'stop'));
-  }, [payload, queue]);
+    status(session);
+    if (session.renewalTimer !== null) {
+      window.clearTimeout(session.renewalTimer);
+      session.renewalTimer = null;
+    }
+    return (async () => {
+      const renewalRequest = session.renewalRequest;
+      if (renewalRequest) {
+        try {
+          await renewalRequest;
+        } catch {
+          // The ordered Stop request below reports whether host ownership remains valid.
+        }
+      }
+
+      if (sessionRef.current !== session) return null;
+      return queue(session, payload(session, 'stop'));
+    })();
+  }, [payload, queue, status]);
 
   const publishBroadcast = useCallback((config, action) => {
     let session = sessionRef.current;
@@ -146,7 +212,10 @@ export default function useListeningPartyBroadcast(player) {
     if (!session) {
       if (action !== 'stop') playerRef.current.followParty(null);
       session = { abort: new AbortController(), config, error: '', inFlight: false,
-        lastEvent: null, lastState: null, partyId: config.partyId || '', pending: null, stopping: false };
+        hostSessionId: action === 'stop' ? null : createHostSessionId(), lastEvent: null, lastState: null,
+        partyId: action === 'stop' ? config.partyId || '' : '', pending: null,
+        renewalTimer: null, scheduleRenewal: null, startPending: action !== 'stop', stopping: false };
+      if (action !== 'stop') session.scheduleRenewal = () => scheduleRenewal(session);
       sessionRef.current = session;
       if (action !== 'stop') {
         session.releaseRoom = playerRef.current.observePartyRoom(config.podId, config.channelId, (room) => {

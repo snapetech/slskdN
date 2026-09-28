@@ -14854,3 +14854,29 @@ graph-enabled and sustained resource budgets, additional browser/device/format
 coverage and assistive-technology workflows. Source and docs are ready for
 release-range/privacy/fork validation, explicit Player-only commit/push and
 origin parity. No release tag or deployment was created.
+## Listed host renewal and tab fencing — 2026-09-28 18:19 UTC
+
+Found that a listed broadcast could outlive its 900-second directory entry and
+stream ticket because only playback changes republished them. Added a bounded
+five-minute renewal that refreshes the announcement, DHT index TTL and scoped
+ticket without publishing room position messages. Each explicit Broadcast now
+owns a fresh private session fence and server-assigned party ID; old tabs cannot
+renew, update, Pause or Stop the replacement. Stop waits behind an in-flight
+renewal while showing pending feedback immediately.
+
+Service-clock coverage advances beyond 900 seconds, checks replacement ticket
+and announcement/index TTLs, and verifies expired/replaced ownership plus DHT
+failure ordering. A connected real two-backend test verifies remote capability
+refresh and stale-tab rejection. The five-minute browser timer, retry feedback,
+supersession and Stop/renewal races are covered by hook tests. Full gates pass:
+5,328 unit, 74 smoke, 284 integration and 1,094 Web tests; Release and Web
+builds; browser-spec TypeScript; Web lint; repository format; route/CSRF checks;
+bundle and build-output checks. One targeted Playwright two-node test passes.
+
+The 15-minute wall-clock soak, automatic host-state cleanup after lease expiry,
+process restart/multi-instance ownership, DHT index contention, sustained radio
+throughput and the remaining device/accessibility audit remain open. The build
+reports existing .NET 10 support warnings for build-task packages and existing
+Vite native-config/large-chunk warnings. No release tag or deployment was
+created. Next: validate the exact release range, verify the fork target and
+identity checks, then commit and push the implementation batch.

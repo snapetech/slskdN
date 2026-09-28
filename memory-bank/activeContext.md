@@ -1,3 +1,22 @@
+## Update 2026-09-28 18:19 UTC
+
+- Current batch: listed host renewal and browser-session fencing are
+  implemented. A five-minute request renews the 30-minute host lease and, while
+  listed, refreshes the announcement, DHT index and 900-second stream ticket
+  without room position traffic. A fresh explicit Broadcast takes over with a
+  new party ID; stale tabs receive 409 and cannot update or Stop the new host.
+- Verified: full solution tests pass (5,328 unit, 74 smoke, 284 integration),
+  full Web suite (1,094), targeted two-node radio renewal Playwright test,
+  player-hook tests, browser-spec TypeScript, Web/Release builds, Web and
+  repository lint, role/CSRF/anonymous/route inventory, bundle and output checks.
+- Release fragment category was corrected. Next: validate the exact release
+  range, verify GitHub fork target and local-identity scan, commit the
+  implementation batch and push; no tag or deployment.
+- After publication: run a 15-minute live host/listener soak, then continue
+  automatic cleanup and restart/multi-instance semantics, DHT index contention,
+  sustained throughput, format/browser/device and accessibility validation.
+  The overall PlayerBar goal remains active.
+
 ## Update 2026-09-28 17:16 UTC
 
 - Current task: fix the PlayerBar AudioContext suspend/resume race. Each graph
@@ -15792,3 +15811,4 @@ Full player goal remains active. Next: force native graph resume/pause races wit
 negative tests and make shared lifecycle ordering follow current playback intent;
 verify 900-second listed-host/capability expiry and tab ownership; then proceed
 to distributed-state/index, resource/format/device/accessibility validation.
+## Update 2026-09-28 18:19 UTC

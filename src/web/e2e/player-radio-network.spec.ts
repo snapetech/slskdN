@@ -4,8 +4,9 @@
 
 import * as fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import * as path from 'node:path';
-import { expect, test, type APIRequestContext } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
 import { login } from './helpers';
 
@@ -18,6 +19,10 @@ async function createRadioRoom(request: APIRequestContext, apiUrl: string, heade
   const podId = (await created.json()).podId;
   expect(podId).toMatch(/^pod:[a-f0-9]{32}$/u);
   return encodeURIComponent(podId);
+}
+
+function audioElements(page: Page): Locator {
+  return page.locator('audio');
 }
 
 // Read isolated-node counters without introducing a diagnostic production endpoint.
@@ -121,17 +126,17 @@ test.describe('listed radio between isolated nodes', () => {
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
     await page.getByTestId('player-open-listed-radio').click();
     await page.getByRole('button', { name: 'Play Radio network tone from listed radio' }).click();
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
+    await expect.poll(() => audioElements(page).evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
     const seek = page.getByLabel('Seek playback', { exact: true });
     const bounds = await seek.boundingBox();
     expect(bounds).not.toBeNull();
     const replacementResponse = page.waitForResponse((response) => response.url().includes('/api/v0/mesh-streams/') && response.request().headers().range !== 'bytes=0-');
     await seek.click({ position: { x: bounds!.width * 0.88, y: bounds!.height / 2 } });
     expect((await replacementResponse).status()).toBe(206);
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => Math.max(...elements.map((audio) => audio.currentTime)))).toBeGreaterThan(150);
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && !audio.seeking && audio.readyState >= 2 && audio.currentTime > 150))).toBe(true);
-    const resumedAt = await page.locator('audio').evaluateAll((elements) => Math.max(...elements.map((audio) => audio.currentTime)));
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => Math.max(...elements.map((audio) => audio.currentTime)))).toBeGreaterThan(resumedAt + 1);
+    await expect.poll(() => audioElements(page).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)))).toBeGreaterThan(150);
+    await expect.poll(() => audioElements(page).evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && !audio.seeking && audio.readyState >= 2 && audio.currentTime > 150))).toBe(true);
+    const resumedAt = await audioElements(page).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)));
+    await expect.poll(() => audioElements(page).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)))).toBeGreaterThan(resumedAt + 1);
     expect(statuses.filter((status) => status === 206).length).toBeGreaterThanOrEqual(2);
     expect(statuses).not.toContain(429);
     expect(statuses).not.toContain(500);
@@ -246,7 +251,7 @@ test.describe('listed radio between isolated nodes', () => {
     const initial = await response.json();
     expect(initial.expiresInSeconds).toBe(120);
     const receivedAt = Date.now();
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
+    await expect.poll(() => audioElements(page).evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
     await page.getByRole('button', { name: 'Pause local playback', exact: true }).click();
     const valid = await request.get(`${host.apiUrl}${initial.streamUrl}`, { headers: { Range: 'bytes=0-1' } });
     expect(valid.status()).toBe(206);
@@ -265,9 +270,104 @@ test.describe('listed radio between isolated nodes', () => {
     expect(renewed.streamUrl).not.toBe(initial.streamUrl);
     const renewedRange = await request.get(`${host.apiUrl}${renewed.streamUrl}`, { headers: { Range: 'bytes=0-1' } });
     expect(renewedRange.status()).toBe(206);
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.readyState >= 2 && audio.currentTime > 120))).toBe(true);
-    const resumedAt = await page.locator('audio').evaluateAll((elements) => Math.max(...elements.map((audio) => audio.currentTime)));
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => Math.max(...elements.map((audio) => audio.currentTime)))).toBeGreaterThan(resumedAt + 1);
+    await expect.poll(() => audioElements(page).evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.readyState >= 2 && audio.currentTime > 120))).toBe(true);
+    const resumedAt = await audioElements(page).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)));
+    await expect.poll(() => audioElements(page).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)))).toBeGreaterThan(resumedAt + 1);
+  });
+
+  test('renews a host capability across nodes and rejects replaced-tab writes and Stop', async ({ request }) => {
+    const host = harness.getNode('A');
+    const listener = harness.getNode('B');
+    const hostLogin = await request.post(`${host.apiUrl}/api/v0/session`, {
+      data: { username: host.nodeCfg.username, password: host.nodeCfg.password },
+    });
+    const listenerLogin = await request.post(`${listener.apiUrl}/api/v0/session`, {
+      data: { username: listener.nodeCfg.username, password: listener.nodeCfg.password },
+    });
+    expect(hostLogin.ok()).toBe(true);
+    expect(listenerLogin.ok()).toBe(true);
+    const hostHeaders = { Authorization: `Bearer ${(await hostLogin.json()).token}` };
+    const listenerHeaders = { Authorization: `Bearer ${(await listenerLogin.json()).token}` };
+    const overlayConnection = await request.post(`${listener.apiUrl}/api/v0/overlay/connect`, {
+      headers: listenerHeaders,
+      data: { address: '127.0.0.1', port: host.getOverlayPort() },
+    });
+    expect(await overlayConnection.text()).toContain('"connected":true');
+    for (const [node, headers] of [[host, hostHeaders], [listener, listenerHeaders]] as const) {
+      const status = await request.get(`${node.apiUrl}/api/v0/dht/status`, { headers });
+      expect(status.ok()).toBe(true);
+      expect(await status.json()).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0, activeMeshConnections: 1 });
+    }
+
+    const library = await request.get(`${host.apiUrl}/api/v0/library/items/browser?query=Radio%20network%20tone&kinds=Audio`, { headers: hostHeaders });
+    expect(library.ok()).toBe(true);
+    const item = (await library.json()).files[0];
+    const podId = await createRadioRoom(request, host.apiUrl, hostHeaders, 'Host-session fencing room');
+    const roomUrl = `${host.apiUrl}/api/v0/listening-party/${podId}/music`;
+    const firstSession = randomUUID();
+    const replacementSession = randomUUID();
+    const firstStart = await request.post(roomUrl, {
+      headers: {
+        ...hostHeaders,
+        'X-Listen-Along-Host-Session': firstSession,
+        'X-Listen-Along-Start-Host-Session': 'true',
+      },
+      data: { action: 'play', contentId: item.contentId, title: 'First browser', listed: true, allowMeshStreaming: true },
+    });
+    expect(firstStart.ok(), await firstStart.text()).toBe(true);
+    const first = await firstStart.json();
+    const hostDirectory = async () => {
+      const response = await request.get(`${host.apiUrl}/api/v0/listening-party?refresh=true`, { headers: hostHeaders });
+      expect(response.ok()).toBe(true);
+      return response.json();
+    };
+    const firstAnnouncement = (await hostDirectory()).find((party: { partyId: string }) => party.partyId === first.partyId);
+    expect(firstAnnouncement?.streamTicket).toBeTruthy();
+
+    const firstRenewal = await request.post(`${host.apiUrl}/api/v0/listening-party/${podId}/music/renew`, {
+      headers: { ...hostHeaders, 'X-Listen-Along-Host-Session': firstSession },
+      data: { partyId: first.partyId },
+    });
+    expect(firstRenewal.status()).toBe(204);
+    const renewedAnnouncement = (await hostDirectory()).find((party: { partyId: string }) => party.partyId === first.partyId);
+    expect(renewedAnnouncement?.streamTicket).toBeTruthy();
+    expect(renewedAnnouncement.streamTicket).not.toBe(firstAnnouncement.streamTicket);
+
+    const replacementStart = await request.post(roomUrl, {
+      headers: {
+        ...hostHeaders,
+        'X-Listen-Along-Host-Session': replacementSession,
+        'X-Listen-Along-Start-Host-Session': 'true',
+      },
+      data: { action: 'play', contentId: item.contentId, title: 'Replacement browser', listed: true, allowMeshStreaming: true },
+    });
+    expect(replacementStart.ok(), await replacementStart.text()).toBe(true);
+    const replacement = await replacementStart.json();
+    expect(replacement.partyId).not.toBe(first.partyId);
+
+    const staleRenewal = await request.post(`${host.apiUrl}/api/v0/listening-party/${podId}/music/renew`, {
+      headers: { ...hostHeaders, 'X-Listen-Along-Host-Session': firstSession },
+      data: { partyId: first.partyId },
+    });
+    expect(staleRenewal.status()).toBe(409);
+    expect((await staleRenewal.json()).code).toBe('host_session_replaced');
+    for (const action of ['pause', 'stop']) {
+      const staleWrite = await request.post(roomUrl, {
+        headers: { ...hostHeaders, 'X-Listen-Along-Host-Session': firstSession },
+        data: { partyId: first.partyId, action, contentId: item.contentId, listed: true, allowMeshStreaming: true },
+      });
+      expect(staleWrite.status(), `${action} from replaced host`).toBe(409);
+      expect((await staleWrite.json()).code).toBe('host_session_replaced');
+    }
+
+    const activeRoom = await request.get(`${host.apiUrl}/api/v0/listening-party/${podId}/music`, { headers: hostHeaders });
+    expect(activeRoom.ok()).toBe(true);
+    expect((await activeRoom.json())).toMatchObject({ partyId: replacement.partyId, title: 'Replacement browser' });
+    const listenerDirectory = await request.get(`${listener.apiUrl}/api/v0/listening-party?refresh=true`, { headers: listenerHeaders });
+    expect(listenerDirectory.ok()).toBe(true);
+    const listenerParties = await listenerDirectory.json();
+    expect(listenerParties.map((party: { partyId: string }) => party.partyId)).toContain(replacement.partyId);
+    expect(listenerParties.map((party: { partyId: string }) => party.partyId)).not.toContain(first.partyId);
   });
 
 });

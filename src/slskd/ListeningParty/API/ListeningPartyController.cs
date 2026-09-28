@@ -89,7 +89,9 @@ public sealed class ListeningPartyController : ControllerBase
         [FromRoute] string podId,
         [FromRoute] string channelId,
         [FromBody] ListeningPartyEvent request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromHeader(Name = "X-Listen-Along-Host-Session")] string? hostSessionId = null,
+        [FromHeader(Name = "X-Listen-Along-Start-Host-Session")] bool startHostSession = false)
     {
         if (request == null)
         {
@@ -104,13 +106,15 @@ public sealed class ListeningPartyController : ControllerBase
                 return Forbid();
             }
 
-            var published = await _listeningParty.PublishAsync(
+            var published = await _listeningParty.PublishHostEventAsync(
                 request with
                 {
                     PodId = podId,
                     ChannelId = channelId,
                     HostPeerId = access.PeerId,
                 },
+                hostSessionId,
+                startHostSession,
                 cancellationToken);
 
             return Ok(published);
@@ -127,9 +131,58 @@ public sealed class ListeningPartyController : ControllerBase
         {
             return StatusCode(429, "Too many room updates are pending. Retry later.");
         }
+        catch (ListeningPartyHostSessionConflictException exception)
+        {
+            return Conflict(new { code = exception.Code, error = "This browser no longer owns the room host session. Start broadcasting again." });
+        }
         catch (ArgumentException)
         {
             return BadRequest("Listen-along event is invalid.");
+        }
+    }
+
+    [HttpPost("{podId}/{channelId}/renew")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
+    [ProducesResponseType(503)]
+    public async Task<IActionResult> RenewHostSession(
+        [FromRoute] string podId,
+        [FromRoute] string channelId,
+        [FromBody] ListeningPartyHostSessionRenewal request,
+        CancellationToken cancellationToken,
+        [FromHeader(Name = "X-Listen-Along-Host-Session")] string? hostSessionId = null)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.PartyId) || string.IsNullOrWhiteSpace(hostSessionId))
+        {
+            return BadRequest("A room party and host session are required.");
+        }
+
+        var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+        if (!access.IsMember || access.PeerId is null)
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await _listeningParty.RenewHostSessionAsync(podId, channelId, request.PartyId, hostSessionId, cancellationToken);
+            return NoContent();
+        }
+        catch (ListeningPartyHostSessionConflictException exception)
+        {
+            return Conflict(new { code = exception.Code, error = "This browser no longer owns the room host session. Start broadcasting again." });
+        }
+        catch (ListeningPartyStorageException)
+        {
+            return StatusCode(503, new { code = "room_storage_unavailable", error = "The room update could not be saved. Try again." });
+        }
+        catch (ArgumentException)
+        {
+            return BadRequest("Host session is invalid.");
         }
     }
 
@@ -225,3 +278,5 @@ public sealed class ListeningPartyController : ControllerBase
         }
     }
 }
+
+public sealed record ListeningPartyHostSessionRenewal(string PartyId);

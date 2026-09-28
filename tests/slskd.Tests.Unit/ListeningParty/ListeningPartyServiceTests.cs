@@ -184,6 +184,110 @@ public sealed class ListeningPartyServiceTests
         Assert.Equal("party-a", Assert.Single(await service.RefreshDirectoryAsync()).PartyId);
     }
 
+    [Fact]
+    public async Task HostSessions_RenewExpiredAnnouncementsAndFenceReplacedTabs()
+    {
+        var now = DateTimeOffset.FromUnixTimeMilliseconds(1_800_000_000_000);
+        var clock = new Mock<TimeProvider>();
+        clock.Setup(provider => provider.GetUtcNow()).Returns(() => now);
+        var values = new System.Collections.Concurrent.ConcurrentDictionary<string, byte[]>();
+        var writes = new List<(string Key, int Ttl)>();
+        var failingAnnouncementTitle = string.Empty;
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string key, CancellationToken token) => values.TryGetValue(key, out var value) ? value : null);
+        dht.Setup(instance => instance.PutAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback((string key, object value, int ttl, CancellationToken token) =>
+            {
+                if (key.StartsWith("slskdn:listening-party:party:", StringComparison.Ordinal) &&
+                    JsonSerializer.Deserialize<ListeningPartyAnnouncement>((byte[])value, new JsonSerializerOptions(JsonSerializerDefaults.Web))?.Title == failingAnnouncementTitle)
+                {
+                    throw new InvalidOperationException("Announcement storage unavailable");
+                }
+
+                values[key] = (byte[])value;
+                writes.Add((key, ttl));
+            })
+            .Returns(Task.CompletedTask);
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        var tickets = new Mock<IStreamTicketService>();
+        var ticketNumber = 0;
+        tickets.Setup(instance => instance.Create("track", It.IsAny<string>(), TimeSpan.FromSeconds(900)))
+            .Returns(() => $"ticket-{++ticketNumber}");
+        using var service = new ListeningPartyService(
+            Mock.Of<IHubContext<ListeningPartyHub>>(), dht.Object, router.Object,
+            provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(), tickets.Object,
+            Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()), clock.Object);
+        var firstSession = Guid.NewGuid().ToString("N");
+        var replacementSession = Guid.NewGuid().ToString("N");
+        var restartedSession = Guid.NewGuid().ToString("N");
+        ListeningPartyEvent HostEvent(string action, string title, string partyId = "") => new()
+        {
+            PartyId = partyId,
+            PodId = "pod-a",
+            ChannelId = "music",
+            ContentId = "track",
+            Title = title,
+            HostPeerId = "host",
+            Action = action,
+            Listed = true,
+            AllowMeshStreaming = true,
+        };
+
+        var first = await service.PublishHostEventAsync(HostEvent("play", "First"), firstSession, startHostSession: true);
+        var firstAnnouncementKey = $"slskdn:listening-party:party:{first.PartyId}";
+        var initialAnnouncement = JsonSerializer.Deserialize<ListeningPartyAnnouncement>(values[firstAnnouncementKey], new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(initialAnnouncement);
+        Assert.Equal(now.AddSeconds(900).ToUnixTimeMilliseconds(), initialAnnouncement.ExpiresAtUnixMs);
+
+        now = now.AddSeconds(901);
+        await service.RenewHostSessionAsync("pod-a", "music", first.PartyId, firstSession);
+        var renewedAnnouncement = JsonSerializer.Deserialize<ListeningPartyAnnouncement>(values[firstAnnouncementKey], new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(renewedAnnouncement);
+        Assert.NotEqual(initialAnnouncement.StreamTicket, renewedAnnouncement.StreamTicket);
+        Assert.Equal(now.AddSeconds(900).ToUnixTimeMilliseconds(), renewedAnnouncement.ExpiresAtUnixMs);
+        Assert.Equal(2, writes.Count(write => write.Key == firstAnnouncementKey && write.Ttl == 900));
+        Assert.Equal(2, writes.Count(write => write.Key == DirectoryIndexKey && write.Ttl == 900));
+        tickets.Verify(instance => instance.Create("track", $"listening-party:{first.PartyId}", TimeSpan.FromSeconds(900)), Times.Exactly(2));
+
+        failingAnnouncementTitle = "Failed replacement";
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.PublishHostEventAsync(HostEvent("play", failingAnnouncementTitle), replacementSession, startHostSession: true));
+        var fencedRenewal = await Assert.ThrowsAsync<ListeningPartyHostSessionConflictException>(
+            () => service.RenewHostSessionAsync("pod-a", "music", first.PartyId, firstSession));
+        Assert.Equal("host_session_replaced", fencedRenewal.Code);
+        failingAnnouncementTitle = string.Empty;
+
+        var replacement = await service.PublishHostEventAsync(HostEvent("play", "Replacement"), replacementSession, startHostSession: true);
+        Assert.NotEqual(first.PartyId, replacement.PartyId);
+        Assert.Equal("Replacement", (await service.GetStateAsync("pod-a", "music"))?.Title);
+
+        var staleRenewal = await Assert.ThrowsAsync<ListeningPartyHostSessionConflictException>(
+            () => service.RenewHostSessionAsync("pod-a", "music", first.PartyId, firstSession));
+        Assert.Equal("host_session_replaced", staleRenewal.Code);
+        var stalePause = await Assert.ThrowsAsync<ListeningPartyHostSessionConflictException>(() =>
+            service.PublishHostEventAsync(HostEvent("pause", "Stale", first.PartyId), firstSession, startHostSession: false));
+        Assert.Equal("host_session_replaced", stalePause.Code);
+        var staleStop = await Assert.ThrowsAsync<ListeningPartyHostSessionConflictException>(() =>
+            service.PublishHostEventAsync(HostEvent("stop", "Stale", first.PartyId), firstSession, startHostSession: false));
+        Assert.Equal("host_session_replaced", staleStop.Code);
+        Assert.Equal("Replacement", (await service.GetStateAsync("pod-a", "music"))?.Title);
+
+        now = now.AddMinutes(31);
+        var expired = await Assert.ThrowsAsync<ListeningPartyHostSessionConflictException>(
+            () => service.RenewHostSessionAsync("pod-a", "music", replacement.PartyId, replacementSession));
+        Assert.Equal("host_session_expired", expired.Code);
+        var restarted = await service.PublishHostEventAsync(HostEvent("play", "Restarted"), restartedSession, startHostSession: true);
+        Assert.NotEqual(replacement.PartyId, restarted.PartyId);
+        Assert.Equal("Restarted", (await service.GetStateAsync("pod-a", "music"))?.Title);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

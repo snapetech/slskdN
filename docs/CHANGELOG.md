@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Listed radio host renewal and tab ownership
+
+- Refresh active room host leases and listed-radio capabilities every five minutes. A new Broadcast takes ownership with a fresh session identity; replaced tabs can no longer renew, update, or stop the newer host.
+
 ### Audio graph playback intent ordering
 
 - Serialize Web Audio suspend/resume operations with the latest Play/Pause intent, so rapid transport changes cannot leave playback connected to a suspended graph.

@@ -15,14 +15,25 @@ export const getPartyState = async (podId, channelId, { signal } = {}) => {
   return response.status === 204 ? null : response.data;
 };
 
-export const publishPartyState = async (podId, channelId, event, { signal } = {}) => {
+export const publishPartyState = async (podId, channelId, event, { signal, hostSessionId, startHostSession } = {}) => {
+  const headers = {};
+  if (hostSessionId) headers['X-Listen-Along-Host-Session'] = hostSessionId;
+  if (startHostSession) headers['X-Listen-Along-Start-Host-Session'] = 'true';
   return (
     await api.post(
       `/listening-party/${encodeURIComponent(podId)}/${encodeURIComponent(channelId)}`,
       event,
-      { signal },
+      { signal, headers },
     )
   ).data;
+};
+
+export const renewHostSession = async (podId, channelId, partyId, { signal, hostSessionId } = {}) => {
+  await api.post(
+    `/listening-party/${encodeURIComponent(podId)}/${encodeURIComponent(channelId)}/renew`,
+    { partyId },
+    { signal, headers: { 'X-Listen-Along-Host-Session': hostSessionId } },
+  );
 };
 
 export const buildRadioStreamUrl = (party) => {

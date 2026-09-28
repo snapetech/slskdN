@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-09-28T16:41:44Z
+Generated: 2026-09-28T17:59:50Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -72,7 +72,7 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/Jobs/API/LabelCrateJobsController.cs` | `"api/jobs/label-crate"<br>"api/v{version:apiVersion}/jobs/label-crate"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 2 |
 | `src/slskd/LibraryHealth/API/LibraryHealthController.cs` | `"api/library/health"<br>"api/v{version:apiVersion}/library/health"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize] | yes | no | 11 |
 | `src/slskd/ListeningParty/API/ListedRadioController.cs` | `"api/v{version:apiVersion}/listed-radio"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 1 |
-| `src/slskd/ListeningParty/API/ListeningPartyController.cs` | `"api/v{version:apiVersion}/listening-party"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 4 |
+| `src/slskd/ListeningParty/API/ListeningPartyController.cs` | `"api/v{version:apiVersion}/listening-party"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 5 |
 | `src/slskd/MediaCore/API/Controllers/ContentDescriptorPublisherController.cs` | `"api/v{version:apiVersion}/mediacore/publish"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 6 |
 | `src/slskd/MediaCore/API/Controllers/ContentIdController.cs` | `"api/v{version:apiVersion}/mediacore/contentid"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 8 |
 | `src/slskd/MediaCore/API/Controllers/DescriptorRetrieverController.cs` | `"api/v{version:apiVersion}/mediacore/retrieve"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 6 |
@@ -191,8 +191,9 @@ None found.
   - 57:    [HttpGet]
   - 67:    [HttpGet("{podId}/{channelId}")]
   - 81:    [HttpPost("{podId}/{channelId}")]
-  - 136:    [HttpGet("radio/{partyId}/{contentId}")]
-  - 137:    [AllowAnonymous]
+  - 144:    [HttpPost("{podId}/{channelId}/renew")]
+  - 189:    [HttpGet("radio/{partyId}/{contentId}")]
+  - 190:    [AllowAnonymous]
 - src/slskd/PodCore/API/Controllers/PodDhtController.cs
   - 49:    [HttpPost("publish")]
   - 98:    [HttpPost("update")]

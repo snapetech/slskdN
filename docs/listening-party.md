@@ -1,6 +1,6 @@
 # Listening Party
 
-Last updated: 2026-09-27
+Last updated: 2026-09-28
 
 slskdN listening parties are metadata-synchronized playback sessions for pods. They intentionally do not relay music bytes through the host.
 
@@ -53,7 +53,12 @@ room controls. This explicitly starts hosting; playing a track alone does not
 start a broadcast. Play, Pause, Seek and track changes then update the room even
 when you navigate elsewhere in the app. Seeking while paused keeps listeners
 paused at the selected position. Steady playback does not send periodic position
-updates.
+updates. While a host session is active, the player renews its server lease and
+listed-radio capability every five minutes; this does not create room messages
+or position ticks. A manual Broadcast in another browser replaces the current
+host session, and the older tab can no longer update or stop it. If a host tab is
+suspended long enough for its 30-minute lease to expire, start broadcasting
+again after returning.
 
 If the active audio fails, the player pauses it and shares its stopped track
 position with room followers. The local playback error remains visible; use

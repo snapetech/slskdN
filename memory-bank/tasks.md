@@ -5211,7 +5211,8 @@ Open priority work: remote directory announcements carry relative stream paths, 
 
 - [x] Verify real cross-node directory, scoped ticket, decoded playback and interior seek with replacement 206 and subsequent time progression.
 - [x] 2026-09-28 Credit successful radio TLS payload writes and verify host/listener totals plus bidirectional transport accounting.
-- [ ] Validate browser expiry/renewal and repeated radio admissions; expired-ticket/capability denial is covered, successful renewal remains unverified.
+- [x] 2026-09-28 Validate expired local radio-ticket denial and manual reselection; validate listed-host renewal after the 900-second service-clock advance and real two-node capability refresh/stale-tab fencing.
+- [ ] Verify repeated radio admissions and fairness behavior under sustained use.
 - [x] 2026-09-28 Verify and enforce membership revocation after live join; two actual authenticated clients demonstrate stopped state delivery, notification and denied rejoin/snapshot.
 
 ## Radio accounting and recovery — 2026-09-28
@@ -5224,14 +5225,9 @@ Open priority work: remote directory announcements carry relative stream paths, 
 
 ## Next player lifecycle coverage — 2026-09-28
 
-- Verify elapsed local ticket expiry followed by explicit renewal, separately
-  from already covered expired-token denial. Fresh tickets still evaluate
-  fairness; do not disable policy to manufacture successful renewal.
-- Verify long snapshots against the fifteen-minute host capability lifetime;
-  the current manual publication does not establish background renewal.
-- Verify two active room participants against actual SignalR disconnect/rejoin
-  and membership revocation after a subscription already joined. Joining is
-  authorized; continuing fan-out after revocation remains unverified.
+- [x] 2026-09-28 Verify elapsed local ticket expiry, denial, explicit reselection and renewed playback while retaining fairness checks.
+- [x] 2026-09-28 Verify listed-host renewal beyond the 900-second announcement/ticket lifetime with a controlled service clock and two connected backends; stale-tab renewal, Pause and Stop are rejected.
+- [x] 2026-09-28 Verify two authenticated room participants across real SignalR leave/rejoin, snapshot recovery and membership revocation after joining.
 - Continue sustained resource, format/browser and keyboard/assistive coverage
   in the player quality audit. Overall goal remains active.
 
@@ -5252,7 +5248,8 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Verify elapsed local radio ticket expiry and successful manual reselection with actual HTTP and Chromium playback.
 - [ ] Explain the intermittent reverse-directory failure seen during the initial full runtime run; standalone and three repeated diagnostic runs passed. Retain logs on further full runs.
 - [ ] Implement authenticated cross-node room application. Source inspection finds a pod_message sender but no matching control dispatcher handler; bind sender authority before applying state and prevent republishing loops.
-- [ ] Complete remote ticket renewal, long host capability renewal and remaining player quality audit requirements.
+- [x] 2026-09-28 Complete local ticket reselection coverage and long host capability renewal/fencing; controlled-clock and connected two-backend regressions pass.
+- [ ] Complete remaining player quality audit requirements, including repeated admissions, sustained throughput and device/accessibility coverage.
 
 - [x] 2026-09-28 Validate room existence and successful message storage before returning publication success. Retained radio fixture logs demonstrate rejected synthetic pod IDs while the local snapshot still publishes; transport evidence does not prove durable room delivery. See gotcha 0z1110.
 
@@ -5342,7 +5339,10 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Bound/coalesce pending updates and pace publication without idle polling.
 - [x] Require acknowledged Stop before following; expose failure Retry/Stop and release revoked/replaced host ownership.
 - [x] 2026-09-28 Verify the actual host/listener workflow and final complete 22-case runtime gate; publish after validated release preview and fork verification.
-- [ ] Complete host document-close lease cleanup, long capability renewal and media-error synchronization.
+- [x] 2026-09-28 Renew the host lease and listed capability every five minutes;
+  fence updates, renewal and Stop to the latest explicit browser session.
+- [ ] Complete automatic room-state cleanup after document close/lease expiry,
+  then verify host media-error synchronization.
 
 - [ ] Verify and retract prior radio announcements when listing is disabled or a new host replaces the party identity. Backend directory reads currently filter expiry, while explicit removal is in the Stop path; reproduce local and remote directory behavior before fixing.
 
@@ -5624,13 +5624,20 @@ whole-session resource completion.
 
 ### Sustained host renewal evidence to obtain — 2026-09-28
 
-- [ ] Verify a continuously active listed host past the 900-second announcement
-  and advertised stream-capability lifetime. Source inspection finds renewal on
-  listed publication and no periodic renewal in the player host writer. Reproduce
-  expiry with controlled service time and actual cross-node requests before
-  choosing bounded renewal and ownership behavior; retain conservative network
-  limits and prevent stale tabs from renewing replaced sessions. This is separate
-  from the verified two-minute local listener ticket reselection workflow.
+- [x] 2026-09-28 Renew listed host announcements, DHT index entries and
+  900-second stream tickets every five minutes without periodic room messages.
+  Host updates, renewal and Stop are fenced by a per-session identity; a fresh
+  explicit start replaces prior tabs. Service-clock tests advance beyond 900
+  seconds, and a real two-node API test verifies the renewed ticket reaches the
+  remote directory and stale writes/renewal/Stop are rejected.
+- [x] Final gates: 5,328 unit, 74 smoke, 284 integration and 1,094 Web tests;
+  targeted two-node API test, player-hook tests, Web and Release builds, Web
+  lint, repository format, browser-spec TypeScript, security routes, bundle and
+  output checks pass.
+- [ ] Run a 15-minute wall-clock host/listener soak with live playback and
+  browser-tab scheduling. Process-local ownership, service restart recovery,
+  automatic room-state cleanup after the 30-minute lease, distributed index
+  contention and sustained radio throughput remain separate follow-ups.
 
 
 ### Player startup recovery publication — 2026-09-28

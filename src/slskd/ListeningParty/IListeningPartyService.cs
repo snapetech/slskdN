@@ -23,4 +23,17 @@ public interface IListeningPartyService
     Task<IReadOnlyList<ListeningPartyAnnouncement>> RefreshDirectoryAsync(CancellationToken cancellationToken = default);
 
     Task<ListeningPartyEvent> PublishAsync(ListeningPartyEvent partyEvent, CancellationToken cancellationToken = default);
+
+    Task<ListeningPartyEvent> PublishHostEventAsync(
+        ListeningPartyEvent partyEvent,
+        string? hostSessionId,
+        bool startHostSession,
+        CancellationToken cancellationToken = default);
+
+    Task RenewHostSessionAsync(
+        string podId,
+        string channelId,
+        string partyId,
+        string hostSessionId,
+        CancellationToken cancellationToken = default);
 }
