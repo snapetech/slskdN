@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1179. Drain Pending Playwright Routes With the Correct API
+
+**The Bug**: A new readiness regression passed a behavior option to `page.unroute`, whose second argument is a route handler. TypeScript rejected the incorrect call before the browser test ran.
+
+**Prevention**: Resolve deliberately held route work first, then use `page.unrouteAll({ behavior: 'wait' })` to await handlers during cleanup. Keep the explicit browser TypeScript gate before execution; do not cast away a route API mismatch.
+
 ### 0z1178. Publish Paused Setup Intent and Reconcile Failed Playback Processing
 
 **The Bug**: Three negative cases reproduced missing host pause publication after native Play rejection, decoded seek setup failure and crossfade start rejection. Native failure also left a resumed context running because playing stayed false and the existing suspension effect did not rerun.
