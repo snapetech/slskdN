@@ -291,3 +291,16 @@ either direction, preferring an outbound link when both exist. They do not
 open another connection automatically. Host stream limits treat username case
 variants as the same transport peer; account owners and opaque capabilities
 keep their separate scopes.
+
+### Room membership and reconnect
+
+Room state delivery checks current pod membership before each publication. A
+removed or banned participant receives an access-revoked notice and no further
+room state. After membership is restored, use the connection retry control to
+join again and fetch the current snapshot. Queued old room events cannot clear
+the revoked-access message. Administrator access remains available.
+
+Leaving a room or disconnecting releases its subscriptions. Repeated joins do
+not consume another slot. Each connection can subscribe to 16 rooms, and the
+service retains at most 4,096 subscriptions; a full registry rejects new joins
+until subscriptions are released. Idle subscriptions do not poll membership.

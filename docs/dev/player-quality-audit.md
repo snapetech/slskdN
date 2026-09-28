@@ -32,7 +32,7 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
 | Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters and reverse directory publication verified / high; elapsed expiry renewal and sustained sessions unverified |
-| Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Simulated regression checks / high; dual-participant runtime recovery unverified |
+| Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Two authenticated real SignalR clients on one backend verify leave, explicit disconnect/rejoin, snapshot recovery and live ban / high; automatic transport recovery and cross-node propagation unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
 record the source version validated at that time.
@@ -57,7 +57,7 @@ moderate; repeated warm-baseline and sustained-session measurements remain due.
 ## Remaining completion work
 
 - Complete remote-radio expiry/renewal, repeated admissions, source replacement and sustained playback across realistic latency. Real two-backend discovery, decoded HTTP seeking, revocation, accounting and reverse publication are verified.
-- Verify dual-participant listen-along reconnect and host state recovery. Controlled radio stream retry is covered; real host/ticket boundaries remain due.
+- Verify automatic transport reconnect and cross-node listen-along state propagation. Same-node explicit disconnect/rejoin, snapshot recovery and live membership revocation now have real-client coverage; elapsed radio renewal remains due.
 - Exercise supported browser engines and additional audio formats, including
   failures, decode cancellation and recovery.
 - Verify physical mobile interactions, physical output routing/media buttons,
@@ -191,3 +191,27 @@ full unit tests, 74 smoke, 284 integration and 17 browser workflows pass;
 repository/Web lint, Release build, bundle/output, endpoint security, identity
 and whitespace gates pass. The unchanged Web implementation retains its
 989-test validated suite.
+
+## Room subscription lifecycle — 2026-09-28
+
+The real service accepts two authenticated non-admin SignalR clients. A runtime
+case creates a public pod, joins both members, verifies shared publications,
+explicit room leave/rejoin, disconnect/reconnect and current snapshot retrieval.
+Banning one already-connected member stops subsequent private room state,
+delivers one access-revoked notification and denies both rejoin and snapshot
+read; the second participant continues receiving state. Confidence is high for
+this same-node Long Polling workflow. It does not establish physical browser
+following, automatic transport recovery or cross-node state propagation.
+
+Regression tests verify removal and ban, administrator access, room isolation,
+registry capacity, leave while membership lookup is pending, disconnected join
+rejection and queued event/join ordering after revocation. The existing service
+tracks at most 4,096 subscriptions and 16 per connection, performs one current
+membership read per publication when needed and performs no idle polling.
+
+Final gates pass: 992 Web tests across 165 files; 5,238 unit, 74 smoke and
+284 integration tests; 18 runtime cases (17 Chromium and one real two-client
+SignalR workflow). Repository/Web lint, Release/frontend builds, bundle/output,
+CSRF/anonymous endpoint, identity and whitespace checks pass. The player
+overhaul remains active with renewal, distributed room delivery, sustained
+resources, accessibility, format/browser and physical-device work outstanding.

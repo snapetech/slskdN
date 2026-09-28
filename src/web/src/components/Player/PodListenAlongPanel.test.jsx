@@ -124,6 +124,40 @@ describe('PodListenAlongPanel directory polling', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(failure === 'closed' ? 'connection closed' : 'Could not rejoin');
   });
 
+  it.each(['initial', 'reconnect'])('keeps revocation ahead of an in-flight %s join', async (kind) => {
+    const hub = createHub();
+    let finishJoin;
+    const pending = new Promise((resolve) => { finishJoin = resolve; });
+    if (kind === 'initial') hub.invoke.mockReturnValueOnce(pending);
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
+    await act(async () => { await Promise.resolve(); });
+    let rejoin;
+    if (kind === 'reconnect') {
+      hub.invoke.mockReturnValueOnce(pending);
+      await act(async () => { rejoin = hub.onreconnected.mock.calls[0][0](); });
+    }
+    await act(async () => hub.on.mock.calls.find(([event]) => event === 'partyAccessRevoked')[1]());
+    await act(async () => { finishJoin(); if (rejoin) await rejoin; });
+    expect(screen.getByRole('alert')).toHaveTextContent('Room access was revoked');
+    expect(screen.getByLabelText('Listen Along offline')).toBeInTheDocument();
+  });
+
+  it('retains revoked access feedback across late room events until explicit rejoin', async () => {
+    const hub = createHub();
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
+    await act(async () => { await Promise.resolve(); });
+    const revoked = hub.on.mock.calls.find(([event]) => event === 'partyAccessRevoked')[1];
+    const receive = hub.on.mock.calls.find(([event]) => event === 'partyState')[1];
+    await act(async () => revoked());
+    expect(screen.getByRole('alert')).toHaveTextContent('Room access was revoked');
+    expect(player.followParty).toHaveBeenCalledWith(null);
+    await act(async () => receive({ action: 'play', contentId: 'stale', title: 'Queued stale event' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Room access was revoked');
+    expect(screen.queryByText('Queued stale event')).not.toBeInTheDocument();
+  });
+
   it('keeps live host events ahead of late snapshots', async () => {
     const hub = createHub();
     let finishSnapshot;

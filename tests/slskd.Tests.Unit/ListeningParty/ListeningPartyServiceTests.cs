@@ -5,6 +5,7 @@
 namespace slskd.Tests.Unit.ListeningParty;
 
 using System.Text.Json;
+using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -181,6 +182,87 @@ public sealed class ListeningPartyServiceTests
         Assert.Equal("listening-party:party-a", tickets.Validate(announcement.StreamTicket, "track")?.OwnerKey);
         dht.Setup(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None)).ReturnsAsync(Serialize(new ListeningPartyIndex()));
         Assert.Equal("party-a", Assert.Single(await service.RefreshDirectoryAsync()).PartyId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Publish_RechecksMembershipAndRequiresRejoinAfterRevocation(bool banned)
+    {
+        var members = new[] { new PodMember { PeerId = "member" } };
+        var pods = new Mock<IPodService>();
+        pods.Setup(instance => instance.GetMembersAsync("pod-a", It.IsAny<CancellationToken>())).ReturnsAsync(() => members);
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(pods.Object).BuildServiceProvider();
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        var deliveries = new List<(string[] Recipients, string Method)>();
+        var clients = new Mock<IHubClients>();
+        clients.Setup(instance => instance.Clients(It.IsAny<IReadOnlyList<string>>())).Returns((IReadOnlyList<string> recipients) =>
+        {
+            var target = new Mock<IClientProxy>();
+            target.Setup(instance => instance.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), It.IsAny<CancellationToken>()))
+                .Callback((string method, object?[] arguments, CancellationToken token) => deliveries.Add((recipients.ToArray(), method)))
+                .Returns(Task.CompletedTask);
+            return target.Object;
+        });
+        var hub = new Mock<IHubContext<ListeningPartyHub>>();
+        hub.SetupGet(instance => instance.Clients).Returns(clients.Object);
+        var service = new ListeningPartyService(hub.Object, Mock.Of<IMeshDhtClient>(), router.Object, provider.GetRequiredService<IServiceScopeFactory>(),
+            new NowPlayingService(), Mock.Of<IStreamTicketService>(), Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+        var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "member") }, "test"));
+        var admin = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "admin"), new Claim(ClaimTypes.Role, "Administrator") }, "test"));
+        Assert.True(service.Subscribe("member-connection", "pod-a", "channel-a", user));
+        Assert.True(service.Subscribe("admin-connection", "pod-a", "channel-a", admin));
+        Assert.True(service.Subscribe("other-room", "pod-a", "other-channel", admin));
+        var state = new ListeningPartyEvent { PodId = "pod-a", ChannelId = "channel-a", ContentId = "track", HostPeerId = "admin", Action = "play" };
+        await service.PublishAsync(state);
+        Assert.Equal(new[] { "member-connection", "admin-connection" }, Assert.Single(deliveries).Recipients);
+        Assert.Equal("partyState", deliveries[0].Method);
+        deliveries.Clear();
+        members = banned ? [new PodMember { PeerId = "member", IsBanned = true }] : [];
+        await service.PublishAsync(state);
+        Assert.Contains(deliveries, delivery => delivery.Method == "partyAccessRevoked" && delivery.Recipients.SequenceEqual(new[] { "member-connection" }));
+        Assert.Contains(deliveries, delivery => delivery.Method == "partyState" && delivery.Recipients.SequenceEqual(new[] { "admin-connection" }));
+        deliveries.Clear();
+        members = [new PodMember { PeerId = "member" }];
+        await service.PublishAsync(state);
+        Assert.Equal(new[] { "admin-connection" }, Assert.Single(deliveries).Recipients);
+        pods.Verify(instance => instance.GetMembersAsync("pod-a", It.IsAny<CancellationToken>()), Times.Exactly(2));
+        deliveries.Clear();
+        Assert.True(service.Subscribe("member-connection", "pod-a", "channel-a", user));
+        await service.PublishAsync(state);
+        Assert.Contains(deliveries, delivery => delivery.Recipients.Contains("member-connection"));
+        deliveries.Clear();
+        var membershipRead = new TaskCompletionSource<IReadOnlyList<PodMember>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        pods.Setup(instance => instance.GetMembersAsync("pod-a", It.IsAny<CancellationToken>())).Returns(membershipRead.Task);
+        var pendingPublication = service.PublishAsync(state);
+        Assert.False(pendingPublication.IsCompleted);
+        service.Unsubscribe("member-connection", "pod-a", "channel-a");
+        service.Disconnect("admin-connection");
+        membershipRead.SetResult(members);
+        await pendingPublication;
+        Assert.Empty(deliveries);
+    }
+
+    [Fact]
+    public void Subscriptions_BoundCapacityAndReleaseDisconnectedRooms()
+    {
+        var service = CreateService(Mock.Of<IMeshDhtClient>());
+        var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "member") }, "test"));
+        Assert.False(service.Subscribe("anonymous", "pod-a", "room", new ClaimsPrincipal()));
+        for (var index = 0; index < 16; index++) Assert.True(service.Subscribe("connection", "pod-a", index.ToString(), user));
+        Assert.True(service.Subscribe("connection", "pod-a", "0", user));
+        Assert.False(service.Subscribe("connection", "pod-a", "overflow", user));
+        service.Unsubscribe("connection", "pod-a", "0");
+        Assert.True(service.Subscribe("connection", "pod-a", "overflow", user));
+        service.Disconnect("connection");
+        for (var index = 0; index < 4096; index++) Assert.True(service.Subscribe(index.ToString(), "pod-a", "room", user));
+        Assert.False(service.Subscribe("global-overflow", "pod-a", "room", user));
+        service.Disconnect("0");
+        Assert.True(service.Subscribe("global-overflow", "pod-a", "room", user));
     }
 
     private static ListeningPartyService CreateService(IMeshDhtClient dht, TimeProvider? clock = null)

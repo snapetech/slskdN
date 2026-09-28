@@ -158,6 +158,8 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     setPartyState(null);
     setPublishError('');
     let disposed = false;
+    let accessRevoked = false;
+    let revocationVersion = 0;
     let hubVersion = 0;
     let snapshotVersion = 0;
     const hub = createListeningPartyHubConnection();
@@ -184,18 +186,33 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       const eventVersion = hubVersion;
       try {
         const state = await listeningParty.getPartyState(podId, channelId);
-        if (!disposed && requestVersion === snapshotVersion && eventVersion === hubVersion) {
+        if (!disposed && !accessRevoked && requestVersion === snapshotVersion && eventVersion === hubVersion) {
           receiveState(state);
         }
       } catch {
-        if (!disposed && requestVersion === snapshotVersion && eventVersion === hubVersion) {
+        if (!disposed && !accessRevoked && requestVersion === snapshotVersion && eventVersion === hubVersion) {
           setConnectionError('Room state could not refresh. Retry the connection to catch up.');
         }
       }
     };
 
-    hub.on('partyState', (state) => {
+    hub.on('partyAccessRevoked', () => {
       if (disposed) return;
+      accessRevoked = true;
+      revocationVersion += 1;
+      hubVersion += 1;
+      snapshotVersion += 1;
+      followingRef.current = false;
+      lastAppliedPartyRef.current = null;
+      setFollowing(false);
+      setPartyState(null);
+      setConnected(false);
+      setConnectionPending(false);
+      setConnectionError('Room access was revoked. Rejoin after your membership is restored.');
+      playerRef.current.followParty(null);
+    });
+    hub.on('partyState', (state) => {
+      if (disposed || accessRevoked) return;
       hubVersion += 1;
       receiveState(state);
     });
@@ -203,14 +220,16 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       if (!disposed) {
         setConnected(false);
         setConnectionPending(true);
-        setConnectionError('');
+        if (!accessRevoked) setConnectionError('');
       }
     });
     hub.onreconnected(async () => {
       if (disposed) return;
       try {
+        const version = revocationVersion;
         await hub.invoke('JoinParty', podId, channelId);
-        if (!disposed) {
+        if (!disposed && version === revocationVersion) {
+          accessRevoked = false;
           setConnected(true);
           setConnectionPending(false);
           refreshState();
@@ -219,7 +238,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
         if (!disposed) {
           setConnected(false);
           setConnectionPending(false);
-          setConnectionError('Could not rejoin this room. Retry the connection.');
+          if (!accessRevoked) setConnectionError('Could not rejoin this room. Retry the connection.');
         }
       }
     });
@@ -227,15 +246,18 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       if (!disposed) {
         setConnected(false);
         setConnectionPending(false);
-        setConnectionError('Listen-along connection closed. Retry to rejoin this room.');
+        if (!accessRevoked) setConnectionError('Listen-along connection closed. Retry to rejoin this room.');
       }
     });
 
     hub
       .start()
-      .then(() => disposed ? undefined : hub.invoke('JoinParty', podId, channelId))
-      .then(() => {
-        if (!disposed) {
+      .then(async () => {
+        if (disposed) return;
+        const version = revocationVersion;
+        await hub.invoke('JoinParty', podId, channelId);
+        if (!disposed && version === revocationVersion) {
+          accessRevoked = false;
           setConnected(true);
           setConnectionPending(false);
           refreshState();
@@ -245,7 +267,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
         if (!disposed) {
           setConnected(false);
           setConnectionPending(false);
-          setConnectionError('Listen-along could not connect. Retry when the connection is available.');
+          if (!accessRevoked) setConnectionError('Listen-along could not connect. Retry when the connection is available.');
         }
       });
 

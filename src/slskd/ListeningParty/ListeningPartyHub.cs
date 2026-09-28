@@ -18,9 +18,12 @@ public sealed class ListeningPartyHub : Hub
 {
     private readonly IPodService _pods;
 
-    public ListeningPartyHub(IPodService pods)
+    private readonly IListeningPartyService _parties;
+
+    public ListeningPartyHub(IPodService pods, IListeningPartyService parties)
     {
         _pods = pods;
+        _parties = parties;
     }
 
     public async Task JoinParty(string podId, string channelId)
@@ -38,16 +41,22 @@ public sealed class ListeningPartyHub : Hub
             throw new HubException("Pod membership is required to join listen-along.");
         }
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(podId, channelId), Context.ConnectionAborted);
+        Context.ConnectionAborted.ThrowIfCancellationRequested();
+        if (!_parties.Subscribe(Context.ConnectionId, podId, channelId, Context.User!))
+        {
+            throw new HubException("Too many listen-along subscriptions.");
+        }
     }
 
     public Task LeaveParty(string podId, string channelId)
     {
-        return Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(podId, channelId));
+        _parties.Unsubscribe(Context.ConnectionId, podId?.Trim() ?? string.Empty, channelId?.Trim() ?? string.Empty);
+        return Task.CompletedTask;
     }
 
-    internal static string GroupName(string podId, string channelId)
+    public override Task OnDisconnectedAsync(Exception? exception)
     {
-        return $"party:{podId?.Trim()}:{channelId?.Trim()}";
+        _parties.Disconnect(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
     }
 }

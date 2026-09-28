@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Listen-along subscription lifecycle
+
+- Recheck pod membership before live state delivery, remove banned or withdrawn recipients and retain administrator access.
+- Release room subscriptions on leave/disconnect and bound subscriptions per connection and service.
+- Show revoked access in the player and keep queued room events from restoring stale metadata until authorized rejoin.
+
 ### Radio transport identity and existing links
 
 - Keep one radio host reservation and one peer call counter across transport username case variants.

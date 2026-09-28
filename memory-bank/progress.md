@@ -13753,3 +13753,37 @@ disconnect/rejoin and continuous membership authorization; then sustained
 resources, browser/format, accessibility and physical-device coverage. Inspect
 remote message reception before claiming cross-node room state propagation.
 The complete player goal remains active.
+
+## Room subscription lifecycle validation — 2026-09-28
+
+Implemented bounded live subscription tracking and delivery-time membership
+checks, explicit leave/disconnect cleanup and access-revoked feedback. Web
+revocation ordering now covers queued events and in-flight initial/reconnect
+joins. ADR-0015 records the architecture and concurrency limits.
+
+Real two-client Long Polling validates same-node publication, leave/rejoin,
+explicit disconnect/snapshot recovery and live ban. Combined runtime suite:
+18 passed (17 Chromium plus one actual-client case); 992 Web, 5,238 final unit
+and 74 smoke pass. Final integration process is still live; lint/build and
+security/bundle/output/identity/whitespace gates pass. Each defect/fixture
+correction has a separate immediate gotcha commit.
+
+Next Steps: finish integration, exact-range release preview and commit/push;
+then elapsed ticket/capability renewal and useful fairness feedback, automatic
+transport recovery, browser follow behavior and cross-node room state. Keep
+remaining resource, browser/format, accessibility and physical-device audit
+requirements open. The full player goal remains active; no release/tag/deploy.
+
+## Room subscription final gates — 2026-09-28
+
+Final source passes 5,238 unit, 74 smoke and 284 integration tests, 992 Web tests
+and 18 runtime cases (17 Chromium workflows plus two-client SignalR). All
+lint/build/bundle/output/endpoint/identity/whitespace gates pass. The live case
+proves same-node membership revocation and explicit reconnect/snapshot recovery;
+automatic transport and cross-node room propagation remain unverified.
+
+Completed implementation batch is cleared after commit/push. Next Steps:
+elapsed radio renewal and fairness feedback, concurrent room publication
+ordering, automatic transport recovery and authenticated distributed state
+delivery; continue remaining player quality audit rows. Overall goal remains
+active. No release tag or deployment is authorized.

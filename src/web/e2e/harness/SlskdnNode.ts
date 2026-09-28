@@ -11,6 +11,7 @@ export type NodeConfig = {
   flags?: {
     noConnect?: boolean;
     radioMesh?: boolean;
+    listenAlongMembers?: boolean;
   };
   nodeName: string;
   shareDir: string | string[]; // Single dir or array for multiple shares
@@ -423,7 +424,14 @@ ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
   authentication:
     username: ${nodeCreds.username}
     password: ${nodeCreds.password}
-  rateLimiting:
+${this.config.flags?.listenAlongMembers ? `    api_keys:
+      roomlistener:
+        key: room-listener-fixture-key
+        role: readwrite
+      roomobserver:
+        key: room-observer-fixture-key
+        role: readwrite
+` : ''}  rateLimiting:
     enabled: false
   cors:
     enabled: true

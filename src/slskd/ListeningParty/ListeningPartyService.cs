@@ -5,6 +5,7 @@
 namespace slskd.ListeningParty;
 
 using System.Collections.Concurrent;
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,8 @@ using Microsoft.Extensions.Logging;
 using slskd.Mesh.Dht;
 using slskd.NowPlaying;
 using slskd.PodCore;
+using slskd.PodCore.API;
+using slskd.Core.Security;
 using slskd.Streaming;
 
 /// <summary>
@@ -39,6 +42,10 @@ public sealed class ListeningPartyService : IListeningPartyService
     private Task? _directoryRefreshTask;
     private DateTimeOffset _directoryLastRefreshedAt;
     private DateTimeOffset _directoryLastForcedAt;
+    private readonly object _subscriptionsLock = new();
+    private readonly Dictionary<(string ConnectionId, string PodId, string ChannelId), PartySubscription> _subscriptions = new();
+    private const int MaxSubscriptions = 4096;
+    private const int MaxSubscriptionsPerConnection = 16;
     private long _sequence;
     private readonly TimeProvider _timeProvider;
 
@@ -63,6 +70,96 @@ public sealed class ListeningPartyService : IListeningPartyService
         _options = options;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
+
+    public bool Subscribe(string connectionId, string podId, string channelId, ClaimsPrincipal user)
+    {
+        var peerId = PodApiAuthorizer.GetAuthenticatedPeerId(user);
+        if (peerId == null) return false;
+        var key = (connectionId, podId, channelId);
+        lock (_subscriptionsLock)
+        {
+            if (!_subscriptions.ContainsKey(key) &&
+                (_subscriptions.Count >= MaxSubscriptions ||
+                 _subscriptions.Keys.Count(entry => entry.ConnectionId == connectionId) >= MaxSubscriptionsPerConnection))
+            {
+                return false;
+            }
+
+            _subscriptions[key] = new PartySubscription(connectionId, podId, channelId, peerId, user.IsInRole(AuthRole.AdministratorOnly));
+            return true;
+        }
+    }
+
+    public void Unsubscribe(string connectionId, string podId, string channelId)
+    {
+        lock (_subscriptionsLock)
+        {
+            _subscriptions.Remove((connectionId, podId, channelId));
+        }
+    }
+
+    public void Disconnect(string connectionId)
+    {
+        lock (_subscriptionsLock)
+        {
+            foreach (var key in _subscriptions.Keys.Where(key => key.ConnectionId == connectionId).ToArray())
+            {
+                _subscriptions.Remove(key);
+            }
+        }
+    }
+
+    // Recheck mutable membership for live delivery; see ADR-0015.
+    private async Task SendToSubscribersAsync(ListeningPartyEvent state, CancellationToken cancellationToken)
+    {
+        PartySubscription[] subscriptions;
+        lock (_subscriptionsLock)
+        {
+            subscriptions = _subscriptions.Values.Where(entry => entry.PodId == state.PodId && entry.ChannelId == state.ChannelId).ToArray();
+        }
+
+        if (subscriptions.Length == 0) return;
+        var members = new HashSet<string>(StringComparer.Ordinal);
+        if (subscriptions.Any(entry => !entry.IsAdministrator))
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var pods = scope.ServiceProvider.GetRequiredService<IPodService>();
+            var current = await pods.GetMembersAsync(state.PodId, cancellationToken).ConfigureAwait(false);
+            members.UnionWith(current.Where(member => !member.IsBanned).Select(member => member.PeerId));
+        }
+
+        var recipients = new List<string>();
+        var denied = new List<string>();
+        lock (_subscriptionsLock)
+        {
+            foreach (var subscription in subscriptions)
+            {
+                var key = (subscription.ConnectionId, subscription.PodId, subscription.ChannelId);
+                if (!_subscriptions.TryGetValue(key, out var current) || !ReferenceEquals(current, subscription)) continue;
+                if (subscription.IsAdministrator || members.Contains(subscription.PeerId))
+                {
+                    recipients.Add(subscription.ConnectionId);
+                }
+                else
+                {
+                    _subscriptions.Remove(key);
+                    denied.Add(subscription.ConnectionId);
+                }
+            }
+        }
+
+        if (denied.Count > 0)
+        {
+            await _hub.Clients.Clients(denied).SendAsync("partyAccessRevoked", cancellationToken).ConfigureAwait(false);
+        }
+
+        if (recipients.Count > 0)
+        {
+            await _hub.Clients.Clients(recipients).SendAsync("partyState", state, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private sealed record PartySubscription(string ConnectionId, string PodId, string ChannelId, string PeerId, bool IsAdministrator);
 
     public Task<ListeningPartyEvent?> GetStateAsync(string podId, string channelId, CancellationToken cancellationToken = default)
     {
@@ -180,9 +277,7 @@ public sealed class ListeningPartyService : IListeningPartyService
             _logger.LogWarning("Failed to route listen-along message {MessageId}: {Error}", routing.MessageId, routing.ErrorMessage);
         }
 
-        await _hub.Clients
-            .Group(ListeningPartyHub.GroupName(normalized.PodId, normalized.ChannelId))
-            .SendAsync("partyState", normalized, cancellationToken);
+        await SendToSubscribersAsync(normalized, cancellationToken).ConfigureAwait(false);
 
         return normalized;
     }

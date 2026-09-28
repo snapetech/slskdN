@@ -5205,7 +5205,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Verify real cross-node directory, scoped ticket, decoded playback and interior seek with replacement 206 and subsequent time progression.
 - [x] 2026-09-28 Credit successful radio TLS payload writes and verify host/listener totals plus bidirectional transport accounting.
 - [ ] Validate browser expiry/renewal and repeated radio admissions; expired-ticket/capability denial is covered, successful renewal remains unverified.
-- [ ] Verify room membership revocation after a live subscription has already joined.
+- [x] 2026-09-28 Verify and enforce membership revocation after live join; two actual authenticated clients demonstrate stopped state delivery, notification and denied rejoin/snapshot.
 
 ## Radio accounting and recovery — 2026-09-28
 
@@ -5227,3 +5227,13 @@ Open priority work: remote directory announcements carry relative stream paths, 
   authorized; continuing fan-out after revocation remains unverified.
 - Continue sustained resource, format/browser and keyboard/assistive coverage
   in the player quality audit. Overall goal remains active.
+
+## Room subscription lifecycle — 2026-09-28
+
+- [x] Replace unchecked group fan-out with bounded authenticated subscriptions and current membership delivery checks.
+- [x] Release subscriptions on explicit leave/disconnect; verify per-connection and global capacity.
+- [x] Keep revoked access ahead of queued room events and in-flight initial/reconnect join completions.
+- [x] Verify two real authenticated SignalR clients against actual service publication, leave/rejoin, disconnect/snapshot and live ban.
+- [ ] Verify automatic transport recovery and actual browser follow behavior.
+- [ ] Establish authenticated cross-node room state application; metadata routed as pod messages does not by itself prove local room state/hub delivery.
+- [ ] Verify concurrent room publication ordering and elapsed radio ticket/capability renewal with useful fairness feedback.
