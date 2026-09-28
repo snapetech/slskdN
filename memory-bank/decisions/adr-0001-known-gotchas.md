@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1097. Respect Overlay Message Pacing in Concurrent RPC Tests
+
+**The Bug**: A real TLS test burst ten held calls immediately after discovery RPCs to probe the client concurrency bound. The separate ten-message-per-second overlay limit rejected the burst, so responses exercised transport pacing rather than the intended client quota.
+
+**Prevention**: Separate quota probes from preceding/following RPCs by a full message window. Keep production rate limits unchanged, hold calls with a controlled completion source, and verify mixed-case peers share one counter and release all reservations after replies.
+
 ### 0z1096. Locate Mesh Signing Interfaces Before Qualifying Test Types
 
 **The Bug**: An extended real TLS fixture qualified IMeshMessageSigner under the transport namespace based on nearby imports, causing CS0234 before regressions could run. The interface belongs to the mesh root namespace.
