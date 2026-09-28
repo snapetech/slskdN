@@ -32,6 +32,20 @@ identity is not part of their contract.
 as message ID, room, sender and sequence. Reserve reference-equality checks for
 calls that actually share the original object.
 
+### 0z1202. Type Audio Elements in Every Modified Browser Workflow
+
+**What went wrong:** Adding a cross-node follow workflow led to a strict
+TypeScript check of the modified spec and exposed existing callbacks in the
+same file that accessed `paused` and `currentTime` on Playwright's generic
+element union.
+
+**Why:** A CSS selector does not narrow Playwright's browser-evaluation element
+type to `HTMLAudioElement`, even when the selector is `audio`.
+
+**Prevention:** Cast audio-locator arrays to `HTMLAudioElement[]` at each DOM
+evaluation boundary and run the explicit browser-spec type check on the whole
+modified file with the supported ES library target.
+
 ### 0z1199. Assert Mesh Reply Payloads Against Their Wire Contract
 
 **What went wrong:** The new `ApplyListenAlong` service returned success, but
