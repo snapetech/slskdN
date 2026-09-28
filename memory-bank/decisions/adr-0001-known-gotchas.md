@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1122. Put Room Playback Controls on the Routed Messaging Surface
+
+**The Bug**: Listen-along controls were mounted only by the legacy Pods component, while every live pod route renders Messaging V2. A regression could open a pod channel but found no playback panel. A second regression showed DirectMessage channels with custom names were classified as rooms because the classifier recognized Direct but not the backend enum's DirectMessage spelling.
+
+**Prevention**: Mount compact room playback on the active non-direct pod channel in the routed messaging surface and test the actual component boundary plus real browser workflow. Preserve Soulseek/direct-message separation and recognize the backend channel kind independently of channel names. Component-only player tests do not prove that users can reach controls from application routes.
+
 ### 0z1121. Match the Changelog Heading Rather Than Its Inline Mention
 
 **The Bug**: A permission-batch insertion searched for the first Unreleased string and matched the introduction's inline code reference. It inserted release bullets into prose instead of under the actual heading. Review of the diff caught the malformed introduction before commit.
