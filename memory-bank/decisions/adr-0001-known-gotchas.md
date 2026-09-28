@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1157. Bind Radio Withdrawal to the Accepted Room State
+
+**The Bug**: Stronger two-room regressions reproduced both listings disappearing when Stop or unlist supplied the other room's party ID. Stop already removed the supplied ID without room ownership; the initial retry fix also marked an unlisted request's replacement ID, introducing the same collateral deletion on unlist.
+
+**Prevention**: Normalize Stop to the current room state's party ID before storing and publishing its message. Withdraw only the previous listed state owned by that room. Track pending index cleanup by room, separately from retained announcement suppression, and clear pending work only after its index write succeeds. Index removal filters verified withdrawal markers rather than deleting arbitrary request IDs. Cover two live room IDs and preserve the unrelated directory entry for both Stop and unlist.
+
 ### 0z1156. Keep Never-Listed Room Playback Independent of the Directory
 
 **The Bug**: The initial directory-withdrawal fix performed an index read/write for every private playback event. Existing membership regressions exposed the new dependency on directory data even though those rooms had never published a listing.
