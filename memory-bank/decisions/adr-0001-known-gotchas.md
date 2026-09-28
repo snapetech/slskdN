@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1146. Pace Legitimate Mesh RPC Frames Outside the Receive Loop
+
+**The Bug**: A real TLS regression issued twenty sequential radio metadata calls on one authenticated link. The existing ten-pending-call limit did not pace sequential frames; a call returned ServiceUnavailable after the inbound ten-per-second quota disconnected the peer.
+
+**Prevention**: Pace outbound service requests and replies through a bounded connection-owned writer. Enqueue replies without awaiting pacing in the receive loop, so malicious raw RPC bursts still hit the unchanged inbound quota. Keep control frames independent, cancel/drain writes on disposal, and account uploads only after successful transmission. Preserve real TLS ten/eleven-frame boundary tests alongside legitimate burst coverage.
+
 ### 0z1145. Select Touch Layout by Pointer Capability as Well as Width
 
 **The Bug**: The touch layout only activated below 720 pixels. A real browser context with hasTouch=true at tablet width reproduced smaller controls despite a coarse primary pointer. Resizing a desktop browser alone did not cover that input mode.
