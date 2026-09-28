@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1128. Align Pause Events Without the Playing Drift Allowance
+
+**The Bug**: The real browser follower paused near six seconds when the host requested eight. Pause skipped position alignment whenever the difference was below two seconds, making behavior depend on event delivery timing. A negative regression from 7.5 to 8 seconds also skipped the requested paused selection.
+
+**Prevention**: Treat paused positions as fixed targets. Align differences above a small explicit 50-millisecond tolerance with startPaused playback, and avoid reloading an already aligned source. Verify both near-target pause and live browser behavior; a playing drift allowance is inappropriate once the host is paused.
+
 ### 0z1127. Make Routed Room Controls Touchable and Expose Network Opt-In State
 
 **The Bug**: The new routed mobile workflow measured a room control at 32.25 pixels wide instead of the 44-pixel target. Compact directory and mesh-streaming buttons also hid their selected state from assistive controls; a negative regression found no pressed-state attribute.
