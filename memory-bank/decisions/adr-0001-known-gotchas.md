@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1139. Keep Room Follow Ownership Outside Route Components
+
+**The Bug**: The room panel owned the listen-along hub. Navigating through the real Downloads link unmounted it and closed the hub while the persistent player still displayed following state. A real-browser regression published Pause at 16 seconds after navigation and the follower never aligned. Remounting also initialized its local Follow toggle to false.
+
+**Prevention**: Let the persistent player retain the followed room independently of panel observers. Reuse the same connection when its panel returns, derive Follow state from room identity, and release the connection only after both ownership sources end. Scope revocation to its room and test actual SPA navigation rather than a document reload.
+
 ### 0z1138. Separate Browser Bootstrap Failures from Player Workflow Failures
 
 **The Gotcha**: A queue-switch case failed in shared login setup before any player action. Six ERR_NETWORK_CHANGED resource errors left the React root empty, and the retained screenshot was blank. Nineteen other cases passed, including radio and network diagnostics; this was not evidence of a queue defect.
