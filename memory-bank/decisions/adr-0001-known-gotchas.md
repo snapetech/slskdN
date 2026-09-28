@@ -6,6 +6,18 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1066. Preserve Mesh Stream Tails and Propagate Producer Failure
+
+**The Bug**: Unknown-length mesh streams demanded an exact 2048-byte final chunk and dropped legitimate shorter tails. Fetch failures and hash mismatches were then completed as normal EOF, hiding truncation. Exact end offsets were rejected by the host, and the producer could complete its pipe twice on missing peers.
+
+**Files Affected**:
+- `src/slskd/Streaming/MeshStreamService.cs`
+- `src/slskd/Streaming/MeshContentFetcher.cs`
+- `src/slskd/Mesh/ServiceFabric/Services/MeshContentMeshService.cs`
+- `tests/slskd.Tests.Unit/Streaming/MeshStreamServiceTests.cs`
+
+**Prevention**: Keep exact size checks for known-length content; allow bounded short/empty range replies at unknown-length EOF. Reject replies larger than requested. Complete the producer pipe once with its failure so consumers see interruption instead of valid EOF; reuse the stream copy buffer across chunks.
+
 ### 0z1065. Do Not Treat Relative Radio Paths as Remote Routing
 
 **Open Bug**: Directory announcements can come from remote DHT hosts, but their streamPath is relative. The radio endpoint checks in-process party state and locally signed tickets; a remote announcement does not by itself establish a playable route through the browsing node. Controlled browser-stream tests do not cover this host boundary.
