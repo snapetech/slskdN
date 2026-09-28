@@ -18,6 +18,20 @@ remote node.
 needs to act as that peer. Verify the resulting member record before exercising
 cross-node routing.
 
+### 0z1203. Compare Mesh Membership Peer IDs Case-Insensitively
+
+**What went wrong:** The two-node listen-along test created membership through
+an API-key identity such as `nodeb`, while the authenticated overlay reported
+the same Soulseek peer as `nodeB`. Ordinal comparisons treated them as
+different peers and rejected valid room-state delivery.
+
+**Why:** Soulseek peer usernames are case-insensitive, but different
+authentication and transport boundaries preserve different casing.
+
+**Prevention:** Compare peer identities with `StringComparison.OrdinalIgnoreCase`
+at mesh membership, sender-validation and routing boundaries. Include a
+mixed-case member/transport regression.
+
 ### 0z1200. Retire Remote Room State Only After Local Persistence Succeeds
 
 **What went wrong:** A local room publication removed the currently received
