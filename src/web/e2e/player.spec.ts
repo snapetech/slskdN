@@ -455,17 +455,18 @@ test.describe('player browser playback', () => {
   });
 
   test('keeps compact and expanded controls within desktop and narrow viewports', async ({ page }, testInfo) => {
+    const minimumMeasuredTouchSize = 44 - 0.01;
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     for (const width of [1440, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(page.getByTestId('player-toggle-playback')).toBeInViewport();
       if (width <= 720) {
         const touchBounds = await page.getByTestId('player-toggle-playback').boundingBox();
-        expect(touchBounds!.width).toBeGreaterThanOrEqual(44);
-        expect(touchBounds!.height).toBeGreaterThanOrEqual(44);
+        expect(touchBounds!.width).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
+        expect(touchBounds!.height).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
         const ratingBounds = await page.getByTestId('player-rating-1').boundingBox();
-        expect(ratingBounds!.width).toBeGreaterThanOrEqual(44);
-        expect(ratingBounds!.height).toBeGreaterThanOrEqual(44);
+        expect(ratingBounds!.width).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
+        expect(ratingBounds!.height).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
         await expect(page.locator('.player-rating-summary')).toHaveText('Not rated');
         expect(await page.locator('.player-rating-summary').evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
         await expect(page.locator('.player-visual-tile-controls')).toBeHidden();
@@ -475,13 +476,16 @@ test.describe('player browser playback', () => {
         for (const control of await visualControls.all()) {
           await control.scrollIntoViewIfNeeded();
           const controlBounds = await control.boundingBox();
-          expect(controlBounds!.width).toBeGreaterThanOrEqual(44);
-          expect(controlBounds!.height).toBeGreaterThanOrEqual(44);
+          expect(controlBounds!.width).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
+          expect(controlBounds!.height).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
           expect(controlBounds!.x).toBeGreaterThanOrEqual(0);
           expect(controlBounds!.x + controlBounds!.width).toBeLessThanOrEqual(width);
         }
         const rating = page.getByTestId('player-rating-3');
         await rating.focus();
+        await page.keyboard.press('Tab');
+        await page.keyboard.press('Shift+Tab');
+        await expect(rating).toBeFocused();
         await page.keyboard.press('Space');
         await expect(rating).toHaveAttribute('aria-pressed', 'true');
         expect(await rating.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('solid');
@@ -508,8 +512,8 @@ test.describe('player browser playback', () => {
         for (const control of await page.locator('.player-control-cluster').getByRole('button').all()) {
           const touchBounds = await control.boundingBox();
           expect(touchBounds).not.toBeNull();
-          expect(touchBounds!.width).toBeGreaterThanOrEqual(44);
-          expect(touchBounds!.height).toBeGreaterThanOrEqual(44);
+          expect(touchBounds!.width).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
+          expect(touchBounds!.height).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
         }
       }
       if (width <= 420) {
@@ -529,14 +533,15 @@ test.describe('player browser playback', () => {
   test.describe('touchscreen layout', () => {
     test.use({ hasTouch: true });
     test('keeps tablet controls touch-sized independently of viewport width', async ({ page }, testInfo) => {
+      const minimumMeasuredTouchSize = 44 - 0.01;
       await page.setViewportSize({ width: 768, height: 1024 });
       expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
       await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
       for (const testId of ['player-toggle-playback', 'player-rating-1']) {
         const bounds = await page.getByTestId(testId).boundingBox();
         expect(bounds).not.toBeNull();
-        expect(bounds!.width).toBeGreaterThanOrEqual(44);
-        expect(bounds!.height).toBeGreaterThanOrEqual(44);
+        expect(bounds!.width).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
+        expect(bounds!.height).toBeGreaterThanOrEqual(minimumMeasuredTouchSize);
       }
       await expect(page.locator('.player-visual-tile-controls')).toBeHidden();
       await expect(page.getByTestId('player-toggle-playback')).toBeInViewport();

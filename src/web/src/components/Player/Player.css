@@ -27,11 +27,6 @@
   z-index: 900;
 }
 
-body:has(.ui.modal) .player-bar {
-  pointer-events: none;
-  visibility: hidden;
-}
-
 .player-main-deck {
   align-items: stretch;
   display: grid;
