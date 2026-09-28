@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1114. Format New Multiline Test Initializers Before the Full Gate
+
+**The Bug**: A new publication fixture placed several properties on one line inside a multiline initializer. Focused compilation passed, but repository lint rejected its whitespace formatting.
+
+**Prevention**: Put properties on separate lines in multiline initializers and inspect repository formatting output before treating the gate as passed. Fix lint findings before continuing builds; focused regression success does not establish style compliance.
+
 ### 0z1113. Authenticate and Authorize Remote Room Delivery Separately
 
 **Source Finding / Open Work**: Legacy UDP and QUIC control reception calls the dispatcher overload without peer validation. The existing Pods mesh Join handler forwards caller-selected roles and does not check public visibility or approval before JoinAsync. Transport identity alone therefore must not be treated as permission to publish private room state or gain a moderator role.
