@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1162. Own Test-Node Log Drains and Shutdown Deadlines
+
+**The Bug**: Repeated player runtime runs reported log descriptors closed by garbage collection. Successful startup never closed its locally owned log handles; async data listeners had unobserved write failures, stderr was retained twice and diagnostic strings grew without a bound. A negative lifecycle regression also proved graceful shutdown left its hard-kill timer active. Failed startup escaped the harness registry without stopping its child.
+
+**Prevention**: Pipe child output through owned file streams and await both drains after child close. Capture pipeline errors, stop the child and surface the failure through awaited startup or cleanup. Bound in-memory diagnostic tails while retaining complete disk logs. Register close ownership before shutdown, clear its deadline in finally and serialize repeated stop calls. Clean up failed starts before rethrowing so registration is never required for resource ownership. Verify graceful, forced, already-exited and failed startup paths, log flushing and explicit write failures.
+
 ### 0z1161. Preserve Ownership-Loss Feedback After Publication Cancellation
 
 **The Bug**: Negative regressions reproduced a generic retryable publication error replacing specific access-revocation feedback. The panel omitted HTTP 403 handling, and a canceled settings request overwrote the persistent owner's revocation message after that owner released its session.
