@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1124. Expose Follow Toggle State to Assistive Controls
+
+**The Bug**: Room follow buttons used only Semantic UI's visual active state. A negative accessibility regression found no aria-pressed value, so assistive controls could not determine whether following was enabled.
+
+**Prevention**: Bind aria-pressed to following in compact and expanded layouts. Verify false/true/false on toggle and retain the explanatory popup. A styled active class does not communicate toggle state to assistive tools.
+
 ### 0z1123. Use Joined Room Fixtures When Testing Messaging Navigation
 
 **The Bug**: A new pod playback navigation test tried to click an available Soulseek room while its joined-room fixture was empty. The panel assertions passed, then the test failed on a missing room row rather than on playback behavior.
