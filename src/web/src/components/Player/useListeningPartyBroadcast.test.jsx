@@ -207,6 +207,86 @@ describe('persistent host publication', () => {
     expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(3);
   });
 
+  it.each([false, true])('keeps confirmed settings behind queued acknowledgment (coalesced=%s)', async (coalesced) => {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+    const request = deferred();
+    const { result, unmount } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      listeningParty.publishPartyState.mockReturnValueOnce(request.promise);
+      player.audioElement.paused = true;
+      let previous;
+      let edited;
+      act(() => { previous = result.current.reportPlaybackEvent('pause', 9); });
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      act(() => { edited = result.current.publishBroadcast({ ...config, globalRadio: false, meshStreaming: false }, 'play'); });
+      expect(result.current.broadcastStatus).toMatchObject({ globalRadio: true, meshStreaming: true,
+        requestedGlobalRadio: false, requestedMeshStreaming: false, settingsPending: true, confirmedSettings: true });
+      let latest;
+      if (coalesced) act(() => { latest = result.current.reportPlaybackEvent('seek', 55); });
+      await act(async () => { request.resolve({ partyId: 'party', listed: true, allowMeshStreaming: true }); await previous; });
+      expect(result.current.broadcastStatus).toMatchObject({ globalRadio: true, meshStreaming: true, settingsPending: true });
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      await act(async () => { await edited; if (latest) await latest; });
+      expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({ listed: false, allowMeshStreaming: false,
+        action: coalesced ? 'seek' : 'pause', positionSeconds: coalesced ? 55 : 8, partyId: 'party' });
+      expect(result.current.broadcastStatus).toMatchObject({ globalRadio: false, meshStreaming: false, settingsPending: false, pending: false });
+      expect(player.observePartyRoom).toHaveBeenCalledOnce();
+      expect(player.followParty).toHaveBeenCalledOnce();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally { unmount(); vi.useRealTimers(); }
+  });
+
+  it('retains requested permissions after a preceding queued write fails', async () => {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+    const request = deferred();
+    const { result, unmount } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      listeningParty.publishPartyState.mockReturnValueOnce(request.promise);
+      player.audioElement.paused = true;
+      let previous;
+      let edited;
+      act(() => { previous = result.current.reportPlaybackEvent('pause', 9); });
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      act(() => { edited = result.current.publishBroadcast({ ...config, globalRadio: false, meshStreaming: false }, 'play').catch((error) => error); });
+      await act(async () => { request.reject(new Error('Offline')); await previous; await edited; });
+      expect(result.current.broadcastStatus).toMatchObject({ globalRadio: true, requestedGlobalRadio: false, pending: false, settingsPending: false });
+      expect(result.current.broadcastStatus.error).toMatch(/updates failed/);
+      act(() => result.current.reportPlaybackEvent('seek', 90));
+      expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(2);
+      let retry;
+      act(() => { retry = result.current.retryBroadcast(); });
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      await act(async () => retry);
+      expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({ listed: false, allowMeshStreaming: false, action: 'pause', positionSeconds: 8 });
+      expect(result.current.broadcastStatus).toMatchObject({ globalRadio: false, meshStreaming: false, error: '' });
+    } finally { unmount(); vi.useRealTimers(); }
+  });
+
+  it('keeps Stop ahead of later settings edits', async () => {
+    vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
+    const request = deferred();
+    const { result, unmount } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      listeningParty.publishPartyState.mockReturnValueOnce(request.promise);
+      let changed;
+      let stopped;
+      act(() => { changed = result.current.publishBroadcast({ ...config, globalRadio: false, meshStreaming: false }, 'play'); });
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      act(() => { stopped = result.current.stopBroadcast(); });
+      expect(result.current.broadcastStatus.stopping).toBe(true);
+      await act(async () => { await expect(result.current.publishBroadcast(config, 'play')).rejects.toThrow(/stop before starting/i); });
+      await act(async () => { request.resolve({ partyId: 'party', listed: false, allowMeshStreaming: false }); await changed; });
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      await act(async () => stopped);
+      expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({ action: 'stop', listed: false, allowMeshStreaming: false });
+      expect(result.current.broadcastStatus).toBeNull();
+      expect(releaseRoom).toHaveBeenCalledOnce();
+    } finally { unmount(); vi.useRealTimers(); }
+  });
+
   it('paces writes without an idle polling timer', async () => {
     vi.useFakeTimers({ toFake: ['performance', 'setTimeout', 'clearTimeout'] });
     const times = [];

@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Live broadcast settings
+
+- Apply listing and streaming changes to the active browser-owned host without restarting local playback or changing party identity.
+- Keep confirmed settings visible while updates are pending; expose explicit Retry and preserve queued Stop.
+- Unlisting clears streaming opt-in. Stage choices before Broadcast, reset them per room, and restore retained host choices on return.
+- Associate expanded checkbox labels with unique input IDs.
+- Keep room controls and Retry visible on narrow screens with wrapping and 44-pixel touch targets.
+- Preserve specific access-revocation feedback when pending publication requests are canceled.
+
 ### Room-owned radio directory cleanup
 
 - Withdraw prior radio entries when a room is unlisted, replaced or stopped; preserve another room's listing when a client supplies its ID.

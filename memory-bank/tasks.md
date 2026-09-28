@@ -5355,9 +5355,9 @@ and renewal behavior, sustained resource and throughput evidence, supported
 browser/format/device/accessibility/focus contrast checks, and fixture cleanup.
 Cross-node index conflict resolution is still open. Full player goal is active.
 
-- [ ] Player follow-up: listing and mesh-streaming toggles currently stage settings
-  until Broadcast is clicked again. Make active-host application explicit in the
-  UI or publish owned changes immediately, with failure and concurrency coverage.
+- [x] 2026-09-28: Apply browser-owned listing and streaming changes immediately,
+  with confirmed settings, failure Retry, queued Stop and room-navigation coverage.
+  Validate mobile control bounds, capability revocation and playback preservation.
 
 ### Cross-room withdrawal correction — 2026-09-28
 
@@ -5375,3 +5375,40 @@ are required again before source publication.
   service cases and the final 22-case runtime suite; preserve neighboring listings.
 - [ ] Audit ownership of explicitly supplied listed party IDs across rooms and
   nodes, including collision rejection and distributed index conflict handling.
+
+## Live browser-owned broadcast settings — 2026-09-28
+
+Compact and expanded controls now apply listing/streaming changes through the
+persistent host writer, preserving mapped playback state and identity. Requested
+and confirmed settings are separate; pending feedback, failure Retry and queued
+Stop behavior are explicit. Unlisting clears streaming opt-in. Staged choices
+reset per room, and returning to a retained host restores acknowledged settings.
+Expanded checkbox IDs associate labels with their inputs. Gotchas 0z1158 and
+0z1159 were committed immediately; ADR-0021 records the design.
+
+All 60 focused tests pass, including 13 added paths for staged/active choices,
+paused/playing state, queued/coalesced acknowledgment, failed preceding writes,
+Retry, Stop ordering and room navigation. Full gates and the strengthened real
+host permission workflow are running before source publication. Full player
+goal remains active; fixture cleanup, distributed state/index ownership,
+error/auth/lease/renewal, sustained resources and compatibility/accessibility
+coverage remain open.
+
+### Final live-settings batch evidence — 2026-09-28
+
+The complete final rebuilt browser suite passes all 22 cases in 5.5 minutes;
+terminal exit is zero and browser metadata reports passed with no failed tests.
+The real two-minute ticket-expiry test passed. Retained node logs contain no
+quota-exceeded or public-bootstrap match. Both release fragments validate.
+All 63 focused / 1,056 total Web tests, final Release and repository/Web lint,
+bundle/output, controller/fetch CSRF, anonymous endpoint and identity gates pass.
+The backend is unchanged from the passing 5,317 unit / 74 smoke / 284 integration
+run. Browser TypeScript executes in Playwright and is outside Web ESLint scope.
+
+Live settings, ownership-loss feedback and mobile room-control repairs are
+complete for source publication. Next Steps: clean up fixture log handles and
+shutdown before sustained resource measurement; then address distributed state
+and index ownership, host error/auth/lease/renewal, sustained throughput and
+browser/format/device/assistive-technology/focus contrast coverage. Fixture GC
+warnings remain reproduced; short trace-enabled runs do not prove low resource
+use across a sustained session. The full player goal remains active.

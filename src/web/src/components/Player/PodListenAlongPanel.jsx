@@ -1,6 +1,6 @@
 import * as listeningParty from '../../lib/listeningParty';
 import { usePlayer } from './PlayerContext';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Button, Checkbox, Icon, Label, List, Popup, Segment } from 'semantic-ui-react';
 
 const DIRECTORY_POLL_INTERVAL_MS = 60_000;
@@ -27,6 +27,7 @@ const sameDirectory = (previous, next) =>
 
 const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const player = usePlayer();
+  const settingsId = useId();
   const canBroadcastCurrent = Boolean(
     player.current?.contentId && !player.current.contentId.startsWith('local:') && !player.current.radioPartyId,
   );
@@ -40,6 +41,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const [partyState, setPartyState] = useState(null);
   const [publishError, setPublishError] = useState('');
   const directoryFetchInFlightRef = useRef(false);
+  const confirmedSettingsRef = useRef(null);
   const mountedRef = useRef(false);
   const publishRequestRef = useRef(0);
 
@@ -54,6 +56,8 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     if (!podId || !channelId) return undefined;
     publishRequestRef.current += 1;
     setPublishError('');
+    setGlobalRadio(false);
+    setMeshStreaming(false);
     return player.observePartyRoom(podId, channelId, setRoom);
   }, [channelId, player.observePartyRoom, podId]);
 
@@ -82,6 +86,17 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       directoryFetchInFlightRef.current = false;
     }
   }, [compact]);
+
+  useEffect(() => {
+    if (!ownBroadcast || !player.broadcastStatus.active || !player.broadcastStatus.confirmedSettings) {
+      confirmedSettingsRef.current = null;
+      return;
+    }
+    const settings = `${podId}/${channelId}:${player.broadcastStatus.globalRadio}:${player.broadcastStatus.meshStreaming}`;
+    if (confirmedSettingsRef.current !== null && confirmedSettingsRef.current !== settings) refreshDirectory();
+    confirmedSettingsRef.current = settings;
+  }, [channelId, ownBroadcast, player.broadcastStatus?.active, player.broadcastStatus?.confirmedSettings,
+    player.broadcastStatus?.globalRadio, player.broadcastStatus?.meshStreaming, podId, refreshDirectory]);
 
   useEffect(() => {
     if (compact) return undefined;
@@ -117,34 +132,69 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     };
   }, [compact, refreshDirectory]);
 
-  const publish = (action) => {
+  const publish = (action, settings = { globalRadio, meshStreaming }, updatingSettings = false) => {
     if (action !== 'stop' && !canBroadcastCurrent) return;
 
     const requestId = ++publishRequestRef.current;
     setPublishError('');
-    const request = player.publishBroadcast({ channelId, globalRadio, meshStreaming, podId, user,
+    const request = player.publishBroadcast({ channelId, ...settings, podId, user,
       partyId: partyState?.podId === podId && partyState?.channelId === channelId ? partyState.partyId : '',
     }, action);
     request.then((state) => {
       if (!mountedRef.current || requestId !== publishRequestRef.current) return;
       if (state) setPartyState(action === 'stop' ? null : state);
-      if (!compact) refreshDirectory();
+      if (!compact && !updatingSettings) refreshDirectory();
     }).catch((error) => {
+      if (error?.name === 'AbortError' || error?.code === 'ERR_CANCELED') return;
       if (mountedRef.current && requestId === publishRequestRef.current) {
         setPublishError(error?.message === 'Stop the active broadcast before starting another room.'
           ? error.message
           : error?.response?.status === 429
           ? 'Room updates are at capacity. Retry later.'
+          : error?.response?.status === 403
+            ? 'Room access was revoked. Rejoin before broadcasting.'
           : error?.response?.status === 404
             ? 'This room is unavailable. Choose an existing room.'
             : error?.response?.data?.code === 'room_storage_unavailable'
               ? 'The room update could not be saved. Try again.'
               : action === 'stop'
           ? 'Could not stop the room broadcast. Try again.'
-          : 'Could not start the room broadcast. Try again.');
+          : updatingSettings
+            ? 'Could not confirm broadcast settings. Retry to apply the requested settings.'
+            : 'Could not start the room broadcast. Try again.');
       }
     });
   };
+
+  const hosting = ownBroadcast && player.broadcastStatus.active;
+  const settingsBusy = hosting && (player.broadcastStatus.settingsPending || player.broadcastStatus.stopping);
+  const listed = hosting ? player.broadcastStatus.globalRadio : globalRadio;
+  const streaming = hosting ? player.broadcastStatus.meshStreaming : meshStreaming;
+  const changeSettings = (field, value) => {
+    const settings = hosting
+      ? { globalRadio: player.broadcastStatus.requestedGlobalRadio, meshStreaming: player.broadcastStatus.requestedMeshStreaming }
+      : { globalRadio, meshStreaming };
+    settings[field] = value;
+    if (!settings.globalRadio) settings.meshStreaming = false;
+    if (hosting) publish('play', settings, true);
+    else {
+      setGlobalRadio(settings.globalRadio);
+      setMeshStreaming(settings.meshStreaming);
+    }
+  };
+  const visiblePublishError = publishError || (ownBroadcast ? player.broadcastStatus.error : '');
+  const broadcastFeedback = <>
+    {hosting && player.broadcastStatus.stopping
+      ? <div className="pod-listen-along-state" role="status">Stopping room broadcast…</div> : null}
+    {hosting && player.broadcastStatus.settingsPending
+      ? <div className="pod-listen-along-state" role="status">Applying broadcast settings…</div> : null}
+    {visiblePublishError ? <div className="pod-listen-along-error" role="alert">{visiblePublishError}</div> : null}
+    {hosting && player.broadcastStatus.error ? <Popup
+      content="Retry the failed room update using the current playback state. Failed Stop requests are retried as Stop."
+      trigger={<Button aria-label="Retry room broadcast update" className="pod-listen-along-retry" disabled={player.broadcastStatus.pending || player.broadcastStatus.stopping}
+        icon="refresh" onClick={() => { setPublishError(''); player.retryBroadcast().catch(() => {}); }} size="mini" />}
+    /> : null}
+  </>;
 
   const joinListedParty = (party) => {
     const streamUrl = listeningParty.buildRadioStreamUrl(party);
@@ -239,7 +289,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             trigger={
               <Button
                 aria-label="Broadcast current track to room"
-                disabled={!canBroadcastCurrent}
+                disabled={!canBroadcastCurrent || Boolean(settingsBusy)}
                 icon
                 onClick={() => publish('play')}
                 size="mini"
@@ -250,13 +300,15 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             }
           />
           <Popup
-            content="List this room broadcast in the mesh radio directory."
+            content="Choose whether listeners can discover this broadcast. Changes apply immediately while you host; otherwise click Broadcast to apply."
             trigger={
               <Button
-                active={globalRadio}
+                active={listed}
                 aria-label="List room broadcast in mesh directory"
+                aria-busy={Boolean(settingsBusy)}
+                disabled={Boolean(settingsBusy)}
                 icon
-                onClick={() => setGlobalRadio((value) => !value)}
+                onClick={() => changeSettings('globalRadio', !listed)}
                 size="mini"
                 title="List room broadcast in mesh directory"
                 toggle
@@ -266,14 +318,15 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             }
           />
           <Popup
-            content="Allow directory listeners to stream the current track from this node."
+            content="Allow directory listeners to stream from this node. Changes apply immediately while you host; unlisting also turns streaming off."
             trigger={
               <Button
-                active={meshStreaming}
+                active={streaming}
                 aria-label="Allow mesh streaming for broadcast"
-                disabled={!globalRadio}
+                aria-busy={Boolean(settingsBusy)}
+                disabled={!listed || Boolean(settingsBusy)}
                 icon
-                onClick={() => setMeshStreaming((value) => !value)}
+                onClick={() => changeSettings('meshStreaming', !streaming)}
                 size="mini"
                 title="Allow mesh streaming for broadcast"
                 toggle
@@ -287,6 +340,8 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             trigger={
               <Button
                 aria-label="Stop room broadcast"
+                disabled={Boolean(hosting && player.broadcastStatus.stopping)}
+                loading={Boolean(hosting && player.broadcastStatus.stopping)}
                 icon
                 onClick={() => publish('stop')}
                 size="mini"
@@ -298,7 +353,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           />
         </div>
         {connectionError ? <div className="pod-listen-along-error" role="alert">{connectionError}</div> : null}
-        {publishError ? <div className="pod-listen-along-error" role="alert">{publishError}</div> : null}
+        {broadcastFeedback}
       </Segment>
     );
   }
@@ -321,24 +376,29 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       </div>
       <div className="pod-listen-along-toggles">
         <Popup
-          content="List this party in the slskdN mesh radio directory so nearby mesh members can discover it."
+          content="Choose whether listeners can discover this broadcast. Changes apply immediately while you host; otherwise click Broadcast to apply."
           trigger={
             <Checkbox
-              checked={globalRadio}
+              aria-busy={Boolean(settingsBusy)}
+              checked={listed}
+              disabled={Boolean(settingsBusy)}
+              id={`${settingsId}-listed`}
               label="List globally"
-              onChange={(event, data) => setGlobalRadio(data.checked)}
+              onChange={(event, data) => changeSettings('globalRadio', data.checked)}
               toggle
             />
           }
         />
         <Popup
-          content="Allow listeners who join from the directory to stream this party's current track from this slskdN node."
+          content="Allow directory listeners to stream from this node. Changes apply immediately while you host; unlisting also turns streaming off."
           trigger={
             <Checkbox
-              checked={meshStreaming}
-              disabled={!globalRadio}
+              aria-busy={Boolean(settingsBusy)}
+              checked={streaming}
+              id={`${settingsId}-streaming`}
+              disabled={!listed || Boolean(settingsBusy)}
               label="Mesh streaming"
-              onChange={(event, data) => setMeshStreaming(data.checked)}
+              onChange={(event, data) => changeSettings('meshStreaming', data.checked)}
               toggle
             />
           }
@@ -367,7 +427,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           trigger={
             <Button
               aria-label="Broadcast current track to pod"
-              disabled={!canBroadcastCurrent}
+              disabled={!canBroadcastCurrent || Boolean(settingsBusy)}
               icon
               onClick={() => publish('play')}
             >
@@ -380,6 +440,8 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           trigger={
             <Button
               aria-label="Stop pod broadcast"
+              disabled={Boolean(hosting && player.broadcastStatus.stopping)}
+              loading={Boolean(hosting && player.broadcastStatus.stopping)}
               icon
               onClick={() => publish('stop')}
             >
@@ -389,7 +451,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
         />
       </Button.Group>
       {connectionError ? <div className="pod-listen-along-error" role="alert">{connectionError}</div> : null}
-      {publishError ? <div className="pod-listen-along-error" role="alert">{publishError}</div> : null}
+      {broadcastFeedback}
       {directory.length > 0 && (
         <div className="pod-listen-along-directory">
           <strong>Listed radio</strong>

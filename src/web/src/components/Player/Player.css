@@ -2066,3 +2066,20 @@ body:has(.ui.modal) .player-bar {
     min-height: 44px;
   }
 }
+
+.pod-listen-along-retry.ui.button {
+  min-height: 32px;
+  min-width: 32px;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .pod-listen-along-compact-actions {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .pod-listen-along .ui.button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

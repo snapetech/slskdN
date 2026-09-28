@@ -790,3 +790,66 @@ fixture lifecycle cleanup, authenticated distributed room state and index
 conflict handling, host error/auth/lease/renewal behavior, sustained resources
 and throughput, supported browser/format/device/accessibility/focus contrast
 coverage. The full player goal remains active.
+
+## Active host sharing controls — 2026-09-28
+
+Two negative control cases reproduced missing active listing publication. A
+stronger navigation case reproduced staged sharing choices leaking between
+rooms. The owned writer now applies active changes, separates requested and
+confirmed permissions, keeps Stop ordered, and retains explicit Retry on failure.
+Unlisting clears streaming opt-in. Expanded controls have associated labels.
+Thirteen added cases cover these paths within a passing 60-case focused suite.
+The complete rebuilt runtime permission workflow is pending.
+
+### Narrow room playback layout and ownership-loss feedback — 2026-09-28
+
+A real 320-pixel negative regression measured Stop extending to 382 pixels. The
+conversation view occupied the rail column and inserted playback into a layout
+with only three rows. The corrected layout spans the mobile columns, constrains
+its inner column and gives room playback its own automatic row; actions can wrap
+with 44-pixel targets. Runtime assertions cover every room action's bounds.
+
+Two further negative regressions reproduced generic publication feedback replacing
+HTTP 403 or ownership-loss cancellation feedback. Explicit 403 handling and
+cancellation preservation now pass, including both DOM and HTTP cancellation.
+Gotchas 0z1160 and 0z1161 were committed immediately. Final browser validation
+is running; this source change alone does not prove touch or layout behavior.
+
+### Live settings and mobile control verification — 2026-09-28
+
+All 63 focused panel/writer cases pass, including 16 added paths, and all 1,056
+Web tests pass in 167 files. The rebuilt host workflow verifies live settings
+while playing and paused, explicit Retry after storage failure, anonymous stream
+capability revocation, fresh streaming opt-in after relisting and preservation
+of playback. At a 320-pixel viewport, all five room actions measure 44 by 44
+pixels and remain visible; Stop ends at 261 pixels. The failure/Retry screenshot
+and expanded player screenshot were inspected.
+
+The mobile conversation grid now spans its columns and allocates a separate
+playback row. HTTP 403 and canceled publications retain access-revocation
+feedback. Gotchas 0z1160 and 0z1161 document the reproduced failures. Final
+Release, repository/Web lint, bundle/output, CSRF/anonymous endpoint and identity
+gates pass; Release retains two existing build-task support warnings. The
+unchanged backend source has passing 5,317 unit / 74 smoke / 284 integration
+evidence. Full browser validation is still running. Fixture log-handle warnings
+remain open and prevent treating this short runtime suite as sustained resource
+evidence. The full player goal remains active.
+
+### Final live-settings batch evidence — 2026-09-28
+
+The complete final rebuilt browser suite passes all 22 cases in 5.5 minutes;
+terminal exit is zero and browser metadata reports passed with no failed tests.
+The real two-minute ticket-expiry test passed. Retained node logs contain no
+quota-exceeded or public-bootstrap match. Both release fragments validate.
+All 63 focused / 1,056 total Web tests, final Release and repository/Web lint,
+bundle/output, controller/fetch CSRF, anonymous endpoint and identity gates pass.
+The backend is unchanged from the passing 5,317 unit / 74 smoke / 284 integration
+run. Browser TypeScript executes in Playwright and is outside Web ESLint scope.
+
+Live settings, ownership-loss feedback and mobile room-control repairs are
+complete for source publication. Next Steps: clean up fixture log handles and
+shutdown before sustained resource measurement; then address distributed state
+and index ownership, host error/auth/lease/renewal, sustained throughput and
+browser/format/device/assistive-technology/focus contrast coverage. Fixture GC
+warnings remain reproduced; short trace-enabled runs do not prove low resource
+use across a sustained session. The full player goal remains active.

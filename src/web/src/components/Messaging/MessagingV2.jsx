@@ -1131,6 +1131,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     return podId && !podChannels.some((channel) => channel.podId === podId);
   });
 
+  const showRoomPlayback = Boolean(activePodChannel &&
+    podChannels.some((channel) => channel.target === activeTab?.target) &&
+    !isPodDirectChannel(activePodChannel));
+
   const gridStyle = {
     '--msgv2-member-width': showMembers ? `${workspace.paneSettings.memberWidth}px` : '0px',
     '--msgv2-tree-width': `${workspace.paneSettings.treeWidth}px`,
@@ -1391,7 +1395,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         tabIndex={0}
       />
 
-      <main className="msgv2-view">
+      <main className={`msgv2-view${showRoomPlayback ? ' msgv2-view-with-playback' : ''}`}>
         <header className="msgv2-tabs">
           <div className="msgv2-tabs-strip">
             {workspace.tabs.length === 0 ? (
@@ -1470,9 +1474,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
           </div>
         </header>
 
-        {activePodChannel &&
-          podChannels.some((channel) => channel.target === activeTab?.target) &&
-          !isPodDirectChannel(activePodChannel) && (
+        {showRoomPlayback && (
           <div className="msgv2-room-playback">
             <PodListenAlongPanel
               channelId={activePodChannel.channelId}

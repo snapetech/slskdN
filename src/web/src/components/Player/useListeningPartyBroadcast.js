@@ -19,6 +19,7 @@ const publicationError = (error) => error?.response?.status === 429
 
 // An explicitly started host session survives route changes. One active request
 // and one coalesced update bound publication work; see ADR-0019.
+// Requested and confirmed sharing settings remain separate; see ADR-0021.
 export default function useListeningPartyBroadcast(player) {
   const playerRef = useRef(player);
   const sessionRef = useRef(null);
@@ -29,7 +30,12 @@ export default function useListeningPartyBroadcast(player) {
 
   const status = useCallback((session, changes = {}) => {
     if (mountedRef.current && sessionRef.current === session) {
-      setBroadcastStatus({ ...session.config, active: true, error: '', pending: session.inFlight,
+      const confirmed = session.confirmedConfig;
+      setBroadcastStatus({ ...session.config, ...confirmed, active: true, error: '', pending: session.inFlight,
+        confirmedSettings: Boolean(confirmed),
+        requestedGlobalRadio: session.config.globalRadio, requestedMeshStreaming: session.config.meshStreaming,
+        settingsPending: session.inFlight && !session.stopping && (!confirmed || confirmed.globalRadio !== session.config.globalRadio ||
+          confirmed.meshStreaming !== session.config.meshStreaming), stopping: session.stopping,
         ...changes });
     }
   }, []);
@@ -40,7 +46,7 @@ export default function useListeningPartyBroadcast(player) {
     session.pending?.resolve(null);
     session.pending = null;
     session.releaseRoom?.();
-    if (mountedRef.current) setBroadcastStatus(error ? { ...session.config, active: false, error, pending: false } : null);
+    if (mountedRef.current) setBroadcastStatus(error ? { ...session.config, ...session.confirmedConfig, active: false, error, pending: false } : null);
   }, []);
 
   const send = useCallback(async function send(session, update) {
@@ -75,6 +81,8 @@ export default function useListeningPartyBroadcast(player) {
       if (sessionRef.current !== session) { update.resolve(null); return; }
       session.partyId = state?.partyId || session.partyId;
       session.lastState = state;
+      session.confirmedConfig = { globalRadio: state?.listed ?? update.payload.listed,
+        meshStreaming: state?.allowMeshStreaming ?? update.payload.allowMeshStreaming };
       session.error = '';
       update.resolve(state);
       if (update.payload.action === 'stop') release(session);
@@ -104,9 +112,10 @@ export default function useListeningPartyBroadcast(player) {
       if (session.inFlight) {
         session.pending?.resolve(null);
         session.pending = update;
+        status(session, { error: session.error });
       } else send(session, update);
     });
-  }, [send]);
+  }, [send, status]);
   const payload = useCallback((session, action, position) => {
     const current = playerRef.current.current;
     return { action, album: current?.album || '', artist: current?.artist || session.config.user || '',

@@ -106,6 +106,7 @@ describe('MessagingV2 hydration', () => {
     fireEvent.click(await screen.findByText('Pod 1 / General'));
     const playback = await screen.findByRole('region', { name: 'Room playback' });
     expect(playback).toHaveAttribute('data-pod', savedPods[0].podId);
+    expect(playback.closest('main')).toHaveClass('msgv2-view-with-playback');
     expect(playback).toHaveAttribute('data-channel', 'general');
     expect(playback).toHaveAttribute('data-user', 'local-user');
     fireEvent.click(screen.getByText('ambient'));
@@ -119,6 +120,7 @@ describe('MessagingV2 hydration', () => {
     await flushPromises();
     expect(screen.queryByText('Pod 1 / Private notes')).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Room playback' })).not.toBeInTheDocument();
+    expect(screen.getByRole('main')).not.toHaveClass('msgv2-view-with-playback');
   });
 
   it('uses channel details from the pod list without per-pod detail requests', async () => {

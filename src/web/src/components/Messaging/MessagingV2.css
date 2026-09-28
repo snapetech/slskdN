@@ -553,9 +553,14 @@ body.msgv2-resizing {
 /* conversation view */
 .msgv2-view {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   background: var(--msgv2-bg);
+}
+
+.msgv2-view-with-playback {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 
 .msgv2-tabs {
@@ -1260,6 +1265,10 @@ body.msgv2-resizing {
 }
 
 @media only screen and (max-width: 900px) {
+  .msgv2-view {
+    grid-column: 1 / -1;
+  }
+
   .msgv2-room-playback .ui.button {
     min-height: 44px;
     min-width: 44px;

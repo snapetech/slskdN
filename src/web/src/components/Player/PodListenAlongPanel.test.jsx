@@ -118,8 +118,127 @@ describe('PodListenAlongPanel directory polling', () => {
     expect(streaming).toBeDisabled();
   });
 
+  it.each([true, false])('applies listing changes to an active paused host in compact=%s', async (compact) => {
+    usePlayer.mockReturnValue({ ...player, audioElement: { paused: true }, current: { contentId: 'track' }, getPlaybackPosition: () => 19 });
+    listeningParty.publishPartyState.mockImplementation(async (podId, channelId, payload) => ({ ...payload, podId, channelId, partyId: 'owned' }));
+    render(<PodListenAlongPanel channelId="music" compact={compact} podId="pod-a" user="host" />);
+    await act(async () => {});
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: compact ? 'Broadcast current track to room' : 'Broadcast current track to pod' })));
+    fireEvent.click(compact ? screen.getByRole('button', { name: 'List room broadcast in mesh directory' }) : screen.getByText('List globally'));
+    await act(async () => vi.advanceTimersByTimeAsync(500));
+    expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(2);
+    expect(listeningParty.publishPartyState.mock.calls[1][2]).toMatchObject({ action: 'pause', listed: true, allowMeshStreaming: false, positionSeconds: 19, partyId: 'owned' });
+  });
+
+  it.each([true, false])('confirms streaming and clears its opt-in on unlist in compact=%s', async (compact) => {
+    usePlayer.mockReturnValue({ ...player, audioElement: { paused: false }, current: { contentId: 'track' }, getPlaybackPosition: () => 31 });
+    listeningParty.publishPartyState.mockImplementation(async (podId, channelId, payload) => ({ ...payload, podId, channelId, partyId: 'owned' }));
+    render(<PodListenAlongPanel channelId="music" compact={compact} podId="pod-a" user="host" />);
+    await act(async () => {});
+    const listed = () => compact ? screen.getByRole('button', { name: 'List room broadcast in mesh directory' }) : screen.getByRole('checkbox', { name: 'List globally' });
+    const streaming = () => compact ? screen.getByRole('button', { name: 'Allow mesh streaming for broadcast' }) : screen.getByRole('checkbox', { name: 'Mesh streaming' });
+    const click = (control) => fireEvent.click(control);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: compact ? 'Broadcast current track to room' : 'Broadcast current track to pod' })));
+    click(listed());
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    click(streaming());
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({ listed: true, allowMeshStreaming: true, action: 'play', positionSeconds: 31 });
+    click(listed());
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({ listed: false, allowMeshStreaming: false });
+    expect(streaming()).toBeDisabled();
+    click(listed());
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({ listed: true, allowMeshStreaming: false });
+    expect(player.playItem).not.toHaveBeenCalled();
+    expect(player.pause).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])('keeps confirmed settings visible during a failed update and retries in compact=%s', async (compact) => {
+    usePlayer.mockReturnValue({ ...player, audioElement: { paused: true }, current: { contentId: 'track' }, getPlaybackPosition: () => 23 });
+    listeningParty.publishPartyState.mockImplementation(async (podId, channelId, payload) => ({ ...payload, podId, channelId, partyId: 'owned' }));
+    render(<PodListenAlongPanel channelId="music" compact={compact} podId="pod-a" user="host" />);
+    await act(async () => {});
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: compact ? 'Broadcast current track to room' : 'Broadcast current track to pod' })));
+    const listed = compact ? screen.getByRole('button', { name: 'List room broadcast in mesh directory' }) : screen.getByRole('checkbox', { name: 'List globally' });
+    let fail;
+    listeningParty.publishPartyState.mockReturnValueOnce(new Promise((resolve, reject) => { fail = reject; }));
+    fireEvent.click(listed);
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    expect(screen.getByText('Applying broadcast settings…')).toHaveAttribute('role', 'status');
+    expect(listed).toBeDisabled();
+    expect(compact ? listed.getAttribute('aria-pressed') === 'true' : listed.checked).toBe(false);
+    await act(async () => fail(new Error('Unavailable')));
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not confirm broadcast settings');
+    expect(listed).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry room broadcast update' }));
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({ listed: true, action: 'pause', positionSeconds: 23, partyId: 'owned' });
+    expect(compact ? listed.getAttribute('aria-pressed') === 'true' : listed.checked).toBe(true);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText('Applying broadcast settings…')).not.toBeInTheDocument();
+    expect(listeningParty.getPartyDirectory).toHaveBeenCalledTimes(compact ? 0 : 3);
+  });
+
+  it('resets staged settings for another room while preserving the retained host choices', async () => {
+    usePlayer.mockReturnValue({ ...player, audioElement: { paused: true }, current: { contentId: 'track' }, getPlaybackPosition: () => 0 });
+    listeningParty.publishPartyState.mockImplementation(async (podId, channelId, payload) => ({ ...payload, podId, channelId, partyId: 'owned' }));
+    const first = <PodListenAlongPanel channelId="music" compact podId="pod-a" user="host" />;
+    const view = render(first);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: 'List room broadcast in mesh directory' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Allow mesh streaming for broadcast' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Broadcast current track to room' })));
+    view.rerender(<PodListenAlongPanel channelId="other" compact podId="pod-a" user="host" />);
+    await act(async () => {});
+    expect(screen.getByRole('button', { name: 'List room broadcast in mesh directory' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Allow mesh streaming for broadcast' })).toBeDisabled();
+    view.rerender(first);
+    await act(async () => {});
+    expect(screen.getByRole('button', { name: 'List room broadcast in mesh directory' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Allow mesh streaming for broadcast' })).toHaveAttribute('aria-pressed', 'true');
+    expect(listeningParty.publishPartyState).toHaveBeenCalledOnce();
+  });
+
+  it.each([true, false])('stages pre-start settings without starting playback in compact=%s', async (compact) => {
+    render(<PodListenAlongPanel channelId="music" compact={compact} podId="pod-a" user="host" />);
+    await act(async () => {});
+    const listed = compact ? screen.getByRole('button', { name: 'List room broadcast in mesh directory' }) : screen.getByRole('checkbox', { name: 'List globally' });
+    const streaming = compact ? screen.getByRole('button', { name: 'Allow mesh streaming for broadcast' }) : screen.getByRole('checkbox', { name: 'Mesh streaming' });
+    fireEvent.click(listed);
+    fireEvent.click(streaming);
+    expect(compact ? streaming.getAttribute('aria-pressed') === 'true' : streaming.checked).toBe(true);
+    fireEvent.click(listed);
+    expect(streaming).toBeDisabled();
+    expect(compact ? streaming.getAttribute('aria-pressed') === 'true' : streaming.checked).toBe(false);
+    expect(listeningParty.publishPartyState).not.toHaveBeenCalled();
+    expect(player.playItem).not.toHaveBeenCalled();
+  });
+
+  it.each(['AbortError', 'ERR_CANCELED'])('preserves ownership-loss feedback after %s', async (kind) => {
+    const hub = createHub();
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    usePlayer.mockReturnValue({ ...player, audioElement: { paused: true }, current: { contentId: 'track' }, getPlaybackPosition: () => 0 });
+    listeningParty.publishPartyState.mockImplementation(async (podId, channelId, payload) => ({ ...payload, podId, channelId, partyId: 'owned' }));
+    render(<PodListenAlongPanel channelId="music" compact podId="pod-a" user="host" />);
+    await act(async () => {});
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Broadcast current track to room' })));
+    let reject;
+    listeningParty.publishPartyState.mockReturnValueOnce(new Promise((resolve, fail) => { reject = fail; }));
+    fireEvent.click(screen.getByRole('button', { name: 'List room broadcast in mesh directory' }));
+    await act(async () => vi.advanceTimersByTimeAsync(300));
+    await act(async () => hub.on.mock.calls.find(([event]) => event === 'partyAccessRevoked')[1]());
+    await act(async () => reject(kind === 'AbortError' ? new DOMException('Broadcast ended', 'AbortError') : { code: 'ERR_CANCELED' }));
+    const feedback = screen.getAllByRole('alert').map((alert) => alert.textContent).join(' ');
+    expect(feedback).toMatch(/access was revoked/i);
+    expect(feedback).not.toMatch(/Could not confirm/);
+    expect(screen.queryByRole('button', { name: 'Retry room broadcast update' })).not.toBeInTheDocument();
+  });
+
   it.each([
     [429, null, 'Room updates are at capacity. Retry later.'],
+    [403, null, 'Room access was revoked. Rejoin before broadcasting.'],
     [404, null, 'This room is unavailable. Choose an existing room.'],
     [503, 'room_storage_unavailable', 'The room update could not be saved. Try again.'],
   ])('explains room publication status %s without losing retry controls', async (status, code, message) => {

@@ -405,3 +405,19 @@ room's party ID to Stop or unlist does not remove that room's listing. Once
 withdrawal succeeds, subsequent private playback does not keep rewriting the
 index; retained suppression protects against stale reads without a poller.
 See [ADR-0020](../memory-bank/decisions/adr-0020-room-radio-directory-withdrawal.md) for the ownership and retry design.
+
+### Changing a running browser-owned broadcast
+
+While you host a room, its listing and mesh-streaming controls apply immediately
+through the player. They preserve current playback, including paused playback,
+and keep the same party identity. The controls display the last confirmed
+settings while “Applying broadcast settings…” is shown. A failed update exposes
+Retry; it applies the requested settings using current playback. Stop remains
+available during an update, and its pending status prevents further edits.
+
+Turning listing off also turns streaming off. Turning listing on again leaves
+streaming off until you choose it explicitly. Before hosting, these controls
+stage choices for Broadcast and do not start playback. Choices reset when you
+switch rooms; returning to your retained host restores its confirmed settings.
+The earlier manual publication guidance applies to rooms this browser does not
+currently own. See [ADR-0021](../memory-bank/decisions/adr-0021-confirmed-broadcast-settings.md).

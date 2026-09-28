@@ -51,6 +51,11 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
       const response = await request.get(stateUrl, { headers });
       return response.status() === 204 ? null : await response.json();
     };
+    const directory = async () => {
+      const response = await request.get(`${node.apiUrl}/api/v0/listening-party`, { headers });
+      expect(response.ok()).toBe(true);
+      return response.json();
+    };
     for (const target of [page, listener]) {
       await target.addInitScript(() => localStorage.setItem('slskdn.player.collapsed', 'false'));
       await login(target, node.nodeCfg);
@@ -69,6 +74,68 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     await page.getByRole('button', { name: 'Broadcast current track to room', exact: true }).click();
     await expect.poll(async () => (await snapshot())?.action).toBe('play');
     const partyId = (await snapshot()).partyId;
+    const listingControl = page.getByRole('button', { name: 'List room broadcast in mesh directory', exact: true });
+    const streamingControl = page.getByRole('button', { name: 'Allow mesh streaming for broadcast', exact: true });
+    await streamingControl.click();
+    await expect.poll(async () => (await snapshot())?.allowMeshStreaming).toBe(true);
+    const listedStream = (await directory()).find((entry: { partyId: string }) => entry.partyId === partyId);
+    expect(listedStream.streamPath).toBeTruthy();
+    const capabilityUrl = `${node.apiUrl}${listedStream.streamPath}`;
+    expect((await request.get(capabilityUrl, { headers: { Range: 'bytes=0-31' } })).status()).toBe(206);
+    let blockUnlist = true;
+    await page.route(stateUrl, async (route) => {
+      if (blockUnlist && route.request().method() === 'POST') {
+        blockUnlist = false;
+        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'room_storage_unavailable' }) });
+      } else await route.continue();
+    });
+    await listingControl.click();
+    const settingsError = page.locator('.pod-listen-along').getByText('The room update could not be saved. Try again.');
+    await expect(settingsError).toBeVisible();
+    expect((await snapshot()).listed).toBe(true);
+    await expect(listingControl).toHaveAttribute('aria-pressed', 'true');
+    await page.setViewportSize({ width: 320, height: 844 });
+    const settingsRetry = page.getByRole('button', { name: 'Retry room broadcast update', exact: true });
+    const settingsRetryBounds = await settingsRetry.boundingBox();
+    expect(settingsRetryBounds!.height).toBeGreaterThanOrEqual(44);
+    expect(settingsRetryBounds!.width).toBeGreaterThanOrEqual(44);
+    const roomLayout = await page.locator('.pod-listen-along').evaluate((panel) => {
+      const rect = (element: Element) => {
+        const box = element.getBoundingClientRect();
+        const css = getComputedStyle(element);
+        return { className: element.className, left: box.left, right: box.right, width: box.width, height: box.height, top: box.top, bottom: box.bottom,
+          minWidth: css.minWidth, display: css.display, flexWrap: css.flexWrap, gridTemplateColumns: css.gridTemplateColumns, gridTemplateRows: css.gridTemplateRows };
+      };
+      const ancestors = [];
+      for (let ancestor: Element | null = panel; ancestor && ancestors.length < 6; ancestor = ancestor.parentElement) ancestors.push(rect(ancestor));
+      return { viewportWidth: innerWidth, viewportHeight: innerHeight, ancestors,
+        buttons: Array.from(panel.querySelectorAll('.pod-listen-along-compact-actions button')).map((button) => ({ ...rect(button), label: button.getAttribute('aria-label') })) };
+    });
+    expect(roomLayout.ancestors.find((ancestor) => ancestor.className.includes('msgv2-view'))!.gridTemplateRows.split(' ')).toHaveLength(4);
+    await testInfo.attach('room-controls-layout', { body: JSON.stringify(roomLayout), contentType: 'application/json' });
+    expect(roomLayout.buttons.every((button) => button.left >= 0 && button.right <= roomLayout.viewportWidth && button.top >= 0 && button.bottom <= roomLayout.viewportHeight && button.width >= 44 && button.height >= 44)).toBe(true);
+    await page.mouse.move(0, 0);
+    await expect(page.locator('.ui.popup.visible')).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('host-settings-error-320.png'), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await settingsRetry.click();
+    await expect.poll(async () => (await snapshot())?.listed).toBe(false);
+    await expect(settingsError).not.toBeVisible();
+    expect((await snapshot()).allowMeshStreaming).toBe(false);
+    expect((await request.get(capabilityUrl, { headers: { Range: 'bytes=0-31' } })).status()).toBe(404);
+    expect((await directory()).some((entry: { partyId: string }) => entry.partyId === partyId)).toBe(false);
+    await listingControl.click();
+    await expect.poll(async () => (await snapshot())?.listed).toBe(true);
+    expect((await snapshot()).allowMeshStreaming).toBe(false);
+    expect((await request.get(capabilityUrl, { headers: { Range: 'bytes=0-31' } })).status()).toBe(404);
+    await streamingControl.click();
+    await expect.poll(async () => (await snapshot())?.allowMeshStreaming).toBe(true);
+    await streamingControl.click();
+    await expect.poll(async () => (await snapshot())?.allowMeshStreaming).toBe(false);
+    expect((await snapshot()).listed).toBe(true);
+    expect((await request.get(capabilityUrl, { headers: { Range: 'bytes=0-31' } })).status()).toBe(404);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused))).toBe(true);
+    await page.unroute(stateUrl);
     await page.getByTestId('player-collapse').click();
     await page.setViewportSize({ width: 320, height: 844 });
     const compactStatus = page.locator('.player-bar-collapsed .player-subtitle');
@@ -133,17 +200,24 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     await expect.poll(snapshot).toBeNull();
     await expect.poll(() => listener.locator('audio').evaluateAll((elements) => elements.every((audio) => audio.paused))).toBe(true);
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused))).toBe(true);
-    const directory = async () => {
-      const response = await request.get(`${node.apiUrl}/api/v0/listening-party`, { headers });
-      expect(response.ok()).toBe(true);
-      return response.json();
-    };
     expect((await directory()).some((entry: { partyId: string }) => entry.partyId === partyId)).toBe(false);
     await page.goto(roomUrl);
     await page.getByRole('button', { name: 'List room broadcast in mesh directory', exact: true }).click();
     await page.getByRole('button', { name: 'Broadcast current track to room', exact: true }).click();
     await expect.poll(async () => (await snapshot())?.partyId).toBeTruthy();
     const reloadedPartyId = (await snapshot()).partyId;
+    await streamingControl.click();
+    await expect.poll(async () => (await snapshot())?.allowMeshStreaming).toBe(true);
+    expect((await snapshot()).action).toBe('pause');
+    await listingControl.click();
+    await expect.poll(async () => (await snapshot())?.listed).toBe(false);
+    expect((await snapshot()).allowMeshStreaming).toBe(false);
+    expect((await snapshot()).action).toBe('pause');
+    await listingControl.click();
+    await expect.poll(async () => (await snapshot())?.listed).toBe(true);
+    expect((await snapshot()).allowMeshStreaming).toBe(false);
+    expect((await snapshot()).action).toBe('pause');
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.every((audio) => audio.paused))).toBe(true);
     expect((await directory()).some((entry: { partyId: string }) => entry.partyId === reloadedPartyId)).toBe(true);
     const listed = await snapshot();
     const neighbor = await request.post(`${node.apiUrl}/api/v0/pods`, {

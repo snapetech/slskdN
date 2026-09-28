@@ -15187,3 +15187,60 @@ fixture lifecycle cleanup, authenticated distributed room state and index
 conflict handling, host error/auth/lease/renewal behavior, sustained resources
 and throughput, supported browser/format/device/accessibility/focus contrast
 coverage. The full player goal remains active.
+
+## Live browser-owned broadcast settings — 2026-09-28
+
+Compact and expanded controls now apply listing/streaming changes through the
+persistent host writer, preserving mapped playback state and identity. Requested
+and confirmed settings are separate; pending feedback, failure Retry and queued
+Stop behavior are explicit. Unlisting clears streaming opt-in. Staged choices
+reset per room, and returning to a retained host restores acknowledged settings.
+Expanded checkbox IDs associate labels with their inputs. Gotchas 0z1158 and
+0z1159 were committed immediately; ADR-0021 records the design.
+
+All 60 focused tests pass, including 13 added paths for staged/active choices,
+paused/playing state, queued/coalesced acknowledgment, failed preceding writes,
+Retry, Stop ordering and room navigation. Full gates and the strengthened real
+host permission workflow are running before source publication. Full player
+goal remains active; fixture cleanup, distributed state/index ownership,
+error/auth/lease/renewal, sustained resources and compatibility/accessibility
+coverage remain open.
+
+### Live settings and mobile control verification — 2026-09-28
+
+All 63 focused panel/writer cases pass, including 16 added paths, and all 1,056
+Web tests pass in 167 files. The rebuilt host workflow verifies live settings
+while playing and paused, explicit Retry after storage failure, anonymous stream
+capability revocation, fresh streaming opt-in after relisting and preservation
+of playback. At a 320-pixel viewport, all five room actions measure 44 by 44
+pixels and remain visible; Stop ends at 261 pixels. The failure/Retry screenshot
+and expanded player screenshot were inspected.
+
+The mobile conversation grid now spans its columns and allocates a separate
+playback row. HTTP 403 and canceled publications retain access-revocation
+feedback. Gotchas 0z1160 and 0z1161 document the reproduced failures. Final
+Release, repository/Web lint, bundle/output, CSRF/anonymous endpoint and identity
+gates pass; Release retains two existing build-task support warnings. The
+unchanged backend source has passing 5,317 unit / 74 smoke / 284 integration
+evidence. Full browser validation is still running. Fixture log-handle warnings
+remain open and prevent treating this short runtime suite as sustained resource
+evidence. The full player goal remains active.
+
+### Final live-settings batch evidence — 2026-09-28
+
+The complete final rebuilt browser suite passes all 22 cases in 5.5 minutes;
+terminal exit is zero and browser metadata reports passed with no failed tests.
+The real two-minute ticket-expiry test passed. Retained node logs contain no
+quota-exceeded or public-bootstrap match. Both release fragments validate.
+All 63 focused / 1,056 total Web tests, final Release and repository/Web lint,
+bundle/output, controller/fetch CSRF, anonymous endpoint and identity gates pass.
+The backend is unchanged from the passing 5,317 unit / 74 smoke / 284 integration
+run. Browser TypeScript executes in Playwright and is outside Web ESLint scope.
+
+Live settings, ownership-loss feedback and mobile room-control repairs are
+complete for source publication. Next Steps: clean up fixture log handles and
+shutdown before sustained resource measurement; then address distributed state
+and index ownership, host error/auth/lease/renewal, sustained throughput and
+browser/format/device/assistive-technology/focus contrast coverage. Fixture GC
+warnings remain reproduced; short trace-enabled runs do not prove low resource
+use across a sustained session. The full player goal remains active.
