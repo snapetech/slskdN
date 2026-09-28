@@ -151,6 +151,20 @@ the checkout at the same absolute path used by the build (or regenerate the
 static-web-assets manifest in the container). Confirm backend readiness before
 diagnosing browser connectivity.
 
+### 0z1219. Pass Values Explicitly Into Playwright Browser Evaluations
+
+**What went wrong:** A cross-browser AIFF test used the Node-side
+`usesTranscode` variable inside a callback passed to `locator.evaluateAll()`.
+Playwright serialized the callback into the page, where the lexical variable
+did not exist and evaluation failed with `ReferenceError`.
+
+**Why:** Browser evaluation callbacks run in the page context. They do not
+retain closures from the test runner process.
+
+**Prevention:** Pass every test-side value needed by `evaluate()`,
+`evaluateAll()` or `page.evaluate()` through the API's explicit argument
+parameter. Keep browser callbacks self-contained and type their arguments.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
