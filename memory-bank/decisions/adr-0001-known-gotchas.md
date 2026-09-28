@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1121. Match the Changelog Heading Rather Than Its Inline Mention
+
+**The Bug**: A permission-batch insertion searched for the first Unreleased string and matched the introduction's inline code reference. It inserted release bullets into prose instead of under the actual heading. Review of the diff caught the malformed introduction before commit.
+
+**Prevention**: Anchor changelog edits to the exact newline-delimited heading and assert a unique match. Inspect the diff before staging. This repeats the broader canonical-heading gotcha: matching an inline mention is not matching a release section.
+
 ### 0z1120. Inspect Compiler Style Warnings Beyond the Error-Only Format Gate
 
 **The Gotcha**: A new mesh permission helper lacked a blank line after the preceding method. Error-only repository formatting passed, but focused compilation reported StyleCop SA1513.
