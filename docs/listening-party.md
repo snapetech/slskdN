@@ -318,3 +318,10 @@ Room updates finish in order, including routing and listener delivery. If a
 room reports that updates are at capacity, retry later. Each room allows at
 most 16 active or waiting publications, and the service allows 256 active room
 queues. Other rooms can continue while one room is waiting on its network.
+
+### Unavailable rooms and failed updates
+
+Broadcast to an existing pod room. If the room is unavailable, choose another
+existing room. If an update cannot be saved, the player reports the failure and
+you can retry. A rejected Play or Stop keeps the previous broadcast snapshot
+and listed entry; the controls do not claim that the failed update succeeded.

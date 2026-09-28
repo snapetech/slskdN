@@ -4,15 +4,19 @@ Updated: 2026-09-28. The player overhaul remains active.
 
 ## Quality target
 
-Bring the player bar and full player experience to the dependability, polish
-and ease of use expected from Winamp or VLC, adapted to a browser-based
-Soulseek client. Audit complete workflows, fix root causes, improve usability
-and accessibility, and keep resource use and network impact low.
+Build a dependable, polished player with the responsiveness, intuitive controls
+and low resource use expected from Winamp or VLC, adapted to slskdN's browser
+and Soulseek environment.
 
-Completion requires direct playback, recovery and listening-party evidence,
-resolved audit findings and measured resource behavior. Commit and push
-substantial validated batches with release fragments and durable bug records.
-Record external blockers explicitly; unverified behavior remains unfinished.
+Audit and improve complete playback, queue, seeking, recovery, accessibility,
+listen-along, radio and cross-node workflows. Work in substantial batches,
+verify real behavior, document fixes, and commit and push completed improvements.
+Keep network impact conservative and the interface unobtrusive.
+
+Completion requires the agreed workflows to pass direct validation, resource
+use to meet documented targets, and no known actionable defects within scope.
+Record hardware and infrastructure requirements explicitly; unverified behavior
+remains unfinished. Green regression suites alone do not prove completion.
 
 ## Current evidence
 
@@ -270,3 +274,45 @@ CPU delta is excluded. Native playback created zero AudioContexts. Confidence
 is moderate: these short headless totals include the browser/application shell
 and do not establish sustained retention, physical-device behavior or a
 player-only resource budget.
+
+## Room publication integrity and received-frame quotas — 2026-09-28
+
+Negative regressions proved missing rooms and rejected writes could expose a new
+broadcast. Publication now checks room existence, validates metadata and requires
+accepted storage before changing snapshots, directory, now-playing or delivering
+the update. Failed Play and Stop preserve prior state. API feedback distinguishes
+missing rooms from temporarily unavailable storage, and allows manual retry.
+
+Three real SQLite regressions proved conflicting bodies, signatures and signature
+versions were silently accepted at an existing timestamp. Only equivalent retries
+now succeed; conflicts retain the original row and supplied versions are stored.
+
+A real TLS regression proved ten permitted frames removed the connection because
+quota was charged for an eleventh pending read. Quota now counts received frames;
+ten retain the connection and eleven in the same window remain denied. Confidence
+is high for this reproduced defect. The earlier reverse-directory failure remains
+unexplained: a passing runtime assertion does not prove its cause.
+
+Radio fixtures now create actual unlisted rooms to isolate the workflow from
+unrelated automatic pod-descriptor publication. The live room fixture verifies
+missing-channel rejection and confirms successful publication in message storage.
+Authenticated cross-node application still requires a receiver, permission checks
+and prevention of republishing loops. Source inspection also found mesh Join trusts
+caller-selected roles and lacks the native API's private/approval checks; repair
+and negative proof are required before using it for remote room authorization.
+
+### Final integrity gates — 2026-09-28
+
+Final source passes 5,256 unit, 74 smoke and 284 integration tests; 998 Web tests
+across 165 files; and all 19 runtime cases (18 Chromium and one actual two-client
+SignalR case). Repository/Web lint, Release/frontend builds, bundle/output,
+controller/fetch CSRF, anonymous endpoint, identity and whitespace gates pass.
+The retained final node logs are available for investigation. No cross-node
+listen-along receiver or automatic recovery is established by these results.
+
+Fresh ten-second samples measure 3.60% / 2.70% / 2.30% of one core and
+301.43 / 315.95 / 306.71 MiB Chromium PSS for idle / playing / paused. All five
+surviving processes supply memory readings; one exits during idle, so its CPU
+delta is excluded. Native playback creates zero AudioContexts. Confidence is
+moderate for these short measurements; sustained sessions and device validation
+remain due. The overall player goal remains active.

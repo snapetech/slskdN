@@ -61,18 +61,22 @@ describe('PodListenAlongPanel directory polling', () => {
     vi.useRealTimers();
   });
 
-  it('explains room publication overload without losing retry controls', async () => {
+  it.each([
+    [429, null, 'Room updates are at capacity. Retry later.'],
+    [404, null, 'This room is unavailable. Choose an existing room.'],
+    [503, 'room_storage_unavailable', 'The room update could not be saved. Try again.'],
+  ])('explains room publication status %s without losing retry controls', async (status, code, message) => {
     usePlayer.mockReturnValue({
       ...player,
       current: { contentId: 'server-track', title: 'Track' },
       getPlaybackPosition: () => 0,
     });
-    listeningParty.publishPartyState.mockRejectedValueOnce({ response: { status: 429 } });
+    listeningParty.publishPartyState.mockRejectedValueOnce({ response: { status, data: { code } } });
     render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
     await act(async () => { await Promise.resolve(); });
     const broadcast = screen.getByRole('button', { name: 'Broadcast current track to room' });
     await act(async () => fireEvent.click(broadcast));
-    expect(screen.getByRole('alert')).toHaveTextContent('Room updates are at capacity. Retry later.');
+    expect(screen.getByRole('alert')).toHaveTextContent(message);
     expect(broadcast).toBeEnabled();
   });
 

@@ -40,6 +40,38 @@ public sealed class SqlitePodMessageStorageTests : IDisposable
         File.Delete(databasePath);
     }
 
+    [Theory]
+    [InlineData("original", "signature", 1, true)]
+    [InlineData("replacement", "signature", 1, false)]
+    [InlineData("original", "different", 1, false)]
+    [InlineData("original", "signature", 2, false)]
+    public async Task StoreMessageAsync_AcceptsOnlyEquivalentDuplicate(string body, string signature, int version, bool accepted)
+    {
+        var initial = new PodMessage
+        {
+            PodId = ValidPodId,
+            ChannelId = "music",
+            TimestampUnixMs = 123,
+            SenderPeerId = "host",
+            Body = "original",
+            Signature = "signature",
+            SigVersion = 1,
+        };
+        Assert.True(await storage.StoreMessageAsync(ValidPodId, "music", initial));
+        var duplicate = new PodMessage
+        {
+            PodId = ValidPodId,
+            ChannelId = "music",
+            TimestampUnixMs = 123,
+            SenderPeerId = "host",
+            Body = body,
+            Signature = signature,
+            SigVersion = version,
+        };
+        Assert.Equal(accepted, await storage.StoreMessageAsync(ValidPodId, "music", duplicate));
+        Assert.Equal("original", (await dbContext.Messages.SingleAsync()).Body);
+    }
+
     [Fact]
     public async Task SearchMessagesAsync_InitializesSchemaOnFirstUse()
     {

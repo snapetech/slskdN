@@ -297,6 +297,35 @@ public sealed class ListeningPartyService : IListeningPartyService
         var normalized = Normalize(partyEvent);
         var key = StateKey(normalized.PodId, normalized.ChannelId);
 
+        var message = new PodMessage
+        {
+            MessageId = $"listen-{Guid.NewGuid():N}",
+            PodId = normalized.PodId,
+            ChannelId = normalized.ChannelId,
+            SenderPeerId = normalized.HostPeerId,
+            Body = JsonSerializer.Serialize(normalized, JsonOptions),
+            TimestampUnixMs = normalized.ServerTimeUnixMs,
+            Signature = string.Empty,
+        };
+
+        using var scope = _scopeFactory.CreateScope();
+        var messageStorage = scope.ServiceProvider.GetRequiredService<IPodMessageStorage>();
+        var pods = scope.ServiceProvider.GetRequiredService<IPodService>();
+        if (await pods.GetChannelAsync(normalized.PodId, normalized.ChannelId, cancellationToken).ConfigureAwait(false) == null)
+        {
+            throw new ListeningPartyRoomNotFoundException();
+        }
+
+        if (!PodValidation.ValidateMessage(message).IsValid)
+        {
+            throw new ArgumentException("Listen-along metadata is invalid.", nameof(partyEvent));
+        }
+
+        if (!await messageStorage.StoreMessageAsync(normalized.PodId, normalized.ChannelId, message, cancellationToken).ConfigureAwait(false))
+        {
+            throw new ListeningPartyStorageException();
+        }
+
         if (normalized.Action == "stop")
         {
             _states.TryRemove(key, out _);
@@ -321,20 +350,6 @@ public sealed class ListeningPartyService : IListeningPartyService
             }
         }
 
-        var message = new PodMessage
-        {
-            MessageId = $"listen-{Guid.NewGuid():N}",
-            PodId = normalized.PodId,
-            ChannelId = normalized.ChannelId,
-            SenderPeerId = normalized.HostPeerId,
-            Body = JsonSerializer.Serialize(normalized, JsonOptions),
-            TimestampUnixMs = normalized.ServerTimeUnixMs,
-            Signature = string.Empty,
-        };
-
-        using var scope = _scopeFactory.CreateScope();
-        var messageStorage = scope.ServiceProvider.GetRequiredService<IPodMessageStorage>();
-        await messageStorage.StoreMessageAsync(normalized.PodId, normalized.ChannelId, message, cancellationToken);
         var routing = await _messageRouter.RouteMessageAsync(message, cancellationToken);
         if (!routing.Success)
         {
@@ -509,6 +524,22 @@ public sealed class ListeningPartyCapacityException : Exception
 {
     public ListeningPartyCapacityException()
         : base("Too many room updates are pending.")
+    {
+    }
+}
+
+public sealed class ListeningPartyRoomNotFoundException : Exception
+{
+    public ListeningPartyRoomNotFoundException()
+        : base("The listen-along room is unavailable.")
+    {
+    }
+}
+
+public sealed class ListeningPartyStorageException : Exception
+{
+    public ListeningPartyStorageException()
+        : base("The room update could not be saved.")
     {
     }
 }

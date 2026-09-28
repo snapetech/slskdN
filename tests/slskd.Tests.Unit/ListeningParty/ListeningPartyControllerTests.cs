@@ -13,6 +13,23 @@ using slskd.Tests.Unit.PodCore;
 
 public sealed class ListeningPartyControllerTests
 {
+    [Theory]
+    [InlineData(true, 404)]
+    [InlineData(false, 503)]
+    public async Task Publish_WhenRoomOrStorageIsUnavailable_ReturnsStableFailure(bool missingRoom, int status)
+    {
+        var service = new Mock<IListeningPartyService>();
+        service.Setup(instance => instance.PublishAsync(It.IsAny<ListeningPartyEvent>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(missingRoom ? new ListeningPartyRoomNotFoundException() : new ListeningPartyStorageException());
+        var controller = PodControllerTestContext.AsAdministrator(new ListeningPartyController(
+            Mock.Of<IContentLocator>(), service.Object, Mock.Of<IStreamSessionLimiter>(), Mock.Of<IStreamTicketService>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()), Mock.Of<IPodService>()));
+        var result = Assert.IsAssignableFrom<ObjectResult>(await controller.Publish("pod-a", "music",
+            new ListeningPartyEvent { Action = "play", ContentId = "track" }, CancellationToken.None));
+        Assert.Equal(status, result.StatusCode);
+        if (!missingRoom) Assert.Contains("room_storage_unavailable", System.Text.Json.JsonSerializer.Serialize(result.Value));
+    }
+
     [Fact]
     public async Task Publish_WhenRoomIsAtCapacity_ReturnsRetryableLimit()
     {

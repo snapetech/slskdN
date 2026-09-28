@@ -374,7 +374,11 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       if (mountedRef.current && requestId === publishRequestRef.current) {
         setPublishError(error?.response?.status === 429
           ? 'Room updates are at capacity. Retry later.'
-          : action === 'stop'
+          : error?.response?.status === 404
+            ? 'This room is unavailable. Choose an existing room.'
+            : error?.response?.data?.code === 'room_storage_unavailable'
+              ? 'The room update could not be saved. Try again.'
+              : action === 'stop'
           ? 'Could not stop the room broadcast. Try again.'
           : 'Could not start the room broadcast. Try again.');
       }

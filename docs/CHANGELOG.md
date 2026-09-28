@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Room publication storage integrity
+
+- Accept only equivalent message retries at a duplicate timestamp, preserve signature versions and reject conflicts without replacing stored metadata.
+- Charge mesh message quota after frame receipt, retaining connections after a permitted burst while enforcing the same limit.
+- Reject missing listen-along rooms before publication, and require accepted message storage before exposing snapshot or directory changes.
+- Retain the previous broadcast when Play or Stop cannot be saved; report missing-room and retryable storage failures in the player.
+- Exercise radio transport against real pods/channels and verify stored room messages in the actual two-client workflow.
+
 ### Room publication and radio admission reliability
 
 - Preserve room update order through storage, routing and delivery, with bounded pending work and retryable overload feedback.

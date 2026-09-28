@@ -106,6 +106,93 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData(10, true)]
+    [InlineData(11, false)]
+    public async Task RealServer_MessageLimitCountsReceivedFramesNotPendingReads(int count, bool allowed)
+    {
+        var dhtOptions = new DhtRendezvousOptions { Enabled = true };
+        var meshOverlayServer = new MeshOverlayServer(
+            NullLogger<MeshOverlayServer>.Instance,
+            new StaticOptionsMonitor(new slskd.Options { Soulseek = new slskd.Options.SoulseekOptions { Username = "server-peer" } }),
+            new CertificateManager(NullLogger<CertificateManager>.Instance, _serverAppDirectory),
+            new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _serverAppDirectory),
+            new OverlayRateLimiter(),
+            new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance),
+            new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
+            new NoOpMeshOverlayConnector(),
+            new NoOpMeshSyncService(),
+            new NoOpMeshSearchRpcHandler(),
+            new MeshOverlayRequestRouter(),
+            dhtOptions);
+
+        var optionsAtStartup = new OptionsAtStartup
+        {
+            Soulseek = new slskd.Options.SoulseekOptions
+            {
+                ListenIpAddress = "127.0.0.1",
+                ListenPort = 0, // OS-assigned ephemeral port
+            },
+        };
+
+        var sharedListener = new SharedMeshTcpListener(
+            NullLogger<SharedMeshTcpListener>.Instance,
+            optionsAtStartup,
+            dhtOptions,
+            new FedTcpListener(), // unused by this test: only the mesh-overlay TLS path is exercised
+            meshOverlayServer);
+
+        await meshOverlayServer.StartAsync();
+        await sharedListener.StartAsync(CancellationToken.None);
+
+        try
+        {
+            var boundEndPoint = await WaitForBoundEndPointAsync(sharedListener);
+
+            var clientCertificateManager = new CertificateManager(NullLogger<CertificateManager>.Instance, _clientAppDirectory);
+            var clientCertificate = clientCertificateManager.GetOrCreateServerCertificate();
+
+            await using var connection = await MeshOverlayConnection.ConnectAsync(boundEndPoint, clientCertificate);
+            var ack = await connection.PerformClientHandshakeAsync("client-peer", overlayPort: 12345);
+
+            Assert.NotNull(ack);
+            Assert.True(connection.IsHandshakeComplete);
+
+            // Real production accounting on the real server, proving the connection was actually
+            // accepted and processed -- not just that the TCP connect succeeded.
+            await WaitUntilAsync(() => meshOverlayServer.TotalConnectionsAccepted == 1, TimeSpan.FromSeconds(5));
+            Assert.Equal(1, meshOverlayServer.TotalConnectionsAccepted);
+            Assert.Equal(0, meshOverlayServer.TotalConnectionsRejected);
+            Assert.Equal(1, meshOverlayServer.ActiveConnections);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            for (var index = 0; index < count; index++)
+            {
+                await connection.WriteMessageAsync(new PingMessage { Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }, timeout.Token);
+            }
+
+            for (var index = 0; index < Math.Min(count, OverlayRateLimiter.MaxMessagesPerSecond); index++)
+            {
+                Assert.NotNull(await connection.ReadMessageAsync<PongMessage>(timeout.Token));
+            }
+
+            if (allowed)
+            {
+                await Task.Delay(100, timeout.Token);
+                Assert.Equal(1, meshOverlayServer.ActiveConnections);
+            }
+            else
+            {
+                await WaitUntilAsync(() => meshOverlayServer.ActiveConnections == 0, TimeSpan.FromSeconds(5));
+            }
+
+        }
+        finally
+        {
+            await sharedListener.StopAsync(CancellationToken.None);
+            await meshOverlayServer.StopAsync();
+        }
+    }
+
     [Fact]
     public async Task ListedRadio_RealTlsHostAndClient_ReadBytesAndEnforceRevocation()
     {

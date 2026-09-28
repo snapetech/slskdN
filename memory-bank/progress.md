@@ -13808,3 +13808,26 @@ and storage outcomes; implement authenticated cross-node room state application;
 verify automatic recovery, remote and long host-capability renewal; continue
 browser/format, sustained resource, accessibility and physical-device audit.
 The full player goal remains active; no tag or deployment is authorized.
+
+## Player room integrity and mesh quota validation — 2026-09-28
+
+Missing rooms and rejected writes now fail before visible publication effects;
+failed Play/Stop retains prior state and exposes useful retry feedback. SQLite
+accepts only equivalent timestamp duplicates and preserves signature versions.
+Real TLS proves received-frame quota permits ten frames and rejects eleven;
+pending idle reads no longer consume quota. Each reproduced defect has an
+immediate separate gotcha record. Runtime fixtures use actual unlisted rooms
+and verify storage acceptance.
+
+Final gates: 5,256 unit / 74 smoke / 284 integration; 998 Web tests in 165 files;
+19 runtime checks (18 Chromium plus actual two-client SignalR). Repository/Web
+lint, Release/frontend builds, bundle/output, controller/fetch CSRF, anonymous
+endpoint, identity and whitespace pass. The final bidirectional radio check
+passes; the earlier intermittent reverse-directory failure remains unexplained.
+
+This implementation batch is complete after commit/push. Next Steps: repair
+mesh pod admission roles and private/approval/read authorization with negative
+proof before authenticated distributed room state; verify automatic recovery,
+remote and long host-capability renewal, sustained resources, browser/format,
+accessibility and physical-device workflows. Full goal remains active. No tag
+or deployment is authorized.

@@ -5,9 +5,20 @@
 import * as fs from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import * as path from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
 import { login } from './helpers';
+
+async function createRadioRoom(request: APIRequestContext, apiUrl: string, headers: Record<string, string>, name: string): Promise<string> {
+  const created = await request.post(`${apiUrl}/api/v0/pods`, {
+    headers,
+    data: { requestingPeerId: 'fixture-owner', pod: { name, visibility: 'Unlisted', channels: [{ channelId: 'music', name: 'Music' }] } },
+  });
+  expect(created.ok(), await created.text()).toBe(true);
+  const podId = (await created.json()).podId;
+  expect(podId).toMatch(/^pod:[a-f0-9]{32}$/u);
+  return encodeURIComponent(podId);
+}
 
 // Read isolated-node counters without introducing a diagnostic production endpoint.
 function trafficTotals(appDir: string): number[] {
@@ -75,7 +86,8 @@ test.describe('listed radio between isolated nodes', () => {
     expect(library.ok()).toBe(true);
     const item = (await library.json()).files[0];
     expect(item.contentId).toBeTruthy();
-    const publish = await request.post(`${host.apiUrl}/api/v0/listening-party/radio-pod/radio-room`, {
+    const radioPod = await createRadioRoom(request, host.apiUrl, hostHeaders, 'Network radio room');
+    const publish = await request.post(`${host.apiUrl}/api/v0/listening-party/${radioPod}/music`, {
       headers: hostHeaders,
       data: { partyId: 'network-radio', action: 'play', contentId: item.contentId, title: 'Radio network tone', listed: true, allowMeshStreaming: true, positionSeconds: 0 },
     });
@@ -129,7 +141,7 @@ test.describe('listed radio between isolated nodes', () => {
     expect(freshTicket.status()).toBe(429);
     expect((await freshTicket.json()).code).toBe('radio_fairness_limited');
 
-    const revoke = await request.post(`${host.apiUrl}/api/v0/listening-party/radio-pod/radio-room`, {
+    const revoke = await request.post(`${host.apiUrl}/api/v0/listening-party/${radioPod}/music`, {
       headers: hostHeaders,
       data: { partyId: 'network-radio', action: 'play', contentId: item.contentId, title: 'Radio network tone', listed: true, allowMeshStreaming: false, positionSeconds: 0 },
     });
@@ -148,7 +160,8 @@ test.describe('listed radio between isolated nodes', () => {
     expect(reverseLibrary.ok()).toBe(true);
     const reverseItem = (await reverseLibrary.json()).files[0];
     expect(reverseItem.contentId).toBeTruthy();
-    const reversePublish = await request.post(`${listener.apiUrl}/api/v0/listening-party/radio-pod/reverse-room`, {
+    const reversePod = await createRadioRoom(request, listener.apiUrl, listenerHeaders, 'Reverse radio room');
+    const reversePublish = await request.post(`${listener.apiUrl}/api/v0/listening-party/${reversePod}/music`, {
       headers: listenerHeaders,
       data: { partyId: 'reverse-radio', action: 'play', contentId: reverseItem.contentId, title: 'Reverse radio tone', listed: true, allowMeshStreaming: false, positionSeconds: 0 },
     });
@@ -170,7 +183,8 @@ test.describe('listed radio between isolated nodes', () => {
     const library = await request.get(`${host.apiUrl}/api/v0/library/items/browser?query=Radio%20network%20tone&kinds=Audio`, { headers });
     expect(library.ok()).toBe(true);
     const item = (await library.json()).files[0];
-    const publication = await request.post(`${host.apiUrl}/api/v0/listening-party/radio-pod/local-expiry`, {
+    const localPod = await createRadioRoom(request, host.apiUrl, headers, 'Local expiry room');
+    const publication = await request.post(`${host.apiUrl}/api/v0/listening-party/${localPod}/music`, {
       headers,
       data: { partyId: 'local-expiry', action: 'play', contentId: item.contentId, title: 'Local expiry tone', listed: true, allowMeshStreaming: true, positionSeconds: 0 },
     });

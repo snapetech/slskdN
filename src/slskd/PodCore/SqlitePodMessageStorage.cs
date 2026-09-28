@@ -96,17 +96,23 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         try
         {
             // Check for duplicate (same pod, channel, timestamp, sender)
-            var exists = await dbContext.Messages.AnyAsync(
+            var existing = await dbContext.Messages.FirstOrDefaultAsync(
                 m => m.PodId == podId &&
                      m.ChannelId == channelId &&
                      m.TimestampUnixMs == message.TimestampUnixMs &&
                      m.SenderPeerId == message.SenderPeerId,
                 ct);
 
-            if (exists)
+            if (existing != null)
             {
-                logger.LogDebug("Duplicate message detected, skipping storage");
-                return true; // Not an error, just already exists
+                var equivalent = existing.Body == message.Body &&
+                    existing.Signature == message.Signature && existing.SigVersion == message.SigVersion;
+                if (!equivalent)
+                {
+                    logger.LogWarning("Conflicting message at an existing room timestamp; storage rejected");
+                }
+
+                return equivalent;
             }
 
             var entity = new PodMessageEntity
@@ -117,6 +123,7 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
                 SenderPeerId = message.SenderPeerId,
                 Body = message.Body,
                 Signature = message.Signature,
+                SigVersion = message.SigVersion,
             };
 
             dbContext.Messages.Add(entity);

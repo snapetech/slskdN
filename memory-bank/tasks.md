@@ -5247,4 +5247,13 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [ ] Implement authenticated cross-node room application. Source inspection finds a pod_message sender but no matching control dispatcher handler; bind sender authority before applying state and prevent republishing loops.
 - [ ] Complete remote ticket renewal, long host capability renewal and remaining player quality audit requirements.
 
-- [ ] Validate room existence and successful message storage before returning publication success. Retained radio fixture logs demonstrate rejected synthetic pod IDs while the local snapshot still publishes; transport evidence does not prove durable room delivery. See gotcha 0z1110.
+- [x] 2026-09-28 Validate room existence and successful message storage before returning publication success. Retained radio fixture logs demonstrate rejected synthetic pod IDs while the local snapshot still publishes; transport evidence does not prove durable room delivery. See gotcha 0z1110.
+
+## Room publication integrity — 2026-09-28
+
+- [x] Preserve prior broadcast on failed Play/Stop and explain missing rooms or rejected storage with retry feedback.
+- [x] Reject conflicting SQLite timestamp duplicates, retain original data and store signature versions.
+- [x] Count actual received mesh frames; verify ten-frame survival and eleven-frame denial through real TLS.
+- [x] Use actual room creation and verify accepted publication in runtime message storage.
+- [ ] Repair and negatively verify mesh pod admission roles, private/approval checks and message-read authorization before distributed room delivery.
+- [ ] Keep the intermittent reverse-directory investigation open until retained logs establish a cause.

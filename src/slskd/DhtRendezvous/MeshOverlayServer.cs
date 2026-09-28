@@ -355,23 +355,24 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                     }
                 }
 
-                // Check message rate limit
-                var rateResult = _rateLimiter.CheckMessage(connection.ConnectionId);
-                if (!rateResult)
-                {
-                    disconnectReason = "message-rate-limit";
-                    _logger.LogWarning(
-                        "Message rate limit exceeded for {Username}: {Reason}",
-                        OverlayLogSanitizer.Username(connection.Username),
-                        rateResult.Reason);
-                    _rateLimiter.RecordViolation(connection.RemoteAddress);
-                    break;
-                }
-
                 // Read next message
                 try
                 {
                     var rawMessage = await connection.ReadRawMessageAsync(cancellationToken);
+
+                    // Check message rate limit
+                    var rateResult = _rateLimiter.CheckMessage(connection.ConnectionId);
+                    if (!rateResult)
+                    {
+                        disconnectReason = "message-rate-limit";
+                        _logger.LogWarning(
+                            "Message rate limit exceeded for {Username}: {Reason}",
+                            OverlayLogSanitizer.Username(connection.Username),
+                            rateResult.Reason);
+                        _rateLimiter.RecordViolation(connection.RemoteAddress);
+                        break;
+                    }
+
                     var messageType = SecureMessageFramer.ExtractMessageType(rawMessage);
 
                     switch (messageType)

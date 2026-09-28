@@ -29,6 +29,12 @@ test('reauthorizes two live room participants across leave, disconnect and revoc
     });
     expect(created.ok(), await created.text()).toBe(true);
     const podId = (await created.json()).podId;
+    const invalidRoom = await request.post(`${node.apiUrl}/api/v0/listening-party/${encodeURIComponent(podId)}/missing`, {
+      headers: admin, data: { action: 'play', contentId: 'fixture-track', title: 'Rejected broadcast', listed: true },
+    });
+    expect(invalidRoom.status()).toBe(404);
+    const initialSnapshot = await request.get(`${node.apiUrl}/api/v0/listening-party/${encodeURIComponent(podId)}/music`, { headers: admin });
+    expect(initialSnapshot.status()).toBe(204);
     for (const name of ['roomlistener', 'roomobserver']) {
       const joined = await request.post(`${node.apiUrl}/api/v0/pods/${encodeURIComponent(podId)}/join`, {
         headers: { 'X-API-Key': name === 'roomlistener' ? 'room-listener-fixture-key' : 'room-observer-fixture-key' }, data: { peerId: name },
@@ -47,6 +53,9 @@ test('reauthorizes two live room participants across leave, disconnect and revoc
       await expect.poll(() => observerEvents.includes(title)).toBe(true);
     };
     await publish('First broadcast');
+    const stored = await request.get(`${node.apiUrl}/api/v0/podcore/messages/${encodeURIComponent(podId)}/music/count`, { headers: admin });
+    expect(stored.ok()).toBe(true);
+    expect(await stored.json()).toBeGreaterThan(0);
     await expect.poll(() => events.includes('First broadcast')).toBe(true);
     await listener.invoke('LeaveParty', podId, 'music');
     await publish('After leave');

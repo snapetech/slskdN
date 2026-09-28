@@ -82,6 +82,9 @@ public sealed class ListeningPartyController : ControllerBase
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(ListeningPartyEvent), 200)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(429)]
+    [ProducesResponseType(503)]
     public async Task<IActionResult> Publish(
         [FromRoute] string podId,
         [FromRoute] string channelId,
@@ -111,6 +114,14 @@ public sealed class ListeningPartyController : ControllerBase
                 cancellationToken);
 
             return Ok(published);
+        }
+        catch (ListeningPartyRoomNotFoundException)
+        {
+            return NotFound("The listen-along room is unavailable.");
+        }
+        catch (ListeningPartyStorageException)
+        {
+            return StatusCode(503, new { code = "room_storage_unavailable", error = "The room update could not be saved. Try again." });
         }
         catch (ListeningPartyCapacityException)
         {

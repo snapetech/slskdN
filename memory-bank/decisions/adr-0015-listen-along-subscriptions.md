@@ -39,3 +39,12 @@ reject excess updates with HTTP 429 and explicit retry feedback. Cancellation
 and failure release reservations, and idle gates are removed and disposed.
 Unrelated rooms retain independent publication progress. This avoids stale
 Play arriving after Stop without global serialization or retained tombstones.
+
+## Publication storage boundary — 2026-09-28
+
+Resolve the current room through IPodService in the publication scope, validate
+the message contract and require accepted storage before changing visible
+snapshot, directory or now-playing state. Missing rooms return 404; rejected
+storage returns a stable retryable 503. Failed Play and Stop retain the prior
+broadcast. This guarantees the local storage boundary; it does not guarantee
+remote routing success or distributed state application.
