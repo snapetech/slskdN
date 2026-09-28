@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1126. Observe All SignalR Transports During Recovery Tests
+
+**The Gotcha**: A runtime interruption blocked only WebSockets. SignalR recovered through a fallback transport, so the room returned live but a WebSocket-only JoinParty counter incorrectly failed. The setup also could not prove a snapshot was published while every transport was unavailable.
+
+**Prevention**: Observe join invocations through both WebSocket frames and HTTP sends, and count actual renegotiation and snapshot reads. Hold negotiation during the controlled outage, publish the changed snapshot, then release the real production reconnect policy. Do not disable fallback or equate a WebSocket-only counter with all connection recovery.
+
 ### 0z1125. Use Semantic UI Toggle Semantics for Pressed State
 
 **The Bug**: Adding aria-pressed directly to Semantic UI Button still rendered no attribute. Its implementation overwrites that prop with undefined unless toggle is enabled. The accessibility regression stayed negative after the initial implementation.
