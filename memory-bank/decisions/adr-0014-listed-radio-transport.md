@@ -79,3 +79,14 @@ owner keys and opaque capabilities retain their original identity semantics.
 A signed Store keeps its cryptographically verified requester node ID and
 publisher quota, but records the actual remote transport username as its
 routing address. Cryptographic publisher IDs do not name overlay connections.
+
+## Fresh-ticket feedback — 2026-09-28
+
+After successful host metadata validation, remote ticket acquisition evaluates
+current fairness before minting a local mesh ticket. Denial returns HTTP 429
+with `radio_fairness_limited`. Host permission failure retains priority. Direct
+local playback does not evaluate overlay fairness. Stream admission still
+checks policy on first open, and same-ticket seeks retain their admission.
+Accounting failures propagate rather than being mislabeled ticket capacity.
+The player distinguishes fairness, ticket capacity and unavailable snapshots;
+no automatic retry or policy exemption is introduced.

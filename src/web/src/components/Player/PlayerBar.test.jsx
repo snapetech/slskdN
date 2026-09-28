@@ -449,6 +449,21 @@ describe('PlayerBar', () => {
     await waitFor(() => expect(document.querySelector('audio').getAttribute('src')).toBe('/api/v0/mesh-streams/second-radio'));
   });
 
+  it.each([
+    [429, 'radio_fairness_limited', 'Remote radio is limited by network fairness. Check sharing activity before retrying.'],
+    [429, null, 'Radio streaming is at capacity. Retry later.'],
+    [404, null, 'This radio snapshot expired or is unavailable. Refresh listed radio.'],
+  ])('explains radio acquisition status %s and code %s', async (status, code, message) => {
+    vi.spyOn(listeningParty, 'createRadioStreamUrl').mockRejectedValueOnce({ response: { status, data: { code } } });
+    vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
+      { partyId: 'radio-limited', contentId: 'radio:limited', title: 'Limited radio', allowMeshStreaming: true, streamPath: '/old-host-path', transportUsername: 'host-overlay', streamTicket: 'capability' },
+    ]);
+    renderPlayer();
+    fireEvent.click(screen.getByTestId('player-open-listed-radio'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Play Limited radio from listed radio' }));
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
   it('reacquires a radio ticket after initial setup failure without falling back to local content', async () => {
     const create = vi.spyOn(listeningParty, 'createRadioStreamUrl').mockRejectedValueOnce(new Error('Host unavailable')).mockResolvedValueOnce('/api/v0/mesh-streams/retry-ticket');
     vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([

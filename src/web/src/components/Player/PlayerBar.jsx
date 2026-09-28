@@ -3005,10 +3005,17 @@ const PlayerBar = () => {
     if (current.radioPartyId) {
       createRadioStreamUrl(current.radioPartyId, current.contentId).then((url) => {
         if (!cancelled) setSource({ item: current, url });
-      }).catch(() => {
+      }).catch((error) => {
         if (!cancelled) {
           setPlaybackStatus('error');
-          setPlaybackError('The radio host could not provide this snapshot. Retry or refresh listed radio.');
+          const status = error?.response?.status;
+          setPlaybackError(error?.response?.data?.code === 'radio_fairness_limited'
+            ? 'Remote radio is limited by network fairness. Check sharing activity before retrying.'
+            : status === 429
+              ? 'Radio streaming is at capacity. Retry later.'
+              : status === 404
+                ? 'This radio snapshot expired or is unavailable. Refresh listed radio.'
+                : 'The radio host could not provide this snapshot. Retry or refresh listed radio.');
         }
       });
       return () => { cancelled = true; };

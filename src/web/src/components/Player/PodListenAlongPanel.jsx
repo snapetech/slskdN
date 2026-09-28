@@ -370,9 +370,11 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       if (!mountedRef.current || requestId !== publishRequestRef.current) return;
       setPartyState(action === 'stop' ? null : state);
       if (!compact) refreshDirectory();
-    }).catch(() => {
+    }).catch((error) => {
       if (mountedRef.current && requestId === publishRequestRef.current) {
-        setPublishError(action === 'stop'
+        setPublishError(error?.response?.status === 429
+          ? 'Room updates are at capacity. Retry later.'
+          : action === 'stop'
           ? 'Could not stop the room broadcast. Try again.'
           : 'Could not start the room broadcast. Try again.');
       }

@@ -61,6 +61,21 @@ describe('PodListenAlongPanel directory polling', () => {
     vi.useRealTimers();
   });
 
+  it('explains room publication overload without losing retry controls', async () => {
+    usePlayer.mockReturnValue({
+      ...player,
+      current: { contentId: 'server-track', title: 'Track' },
+      getPlaybackPosition: () => 0,
+    });
+    listeningParty.publishPartyState.mockRejectedValueOnce({ response: { status: 429 } });
+    render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
+    await act(async () => { await Promise.resolve(); });
+    const broadcast = screen.getByRole('button', { name: 'Broadcast current track to room' });
+    await act(async () => fireEvent.click(broadcast));
+    expect(screen.getByRole('alert')).toHaveTextContent('Room updates are at capacity. Retry later.');
+    expect(broadcast).toBeEnabled();
+  });
+
   it('offers retry after an initial connection failure and joins a fresh hub', async () => {
     const failed = createHub();
     failed.start.mockRejectedValueOnce(new Error('Offline'));

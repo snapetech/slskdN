@@ -112,6 +112,10 @@ public sealed class ListeningPartyController : ControllerBase
 
             return Ok(published);
         }
+        catch (ListeningPartyCapacityException)
+        {
+            return StatusCode(429, "Too many room updates are pending. Retry later.");
+        }
         catch (ArgumentException)
         {
             return BadRequest("Listen-along event is invalid.");

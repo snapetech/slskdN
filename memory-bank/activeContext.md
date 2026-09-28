@@ -14680,3 +14680,24 @@ elapsed radio renewal and fairness feedback, concurrent room publication
 ordering, automatic transport recovery and authenticated distributed state
 delivery; continue remaining player quality audit rows. Overall goal remains
 active. No release tag or deployment is authorized.
+
+## Player publication and radio reliability final gates — 2026-09-28
+
+Complete publication is ordered per room with bounded pending work and overload
+feedback. Fresh remote radio acquisition explains fairness before playback,
+while host permission priority and stream admission remain enforced. Retained
+browser fixture directories now resolve consistently before node startup.
+
+Final source passes 5,244 unit, 74 smoke and 284 integration tests; 996 Web
+tests across 165 files; 19 runtime cases (18 Chromium plus two-client SignalR).
+The runtime suite includes actual elapsed local ticket expiry and successful
+manual reselection. Repository/Web lint, Release/frontend builds, bundle/output,
+endpoint, identity and whitespace gates pass. The initial intermittent reverse
+directory failure remains an explicit follow-up despite the clean final run and
+four diagnostic passes.
+
+Completed implementation batch is cleared. Next Steps: validate room existence
+and storage outcomes; implement authenticated cross-node room state application;
+verify automatic recovery, remote and long host-capability renewal; continue
+browser/format, sustained resource, accessibility and physical-device audit.
+The full player goal remains active; no tag or deployment is authorized.

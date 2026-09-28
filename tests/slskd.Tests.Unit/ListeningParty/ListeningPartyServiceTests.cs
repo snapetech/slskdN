@@ -265,6 +265,88 @@ public sealed class ListeningPartyServiceTests
         Assert.True(service.Subscribe("global-overflow", "pod-a", "room", user));
     }
 
+    [Fact]
+    public async Task Publish_OrdersStopAfterPendingPlayWithoutStaleFanout()
+    {
+        var firstRouting = new TaskCompletionSource<PodMessageRoutingResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var result = new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero);
+        var routes = 0;
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .Returns((PodMessage message, CancellationToken token) => ++routes == 1 ? firstRouting.Task : Task.FromResult(result));
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).BuildServiceProvider();
+        var actions = new List<string>();
+        var proxy = new Mock<IClientProxy>();
+        proxy.Setup(instance => instance.SendCoreAsync("partyState", It.IsAny<object?[]>(), It.IsAny<CancellationToken>()))
+            .Callback((string method, object?[] arguments, CancellationToken token) => actions.Add(((ListeningPartyEvent)arguments[0]!).Action))
+            .Returns(Task.CompletedTask);
+        var clients = new Mock<IHubClients>();
+        clients.Setup(instance => instance.Clients(It.IsAny<IReadOnlyList<string>>())).Returns(proxy.Object);
+        var hub = new Mock<IHubContext<ListeningPartyHub>>();
+        hub.SetupGet(instance => instance.Clients).Returns(clients.Object);
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((byte[]?)null);
+        var service = new ListeningPartyService(hub.Object, dht.Object, router.Object, provider.GetRequiredService<IServiceScopeFactory>(),
+            new NowPlayingService(), Mock.Of<IStreamTicketService>(), Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+        var admin = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "admin"), new Claim(ClaimTypes.Role, "Administrator") }, "test"));
+        Assert.True(service.Subscribe("connection", "pod-a", "channel-a", admin));
+        var play = new ListeningPartyEvent { PodId = "pod-a", ChannelId = "channel-a", ContentId = "track", Action = "play", HostPeerId = "admin", PartyId = "party-a" };
+        var first = service.PublishAsync(play);
+        var stop = service.PublishAsync(play with { Action = "stop" });
+        try
+        {
+            Assert.False(stop.IsCompleted);
+            var unrelated = await service.PublishAsync(play with { ChannelId = "other-room" });
+            Assert.Equal("other-room", unrelated.ChannelId);
+        }
+        finally
+        {
+            firstRouting.TrySetResult(result);
+            await Task.WhenAll(first, stop);
+        }
+
+        Assert.Equal(new[] { "play", "stop" }, actions);
+        Assert.Null(await service.GetStateAsync("pod-a", "channel-a"));
+    }
+
+    [Theory]
+    [InlineData(false, 16)]
+    [InlineData(true, 256)]
+    public async Task Publish_BoundsPendingWorkAndReleasesCancelledReservations(bool distinctRooms, int capacity)
+    {
+        var completion = new TaskCompletionSource<PodMessageRoutingResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .Returns((PodMessage message, CancellationToken token) => completion.Task.WaitAsync(token));
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((byte[]?)null);
+        using var provider = new ServiceCollection().AddSingleton(Mock.Of<IPodMessageStorage>()).BuildServiceProvider();
+        var service = new ListeningPartyService(Mock.Of<IHubContext<ListeningPartyHub>>(), dht.Object, router.Object,
+            provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(), Mock.Of<IStreamTicketService>(),
+            Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+        using var cancellation = new CancellationTokenSource();
+        var play = new ListeningPartyEvent { PodId = "pod-a", ChannelId = "room", ContentId = "track", Action = "play" };
+        var pending = Enumerable.Range(0, capacity).Select(index => service.PublishAsync(
+            play with { ChannelId = distinctRooms ? index.ToString() : "room" }, cancellation.Token)).ToArray();
+        try
+        {
+            await Assert.ThrowsAsync<ListeningPartyCapacityException>(() => service.PublishAsync(
+                play with { ChannelId = distinctRooms ? "overflow" : "room" }));
+        }
+        finally
+        {
+            cancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.WhenAll(pending));
+        }
+
+        completion.SetResult(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        Assert.Equal("play", (await service.PublishAsync(play)).Action);
+        await Assert.ThrowsAsync<ArgumentException>(() => service.PublishAsync(play with { Action = "invalid" }));
+        Assert.Equal("play", (await service.PublishAsync(play)).Action);
+    }
+
     private static ListeningPartyService CreateService(IMeshDhtClient dht, TimeProvider? clock = null)
     {
         return new ListeningPartyService(

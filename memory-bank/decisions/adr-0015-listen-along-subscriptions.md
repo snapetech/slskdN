@@ -29,3 +29,13 @@ publication; this is not a promise of atomic ordering with concurrent membership
 writes. Network transport reconnect must join again and refresh its snapshot.
 Cross-node room state propagation and elapsed radio renewal remain separate
 open work; local subscription delivery does not prove them.
+
+## Publication ordering — 2026-09-28
+
+Serialize complete publications per pod/channel through storage, directory,
+routing and fanout. Normalize sequence and timestamp after acquiring that
+room's gate. Limit active room queues to 256 and reservations per room to 16;
+reject excess updates with HTTP 429 and explicit retry feedback. Cancellation
+and failure release reservations, and idle gates are removed and disposed.
+Unrelated rooms retain independent publication progress. This avoids stale
+Play arriving after Stop without global serialization or retained tombstones.

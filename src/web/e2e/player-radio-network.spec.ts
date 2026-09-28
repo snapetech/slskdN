@@ -121,6 +121,14 @@ test.describe('listed radio between isolated nodes', () => {
     expect(hostTraffic[1]).toBe(0);
     expect(listenerTraffic[0]).toBe(0);
 
+    // A new ticket evaluates current policy; seeks on the admitted ticket
+    // retain their admission and must continue to work above.
+    const freshTicket = await request.post(`${listener.apiUrl}/api/v0/listed-radio/network-radio/tickets`, {
+      headers: listenerHeaders, data: { contentId: item.contentId },
+    });
+    expect(freshTicket.status()).toBe(429);
+    expect((await freshTicket.json()).code).toBe('radio_fairness_limited');
+
     const revoke = await request.post(`${host.apiUrl}/api/v0/listening-party/radio-pod/radio-room`, {
       headers: hostHeaders,
       data: { partyId: 'network-radio', action: 'play', contentId: item.contentId, title: 'Radio network tone', listed: true, allowMeshStreaming: false, positionSeconds: 0 },
@@ -151,4 +159,55 @@ test.describe('listed radio between isolated nodes', () => {
 
 
   });
+  test('renews local radio after actual ticket expiry through manual reselection', async ({ page, request }) => {
+    test.setTimeout(180_000);
+    const host = harness.getNode('A');
+    const session = await request.post(`${host.apiUrl}/api/v0/session`, {
+      data: { username: host.nodeCfg.username, password: host.nodeCfg.password },
+    });
+    expect(session.ok()).toBe(true);
+    const headers = { Authorization: `Bearer ${(await session.json()).token}` };
+    const library = await request.get(`${host.apiUrl}/api/v0/library/items/browser?query=Radio%20network%20tone&kinds=Audio`, { headers });
+    expect(library.ok()).toBe(true);
+    const item = (await library.json()).files[0];
+    const publication = await request.post(`${host.apiUrl}/api/v0/listening-party/radio-pod/local-expiry`, {
+      headers,
+      data: { partyId: 'local-expiry', action: 'play', contentId: item.contentId, title: 'Local expiry tone', listed: true, allowMeshStreaming: true, positionSeconds: 0 },
+    });
+    expect(publication.ok(), await publication.text()).toBe(true);
+    await page.addInitScript(() => localStorage.setItem('slskdn.player.collapsed', 'false'));
+    await login(page, host.nodeCfg);
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByTestId('player-open-listed-radio').click();
+    const acquisition = page.waitForResponse((response) => response.url().includes('/listed-radio/local-expiry/tickets'));
+    await page.getByRole('button', { name: 'Play Local expiry tone from listed radio' }).click();
+    const response = await acquisition;
+    expect(response.ok()).toBe(true);
+    const initial = await response.json();
+    expect(initial.expiresInSeconds).toBe(120);
+    const receivedAt = Date.now();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
+    await page.getByRole('button', { name: 'Pause local playback', exact: true }).click();
+    const valid = await request.get(`${host.apiUrl}${initial.streamUrl}`, { headers: { Range: 'bytes=0-1' } });
+    expect(valid.status()).toBe(206);
+
+    // Let the production two-minute lifetime elapse. Cached browser audio does
+    // not prove a ticket is valid, so inspect a new HTTP request explicitly.
+    await new Promise((resolve) => setTimeout(resolve, Math.max(0, receivedAt + 122_000 - Date.now())));
+    const expired = await request.get(`${host.apiUrl}${initial.streamUrl}`, { headers: { Range: 'bytes=0-1' } });
+    expect(expired.status()).toBe(401);
+    await page.getByTestId('player-open-listed-radio').click();
+    const renewal = page.waitForResponse((result) => result.url().includes('/listed-radio/local-expiry/tickets'));
+    await page.getByRole('button', { name: 'Play Local expiry tone from listed radio' }).click();
+    const renewedResponse = await renewal;
+    expect(renewedResponse.ok()).toBe(true);
+    const renewed = await renewedResponse.json();
+    expect(renewed.streamUrl).not.toBe(initial.streamUrl);
+    const renewedRange = await request.get(`${host.apiUrl}${renewed.streamUrl}`, { headers: { Range: 'bytes=0-1' } });
+    expect(renewedRange.status()).toBe(206);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.readyState >= 2 && audio.currentTime > 120))).toBe(true);
+    const resumedAt = await page.locator('audio').evaluateAll((elements) => Math.max(...elements.map((audio) => audio.currentTime)));
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => Math.max(...elements.map((audio) => audio.currentTime)))).toBeGreaterThan(resumedAt + 1);
+  });
+
 });

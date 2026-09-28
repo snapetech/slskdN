@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Room publication and radio admission reliability
+
+- Preserve room update order through storage, routing and delivery, with bounded pending work and retryable overload feedback.
+- Explain fairness limits during fresh remote radio acquisition; distinguish capacity and expired/unavailable snapshots while preserving local playback and existing stream admission.
+- Resolve retained browser fixture paths before spawning nodes; verify real elapsed local ticket expiry and successful manual reselection.
+
 ### Listen-along subscription lifecycle
 
 - Recheck pod membership before live state delivery, remove banned or withdrawn recipients and retain administrator access.

@@ -14,6 +14,7 @@ using slskd.Core.Security;
 using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.ServiceFabric.Services;
 using slskd.Streaming;
+using slskd.Transfers.MultiSource.Metrics;
 
 /// <summary>Manual local tickets pinned to the permitted host snapshot; see ADR-0014.</summary>
 [ApiController]
@@ -27,14 +28,16 @@ public sealed class ListedRadioController : ControllerBase
     private readonly IMeshServiceClient _client;
     private readonly IMeshStreamTicketService _tickets;
     private readonly IStreamTicketService _localTickets;
+    private readonly IFairnessGuard _fairness;
     private readonly IOptionsMonitor<global::slskd.Options> _options;
 
-    public ListedRadioController(IListeningPartyService parties, IMeshServiceClient client, IMeshStreamTicketService tickets, IOptionsMonitor<global::slskd.Options> options, IStreamTicketService localTickets)
+    public ListedRadioController(IListeningPartyService parties, IMeshServiceClient client, IMeshStreamTicketService tickets, IOptionsMonitor<global::slskd.Options> options, IStreamTicketService localTickets, IFairnessGuard fairness)
     {
         _parties = parties;
         _client = client;
         _tickets = tickets;
         _localTickets = localTickets;
+        _fairness = fairness;
         _options = options;
     }
 
@@ -101,6 +104,7 @@ public sealed class ListedRadioController : ControllerBase
             return StatusCode(503, "The radio host no longer permits this snapshot.");
         }
 
+        ListedRadioMetadata? metadata;
         try
         {
             if (reply.Payload.Length > 4096)
@@ -108,12 +112,25 @@ public sealed class ListedRadioController : ControllerBase
                 return StatusCode(503, "The radio host returned invalid metadata.");
             }
 
-            var metadata = JsonSerializer.Deserialize<ListedRadioMetadata>(reply.Payload, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            metadata = JsonSerializer.Deserialize<ListedRadioMetadata>(reply.Payload, new JsonSerializerOptions(JsonSerializerDefaults.Web));
             if (metadata == null || metadata.Length <= 0)
             {
                 return StatusCode(503, "The radio host returned invalid metadata.");
             }
+        }
+        catch (JsonException)
+        {
+            return StatusCode(503, "The radio host returned invalid metadata.");
+        }
 
+        var decision = await _fairness.EvaluateAsync(cancellationToken).ConfigureAwait(false);
+        if (!decision.Allowed)
+        {
+            return StatusCode(429, new { code = "radio_fairness_limited", error = "Remote radio is limited by network fairness." });
+        }
+
+        try
+        {
             var ticket = _tickets.Create(new MeshStreamTicketRequest(party.ContentId, metadata.Filename, party.TransportUsername, metadata.Length, null)
             {
                 Radio = new MeshRadioScope(party.PartyId, party.StreamTicket),
@@ -124,10 +141,6 @@ public sealed class ListedRadioController : ControllerBase
                 expiresInSeconds = 120,
                 contentType = ticket.ContentType,
             });
-        }
-        catch (JsonException)
-        {
-            return StatusCode(503, "The radio host returned invalid metadata.");
         }
         catch (ArgumentException)
         {

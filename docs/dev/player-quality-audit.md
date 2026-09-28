@@ -4,11 +4,15 @@ Updated: 2026-09-28. The player overhaul remains active.
 
 ## Quality target
 
-Deliver dependable playback, intuitive controls, polished presentation,
-unobtrusive behavior and low resource use across the integrated player.
-Completion requires supported workflows to pass runtime checks, identified
-player defects to be resolved, and resource behavior to be measured. Commit and
-push completed batches with validated release fragments and durable bug records.
+Bring the player bar and full player experience to the dependability, polish
+and ease of use expected from Winamp or VLC, adapted to a browser-based
+Soulseek client. Audit complete workflows, fix root causes, improve usability
+and accessibility, and keep resource use and network impact low.
+
+Completion requires direct playback, recovery and listening-party evidence,
+resolved audit findings and measured resource behavior. Commit and push
+substantial validated batches with release fragments and durable bug records.
+Record external blockers explicitly; unverified behavior remains unfinished.
 
 ## Current evidence
 
@@ -31,7 +35,7 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in headless Chromium / high; physical window sizing and focus unverified |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters and reverse directory publication verified / high; elapsed expiry renewal and sustained sessions unverified |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters and reverse directory publication verified / high; local elapsed expiry/reselection verified; remote renewal, host capability renewal and sustained sessions unverified |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Two authenticated real SignalR clients on one backend verify leave, explicit disconnect/rejoin, snapshot recovery and live ban / high; automatic transport recovery and cross-node propagation unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
@@ -215,3 +219,54 @@ SignalR workflow). Repository/Web lint, Release/frontend builds, bundle/output,
 CSRF/anonymous endpoint, identity and whitespace checks pass. The player
 overhaul remains active with renewal, distributed room delivery, sustained
 resources, accessibility, format/browser and physical-device work outstanding.
+
+## Publication and radio admission reliability — 2026-09-28
+
+A corrected negative regression proved Stop could finish while an earlier Play
+was still routing. Complete publication is now serialized per room, with 16
+reservations per room and 256 active room queues. Tests verify ordered delivery,
+unrelated-room progress, cancellation, overload feedback and cleanup on failure.
+Confidence in this controlled concurrency boundary is high.
+
+Remote ticket acquisition checks fairness after host metadata validates
+permission. Policy denial reports a stable 429 code before native playback;
+local snapshots avoid overlay admission and existing stream checks remain.
+Web regressions distinguish fairness, capacity and unavailable snapshots. The
+real two-node browser case verifies a fresh admission is denied after download
+traffic while earlier same-ticket seeks work.
+
+An elapsed-clock Chromium case validates a local radio ticket with HTTP 206,
+waits beyond its production two-minute lifetime, observes HTTP 401, manually
+reselects the still-listed snapshot, and verifies a different ticket, HTTP 206
+and continued playback. Confidence is high for local manual renewal; remote
+renewal and the fifteen-minute host capability remain unverified.
+
+The initial combined runtime run passed 18 cases but failed its reverse-directory
+assertion. A standalone diagnostic and three repeated runs passed. This does
+not explain the intermittent failure; retained logs and further investigation
+remain required. Source inspection also finds no pod_message handler in the
+control dispatcher, so cross-node room application is incomplete. It requires
+an authenticated membership boundary, state ordering and no republishing loop.
+
+Retained diagnostic logs reject the radio fixture's synthetic pod ID during
+message storage. Its successful byte transport therefore does not prove durable
+or distributed room publication. The service currently ignores storage failure
+and only logs routing failure; validate real room existence and storage outcomes
+before reporting room success. This additional publication gap remains open.
+
+### Final reliability gates — 2026-09-28
+
+Final source passes 5,244 unit / 74 smoke / 284 integration tests, 996 Web tests
+across 165 files and 19 runtime cases (18 Chromium plus one two-client SignalR
+case). Repository/Web lint, Release/frontend builds, bundle/output, endpoint,
+identity and whitespace checks pass. Four standalone diagnostic executions also
+passed the real radio workflow. The earlier reverse-directory failure remains
+unexplained and open despite the green final suite.
+
+Fresh ten-second native samples record 4.30% / 3.10% / 2.70% of one core and
+305.75 / 325.99 / 316.13 MiB Chromium PSS for idle / playing / paused. All five
+surviving processes supplied memory readings; one exited during idle and its
+CPU delta is excluded. Native playback created zero AudioContexts. Confidence
+is moderate: these short headless totals include the browser/application shell
+and do not establish sustained retention, physical-device behavior or a
+player-only resource budget.

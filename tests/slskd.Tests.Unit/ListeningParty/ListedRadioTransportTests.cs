@@ -21,6 +21,65 @@ using slskd.Transfers.MultiSource.Metrics;
 
 public sealed class ListedRadioTransportTests
 {
+    private static IFairnessGuard AllowedFairness()
+    {
+        var guard = new Mock<IFairnessGuard>();
+        guard.Setup(instance => instance.EvaluateAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new FairnessDecision());
+        return guard.Object;
+    }
+
+    [Fact]
+    public async Task Ticket_DeniedFairnessDoesNotMintAndPreservesHostPermissionPriority()
+    {
+        var parties = new Mock<IListeningPartyService>();
+        parties.Setup(instance => instance.ListDirectoryAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new[]
+        {
+            new ListeningPartyAnnouncement { PartyId = "party", ContentId = "track", TransportUsername = "remote", StreamTicket = "capability", AllowMeshStreaming = true, ExpiresAtUnixMs = DateTimeOffset.UtcNow.AddMinutes(15).ToUnixTimeMilliseconds() },
+        });
+        var client = new Mock<IMeshServiceClient>();
+        client.Setup(instance => instance.CallAsync("remote", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ServiceReply
+        {
+            StatusCode = ServiceStatusCodes.OK,
+            Payload = JsonSerializer.SerializeToUtf8Bytes(new ListedRadioMetadata("tone.wav", 100), new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+        });
+        var guard = new Mock<IFairnessGuard>();
+        guard.Setup(instance => instance.EvaluateAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new FairnessDecision { ThrottleOverlayDownloads = true });
+        var tickets = new Mock<IMeshStreamTicketService>(MockBehavior.Strict);
+        var controller = new ListedRadioController(parties.Object, client.Object, tickets.Object, EnabledOptions(), new StreamTicketService(), guard.Object);
+        var denied = Assert.IsType<ObjectResult>(await controller.CreateTicket("party", new ListedRadioSelection("track"), CancellationToken.None));
+        Assert.Equal(429, denied.StatusCode);
+        Assert.Contains("radio_fairness_limited", JsonSerializer.Serialize(denied.Value));
+        tickets.VerifyNoOtherCalls();
+        client.Setup(instance => instance.CallAsync("remote", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>())).ReturnsAsync(new ServiceReply { StatusCode = ServiceStatusCodes.Forbidden });
+        var revoked = Assert.IsType<ObjectResult>(await controller.CreateTicket("party", new ListedRadioSelection("track"), CancellationToken.None));
+        Assert.Equal(503, revoked.StatusCode);
+        guard.Verify(instance => instance.EvaluateAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Ticket_LocalSnapshotDoesNotUseOverlayAdmissionOrPeerCalls()
+    {
+        var parties = new Mock<IListeningPartyService>();
+        parties.Setup(instance => instance.ListDirectoryAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new[]
+        {
+            new ListeningPartyAnnouncement { PartyId = "party", ContentId = "track", TransportUsername = "LISTENER-OVERLAY", StreamTicket = "capability", AllowMeshStreaming = true, ExpiresAtUnixMs = DateTimeOffset.UtcNow.AddMinutes(15).ToUnixTimeMilliseconds() },
+        });
+        parties.Setup(instance => instance.GetStateByPartyIdAsync("party", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListeningPartyEvent { PartyId = "party", ContentId = "track", Listed = true, AllowMeshStreaming = true });
+        var guard = new Mock<IFairnessGuard>(MockBehavior.Strict);
+        var client = new Mock<IMeshServiceClient>(MockBehavior.Strict);
+        var meshTickets = new Mock<IMeshStreamTicketService>(MockBehavior.Strict);
+        var localTickets = new StreamTicketService();
+        var controller = new ListedRadioController(parties.Object, client.Object, meshTickets.Object, EnabledOptions(), localTickets, guard.Object);
+        var result = Assert.IsType<OkObjectResult>(await controller.CreateTicket("party", new ListedRadioSelection("track"), CancellationToken.None));
+        var url = Assert.IsType<string>(result.Value!.GetType().GetProperty("streamUrl")!.GetValue(result.Value));
+        var token = Uri.UnescapeDataString(url.Split("?ticket=")[1]);
+        Assert.Equal("listening-party:party", localTickets.Validate(token, "track")!.OwnerKey);
+        guard.VerifyNoOtherCalls();
+        client.VerifyNoOtherCalls();
+        meshTickets.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task RadioRange_HostCasingCannotBypassSharedReservation()
     {
@@ -294,7 +353,7 @@ public sealed class ListedRadioTransportTests
                     },
                 });
             var localTickets = new MeshStreamTicketService();
-            var controller = new ListedRadioController(listenerParties.Object, client.Object, localTickets, EnabledOptions(), new StreamTicketService())
+            var controller = new ListedRadioController(listenerParties.Object, client.Object, localTickets, EnabledOptions(), new StreamTicketService(), AllowedFairness())
             {
                 ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
             };

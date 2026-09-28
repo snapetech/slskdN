@@ -46,6 +46,12 @@ public sealed class ListeningPartyService : IListeningPartyService
     private readonly Dictionary<(string ConnectionId, string PodId, string ChannelId), PartySubscription> _subscriptions = new();
     private const int MaxSubscriptions = 4096;
     private const int MaxSubscriptionsPerConnection = 16;
+
+    // Per-room ordering and bounded queue ownership: ADR-0015.
+    private readonly object _publicationLock = new();
+    private readonly Dictionary<(string PodId, string ChannelId), (SemaphoreSlim Gate, int Reservations)> _publications = new();
+    private const int MaxPublicationRooms = 256;
+    private const int MaxPublicationsPerRoom = 16;
     private long _sequence;
     private readonly TimeProvider _timeProvider;
 
@@ -229,6 +235,64 @@ public sealed class ListeningPartyService : IListeningPartyService
     }
 
     public async Task<ListeningPartyEvent> PublishAsync(ListeningPartyEvent partyEvent, CancellationToken cancellationToken = default)
+    {
+        var room = ((partyEvent.PodId ?? string.Empty).Trim(), (partyEvent.ChannelId ?? string.Empty).Trim());
+        SemaphoreSlim gate;
+        lock (_publicationLock)
+        {
+            if (_publications.TryGetValue(room, out var queue))
+            {
+                if (queue.Reservations >= MaxPublicationsPerRoom)
+                {
+                    throw new ListeningPartyCapacityException();
+                }
+
+                gate = queue.Gate;
+                _publications[room] = (gate, queue.Reservations + 1);
+            }
+            else
+            {
+                if (_publications.Count >= MaxPublicationRooms)
+                {
+                    throw new ListeningPartyCapacityException();
+                }
+
+                gate = new SemaphoreSlim(1, 1);
+                _publications.Add(room, (gate, 1));
+            }
+        }
+
+        var acquired = false;
+        try
+        {
+            await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            acquired = true;
+            return await PublishCoreAsync(partyEvent, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (acquired)
+            {
+                gate.Release();
+            }
+
+            lock (_publicationLock)
+            {
+                var queue = _publications[room];
+                if (queue.Reservations == 1)
+                {
+                    _publications.Remove(room);
+                    gate.Dispose();
+                }
+                else
+                {
+                    _publications[room] = (gate, queue.Reservations - 1);
+                }
+            }
+        }
+    }
+
+    private async Task<ListeningPartyEvent> PublishCoreAsync(ListeningPartyEvent partyEvent, CancellationToken cancellationToken)
     {
         var normalized = Normalize(partyEvent);
         var key = StateKey(normalized.PodId, normalized.ChannelId);
@@ -438,5 +502,13 @@ public sealed class ListeningPartyService : IListeningPartyService
     private static byte[] Serialize<T>(T value)
     {
         return JsonSerializer.SerializeToUtf8Bytes(value, JsonOptions);
+    }
+}
+
+public sealed class ListeningPartyCapacityException : Exception
+{
+    public ListeningPartyCapacityException()
+        : base("Too many room updates are pending.")
+    {
     }
 }

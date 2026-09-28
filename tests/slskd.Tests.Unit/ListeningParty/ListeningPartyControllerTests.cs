@@ -14,6 +14,21 @@ using slskd.Tests.Unit.PodCore;
 public sealed class ListeningPartyControllerTests
 {
     [Fact]
+    public async Task Publish_WhenRoomIsAtCapacity_ReturnsRetryableLimit()
+    {
+        var service = new Mock<IListeningPartyService>();
+        service.Setup(instance => instance.PublishAsync(It.IsAny<ListeningPartyEvent>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ListeningPartyCapacityException());
+        var controller = PodControllerTestContext.AsAdministrator(new ListeningPartyController(
+            Mock.Of<IContentLocator>(), service.Object, Mock.Of<IStreamSessionLimiter>(), Mock.Of<IStreamTicketService>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()), Mock.Of<IPodService>()));
+        var result = Assert.IsType<ObjectResult>(await controller.Publish("pod-a", "room",
+            new ListeningPartyEvent { Action = "play", ContentId = "track" }, CancellationToken.None));
+        Assert.Equal(429, result.StatusCode);
+        Assert.Equal("Too many room updates are pending. Retry later.", result.Value);
+    }
+
+    [Fact]
     public async Task Publish_WhenServiceThrowsArgumentException_ReturnsStableError()
     {
         var service = new Mock<IListeningPartyService>();

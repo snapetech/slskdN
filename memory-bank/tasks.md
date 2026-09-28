@@ -5237,3 +5237,14 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [ ] Verify automatic transport recovery and actual browser follow behavior.
 - [ ] Establish authenticated cross-node room state application; metadata routed as pod messages does not by itself prove local room state/hub delivery.
 - [ ] Verify concurrent room publication ordering and elapsed radio ticket/capability renewal with useful fairness feedback.
+
+## Player publication and admission reliability — 2026-09-28
+
+- [x] Serialize complete room publication, bound room queues, and verify unrelated-room progress, cancellation, overload and failure cleanup.
+- [x] Explain fresh remote radio fairness limits before playback; preserve host permission priority, local playback and same-ticket admission.
+- [x] Verify elapsed local radio ticket expiry and successful manual reselection with actual HTTP and Chromium playback.
+- [ ] Explain the intermittent reverse-directory failure seen during the initial full runtime run; standalone and three repeated diagnostic runs passed. Retain logs on further full runs.
+- [ ] Implement authenticated cross-node room application. Source inspection finds a pod_message sender but no matching control dispatcher handler; bind sender authority before applying state and prevent republishing loops.
+- [ ] Complete remote ticket renewal, long host capability renewal and remaining player quality audit requirements.
+
+- [ ] Validate room existence and successful message storage before returning publication success. Retained radio fixture logs demonstrate rejected synthetic pod IDs while the local snapshot still publishes; transport evidence does not prove durable room delivery. See gotcha 0z1110.

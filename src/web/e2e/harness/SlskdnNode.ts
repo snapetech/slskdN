@@ -357,9 +357,10 @@ export class SlskdnNode {
     // Create isolated app directory
     if (!this.config.appDir) {
       if (process.env.SLSKDN_TEST_KEEP_ARTIFACTS === '1') {
-        const baseDir =
+        const baseDir = path.resolve(
           process.env.SLSKDN_TEST_ARTIFACTS_DIR ||
-          path.join(repoRoot, 'test-artifacts', 'e2e');
+          path.join(repoRoot, 'test-artifacts', 'e2e'),
+        );
         this.appDir = path.join(
           baseDir,
           `${this.config.nodeName}-${this.apiPort}`,

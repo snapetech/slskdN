@@ -304,3 +304,17 @@ Leaving a room or disconnecting releases its subscriptions. Repeated joins do
 not consume another slot. Each connection can subscribe to 16 rooms, and the
 service retains at most 4,096 subscriptions; a full registry rejects new joins
 until subscriptions are released. Idle subscriptions do not poll membership.
+
+### Radio admission and room update limits
+
+Remote radio checks current network fairness while acquiring a fresh ticket,
+after the host confirms permission. A fairness limit asks you to check sharing
+activity before retrying; waiting alone does not guarantee policy will allow
+playback. Ticket capacity and expired/unavailable snapshots have separate
+messages. Refresh listed radio when a snapshot is unavailable. Local radio
+playback does not consume an overlay admission.
+
+Room updates finish in order, including routing and listener delivery. If a
+room reports that updates are at capacity, retry later. Each room allows at
+most 16 active or waiting publications, and the service allows 256 active room
+queues. Other rooms can continue while one room is waiting on its network.
