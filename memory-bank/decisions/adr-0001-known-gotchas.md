@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1093. Use Transport Identity Semantics for Radio Host Limits
+
+**The Bug**: Radio reservations keyed the host with case-sensitive text while overlay routing matches usernames without case sensitivity. Two owners using host/HOST obtained concurrent reservations for the same physical link, bypassing the one-stream host bound. A negative regression reproduced both leases completing.
+
+**Prevention**: Normalize only the transport host portion of reservation keys and use case-insensitive peer call counters. Preserve case-sensitive owner/account keys and opaque capabilities. Verify mixed-case contention and subsequent release with separate owners.
+
 ### 0z1092. Read the Most Recently Stored DHT Replica
 
 **The Bug**: In-memory DHT puts appended changed values while single-value reads returned the first retained replica. A radio host's revoked announcement was stored successfully, but manual refresh still received the older streamable announcement until TTL expiry.
