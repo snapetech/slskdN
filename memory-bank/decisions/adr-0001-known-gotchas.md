@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1141. Detect Room End from Owned State Rather Than a Previous React Render
+
+**The Bug**: The new room owner used playerRef.followingParty.contentId to distinguish an empty room from an ended broadcast. While switching to an empty room, a previous render can still describe the old track. A delayed-snapshot regression reproduced clearing the newly followed room based on that unrelated stale content.
+
+**Prevention**: Compare the selected room's own previous snapshot before applying its empty snapshot. Keep ownership transitions synchronous in refs, and avoid consulting another render's global metadata to decide room lifecycle. Verify empty-room waiting and actual host Stop separately.
+
 ### 0z1140. Describe Waiting Follow State Without a Missing Host
 
 **The Bug**: The new player-owned follow state can represent a room waiting for its first broadcast. The subtitle interpolated a missing hostPeerId as Following undefined. A focused rendered-player regression reproduced the bad label.
