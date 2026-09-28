@@ -31623,6 +31623,8 @@ have different transport consequences. Completing a caller promptly does not
 require interrupting the active frame.
 
 **Prevention:** Check caller cancellation before committing a write, then use the
-connection shutdown token and existing write timeout to finish it. Keep canceled
-queue entries skippable. A real TLS regression holds post-send work, cancels its
+connection shutdown token and existing write timeout to finish it. A write timeout
+must remain a transport failure even when its caller was also canceled; distinguish
+pre-commit cancellation from active-write failure. Keep canceled queue entries
+skippable. A real TLS regression holds post-send work, cancels its
 caller and verifies that committed work remains owned until release.
