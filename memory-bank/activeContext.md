@@ -1,3 +1,19 @@
+## Post-tag Soulseek download fairness follow-up — 2026-09-28 22:21 UTC
+
+- The download-accounting implementation and release fragment are committed as `ce5245fec`; the new release-note frontmatter gotcha is `623b259d8`.
+- Focused accounting and Application lifecycle tests pass 21/21; `./bin/lint` passes. Release-note preview now validates the new fairness fragment.
+- `.328` release artifacts remain verified; its PPA and Docker omnibus-tester publication jobs are still active. The .328 Nix metadata commit is on `origin/main` and must be merged before pushing.
+
+Next Steps: reconcile the metadata commit and push all current commits; wait for `.328` publishing to finish, then run the full gate and prepare a separate stable follow-up if all checks pass.
+
+## Post-tag Soulseek download fairness — 2026-09-28 22:12 UTC
+
+- `.328` is published, and `scripts/verify-release-artifacts.sh` passed for all six archives, checksums, Linux payload and embedded version. Package-channel jobs for Docker/COPR/PPA continue after the release entry.
+- New Soulseek-download accounting work landed after the immutable `.328` tag: active payload is counted above the resume offset, terminal attempts are coalesced for persistence, and shutdown drains pending commits. The dedicated accounting and application lifecycle tests pass 20/20; a new fixed release-note fragment is present.
+- This work cannot change `.328`. Commit and push it, then assess a separate stable follow-up after `.328` package publishing completes.
+
+Next Steps: commit/push all current download-accounting edits; monitor `.328` packaging; prepare a separately versioned release if the finalized change merits it.
+
 ## Final tag-gate count refresh — 2026-09-28 21:44 UTC
 
 - The guarded tag helper validated target, branch sync and all five release-note fragments, then stopped before tagging because new fairness documentation changed the active red-team candidate count to 11,449. Refreshed the durable backlog count; rerun its focused check before pushing. No `.328` tag was created.

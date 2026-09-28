@@ -15069,3 +15069,25 @@ stopped before tagging on a stale red-team candidate count (11,446 expected
 11,449 after the fairness docs landed). Ran the prescribed scanner and refreshed
 the documentation count; no release tag was created. Rerun the focused backlog
 check and guarded helper after pushing this correction.
+
+## Post-tag Soulseek download accounting validation — 2026-09-28 22:21 UTC
+
+Committed the download-accounting implementation, lifecycle wiring, tests,
+changelog and release fragment as `ce5245fec`. The latest focused run passed
+21/21 and `./bin/lint` passed. Release-note preview rejected a missing opening
+YAML delimiter; recorded this format gotcha in `adr-0001` as commit
+`623b259d8` and corrected the fragment before retrying preview. The `.328`
+release entry and all archives remain verified; its PPA and Docker omnibus
+tester jobs are still active. The origin-only stable metadata commit must be
+reconciled before pushing.
+
+## Post-tag Soulseek download fairness accounting — 2026-09-28 22:12 UTC
+
+A follow-up in the shared worktree adds active Soulseek download accounting.
+It subtracts the transfer's start offset, tracks monotonic cumulative bytes per
+token, exposes pending bytes to fairness reads, coalesces nearby terminal writes,
+and drains pending accounting commits during application shutdown. Added tests
+cover offset exclusion, duplicate/regressive progress, terminal remainder,
+persistence failure, batching, and serialized totals reads; Application lifecycle
+coverage also passes (20 focused tests total). The new release fragment and
+changelog remain on Unreleased because the `.328` tag is already immutable.
