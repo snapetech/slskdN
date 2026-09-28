@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1145. Select Touch Layout by Pointer Capability as Well as Width
+
+**The Bug**: The touch layout only activated below 720 pixels. A real browser context with hasTouch=true at tablet width reproduced smaller controls despite a coarse primary pointer. Resizing a desktop browser alone did not cover that input mode.
+
+**Prevention**: Apply touch layout for narrow screens or a coarse primary pointer, and reserve enough expanded-deck height in either case. Verify matchMedia(pointer: coarse), rendered control bounds and visible playback through a touch-enabled context independently of viewport width. Browser emulation remains separate from physical-device evidence.
+
 ### 0z1144. Return to the Main Deck After Closing Player Tools
 
 **The Bug**: After using the expanded tool controls, closing Tools retained the drawer's lower scroll offset. The retained mobile screenshot hid the track header, and focus stayed on the former closing location rather than returning to playback.
