@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1127. Make Routed Room Controls Touchable and Expose Network Opt-In State
+
+**The Bug**: The new routed mobile workflow measured a room control at 32.25 pixels wide instead of the 44-pixel target. Compact directory and mesh-streaming buttons also hid their selected state from assistive controls; a negative regression found no pressed-state attribute.
+
+**Prevention**: Size room buttons for touch at narrow widths, keep controls inside the viewport, and use Semantic UI toggle semantics for directory and streaming opt-in state. Verify streaming stays disabled unless listing is enabled. Check the actual rendered controls and viewport screenshots; desktop mini styling is insufficient mobile evidence.
+
 ### 0z1126. Observe All SignalR Transports During Recovery Tests
 
 **The Gotcha**: A runtime interruption blocked only WebSockets. SignalR recovered through a fallback transport, so the room returned live but a WebSocket-only JoinParty counter incorrectly failed. The setup also could not prove a snapshot was published while every transport was unavailable.
