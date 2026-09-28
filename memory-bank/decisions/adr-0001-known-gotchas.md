@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1202. Use One Authentication Identity Per Mesh E2E Request
+
+**What went wrong:** A two-node test sent both a node's session bearer token and
+an API key intended to represent its remote peer. The bearer principal remained
+the authenticated identity, so the join request idempotently re-added the local
+owner instead of creating the remote member needed by the routing scenario.
+
+**Why:** The test mixed two authentication principals while trying to model one
+remote node.
+
+**Prevention:** Send only the API key for the peer being simulated when a test
+needs to act as that peer. Verify the resulting member record before exercising
+cross-node routing.
+
 ### 0z1200. Retire Remote Room State Only After Local Persistence Succeeds
 
 **What went wrong:** A local room publication removed the currently received
