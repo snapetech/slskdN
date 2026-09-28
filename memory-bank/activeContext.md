@@ -9,13 +9,26 @@
   full Web suite (1,094), targeted two-node radio renewal Playwright test,
   player-hook tests, browser-spec TypeScript, Web/Release builds, Web and
   repository lint, role/CSRF/anonymous/route inventory, bundle and output checks.
-- Release fragment category was corrected. Next: validate the exact release
-  range, verify GitHub fork target and local-identity scan, commit the
-  implementation batch and push; no tag or deployment.
+- Exact release-range preview, GitHub fork target, local-identity scan and
+  whitespace checks pass. Nine commits are ahead of `origin/main`; push this
+  verified batch to `snapetech/slskdN/main`. No tag or deployment.
 - After publication: run a 15-minute live host/listener soak, then continue
   automatic cleanup and restart/multi-instance semantics, DHT index contention,
   sustained throughput, format/browser/device and accessibility validation.
   The overall PlayerBar goal remains active.
+
+## Update 2026-09-28 18:20 UTC
+
+- Current task: assess the stable `.327` release candidate, including serialized
+  audio-graph intent and five-minute listed-host renewal with browser-session
+  fencing. Focused Listening Party unit tests (62), host hook tests (30), and
+  the cross-node renewal/fencing Playwright case pass. Repository lint, route
+  inventory and release-facing identity checks pass.
+- Next: finish the exact-range release preview and guarded stable-release gate,
+  then verify published artifacts. No release tag has been created yet.
+- Open follow-up work remains: the 15-minute live host/listener soak, room-state
+  cleanup after document close/lease expiry, and host media-error synchronization.
+  The broader player inspection also remains active.
 
 ## Update 2026-09-28 17:16 UTC
 

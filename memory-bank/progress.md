@@ -1,3 +1,18 @@
+## Update 2026-09-28 18:20 UTC — Listed host renewal release candidate
+
+The release candidate renews active host leases and listed-radio tickets every
+five minutes, fences updates/renewal/Stop to the latest explicit browser session,
+and serializes AudioContext state changes against the latest Play/Pause intent.
+The release note and ADR are present; route inventory is regenerated.
+
+Focused validation passed: Listening Party unit tests 62/62, host browser-hook
+tests 30/30, and the real two-node renewal/fencing Playwright test 1/1. Repository
+lint, API route inventory, release-facing identity checks and `git diff --check`
+pass. Full solution tests, the guarded release gate, exact-range release preview
+and published-artifact verification remain pending. The 15-minute live soak,
+document-close/lease-expiry cleanup and host media-error synchronization remain
+separate open work.
+
 ## Update 2026-09-28 17:10:00Z — MusicBrainz issue #340 released
 
 Reproduced the reported failure with a numeric track `position`: the old client
@@ -14878,5 +14893,7 @@ process restart/multi-instance ownership, DHT index contention, sustained radio
 throughput and the remaining device/accessibility audit remain open. The build
 reports existing .NET 10 support warnings for build-task packages and existing
 Vite native-config/large-chunk warnings. No release tag or deployment was
-created. Next: validate the exact release range, verify the fork target and
-identity checks, then commit and push the implementation batch.
+created. The exact release-range preview passes; fork-target, local-identity
+and whitespace checks pass. The implementation and release-note commits are
+ready to push to the verified fork. Continue with the 15-minute wall-clock
+soak and the listed follow-up audit items.
