@@ -691,6 +691,12 @@ appropriate typed assertion such as `Assert.IsType<T>(value)`.
 
 **Prevention**: Separate methods with a blank line and inspect build/test warnings as well as lint exit codes. Remove newly introduced style warnings before full validation; an error-only formatting check does not prove warning-free source.
 
+### 0z1121. Qualify File I/O in Transfer Fixtures
+
+**The Bug**: Tests importing `slskd.Files` resolved unqualified `File` to the project namespace type, which has no `WriteAllBytesAsync` or `Delete` methods. The focused upload build failed before the regression could run.
+
+**Prevention**: In transfer fixtures that import `slskd.Files`, use `System.IO.File` for filesystem operations so the fixture targets the BCL API explicitly.
+
 ### 0z1120. Record Soulseek Upload Bytes for Radio Fairness
 
 **The Bug**: The radio fairness guard compares overlay uploads against Soulseek uploads, but production code never credited Soulseek upload bytes. Once overlay traffic accumulated, the ratio could remain infinite (or below the minimum upload/download ratio) indefinitely, so actual Soulseek sharing could not restore later radio admissions.
