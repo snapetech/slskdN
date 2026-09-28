@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1086. Verify Both Directions of Overlay Fairness Accounting
+
+**The Gotcha**: Radio playback records overlay download bytes, but a source search found no production AddOverlayUploadAsync call sites. Serving audio therefore cannot be assumed to earn fairness credit, and a successful first ticket does not prove repeated playback admission or renewal.
+
+**Prevention**: Validate reciprocal host/listener traffic totals and repeated admissions before claiming fairness lifecycle completion. Keep the accounting repair and expiry/renewal tests on the player audit; do not disable the admission policy to make tests pass.
+
 ### 0z1085. Admit Radio Playback Once Per Short-Lived Ticket
 
 **The Bug**: The default fairness guard permits the first download at zero traffic, but the received audio lowers upload/download ratio below its minimum. Evaluating the same admission policy on every native range then rejects seeks with 429 even though the ticket's playback was already admitted.
