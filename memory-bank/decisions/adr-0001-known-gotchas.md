@@ -46,6 +46,19 @@ type to `HTMLAudioElement`, even when the selector is `audio`.
 evaluation boundary and run the explicit browser-spec type check on the whole
 modified file with the supported ES library target.
 
+### 0z1203. Require A JSON Status Before Parsing An API Snapshot
+
+**What went wrong:** The cross-node room test used `APIResponse.ok()` before
+calling `json()`. The endpoint returned 204, which is successful by the
+2xx check but has no body, so JSON parsing threw `Unexpected end of JSON input`.
+
+**Why:** HTTP success status and JSON response presence are separate response
+contracts.
+
+**Prevention:** When a test expects a JSON snapshot, assert the exact 200
+status before parsing. Use 204 only for assertions that deliberately expect an
+empty response body.
+
 ### 0z1199. Assert Mesh Reply Payloads Against Their Wire Contract
 
 **What went wrong:** The new `ApplyListenAlong` service returned success, but
