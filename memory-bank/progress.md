@@ -15037,3 +15037,9 @@ tag can run.
 - Connected `UploadService` to the transfer reporter's `actualBytes`, emitted after a successful payload socket write. Each attempt persists one aggregate from `finally`, including partial writes on failure; it does not count queue or file-read bytes.
 - Accounting persistence failures are logged without changing upload state. Added lifecycle regressions for completed and failed partial uploads, zero-byte callbacks, and failed accounting persistence; focused suite passes all 5 tests.
 - Real sustained/repeated admission during an active Soulseek upload remains open because the LAN-only two-node radio harness does not exercise Soulseek data transfer.
+
+## `.327` PPA publication completed — 2026-09-28 21:31 UTC
+
+GitHub workflow `36470924868` completed successfully after Launchpad published the
+`.327` package. This clears the package-channel overlap; proceed with the guarded
+`.328` tag helper on the fully pushed and previously gated candidate.

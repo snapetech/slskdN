@@ -1,3 +1,11 @@
+## `.327` publication complete — 2026-09-28 21:31 UTC
+
+- Hosted run `36470924868` completed successfully, including Launchpad PPA publication. The overlapping-package wait is clear.
+- The pushed `.328` candidate has three validated release-note fragments, a passing local full release gate, clean identity and packaging checks, and no unpushed source changes.
+- The user authorized stable tag `build-main-2026092820-slskdn.328`; run the guarded helper now, then verify published artifacts and stable metadata.
+
+Next Steps: create the `.328` tag through `scripts/create-release-tag.sh`, monitor its build and publish workflow, and verify release assets.
+
 ## Stable release gate passed — 2026-09-28 21:07 UTC
 
 - The complete release gate passes on the pushed `.328` candidate: packaging metadata, remediation and active-bughunt baselines, frontend tests/build/bundle/subpath smoke, 5,337 backend unit tests, 74 backend smoke tests, and release smoke (104 unit plus 40 integration tests). Existing MSBuild target-framework compatibility warnings remain; there are no gate failures.
