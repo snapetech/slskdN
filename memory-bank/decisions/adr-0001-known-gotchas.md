@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1060. Offer Recovery After Listen-Along Startup Failure
+
+**The Bug**: Listen-along's initial hub start failure left the panel offline with no retry control. SignalR automatic reconnect does not cover initial startup failure, and exhausted reconnect or failed room rejoin also left no recovery action.
+
+**Files Affected**:
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+- `src/web/src/components/Player/PodListenAlongPanel.test.jsx`
+
+**Prevention**: Provide an explicit connection retry with visible pending/failure state in compact and full panels. Refresh the host snapshot after joining, retain snapshot version guards, and prevent disposed startup/reconnect callbacks from joining an old room.
+
 ### 0z1059. Gate Push On Successful Release-Fragment Validation
 
 **The Bug**: A player fragment added contributors to audience, but the release schema accepts only users and operators. A multiline shell command continued to push after preview failed because it did not stop on errors.
