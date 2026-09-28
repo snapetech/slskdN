@@ -427,7 +427,8 @@ test.describe('listed radio between isolated nodes', () => {
       for (const target of [page, listenerPage]) {
         await target.addInitScript(() => localStorage.setItem('slskdn.player.collapsed', 'false'));
       }
-      await Promise.all([login(page, host.nodeCfg), login(listenerPage, listener.nodeCfg)]);
+      await login(page, host.nodeCfg);
+      await login(listenerPage, listener.nodeCfg);
       await page.goto(roomUrl);
       await page.getByTestId('player-open-file-browser').click();
       const modal = page.getByTestId('player-file-browser-modal');
@@ -444,13 +445,15 @@ test.describe('listed radio between isolated nodes', () => {
       await page.getByRole('button', { name: 'Allow mesh streaming for broadcast', exact: true }).click();
       await expect.poll(async () => (await snapshot())?.allowMeshStreaming).toBe(true);
 
-      const remoteAnnouncement = async () => {
-        const response = await request.get(`${listener.apiUrl}/api/v0/listening-party?refresh=true`, { headers: listenerHeaders });
+      const findAnnouncement = async (apiUrl: string, headers: Record<string, string>) => {
+        const response = await request.get(`${apiUrl}/api/v0/listening-party?refresh=true`, { headers });
         expect(response.ok()).toBe(true);
         return (await response.json()).find((party: { partyId: string }) => party.partyId === partyId) ?? null;
       };
-      await expect.poll(remoteAnnouncement, { timeout: 60_000, intervals: [1_000, 5_000, 10_000] })
-        .toMatchObject({ partyId, streamTicket: expect.any(String), streamPath: expect.any(String) });
+      const hostAnnouncement = () => findAnnouncement(host.apiUrl, hostHeaders);
+      const remoteAnnouncement = () => findAnnouncement(listener.apiUrl, listenerHeaders);
+      await expect.poll(async () => Boolean((await hostAnnouncement())?.streamTicket), { timeout: 30_000 }).toBe(true);
+      await expect.poll(async () => Boolean((await remoteAnnouncement())?.streamTicket), { timeout: 60_000, intervals: [1_000, 5_000, 10_000] }).toBe(true);
       const initialAnnouncement = await remoteAnnouncement();
       expect(initialAnnouncement?.streamTicket).toBeTruthy();
       const initialStreamPath = initialAnnouncement.streamPath;
