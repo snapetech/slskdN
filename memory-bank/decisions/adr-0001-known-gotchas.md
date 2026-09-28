@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1054. Keep Parameterized Regression Assertions Unconditional
+
+**The Bug**: Adding success/failure playlist-fetch cases put assertions inside branches. The Web lint gate rejected the test under vitest/no-conditional-expect.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+
+**Prevention**: Branch only to deliver the simulated response; assert every case unconditionally using case-specific expected values. Complete lint before building or running regressions.
+
 ### 0z1053. Register Media Session Stop Alongside Transport Actions
 
 **The Bug**: Browser media metadata, seeking, Play/Pause and queue navigation worked, but the player never registered a Stop handler. A real-browser regression reached Stop and found no action callback.
