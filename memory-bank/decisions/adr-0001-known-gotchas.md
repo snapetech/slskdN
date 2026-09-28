@@ -128,6 +128,8 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 ### 0z1065. Do Not Treat Relative Radio Paths as Remote Routing
 
+**Status — 2026-09-28**: The scoped route is implemented with local tickets, explicit overlay transport identity, current host permission/capability checks and bounded paced reads (ADR-0014). Controlled gateway/range tests and real loopback TLS delivery/revocation pass. Sustained and full two-backend browser workflows remain on the player audit; controlled browser HTTP playback alone is still insufficient proof.
+
 **Open Bug**: Directory announcements can come from remote DHT hosts, but their streamPath is relative. The radio endpoint checks in-process party state and locally signed tickets; a remote announcement does not by itself establish a playable route through the browsing node. Controlled browser-stream tests do not cover this host boundary.
 
 **Files Affected**:
