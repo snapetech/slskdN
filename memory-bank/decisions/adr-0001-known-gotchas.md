@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1206. Match Mesh JSON Casing To The Safe Payload Parser
+
+**What went wrong:** Listen-along routing serialized `PodMessage` with the
+web camelCase naming policy, while the mesh safe payload parser uses
+case-sensitive `System.Text.Json` defaults. The receiver decoded empty
+properties and rejected valid room state because its body appeared empty.
+
+**Why:** The sender and receiver used different JSON naming contracts across
+the mesh payload boundary.
+
+**Prevention:** Use the default CLR property-name contract for payloads parsed
+by `ServicePayloadParser`, or change both ends through one explicit shared
+contract. Cover the exact serialized request with a `ServicePayloadParser`
+round-trip assertion.
+
 ### 0z1205. Use The Authenticated Identity For Pod Join Assertions
 
 **What went wrong:** The cross-node listen-along E2E test supplied `nodeB` in
