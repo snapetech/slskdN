@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1046. Normalize Playback Metadata At Every Queue Entry
+
+**The Bug**: Real Files -> Play Next playback advanced to a filename-only library item, but the player displayed Nothing playing. Direct Play normalized fileName into title and supplied artist/artwork fields; queue insertion retained the raw API shape.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Reuse the existing playback metadata normalization for direct Play, Play Next, bulk queue additions and session restoration. Preserve queue-entry identity for moves and duplicate semantics. Test filename-only queued items in the actual browser transport, not only fully populated fixtures.
+
 ### 0z1045. Abort And Coalesce Decoded Stream Replacement
 
 **The Bug**: Real AIFF browser playback exposed repeated 429 responses during keyboard seek bursts. Pausing an audio element and clearing React source state did not abort its existing media fetch, so the previous FFmpeg request retained the per-user decode slot while replacement requests started.
