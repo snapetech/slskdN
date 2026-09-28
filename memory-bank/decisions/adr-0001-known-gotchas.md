@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1104. Order Join Completion Against Access Revocation
+
+**The Bug**: A pending initial or reconnect join could finish after access-revoked notification and clear the revocation latch, mark the room live and refresh stale metadata. Both orderings failed focused Web regressions.
+
+**Prevention**: Capture a revocation generation before each join and accept completion only if no newer revocation arrived. Keep access-denied feedback during transport reconnect or closure; reset it only after an authorized join with a current generation or a new explicit connection attempt.
+
 ### 0z1103. Return No Value from SignalR Notification Collectors
 
 **The Bug**: Runtime fixture handlers used expression callbacks returning Array.push's numeric result. SignalR treated that as a client result even though partyState was a one-way notification, producing repeated unexpected-result errors.
