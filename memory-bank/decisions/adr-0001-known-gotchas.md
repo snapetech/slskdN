@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1169. Separate Cold Certificate Preparation From Writer Protocol Deadlines
+
+**The Bug**: The full gate canceled a writer-control scenario at its ten-second handshake deadline before any writer assertions. The timer started before cold server/client RSA certificate generation and bootstrap; all four modes passed in isolation. The exact scheduling contribution was not measured, so the failure is not proof of a writer defect or proof that certificate generation alone caused it.
+
+**Prevention**: Prepare and own the real certificates before starting the protocol deadline. Keep the same ten-second handshake/control/writer deadline and assertions; do not add sleeps, retries or a wider timeout. Re-run the complete gate after the preparation boundary changes, and investigate any remaining protocol failure separately.
+
 ### 0z1168. Order SQLite Membership Events Beyond Wall-Clock Resolution
 
 **The Bug**: The full backend gate failed ordinary leave/rejoin. SQLite keys membership history by pod, peer and Unix milliseconds, so rapid actions can share a key. Two frozen/backward-clock negative regressions reproduced rejected rejoin and a ban failure with a unique-constraint exception. Wall-clock milliseconds also cannot preserve event order after rollback.
