@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1133. Empty MonoTorrent Bootstrap Lists Select Public Defaults
+
+**The Bug**: Inspection of the installed MonoTorrent assembly proved InitialiseTask replaces an empty router list with its three public defaults. LanOnly passed exactly that list, so warning text and configuration did not prevent public bootstrap, discovery or announcements. Cached bootstrap nodes also make dummy-router workarounds unreliable.
+
+**Prevention**: Do not construct or start the public DHT engine in LAN-only mode. Preserve shared overlay/QUIC UDP transport independently, skip saved public node tables, and guard announce/discovery callbacks and entry points. Verify actual local transport remains available with zero DHT nodes and no public bootstrap activity.
+
 ### 0z1132. Verify LAN-Only DHT Behavior Beyond Its Startup Warning
 
 **The Bug**: Retained radio-node logs claimed LanOnly=true disabled public bootstrap, then reported dozens of DHT nodes and public peer discovery. The service starts the engine with an empty router array, but the installed dependency's actual behavior must be established before treating that as isolation.
