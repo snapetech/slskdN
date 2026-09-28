@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1129. Assert Parameterized Outcomes Without Conditional Expectations
+
+**The Bug**: A paused-position regression put different expect calls inside an if statement. Focused tests reproduced the intended behavior, but Web lint correctly rejected conditional expectations.
+
+**Prevention**: Compute the expected result as data and assert it unconditionally for every parameterized row. Preserve both alignment and no-reload cases without disabling the lint rule. Run lint before treating focused regression evidence as a cleared gate.
+
 ### 0z1128. Align Pause Events Without the Playing Drift Allowance
 
 **The Bug**: The real browser follower paused near six seconds when the host requested eight. Pause skipped position alignment whenever the difference was below two seconds, making behavior depend on event delivery timing. A negative regression from 7.5 to 8 seconds also skipped the requested paused selection.
