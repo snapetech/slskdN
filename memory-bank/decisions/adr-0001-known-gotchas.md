@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1161. Preserve Ownership-Loss Feedback After Publication Cancellation
+
+**The Bug**: Negative regressions reproduced a generic retryable publication error replacing specific access-revocation feedback. The panel omitted HTTP 403 handling, and a canceled settings request overwrote the persistent owner's revocation message after that owner released its session.
+
+**Prevention**: Map HTTP 403 consistently with the persistent writer's rejoin feedback. Ignore deliberate DOM/HTTP cancellation in the panel's request callback so the owner's authoritative release reason remains visible. Keep ordinary publication failures explicit and retryable; test both AbortError and ERR_CANCELED with a real shared-room revocation callback.
+
 ### 0z1160. Place the Conversation View Across the Mobile Grid
 
 **The Bug**: A real 320-pixel room-control regression measured Stop ending at 382 pixels. The conversation view auto-placed into the 44-pixel rail column, and its implicit inner grid column expanded to 399 pixels. Room playback also inserted a fourth child into a three-row layout intended for tabs, messages and composer.
