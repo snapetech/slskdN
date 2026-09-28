@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1193. Use A Supported Release-Note Category Token
+
+**What went wrong:** A release fragment used `category: bugfix`, but the
+release-note validator accepts `fixed` rather than `bugfix`.
+
+**Why:** The release contract's category vocabulary is a fixed set and does not
+follow common prose labels.
+
+**Prevention:** Validate the exact proposed base/head range with
+`python3 scripts/release_notes.py preview` before committing or pushing, and
+use one of the category tokens listed by the validator.
+
 ### 0z1192. Connect Isolated Nodes Before Cross-Node DHT Assertions
 
 **What went wrong:** A multi-node radio test started both nodes with
