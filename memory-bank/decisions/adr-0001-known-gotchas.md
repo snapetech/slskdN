@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1081. Bootstrap Mesh DHT from Connected Transport Neighbors
+
+**The Bug**: Connected overlay peers were mirrored into the circuit inventory but never seeded the mesh DHT routing table. Radio directory lookup therefore stayed local, and remote ticket acquisition failed despite a live transport. FIND_NODE also omitted successfully contacted seed nodes from its result when they returned no closer peers.
+
+**Prevention**: On demand, bootstrap an empty routing table through bounded requests to existing outbound neighbors. Learn the responder's real node ID from its response, retain contacted seeds in closest-node results, and verify radio discovery through both real backends without intercepting directory responses. Do not invent node IDs from transport usernames or start aggressive background scans.
+
 ### 0z1080. Use Browser Helpers with Their Declared Argument Types
 
 **The Bug**: The new two-node radio browser regression passed an APIRequestContext into getAuthToken, which accepts a logged-in Page. The test failed before exercising transport. Its feature YAML also used a literal escaped newline instead of a real line break.
