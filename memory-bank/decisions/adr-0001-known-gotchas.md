@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1094. Reuse Established Inbound Mesh Service Links
+
+**The Bug**: The production service client selected only outbound links even though both overlay handlers support calls and correlated replies in either direction. A real TLS reverse call through the client returned unavailable while direct writes on the same inbound connection succeeded.
+
+**Prevention**: Select established, handshaken, connected links advertising mesh service support in either direction, preferring outbound when both exist. Keep username and feature checks, call budgets and correlation scoped to the selected connection. Bootstrap only through existing links and create no additional connections.
+
 ### 0z1093. Use Transport Identity Semantics for Radio Host Limits
 
 **The Bug**: Radio reservations keyed the host with case-sensitive text while overlay routing matches usernames without case sensitivity. Two owners using host/HOST obtained concurrent reservations for the same physical link, bypassing the one-stream host bound. A negative regression reproduced both leases completing.
