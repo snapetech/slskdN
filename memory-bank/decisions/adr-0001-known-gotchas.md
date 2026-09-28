@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1062. Locate Playback Errors Through Rendered Text
+
+**The Bug**: The radio runtime regression guessed a player-playback-error CSS class. PlayerBar renders its failure as a Semantic UI Message without that class, so the selector could not observe the actual error.
+
+**Files Affected**:
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Inspect the rendered component before selecting failures. Use its visible error text or an existing accessible marker instead of inventing a CSS selector.
+
 ### 0z1061. Verify Reachable Entry Points for Listed Radio
 
 **The Bug**: Listed-radio playback was implemented in the full listen-along panel, but the only application placement rendered compact mode. No reachable player control opened the directory.
