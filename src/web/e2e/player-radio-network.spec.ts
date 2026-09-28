@@ -34,8 +34,7 @@ function trafficTotals(appDir: string): number[] {
 }
 
 // A long generated WAV keeps the real paced mesh response active during seeks.
-function radioTone(seconds = 180): Buffer {
-  const rate = 22050;
+function radioTone(seconds = 180, rate = 22050): Buffer {
   const samples = rate * seconds;
   const wave = Buffer.alloc(44 + samples * 2);
   wave.write('RIFF', 0);
@@ -368,6 +367,143 @@ test.describe('listed radio between isolated nodes', () => {
     const listenerParties = await listenerDirectory.json();
     expect(listenerParties.map((party: { partyId: string }) => party.partyId)).toContain(replacement.partyId);
     expect(listenerParties.map((party: { partyId: string }) => party.partyId)).not.toContain(first.partyId);
+  });
+
+  test('keeps a live host and listener current through a 15-minute capability soak @player-radio-soak', async ({ browser, page, request }, testInfo) => {
+    test.setTimeout(20 * 60 * 1000);
+    test.skip(process.env.RUN_PLAYER_RADIO_SOAK !== '1', 'Run with pnpm test:player:radio-soak.');
+
+    const host = harness.getNode('A');
+    const listener = harness.getNode('B');
+    const title = 'Host renewal soak';
+    await fs.writeFile(path.join(host.getAppDir(), 'downloads', `${title}.wav`), radioTone(17 * 60, 8000));
+
+    const [hostLogin, listenerLogin] = await Promise.all([
+      request.post(`${host.apiUrl}/api/v0/session`, { data: { username: host.nodeCfg.username, password: host.nodeCfg.password } }),
+      request.post(`${listener.apiUrl}/api/v0/session`, { data: { username: listener.nodeCfg.username, password: listener.nodeCfg.password } }),
+    ]);
+    expect(hostLogin.ok()).toBe(true);
+    expect(listenerLogin.ok()).toBe(true);
+    const hostHeaders = { Authorization: `Bearer ${(await hostLogin.json()).token}` };
+    const listenerHeaders = { Authorization: `Bearer ${(await listenerLogin.json()).token}` };
+    const connection = await request.post(`${listener.apiUrl}/api/v0/overlay/connect`, {
+      headers: listenerHeaders,
+      data: { address: '127.0.0.1', port: host.getOverlayPort() },
+    });
+    expect(await connection.text()).toContain('"connected":true');
+    for (const [node, headers] of [[host, hostHeaders], [listener, listenerHeaders]] as const) {
+      const status = await request.get(`${node.apiUrl}/api/v0/dht/status`, { headers });
+      expect(status.ok()).toBe(true);
+      expect(await status.json()).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0, activeMeshConnections: 1 });
+    }
+
+    const libraryUrl = `${host.apiUrl}/api/v0/library/items/browser?query=Host%20renewal%20soak&kinds=Audio`;
+    await expect.poll(async () => {
+      const response = await request.get(libraryUrl, { headers: hostHeaders });
+      return response.ok() && (await response.json()).files.some((file: { fileName: string }) => file.fileName === `${title}.wav`);
+    }, { timeout: 30_000 }).toBe(true);
+    const library = await request.get(libraryUrl, { headers: hostHeaders });
+    expect(library.ok()).toBe(true);
+    const item = (await library.json()).files.find((file: { fileName: string }) => file.fileName === `${title}.wav`);
+    expect(item?.contentId).toBeTruthy();
+    const podId = await createRadioRoom(request, host.apiUrl, hostHeaders, 'Host renewal soak room');
+    const roomUrl = `${host.nodeCfg.baseUrl}/pods/${podId}/channels/music`;
+    const stateUrl = `${host.apiUrl}/api/v0/listening-party/${podId}/music`;
+    const snapshot = async () => {
+      const response = await request.get(stateUrl, { headers: hostHeaders });
+      expect(response.ok() || response.status() === 204).toBe(true);
+      return response.status() === 204 ? null : response.json();
+    };
+    const renewalResponses: Array<{ status: number; at: number }> = [];
+    page.on('response', (response) => {
+      if (response.request().method() === 'POST' && response.url().includes(`/listening-party/${podId}/music/renew`)) {
+        renewalResponses.push({ status: response.status(), at: Date.now() });
+      }
+    });
+
+    const listenerContext = await browser.newContext({ serviceWorkers: 'block' });
+    const listenerPage = await listenerContext.newPage();
+    try {
+      for (const target of [page, listenerPage]) {
+        await target.addInitScript(() => localStorage.setItem('slskdn.player.collapsed', 'false'));
+      }
+      await Promise.all([login(page, host.nodeCfg), login(listenerPage, listener.nodeCfg)]);
+      await page.goto(roomUrl);
+      await page.getByTestId('player-open-file-browser').click();
+      const modal = page.getByTestId('player-file-browser-modal');
+      await modal.getByTestId('player-file-browser-search').locator('input').fill(title);
+      await modal.getByRole('button', { name: `Play ${title}.wav`, exact: true }).click();
+      await expect.poll(() => audioElements(page).evaluateAll((elements) =>
+        (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
+
+      await page.getByRole('button', { name: 'List room broadcast in mesh directory', exact: true }).click();
+      await page.getByRole('button', { name: 'Broadcast current track to room', exact: true }).click();
+      await expect.poll(async () => (await snapshot())?.partyId).toBeTruthy();
+      const started = await snapshot();
+      const partyId = started.partyId;
+      await page.getByRole('button', { name: 'Allow mesh streaming for broadcast', exact: true }).click();
+      await expect.poll(async () => (await snapshot())?.allowMeshStreaming).toBe(true);
+
+      const remoteAnnouncement = async () => {
+        const response = await request.get(`${listener.apiUrl}/api/v0/listening-party?refresh=true`, { headers: listenerHeaders });
+        expect(response.ok()).toBe(true);
+        return (await response.json()).find((party: { partyId: string }) => party.partyId === partyId) ?? null;
+      };
+      await expect.poll(remoteAnnouncement, { timeout: 60_000, intervals: [1_000, 5_000, 10_000] })
+        .toMatchObject({ partyId, streamTicket: expect.any(String), streamPath: expect.any(String) });
+      const initialAnnouncement = await remoteAnnouncement();
+      expect(initialAnnouncement?.streamTicket).toBeTruthy();
+      const initialStreamPath = initialAnnouncement.streamPath;
+
+      await listenerPage.getByRole('button', { name: 'Show player tools', exact: true }).click();
+      await listenerPage.getByTestId('player-open-listed-radio').click();
+      await listenerPage.getByRole('button', { name: `Play ${started.title} from listed radio`, exact: true }).click();
+      await expect.poll(() => audioElements(listenerPage).evaluateAll((elements) =>
+        (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
+
+      const soakStartedAt = Date.now();
+      let previousHostTime = await audioElements(page).evaluateAll((elements) =>
+        Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)));
+      let previousListenerTime = await audioElements(listenerPage).evaluateAll((elements) =>
+        Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)));
+      const observedTickets = new Set([initialAnnouncement.streamTicket]);
+      while (Date.now() - soakStartedAt < 15 * 60 * 1000) {
+        await listenerPage.waitForTimeout(Math.min(60_000, 15 * 60 * 1000 - (Date.now() - soakStartedAt)));
+        const elapsed = Date.now() - soakStartedAt;
+        const [hostTime, listenerTime, announcement] = await Promise.all([
+          audioElements(page).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime))),
+          audioElements(listenerPage).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime))),
+          remoteAnnouncement(),
+        ]);
+        expect(hostTime).toBeGreaterThan(previousHostTime + 30);
+        expect(listenerTime).toBeGreaterThan(previousListenerTime + 30);
+        expect(announcement?.partyId).toBe(partyId);
+        if (announcement?.streamTicket) observedTickets.add(announcement.streamTicket);
+        expect(renewalResponses.every((renewal) => renewal.status === 204)).toBe(true);
+        if (elapsed >= 6 * 60 * 1000) expect(renewalResponses.length).toBeGreaterThanOrEqual(1);
+        if (elapsed >= 11 * 60 * 1000) expect(renewalResponses.length).toBeGreaterThanOrEqual(2);
+        previousHostTime = hostTime;
+        previousListenerTime = listenerTime;
+        console.log(`Player radio soak ${Math.floor(elapsed / 60_000)}m: renewals=${renewalResponses.length}, tickets=${observedTickets.size}, host=${Math.floor(hostTime)}s, listener=${Math.floor(listenerTime)}s`);
+      }
+
+      expect(Date.now() - soakStartedAt).toBeGreaterThanOrEqual(15 * 60 * 1000);
+      expect(renewalResponses.length).toBeGreaterThanOrEqual(2);
+      expect(observedTickets.size).toBeGreaterThanOrEqual(2);
+      expect((await request.get(`${host.apiUrl}${initialStreamPath}`, { headers: { Range: 'bytes=0-1' } })).status()).toBe(401);
+      const latestAnnouncement = await remoteAnnouncement();
+      expect(latestAnnouncement?.streamPath).not.toBe(initialStreamPath);
+      expect((await request.get(`${host.apiUrl}${latestAnnouncement.streamPath}`, { headers: { Range: 'bytes=0-1' } })).status()).toBe(206);
+      await testInfo.attach('player-radio-renewal-soak.json', {
+        body: JSON.stringify({ elapsedMs: Date.now() - soakStartedAt, renewalResponses, observedTicketCount: observedTickets.size,
+          hostPlaybackSeconds: previousHostTime, listenerPlaybackSeconds: previousListenerTime }, null, 2),
+        contentType: 'application/json',
+      });
+      await page.getByRole('button', { name: 'Stop active room broadcast', exact: true }).click();
+      await expect.poll(snapshot).toBeNull();
+    } finally {
+      await listenerContext.close();
+    }
   });
 
 });
