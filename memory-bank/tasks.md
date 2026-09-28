@@ -5237,7 +5237,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Release subscriptions on explicit leave/disconnect; verify per-connection and global capacity.
 - [x] Keep revoked access ahead of queued room events and in-flight initial/reconnect join completions.
 - [x] Verify two real authenticated SignalR clients against actual service publication, leave/rejoin, disconnect/snapshot and live ban.
-- [ ] Verify automatic transport recovery and actual browser follow behavior.
+- [x] 2026-09-28 Verify actual Chromium PlayerBar follow, then interrupt its real SignalR transport, restore it, and confirm automatic rejoin plus current-state snapshot catch-up. Cross-node application remains open.
 - [ ] Establish authenticated cross-node room state application; metadata routed as pod messages does not by itself prove local room state/hub delivery.
 - [ ] Verify concurrent room publication ordering and elapsed radio ticket/capability renewal with useful fairness feedback.
 

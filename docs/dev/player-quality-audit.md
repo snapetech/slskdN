@@ -52,7 +52,7 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
 | Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; sustained throughput remains open |
-| Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Two authenticated real SignalR clients on one backend verify leave, explicit disconnect/rejoin, snapshot recovery and live ban / high; automatic transport recovery and cross-node propagation unverified |
+| Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Actual Chromium PlayerBar follows real routed room events and catches the latest state after automatic transport recovery; two authenticated real SignalR clients on one backend verify leave, explicit disconnect/rejoin, snapshot recovery and live ban / high; cross-node state propagation unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
 record the source version validated at that time.
@@ -91,7 +91,7 @@ open for representative deployment measurements.
 ## Remaining completion work
 
 - Verify repeated admissions, source replacement and sustained playback across realistic latency. The 15-minute loopback host/listener soak, three browser-driven renewals and post-expiry old/new ticket checks pass; WAN latency and sustained throughput remain due.
-- Verify automatic transport reconnect and cross-node listen-along state propagation. Same-node explicit disconnect/rejoin, snapshot recovery and live membership revocation now have real-client coverage; automatic transport recovery remains due.
+- Verify cross-node listen-along state propagation. Real Chromium PlayerBar follow now survives an automatic transport interruption, rejoins and catches the latest backend snapshot; authenticated same-node clients also cover explicit disconnect/rejoin and live membership revocation.
 - Exercise supported browser engines and additional audio formats, including
   failures, decode cancellation and recovery.
 - Verify physical mobile interactions, physical output routing/media buttons,
