@@ -22,10 +22,6 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-### Cloudron packaging
-
-- Align the Cloudron testing manifest and Dockerfile with the published stable `.328` container image.
-
 ## [2026092823-slskdn.329] — 2026-09-28
 
 ### Radio fairness accounting
@@ -35,6 +31,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ### Player modal visibility
 
 - Restore usable player controls after closing the file-browser modal across browsers while playback continues behind the modal.
+
+### Cloudron packaging
+
+- Align the Cloudron testing manifest and Dockerfile with the published stable `.328` container image.
 
 ## [2026092820-slskdn.328] — 2026-09-28
 
