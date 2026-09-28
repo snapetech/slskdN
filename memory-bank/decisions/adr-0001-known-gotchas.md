@@ -31682,7 +31682,9 @@ remained active and could hide publication errors.
 mode must communicate that ownership even when secondary actions are collapsed.
 
 **Prevention:** Show active broadcasting and accessible error text in the compact
-subtitle. Explain Retry/Stop in the existing Expand tooltip. Keep direct host
+subtitle before optional artist text so truncation cannot hide ownership. Check
+actual text bounds at 320 pixels, not only DOM text presence. Explain Retry/Stop
+in the existing Expand tooltip. Keep direct host
 actions in the expanded deck and verify collapse/expand in the real host workflow.
 
 ### 0z1153 — Preserve party identity when stopping an existing broadcast (2026-09-28)
