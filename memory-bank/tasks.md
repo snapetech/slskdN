@@ -5634,10 +5634,14 @@ whole-session resource completion.
   targeted two-node API test, player-hook tests, Web and Release builds, Web
   lint, repository format, browser-spec TypeScript, security routes, bundle and
   output checks pass.
-- [ ] Run a 15-minute wall-clock host/listener soak with live playback and
-  browser-tab scheduling. Process-local ownership, service restart recovery,
-  automatic room-state cleanup after the 30-minute lease, distributed index
-  contention and sustained radio throughput remain separate follow-ups.
+- [x] 2026-09-28 Run a 15-minute real PlayerBar host/listener soak across two
+  connected backend nodes. Both audio timelines advanced beyond 900 seconds;
+  three renewal responses exposed four remote tickets, the original ticket
+  returned 401 after expiry and the latest ticket returned 206.
+- [ ] Verify repeated admissions, WAN latency and sustained radio throughput.
+  Process-local ownership, service restart recovery, automatic room-state
+  cleanup after the 30-minute lease and distributed index contention remain
+  separate follow-ups.
 
 
 ### Player startup recovery publication — 2026-09-28

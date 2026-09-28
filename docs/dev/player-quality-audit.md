@@ -51,7 +51,7 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in headless Chromium / high; physical window sizing and focus unverified |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication and refreshed host ticket verified / high; service clock advances beyond 900 seconds; 15-minute wall-clock soak and sustained throughput remain open |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; sustained throughput remains open |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Two authenticated real SignalR clients on one backend verify leave, explicit disconnect/rejoin, snapshot recovery and live ban / high; automatic transport recovery and cross-node propagation unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
@@ -74,9 +74,23 @@ processes. Totals include Chromium and the application shell. The observed
 playing memory increase over idle was 14.74 MiB. Confidence in these samples is
 moderate; repeated warm-baseline and sustained-session measurements remain due.
 
+## Live host renewal soak — 2026-09-28
+
+An opt-in Playwright run (`pnpm test:player:radio-soak`) kept the actual PlayerBar
+host and a listed-radio listener playing across two connected backend nodes for
+15 wall-clock minutes. The host renewal timer returned three successful
+responses and the remote directory exposed four distinct scoped tickets. Host
+and listener playback advanced to 910 and 908 seconds. After the original
+900-second ticket expired, a fresh range returned 206 and the old ticket
+returned 401.
+
+This verifies browser timer delivery, remote directory rotation and in-flight
+playback over loopback. It is not a WAN-latency or throughput result; both stay
+open for representative deployment measurements.
+
 ## Remaining completion work
 
-- Complete a 15-minute wall-clock host/listener soak, repeated admissions, source replacement and sustained playback across realistic latency. Controlled-time 900-second renewal and real two-backend directory refresh are verified.
+- Verify repeated admissions, source replacement and sustained playback across realistic latency. The 15-minute loopback host/listener soak, three browser-driven renewals and post-expiry old/new ticket checks pass; WAN latency and sustained throughput remain due.
 - Verify automatic transport reconnect and cross-node listen-along state propagation. Same-node explicit disconnect/rejoin, snapshot recovery and live membership revocation now have real-client coverage; automatic transport recovery remains due.
 - Exercise supported browser engines and additional audio formats, including
   failures, decode cancellation and recovery.

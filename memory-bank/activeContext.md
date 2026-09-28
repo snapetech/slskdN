@@ -1,3 +1,33 @@
+## Update 2026-09-28 19:07 UTC
+
+- Current release work: issue #340's numeric-position fix is already included
+  in stable `.326`. A regression test copied to the `.325` baseline reproduces
+  the reported `JsonException` for numeric track positions; current source
+  passes all three string/numeric cases.
+- Candidate `.327` contains the later player audio-intent and host-renewal fixes.
+  The 15-minute two-node loopback soak passed with three renewals and four
+  tickets; expired-ticket and current-ticket requests returned 401 and 206.
+- The exact `.326` to `main` release preview contains those two player fixes.
+  Cloudron metadata and Dockerfile now match the currently published `.326`
+  stable image.
+- Next: run the full release gate, create the guarded `.327` tag as requested,
+  and verify the published artifacts. WAN latency, throughput and broader
+  PlayerBar follow-ups remain open.
+
+## Update 2026-09-28 18:53 UTC
+
+- Current batch: host renewal and tab fencing are published. The opt-in
+  15-minute real two-node browser soak passes: three 204 renewals, four distinct
+  remote tickets, 911 seconds of host playback and 909 seconds of listener
+  playback. The original 900-second ticket returns 401 after expiry; the latest
+  scoped ticket still serves a byte range (206).
+- The soak is a loopback test, not a WAN throughput result. Automatic room-state
+  cleanup, restart/multi-instance ownership, DHT index contention, repeated
+  admissions, sustained throughput and device/accessibility audit remain open.
+- Next: finish the other radio-network browser workflows and investigate the
+  pending authenticated cross-node room-state application gap. The full
+  PlayerBar goal remains active; no tag or deployment.
+
 ## Update 2026-09-28 18:19 UTC
 
 - Current batch: listed host renewal and browser-session fencing are

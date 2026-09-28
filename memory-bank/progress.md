@@ -14899,3 +14899,32 @@ fetch confirms clean parity at `bd0c95fd3048f57bde419fe9ffcbfccd1e6a1eee`.
 Hindsight now contains the implementation decision, evidence and limitations.
 Continue with the 15-minute wall-clock soak and the listed follow-up audit
 items.
+
+## Live two-node host renewal soak — 2026-09-28 18:53 UTC
+
+Added an opt-in Playwright radio soak to keep the real PlayerBar host and a
+listed-radio listener playing across two connected backend nodes for 15
+wall-clock minutes. The browser produced three successful five-minute renewals;
+the remote directory exposed four distinct scoped tickets. Host and listener
+timelines advanced to 911 and 909 seconds. After the original 900-second
+ticket expired, its ranged request returned 401 and a range using the latest
+ticket returned 206. This proves renewal across the capability-expiry boundary
+on loopback; it does not measure WAN latency or sustained throughput.
+
+The first two soak attempts exposed fixture/test-contract mistakes before the
+long run: library results use `fileName`, and `expect.any(String)` accepts an
+empty capability. Both gotchas are now recorded in ADR-0001. Final 15-minute
+run passes. The expanded radio-network E2E file, exact release preview for the
+published feature and project docs checks remain to be rerun for this new
+opt-in coverage. The wider PlayerBar goal remains active.
+
+
+## Release decision and issue #340 regression — 2026-09-28 19:07 UTC
+
+Issue #340 reports a numeric MusicBrainz track position failing deserialization.
+The fix and regression test are already present in stable `.326`; a test-only
+run against `.325` fails on the numeric case with the reported `JsonException`
+while both string-position cases pass. The same current-source test passes all
+three cases. The new `.327` candidate is warranted by the two later player
+fixes, and its exact release preview contains only those changes. The full
+release gate, tag and published-artifact verification remain pending.
