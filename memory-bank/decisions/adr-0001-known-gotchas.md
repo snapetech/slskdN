@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1194. Delimit Release-Note Frontmatter on Both Sides
+
+**What went wrong:** A release fragment had valid-looking metadata and a
+closing `---` but omitted the required opening frontmatter delimiter. The
+release preview rejected the committed fragment.
+
+**Why:** The parser treats the frontmatter delimiters as a strict document
+boundary; metadata lines by themselves are not a valid fragment.
+
+**Prevention:** Start every release fragment with `---`, close its metadata
+with a second `---`, and run the exact-range release preview before pushing.
+
 ### 0z1193. Use A Supported Release-Note Category Token
 
 **What went wrong:** A release fragment used `category: bugfix`, but the
