@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1178. Publish Paused Setup Intent and Reconcile Failed Playback Processing
+
+**The Bug**: Three negative cases reproduced missing host pause publication after native Play rejection, decoded seek setup failure and crossfade start rejection. Native failure also left a resumed context running because playing stayed false and the existing suspension effect did not rerun.
+
+**Prevention**: Publish the paused decoded target when replacing its source; explicitly pause and report the active position on owned Play/crossfade failure. Ignore stale selected-item/element completions. Reconcile existing contexts on terminal playback status even when playing does not change, while leaving loading graphs available for startup. Verify native/decoded/crossfade failure and explicit recovery without relying on a synthetic pause event. Pending suspend/resume ordering still requires its own coverage.
+
 ### 0z1177. Validate the Release Fragment Body Budget Before Publication
 
 **The Bug**: The publication preview rejected a newly created, unpublished resource fragment because its body exceeded 400 characters. Valid front matter alone did not satisfy the release-note contract.
