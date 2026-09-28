@@ -1,3 +1,11 @@
+## Final `.328` candidate prepared — 2026-09-28 21:41 UTC
+
+- `.327` published successfully. `.328` now includes authenticated cross-node listen-along and the completed Soulseek fairness accounting updates. The `.327` to `HEAD` range has five append-only product fragments: three cross-node player changes and two fairness changes.
+- The focused traffic-accounting and upload lifecycle tests pass 6/6. The earlier full gate predates the fairness follow-up; the exact final pushed head still needs the guarded full gate.
+- Stable tag `build-main-2026092820-slskdn.328` remains authorized.
+
+Next Steps: commit and push the versioned changelog, run the guarded tag helper on the clean synced branch, monitor its build, and verify the published assets.
+
 ## `.328` scope expanded with live upload accounting — 2026-09-28 21:39 UTC
 
 - After `.327` completed, `origin/main` received the radio-fairness accounting fix. The local follow-up exposes actual socket-written bytes to live fairness totals, serializes the persistence/read boundary to prevent double counting, and adds a regression for evaluation during commit. The existing upload-accounting fragment and new live-fairness fragment are in the `.327` to `.328` range; the final preview will contain five product release-note fragments.

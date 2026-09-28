@@ -15053,3 +15053,11 @@ commit so persistence cannot double-count credit. Added a regression that
 evaluates admission during a blocked commit, plus lifecycle assertions for
 completed, partial-failure and zero-byte writes; focused tests pass 6/6. The
 full gate must be rerun on this final tree before tagging.
+
+## `.328` fairness release notes prepared — 2026-09-28 21:41 UTC
+
+Promoted the committed Soulseek accounting and live-progress summaries into the
+`.328` changelog. The release range now contains five validated user-facing
+fragments: authenticated cross-node state, local responsiveness, directory
+independence, confirmed upload accounting, and live fairness feedback. The
+full gate must be rerun after these fairness changes on the exact pushed head.

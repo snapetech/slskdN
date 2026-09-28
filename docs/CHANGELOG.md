@@ -22,19 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-### Radio fairness accounting
-
-- Count Soulseek upload payload bytes only after successful network writes, including partial payloads sent before an interrupted upload, so reciprocal sharing can restore later radio admission.
-
-### Live radio fairness feedback
-
-- Include confirmed Soulseek payload writes in fairness totals while uploads are active; persist one aggregate after each attempt without adding per-chunk database writes.
-
 ## [2026092820-slskdn.328] — 2026-09-28
 
 ### Authenticated cross-node listen-along
 
 - Apply remote room updates only from transport-verified active members, reject stale sequences, and keep received messages local to avoid routing loops.
+
+### Radio fairness accounting
+
+- Include network-confirmed Soulseek uploads, including partial writes, in live and persisted fairness totals without a database write for each transfer chunk.
 
 ## [2026092818-slskdn.327] — 2026-09-28
 
