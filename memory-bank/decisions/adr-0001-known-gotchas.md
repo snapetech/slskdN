@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1101. Include Required Request Fields Before Controller Identity Normalization
+
+**The Bug**: A live room fixture omitted RequestingPeerId from CreatePod because the controller replaces it with authenticated identity. API model validation runs first and rejected the missing required record field with 400.
+
+**Prevention**: Populate required request fields in real HTTP fixtures even when a controller subsequently normalizes or replaces them. Verify the record contract and actual response before asserting membership or SignalR behavior.
+
 ### 0z1100. Keep Revoked Room Access Ahead of Queued Events
 
 **The Bug**: The new access-revoked handler cleared following state and showed an error, but a queued older partyState event immediately cleared that error and restored room metadata. A negative Web regression reproduced the lost revocation feedback.
