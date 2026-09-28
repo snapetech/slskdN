@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1165. Match Playwright Navigation Predicates to URL Objects
+
+**The Bug**: The player suite's explicit TypeScript check exposed login navigation predicates calling includes on a URL object and a route-change predicate comparing that object to a string. Their caught failures hid invalid checks. Nullable DOM diagnostic text and untyped audio locators also prevented the suite from passing a real type gate; successful browser transpilation did not reveal them.
+
+**Prevention**: Inspect URL.pathname and URL.href, compare href to the previous string and normalize nullable external DOM text before reading its length. Type audio/HTML elements at locator boundaries and browser-only diagnostic fields explicitly. Keep logging arguments inside the helper's declared contract. Validate types and actual login/navigation workflows separately.
+
 ### 0z1164. Keep Measurement Index Names Distinct From Browser Globals
 
 **The Bug**: The new repeated resource probe named its loop index window. The explicit TypeScript check then treated window inside a serialized browser callback as a number, even though Playwright evaluates that callback against the browser global. This created an incorrect lexical type boundary and obscured which values actually cross processes.
