@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1069. Qualify Application Options in Mesh Services
+
+**The Bug**: The new radio mesh service resolved Options to the Microsoft.Extensions.Options static helper instead of the application's configuration type, causing CS0718.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/Services/ListedRadioMeshService.cs`
+
+**Prevention**: Use IOptionsMonitor<global::slskd.Options> in namespaces with an Options naming collision, following existing controllers.
+
 ### 0z1068. Use Actual Overlay Routing Identity and Audio Request Budgets
 
 **The Gotcha**: Web account names and profile peer IDs do not identify the current service-call connection. MeshServiceClient selects an outbound overlay connection by its Soulseek username. Also, 2 KiB audio RPCs exhaust the default 100-call-per-minute service limit long before a normal track finishes.
