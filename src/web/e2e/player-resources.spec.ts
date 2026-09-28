@@ -2,16 +2,28 @@
 // Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
+import { collectBrowserProcessSnapshot, compareBrowserProcessSnapshots } from './harness/browser-process-resources';
 import { makeTone } from './fixtures/player-tone';
 import { login } from './helpers';
 
 // Video and trace are worker options; isolate measurement from functional QA.
 test.use({ serviceWorkers: 'block', video: 'off', trace: 'off' });
 const harness = new MultiPeerHarness();
-test.beforeAll(async () => { await harness.startNode('A', [], { noConnect: true }); });
-test.afterAll(async () => { await harness.stopAll(); });
+let fixtureDirectory: string;
+test.beforeAll(async () => {
+  fixtureDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'player-resource-'));
+  await harness.startNode('A', [], { noConnect: true });
+});
+test.afterAll(async () => {
+  try { await harness.stopAll(); }
+  finally { if (fixtureDirectory) await fs.rm(fixtureDirectory, { recursive: true, force: true }); }
+});
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     const audioWindow = window as Window & { __playerAudioContexts?: number };
@@ -37,9 +49,21 @@ test('records idle, native playback and paused browser resource use', async ({ p
   const sustained = windowSeconds * windows > 10;
   const warmupSeconds = sustained ? 15 : 0;
   test.setTimeout(90_000 + 3 * (warmupSeconds + windows * windowSeconds) * 1_000);
+  const inputSeconds = sustained ? warmupSeconds + windows * windowSeconds + 60 : 40;
+  const inputPath = path.join(fixtureDirectory, 'Native playback.wav');
+  await fs.writeFile(inputPath, makeTone(inputSeconds));
+  const inputBytes = (await fs.stat(inputPath)).size;
   const session = await page.context().newCDPSession(page);
   await session.send('Performance.enable');
   const browserSession = await page.context().browser()!.newBrowserCDPSession();
+  const browserVersion = await browserSession.send('Browser.getVersion');
+  const processes = await browserSession.send('SystemInfo.getProcessInfo');
+  const root = processes.processInfo.find((entry) => entry.type === 'browser');
+  expect(root).toBeDefined();
+  const clockTicksPerSecond = process.platform === 'linux'
+    ? Number((await promisify(execFile)('getconf', ['CLK_TCK'], { timeout: 5000 })).stdout.trim())
+    : null;
+  expect(clockTicksPerSecond === null || (Number.isSafeInteger(clockTicksPerSecond) && clockTicksPerSecond > 0)).toBe(true);
   const metrics = async () => {
     const result = await session.send('Performance.getMetrics');
     return Object.fromEntries(result.metrics.map(({ name, value }) => [name, value]));
@@ -51,9 +75,7 @@ test('records idle, native playback and paused browser resource use', async ({ p
   try {
     for (const state of ['idle', 'playing', 'paused']) {
       if (state === 'playing') {
-        const input = { name: 'Native playback.wav', mimeType: 'audio/wav',
-          buffer: makeTone(sustained ? warmupSeconds + windows * windowSeconds + 60 : 40) };
-        await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(input);
+        await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(inputPath);
         await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
       }
       if (state === 'paused') await page.getByTestId('player-toggle-playback').click();
@@ -62,9 +84,11 @@ test('records idle, native playback and paused browser resource use', async ({ p
         const playbackBefore = await playback();
         const before = await metrics();
         const processesBefore = await browserSession.send('SystemInfo.getProcessInfo');
+        const osBefore = clockTicksPerSecond === null ? null : await collectBrowserProcessSnapshot(root!.id);
         await page.waitForTimeout(windowSeconds * 1_000);
         const after = await metrics();
         const processesAfter = await browserSession.send('SystemInfo.getProcessInfo');
+        const osAfter = clockTicksPerSecond === null ? null : await collectBrowserProcessSnapshot(root!.id);
         const playbackAfter = await playback();
         const cpuById = new Map(processesBefore.processInfo.map((entry) => [entry.id, entry.cpuTime]));
         const afterIds = new Set(processesAfter.processInfo.map((entry) => entry.id));
@@ -82,6 +106,12 @@ test('records idle, native playback and paused browser resource use', async ({ p
         const measuredMemory = memoryReadings.filter((entry): entry is PromiseFulfilledResult<number> => entry.status === 'fulfilled');
         samples.push({
           state, window: sampleIndex + 1, warmupSeconds,
+          browserVersion: browserVersion.product, platform: process.platform,
+          inputKind: 'disk-file', inputBytes, inputSeconds,
+          browserProcessScope: 'cdp-reported',
+          osProcessTree: osBefore && osAfter && clockTicksPerSecond !== null
+            ? { scope: 'linux-owned-process-tree', clockTicksPerSecond,
+              ...compareBrowserProcessSnapshots(osBefore, osAfter, clockTicksPerSecond) } : null,
           playbackBefore, playbackAfter,
           browserPssMiB: measuredMemory.length > 0 ? measuredMemory.reduce((total, entry) => total + entry.value, 0) : null,
           memoryProcessesMeasured: measuredMemory.length,
@@ -97,6 +127,8 @@ test('records idle, native playback and paused browser resource use', async ({ p
           rendererTaskPercent: (after.TaskDuration - before.TaskDuration) / (after.Timestamp - before.Timestamp) * 100,
           scriptPercent: (after.ScriptDuration - before.ScriptDuration) / (after.Timestamp - before.Timestamp) * 100,
           jsHeapMiB: after.JSHeapUsedSize / 1024 / 1024,
+          domNodes: after.Nodes ?? null, documents: after.Documents ?? null,
+          eventListeners: after.JSEventListeners ?? null,
           audioContexts: await page.evaluate(() => (window as Window & { __playerAudioContexts?: number }).__playerAudioContexts),
         });
         const expectedPlayback = state === 'playing'

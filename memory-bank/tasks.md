@@ -5574,3 +5574,22 @@ Next Steps also retain distributed room state/index ownership, host media
 error/auth/lease/renewal and browser/format/device/accessibility/focus contrast
 coverage. The full player goal remains active; this batch does not establish
 whole-session resource completion.
+
+
+## Player native resource and media-error batch — 2026-09-28
+
+- [x] Observe disk-file native idle/play/pause for ten minutes each with natural
+  GC, preserved workload and corrected CDP process scope; all 30 windows pass.
+- [x] Reproduce and repair active media-error pause publication with native and
+  decoded positions and standby isolation; four regressions and rebuilt host
+  browser pause/follower/recovery workflow pass.
+- [x] Implement Linux owned-process-tree collection with PID/start-time identity,
+  bounded reads, unavailable-read/churn reporting; 12 tests and real smoke pass.
+- [x] 2026-09-28: Finish full rebuilt browser/repository gates and establish a
+  separate clean repeated observed OS-tree baseline; disclose three global proc
+  stat gaps with unknown ancestry rather than claim complete enumeration.
+- [ ] Continue failed playback setup/crossfade, host lease/renewal, distributed
+  state/index, broader resource/format/device/accessibility completion work.
+
+- [ ] Improve census coverage for transient unreadable proc entries; retain honest
+  endpoint/churn limits and validate broader sustained player workloads.

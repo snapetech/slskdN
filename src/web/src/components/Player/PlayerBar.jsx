@@ -3531,10 +3531,12 @@ const PlayerBar = () => {
       const failedSource = failedElement.currentSrc || failedElement.src;
       playRequestRef.current += 1;
       stopOutgoingFade();
+      failedElement.pause();
       playingRef.current = false;
       setPlaying(false);
       setPlaybackStatus('error');
       setPlaybackError('This audio could not be decoded or streamed.');
+      reportPlaybackEvent?.('pause', transcodeOffset + failedElement.currentTime);
       if (!transcodeMode && !current.streamUrl && !current.contentId.startsWith('local:')) {
         streaming.getPlaybackInfo(current.contentId).then((response) => {
           if (selectedItemRef.current !== current || audioRef.current !== failedElement ||

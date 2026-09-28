@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Host playback errors and resource coverage
+
+- Pause failed active audio and report its full track position to room followers; preserve standby isolation and explicit playback recovery.
+- Measure native playback from disk-file input with browser/input metadata and DOM counters. Distinguish CDP process totals from Linux OS-tree CPU/PSS, including process identity, churn and unavailable reads.
+- Correct earlier whole-browser resource wording without changing retained measurements; document the isolated ten-minute-per-state native workload and its limits.
+
 ### Room membership event ordering
 
 - Preserve rapid leave/rejoin and join/ban history without timestamp-key collisions, including frozen or backward-moving clocks and service restarts.

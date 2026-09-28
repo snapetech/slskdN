@@ -69,7 +69,7 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     const modal = page.getByTestId('player-file-browser-modal');
     await modal.getByTestId('player-file-browser-search').locator('input').fill('Host first');
     await modal.getByRole('button', { name: 'Play Host first.wav', exact: true }).click();
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime > 0.5))).toBe(true);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 0.5))).toBe(true);
     await page.getByRole('button', { name: 'List room broadcast in mesh directory', exact: true }).click();
     await page.getByRole('button', { name: 'Broadcast current track to room', exact: true }).click();
     await expect.poll(async () => (await snapshot())?.action).toBe('play');
@@ -134,7 +134,7 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     await expect.poll(async () => (await snapshot())?.allowMeshStreaming).toBe(false);
     expect((await snapshot()).listed).toBe(true);
     expect((await request.get(capabilityUrl, { headers: { Range: 'bytes=0-31' } })).status()).toBe(404);
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused))).toBe(true);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused))).toBe(true);
     await page.unroute(stateUrl);
     await page.getByTestId('player-collapse').click();
     await page.setViewportSize({ width: 320, height: 844 });
@@ -148,12 +148,32 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     await page.setViewportSize({ width: 1280, height: 900 });
     await listener.goto(roomUrl);
     await listener.getByRole('button', { name: 'Follow room broadcast', exact: true }).click();
-    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime > 0.5))).toBe(true);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused))).toBe(true);
+    // Exercise the actual browser handler without synthesizing a pause event.
+    // The media-error event is injected; this is not a decoder-format test.
+    const failedPosition = await page.locator('audio').evaluateAll((elements) => {
+      const active = (elements as HTMLAudioElement[]).find((audio) => !audio.paused && audio.currentSrc)!;
+      const seconds = active.currentTime;
+      active.dispatchEvent(new Event('error'));
+      return seconds;
+    });
+    await expect(page.getByText('This audio could not be decoded or streamed.', { exact: true })).toBeVisible();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
+    await expect.poll(async () => {
+      const state = await snapshot();
+      return state?.action === 'pause' && Math.abs(state.positionSeconds - failedPosition) < 0.4;
+    }).toBe(true);
+    expect((await snapshot()).partyId).toBe(partyId);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements, position) => (elements as HTMLAudioElement[]).some((audio) => audio.paused && Math.abs(audio.currentTime - position) < 0.4), failedPosition)).toBe(true);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(async () => (await snapshot())?.action).toBe('play');
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused))).toBe(true);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 0.5))).toBe(true);
     await page.locator('a[href="/downloads"]').first().click();
     await expect(page).toHaveURL(/\/downloads$/);
     await page.getByTestId('player-toggle-playback').click();
     await expect.poll(async () => (await snapshot())?.action).toBe('pause');
-    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => elements.every((audio) => audio.paused))).toBe(true);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
     const seek = page.getByLabel('Seek playback', { exact: true });
     await seek.press('Home');
     for (let second = 0; second < 14; second++) await seek.press('ArrowRight');
@@ -161,12 +181,12 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
       const state = await snapshot();
       return state?.action === 'pause' && Math.abs(state.positionSeconds - 14) < 0.4;
     }).toBe(true);
-    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => elements.some((audio) => audio.paused && Math.abs(audio.currentTime - 14) < 0.4))).toBe(true);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => audio.paused && Math.abs(audio.currentTime - 14) < 0.4))).toBe(true);
     await page.getByTestId('player-toggle-playback').click();
     await expect.poll(async () => (await snapshot())?.action).toBe('play');
-    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime >= 14))).toBe(true);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime >= 14))).toBe(true);
     const beforeIdle = publications;
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => audio.currentTime >= 18))).toBe(true);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => audio.currentTime >= 18))).toBe(true);
     expect(publications).toBe(beforeIdle);
     await seek.press('Home');
     for (let second = 0; second < 4; second++) await seek.press('ArrowRight');
@@ -174,7 +194,7 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
       const state = await snapshot();
       return state?.action === 'seek' && Math.abs(state.positionSeconds - 4) < 0.4;
     }).toBe(true);
-    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime >= 4))).toBe(true);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime >= 4))).toBe(true);
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
     await page.getByTestId('player-open-file-browser').click();
     await modal.getByTestId('player-file-browser-search').locator('input').fill('Host second');
@@ -198,8 +218,8 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     await page.screenshot({ path: testInfo.outputPath('host-controls-320.png'), fullPage: true });
     await stop.click();
     await expect.poll(snapshot).toBeNull();
-    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => elements.every((audio) => audio.paused))).toBe(true);
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused))).toBe(true);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused))).toBe(true);
     expect((await directory()).some((entry: { partyId: string }) => entry.partyId === partyId)).toBe(false);
     await page.goto(roomUrl);
     await page.getByRole('button', { name: 'List room broadcast in mesh directory', exact: true }).click();
@@ -217,7 +237,7 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     await expect.poll(async () => (await snapshot())?.listed).toBe(true);
     expect((await snapshot()).allowMeshStreaming).toBe(false);
     expect((await snapshot()).action).toBe('pause');
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.every((audio) => audio.paused))).toBe(true);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
     expect((await directory()).some((entry: { partyId: string }) => entry.partyId === reloadedPartyId)).toBe(true);
     const listed = await snapshot();
     const neighbor = await request.post(`${node.apiUrl}/api/v0/pods`, {

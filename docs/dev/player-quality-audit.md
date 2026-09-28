@@ -2,6 +2,18 @@
 
 Updated: 2026-09-28. The player overhaul remains active.
 
+### Resource coverage correction — 2026-09-28
+
+Earlier resource sections use “whole-browser” for totals from CDP's process
+list. That label is too broad: a live Linux headless Chromium snapshot showed
+seven OS browser processes versus five reported by CDP, omitting two zygotes
+with about 18 MiB combined PSS at that moment. Retained numeric results measure
+CDP-reported browser processes; zero missing readings and no churn refer to
+that list. They do not establish full OS browser-tree totals. Preserve the
+original values and workload distinctions. Full-tree measurement is follow-up
+work; do not add the snapshot's omitted PSS to earlier windows. Confidence: high
+in the observed enumeration difference. Gotcha 0z1171 records the correction.
+
 ## Quality target
 
 Build a dependable, polished player with the responsiveness, intuitive controls
@@ -1015,3 +1027,81 @@ Next Steps also retain distributed room state/index ownership, host media
 error/auth/lease/renewal and browser/format/device/accessibility/focus contrast
 coverage. The full player goal remains active; this batch does not establish
 whole-session resource completion.
+
+
+## Ten-minute-per-state disk-file native evidence — 2026-09-28
+
+The isolated run completed with terminal zero, one passed browser case in
+30.8 minutes and passed metadata with no failed tests. All 30 windows passed;
+probe/helper/tone hashes match. The selected disk fixture is 675-second mono
+PCM (29,767,544 bytes), using HeadlessChrome 153.0.8010.12 on Linux. Video and
+trace were off, no forced GC was used and no test/build/lint gates ran during
+measurement. Runtime application assets preceded the host-error source fix.
+
+| State | Windows | CPU (% of one core, weighted mean) | CDP-process PSS range (MiB) | Renderer JS heap range (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Idle | 10 | 0.542 | 266.84–277.50 | 8.22–11.13 |
+| Playing | 10 | 1.970 | 287.74–316.02 | 8.99–10.00 |
+| Paused | 10 | 0.523 | 290.89–295.30 | 10.06–12.12 |
+
+All windows have zero created AudioContexts, zero CDP process churn and no
+unavailable PSS readings in that list. Playback advances through the full
+playing phase; all paused windows retain exactly 615.697574 seconds. Heap and
+PSS show natural drops rather than monotonic retained growth. Playing DOM
+counts span 1064–1073 and listeners 548–646. Paused counts fluctuate and drop;
+those endpoint counters do not independently prove retained objects or a leak.
+Confidence is high in this run, moderate in its generality.
+
+Scope is CDP-reported browser processes: OS zygotes are omitted, as disclosed
+above. This is one native format/browser/host, not backend, incremental player,
+full OS-tree, queue/analyzer/visualizer/radio or multi-hour resource completion.
+The longer input also differs from the prior 195-second RAM-buffer workload;
+do not attribute their numeric differences solely to file backing.
+
+Raw windows, metadata, frozen input hashes and a visually inspected trend plot
+are retained as local validation artifacts. The independent full-tree collector
+and its 11 focused Node cases now pass their initial type/test gates; PID reuse
+during memory sampling and actual browser-tree coverage still need validation
+before integration. Full player goal remains active.
+
+
+## Repeated observed OS-tree native baseline — 2026-09-28
+
+The final rebuilt source passed a separate isolated six-window run in 6.8
+minutes (terminal zero; passed metadata). Each state has two 60-second windows
+following a 15-second warmup. The selected disk file is 195-second mono PCM,
+8,599,544 bytes, in HeadlessChrome 153.0.8010.12 on Linux. Video/trace were off,
+no forced GC or concurrent validation jobs were used, and all 127 frozen
+probe/harness/application/build hashes match after completion.
+
+| State | Observed OS processes | OS CPU (% of one core, weighted mean) | Observed OS-tree PSS range (MiB) | CDP-process PSS range (MiB) | JS heap range (MiB) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Idle | 6 | 0.566 | 288.97–289.94 | 269.26–270.22 | 8.89–10.36 |
+| Playing | 7 | 1.865 | 321.77–325.38 | 304.04–307.66 | 9.06–9.07 |
+| Paused | 7 | 0.541 | 314.52–320.45 | 296.82–302.73 | 10.31–11.49 |
+
+Every observed process retained its PID/start-time identity across its window;
+there is zero observed churn and no unavailable PSS reading among those
+processes. Three endpoint scans each failed to read one global proc stat
+(two playing endpoints and one paused endpoint). Their ancestry is unknown;
+this prevents claiming a complete atomic browser census. The report discloses
+these enumeration gaps separately from complete readings of the observed tree.
+CPU remains an endpoint-based measure of surviving identities, not an account
+of processes that might start and exit between snapshots. Confidence is high
+in the retained measurements and moderate in their complete-tree coverage.
+
+Both playing windows remain active through about 135.77 seconds. Both paused
+windows retain exactly 135.802296 seconds. All windows have zero created
+AudioContexts. Video files and descriptor-GC/unhandled markers are absent.
+These results cover one native browser workload. They do not establish
+multi-hour, format, device, queue, analyzer, visualizer, radio or backend budgets.
+
+The host-error browser workflow passes against final rebuilt assets after an
+old-assets negative proved audio continued despite the displayed error. Its
+injected media-error event verifies active pause, published full position,
+follower synchronization and explicit recovery; actual decoder-format failure
+coverage remains the separate playback suite. Four new native/decoded and
+active/standby regressions, 12 OS collector cases and all 1,082 Web tests pass.
+All 22 rebuilt browser cases, 5,321 backend unit / 74 smoke / 284 integration,
+expanded types, lint, builds and ancillary gates pass. Release retains its two
+existing support warnings. The full player goal remains active.

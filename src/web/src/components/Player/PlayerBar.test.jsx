@@ -566,6 +566,43 @@ describe('PlayerBar', () => {
     await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
   });
 
+  it.each([
+    { active: true, decoded: false },
+    { active: false, decoded: false },
+    { active: true, decoded: true },
+    { active: false, decoded: true },
+  ])('reports stopped playback only for an active media error (active=$active, decoded=$decoded)', async ({ active, decoded }) => {
+    const reportPlaybackEvent = vi.fn();
+    render(
+      <MemoryRouter>
+        <PlayerProvider>
+          <PlayerContext.Consumer>{(player) => (
+            <PlayerContext.Provider value={{ ...player, reportPlaybackEvent }}>
+              <TestHarness />
+            </PlayerContext.Provider>
+          )}</PlayerContext.Consumer>
+        </PlayerProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByText('Play fixture'));
+    const [audio, standby] = document.querySelectorAll('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    if (decoded) {
+      fireEvent.error(audio);
+      fireEvent.click(await screen.findByText('Decode for playback'));
+      fireEvent.click(screen.getByTestId('player-fast-forward'));
+    }
+    await waitFor(() => expect(audio.getAttribute('src')).toContain(decoded ? 'startSeconds=30' : 'sha256%3Atest'));
+    audio.currentTime = 27.5;
+    Object.defineProperty(audio, 'paused', { configurable: true, value: false });
+    fireEvent.play(audio);
+    reportPlaybackEvent.mockClear();
+    // A decode failure need not deliver a pause event. The standby must not
+    // change the active host's playback state either.
+    fireEvent.error(active ? audio : standby);
+    expect(reportPlaybackEvent.mock.calls).toEqual(active ? [['pause', decoded ? 57.5 : 27.5]] : []);
+  });
+
   it('aborts the prior decode stream and coalesces seek setup into the final position', async () => {
     renderPlayer();
     fireEvent.click(screen.getByText('Play fixture'));

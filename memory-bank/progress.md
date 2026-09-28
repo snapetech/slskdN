@@ -14447,3 +14447,200 @@ Next Steps also retain distributed room state/index ownership, host media
 error/auth/lease/renewal and browser/format/device/accessibility/focus contrast
 coverage. The full player goal remains active; this batch does not establish
 whole-session resource completion.
+
+
+## Disk-file native resource observation in progress — 2026-09-28
+
+The probe now generates a private disk fixture before measurement and selects
+its path, matching normal native file selection. It records actual CDP browser
+version, input kind/bytes/duration and DOM node/document/listener counters.
+Temporary files are removed after browser teardown. Gotcha 0z1170 was committed
+immediately as 76c3380d3; prior RAM-buffer evidence remains valid for its stated
+workload. The resource protocol now explains input backing and longer sessions.
+
+The explicit TypeScript gate, discovery, Web lint and real three-state smoke
+check pass (one browser case, 35 seconds, terminal zero). The smoke counters
+are present; the short run is not stability evidence.
+
+A frozen ten-window-per-state run is LIVE, owned by shell session 4542. Use
+write_stdin to poll that same session; do not restart on an observation timeout.
+Artifacts: `.local/player-disk-resource-long.log`,
+`.local/player-disk-resource-long-browser`, and
+`.local/player-disk-resource-long-inputs.sha256`. Window length is 60 seconds,
+warmup is 15 seconds per state and the disk input is 675-second mono PCM
+(29,767,544 bytes). No video encoder or concurrent test/build job was observed.
+The first idle window passes with full process/PSS coverage: 0.65% of one core,
+273.44 MiB PSS and 9.70 MiB JS heap. This is provisional window evidence, not a
+terminal result or memory plateau. Probe/helper/tone hashes still match.
+
+Next: keep runtime inputs frozen, follow all idle/playing/paused windows to a
+terminal result, inspect natural heap/DOM/listener/PSS trends and retain a plot
+if useful. Run publication gates after measurement, update task/audit/changelog
+and validated fragment, commit and push. The full player goal remains active.
+
+
+### Corrected resource coverage boundary — 2026-09-28
+
+Live OS descendant inspection found seven browser processes while CDP reported
+five. Two omitted zygotes had about 18 MiB combined PSS in the inspected snapshot.
+Previous whole-browser wording was too broad. All retained window totals and
+coverage checks apply to CDP-reported browser processes, not the entire OS tree.
+Gotcha 0z1171 was committed immediately as 1d93d569b; the audit/protocol and
+Hindsight correction now disclose the boundary. No numeric result was changed.
+The supplemental instantaneous snapshot is retained in
+`.local/player-disk-resource-long-os-snapshot.json`; do not add its omitted
+memory to earlier measured windows. Full-tree enumeration/CPU/memory coverage
+must be a separate verified measurement after this frozen run finishes.
+
+Session 4542 remains verified live with ten idle and seven playing windows
+saved. Probe/helper/tone hashes match. Production source and assets remain
+unchanged; the four host-error test cases are still unrun. No concurrent gates.
+Next: finish the existing measurement, analyze it under the corrected scope,
+then run negative host-error cases, repair reproduced failures, document
+immediately, add full-tree measurement and complete publication gates.
+
+
+## Ten-minute-per-state disk-file native evidence — 2026-09-28
+
+The isolated run completed with terminal zero, one passed browser case in
+30.8 minutes and passed metadata with no failed tests. All 30 windows passed;
+probe/helper/tone hashes match. The selected disk fixture is 675-second mono
+PCM (29,767,544 bytes), using HeadlessChrome 153.0.8010.12 on Linux. Video and
+trace were off, no forced GC was used and no test/build/lint gates ran during
+measurement. Runtime application assets preceded the host-error source fix.
+
+| State | Windows | CPU (% of one core, weighted mean) | CDP-process PSS range (MiB) | Renderer JS heap range (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Idle | 10 | 0.542 | 266.84–277.50 | 8.22–11.13 |
+| Playing | 10 | 1.970 | 287.74–316.02 | 8.99–10.00 |
+| Paused | 10 | 0.523 | 290.89–295.30 | 10.06–12.12 |
+
+All windows have zero created AudioContexts, zero CDP process churn and no
+unavailable PSS readings in that list. Playback advances through the full
+playing phase; all paused windows retain exactly 615.697574 seconds. Heap and
+PSS show natural drops rather than monotonic retained growth. Playing DOM
+counts span 1064–1073 and listeners 548–646. Paused counts fluctuate and drop;
+those endpoint counters do not independently prove retained objects or a leak.
+Confidence is high in this run, moderate in its generality.
+
+Scope is CDP-reported browser processes: OS zygotes are omitted, as disclosed
+above. This is one native format/browser/host, not backend, incremental player,
+full OS-tree, queue/analyzer/visualizer/radio or multi-hour resource completion.
+The longer input also differs from the prior 195-second RAM-buffer workload;
+do not attribute their numeric differences solely to file backing.
+
+Raw windows, metadata, frozen input hashes and a visually inspected trend plot
+are retained as local validation artifacts. The independent full-tree collector
+and its 11 focused Node cases now pass their initial type/test gates; PID reuse
+during memory sampling and actual browser-tree coverage still need validation
+before integration. Full player goal remains active.
+
+
+### OS-tree integration and host-error runtime gates — 2026-09-28
+
+The PID-reuse negative case failed as intended (one failed / 11 passed), then
+all 12 collector cases passed after PSS identity rechecking and bounded memory
+reads. Gotcha 0z1174 was committed immediately as 145e6bf55. The resource probe
+now retains CDP scope and separately records Linux OS-tree CPU/PSS, tick
+frequency, process churn, unavailable enumeration/memory and interval duration.
+The real smoke case passes, enumerating six idle / seven playing/paused OS
+processes against CDP four/five. One transient proc enumeration failure is
+reported. This concurrent-gate smoke is functional evidence, not a baseline.
+
+The injected-error browser negative against old assets reproduced audio still
+playing after the visible error. The corrected run reached follower assertions
+but exposed a test closure ReferenceError. Its Node position now passes as an
+explicit evaluateAll argument (gotcha 0z1176, committed 3547e9a34). The final
+rebuilt host workflow passes in 19 seconds: host pause, acknowledged position,
+follower pause, explicit recovery and all prior navigation/seek/track/Stop
+checks. The media error is injected; do not claim a new decoder-format test.
+
+Host audio callbacks now pass explicit types (gotcha 0z1175, 93fc898de).
+Expanded types, Web lint, all 1,082 Web tests / 169 files, frontend and Release
+builds pass. Release keeps its two existing dependency support warnings. All
+5,321 unit / 74 smoke / 284 integration tests pass. Bundle/output, controller
+CSRF, anonymous endpoints, fetch CSRF and identity gates pass. Repository lint
+is still owned by live shell session 2914 after backend completion; verify its
+terminal status. Full 22-case browser QA is live in session 72297, with retained
+`.local/player-native-final-suite.log` and browser/nodes artifacts. Do not
+restart either on observation timeout. Session 85152 is terminal zero.
+
+Two new append-only release fragments and canonical changelog/user-guide updates
+are ready but uncommitted. Full-tree baseline and source publication remain
+pending. Frozen inputs (127 entries, including final application assets and
+Release DLL) are in `.local/player-native-os-frozen-inputs.json`; verify them
+before/after the next isolated run. Finish every gate first, then run two
+60-second windows per state without concurrent gates, analyze scope/coverage,
+update audit/tasks/progress/context, commit, exact-range fragment preview and
+privacy check, fork verification and push main. No tag/release/deployment.
+
+
+### Full rebuilt gates complete; isolated OS-tree baseline live — 2026-09-28
+
+Full browser session 72297 is TERMINAL ZERO: all 22 cases pass in 4.5 minutes,
+passed metadata with no failed tests and zero descriptor-GC/unhandled markers.
+The updated injected host-error pause/follower/recovery case is included.
+Repository lint session 2914 and ancillary gate session 85152 are terminal zero.
+All 1,082 Web tests / 169 files, expanded explicit types, frontend/Release,
+5,321 unit / 74 smoke / 284 integration, lint and bundle/output/CSRF/anonymous/
+fetch/identity gates pass. Release keeps two existing support warnings.
+
+The separate clean OS-tree baseline is LIVE in shell session 3641. It uses two
+60-second windows per state, 15-second warmups, a 195-second disk-file fixture,
+video/trace off, and the final rebuilt application assets. All 127 frozen
+input hashes matched before launch; no other validation jobs remain live.
+Artifacts: `.local/player-native-os-clean.log`,
+`.local/player-native-os-clean-browser`, `.local/player-native-os-clean-nodes`;
+manifest: `.local/player-native-os-frozen-inputs.json`. Poll session 3641 and
+keep probe/harness/application/build inputs fixed. Do not restart because an
+observation timeout expires and do not run tests/build/lint concurrently.
+
+After terminal result: verify manifest and workload/coverage/metadata, summarize
+separate OS-tree/CDP values without claiming multi-hour/format/backend budgets,
+finish audit/tasks/progress/context, commit explicit current batch paths,
+validate both new fragments with exact range preview and privacy checks,
+verify GitHub fork target, push main and verify clean/origin state. Hindsight
+should receive the final pushed durable evidence. No tag, release or deployment.
+The complete player goal remains active beyond this batch.
+
+
+## Repeated observed OS-tree native baseline — 2026-09-28
+
+The final rebuilt source passed a separate isolated six-window run in 6.8
+minutes (terminal zero; passed metadata). Each state has two 60-second windows
+following a 15-second warmup. The selected disk file is 195-second mono PCM,
+8,599,544 bytes, in HeadlessChrome 153.0.8010.12 on Linux. Video/trace were off,
+no forced GC or concurrent validation jobs were used, and all 127 frozen
+probe/harness/application/build hashes match after completion.
+
+| State | Observed OS processes | OS CPU (% of one core, weighted mean) | Observed OS-tree PSS range (MiB) | CDP-process PSS range (MiB) | JS heap range (MiB) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Idle | 6 | 0.566 | 288.97–289.94 | 269.26–270.22 | 8.89–10.36 |
+| Playing | 7 | 1.865 | 321.77–325.38 | 304.04–307.66 | 9.06–9.07 |
+| Paused | 7 | 0.541 | 314.52–320.45 | 296.82–302.73 | 10.31–11.49 |
+
+Every observed process retained its PID/start-time identity across its window;
+there is zero observed churn and no unavailable PSS reading among those
+processes. Three endpoint scans each failed to read one global proc stat
+(two playing endpoints and one paused endpoint). Their ancestry is unknown;
+this prevents claiming a complete atomic browser census. The report discloses
+these enumeration gaps separately from complete readings of the observed tree.
+CPU remains an endpoint-based measure of surviving identities, not an account
+of processes that might start and exit between snapshots. Confidence is high
+in the retained measurements and moderate in their complete-tree coverage.
+
+Both playing windows remain active through about 135.77 seconds. Both paused
+windows retain exactly 135.802296 seconds. All windows have zero created
+AudioContexts. Video files and descriptor-GC/unhandled markers are absent.
+These results cover one native browser workload. They do not establish
+multi-hour, format, device, queue, analyzer, visualizer, radio or backend budgets.
+
+The host-error browser workflow passes against final rebuilt assets after an
+old-assets negative proved audio continued despite the displayed error. Its
+injected media-error event verifies active pause, published full position,
+follower synchronization and explicit recovery; actual decoder-format failure
+coverage remains the separate playback suite. Four new native/decoded and
+active/standby regressions, 12 OS collector cases and all 1,082 Web tests pass.
+All 22 rebuilt browser cases, 5,321 backend unit / 74 smoke / 284 integration,
+expanded types, lint, builds and ancillary gates pass. Release retains its two
+existing support warnings. The full player goal remains active.

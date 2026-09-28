@@ -55,6 +55,11 @@ when you navigate elsewhere in the app. Seeking while paused keeps listeners
 paused at the selected position. Steady playback does not send periodic position
 updates.
 
+If the active audio fails, the player pauses it and shares its stopped track
+position with room followers. The local playback error remains visible; use
+the existing playback recovery controls to resume. An error from the standby
+audio element does not change the active broadcast.
+
 The compact player shows **Broadcasting**. Expand it to use **Stop broadcast**,
 which ends the room broadcast while keeping your local playback available.
 After a publication failure, automatic updates pause and the player offers
