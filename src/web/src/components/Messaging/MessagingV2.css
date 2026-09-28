@@ -737,6 +737,18 @@ body.msgv2-resizing {
   color: var(--msgv2-fg);
 }
 
+.msgv2-room-playback {
+  border-bottom: 1px solid var(--msgv2-border);
+  padding: 6px 8px;
+}
+
+.msgv2-room-playback .pod-listen-along-compact.ui.segment {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin: 0 !important;
+}
+
 .msgv2-stage {
   display: flex;
   flex-direction: column;
@@ -1248,6 +1260,11 @@ body.msgv2-resizing {
 }
 
 @media only screen and (max-width: 900px) {
+  .msgv2-room-playback .ui.button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
   .msgv2 {
     grid-template-columns:
       var(--msgv2-rail-width)

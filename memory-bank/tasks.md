@@ -5268,3 +5268,16 @@ Open priority work: remote directory announcements carry relative stream paths, 
 
 - [x] 2026-09-28 Verify banned HTTP leave/rejoin cannot restore room subscription access with actual service and two clients; observer delivery remains available.
 - [ ] Close successful test-node log handles and clear stop timers explicitly; retained runtime emitted Node file-descriptor garbage-collection warnings. Keep fixture overhead separate from player resource claims.
+
+## Routed room follow and runtime isolation — 2026-09-28
+
+- [x] Expose playback on actual pod-channel routes and exclude DirectMessage channels regardless of name.
+- [x] Expose toggle state, supported glyphs and 44-pixel mobile targets; verify real Chromium layouts.
+- [x] Reproduce and fix near-target Pause drift; verify actual audio and keyboard follow through automatic transport recovery.
+- [x] Verify remote identity/private admission/ban boundaries through two actual TLS endpoints; signed storage and replay remain separate.
+- [x] Correct offline fixture public DHT startup and assert configuration plus runtime logs.
+- [ ] Repair legitimate outgoing bursts behind retained reverse-directory message-rate disconnect, preserving inbound quota.
+- [ ] Keep room-follow subscriptions alive across global-player navigation; verify real route changes.
+- [ ] Publish ongoing host Pause/Seek/track changes under an explicit broadcast session.
+
+- [ ] Repair and verify LAN-only DHT engine bootstrap before further radio runtime runs; retained logs contradict the startup isolation warning. Inspect the installed dependency rather than assuming empty routers disable bootstrap.

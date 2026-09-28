@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Checkbox, Icon, Label, List, Popup, Segment } from 'semantic-ui-react';
 
 const DIRECTORY_POLL_INTERVAL_MS = 60_000;
+const PAUSED_POSITION_TOLERANCE_SECONDS = 0.05;
 const partyEventKey = (state) => JSON.stringify([
   state.podId,
   state.channelId,
@@ -67,7 +68,7 @@ const applyPartyState = (state, player) => {
       ? Math.max(0, state.positionSeconds)
       : 0;
     if (player.current?.contentId !== state.contentId ||
-        Math.abs(player.getPlaybackPosition() - positionSeconds) > 2) {
+        Math.abs(player.getPlaybackPosition() - positionSeconds) > PAUSED_POSITION_TOLERANCE_SECONDS) {
       player.playItem(
         {
           album: state.album,
@@ -482,6 +483,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                 }}
                 size="mini"
                 title="Follow room broadcast"
+                toggle
               >
                 <Icon name={following ? 'volume up' : 'volume off'} />
               </Button>
@@ -512,8 +514,9 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                 onClick={() => setGlobalRadio((value) => !value)}
                 size="mini"
                 title="List room broadcast in mesh directory"
+                toggle
               >
-                <Icon name="broadcast tower" />
+                <Icon name="globe" />
               </Button>
             }
           />
@@ -528,6 +531,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                 onClick={() => setMeshStreaming((value) => !value)}
                 size="mini"
                 title="Allow mesh streaming for broadcast"
+                toggle
               >
                 <Icon name="wifi" />
               </Button>
@@ -604,6 +608,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             <Button
               active={following}
               aria-label="Follow pod broadcast"
+              toggle
               disabled={player.playerVisible === false}
               icon
               onClick={() => {

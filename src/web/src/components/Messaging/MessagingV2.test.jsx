@@ -4,7 +4,7 @@ import * as pods from '../../lib/pods';
 import * as rooms from '../../lib/rooms';
 import MessagingV2 from './MessagingV2';
 import React from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,6 +35,12 @@ vi.mock('../../lib/humanChallengeAutoResponse', () => ({
   getHumanChallengeAutoResponseEnabled: vi.fn(() => false),
   readStoredHumanChallengeAutoResponse: vi.fn(() => false),
   writeStoredHumanChallengeAutoResponse: vi.fn(),
+}));
+
+vi.mock('../Player/PodListenAlongPanel', () => ({
+  default: ({ channelId, podId, user }) => (
+    <div aria-label="Room playback" data-channel={channelId} data-pod={podId} data-user={user} role="region" />
+  ),
 }));
 
 vi.mock('./CommandHelp', () => ({ default: () => null }));
@@ -92,6 +98,27 @@ describe('MessagingV2 hydration', () => {
   afterEach(() => {
     vi.useRealTimers();
     setDocumentHidden(false);
+  });
+
+  it('mounts room playback on the active pod channel and removes it for Soulseek chat', async () => {
+    rooms.getJoined.mockResolvedValue(['ambient']);
+    renderMessaging();
+    fireEvent.click(await screen.findByText('Pod 1 / General'));
+    const playback = await screen.findByRole('region', { name: 'Room playback' });
+    expect(playback).toHaveAttribute('data-pod', savedPods[0].podId);
+    expect(playback).toHaveAttribute('data-channel', 'general');
+    expect(playback).toHaveAttribute('data-user', 'local-user');
+    fireEvent.click(screen.getByText('ambient'));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Room playback' })).not.toBeInTheDocument());
+  });
+
+  it('keeps DirectMessage channels out of the room playback surface even with a custom name', async () => {
+    pods.list.mockResolvedValue([{ ...savedPods[0], channels: [{ channelId: 'notes', name: 'Private notes', kind: 'DirectMessage' }] }]);
+    renderMessaging();
+    await waitFor(() => expect(pods.list).toHaveBeenCalled());
+    await flushPromises();
+    expect(screen.queryByText('Pod 1 / Private notes')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Room playback' })).not.toBeInTheDocument();
   });
 
   it('uses channel details from the pod list without per-pod detail requests', async () => {

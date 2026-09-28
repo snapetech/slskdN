@@ -14750,3 +14750,65 @@ automatic recovery and browser follow, remote/long capability renewal, retained
 reverse-directory diagnostics, sustained resources, format/browser, accessibility
 and physical-device workflows. The full player goal remains active. No tag
 or deployment is authorized.
+
+## Routed room follow and recovery — 2026-09-28
+
+Listen-along controls now appear on the actual Messaging V2 pod-channel routes,
+with direct messages and Soulseek rooms excluded. Compact and expanded Follow
+buttons expose pressed state; directory and mesh-streaming opt-ins do likewise.
+Mobile controls have 44-pixel minimum targets and supported visible glyphs.
+Paused snapshots align to within an explicit 50-millisecond tolerance instead
+of retaining the playing drift allowance.
+
+A real Chromium workflow verifies local audio progress, Pause and Seek, a held
+SignalR negotiation outage, automatic rejoin plus fresh snapshot, keyboard
+follow changes and Stop. It checks 320/390-pixel controls and screenshots.
+The actual two-client subscription case also passes. Two real TLS endpoints
+verify pod identity, private admission, approved membership, revocation and ban
+retention in both call directions. The messaging collaborator is a spy, so that
+test establishes dispatch permissions, not signed message persistence.
+
+Offline browser fixtures now explicitly disable DHT; radio mesh fixtures keep
+LAN-only discovery with no public bootstrap routers. Prior no_connect isolation
+claims were wrong: retained startup logs proved public DHT activity. Generated
+configuration and actual startup logs are now asserted by the browser case.
+
+Retained radio logs connect the failed reverse-directory lookup to a message-rate
+disconnect. The exact burst sequence and production pacing repair remain open;
+the interrupted combined runtime run is not a passing gate. Keep the inbound
+quota intact when repairing legitimate outgoing traffic. Confidence is high for
+the reproduced UI, pause, isolation and permission boundaries, and moderate for
+the radio failure explanation until a focused reproduction proves its sequence.
+
+Remaining work includes player-owned follow continuity across navigation,
+host playback-event publication, authenticated cross-node state application,
+remote/long capability renewal, sustained resource and browser/format/device
+validation. This batch does not establish those requirements.
+
+Current validation: 1,005 Web tests and targeted real browser follow/recovery pass; the actual two-client room case also passes. Full backend and repository lint subsequently passed, as recorded below. Next Steps: outgoing mesh burst repair, then shared follow ownership and cross-node application. Full goal remains active; no tag or deployment is authorized.
+
+### Additional LAN-only boundary finding — 2026-09-28
+
+Retained radio-node startup logs report LanOnly=true, then dozens of DHT nodes
+and public peer discovery. The current offline fixture disables DHT entirely
+and passes; explicit LAN-only settings alone do not prove radio isolation.
+Further radio runtime runs remain stopped until the installed engine's bootstrap
+boundary is repaired and directly verified. This may also contribute unrelated
+traffic to the observed message-rate disconnect. Confidence is high for the
+recorded public discovery and unknown for its precise dependency-level cause.
+
+### Routed room final gates — 2026-09-28
+
+Final source passes 5,293 unit / 74 smoke / 284 integration tests, 1,005 Web
+tests across 165 files, and 18 runtime cases: 16 ordinary player cases, one
+routed browser follow/recovery workflow and one actual two-client room case.
+Repository/Web lint, frontend build, bundle/output, controller/fetch CSRF,
+anonymous endpoint, identity and whitespace gates pass. Mobile screenshots
+were inspected at 320 and 390 pixels. Radio cases are excluded from this gate
+because LAN-only discovery requires repair; the interrupted combined run is
+not counted. The previous Release executable has unchanged production C#.
+
+This implementation batch is complete after commit/push and exact-range release
+preview. Next Steps: repair LAN-only DHT bootstrap, preserve mesh quota while
+pacing legitimate bursts, then follow ownership across navigation and distributed
+state delivery. Full player goal remains active. No tag or deployment is authorized.

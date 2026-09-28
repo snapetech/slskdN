@@ -61,6 +61,49 @@ describe('PodListenAlongPanel directory polling', () => {
     vi.useRealTimers();
   });
 
+  it.each([true, false])('exposes following state in compact=%s layout', async (compact) => {
+    render(<PodListenAlongPanel channelId="music" compact={compact} podId="pod-a" user="listener" />);
+    await act(async () => {});
+    const follow = screen.getByRole('button', { name: compact ? 'Follow room broadcast' : 'Follow pod broadcast' });
+    expect(follow).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(follow);
+    expect(follow).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(follow);
+    expect(follow).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it.each([[7.5, true], [7.99, false]])('aligns a host Pause from %s seconds without reloading an aligned source', async (position, shouldAlign) => {
+    listeningParty.getPartyState.mockResolvedValue({ action: 'pause', contentId: 'track', positionSeconds: 8 });
+    usePlayer.mockReturnValue({ ...player, current: { contentId: 'track' }, getPlaybackPosition: () => position });
+    render(<PodListenAlongPanel channelId="music" compact podId="pod-a" user="listener" />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: 'Follow room broadcast' }));
+    expect(player.pause).toHaveBeenCalledOnce();
+    const expectedCall = [
+      expect.objectContaining({ contentId: 'track' }),
+      expect.objectContaining({ positionSeconds: 8, startPaused: true }),
+    ];
+    expect(player.playItem.mock.calls).toEqual(shouldAlign ? [expectedCall] : []);
+  });
+
+  it('exposes directory and streaming opt-in state in compact controls', async () => {
+    render(<PodListenAlongPanel channelId="music" compact podId="pod-a" user="listener" />);
+    await act(async () => {});
+    const listed = screen.getByRole('button', { name: 'List room broadcast in mesh directory' });
+    const streaming = screen.getByRole('button', { name: 'Allow mesh streaming for broadcast' });
+    expect(listed).toHaveAttribute('aria-pressed', 'false');
+    expect(streaming).toHaveAttribute('aria-pressed', 'false');
+    expect(streaming).toBeDisabled();
+    fireEvent.click(listed);
+    expect(listed).toHaveAttribute('aria-pressed', 'true');
+    expect(streaming).toBeEnabled();
+    fireEvent.click(streaming);
+    expect(streaming).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(listed);
+    expect(listed).toHaveAttribute('aria-pressed', 'false');
+    expect(streaming).toBeDisabled();
+  });
+
   it.each([
     [429, null, 'Room updates are at capacity. Retry later.'],
     [404, null, 'This room is unavailable. Choose an existing room.'],

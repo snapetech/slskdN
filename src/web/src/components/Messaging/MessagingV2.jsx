@@ -35,6 +35,7 @@ import MessageStream from './MessageStream';
 import QuickSwitcher from './QuickSwitcher';
 import UserPopover from './UserPopover';
 import AppContext from '../AppContext';
+import PodListenAlongPanel from '../Player/PodListenAlongPanel';
 import React, {
   useContext,
   useCallback,
@@ -1468,6 +1469,20 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             />
           </div>
         </header>
+
+        {activePodChannel &&
+          podChannels.some((channel) => channel.target === activeTab?.target) &&
+          !isPodDirectChannel(activePodChannel) && (
+          <div className="msgv2-room-playback">
+            <PodListenAlongPanel
+              channelId={activePodChannel.channelId}
+              compact
+              key={activeTab.id}
+              podId={activePodChannel.podId}
+              user={currentUser}
+            />
+          </div>
+        )}
 
         <section className="msgv2-stage">
           {activeTab ? (

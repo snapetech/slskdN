@@ -62,3 +62,15 @@ leave/rejoin from erasing denial through either HTTP or mesh. GetMembersAsync
 returns active members only in production; ban retention and underlying join
 rejection remain necessary. This prerequisite does not implement remote state
 application, replay ordering, browser follow or reconnect recovery.
+
+### Routed follow and observed recovery — 2026-09-28
+
+Mount compact playback on the active non-direct Messaging V2 pod channel, the
+surface used by actual pod routes. Preserve explicit Follow and directory/stream
+opt-ins. Semantic UI toggle/active emits pressed state. Pause aligns differences
+over 50 milliseconds; playing drift remains separately governed.
+
+Real browser evidence now verifies renegotiation, rejoin across WebSocket or HTTP
+transport, fresh snapshot and actual audio after a controlled outage. Subscription
+ownership across channel navigation remains open: a panel-scoped connection is
+not sufficient proof of persistent global-player following.

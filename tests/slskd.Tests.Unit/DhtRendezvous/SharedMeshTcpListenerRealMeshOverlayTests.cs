@@ -11,6 +11,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using slskd.PodCore;
 using Microsoft.Extensions.Options;
 using slskd.DhtRendezvous;
 using slskd.DhtRendezvous.Messages;
@@ -339,6 +341,117 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
             Assert.Equal(404, revoked.StatusCode);
             Assert.Empty(revoked.Payload);
             hostAccounting.VerifyNoOtherCalls();
+            await connection.DisconnectAsync("Test completed", timeout.Token);
+        }
+        finally
+        {
+            await listener.StopAsync(CancellationToken.None);
+            await server.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Pods_RealTlsCalls_BindIdentityAndRetainPrivateRoomAndBanBoundaries()
+    {
+        const string publicId = "pod:00000000000000000000000000000001";
+        const string privateId = "pod:00000000000000000000000000000002";
+        const string approvalId = "pod:00000000000000000000000000000003";
+        var hostPods = new PodService();
+        var clientPods = new PodService();
+        await hostPods.CreateAsync(new Pod { PodId = publicId, Name = "Public room", IsPublic = true });
+        await hostPods.CreateAsync(new Pod { PodId = privateId, Name = "Private room", RequireApproval = true });
+        await hostPods.CreateAsync(new Pod { PodId = approvalId, Name = "Approval room", IsPublic = true, RequireApproval = true });
+        await clientPods.CreateAsync(new Pod { PodId = privateId, Name = "Other private room" });
+        var messaging = new Mock<IPodMessaging>();
+        messaging.Setup(service => service.GetMessagesAsync(It.IsAny<string>(), "general", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new PodMessage { PodId = publicId, Body = "Member-only history" } });
+        messaging.Setup(service => service.SendAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var clientMessaging = new Mock<IPodMessaging>();
+        using var hostProvider = new ServiceCollection().AddScoped(_ => messaging.Object).BuildServiceProvider();
+        using var clientProvider = new ServiceCollection().AddScoped(_ => clientMessaging.Object).BuildServiceProvider();
+        var hostRouter = new MeshServiceRouter(NullLogger<MeshServiceRouter>.Instance, Microsoft.Extensions.Options.Options.Create(new MeshServiceFabricOptions()));
+        var clientRouter = new MeshServiceRouter(NullLogger<MeshServiceRouter>.Instance, Microsoft.Extensions.Options.Options.Create(new MeshServiceFabricOptions()));
+        hostRouter.RegisterService(new PodsMeshService(NullLogger<PodsMeshService>.Instance, hostPods, hostProvider.GetRequiredService<IServiceScopeFactory>()));
+        clientRouter.RegisterService(new PodsMeshService(NullLogger<PodsMeshService>.Instance, clientPods, clientProvider.GetRequiredService<IServiceScopeFactory>()));
+        var hostRegistry = new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance);
+        var hostRequests = new MeshOverlayRequestRouter();
+        var clientRegistry = new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance);
+        var clientRequests = new MeshOverlayRequestRouter();
+        var dhtOptions = new DhtRendezvousOptions { Enabled = true };
+        var server = new MeshOverlayServer(
+            NullLogger<MeshOverlayServer>.Instance,
+            new StaticOptionsMonitor(new slskd.Options { Soulseek = new slskd.Options.SoulseekOptions { Username = "room-host" } }),
+            new CertificateManager(NullLogger<CertificateManager>.Instance, _serverAppDirectory),
+            new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _serverAppDirectory),
+            new OverlayRateLimiter(), new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance), hostRegistry,
+            new NoOpMeshOverlayConnector(), new NoOpMeshSyncService(), new NoOpMeshSearchRpcHandler(), hostRequests, dhtOptions, hostRouter);
+        var listener = new SharedMeshTcpListener(
+            NullLogger<SharedMeshTcpListener>.Instance,
+            new OptionsAtStartup { Soulseek = new slskd.Options.SoulseekOptions { ListenIpAddress = "127.0.0.1", ListenPort = 0 } },
+            dhtOptions, new FedTcpListener(), server);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        await server.StartAsync(timeout.Token);
+        await listener.StartAsync(timeout.Token);
+        try
+        {
+            var connector = new MeshOverlayConnector(
+                NullLogger<MeshOverlayConnector>.Instance,
+                new StaticOptionsMonitor(new slskd.Options { Soulseek = new slskd.Options.SoulseekOptions { Username = "room-listener" } }),
+                new CertificateManager(NullLogger<CertificateManager>.Instance, _clientAppDirectory),
+                new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _clientAppDirectory),
+                new OverlayRateLimiter(), new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance), clientRegistry,
+                new NoOpMeshSyncService(), new NoOpMeshSearchRpcHandler(), clientRequests, clientRouter);
+            var connection = await connector.ConnectToEndpointAsync(await WaitForBoundEndPointAsync(listener), timeout.Token);
+            Assert.NotNull(connection);
+            var client = new MeshServiceClient(NullLogger<MeshServiceClient>.Instance, Mock.Of<IMeshServiceDirectory>(), Mock.Of<IControlSigner>(), clientRegistry, clientRequests);
+            var reverse = new MeshServiceClient(NullLogger<MeshServiceClient>.Instance, Mock.Of<IMeshServiceDirectory>(), Mock.Of<IControlSigner>(), hostRegistry, hostRequests);
+            async Task<ServiceReply> Call(MeshServiceClient caller, string peer, string method, string podId)
+            {
+                // Stay below the real rolling message quota; permission evidence
+                // must not depend on disabling network admission policy.
+                await Task.Delay(150, timeout.Token);
+                return await caller.CallAsync(peer, new ServiceCall
+                {
+                    ServiceName = "pods",
+                    Method = method,
+                    CorrelationId = Guid.NewGuid().ToString("N"),
+                    Payload = JsonSerializer.SerializeToUtf8Bytes(new { PodId = podId, ChannelId = "general", Body = "hello", Role = "owner", PeerId = "room-host" }),
+                }, timeout.Token);
+            }
+
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(client, "room-host", "Get", privateId)).StatusCode);
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(client, "room-host", "GetMessages", publicId)).StatusCode);
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(client, "room-host", "Join", privateId)).StatusCode);
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(client, "room-host", "Join", approvalId)).StatusCode);
+            messaging.VerifyNoOtherCalls();
+            Assert.Equal(ServiceStatusCodes.OK, (await Call(client, "room-host", "Join", publicId)).StatusCode);
+            var joined = Assert.Single(await hostPods.GetMembersAsync(publicId));
+            Assert.Equal("room-listener", joined.PeerId);
+            Assert.Equal("member", joined.Role);
+            var history = await Call(client, "room-host", "GetMessages", publicId);
+            Assert.Equal(ServiceStatusCodes.OK, history.StatusCode);
+            Assert.Equal("Member-only history", Assert.Single(JsonSerializer.Deserialize<PodMessage[]>(history.Payload)!).Body);
+            Assert.Equal(ServiceStatusCodes.OK, (await Call(client, "room-host", "PostMessage", publicId)).StatusCode);
+            messaging.Verify(service => service.SendAsync(It.Is<PodMessage>(message => message.SenderPeerId == "room-listener"), It.IsAny<CancellationToken>()), Times.Once);
+            Assert.True(await hostPods.JoinAsync(privateId, new PodMember { PeerId = "room-listener", Role = "mod", PublicKey = "approved-key" }));
+            Assert.Equal(ServiceStatusCodes.OK, (await Call(client, "room-host", "Join", privateId)).StatusCode);
+            var approved = Assert.Single(await hostPods.GetMembersAsync(privateId));
+            Assert.Equal("mod", approved.Role);
+            Assert.Equal("approved-key", approved.PublicKey);
+            Assert.Equal(ServiceStatusCodes.OK, (await Call(client, "room-host", "Get", privateId)).StatusCode);
+
+            Assert.True(await hostPods.BanAsync(publicId, "room-listener"));
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(client, "room-host", "GetMessages", publicId)).StatusCode);
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(client, "room-host", "Leave", publicId)).StatusCode);
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(client, "room-host", "Join", publicId)).StatusCode);
+            messaging.Verify(service => service.GetMessagesAsync(publicId, "general", null, It.IsAny<CancellationToken>()), Times.Once);
+
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(reverse, "room-listener", "Get", privateId)).StatusCode);
+            Assert.True(await clientPods.JoinAsync(privateId, new PodMember { PeerId = "room-host", Role = "member" }));
+            Assert.Equal(ServiceStatusCodes.OK, (await Call(reverse, "room-listener", "Get", privateId)).StatusCode);
+            Assert.True(await clientPods.BanAsync(privateId, "room-host"));
+            Assert.Equal(ServiceStatusCodes.Forbidden, (await Call(reverse, "room-listener", "Get", privateId)).StatusCode);
+            clientMessaging.VerifyNoOtherCalls();
             await connection.DisconnectAsync("Test completed", timeout.Token);
         }
         finally

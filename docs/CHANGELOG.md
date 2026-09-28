@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Routed room playback and recovery
+
+- Put listen-along controls on active pod channels in Messages, excluding direct messages and Soulseek rooms.
+- Expose Follow, directory and streaming toggle state; provide visible icons and 44-pixel mobile room controls.
+- Align paused host positions precisely and verify actual audio, automatic reconnect/snapshot recovery, keyboard controls and narrow layouts.
+- Verify remote pod permission boundaries through two real TLS endpoints. Disable public DHT in offline browser fixtures; retain LAN-only radio testing.
+
+
 ### Remote room permission boundaries
 
 - Bind mesh room calls to transport identity and grant only the member role to fresh joins; preserve existing approved roles and keys.

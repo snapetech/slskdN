@@ -25,6 +25,7 @@ export const isPodDirectChannel = (channel) => {
 
   return (
     channelKind === 'direct' ||
+    channelKind === 'directmessage' ||
     channelName === 'dm' ||
     channelName === 'direct' ||
     channelName === 'direct message'

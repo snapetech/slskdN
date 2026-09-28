@@ -416,6 +416,8 @@ export class SlskdnNode {
 ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
         : `shares:
   directories: []`;
+    const noConnect = this.config.flags?.noConnect ?? process.env.SLSKDN_TEST_NO_CONNECT === 'true';
+    const radioMesh = this.config.flags?.radioMesh === true;
     const configYaml = `web:
   port: ${this.apiPort}
   host: 127.0.0.1
@@ -465,7 +467,7 @@ feature:
   MeshParallelSearch: true
   MeshPublishAvailability: true
   ScenePodBridge: true
-${this.config.flags?.radioMesh ? '  Mesh: true\n  Dht: true' : ''}
+${radioMesh ? '  Mesh: true\n  Dht: true' : noConnect ? '  Dht: false' : ''}
   Swagger: true
 overlay:
   enable: false
@@ -477,16 +479,15 @@ mesh:
   stunServers: []
   peerDescriptorRefresh:
     enableIpChangeDetection: false
-${this.config.flags?.radioMesh ? `dhtRendezvous:
-  enabled: true
+dhtRendezvous:
+  enabled: ${radioMesh || !noConnect}
   overlayPort: ${this.soulseekListenPort}
   dhtPort: ${this.soulseekListenPort}
   lanOnly: true
   bootstrapRouters: []
   minNeighbors: 0
-` : ''}
 flags:
-  no_connect: ${this.config.flags?.noConnect ?? process.env.SLSKDN_TEST_NO_CONNECT === 'true'}
+  no_connect: ${noConnect}
 `;
 
     await fs.writeFile(configPath, configYaml, 'utf8');

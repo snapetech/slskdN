@@ -338,3 +338,16 @@ streams. Unrelated peers cannot read private room details or listed private
 metadata. A banned participant cannot erase the ban by leaving and rejoining.
 Local web accounts and connected mesh peers have distinct identities; access
 for one does not automatically authorize the other.
+
+### Follow from a pod room
+
+Open a pod channel in Messages and use its room playback controls. Follow tracks
+that room's published playback. Its pressed state indicates whether following is
+active; keyboard activation toggles it. Directory listing and mesh streaming are
+separate opt-ins, and streaming requires listing.
+
+If the room connection drops, the controls show recovery status. After automatic
+reconnection, the client rejoins the room and reads its latest snapshot. A paused
+host snapshot selects the requested position without starting local playback.
+These controls apply to pod rooms; direct messages and Soulseek rooms use their
+existing messaging controls.
