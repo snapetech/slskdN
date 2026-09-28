@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1067. Format C# Result Initializers Before Validation
+
+**The Bug**: A mesh regression placed Data and Size assignments on one initializer line. The repository formatter rejected the added test under WHITESPACE.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Streaming/MeshStreamServiceTests.cs`
+
+**Prevention**: Put each initializer member on its own line and run repository formatting before committing test changes.
+
 ### 0z1066. Preserve Mesh Stream Tails and Propagate Producer Failure
 
 **The Bug**: Unknown-length mesh streams demanded an exact 2048-byte final chunk and dropped legitimate shorter tails. Fetch failures and hash mismatches were then completed as normal EOF, hiding truncation. Exact end offsets were rejected by the host, and the producer could complete its pipe twice on missing peers.
