@@ -10,9 +10,9 @@
   player-hook tests, browser-spec TypeScript, Web/Release builds, Web and
   repository lint, role/CSRF/anonymous/route inventory, bundle and output checks.
 - Exact release-range preview, GitHub fork target, local-identity scan and
-  whitespace checks pass. Nine commits are ahead of `origin/main`; push this
-  verified batch to `snapetech/slskdN/main`. No tag or deployment.
-- After publication: run a 15-minute live host/listener soak, then continue
+  whitespace checks passed. The implementation and gotcha commits are pushed;
+  fetch confirms `main` and `origin/main` both at `bd0c95fd3048f57bde419fe9ffcbfccd1e6a1eee` with a clean tree. No tag or deployment.
+- Next: run a 15-minute live host/listener soak, then continue
   automatic cleanup and restart/multi-instance semantics, DHT index contention,
   sustained throughput, format/browser/device and accessibility validation.
   The overall PlayerBar goal remains active.

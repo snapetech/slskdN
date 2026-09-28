@@ -14893,7 +14893,9 @@ process restart/multi-instance ownership, DHT index contention, sustained radio
 throughput and the remaining device/accessibility audit remain open. The build
 reports existing .NET 10 support warnings for build-task packages and existing
 Vite native-config/large-chunk warnings. No release tag or deployment was
-created. The exact release-range preview passes; fork-target, local-identity
-and whitespace checks pass. The implementation and release-note commits are
-ready to push to the verified fork. Continue with the 15-minute wall-clock
-soak and the listed follow-up audit items.
+created. The exact release-range preview, fork-target, local-identity and
+whitespace checks pass. Ten commits are pushed to `snapetech/slskdN/main`;
+fetch confirms clean parity at `bd0c95fd3048f57bde419fe9ffcbfccd1e6a1eee`.
+Hindsight now contains the implementation decision, evidence and limitations.
+Continue with the 15-minute wall-clock soak and the listed follow-up audit
+items.
