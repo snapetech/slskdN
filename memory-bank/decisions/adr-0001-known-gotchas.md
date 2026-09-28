@@ -134,6 +134,23 @@ browser test into a container. Mount the known compatible binary or install
 the package, then verify fixture generation before interpreting any browser
 result. Keep the server AIFF decode workflow in the cross-browser suite.
 
+### 0z1218. Preserve The Checkout Path For Containerized .NET E2E Hosts
+
+**What went wrong:** A Playwright container launched WebKit, but the slskd E2E
+host exited during ASP.NET startup because its prebuilt static-web-assets
+manifest referenced the checkout's absolute host path, which did not exist
+inside the container.
+
+**Why:** The browser and Node harness ran at `/work`, while the prebuilt .NET
+manifest retained its build-time content root. The harness copied the web
+bundle successfully, but ASP.NET still required the original static asset path
+to exist.
+
+**Prevention:** When running this prebuilt E2E host inside a container, mount
+the checkout at the same absolute path used by the build (or regenerate the
+static-web-assets manifest in the container). Confirm backend readiness before
+diagnosing browser connectivity.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
