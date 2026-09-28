@@ -15011,3 +15011,11 @@ Validation is complete: all 5,337 unit, 74 smoke and 284 integration tests;
 both PlayerBar follow E2E workflows; Release build; repository formatting;
 Web ESLint and strict browser-spec TypeScript; release-note check; fork-target,
 identity and whitespace gates. The broader player audit remains active.
+
+## Release gate active-backlog refresh — 2026-09-28 21:01 UTC
+
+The full release gate stopped at the active council backlog check because two
+tracked candidate counts were stale. Ran the prescribed active-bughunt scanner,
+updated `Remote/user text in diagnostics or HTTP errors` to 474 and `Red-team
+abuse lens` to 11,446, and reran the focused backlog check successfully. No
+product code changed; rerun the full release gate before tagging.

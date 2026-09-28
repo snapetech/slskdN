@@ -1,3 +1,10 @@
+## Release gate baseline refresh — 2026-09-28 21:01 UTC
+
+- The first full gate passed branch sync, packaging validation, and the other remediation checks, then stopped at the active council backlog because two counts lagged the current scan. Refreshed the two stale counts (474 remote/user-text candidates; 11,446 red-team candidates); the focused backlog check now passes. This changed documentation only.
+- `.328` release notes still validate with one concise changelog summary plus three curated user-facing fragments. `.327` PPA publication is the only remaining hosted job before `.328` tagging.
+
+Next Steps: commit and push the baseline refresh, rerun the full release gate, wait for `.327` PPA completion, then use the guarded release tag helper.
+
 ## Stable release validation — 2026-09-28 20:55 UTC
 
 - The user authorized stable `.328` (`build-main-2026092820-slskdn.328`). The `.327` release and its six archives passed artifact verification; its hosted workflow has completed all jobs except Launchpad PPA publication wait, which is still active. Hold `.328` tagging until that publisher finishes.
