@@ -1,8 +1,8 @@
 import api from './api';
 import { rootUrl } from '../config';
 
-export const getPartyDirectory = async () => {
-  const { data } = await api.get('/listening-party');
+export const getPartyDirectory = async ({ refresh = false } = {}) => {
+  const { data } = await api.get(refresh ? '/listening-party?refresh=true' : '/listening-party');
   return Array.isArray(data) ? data : [];
 };
 

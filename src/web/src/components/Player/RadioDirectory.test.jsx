@@ -39,6 +39,8 @@ it('shows a directory failure and retries on manual refresh', async () => {
   expect(await screen.findByText('No radio broadcasts are listed right now.')).toBeInTheDocument();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(listeningParty.getPartyDirectory).toHaveBeenCalledTimes(2);
+  expect(listeningParty.getPartyDirectory).toHaveBeenNthCalledWith(1, { refresh: false });
+  expect(listeningParty.getPartyDirectory).toHaveBeenNthCalledWith(2, { refresh: true });
 });
 
 it('ignores a directory response after closing and keeps refresh disabled while loading', async () => {

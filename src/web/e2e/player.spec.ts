@@ -87,7 +87,7 @@ test.describe('player browser playback', () => {
     let directoryRequests = 0;
     let playbackInfoRequests = 0;
     page.on('request', (request) => { if (request.url().includes('/playback-info')) playbackInfoRequests += 1; });
-    await page.route('**/api/v0/listening-party', async (route) => {
+    await page.route(/\/api\/v0\/listening-party(?:\?.*)?$/, async (route) => {
       directoryRequests += 1;
       await route.fulfill(directoryFails ? { status: 503, body: 'Unavailable' } : {
         contentType: 'application/json',

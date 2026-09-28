@@ -40,6 +40,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
     private readonly IMeshSearchRpcHandler _meshSearchRpcHandler;
     private readonly MeshOverlayRequestRouter _requestRouter;
     private readonly MeshServiceRouter? _serviceRouter;
+    private readonly slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService? _trafficAccounting;
     private readonly DhtRendezvousOptions _dhtOptions;
 
     private DateTimeOffset? _startedAt;
@@ -64,7 +65,8 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         IMeshSearchRpcHandler meshSearchRpcHandler,
         MeshOverlayRequestRouter requestRouter,
         DhtRendezvousOptions dhtOptions,
-        MeshServiceRouter? serviceRouter = null)
+        MeshServiceRouter? serviceRouter = null,
+        slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService? trafficAccounting = null)
     {
         _logger = logger;
         _optionsMonitor = optionsMonitor;
@@ -79,6 +81,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         _requestRouter = requestRouter ?? throw new ArgumentNullException(nameof(requestRouter));
         _dhtOptions = dhtOptions;
         _serviceRouter = serviceRouter;
+        _trafficAccounting = trafficAccounting;
     }
 
     public bool IsListening => _isListening;
@@ -575,6 +578,11 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
 
         var reply = await _serviceRouter.RouteAsync(call, connection.Username ?? connection.ConnectionId, connection.CertificateThumbprint, cancellationToken);
         await connection.WriteMessageAsync(ToMeshServiceReplyMessage(reply), cancellationToken);
+        if (_trafficAccounting != null && reply.IsSuccess && reply.Payload.Length > 0 &&
+            string.Equals(call.ServiceName, "ListedRadio", StringComparison.OrdinalIgnoreCase) && call.Method == "Read")
+        {
+            await _trafficAccounting.AddOverlayUploadAsync(reply.Payload.Length, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private static ServiceReply ToServiceReply(Messages.MeshServiceReplyMessage message)

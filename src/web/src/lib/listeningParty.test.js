@@ -24,6 +24,14 @@ describe('listeningParty', () => {
     await expect(createRadioStreamUrl('party', 'radio:track')).rejects.toThrow('Invalid radio stream ticket');
   });
 
+  it('requests a source refresh only for explicit manual refresh', async () => {
+    api.get.mockResolvedValue({ data: [] });
+    await getPartyDirectory();
+    expect(api.get).toHaveBeenLastCalledWith('/listening-party');
+    await getPartyDirectory({ refresh: true });
+    expect(api.get).toHaveBeenLastCalledWith('/listening-party?refresh=true');
+  });
+
   it('returns party directory arrays from the API', async () => {
     api.get.mockResolvedValue({ data: [{ podId: 'pod-a' }] });
 

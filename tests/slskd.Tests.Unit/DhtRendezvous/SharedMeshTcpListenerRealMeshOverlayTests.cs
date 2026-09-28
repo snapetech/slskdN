@@ -127,14 +127,18 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
         var serviceRouter = new MeshServiceRouter(NullLogger<MeshServiceRouter>.Instance, Microsoft.Extensions.Options.Options.Create(new MeshServiceFabricOptions()));
         serviceRouter.RegisterService(new ListedRadioMeshService(parties.Object, tickets, locator.Object, hostOptions, NullLogger<ListedRadioMeshService>.Instance));
         var dhtOptions = new DhtRendezvousOptions { Enabled = true };
+        var hostAccounting = new Mock<slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService>();
+        var clientAccounting = new Mock<slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService>();
+        var serverRegistry = new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance);
+        var serverRequests = new MeshOverlayRequestRouter();
         var server = new MeshOverlayServer(
             NullLogger<MeshOverlayServer>.Instance, hostOptions,
             new CertificateManager(NullLogger<CertificateManager>.Instance, _serverAppDirectory),
             new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _serverAppDirectory),
             new OverlayRateLimiter(), new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance),
-            new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
+            serverRegistry,
             new NoOpMeshOverlayConnector(), new NoOpMeshSyncService(), new NoOpMeshSearchRpcHandler(),
-            new MeshOverlayRequestRouter(), dhtOptions, serviceRouter);
+            serverRequests, dhtOptions, serviceRouter, hostAccounting.Object);
         var listener = new SharedMeshTcpListener(
             NullLogger<SharedMeshTcpListener>.Instance,
             new OptionsAtStartup { Soulseek = new slskd.Options.SoulseekOptions { ListenIpAddress = "127.0.0.1", ListenPort = 0 } },
@@ -152,7 +156,7 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
                 new CertificateManager(NullLogger<CertificateManager>.Instance, _clientAppDirectory),
                 new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _clientAppDirectory),
                 new OverlayRateLimiter(), new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance),
-                registry, new NoOpMeshSyncService(), new NoOpMeshSearchRpcHandler(), requests);
+                registry, new NoOpMeshSyncService(), new NoOpMeshSearchRpcHandler(), requests, serviceRouter, clientAccounting.Object);
             var connection = await connector.ConnectToEndpointAsync(await WaitForBoundEndPointAsync(listener), timeout.Token);
             Assert.NotNull(connection);
             var client = new MeshServiceClient(NullLogger<MeshServiceClient>.Instance, Mock.Of<IMeshServiceDirectory>(), Mock.Of<IControlSigner>(), registry, requests);
@@ -170,10 +174,48 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
             var tail = await client.CallAsync("radio-host", Read(ListedRadioMeshService.MaxChunkBytes, 15), timeout.Token);
             Assert.Equal(ServiceStatusCodes.OK, tail.StatusCode);
             Assert.Equal(bytes[ListedRadioMeshService.MaxChunkBytes..], tail.Payload);
+            var metadata = await client.CallAsync("radio-host", Read(0, 15) with { Method = "Metadata" }, timeout.Token);
+            Assert.Equal(ServiceStatusCodes.OK, metadata.StatusCode);
+            var expiredCapability = tickets.Create("track", "listening-party:party", TimeSpan.FromSeconds(-1));
+            var expired = await client.CallAsync("radio-host", Read(0, 15) with
+            {
+                Payload = JsonSerializer.SerializeToUtf8Bytes(new ListedRadioRequest("party", "track", expiredCapability, 0, 15), new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+            }, timeout.Token);
+            Assert.Equal(403, expired.StatusCode);
+            hostAccounting.Verify(service => service.AddOverlayUploadAsync(ListedRadioMeshService.MaxChunkBytes, It.IsAny<CancellationToken>()), Times.Once);
+            hostAccounting.Verify(service => service.AddOverlayUploadAsync(15, It.IsAny<CancellationToken>()), Times.Once);
+            hostAccounting.VerifyNoOtherCalls();
+
+            // Exercise the connector's inbound RPC handler on the same real TLS link.
+            var inbound = Assert.Single(serverRegistry.GetAllConnections());
+            var reverse = Read(0, 15);
+            var reverseReply = serverRequests.WaitForMeshServiceReplyAsync(inbound, reverse.CorrelationId, timeout.Token);
+            await inbound.WriteMessageAsync(new slskd.DhtRendezvous.Messages.MeshServiceCallMessage
+            {
+                CorrelationId = reverse.CorrelationId,
+                ServiceName = reverse.ServiceName,
+                Method = reverse.Method,
+                Payload = reverse.Payload,
+            }, timeout.Token);
+            Assert.Equal(bytes[..15], (await reverseReply).Payload);
+            var barrier = Read(0, 15) with { Method = "Metadata" };
+            var barrierReply = serverRequests.WaitForMeshServiceReplyAsync(inbound, barrier.CorrelationId, timeout.Token);
+            await inbound.WriteMessageAsync(new slskd.DhtRendezvous.Messages.MeshServiceCallMessage
+            {
+                CorrelationId = barrier.CorrelationId,
+                ServiceName = barrier.ServiceName,
+                Method = barrier.Method,
+                Payload = barrier.Payload,
+            }, timeout.Token);
+            Assert.Equal(ServiceStatusCodes.OK, (await barrierReply).StatusCode);
+            clientAccounting.Verify(service => service.AddOverlayUploadAsync(15, It.IsAny<CancellationToken>()), Times.Once);
+            clientAccounting.VerifyNoOtherCalls();
+
             state = state with { AllowMeshStreaming = false };
             var revoked = await client.CallAsync("radio-host", Read(0, 15), timeout.Token);
             Assert.Equal(404, revoked.StatusCode);
             Assert.Empty(revoked.Payload);
+            hostAccounting.VerifyNoOtherCalls();
             await connection.DisconnectAsync("Test completed", timeout.Token);
         }
         finally

@@ -22,6 +22,40 @@ using slskd.Transfers.MultiSource.Metrics;
 public sealed class ListedRadioTransportTests
 {
     [Fact]
+    public async Task RadioRange_InitialHostFailureReleasesBothReservations()
+    {
+        var tickets = new MeshStreamTicketService();
+        var ticket = tickets.Create(new MeshStreamTicketRequest("track", "tone.wav", "host", 4, null)
+        {
+            Radio = new MeshRadioScope("party", "capability"),
+        }, "listener", TimeSpan.FromMinutes(2));
+        var limiter = new StreamSessionLimiter();
+        var fetcher = new Mock<IMeshContentFetcher>();
+        fetcher.Setup(service => service.FetchRadioAsync("host", "track", It.IsAny<MeshRadioScope>(), 0, 4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeshContentFetchResult { Error = "Radio permission was revoked." });
+        var streams = new MeshStreamService(tickets, limiter, Mock.Of<IMeshDirectory>(), fetcher.Object, Mock.Of<ILogger<MeshStreamService>>());
+        await Assert.ThrowsAsync<MeshStreamException>(() => streams.OpenRangeAsync(ticket.Ticket, 0, 4, CancellationToken.None));
+        Assert.True(limiter.TryAcquire("listener", 1));
+        limiter.Release("listener");
+        Assert.True(limiter.TryAcquire("mesh-radio-host:host", 1));
+        limiter.Release("mesh-radio-host:host");
+    }
+
+    [Fact]
+    public async Task ExpiredRadioTicket_DoesNotStartAnyPeerRead()
+    {
+        var tickets = new MeshStreamTicketService();
+        var ticket = tickets.Create(new MeshStreamTicketRequest("track", "tone.wav", "host", 4, null)
+        {
+            Radio = new MeshRadioScope("party", "capability"),
+        }, "listener", TimeSpan.FromSeconds(-1));
+        var fetcher = new Mock<IMeshContentFetcher>(MockBehavior.Strict);
+        var streams = new MeshStreamService(tickets, new StreamSessionLimiter(), Mock.Of<IMeshDirectory>(), fetcher.Object, Mock.Of<ILogger<MeshStreamService>>());
+        Assert.Null(await streams.OpenRangeAsync(ticket.Ticket, 0, 4, CancellationToken.None));
+        fetcher.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task RadioRange_ReusesAdmittedTicketButChecksNewTicketFairness()
     {
         var tickets = new MeshStreamTicketService();

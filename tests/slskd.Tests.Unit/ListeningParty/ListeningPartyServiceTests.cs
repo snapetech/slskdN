@@ -21,6 +21,63 @@ public sealed class ListeningPartyServiceTests
     private const string PartyKey = "slskdn:listening-party:party:party-a";
 
     [Fact]
+    public async Task RefreshDirectory_FailedForcedRequestCanRetryWithinTheCooldown()
+    {
+        var clock = new Mock<TimeProvider>();
+        clock.Setup(provider => provider.GetUtcNow()).Returns(DateTimeOffset.UtcNow);
+        var dht = new Mock<IMeshDhtClient>();
+        dht.SetupSequence(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None))
+            .ReturnsAsync(Serialize(new ListeningPartyIndex()))
+            .ThrowsAsync(new InvalidOperationException("Directory unavailable"))
+            .ReturnsAsync(Serialize(new ListeningPartyIndex()));
+        var service = CreateService(dht.Object, clock.Object);
+        await service.ListDirectoryAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RefreshDirectoryAsync());
+        Assert.Empty(await service.RefreshDirectoryAsync());
+        dht.Verify(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None), Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task RefreshDirectory_BypassesCurrentCacheAndCoalescesBoundedManualRequests()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var clock = new Mock<TimeProvider>();
+        clock.Setup(provider => provider.GetUtcNow()).Returns(() => now);
+        var completion = new TaskCompletionSource<byte[]?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var dht = new Mock<IMeshDhtClient>();
+        dht.SetupSequence(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None))
+            .ReturnsAsync(Serialize(new ListeningPartyIndex()))
+            .Returns(completion.Task)
+            .ReturnsAsync(Serialize(new ListeningPartyIndex()));
+        var service = CreateService(dht.Object, clock.Object);
+        await service.ListDirectoryAsync();
+        var first = service.RefreshDirectoryAsync();
+        var second = service.RefreshDirectoryAsync();
+        Assert.False(first.IsCompleted);
+        Assert.False(second.IsCompleted);
+        completion.SetResult(Serialize(new ListeningPartyIndex()));
+        await Task.WhenAll(first, second);
+        await service.RefreshDirectoryAsync();
+        dht.Verify(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None), Times.Exactly(2));
+        now = now.AddSeconds(3);
+        await service.RefreshDirectoryAsync();
+        dht.Verify(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None), Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task RefreshDirectory_RemovesRemoteEntriesWithdrawnFromAValidIndex()
+    {
+        var dht = new Mock<IMeshDhtClient>();
+        dht.SetupSequence(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None))
+            .ReturnsAsync(Serialize(new ListeningPartyIndex { PartyIds = ["party-a"] }))
+            .ReturnsAsync(Serialize(new ListeningPartyIndex()));
+        dht.Setup(instance => instance.GetRawAsync(PartyKey, CancellationToken.None)).ReturnsAsync(Serialize(CreateAnnouncement()));
+        var service = CreateService(dht.Object);
+        Assert.Single(await service.ListDirectoryAsync());
+        Assert.Empty(await service.RefreshDirectoryAsync());
+    }
+
+    [Fact]
     public async Task ListDirectoryAsync_ConcurrentAndRepeatedCallersShareOneDhtRefresh()
     {
         var indexCompletion = new TaskCompletionSource<byte[]?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -122,9 +179,11 @@ public sealed class ListeningPartyServiceTests
         Assert.Equal("web-account", announcement.HostPeerId);
         Assert.Equal("overlay-host", announcement.TransportUsername);
         Assert.Equal("listening-party:party-a", tickets.Validate(announcement.StreamTicket, "track")?.OwnerKey);
+        dht.Setup(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None)).ReturnsAsync(Serialize(new ListeningPartyIndex()));
+        Assert.Equal("party-a", Assert.Single(await service.RefreshDirectoryAsync()).PartyId);
     }
 
-    private static ListeningPartyService CreateService(IMeshDhtClient dht)
+    private static ListeningPartyService CreateService(IMeshDhtClient dht, TimeProvider? clock = null)
     {
         return new ListeningPartyService(
             Mock.Of<IHubContext<ListeningPartyHub>>(),
@@ -134,7 +193,7 @@ public sealed class ListeningPartyServiceTests
             new NowPlayingService(),
             Mock.Of<IStreamTicketService>(),
             Mock.Of<ILogger<ListeningPartyService>>(),
-            new TestOptionsMonitor<Options>(new Options()));
+            new TestOptionsMonitor<Options>(new Options()), clock);
     }
 
     private static ListeningPartyAnnouncement CreateAnnouncement()

@@ -5203,5 +5203,14 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Complete final real-browser discovery/seek evidence and full validation; expiry and broader recovery remain open as listed below.
 
 - [x] Verify real cross-node directory, scoped ticket, decoded playback and interior seek with replacement 206 and subsequent time progression.
-- [ ] Validate expiry/renewal and repeated radio admissions; repair missing overlay upload accounting so serving participates in fairness totals.
+- [x] 2026-09-28 Credit successful radio TLS payload writes and verify host/listener totals plus bidirectional transport accounting.
+- [ ] Validate browser expiry/renewal and repeated radio admissions; expired-ticket/capability denial is covered, successful renewal remains unverified.
 - [ ] Verify room membership revocation after a live subscription has already joined.
+
+## Radio accounting and recovery — 2026-09-28
+
+- [x] Return initial host failure as 503, with reservations released.
+- [x] Expose explicit retry for native radio buffering in expanded and compact layouts.
+- [x] Force bounded manual directory refresh, prune withdrawn remote entries and return newest locally retained DHT values.
+- [x] Verify actual remote permission revocation and refreshed disabled playback through two backends and Chromium.
+- [ ] Audit transport identity casing, inbound service routing and signed DHT routing addresses before broadening connected-peer radio coverage.

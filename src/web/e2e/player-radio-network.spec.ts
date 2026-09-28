@@ -3,10 +3,19 @@
 // </copyright>
 
 import * as fs from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import * as path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
 import { login } from './helpers';
+
+// Read isolated-node counters without introducing a diagnostic production endpoint.
+function trafficTotals(appDir: string): number[] {
+  const output = execFileSync('python3', ['-c',
+    'import sqlite3,sys,json; connection=sqlite3.connect("file:"+sys.argv[1]+"?mode=ro",uri=True); row=connection.execute("SELECT overlay_upload_bytes, overlay_download_bytes FROM TrafficStats WHERE key=\'global\'").fetchone(); print(json.dumps(row or [0,0])); connection.close()',
+    path.join(appDir, 'hashdb.db')], { encoding: 'utf8', timeout: 5000 });
+  return JSON.parse(output);
+}
 
 // A long generated WAV keeps the real paced mesh response active during seeks.
 function radioTone(seconds = 180): Buffer {
@@ -104,5 +113,25 @@ test.describe('listed radio between isolated nodes', () => {
     expect(statuses.filter((status) => status === 206).length).toBeGreaterThanOrEqual(2);
     expect(statuses).not.toContain(429);
     expect(statuses).not.toContain(500);
+    const listenerTraffic = trafficTotals(listener.getAppDir());
+    const hostTraffic = trafficTotals(host.getAppDir());
+    expect(listenerTraffic[1]).toBeGreaterThan(0);
+    expect(hostTraffic[0]).toBeGreaterThanOrEqual(listenerTraffic[1]);
+    expect(hostTraffic[1]).toBe(0);
+    expect(listenerTraffic[0]).toBe(0);
+
+    const revoke = await request.post(`${host.apiUrl}/api/v0/listening-party/radio-pod/radio-room`, {
+      headers: hostHeaders,
+      data: { partyId: 'network-radio', action: 'play', contentId: item.contentId, title: 'Radio network tone', listed: true, allowMeshStreaming: false, positionSeconds: 0 },
+    });
+    expect(revoke.ok()).toBe(true);
+    await seek.click({ position: { x: bounds!.width * 0.35, y: bounds!.height / 2 } });
+    await page.getByRole('button', { name: 'Retry radio playback', exact: true }).click();
+    await expect(page.getByText('The radio host could not provide this snapshot. Retry or refresh listed radio.')).toBeVisible();
+    expect(statuses).not.toContain(500);
+    await page.getByTestId('player-open-listed-radio').click();
+    await page.getByRole('button', { name: 'Refresh listed radio' }).click();
+    await expect(page.getByRole('button', { name: 'Play Radio network tone from listed radio' })).toBeDisabled();
+
   });
 });

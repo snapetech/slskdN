@@ -157,7 +157,8 @@ public sealed class MeshStreamService : IMeshStreamService
             }
         }
 
-        _ = ProduceAsync(claims, pipe.Writer, cancellationTokenSource.Token, offset);
+        var ready = claims.Radio == null ? null : new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ = ProduceAsync(claims, pipe.Writer, cancellationTokenSource.Token, offset, ready);
 
         var stream = new ReleaseOnDisposeStream(
             pipe.Reader.AsStream(),
@@ -182,13 +183,26 @@ public sealed class MeshStreamService : IMeshStreamService
                 }
             });
 
+        if (ready != null)
+        {
+            try
+            {
+                await ready.Task.ConfigureAwait(false);
+            }
+            catch
+            {
+                await stream.DisposeAsync().ConfigureAwait(false);
+                throw;
+            }
+        }
+
         return new MeshStreamLease(stream, claims.ContentType, claims.OwnerKey)
         {
             Superseded = replacementSource?.Token ?? CancellationToken.None,
         };
     }
 
-    private async Task ProduceAsync(MeshStreamTicket claims, PipeWriter writer, CancellationToken cancellationToken, long offset)
+    private async Task ProduceAsync(MeshStreamTicket claims, PipeWriter writer, CancellationToken cancellationToken, long offset, TaskCompletionSource<bool>? ready)
     {
         Exception? failure = null;
         try
@@ -206,7 +220,7 @@ public sealed class MeshStreamService : IMeshStreamService
                 return;
             }
 
-            await FetchAndCopyAsync(claims, peerId, output, cancellationToken, startOffset: offset).ConfigureAwait(false);
+            await FetchAndCopyAsync(claims, peerId, output, cancellationToken, startOffset: offset, ready: ready).ConfigureAwait(false);
         }
         catch (OperationCanceledException ex)
         {
@@ -225,6 +239,11 @@ public sealed class MeshStreamService : IMeshStreamService
         }
         finally
         {
+            if (ready != null && !ready.Task.IsCompleted)
+            {
+                ready.TrySetException(failure ?? new MeshStreamException("Radio returned no audio data."));
+            }
+
             await writer.CompleteAsync(failure).ConfigureAwait(false);
         }
     }
@@ -259,7 +278,8 @@ public sealed class MeshStreamService : IMeshStreamService
         Stream output,
         CancellationToken cancellationToken,
         IncrementalHash? hash = null,
-        long startOffset = 0)
+        long startOffset = 0,
+        TaskCompletionSource<bool>? ready = null)
     {
         var expectedSize = claims.ExpectedSize;
         long offset = startOffset;
@@ -298,6 +318,7 @@ public sealed class MeshStreamService : IMeshStreamService
                 {
                     hash?.AppendData(buffer, 0, read);
                     await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    ready?.TrySetResult(true);
                 }
             }
 

@@ -38,7 +38,9 @@ public sealed class ListeningPartyService : IListeningPartyService
     private readonly object _directoryRefreshLock = new();
     private Task? _directoryRefreshTask;
     private DateTimeOffset _directoryLastRefreshedAt;
+    private DateTimeOffset _directoryLastForcedAt;
     private long _sequence;
+    private readonly TimeProvider _timeProvider;
 
     public ListeningPartyService(
         IHubContext<ListeningPartyHub> hub,
@@ -48,7 +50,8 @@ public sealed class ListeningPartyService : IListeningPartyService
         NowPlayingService nowPlaying,
         IStreamTicketService streamTickets,
         ILogger<ListeningPartyService> logger,
-        Microsoft.Extensions.Options.IOptionsMonitor<Options> options)
+        Microsoft.Extensions.Options.IOptionsMonitor<Options> options,
+        TimeProvider? timeProvider = null)
     {
         _hub = hub;
         _dht = dht;
@@ -58,6 +61,7 @@ public sealed class ListeningPartyService : IListeningPartyService
         _streamTickets = streamTickets;
         _logger = logger;
         _options = options;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public Task<ListeningPartyEvent?> GetStateAsync(string podId, string channelId, CancellationToken cancellationToken = default)
@@ -73,30 +77,44 @@ public sealed class ListeningPartyService : IListeningPartyService
         return Task.FromResult(state);
     }
 
-    public async Task<IReadOnlyList<ListeningPartyAnnouncement>> ListDirectoryAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<ListeningPartyAnnouncement>> ListDirectoryAsync(CancellationToken cancellationToken = default)
+        => ListDirectoryCoreAsync(false, cancellationToken);
+
+    public Task<IReadOnlyList<ListeningPartyAnnouncement>> RefreshDirectoryAsync(CancellationToken cancellationToken = default)
+        => ListDirectoryCoreAsync(true, cancellationToken);
+
+    private async Task<IReadOnlyList<ListeningPartyAnnouncement>> ListDirectoryCoreAsync(bool force, CancellationToken cancellationToken)
     {
         Task refreshTask;
         lock (_directoryRefreshLock)
         {
-            var refreshIsCurrent = _directoryLastRefreshedAt != default
-                && DateTimeOffset.UtcNow - _directoryLastRefreshedAt < DirectoryRefreshInterval;
-            if (refreshIsCurrent)
-            {
-                refreshTask = Task.CompletedTask;
-            }
-            else if (_directoryRefreshTask is { IsCompleted: false })
+            var canForce = force && (_directoryLastForcedAt == default ||
+                _timeProvider.GetUtcNow() - _directoryLastForcedAt >= TimeSpan.FromSeconds(2) ||
+                _directoryRefreshTask is { IsFaulted: true });
+            var refreshIsCurrent = !canForce && _directoryLastRefreshedAt != default
+                && _timeProvider.GetUtcNow() - _directoryLastRefreshedAt < DirectoryRefreshInterval;
+            if (_directoryRefreshTask is { IsCompleted: false })
             {
                 refreshTask = _directoryRefreshTask;
             }
+            else if (refreshIsCurrent)
+            {
+                refreshTask = Task.CompletedTask;
+            }
             else
             {
+                if (canForce)
+                {
+                    _directoryLastForcedAt = _timeProvider.GetUtcNow();
+                }
+
                 refreshTask = _directoryRefreshTask = RefreshDirectoryAndMarkAsync();
             }
         }
 
         await refreshTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var now = _timeProvider.GetUtcNow().ToUnixTimeMilliseconds();
         return _directory.Values
             .Where(x => x.ExpiresAtUnixMs > now)
             .OrderByDescending(x => x.LastSeenUnixMs)
@@ -109,7 +127,7 @@ public sealed class ListeningPartyService : IListeningPartyService
 
         lock (_directoryRefreshLock)
         {
-            _directoryLastRefreshedAt = DateTimeOffset.UtcNow;
+            _directoryLastRefreshedAt = _timeProvider.GetUtcNow();
         }
     }
 
@@ -215,6 +233,13 @@ public sealed class ListeningPartyService : IListeningPartyService
         if (index == null)
         {
             return;
+        }
+
+        var indexed = index.PartyIds.ToHashSet(StringComparer.Ordinal);
+        var local = _states.Values.Where(state => state.Listed).Select(state => state.PartyId).ToHashSet(StringComparer.Ordinal);
+        foreach (var partyId in _directory.Keys.Where(partyId => !indexed.Contains(partyId) && !local.Contains(partyId)))
+        {
+            _directory.TryRemove(partyId, out _);
         }
 
         foreach (var partyId in index.PartyIds)

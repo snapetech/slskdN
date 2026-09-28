@@ -16,7 +16,7 @@ const RadioDirectory = ({ onClose, onPlay }) => {
     let cancelled = false;
     setLoading(true);
     setError('');
-    listeningParty.getPartyDirectory().then((entries) => {
+    listeningParty.getPartyDirectory({ refresh: refresh > 0 }).then((entries) => {
       if (!cancelled) setParties(entries);
     }).catch(() => {
       if (!cancelled) setError('Listed radio could not load. Refresh to try again.');

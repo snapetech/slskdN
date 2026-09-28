@@ -12,8 +12,8 @@ namespace slskd.Mesh.Dht;
 
 /// <summary>
 /// In-memory DHT client implementing IDhtClient with Kademlia-style routing table.
-/// Provides working PUT/GET operations for single-process/testing scenarios and development.
-/// For production multi-node DHT, this would be replaced with a distributed implementation.
+/// Provides bounded local replica storage for the mesh DHT RPC layer.
+/// Reads prefer the most recently stored value; this is local storage order, not global version ordering.
 /// </summary>
 public class InMemoryDhtClient : IDhtClient
 {
@@ -82,15 +82,15 @@ public class InMemoryDhtClient : IDhtClient
             if (existing != null)
             {
                 existing.ExpiresAt = expires;
+                list.Remove(existing);
+                list.Add(existing);
             }
             else
             {
                 list.Add(new DhtValue(valueCopy, expires));
                 if (list.Count > maxReplicas)
                 {
-                    list.Sort((a, b) => a.ExpiresAt.CompareTo(b.ExpiresAt));
-                    if (list.Count > maxReplicas)
-                        list.RemoveRange(0, list.Count - maxReplicas);
+                    list.RemoveRange(0, list.Count - maxReplicas);
                 }
             }
         }
@@ -112,8 +112,8 @@ public class InMemoryDhtClient : IDhtClient
         {
             var now = DateTimeOffset.UtcNow;
             list.RemoveAll(v => v.ExpiresAt <= now);
-            var first = list.FirstOrDefault();
-            return Task.FromResult(first?.Data.ToArray());
+            var latest = list.LastOrDefault();
+            return Task.FromResult(latest?.Data.ToArray());
         }
     }
 
@@ -129,7 +129,7 @@ public class InMemoryDhtClient : IDhtClient
         {
             var now = DateTimeOffset.UtcNow;
             list.RemoveAll(v => v.ExpiresAt <= now);
-            return Task.FromResult(list.Select(v => v.Data.ToArray()).ToList());
+            return Task.FromResult(list.AsEnumerable().Reverse().Select(v => v.Data.ToArray()).ToList());
         }
     }
 

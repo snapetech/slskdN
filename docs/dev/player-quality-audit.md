@@ -153,3 +153,24 @@ Completed source batch is cleared after commit/push. Next Steps: expiry/renewal,
 reciprocal upload accounting and repeated admissions, source replacement, room
 reconnect/revocation and the remaining player quality audit. Overall goal stays
 active; no release tag or deployment is authorized.
+
+## Radio accounting, revocation and refresh — 2026-09-28
+
+The real two-node browser workflow now verifies host upload and listener
+download totals, remote permission revocation, explicit stalled playback retry,
+a 503 response rather than an unhandled 500, and disabled playback after manual
+refresh reads the changed host announcement. No directory, ticket or audio
+response is intercepted. Confidence is high for this loopback workflow.
+
+Production loopback TLS tests verify payload accounting in both directions,
+expired host capability denial and revocation without additional credit. Local
+expired tickets are rejected before peer reads. These establish denial, not
+successful browser renewal after elapsed expiry. Manual retry controls in both
+layouts also have buffering regressions.
+
+Latest gates: 5,233 unit, 74 smoke, 284 integration, 989 Web tests across 165
+files and 17 browser workflows pass. Repository/Web lint, Release/frontend
+builds, bundle/output, CSRF, anonymous-endpoint, identity and whitespace checks
+pass. Open work includes expiry/renewal and repeated admissions, source changes,
+dual-participant recovery, sustained resource measurements and the remaining
+browser, format, accessibility and physical-device coverage above.

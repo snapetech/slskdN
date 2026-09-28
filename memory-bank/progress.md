@@ -13719,3 +13719,16 @@ Completed source batch is cleared after commit/push. Next Steps: expiry/renewal,
 reciprocal upload accounting and repeated admissions, source replacement, room
 reconnect/revocation and the remaining player quality audit. Overall goal stays
 active; no release tag or deployment is authorized.
+
+## Radio accounting and recovery validated — 2026-09-28
+
+Completed TLS payload accounting, explicit buffering retry, first-read failure
+503, bounded manual directory refresh, withdrawal pruning and DHT receipt
+ordering. Real two-node Chromium verifies decoded seek, reciprocal counters,
+permission revocation and changed directory capability. All 5,233 unit / 74
+smoke / 284 integration / 989 Web / 17 browser tests and lint/build/security
+gates pass. Separate immediate gotcha commits record each reproduced defect.
+
+Next Steps: commit/push this verified batch, then audit host identity casing,
+bidirectional service routing, expiry renewal and live participant recovery.
+The full player goal remains active; no tag or deployment is authorized.

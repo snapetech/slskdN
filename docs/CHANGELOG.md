@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Radio accounting and stalled playback recovery
+
+- Prefer the most recently stored retained DHT value so mutable directory announcements expose updates; refresh identical values and evict oldest retained values at capacity.
+
+- Credit successful radio read payloads after TLS writes on both overlay handlers; exclude metadata, expired/denied reads and empty replies.
+- Provide explicit radio retry while buffering or after an error in expanded and collapsed controls; clear the old source before reconnecting.
+- Wait for the first permitted radio read before sending audio headers, return unavailable status for initial host failure and release stream reservations.
+- Let manual directory refresh bypass normal caching while coalescing concurrent requests and bounding repeated forced refreshes; remove withdrawn remote entries while preserving active local listings.
+
+
 ### Connected radio discovery
 
 - Retain fairness admission for the lifetime of a short-lived radio ticket so received audio does not make that ticket’s later seeks fail. New tickets still check fairness.

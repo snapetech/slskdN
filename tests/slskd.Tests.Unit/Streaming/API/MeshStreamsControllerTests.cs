@@ -33,6 +33,18 @@ public class MeshStreamsControllerTests
         return controller;
     }
 
+    [Fact]
+    public async Task Get_InitialPeerFailureReturnsUnavailableWithoutRangeHeaders()
+    {
+        _streams.Setup(service => service.OpenAsync("ticket", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new MeshStreamException("Host permission was revoked."));
+        var controller = CreateController();
+        controller.Response.Headers.ContentRange = "bytes 0-3/4";
+        var response = Assert.IsType<ObjectResult>(await controller.Get("ticket", CancellationToken.None));
+        Assert.Equal(503, response.StatusCode);
+        Assert.False(controller.Response.Headers.ContainsKey("Content-Range"));
+    }
+
     [Theory]
     [InlineData("bytes=10-19", 206, 10L, 20L, "bytes 10-19/100")]
     [InlineData("bytes=90-", 206, 90L, 100L, "bytes 90-99/100")]

@@ -265,3 +265,21 @@ Radio seeks retain the fairness admission of their short-lived ticket. A new
 radio ticket still checks the existing fairness policy. Replacing a byte range
 for the same ticket ends its preceding HTTP response; other tickets cannot
 preempt it. One active stream per owner and host remains enforced.
+
+## Stalled radio and manual refresh
+
+Use **Retry radio playback** if a radio snapshot buffers indefinitely or reports
+an error. This action is available in both player layouts. It releases the old
+source and reconnects at the current position, provided the host still permits
+streaming. A revoked host cannot be bypassed by retrying.
+
+The directory's **Refresh** action requests current announcements rather than
+reusing the normal one-minute cache. Concurrent refreshes share one lookup;
+repeated manual refreshes within two seconds reuse recent results. Withdrawn
+remote listings disappear after a successful index refresh. Background
+directory polling keeps its existing cache behavior.
+
+Radio traffic totals count successful audio payload bytes after overlay reply
+writes, excluding metadata and framing overhead. The host records uploads and
+the listener records received data. Expired capabilities and revoked reads earn
+no upload credit. New playback tickets still check the existing fairness policy.

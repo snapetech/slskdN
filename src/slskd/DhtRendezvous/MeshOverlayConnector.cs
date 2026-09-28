@@ -39,6 +39,7 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
     private readonly IMeshSearchRpcHandler _meshSearchRpcHandler;
     private readonly MeshOverlayRequestRouter _requestRouter;
     private readonly MeshServiceRouter? _serviceRouter;
+    private readonly slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService? _trafficAccounting;
     private readonly ConcurrentDictionary<string, EndpointAttemptState> _endpointAttemptStates = new();
     private int _pendingConnections;
     private long _successfulConnections;
@@ -75,7 +76,8 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
         IMeshSyncService meshSyncService,
         IMeshSearchRpcHandler meshSearchRpcHandler,
         MeshOverlayRequestRouter requestRouter,
-        MeshServiceRouter? serviceRouter = null)
+        MeshServiceRouter? serviceRouter = null,
+        slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService? trafficAccounting = null)
     {
         _logger = logger;
         _optionsMonitor = optionsMonitor;
@@ -88,6 +90,7 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
         _meshSearchRpcHandler = meshSearchRpcHandler;
         _requestRouter = requestRouter;
         _serviceRouter = serviceRouter;
+        _trafficAccounting = trafficAccounting;
     }
 
     public int PendingConnections => _pendingConnections;
@@ -472,6 +475,11 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
 
         var reply = await _serviceRouter.RouteAsync(call, connection.Username ?? connection.ConnectionId, connection.CertificateThumbprint, cancellationToken).ConfigureAwait(false);
         await connection.WriteMessageAsync(ToMeshServiceReplyMessage(reply), cancellationToken).ConfigureAwait(false);
+        if (_trafficAccounting != null && reply.IsSuccess && reply.Payload.Length > 0 &&
+            string.Equals(call.ServiceName, "ListedRadio", StringComparison.OrdinalIgnoreCase) && call.Method == "Read")
+        {
+            await _trafficAccounting.AddOverlayUploadAsync(reply.Payload.Length, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private static ServiceReply ToServiceReply(MeshServiceReplyMessage message)

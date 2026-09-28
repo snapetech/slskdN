@@ -51,3 +51,18 @@ the cache is bounded by the ticket service's 1,000-ticket limit and expired
 entries are removed on subsequent valid radio opens. New tickets still check
 fairness. Host permission, traffic accounting, concurrency and pacing remain
 active on range reads.
+
+## Radio accounting and recovery — 2026-09-28
+
+Successful ListedRadio Read payloads are credited at the completed TLS write
+boundary in both server and connector handlers. Counts exclude framing and do
+not claim peer consumption. A radio HTTP response waits for its first audio
+bytes; initial host failure returns 503 and releases owner/host reservations.
+Both player layouts offer explicit retry after native buffering or failure.
+
+Manual directory refresh bypasses the normal cache, shares in-flight work and
+has a two-second cooldown. A valid index removes withdrawn remote entries while
+preserving current local publications. The bounded in-memory DHT returns newest
+locally received values first and promotes duplicate refreshes; this is local
+receipt ordering, not distributed version agreement. Read pacing, concurrency
+and fairness checks remain enforced.

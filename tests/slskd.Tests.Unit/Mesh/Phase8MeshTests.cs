@@ -24,6 +24,46 @@ namespace slskd.Tests.Unit.Mesh;
 public class Phase8MeshTests
 {
     [Fact]
+    public async Task InMemoryDhtClient_ReturnsTheMostRecentlyStoredValueFirst()
+    {
+        var dht = new InMemoryDhtClient(Mock.Of<ILogger<InMemoryDhtClient>>(), Microsoft.Extensions.Options.Options.Create(new MeshOptions()));
+        var key = new byte[20];
+        await dht.PutAsync(key, new byte[] { 1 }, 900);
+        await dht.PutAsync(key, new byte[] { 2 }, 900);
+        Assert.Equal(new byte[] { 2 }, await dht.GetAsync(key));
+        var replicas = await dht.GetMultipleAsync(key);
+        Assert.Equal(new byte[] { 2 }, replicas[0]);
+        Assert.Equal(new byte[] { 1 }, replicas[1]);
+    }
+
+    [Fact]
+    public async Task InMemoryDhtClient_RefreshingAnIdenticalValuePromotesItWithoutDuplicating()
+    {
+        var dht = new InMemoryDhtClient(Mock.Of<ILogger<InMemoryDhtClient>>(), Microsoft.Extensions.Options.Options.Create(new MeshOptions()));
+        var key = new byte[20];
+        await dht.PutAsync(key, new byte[] { 1 }, 900);
+        await dht.PutAsync(key, new byte[] { 2 }, 900);
+        await dht.PutAsync(key, new byte[] { 1 }, 900);
+        Assert.Equal(new byte[] { 1 }, await dht.GetAsync(key));
+        Assert.Equal(2, (await dht.GetMultipleAsync(key)).Count);
+    }
+
+    [Fact]
+    public async Task InMemoryDhtClient_CapacityRetainsTheNewestTwentyValues()
+    {
+        var dht = new InMemoryDhtClient(Mock.Of<ILogger<InMemoryDhtClient>>(), Microsoft.Extensions.Options.Options.Create(new MeshOptions()));
+        var key = new byte[20];
+        for (byte value = 0; value < 21; value++)
+        {
+            await dht.PutAsync(key, new[] { value }, value == 0 ? 3600 : 60);
+        }
+
+        var replicas = await dht.GetMultipleAsync(key);
+        Assert.Equal(20, replicas.Count);
+        Assert.Equal(Enumerable.Range(1, 20).Reverse().Select(value => (byte)value), replicas.Select(replica => replica[0]));
+    }
+
+    [Fact]
     public void KademliaRoutingTable_ReturnsClosestInOrder()
     {
         // self ID (20 bytes)

@@ -56,9 +56,11 @@ public sealed class ListeningPartyController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ListeningPartyAnnouncement>), 200)]
-    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    public async Task<IActionResult> List(CancellationToken cancellationToken, [FromQuery] bool refresh = false)
     {
-        var parties = await _listeningParty.ListDirectoryAsync(cancellationToken);
+        var parties = refresh
+            ? await _listeningParty.RefreshDirectoryAsync(cancellationToken)
+            : await _listeningParty.ListDirectoryAsync(cancellationToken);
         return Ok(parties);
     }
 

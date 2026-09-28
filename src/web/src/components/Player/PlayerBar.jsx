@@ -2715,7 +2715,7 @@ const PlayerBar = () => {
     }
   }, [current, setPlaybackPosition, stopOutgoingFade]);
 
-  const tryPlay = useCallback(() => {
+  const tryPlay = useCallback((renewRadio = false) => {
     if (!current) return;
     if (failedTranscodeRef.current !== null) {
       startTranscode(failedTranscodeRef.current);
@@ -2729,7 +2729,7 @@ const PlayerBar = () => {
       return;
     }
     const element = audioRef.current;
-    if (element?.error) {
+    if (element?.error || (current.radioPartyId && renewRadio === true)) {
       if (transcodeMode) {
         startTranscode(renderedPositionRef.current);
         return;
@@ -2740,6 +2740,10 @@ const PlayerBar = () => {
         activeItemRef.current = null;
         autoplayRef.current = true;
         element.pause();
+        if (current.radioPartyId) {
+          element.removeAttribute('src');
+          element.load();
+        }
         playingRef.current = false;
         setPlaying(false);
         setSource(null);
@@ -3591,6 +3595,15 @@ const PlayerBar = () => {
   );
   const playerBadges = getPlayerBadges(current);
   const canPause = playing || playbackStatus === 'loading';
+  const radioRetry = current?.radioPartyId && (playbackStatus === 'buffering' || playbackStatus === 'error') ? (
+    <PlayerToolButton
+      aria-label="Retry radio playback"
+      content="Reconnect to this radio snapshot if playback stalls. The host must still permit streaming."
+      icon="redo"
+      label={collapsed ? undefined : 'Retry radio'}
+      onClick={() => tryPlay(true)}
+    />
+  ) : null;
 
   if (collapsed) {
     return (
@@ -3612,6 +3625,7 @@ const PlayerBar = () => {
         </div>
         <PlayerProgress current={current} duration={duration} onSeek={seekTo} position={position} />
         <div className="player-controls player-control-cluster">
+          {radioRetry}
           <PlayerToolButton
             content="Play the previous track or restart this one."
             aria-label="Previous local track"
@@ -3862,6 +3876,7 @@ const PlayerBar = () => {
             </select>
           </div>
           <div className="player-control-row">
+            {radioRetry}
             <PlayerLauncher
               compact
               onPlayItem={(item) => playItem(item, { replaceQueue: true })}

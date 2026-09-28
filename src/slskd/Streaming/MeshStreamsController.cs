@@ -161,7 +161,13 @@ public sealed class MeshStreamsController : ControllerBase
         }
         catch (MeshStreamLimitException)
         {
+            Response.Headers.Remove("Content-Range");
             return StatusCode(429, "Mesh stream limit reached.");
+        }
+        catch (MeshStreamException)
+        {
+            Response.Headers.Remove("Content-Range");
+            return StatusCode(503, "The radio host is unavailable or no longer permits this snapshot.");
         }
     }
 

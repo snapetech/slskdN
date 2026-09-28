@@ -465,6 +465,27 @@ describe('PlayerBar', () => {
     expect(streaming.createStreamTicket).not.toHaveBeenCalled();
   });
 
+  it.each([false, true])('reconnects stalled radio explicitly and releases its previous source (collapsed=%s)', async (collapsed) => {
+    let finish;
+    const create = vi.spyOn(listeningParty, 'createRadioStreamUrl').mockResolvedValueOnce('/api/v0/mesh-streams/stalled').mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
+      { partyId: 'radio-stalled', contentId: 'radio:stalled', title: 'Stalled radio', allowMeshStreaming: true, transportUsername: 'host', streamTicket: 'capability' },
+    ]);
+    renderPlayer();
+    fireEvent.click(screen.getByTestId('player-open-listed-radio'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Play Stalled radio from listed radio' }));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toBe('/api/v0/mesh-streams/stalled'));
+    fireEvent.play(audio);
+    fireEvent.waiting(audio);
+    if (collapsed) fireEvent.click(screen.getByRole('button', { name: 'Collapse player' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry radio playback' }));
+    expect(audio).not.toHaveAttribute('src');
+    expect(create).toHaveBeenCalledTimes(2);
+    await act(async () => finish('/api/v0/mesh-streams/reconnected'));
+    await waitFor(() => expect(audio.getAttribute('src')).toBe('/api/v0/mesh-streams/reconnected'));
+  });
+
   it('does not probe local decoding after a listed-radio stream failure', async () => {
     vi.spyOn(listeningParty, 'createRadioStreamUrl').mockResolvedValue('/radio-fixture.wav');
     vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
