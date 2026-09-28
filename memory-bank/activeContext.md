@@ -1,3 +1,11 @@
+## Stable release validation — 2026-09-28 20:55 UTC
+
+- The user authorized stable `.328` (`build-main-2026092820-slskdn.328`). The `.327` release and its six archives passed artifact verification; its hosted workflow has completed all jobs except Launchpad PPA publication wait, which is still active. Hold `.328` tagging until that publisher finishes.
+- Release-note preview from `.327` to `HEAD` contains three validated fragments: cross-node room state, local responsiveness, and room delivery before optional directory publication. The versioned `.328` changelog is prepared.
+- `main` is clean and synchronized with `origin/main`. Issue #340's numeric-position fix shipped in `.326`; `.328` is warranted for authenticated cross-node room following and its responsiveness fixes.
+
+Next Steps: wait for `.327` PPA publication, run the guarded full release gate and tag `.328`, then verify the published assets and update stable metadata.
+
 ## Cross-node room-state responsiveness — 2026-09-28 20:53 UTC
 
 - Host publication now commits and notifies local listeners first, then sends
