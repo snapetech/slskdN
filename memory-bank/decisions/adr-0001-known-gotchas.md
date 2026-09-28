@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1076. Resolve Filtered Command Log Paths from the Shell Directory
+
+**The Bug**: A filtered browser command redirected to a path relative to the web package, but shell redirection is resolved from the checkout root before pnpm changes package context. The log directory did not exist and the browser run never started.
+
+**Prevention**: Use checkout-relative log paths for commands launched from the checkout root, or set the command working directory explicitly. Confirm terminal status before starting the corrected browser run.
+
 ### 0z1075. Update Concrete Test Fetchers with Radio Interface Changes
 
 **The Bug**: Adding FetchRadioAsync compiled in unit tests but broke the integration fixture's concrete IMeshContentFetcher implementation with CS0535.
