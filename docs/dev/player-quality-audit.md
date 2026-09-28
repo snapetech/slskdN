@@ -52,7 +52,7 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
 | Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; sustained throughput remains open |
-| Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Actual Chromium PlayerBar follows real routed room events and catches the latest state after automatic transport recovery; two authenticated real SignalR clients on one backend verify leave, explicit disconnect/rejoin, snapshot recovery and live ban / high; cross-node state propagation unverified |
+| Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks, live-event precedence and authenticated cross-node updates | Actual Chromium PlayerBar catches the latest state after automatic transport recovery; two authenticated SignalR clients verify leave/rejoin/snapshot/live-ban behavior, and the two-backend browser workflow verifies initial snapshot, playback, Pause/Seek/Stop updates and banned-member denial over loopback / high; WAN behavior remains unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
 record the source version validated at that time.
@@ -72,7 +72,9 @@ with no unavailable readings. One process exited during the idle CPU interval;
 its delta is excluded. Playing and paused CPU intervals retained all five
 processes. Totals include Chromium and the application shell. The observed
 playing memory increase over idle was 14.74 MiB. Confidence in these samples is
-moderate; repeated warm-baseline and sustained-session measurements remain due.
+moderate. They are retained as an earlier measurement; the repeated
+current-source windows below supersede them for idle/play/pause baseline
+coverage. Sustained queue, visualizer and room workloads remain open.
 
 ## Live host renewal soak — 2026-09-28
 
@@ -88,17 +90,33 @@ This verifies browser timer delivery, remote directory rotation and in-flight
 playback over loopback. It is not a WAN-latency or throughput result; both stay
 open for representative deployment measurements.
 
+## Soulseek fairness traffic accounting — 2026-09-28
+
+Upload totals use payload bytes confirmed after the Soulseek socket write,
+including partial attempts. Download totals use cumulative Download-direction
+progress and terminal events, subtract the existing `StartOffset`, expose
+active and queued bytes to reads, and coalesce terminal chunk completions over
+a 100 ms window. The shared transfer-event path covers regular, multi-source,
+verification, backfill and preview downloads. Graceful shutdown drains
+event-started commits before dependency injection disposes the accounting gate.
+
+The accounting service and application event wiring pass focused regressions;
+the full backend suite passes 5,346 unit, 74 smoke and 284 integration tests,
+and repository lint passes. These checks verify counters and persistence
+handoff. They do not demonstrate radio admission while real Soulseek uploads
+are happening; that reciprocal-transfer workflow remains open.
+
 ## Remaining completion work
 
-- Verify repeated admissions, source replacement and sustained playback across realistic latency. The 15-minute loopback host/listener soak, three browser-driven renewals and post-expiry old/new ticket checks pass; WAN latency and sustained throughput remain due.
-- Verify cross-node listen-along state propagation. Real Chromium PlayerBar follow now survives an automatic transport interruption, rejoins and catches the latest backend snapshot; authenticated same-node clients also cover explicit disconnect/rejoin and live membership revocation.
+- Verify repeated radio admissions during actual Soulseek reciprocal transfers, source replacement and sustained playback across realistic latency. Upload/download counters now include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers; WAN latency and sustained throughput also remain due.
 - Exercise supported browser engines and additional audio formats, including
   failures, decode cancellation and recovery.
 - Verify physical mobile interactions, physical output routing/media buttons,
   and Picture-in-Picture window sizing/focus.
-- Measure repeated warm idle/play/pause intervals and sustained queue,
-  visualizer, output-switch and floating-window cycles for retained memory,
-  stray timers and active contexts.
+- Measure sustained queue, visualizer, output-switch and floating-window cycles
+  for retained memory, stray timers and active contexts. The repeated two-window
+  idle/play/pause baseline is complete; it does not establish a long-session
+  memory plateau.
 - Inspect accessibility with keyboard-only and assistive-technology workflows.
 - Resolve newly discovered defects and update this audit with direct evidence.
 
