@@ -6,9 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1085. Admit Radio Playback Once Per Short-Lived Ticket
+
+**The Bug**: The default fairness guard permits the first download at zero traffic, but the received audio lowers upload/download ratio below its minimum. Evaluating the same admission policy on every native range then rejects seeks with 429 even though the ticket's playback was already admitted.
+
+**Prevention**: Record successful fairness admission for a radio ticket only until that ticket expires. Replacements and seeks reuse that admission; new tickets still evaluate fairness. Bound and expire the admission cache, keep accounting/pacing/host checks on every read, and test an allowed admission followed by a denying guard.
+
 ### 0z1084. Allow Native Range Replacement to Release Its Previous Lease
 
 **The Bug**: Real two-backend Chromium playback returned 206 for bytes=0- and then 429 for an interior seek. The browser replaces its HTTP range while the cancelled previous response is still unwinding, so immediate per-owner/per-host rejection made seeking fail.
+
+**Additional Cause**: The default fairness guard independently rejected the second range after accounting the initial download; see 0z1085. The HTTP 429 alone does not identify whether fairness or concurrency rejected the request.
 
 **Follow-up Evidence**: A two-second wait alone still returned 429: Chromium kept the old range response open while requesting the new range. Cancelling only the producer was also insufficient when the old HTTP response was blocked writing buffered bytes; the replacement must signal the controller to abort that old response.
 
