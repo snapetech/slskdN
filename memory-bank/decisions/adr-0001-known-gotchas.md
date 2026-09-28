@@ -6,6 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1065. Do Not Treat Relative Radio Paths as Remote Routing
+
+**Open Bug**: Directory announcements can come from remote DHT hosts, but their streamPath is relative. The radio endpoint checks in-process party state and locally signed tickets; a remote announcement does not by itself establish a playable route through the browsing node. Controlled browser-stream tests do not cover this host boundary.
+
+**Files Affected**:
+- `src/slskd/ListeningParty/ListeningPartyService.cs`
+- `src/slskd/ListeningParty/API/ListeningPartyController.cs`
+- `src/web/src/components/Player/RadioDirectory.jsx`
+
+**Prevention**: Verify remote-host routing and permission/ticket scope with isolated participants before claiming complete mesh radio playback. Use established mesh transport and conservative manual streaming rather than interpreting relative paths as remote URLs. Track this as unfinished player work.
+
 ### 0z1064. Keep Radio Failures Out of Local Decode Probing
 
 **The Bug**: A failed custom radio URL triggered a local-library playback-info request and produced an unrelated 404. A regression with a radio content ID matching an indexed fixture also exposed the risk of offering local decoding for a custom stream.
