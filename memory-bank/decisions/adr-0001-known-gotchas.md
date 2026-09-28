@@ -17,6 +17,23 @@ versioned community manifest, catalog history, or Dockerfile image pin.
 and update CloudronManifest plus the Dockerfile together to the current stable
 image. Run packaging metadata validation before creating the next tag.
 
+### 0z1221. Use Deterministic Seeks For Crossfade Boundary Tests
+
+**What went wrong:** A cross-browser test used dozens of relative ArrowRight
+presses to reach the crossfade boundary while playback continued. In WebKit the
+presses took long enough for the first track to crossfade during the loop, so
+later presses sought the newly active track. The overlap assertion then missed
+a valid crossfade and reported a browser failure.
+
+**Why:** The test combined wall-clock playback with repeated relative input at
+the exact point where playback changes the slider's target track. Keyboard
+event dispatch time differs across browser engines.
+
+**Prevention:** Set a near-boundary playback position in one operation, confirm
+the active track and position, then assert the overlap and pause behavior. Keep
+keyboard-seeking coverage in a separate test that does not rely on a narrow
+timing window.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
