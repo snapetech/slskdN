@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1142. Measure Every Player Control Rather Than Only Play
+
+**The Bug**: Mobile playback passed a 44-pixel Play-button check while rating buttons remained 24 pixels and seven visual controls were squeezed into an artwork-width strip. The real-browser negative rating regression measured 24 pixels; retained 320-pixel screenshots also showed clipped rating metadata.
+
+**Prevention**: Give rating and visual controls their own responsive rows, measure auxiliary and compact controls as well as transport, and verify visible focus and full rating text. Keep optional visual controls behind the existing tools toggle on narrow screens so touch sizing does not consume the default player layout.
+
 ### 0z1141. Detect Room End from Owned State Rather Than a Previous React Render
 
 **The Bug**: The new room owner used playerRef.followingParty.contentId to distinguish an empty room from an ended broadcast. While switching to an empty room, a previous render can still describe the old track. A delayed-snapshot regression reproduced clearing the newly followed room based on that unrelated stale content.
