@@ -32239,3 +32239,17 @@ the requested room's server state.
 **Prevention:** Detach following only for a non-Stop host start. Keep manual Stop
 scoped to its room and preserve the observed party identity. Unit coverage checks
 that Stop does not call the following ownership method.
+
+### 0z1155 — Remote listen-along fan-out must not delay local playback (2026-09-28)
+
+**What went wrong:** The first authenticated cross-node implementation awaited
+every remote member before notifying local room subscribers. Offline peers were
+retried in bounded batches, so membership size could delay the host's own room
+controls and playback feedback.
+
+**Why:** Reliable remote delivery was placed ahead of the latency-sensitive local
+state path, and per-peer timeouts did not bound total fan-out duration.
+
+**Prevention:** Notify local subscribers immediately after committing the state.
+Keep remote fan-out bounded by both concurrency and one overall time budget.
+Measure local update latency separately from remote delivery outcomes.
