@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1102. Use Canonical API Key Names in Membership Fixtures
+
+**The Bug**: A real room fixture configured a hyphenated API key name and tried to ban that literal name. The YAML provider normalizes key paths by removing hyphens/underscores, so the authenticated member was roomlistener and the ban returned member-not-found for room-listener.
+
+**Prevention**: Use simple alphanumeric API key names in fixtures and verify the members response before moderation. Credentials are values; membership identity comes from the actual configured key name after configuration binding, not a client-supplied join body.
+
 ### 0z1101. Include Required Request Fields Before Controller Identity Normalization
 
 **The Bug**: A live room fixture omitted RequestingPeerId from CreatePod because the controller replaces it with authenticated identity. API model validation runs first and rejected the missing required record field with 400.
