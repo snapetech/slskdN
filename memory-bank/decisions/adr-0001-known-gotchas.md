@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1155. Withdraw the Previous Room Listing on Unlist, Replacement and Stop
+
+**The Bug**: Three service regressions reproduced stale directory entries after unlisting, replacing a party ID, or stopping with a different supplied ID. Cleanup only removed the Stop request's ID; accepted room state changed without retracting the previous announcement. A refresh already reading old DHT data could also restore withdrawn metadata.
+
+**Prevention**: Capture the previous room state only after successful storage, retract its listing on these transitions, and retain local withdrawal markers for the announcement lifetime. Recheck local ownership and withdrawals after asynchronous directory reads. Serialize this service's shared index read/modify/write operations so separate room writers preserve each other's changes. This local gate does not provide distributed compare-and-swap across nodes.
+
 ### 0z1146. Pace Legitimate Mesh RPC Frames Outside the Receive Loop
 
 **The Bug**: A real TLS regression issued twenty sequential radio metadata calls on one authenticated link. The existing ten-pending-call limit did not pace sequential frames; a call returned ServiceUnavailable after the inbound ten-per-second quota disconnected the peer.
