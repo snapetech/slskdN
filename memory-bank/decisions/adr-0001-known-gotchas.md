@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1110. Distinguish Radio Transport Evidence from Valid Room Publication
+
+**The Gotcha**: The radio transport fixture uses synthetic room identifiers. Real node logs reject its pod ID during message storage, while local publication and radio discovery still succeed. PublishAsync ignores the storage boolean and only logs a routing failure, so an HTTP success does not prove durable or distributed room delivery. The overlay dispatcher also lacks a pod_message receiver.
+
+**Prevention / Open Work**: Use real pods and channels for room delivery evidence. Validate room existence and storage outcomes before claiming publication success, and implement authenticated remote state application before claiming cross-node listen-along. Keep radio byte transport results scoped to their tested boundary.
+
 ### 0z1109. Resolve Retained Browser Fixture Paths Before Spawning Nodes
 
 **The Bug**: A relative SLSKDN_TEST_ARTIFACTS_DIR created the fixture at the intended runner-relative location, but child processes used that same relative path as both working directory and config argument. Startup resolved the config below the working directory again and exited before HTTP readiness.
