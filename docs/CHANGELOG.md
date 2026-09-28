@@ -24,17 +24,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [2026092820-slskdn.328] — 2026-09-28
 
-### Cross-node listen-along room state
+### Authenticated cross-node listen-along
 
-- Send room state through authenticated mesh calls, bind the sender to its transport identity, reject stale sequences, and cap remote fan-out at two seconds while keeping local delivery responsive.
-
-### Local listen-along responsiveness
-
-- Notify local followers before remote mesh fan-out. Bound the fan-out to two seconds so offline peers do not delay room controls.
-
-### Cross-node room delivery availability
-
-- Send authenticated room-state updates before optional radio-directory publication so a directory failure cannot suppress updates to followers on other mesh nodes.
+- Apply remote room updates only from transport-verified active members, reject stale sequences, and keep received messages local to avoid routing loops.
 
 ## [2026092818-slskdn.327] — 2026-09-28
 
