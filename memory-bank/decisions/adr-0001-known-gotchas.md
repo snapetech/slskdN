@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1158. Apply Active Broadcast Settings Through the Owned Writer
+
+**The Bug**: Both compact and expanded listing controls changed only local checkbox state. Two negative regressions reproduced no publication after changing a running paused host. The broadcast retained its previous directory and streaming permissions until Broadcast was clicked again.
+
+**Prevention**: Apply active-host settings through the persistent publication writer, preserving current paused/play state, mapped position and party identity. Keep pre-start choices staged. Render confirmed settings until acknowledgment, show pending work and explicit retry feedback, and disable settings during their write or Stop. Unlisting also clears streaming opt-in so relisting requires a fresh streaming choice.
+
 ### 0z1157. Bind Radio Withdrawal to the Accepted Room State
 
 **The Bug**: Stronger two-room regressions reproduced both listings disappearing when Stop or unlist supplied the other room's party ID. Stop already removed the supplied ID without room ownership; the initial retry fix also marked an unlisted request's replacement ID, introducing the same collateral deletion on unlist.
