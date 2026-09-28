@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1049. Pass Captured Values Into Browser Evaluation
+
+**The Bug**: The duplicate-local-file browser regression referenced firstSource from a page evaluateAll closure. Browser evaluation runs in a separate JavaScript context, so the captured Node value was unavailable and the test threw ReferenceError.
+
+**Files Affected**:
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Pass outside values as the explicit serializable evaluation argument. Keep browser callbacks self-contained; distinguish test harness errors from product playback errors.
+
 ### 0z1048. Scope Queue Assertions To Upcoming Rows
 
 **The Bug**: New playlist and duplicate-file browser assertions counted the Now Playing tile as an upcoming queue row because both use the same row class. Valid queues appeared to have one extra entry.
