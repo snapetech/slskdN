@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1059. Gate Push On Successful Release-Fragment Validation
+
+**The Bug**: A player fragment added contributors to audience, but the release schema accepts only users and operators. A multiline shell command continued to push after preview failed because it did not stop on errors.
+
+**Files Affected**:
+- `release-notes/20260928-player-stop-idle-work.md`
+
+**Prevention**: Read the fragment schema before setting metadata, validate the complete batch against its original base, and make push conditional on successful gates. Correct unshipped metadata before release; never edit shipped fragments.
+
 ### 0z1058. Share Cleanup Between Natural and Interrupted Crossfades
 
 **The Bug**: Natural crossfade completion duplicated media cleanup instead of using stopOutgoingFade. After the outgoing media stopped, a real-browser check still found both AudioContexts running; only interrupted fades suspended the outgoing context.
