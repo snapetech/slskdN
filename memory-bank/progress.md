@@ -15043,3 +15043,13 @@ tag can run.
 GitHub workflow `36470924868` completed successfully after Launchpad published the
 `.327` package. This clears the package-channel overlap; proceed with the guarded
 `.328` tag helper on the fully pushed and previously gated candidate.
+
+## Live Soulseek upload fairness accounting — 2026-09-28 21:39 UTC
+
+The committed upload fix counts payload bytes reported after socket writes,
+including partial writes before failure. The follow-up exposes those bytes in
+live fairness totals before database persistence and serializes reads against
+commit so persistence cannot double-count credit. Added a regression that
+evaluates admission during a blocked commit, plus lifecycle assertions for
+completed, partial-failure and zero-byte writes; focused tests pass 6/6. The
+full gate must be rerun on this final tree before tagging.

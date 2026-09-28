@@ -1275,3 +1275,16 @@ still in progress remains open. The LAN-only two-node radio fixture has no real
 Soulseek download path, so current proof stops at the actual upload service
 reporter and unit-level accounting. Do not close the sustained-use task based
 only on completed-attempt accounting.
+
+## Live fairness visibility follow-up — 2026-09-28
+
+Fairness reads now include process-local Soulseek payload bytes immediately
+after each completed network write. The attempt's final upsert is serialized
+with totals reads, then removes only that attempt's pending bytes. A controlled
+regression holds the database write open, confirms a new totals read waits, and
+verifies the exact counter remains 200 bytes before and after persistence; no
+per-chunk database writes are introduced.
+
+This proves the accounting-service handoff but not a full radio playback and
+Soulseek upload running concurrently on real nodes. Keep repeated admission
+during sustained peer traffic open until that workload is exercised.

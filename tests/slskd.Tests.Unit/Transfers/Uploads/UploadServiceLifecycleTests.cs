@@ -158,7 +158,10 @@ public class UploadServiceLifecycleTests
 
         Assert.NotNull(result);
         Assert.True(result.State.HasFlag(TransferStates.Succeeded));
-        accounting.Verify(service => service.AddSoulseekUploadAsync(4, It.IsAny<CancellationToken>()), Times.Once);
+        accounting.Verify(service => service.RecordSoulseekUploadProgress(1), Times.Once);
+        accounting.Verify(service => service.RecordSoulseekUploadProgress(3), Times.Once);
+        accounting.Verify(service => service.RecordSoulseekUploadProgress(0), Times.Never);
+        accounting.Verify(service => service.CommitSoulseekUploadAsync(4, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -178,7 +181,9 @@ public class UploadServiceLifecycleTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.UploadAsync(fixture.Transfer));
 
-        accounting.Verify(service => service.AddSoulseekUploadAsync(3, It.IsAny<CancellationToken>()), Times.Once);
+        accounting.Verify(service => service.RecordSoulseekUploadProgress(2), Times.Once);
+        accounting.Verify(service => service.RecordSoulseekUploadProgress(1), Times.Once);
+        accounting.Verify(service => service.CommitSoulseekUploadAsync(3, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -193,7 +198,7 @@ public class UploadServiceLifecycleTests
 
         var accounting = CreateTrafficAccountingMock();
         accounting
-            .Setup(service => service.AddSoulseekUploadAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .Setup(service => service.CommitSoulseekUploadAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("synthetic accounting failure"));
         await using var fixture = await CreateUploadTestFixtureAsync(client, accounting.Object);
 
@@ -232,7 +237,7 @@ public class UploadServiceLifecycleTests
     {
         var accounting = new Mock<ITrafficAccountingService>();
         accounting
-            .Setup(service => service.AddSoulseekUploadAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
+            .Setup(service => service.CommitSoulseekUploadAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         return accounting;
     }

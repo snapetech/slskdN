@@ -426,6 +426,7 @@ namespace slskd.Transfers.Uploads
                         if (act > 0)
                         {
                             Interlocked.Add(ref soulseekUploadBytesSent, act);
+                            _trafficAccountingService.RecordSoulseekUploadProgress(act);
                         }
 
                         Governor.ReturnBytes(tx.Username, att, grant, act);
@@ -541,7 +542,7 @@ namespace slskd.Transfers.Uploads
                 {
                     try
                     {
-                        await _trafficAccountingService.AddSoulseekUploadAsync(bytesSent, CancellationToken.None).ConfigureAwait(false);
+                        await _trafficAccountingService.CommitSoulseekUploadAsync(bytesSent, CancellationToken.None).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

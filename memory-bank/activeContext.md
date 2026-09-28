@@ -1,3 +1,10 @@
+## `.328` scope expanded with live upload accounting — 2026-09-28 21:39 UTC
+
+- After `.327` completed, `origin/main` received the radio-fairness accounting fix. The local follow-up exposes actual socket-written bytes to live fairness totals, serializes the persistence/read boundary to prevent double counting, and adds a regression for evaluation during commit. The existing upload-accounting fragment and new live-fairness fragment are in the `.327` to `.328` range; the final preview will contain five product release-note fragments.
+- The focused upload/accounting tests pass 6/6. The earlier full release gate predates this fairness change and is not final validation for the current tree.
+
+Next Steps: commit and push the fairness follow-up, promote its changelog bullet into `.328`, rerun the full release gate on the final pushed head, and use the guarded tag helper.
+
 ## `.327` publication complete — 2026-09-28 21:31 UTC
 
 - Hosted run `36470924868` completed successfully, including Launchpad PPA publication. The overlapping-package wait is clear.
