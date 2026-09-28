@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1200. Retire Remote Room State Only After Local Persistence Succeeds
+
+**What went wrong:** A local room publication removed the currently received
+remote snapshot before the new message had been accepted by storage. A storage
+failure could therefore erase the only usable room state without committing
+the replacement.
+
+**Why:** Snapshot invalidation was coupled to publication preparation instead
+of the successful persistence boundary.
+
+**Prevention:** Keep the prior remote snapshot readable until the replacement
+message is stored successfully. Then retire the prior party and commit the
+local state while still holding the room's publication ordering.
+
 ### 0z1199. Assert Mesh Reply Payloads Against Their Wire Contract
 
 **What went wrong:** The new `ApplyListenAlong` service returned success, but
