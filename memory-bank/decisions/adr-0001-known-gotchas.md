@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1047. Preserve Object Closure During Normalization Extraction
+
+**The Bug**: Extracting the existing playable metadata object into an arrow helper omitted the final closing object brace, making PlayerContext invalid JavaScript.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+
+**Prevention**: Inspect the complete extracted expression, including its final `});`, and complete frontend lint before starting a build or regression run. Avoid slicing generated closing punctuation from a source block.
+
 ### 0z1046. Normalize Playback Metadata At Every Queue Entry
 
 **The Bug**: Real Files -> Play Next playback advanced to a filename-only library item, but the player displayed Nothing playing. Direct Play normalized fileName into title and supplied artist/artwork fields; queue insertion retained the raw API shape.
