@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1103. Return No Value from SignalR Notification Collectors
+
+**The Bug**: Runtime fixture handlers used expression callbacks returning Array.push's numeric result. SignalR treated that as a client result even though partyState was a one-way notification, producing repeated unexpected-result errors.
+
+**Prevention**: Use block callbacks without return values for notification collectors. Reserve handler results for server invocations that explicitly request a result; assert transport logs when extending real-client workflows.
+
 ### 0z1102. Use Canonical API Key Names in Membership Fixtures
 
 **The Bug**: A real room fixture configured a hyphenated API key name and tried to ban that literal name. The YAML provider normalizes key paths by removing hyphens/underscores, so the authenticated member was roomlistener and the ban returned member-not-found for room-listener.
