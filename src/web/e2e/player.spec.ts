@@ -365,6 +365,26 @@ test.describe('player browser playback', () => {
     await expect.poll(pipExists).toBe(false);
   });
 
+  test('suspends processing after rejected initial Play and resumes on explicit retry', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('slskdn.player.crossfadeEnabled', 'true'));
+    await page.reload();
+    await page.evaluate(() => {
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        HTMLMediaElement.prototype.play = play;
+        return Promise.reject(new DOMException('Injected denied start', 'NotAllowedError'));
+      };
+    });
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    await expect(page.getByText('Playback could not start. Check the file or try again.', { exact: true })).toBeVisible();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.map((context) => context.state))).toEqual(['suspended']);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect(page.getByText('Playback could not start. Check the file or try again.', { exact: true })).not.toBeVisible();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 0.2))).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.map((context) => context.state))).toEqual(['running']);
+  });
+
   test('suspends the outgoing graph when a crossfade finishes naturally', async ({ page }) => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles([firstFile, secondFile]);
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();

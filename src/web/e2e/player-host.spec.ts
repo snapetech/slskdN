@@ -57,7 +57,18 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
       return response.json();
     };
     for (const target of [page, listener]) {
-      await target.addInitScript(() => localStorage.setItem('slskdn.player.collapsed', 'false'));
+      await target.addInitScript(() => {
+        localStorage.setItem('slskdn.player.collapsed', 'false');
+        const audioWindow = window as Window & { __playerAudioContextInstances?: AudioContext[] };
+        audioWindow.__playerAudioContextInstances = [];
+        window.AudioContext = new Proxy(window.AudioContext, {
+          construct(target, argumentsList, newTarget) {
+            const context = Reflect.construct(target, argumentsList, newTarget);
+            audioWindow.__playerAudioContextInstances!.push(context);
+            return context;
+          },
+        });
+      });
       await login(target, node.nodeCfg);
     }
     let publications = 0;
@@ -196,12 +207,59 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     }).toBe(true);
     await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime >= 4))).toBe(true);
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByTestId('player-toggle-crossfade').click();
+    // Reject the actual native Play promise once, before it emits a play event.
+    // This controlled startup fault does not claim a decoder-format failure.
+    await page.evaluate(() => {
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        HTMLMediaElement.prototype.play = play;
+        return Promise.reject(new DOMException('Injected denied start', 'NotAllowedError'));
+      };
+    });
     await page.getByTestId('player-open-file-browser').click();
     await modal.getByTestId('player-file-browser-search').locator('input').fill('Host second');
     await modal.getByRole('button', { name: 'Play Host second.wav', exact: true }).click();
+    await expect(page.getByText('The next track could not start.', { exact: true })).toBeVisible();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
+    await expect.poll(async () => {
+      const state = await snapshot();
+      return state?.action === 'pause' && state.title === 'Host second.wav' && state.positionSeconds < 0.4;
+    }).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.map((context) => context.state))).toEqual(['suspended', 'suspended']);
     await expect.poll(async () => (await snapshot())?.title).toBe('Host second.wav');
     expect((await snapshot()).partyId).toBe(partyId);
     await expect(listener.locator('.player-title')).toHaveText('Host second.wav');
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => audio.paused && audio.currentTime < 0.4 && Boolean(audio.currentSrc)))).toBe(true);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect(page.getByText('The next track could not start.', { exact: true })).not.toBeVisible();
+    await expect.poll(async () => (await snapshot())?.action).toBe('play');
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 0.2))).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.map((context) => context.state).sort())).toEqual(['running', 'suspended']);
+    await page.getByTestId('player-toggle-crossfade').click();
+    await page.locator('audio').evaluateAll((elements) => {
+      (elements as HTMLAudioElement[]).find((audio) => !audio.paused)!.dispatchEvent(new Event('error'));
+    });
+    await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 0.2 && audio.currentSrc.includes('/transcoded')))).toBe(true);
+    const tickets = /\/api\/v0\/streams\/[^/]+\/ticket$/;
+    await page.route(tickets, (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ code: 'injected_ticket_failure' }) }));
+    await seek.press('Home');
+    for (let second = 0; second < 25; second++) await seek.press('ArrowRight');
+    await expect(page.getByText('Decoding could not start. Press Play to retry. The server may be busy or FFmpeg may be unavailable.', { exact: true })).toBeVisible();
+    await expect(seek).toHaveValue('25');
+    await expect.poll(async () => {
+      const state = await snapshot();
+      return state?.action === 'pause' && state.title === 'Host second.wav' && Math.abs(state.positionSeconds - 25) < 0.4;
+    }).toBe(true);
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => audio.paused && Math.abs(audio.currentTime - 25) < 0.4))).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.every((context) => context.state === 'suspended'))).toBe(true);
+    expect((await snapshot()).partyId).toBe(partyId);
+    await page.unroute(tickets);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 0.2 && audio.currentSrc.includes('startSeconds=25')))).toBe(true);
+    await expect.poll(async () => (await snapshot())?.action).toBe('play');
+    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime >= 25))).toBe(true);
     await page.getByRole('button', { name: 'Hide player tools', exact: true }).click();
     await page.setViewportSize({ width: 320, height: 844 });
     const title = await page.locator('.player-title').boundingBox();

@@ -15651,3 +15651,86 @@ and directory conflict ownership; broader queue/analyzer/visualizer/radio/
 format/device/accessibility/resource validation. Improve transient proc
 census coverage without hiding endpoint limitations. Current batch is
 finished; the full player goal remains active and is not proven complete.
+
+
+## Failed playback setup and crossfade batch — 2026-09-28
+
+Three negative cases reproduce missing paused host intent after native Play
+rejection, decoded seek setup failure and crossfade start rejection. A combined
+native assertion also proves the resumed processing context remains running
+when playing never changes from false. Negative artifacts:
+`.local/player-setup-negative.log` and `.local/player-setup-graph-negative.log`.
+
+Decoded source replacement now reports the paused requested absolute target.
+Owned native Play failure pauses active audio and reports its full position;
+stale selected-item/element completions are ignored. Crossfade rejection reports
+a paused replacement. Existing context quiescence also reconciles terminal
+playback status, while loading graphs remain available. Gotcha 0z1178 was
+committed immediately as abe79d867. Production source is not committed/pushed.
+
+All 68 PlayerBar cases and 26 host-writer cases pass (94 total), as does Web
+lint. Four added cases cover the three failures, crossfade recovery, loading
+availability and a late rejected Play from a replaced track. Rendering uses
+the existing helper with context overrides for callback traces. No new runtime
+dependency or periodic network work is introduced.
+
+Next: extend the actual host browser workflow to rejected crossfade/start and
+decoded setup failure, verify followers retain paused positions and explicit
+recovery, then full gates, release fragment/docs and commit/push. Pending native
+suspend/resume ordering and late resume after Pause still require independent
+negative tests and a shared lifecycle solution; do not claim this batch resolves
+those races. Host lease/renewal/multi-tab ownership, distributed state/index,
+resource/format/device/accessibility scope remain open. Full player goal active.
+
+
+### Rebuilt failed-setup recovery verified; login readiness corrected — 2026-09-28
+
+All 1,086 Web regressions / 169 files, expanded types, Web lint, frontend and
+Release builds pass. Release retains two support warnings. All 5,321 unit,
+74 smoke and 284 integration tests and repository lint pass; backend/lint
+session 8547 is terminal zero. Bundle/output/controller-CSRF/anonymous/fetch-CSRF/
+identity gates pass, session 88462 terminal zero. Rebuilt host browser and initial
+Play fault cases pass, sessions 63097/11258 terminal zero. Host/follower decoding
+uses actual FFmpeg, HTTP ticket failure at absolute 25 seconds, paused follower
+state and explicit recovery. Crossfade promise faults verify replacement pause
+and context suspension, followed by retry. Controlled faults are not new format
+compatibility evidence.
+
+The first 22-case full browser run is terminal one with 21 passes: login setup
+awaited network idleness despite a visible form. A held unrelated request
+reproduces the timeout. The helper now uses DOM readiness with the same deadline
+and retains all visible-control/session/authenticated-navigation checks. Its
+focused corrected case passes. Route cleanup type mismatch and browser-before-
+backend teardown are fixed and immediately documented/committed along with the
+readiness contract (0z1179–0z1181). No runtime asset change follows these helper
+fixes.
+
+The complete corrected 23-case browser suite is LIVE in shell session 26765.
+Retain `.local/player-setup-corrected-suite.log`, browser/nodes artifacts and
+negative `.local/player-readiness-negative.log`; do not restart on observation
+timeout. Resource measurement must wait for terminal completion of this suite.
+All 129 frozen hashes match in `.local/player-setup-frozen-inputs.json`, including
+current PlayerBar/assets/Release DLL/probe/helper inputs. After the suite passes,
+run the isolated native resource check with no concurrent gates, verify the same
+hashes and coverage/workload, finish docs/fragment/gates, commit explicit batch
+paths, preview base 167ad7982 through final HEAD, verify privacy and fork target,
+push main and confirm clean origin parity. No tags/releases/deployment.
+
+Next after publication: independently reproduce pending native resume after
+Pause and overlapping suspend/resume intent. Verify sustained 900-second listed
+host/capability expiry and multi-tab ownership before choosing conservative
+renewal. Distributed state/index, broader resources/formats/devices/a11y stay
+unfinished. The full player objective remains active.
+
+
+Repeated resource samples are TERMINAL PASS: two 60-second windows per idle,
+playing and paused state, 15-second warmups, isolated disk-file PCM, current
+assets. Six samples show OS/CDP CPU means 0.600% idle, 2.057% playing, 0.616%
+paused; OS-tree PSS means 289/325/314 MiB and CDP PSS means 268/305/295 MiB.
+There is no AudioContext, sampled process churn or missing PSS reading. One proc
+stat is unclassifiable at the first idle and second paused endpoints; disclose
+incomplete ancestry. All 129 source/build inputs match. Repeat has no process/job
+left live. The functional 23-case browser suite, 1,086 Web tests, 5,321 unit,
+74 smoke and 284 integration tests, build/types/lint/security gates all pass.
+Next, exact-range release preview, identity/fork checks, explicit commit/push and
+origin parity; then continue the broader goal. Do not mark player complete.

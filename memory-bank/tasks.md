@@ -5597,3 +5597,46 @@ whole-session resource completion.
 - [x] 2026-09-28: Commit and push native disk/OS resource reporting and active
   host media-error repairs with validated fragments and exact-range gates;
   final source publication verified through e8f57fe73.
+
+
+## Player failed setup recovery — 2026-09-28
+
+- [x] Reproduce native Play, decoded seek setup and crossfade start failures;
+  preserve paused host target and terminal processing quiescence in regressions.
+- [x] Verify loading graph availability, replaced-request isolation and explicit
+  crossfade recovery; 94 focused player/host cases and Web lint pass.
+- [x] Verify the corrected paths with real host/follower browser workflows,
+  run full publication gates and document the batch; source publication pending.
+- [ ] Reproduce and repair late native resume after Pause and overlapping
+  suspend/resume completion without breaking newer playback intent.
+
+
+### Sustained host renewal evidence to obtain — 2026-09-28
+
+- [ ] Verify a continuously active listed host past the 900-second announcement
+  and advertised stream-capability lifetime. Source inspection finds renewal on
+  listed publication and no periodic renewal in the player host writer. Reproduce
+  expiry with controlled service time and actual cross-node requests before
+  choosing bounded renewal and ownership behavior; retain conservative network
+  limits and prevent stale tabs from renewing replaced sessions. This is separate
+  from the verified two-minute local listener ticket reselection workflow.
+
+
+### Player startup recovery publication — 2026-09-28
+
+- [x] Reproduce and fix host publication and processing leaks for rejected
+  initial/crossfade playback and failed decoded seek setup; preserve recovery.
+- [x] Correct login readiness so unrelated pending requests do not block real
+  credential/session readiness; add and pass a held-request browser regression.
+- [x] Full 23-case player browser gate and backend/Web/type/build/lint/security
+  gates pass.
+- [x] Finish isolated three-state resource verification, append measured scope,
+  and retain matching source/build hashes.
+- [ ] Validate the exact release range, commit and push.
+
+
+- [ ] Follow the player quality audit before declaring completion: pending
+  native suspend/resume intent ordering; actual 900-second listed-host renewal
+  and stale-tab ownership; distributed state/index contention; resource budgets
+  for queues/analyzers/visualizers/radio; browser/device/format/accessibility
+  validation.

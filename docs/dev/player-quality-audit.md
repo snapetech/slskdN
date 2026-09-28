@@ -1105,3 +1105,91 @@ active/standby regressions, 12 OS collector cases and all 1,082 Web tests pass.
 All 22 rebuilt browser cases, 5,321 backend unit / 74 smoke / 284 integration,
 expanded types, lint, builds and ancillary gates pass. Release retains its two
 existing support warnings. The full player goal remains active.
+
+
+## Failed playback setup and explicit recovery — 2026-09-28
+
+Three component negatives reproduce missing paused host intent after native
+Play rejection, decoded seek setup failure and crossfade start rejection. The
+native case additionally proves a resumed context remains running when playing
+never changes from false. Retained negative logs distinguish these from the
+browser results; the extended crossfade browser check passed against the
+previous assets and is not an independent reproduction of that regression.
+
+The player now reports paused intent at the decoded requested absolute target,
+pauses/reports owned failed Play, and publishes the paused crossfade replacement.
+Terminal playback status reconciles existing processing even if playing never
+changed, while loading leaves graphs available. A late rejected Play from a
+replaced track cannot overwrite the newer playback. Four new regressions bring
+the focused PlayerBar/host-writer total to 94 and the full Web total to 1,086
+across 169 files. Web lint, explicit browser/helper TypeScript, frontend and
+Release builds pass; Release retains two dependency support warnings.
+
+Two authenticated Chromium sessions verify rejected crossfade startup, paused
+new-track intent, suspended contexts, explicit retry and follower recovery. A
+controlled ticket HTTP 503 during actual FFmpeg-decoded seeking leaves host and
+follower paused at 25 seconds, and retry resumes decoded playback at that offset.
+A separate actual-browser native Play-promise rejection verifies initial failure
+quiescence and explicit retry. These controlled faults do not add unsupported
+decoder-format claims. Full suite, backend/repository gates and publication are
+pending at this checkpoint; final results will be appended after completion.
+
+Pending native suspend/resume ordering remains independent unfinished work.
+These checks do not establish physical output-device behavior, wider browser or
+format support, sustained host renewal or multi-tab/distributed ownership. The
+prior long resource measurements remain scoped to their recorded source assets.
+The full player objective stays active. Confidence: high for the tested paths.
+
+
+The first expanded 22-case browser run finished with 21 passes and one login
+setup failure before queue actions. The retained screenshot shows a rendered
+login form; the helper still awaited ten-second network idleness. A new real
+browser regression holds an unrelated request open and reproduces that timeout.
+Login now navigates to DOM readiness and retains its root/credential/submit/API/
+authenticated-navigation assertions and deadlines. Gotchas 0z1179/0z1180 record
+route cleanup and the readiness contract. This is internal validation work.
+The complete corrected browser run remains required; a focused pass cannot
+replace that gate.
+
+
+## Corrected complete player browser gate — 2026-09-28
+
+After the login-readiness fix, all 23 functional player cases pass in 3.7
+minutes, including the two-node radio expiry flow, two authenticated host/follower
+startup and decoded-ticket recovery, and the pending-network login regression.
+The earlier 21/22 run is retained as the negative reproduction; its only failure
+was login navigation before player assertions. The held-request negative and
+corrected one-case browser test establish the cause and repair.
+
+The separate three-state, ten-second native resource run is in progress with
+129 frozen source/build hashes; its result and OS/CDP coverage are pending.
+Do not infer sustained resource budgets from the longer earlier runs after those
+measure different source versions.
+
+
+## Repeated current-source disk-file resource check — 2026-09-28
+
+The rebuilt current assets pass six windows: two 60-second samples in each
+idle, playing and paused state, after a 15-second warmup per state. Browser
+input is a 40-second generated 22,050 Hz mono PCM disk file (1,764,044 bytes);
+video/tracing are disabled. HeadlessChrome 153.0.8010.12 on Linux. There are no
+created AudioContexts, process changes or missing PSS reads. One proc stat read
+has unknown ancestry in the first idle and one in the second paused endpoint;
+complete OS process enumeration is therefore not proven.
+
+| State | OS-tree CPU (% one core) | OS-tree PSS (MiB) | CDP CPU (% one core) | CDP PSS (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Idle | 0.600 | 289.24 | 0.600 | 267.88 |
+| Playing | 2.057 | 324.58 | 2.057 | 305.20 |
+| Paused | 0.616 | 313.94 | 0.616 | 294.57 |
+
+Means are for two windows per state, not a full-session budget or plateau.
+PSS rises while playing and remains above idle after pausing; heap ranges 9.06–
+10.52 MiB idle, 9.35–9.90 MiB playing and 9.69–11.88 MiB paused. Two endpoints
+per state do not establish monotonic retention or leak behavior. The same CPU
+trend in separately scoped CDP and Linux process metrics and stable paused audio
+position support the measured result. Do not generalize this native no-graph
+workload to queues, visualizers, decoded/high-rate formats, output routing,
+remote radio or long-running rooms. Confidence: high for the sampled windows,
+moderate for comparative steady-state use. Resource JSON and process files
+remain local. All 129 frozen source/build hashes match before and after.

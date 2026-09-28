@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Failed player startup and decoded seek recovery
+
+- Publish paused host intent after rejected Play or crossfade startup and while decoded seeking replaces its stream, retaining the requested absolute recovery position.
+- Suspend existing processing after failed startup even when playback never began; keep loading graphs available and ignore late failures from replaced tracks.
+- Internal validation: authenticate against document and visible-control readiness while unrelated network work continues, preserving existing login/session assertions and deadlines.
+
 ### Host playback errors and resource coverage
 
 - Pause failed active audio and report its full track position to room followers; preserve standby isolation and explicit playback recovery.

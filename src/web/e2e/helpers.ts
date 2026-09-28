@@ -70,7 +70,7 @@ export async function login(page: Page, node: NodeCfg) {
     }
   });
 
-  await page.goto(node.baseUrl, { timeout: 10_000, waitUntil: 'networkidle' });
+  await page.goto(node.baseUrl, { timeout: 10_000, waitUntil: 'domcontentloaded' });
   const navElapsed = Date.now() - loginStartTime;
   logWithTimestamp(`[Login] Navigation completed in ${navElapsed}ms`);
 

@@ -129,6 +129,8 @@ The audio output selector switches the Web Audio contexts that carry playback, w
 
 Listening history and optional ListenBrainz scrobbles count actual playback progress toward the track threshold. Skipping forward does not count the skipped portion as listening. Pause and Stop also silence both audio elements if a crossfade is in progress.
 If the incoming track errors during a crossfade, the outgoing element stops immediately so the visible failure and audible output agree.
+
+Rejected Play or crossfade startup also pauses the hosted broadcast. Decoded seeking shares the requested paused position while the replacement stream is prepared; if setup fails, Play retries from that position. Followers receive the stopped position, and existing audio processing suspends after failed startup. Loading keeps processing available for playback to begin.
 Turning crossfade off or seeking during a fade also stops the outgoing track immediately. A later pass through the end of the track can start a new fade.
 Crossfade uses Web Audio for independent track gains. When a browser does not provide Web Audio, track changes remain direct and the selected volume stays intact.
 Plain playback through the system default speaker starts without a Web Audio graph when the equalizer is flat, karaoke, crossfade, and visualizers are off. Enabling an audio effect or choosing a custom speaker during playback creates and resumes the graph then; the active media element keeps that graph until it is replaced.

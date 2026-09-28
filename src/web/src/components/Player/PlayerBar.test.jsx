@@ -243,11 +243,15 @@ const TestHarness = () => {
   );
 };
 
-const renderPlayer = () => {
+const renderPlayer = (overrides = {}) => {
   const result = render(
     <MemoryRouter>
       <PlayerProvider>
-        <TestHarness />
+        <PlayerContext.Consumer>{(player) => (
+          <PlayerContext.Provider value={{ ...player, ...overrides }}>
+            <TestHarness />
+          </PlayerContext.Provider>
+        )}</PlayerContext.Consumer>
       </PlayerProvider>
     </MemoryRouter>,
   );
@@ -573,17 +577,7 @@ describe('PlayerBar', () => {
     { active: false, decoded: true },
   ])('reports stopped playback only for an active media error (active=$active, decoded=$decoded)', async ({ active, decoded }) => {
     const reportPlaybackEvent = vi.fn();
-    render(
-      <MemoryRouter>
-        <PlayerProvider>
-          <PlayerContext.Consumer>{(player) => (
-            <PlayerContext.Provider value={{ ...player, reportPlaybackEvent }}>
-              <TestHarness />
-            </PlayerContext.Provider>
-          )}</PlayerContext.Consumer>
-        </PlayerProvider>
-      </MemoryRouter>,
-    );
+    renderPlayer({ reportPlaybackEvent });
     fireEvent.click(screen.getByText('Play fixture'));
     const [audio, standby] = document.querySelectorAll('audio');
     await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
@@ -601,6 +595,92 @@ describe('PlayerBar', () => {
     // change the active host's playback state either.
     fireEvent.error(active ? audio : standby);
     expect(reportPlaybackEvent.mock.calls).toEqual(active ? [['pause', decoded ? 57.5 : 27.5]] : []);
+  });
+
+  it('pauses host state and suspends processing when native Play rejects before a play event', async () => {
+    const reportPlaybackEvent = vi.fn();
+    const ctx = { state: 'suspended', suspend: vi.fn(async () => { ctx.state = 'suspended'; }) };
+    vi.spyOn(audioGraph, 'getExistingAudioGraph').mockReturnValue({ ctx });
+    vi.spyOn(audioGraph, 'resumeAudioGraph').mockImplementation(async () => { ctx.state = 'running'; });
+    HTMLMediaElement.prototype.play.mockRejectedValueOnce(new Error('Playback denied'));
+    renderPlayer({ reportPlaybackEvent });
+    fireEvent.click(screen.getByText('Play fixture'));
+    await screen.findByText('Playback could not start. Check the file or try again.');
+    expect({ events: reportPlaybackEvent.mock.calls, contextState: ctx.state })
+      .toEqual({ events: [['pause', 0]], contextState: 'suspended' });
+  });
+
+  it('reports a paused target when decoded seek setup fails after playing', async () => {
+    const reportPlaybackEvent = vi.fn();
+    renderPlayer({ reportPlaybackEvent });
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+    fireEvent.click(await screen.findByText('Decode for playback'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
+    audio.currentTime = 7;
+    fireEvent.play(audio);
+    fireEvent.timeUpdate(audio);
+    reportPlaybackEvent.mockClear();
+    streaming.createStreamTicket.mockRejectedValueOnce(new Error('Decoder busy'));
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    await screen.findByText(/Decoding could not start/u);
+    expect(reportPlaybackEvent.mock.calls).toEqual([['pause', 37]]);
+    expect(screen.getByLabelText('Seek playback')).toHaveAttribute('aria-valuetext', '0:37 of 2:00');
+  });
+
+  it('keeps a loading graph available and ignores a rejected Play from the replaced track', async () => {
+    const reportPlaybackEvent = vi.fn();
+    const ctx = { state: 'suspended', suspend: vi.fn(async () => { ctx.state = 'suspended'; }) };
+    vi.spyOn(audioGraph, 'getExistingAudioGraph').mockReturnValue({ ctx });
+    vi.spyOn(audioGraph, 'resumeAudioGraph').mockImplementation(async () => { ctx.state = 'running'; });
+    let rejectFirst;
+    HTMLMediaElement.prototype.play.mockReturnValueOnce(new Promise((resolve, reject) => { rejectFirst = reject; }));
+    renderPlayer({ reportPlaybackEvent });
+    fireEvent.click(screen.getByText('Play fixture'));
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1));
+    expect(ctx.state).toBe('running');
+    fireEvent.click(screen.getByText('Play second fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Asecond'));
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2));
+    fireEvent.play(audio);
+    await act(async () => rejectFirst(new Error('Old request failed')));
+    expect(reportPlaybackEvent.mock.calls).toEqual([['play', 0]]);
+    expect(ctx.state).toBe('running');
+    expect(screen.queryByText('Playback could not start. Check the file or try again.')).not.toBeInTheDocument();
+    expect(screen.getByText('Second stream')).toBeInTheDocument();
+  });
+
+  it('reports a paused replacement when a crossfade start rejects and preserves explicit recovery', async () => {
+    const reportPlaybackEvent = vi.fn();
+    window.localStorage.setItem('slskdn.player.crossfadeEnabled', 'true');
+    vi.stubGlobal('AudioContext', class {});
+    const ctx = { state: 'suspended', suspend: vi.fn(async () => { ctx.state = 'suspended'; }) };
+    const graph = { ctx };
+    vi.spyOn(audioGraph, 'getOrCreateAudioGraph').mockReturnValue(graph);
+    vi.spyOn(audioGraph, 'getExistingAudioGraph').mockReturnValue(graph);
+    vi.spyOn(audioGraph, 'resumeAudioGraph').mockImplementation(async () => { ctx.state = 'running'; });
+    vi.spyOn(audioGraph, 'setOutputGain').mockImplementation(() => {});
+    vi.spyOn(audioGraph, 'fadeOutputGain').mockImplementation(() => {});
+    renderPlayer({ reportPlaybackEvent });
+    fireEvent.click(screen.getByText('Play fixture'));
+    const first = document.querySelector('audio');
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
+    Object.defineProperty(first, 'paused', { configurable: true, value: false });
+    fireEvent.play(first);
+    reportPlaybackEvent.mockClear();
+    HTMLMediaElement.prototype.play.mockRejectedValueOnce(new Error('Next track denied'));
+    fireEvent.click(screen.getByText('Play second fixture'));
+    await screen.findByText('The next track could not start.');
+    expect(reportPlaybackEvent.mock.calls).toEqual([['pause', 0]]);
+    fireEvent.click(screen.getByTestId('player-toggle-playback'));
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(3));
+    const replacement = document.querySelectorAll('audio')[1];
+    fireEvent.play(replacement);
+    expect(reportPlaybackEvent.mock.calls).toEqual([['pause', 0], ['play', 0]]);
+    expect(screen.queryByText('The next track could not start.')).not.toBeInTheDocument();
   });
 
   it('aborts the prior decode stream and coalesces seek setup into the final position', async () => {
