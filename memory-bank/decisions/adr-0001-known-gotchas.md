@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1096. Locate Mesh Signing Interfaces Before Qualifying Test Types
+
+**The Bug**: An extended real TLS fixture qualified IMeshMessageSigner under the transport namespace based on nearby imports, causing CS0234 before regressions could run. The interface belongs to the mesh root namespace.
+
+**Prevention**: Search the interface declaration before adding fully qualified fixture dependencies. Existing imports of related signer implementations do not establish the interface namespace; compile focused regressions before reporting runtime results.
+
 ### 0z1095. Keep Signed Publisher Identity Separate from Routing Address
 
 **The Bug**: A valid signed DHT Store touched the routing table using the cryptographic publisher ID as its address. Service routing matches the connected Soulseek transport username, so the accepted store replaced a reachable address with an unroutable identifier. The signed-store regression reproduced the wrong address.
