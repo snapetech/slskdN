@@ -22,10 +22,6 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-### MusicBrainz discography coverage
-
-- Discography coverage now accepts numeric and string MusicBrainz track positions, avoiding a server error on numeric values.
-
 ## [2026092816-slskdn.326] — 2026-09-28
 
 ### Failed player startup and decoded seek recovery
