@@ -14818,3 +14818,39 @@ Full player goal remains active. Next: force native graph resume/pause races wit
 negative tests and make shared lifecycle ordering follow current playback intent;
 verify 900-second listed-host/capability expiry and tab ownership; then proceed
 to distributed-state/index, resource/format/device/accessibility validation.
+
+## Audio graph playback intent ordering — 2026-09-28
+
+Fixed the confirmed Chromium Pause/Play race by recording desired run state per
+graph and serializing native suspend/resume transitions. Player pause effects,
+outgoing-fade cleanup and terminal quiescence now use the same helper as Play.
+The earlier browser negative showed media time advancing while the graph ended
+suspended; it did not measure physical sound. ADR-0023 records the decision, and
+gotcha 0z1184 was documented and committed before this implementation.
+
+Four unit regressions cover Pause during resume, Play superseding Pause,
+playback following an older suspend, and a new Play arriving as a transition
+settles. The corrected real Chromium race passes. Full validation passes:
+1,090 Web tests / 170 files, all 25 player browser cases, 5,324 unit, 74 smoke,
+284 integration, Web/repository lint, frontend/Release builds and browser-spec
+TypeScript. The release build retains two existing .NET support warnings; Vite
+reports its existing native-config and large-chunk warnings.
+
+An isolated current-source native resource run passes six 60-second samples,
+two each for idle, playing and paused, with 15-second warmups. The 195-second
+disk-file PCM input is 8,599,544 bytes; HeadlessChrome 153.0.8010.12 on Linux;
+video/trace off. OS-tree CPU means are 0.608/2.140/0.658% and PSS means
+279.54/315.94/309.90 MiB. CDP-process CPU means are 0.608/2.140/0.649% and PSS
+means 259.29/297.56/291.52 MiB. There was no sampled process churn, unavailable
+PSS or AudioContext. Nine global proc-stat reads had unknown ancestry; complete
+OS-tree enumeration is not proven. PSS remained about 30 MiB above idle after
+Pause; this one-cycle residual is not proof of a leak and motivates repeat-cycle
+graph-enabled measurements. All 130 frozen source/build hashes match. Raw
+artifacts remain under `.local/`.
+
+The full PlayerBar objective remains active. Still open: 900-second host
+capability renewal and multi-tab ownership, distributed state/index contention,
+graph-enabled and sustained resource budgets, additional browser/device/format
+coverage and assistive-technology workflows. Source and docs are ready for
+release-range/privacy/fork validation, explicit Player-only commit/push and
+origin parity. No release tag or deployment was created.

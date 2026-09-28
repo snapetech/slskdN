@@ -385,6 +385,46 @@ test.describe('player browser playback', () => {
     await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.map((context) => context.state))).toEqual(['running']);
   });
 
+  test('keeps the graph running when newer Play supersedes pending Pause suspension', async ({ page }) => {
+    await page.reload();
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    const enableCrossfade = page.getByRole('button', { name: 'Enable crossfade', exact: true });
+    if (await enableCrossfade.count()) await enableCrossfade.click();
+    await expect(page.getByRole('button', { name: 'Disable crossfade', exact: true })).toBeVisible();
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.some((context) => context.state === 'running'))).toBe(true);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused))).toBe(true);
+    await page.evaluate(() => {
+      const audioWindow = window as Window & { __playerAudioContextInstances?: AudioContext[]; __playerSuspendRequested?: boolean; __releasePlayerSuspend?: () => void };
+      const context = audioWindow.__playerAudioContextInstances!.find((candidate) => candidate.state === 'running')!;
+      const suspend = context.suspend.bind(context);
+      let holdNextSuspend = true;
+      context.suspend = () => {
+        if (!holdNextSuspend) return suspend();
+        holdNextSuspend = false;
+        let releaseSuspend;
+        const held = new Promise<void>((resolve) => { releaseSuspend = resolve; });
+        audioWindow.__playerSuspendRequested = true;
+        audioWindow.__releasePlayerSuspend = () => {
+          releaseSuspend!();
+          audioWindow.__releasePlayerSuspend = undefined;
+        };
+        return held.then(() => suspend());
+      };
+    });
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerSuspendRequested?: boolean }).__playerSuspendRequested)).toBe(true);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect(page.locator('.player-now-playing .player-eyebrow')).toHaveText('Loading');
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
+    await page.evaluate(() => (window as Window & { __releasePlayerSuspend?: () => void }).__releasePlayerSuspend!());
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 0.2))).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.some((context) => context.state === 'running'))).toBe(true);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.every((context) => context.state === 'suspended'))).toBe(true);
+  });
+
   test('suspends the outgoing graph when a crossfade finishes naturally', async ({ page }) => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles([firstFile, secondFile]);
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();

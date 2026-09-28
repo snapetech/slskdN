@@ -602,6 +602,7 @@ describe('PlayerBar', () => {
     const ctx = { state: 'suspended', suspend: vi.fn(async () => { ctx.state = 'suspended'; }) };
     vi.spyOn(audioGraph, 'getExistingAudioGraph').mockReturnValue({ ctx });
     vi.spyOn(audioGraph, 'resumeAudioGraph').mockImplementation(async () => { ctx.state = 'running'; });
+    vi.spyOn(audioGraph, 'suspendAudioGraph').mockImplementation(async () => { ctx.state = 'suspended'; });
     HTMLMediaElement.prototype.play.mockRejectedValueOnce(new Error('Playback denied'));
     renderPlayer({ reportPlaybackEvent });
     fireEvent.click(screen.getByText('Play fixture'));

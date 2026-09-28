@@ -1193,3 +1193,48 @@ workload to queues, visualizers, decoded/high-rate formats, output routing,
 remote radio or long-running rooms. Confidence: high for the sampled windows,
 moderate for comparative steady-state use. Resource JSON and process files
 remain local. All 129 frozen source/build hashes match before and after.
+
+
+## Serialized audio graph playback intent — 2026-09-28
+
+A controlled Chromium race held an outgoing graph's native `suspend()` through
+transport Pause, started newer Play, then released the old transition. The
+negative run showed the media element unpaused and advancing while the context
+ended suspended; physical audible output was not measured.
+
+Each cached graph now records its latest desired run state and serializes
+native transitions. New requests wait for the existing native operation and
+reconcile again until actual context state matches the latest intent. Player
+Pause, outgoing-fade cleanup and terminal quiescence use the same path as Play.
+This adds no timer, polling loop, network request or dependency. Four focused
+unit regressions exercise both pending-transition orders and a request arriving
+at settlement. A rebuilt Chromium case verifies that Play waits while Pause's
+suspension is held, then the audio element advances with the graph running.
+
+The complete player browser group passes 25 cases, including two-node radio,
+host/follower and room recovery, responsive controls, the new graph-race case,
+and a quick native idle/play/pause sample. All 1,090 Web tests, 5,324 unit,
+74 smoke and 284 integration tests pass. Web/repository lint, frontend and
+Release builds, and browser-spec TypeScript pass.
+
+A separate repeated native sample passes six one-minute windows, two each for
+idle, playback and pause, after 15-second warmups. The input is a 195-second
+mono PCM disk file (8,599,544 bytes); video and tracing are disabled. Chromium
+is HeadlessChrome 153.0.8010.12 on Linux, and all 130 frozen source/build hashes
+match before and after.
+
+| State | Observed OS processes | OS-tree CPU (% one core) | OS-tree PSS (MiB) | CDP CPU (% one core) | CDP PSS (MiB) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Idle | 6 | 0.608 | 279.54 | 0.608 | 259.29 |
+| Playing | 7 | 2.140 | 315.94 | 2.140 | 297.56 |
+| Paused | 7 | 0.658 | 309.90 | 0.649 | 291.52 |
+
+There was no observed process churn, unavailable PSS or AudioContext. Nine
+proc-stat enumeration reads had unknown ancestry across the six window
+endpoints, so complete OS process enumeration is not proven. PSS averaged
+about 36 MiB higher while playing and 30 MiB higher after pausing than idle;
+this single-cycle residual footprint is not proof of a leak. It does require
+repeat-cycle queue/visualizer and graph-enabled resource measurements before
+making a whole-session efficiency claim. Physical output, cross-browser behavior
+and the broader player audit remain open. Confidence: high for the sampled
+windows, moderate for comparative steady-state use and full OS-tree coverage.

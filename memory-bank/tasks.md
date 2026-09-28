@@ -5614,8 +5614,12 @@ whole-session resource completion.
   crossfade recovery; 94 focused player/host cases and Web lint pass.
 - [x] Verify the corrected paths with real host/follower browser workflows,
   run full publication gates and document the batch; source publication pending.
-- [ ] Reproduce and repair late native resume after Pause and overlapping
+- [x] Reproduce and repair late native resume after Pause and overlapping
   suspend/resume completion without breaking newer playback intent.
+- [x] Serialize per-graph transitions against latest Play/Pause intent; add
+  four deterministic unit regressions and a real Chromium reproduction.
+- [x] Pass all 25 player browser cases and repeat the isolated six-window
+  resource baseline with 130 unchanged source/build hashes.
 
 
 ### Sustained host renewal evidence to obtain — 2026-09-28
@@ -5642,9 +5646,9 @@ whole-session resource completion.
 - [x] Validate the exact release range, commit and push to snapetech/slskdN/main.
 
 
-- [ ] Follow the player quality audit before declaring completion: pending
-  native suspend/resume intent ordering; actual 900-second listed-host renewal
-  and stale-tab ownership; distributed state/index contention; resource budgets
+- [ ] Follow the player quality audit before declaring completion: actual
+  900-second listed-host renewal and stale-tab ownership; distributed
+  state/index contention; graph-enabled and broader resource budgets
   for queues/analyzers/visualizers/radio; browser/device/format/accessibility
   validation.
 

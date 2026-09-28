@@ -4,6 +4,26 @@ export const getExistingAudioGraph = (audioElement) => audioGraphCache.get(audio
 
 const eqBands = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 
+// Serialize native transitions so each graph settles on its latest playback intent (ADR-0023).
+const synchronizeAudioGraphState = async (graph) => {
+  while (graph.ctx.state !== 'closed') {
+    if (graph.stateChange) {
+      await graph.stateChange;
+      continue;
+    }
+
+    if (graph.shouldRun ? graph.ctx.state === 'running' : graph.ctx.state === 'suspended') return;
+
+    const stateChange = graph.shouldRun ? graph.ctx.resume() : graph.ctx.suspend();
+    graph.stateChange = stateChange;
+    try {
+      await stateChange;
+    } finally {
+      if (graph.stateChange === stateChange) graph.stateChange = null;
+    }
+  }
+};
+
 const disconnect = (node) => {
   try {
     node.disconnect();
@@ -102,6 +122,8 @@ export const getOrCreateAudioGraph = (audioElement) => {
     karaokeNodes: [],
     outputGain,
     source,
+    shouldRun: false,
+    stateChange: null,
     visualizerInput,
     visualizerOutput,
   };
@@ -115,6 +137,7 @@ export const releaseAudioGraph = (audioElement) => {
   const graph = audioGraphCache.get(audioElement);
   if (!graph) return;
   audioGraphCache.delete(audioElement);
+  graph.shouldRun = false;
   if (graph.ctx.state !== 'closed') graph.ctx.close().catch(() => {});
 };
 
@@ -122,8 +145,18 @@ export const resumeAudioGraph = async (audioElement, createIfMissing = true) => 
   const graph = createIfMissing
     ? getOrCreateAudioGraph(audioElement)
     : getExistingAudioGraph(audioElement);
-  if (graph?.ctx.state === 'suspended') {
-    await graph.ctx.resume();
+  if (graph) {
+    graph.shouldRun = true;
+    await synchronizeAudioGraphState(graph);
+  }
+  return graph;
+};
+
+export const suspendAudioGraph = async (audioElement) => {
+  const graph = getExistingAudioGraph(audioElement);
+  if (graph) {
+    graph.shouldRun = false;
+    await synchronizeAudioGraphState(graph);
   }
   return graph;
 };

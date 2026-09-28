@@ -1,14 +1,38 @@
+## Update 2026-09-28 17:16 UTC
+
+- Current task: fix the PlayerBar AudioContext suspend/resume race. Each graph
+  serializes native transitions against the latest Play/Pause intent; every
+  player-owned pause and cleanup uses that synchronizer. Gotcha 0z1184 was
+  documented and committed before implementation.
+- Verified: four deterministic audio-graph tests; 1,090 Web; all 25 player
+  browser cases; 5,324 unit, 74 smoke and 284 integration; Web/repository lint,
+  frontend/Release builds and browser-spec TypeScript.
+- The isolated resource sample passes six 60-second windows with 130 frozen
+  source/build inputs unchanged after rebuilding the rebased Release server. It
+  records 0.608/2.140/0.658% OS-tree CPU and 279.54/315.94/309.90 MiB OS-tree
+  PSS for idle/play/paused. Nine proc-stat reads had unknown ancestry; no process
+  churn or missing PSS occurred. PSS remained 30 MiB above idle after pause, so
+  repeat-cycle retention is open.
+- Source/docs are committed locally in the gotcha and player implementation
+  commits. The branch is two commits ahead of the verified fork; final-tree
+  tests and resource samples pass. Next: refresh the exact-range release preview,
+  verify identity/fork targeting, push and confirm clean origin parity. No tag,
+  release or deployment.
+- Full player goal remains open: 900-second host-capability renewal and tab
+  ownership, distributed state/index contention, graph-enabled and broader
+  resource budgets, formats, browsers, devices and accessibility.
+
 ## Update 2026-09-28 17:10:00Z
 
 - Current task: issue #340 is fixed and released as `2026092816-slskdn.326`.
   The pre-fix numeric-position regression was reproduced; string, number and
   dotted-position tests pass with the fix. Full solution tests, lint, guarded
   release gate and published artifact verification passed. Docker image and PPA
-  jobs are still running in the hosted tag workflow.
+  jobs were still running in the hosted tag workflow at this timestamp.
 - Next: confirm those hosted publishing jobs reach a terminal result, then
   resume the open player inspection on real desktop/mobile audio. Physical
   mobile, output switching, Media Session, room reconnect, radio,
-  Picture-in-Picture and idle resource measurements remain pending.
+  Picture-in-Picture and idle resource measurements remained pending.
 
 ## Update 2026-09-28 00:24:15Z
 

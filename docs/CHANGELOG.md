@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Audio graph playback intent ordering
+
+- Serialize Web Audio suspend/resume operations with the latest Play/Pause intent, so rapid transport changes cannot leave playback connected to a suspended graph.
+
 ## [2026092816-slskdn.326] — 2026-09-28
 
 ### Failed player startup and decoded seek recovery

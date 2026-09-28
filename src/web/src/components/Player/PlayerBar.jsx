@@ -49,7 +49,7 @@ import LyricsPane from './LyricsPane';
 import SpectrumAnalyzer, { getFrequencyBars } from './SpectrumAnalyzer';
 import RadioDirectory from './RadioDirectory';
 import { buildRadioStreamUrl, createRadioStreamUrl } from '../../lib/listeningParty';
-import { fadeOutputGain, getExistingAudioGraph, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
+import { fadeOutputGain, getExistingAudioGraph, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain, suspendAudioGraph } from './audioGraph';
 import { usePlayer } from './PlayerContext';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -2645,9 +2645,9 @@ const PlayerBar = () => {
     fadeOutgoingRef.current = null;
     if (!outgoing) return;
     outgoing.pause();
-    const context = getExistingAudioGraph(outgoing)?.ctx;
-    if (context?.state === 'running') {
-      context.suspend().catch(() => setPlaybackError('Audio processing could not pause.'));
+    const graph = getExistingAudioGraph(outgoing);
+    if (graph && graph.ctx.state !== 'closed') {
+      suspendAudioGraph(outgoing).catch(() => setPlaybackError('Audio processing could not pause.'));
     }
     outgoing.removeAttribute('src');
     outgoing.load();
@@ -2662,10 +2662,11 @@ const PlayerBar = () => {
   useEffect(() => {
     if (playing || playbackStatus === 'loading') return undefined;
     let cancelled = false;
-    const contexts = [audioRef.current, fadeAudioRef.current]
-      .filter(Boolean).map((element) => getExistingAudioGraph(element)?.ctx)
-      .filter((context) => context?.state === 'running');
-    Promise.allSettled(contexts.map((context) => context.suspend())).then((results) => {
+    const elements = [audioRef.current, fadeAudioRef.current].filter((element) => {
+      const graph = getExistingAudioGraph(element);
+      return graph && graph.ctx.state !== 'closed';
+    });
+    Promise.allSettled(elements.map((element) => suspendAudioGraph(element))).then((results) => {
       if (!cancelled && results.some((result) => result.status === 'rejected')) {
         setPlaybackError('Audio processing could not pause.');
       }
