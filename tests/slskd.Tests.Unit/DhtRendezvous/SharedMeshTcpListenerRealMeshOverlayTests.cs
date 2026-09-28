@@ -219,10 +219,14 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
     [InlineData("active-cancel")]
     public async Task RealConnection_ServiceWriterBoundsCancellationControlAndShutdown(string mode)
     {
+        // Cold RSA generation is fixture preparation, outside the protocol deadline.
+        var certificates = new CertificateManager(NullLogger<CertificateManager>.Instance, _serverAppDirectory);
+        using var serverCertificate = certificates.GetOrCreateServerCertificate();
+        using var certificate = new CertificateManager(NullLogger<CertificateManager>.Instance, _clientAppDirectory).GetOrCreateServerCertificate();
         var options = new DhtRendezvousOptions { Enabled = true };
         var server = new MeshOverlayServer(NullLogger<MeshOverlayServer>.Instance,
             new StaticOptionsMonitor(new slskd.Options { Soulseek = new slskd.Options.SoulseekOptions { Username = "server-peer" } }),
-            new CertificateManager(NullLogger<CertificateManager>.Instance, _serverAppDirectory),
+            certificates,
             new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _serverAppDirectory),
             new OverlayRateLimiter(), new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance),
             new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance), new NoOpMeshOverlayConnector(),
@@ -235,7 +239,6 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
         await listener.StartAsync(timeout.Token);
         try
         {
-            var certificate = new CertificateManager(NullLogger<CertificateManager>.Instance, _clientAppDirectory).GetOrCreateServerCertificate();
             await using var connection = await MeshOverlayConnection.ConnectAsync(await WaitForBoundEndPointAsync(listener), certificate, timeout.Token);
             await connection.PerformClientHandshakeAsync("client-peer", overlayPort: 12345, cancellationToken: timeout.Token);
             var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

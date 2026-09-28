@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Room membership event ordering
+
+- Preserve rapid leave/rejoin and join/ban history without timestamp-key collisions, including frozen or backward-moving clocks and service restarts.
+- Allocate history per pod/participant and commit membership and history together; preserve ban restrictions and concurrent join behavior.
+
+### Repeated native player resource validation
+
+- Isolate CPU/memory measurement from video and tracing, support repeated idle/play/pause windows, and verify active playback or retained paused position throughout.
+- Save process coverage, Linux PSS availability, renderer work and heap evidence per window; expose the documented resource measurement command.
+- Correct shared test navigation predicates to inspect URL objects and pass the explicit player-spec TypeScript gate.
+- Internal-only validation changes; native application playback behavior is unchanged.
+
 ### Isolated player validation lifecycle
 
 - Close and drain test-node log streams, retain full disk logs with bounded diagnostic tails, and report write/spawn failures through awaited work.

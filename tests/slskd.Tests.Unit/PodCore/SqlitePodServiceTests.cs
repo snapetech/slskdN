@@ -37,6 +37,112 @@ public sealed class SqlitePodServiceTests
         Assert.Single(await service.GetMembersAsync(podId));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-60_000)]
+    public async Task MembershipActions_KeepOrderWhenClockStopsOrMovesBack(long clockOffset)
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        var now = DateTimeOffset.FromUnixTimeMilliseconds(1_700_000_000_000);
+        var clock = new Mock<TimeProvider>();
+        clock.Setup(provider => provider.GetUtcNow()).Returns(() => now);
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var factory = new TestDbContextFactory(options);
+        await using (var context = await factory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Listed));
+            context.Members.Add(new PodMemberEntity { PodId = podId, PeerId = "listener" });
+            await context.SaveChangesAsync();
+        }
+        var service = new SqlitePodService(factory, Mock.Of<IPodPublisher>(), Mock.Of<IPodMembershipSigner>(),
+            NullLogger<SqlitePodService>.Instance, timeProvider: clock.Object);
+        Assert.True(await service.LeaveAsync(podId, "listener"));
+        now = now.AddMilliseconds(clockOffset);
+        Assert.True(await service.JoinAsync(podId, new PodMember { PeerId = "listener" }));
+        var restored = new SqlitePodService(factory, Mock.Of<IPodPublisher>(), Mock.Of<IPodMembershipSigner>(),
+            NullLogger<SqlitePodService>.Instance, timeProvider: clock.Object);
+        Assert.True(await restored.BanAsync(podId, "listener"));
+        Assert.False(await restored.LeaveAsync(podId, "listener"));
+        Assert.False(await restored.JoinAsync(podId, new PodMember { PeerId = "listener" }));
+        var history = await restored.GetMembershipHistoryAsync(podId);
+        Assert.Equal(new[] { "leave", "join", "ban" }, history.Select(record => record.Action));
+        Assert.Equal(new long[] { 1_700_000_000_000, 1_700_000_000_001, 1_700_000_000_002 }, history.Select(record => record.TimestampUnixMs));
+        Assert.Empty(await restored.GetMembersAsync(podId));
+    }
+
+    [Fact]
+    public async Task MembershipActions_AllocateHistoryPerPodAndPeer()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        const string secondPodId = "pod:00000000000000000000000000000002";
+        const long timestamp = 1_700_000_000_000;
+        var clock = new Mock<TimeProvider>();
+        clock.Setup(provider => provider.GetUtcNow()).Returns(DateTimeOffset.FromUnixTimeMilliseconds(timestamp));
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var factory = new TestDbContextFactory(new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options);
+        await using (var context = await factory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.AddRange(PodEntity(podId, PodVisibility.Listed), PodEntity(secondPodId, PodVisibility.Listed));
+            context.Members.AddRange(
+                new PodMemberEntity { PodId = podId, PeerId = "listener" },
+                new PodMemberEntity { PodId = podId, PeerId = "other" },
+                new PodMemberEntity { PodId = secondPodId, PeerId = "listener" });
+            context.MembershipRecords.AddRange(
+                MembershipRecord("listener", "join", timestamp + 5_000, podId),
+                MembershipRecord("other", "join", timestamp + 80_000, podId),
+                MembershipRecord("listener", "join", timestamp + 20_000, secondPodId));
+            await context.SaveChangesAsync();
+        }
+        var service = new SqlitePodService(factory, Mock.Of<IPodPublisher>(), Mock.Of<IPodMembershipSigner>(),
+            NullLogger<SqlitePodService>.Instance, timeProvider: clock.Object);
+        Assert.True(await service.LeaveAsync(podId, "listener"));
+        Assert.True(await service.LeaveAsync(podId, "other"));
+        Assert.True(await service.LeaveAsync(secondPodId, "listener"));
+        var history = await service.GetMembershipHistoryAsync(podId);
+        Assert.Equal(timestamp + 5_001, Assert.Single(history.Where(record => record.PeerId == "listener" && record.Action == "leave")).TimestampUnixMs);
+        Assert.Equal(timestamp + 80_001, Assert.Single(history.Where(record => record.PeerId == "other" && record.Action == "leave")).TimestampUnixMs);
+        Assert.Equal(timestamp + 20_001, Assert.Single((await service.GetMembershipHistoryAsync(secondPodId)).Where(record => record.Action == "leave")).TimestampUnixMs);
+    }
+
+    [Fact]
+    public async Task ConcurrentJoins_CommitOneMemberAndOneHistoryRecord()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        var database = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"membership-{Guid.NewGuid():N}.db");
+        try
+        {
+            var factory = new TestDbContextFactory(new DbContextOptionsBuilder<PodDbContext>()
+                .UseSqlite($"Data Source={database};Pooling=False;Default Timeout=10").Options);
+            await using (var context = await factory.CreateDbContextAsync())
+            {
+                await context.Database.EnsureCreatedAsync();
+                context.Pods.Add(PodEntity(podId, PodVisibility.Listed));
+                await context.SaveChangesAsync();
+            }
+            var clock = new Mock<TimeProvider>();
+            clock.Setup(provider => provider.GetUtcNow()).Returns(DateTimeOffset.FromUnixTimeMilliseconds(1_700_000_000_000));
+            var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(async () =>
+            {
+                var service = new SqlitePodService(factory, Mock.Of<IPodPublisher>(), Mock.Of<IPodMembershipSigner>(),
+                    NullLogger<SqlitePodService>.Instance, timeProvider: clock.Object);
+                return await service.JoinAsync(podId, new PodMember { PeerId = "listener" });
+            })));
+            Assert.All(results, result => Assert.True(result));
+            await using var verification = await factory.CreateDbContextAsync();
+            Assert.Single(await verification.Members.ToListAsync());
+            Assert.Equal("join", Assert.Single(await verification.MembershipRecords.ToListAsync()).Action);
+        }
+        finally
+        {
+            System.IO.File.Delete(database);
+        }
+    }
+
     [Fact]
     public async Task LeaveAsync_BannedMemberCannotEraseBanAndRejoin()
     {

@@ -21,19 +21,22 @@ namespace slskd.PodCore
         private readonly IPodMembershipSigner membershipSigner;
         private readonly ILogger<SqlitePodService> logger;
         private readonly IServiceScopeFactory? scopeFactory;
+        private readonly TimeProvider _timeProvider;
 
         public SqlitePodService(
             IDbContextFactory<PodDbContext> dbFactory,
             IPodPublisher podPublisher,
             IPodMembershipSigner membershipSigner,
             ILogger<SqlitePodService> logger,
-            IServiceScopeFactory? scopeFactory = null)
+            IServiceScopeFactory? scopeFactory = null,
+            TimeProvider? timeProvider = null)
         {
             this.dbFactory = dbFactory;
             this.podPublisher = podPublisher;
             this.membershipSigner = membershipSigner;
             this.logger = logger;
             this.scopeFactory = scopeFactory;
+            _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         private IContentLinkService? ContentLinkService => scopeFactory?.CreateScope().ServiceProvider.GetService<IContentLinkService>();
@@ -395,7 +398,7 @@ namespace slskd.PodCore
                 {
                     PodId = podId,
                     PeerId = member.PeerId,
-                    TimestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    TimestampUnixMs = await NextMembershipTimestampAsync(db, podId, member.PeerId, ct),
                     Action = "join",
                     Signature = string.Empty, // Will be populated by signing service
                 };
@@ -418,6 +421,7 @@ namespace slskd.PodCore
         public async Task<bool> LeaveAsync(string podId, string peerId, CancellationToken ct = default)
         {
             await using var db = await dbFactory.CreateDbContextAsync(ct);
+            using var transaction = await db.Database.BeginTransactionAsync(ct);
             var member = await db.Members
                 .FirstOrDefaultAsync(m => m.PodId == podId && m.PeerId == peerId, ct);
 
@@ -434,13 +438,14 @@ namespace slskd.PodCore
             {
                 PodId = podId,
                 PeerId = peerId,
-                TimestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                TimestampUnixMs = await NextMembershipTimestampAsync(db, podId, peerId, ct),
                 Action = "leave",
                 Signature = string.Empty,
             };
 
             db.MembershipRecords.Add(membershipRecord);
             await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
             logger.LogInformation("User {PeerId} left pod {PodId}", peerId, podId);
             return true;
@@ -449,6 +454,7 @@ namespace slskd.PodCore
         public async Task<bool> BanAsync(string podId, string peerId, CancellationToken ct = default)
         {
             await using var db = await dbFactory.CreateDbContextAsync(ct);
+            using var transaction = await db.Database.BeginTransactionAsync(ct);
             var member = await db.Members
                 .FirstOrDefaultAsync(m => m.PodId == podId && m.PeerId == peerId, ct);
 
@@ -465,16 +471,27 @@ namespace slskd.PodCore
             {
                 PodId = podId,
                 PeerId = peerId,
-                TimestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                TimestampUnixMs = await NextMembershipTimestampAsync(db, podId, peerId, ct),
                 Action = "ban",
                 Signature = string.Empty,
             };
 
             db.MembershipRecords.Add(membershipRecord);
             await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
             logger.LogInformation("User {PeerId} banned from pod {PodId}", peerId, podId);
             return true;
+        }
+
+        // The existing key includes milliseconds; allocate under the caller's write
+        // transaction so rapid actions and clock rollback preserve order. See ADR-0022.
+        private async Task<long> NextMembershipTimestampAsync(PodDbContext db, string podId, string peerId, CancellationToken ct)
+        {
+            var previous = await db.MembershipRecords
+                .Where(record => record.PodId == podId && record.PeerId == peerId)
+                .MaxAsync(record => (long?)record.TimestampUnixMs, ct);
+            return Math.Max(_timeProvider.GetUtcNow().ToUnixTimeMilliseconds(), (previous ?? -1) + 1);
         }
 
         private static Pod EntityToPod(PodEntity entity)

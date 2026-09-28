@@ -92,6 +92,7 @@ export async function login(page: Page, node: NodeCfg) {
   const rootContent = await page
     .locator('#root')
     .textContent()
+    .then((value) => value || '')
     .catch(() => '');
   logWithTimestamp(
     `[Login] #root count: ${rootCount}, content length: ${rootContent.length}`,
@@ -169,6 +170,7 @@ export async function login(page: Page, node: NodeCfg) {
       const bodyText = await page
         .locator('body')
         .textContent()
+        .then((value) => value || '')
         .catch(() => '');
       console.error(
         `[Login] Login form not found. Inputs: ${allInputs}, Buttons: ${allButtons}, Body text length: ${bodyText.length}`,
@@ -227,14 +229,13 @@ export async function login(page: Page, node: NodeCfg) {
     );
     if (status !== 200) {
       logWithTimestamp(
-        `[Login] Login failed with status ${status}, body:`,
-        body,
+        `[Login] Login failed with status ${status}, body: ${JSON.stringify(body)}`,
       );
       throw new Error(`Login API returned ${status}: ${JSON.stringify(body)}`);
     }
 
     if (!body || !body.token) {
-      logWithTimestamp('[Login] Login response missing token:', body);
+      logWithTimestamp(`[Login] Login response missing token: ${JSON.stringify(body)}`);
       throw new Error('Login response missing token');
     }
 
@@ -292,7 +293,7 @@ export async function login(page: Page, node: NodeCfg) {
   await Promise.race([
     page
       .waitForURL(
-        (url) => !url.includes('/login') && url.includes(node.baseUrl),
+        (url) => !url.pathname.includes('/login') && url.href.startsWith(node.baseUrl),
         { timeout: 8_000 },
       )
       .catch(() => {}),
@@ -380,7 +381,7 @@ export async function login(page: Page, node: NodeCfg) {
     // Check for JavaScript errors
     const jsErrors = await page
       .evaluate(() => {
-        return window.__playwright_errors__ || [];
+        return (window as Window & { __playwright_errors__?: string[] }).__playwright_errors__ || [];
       })
       .catch(() => []);
 
@@ -388,16 +389,18 @@ export async function login(page: Page, node: NodeCfg) {
     const bodyText = await page
       .locator('body')
       .textContent()
+      .then((value) => value || '')
       .catch(() => '');
     const hasRoot = (await page.locator('#root').count()) > 0;
     const rootContent = await page
       .locator('#root')
       .textContent()
+      .then((value) => value || '')
       .catch(() => '');
 
     // Check if menu items exist in DOM (even if not visible)
     const menuItemsInDom = await page.evaluate(() => {
-      const items = document.querySelectorAll(
+      const items = document.querySelectorAll<HTMLElement>(
         '.ui.menu .item, [data-testid^="nav-"]',
       );
       return Array.from(items).map((element) => ({
@@ -594,7 +597,7 @@ export async function clickNav(page: Page, testId: string) {
   // Wait for URL to change (React Router does client-side navigation immediately)
   // But don't fail if it doesn't change - let the test handle that
   try {
-    await page.waitForURL((url) => url !== urlBefore, { timeout: 3_000 });
+    await page.waitForURL((url) => url.href !== urlBefore, { timeout: 3_000 });
   } catch {
     // URL didn't change, but that's OK - might have already been on that page
   }
@@ -930,7 +933,7 @@ export async function waitForDownloadInList({
       const users = Array.isArray(payload) ? payload : [];
       const files = users.flatMap((user) =>
         Array.isArray(user?.directories)
-          ? user.directories.flatMap((dir) =>
+          ? user.directories.flatMap((dir: { files?: any[] }) =>
               Array.isArray(dir?.files) ? dir.files : [],
             )
           : [],

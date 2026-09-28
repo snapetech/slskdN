@@ -69,6 +69,7 @@ completed workstream notes, and incident reports live under
 - [API Documentation](api-documentation.md) - Complete API reference
 - [Local Development](dev/LOCAL_DEVELOPMENT.md) - Development environment setup, including git hook installation
 - [Player Quality Audit](dev/player-quality-audit.md) - Runtime evidence and remaining player completion work
+- [Player Resource Measurement](dev/player-resource-measurement.md) - Isolated native CPU/memory protocol and evidence boundaries
 - [Testing Policy](dev/testing-policy.md) - Required validation policy
 - [Release Checklist](dev/release-checklist.md) - Release validation and packaging checklist
 

@@ -14324,3 +14324,126 @@ and extend to queue/visualizer/radio throughput. Distributed room state/index
 ownership, host error/auth/lease/renewal, compatibility/device/accessibility
 and focus contrast remain open. Ten-second trace samples are diagnostic evidence
 and do not prove sustained low resource use. The full player goal remains active.
+
+## Isolated repeated native resource measurement — 2026-09-28
+
+The resource probe now lives in its own spec with top-level video/trace off, a
+page.video() assertion, configurable repeated windows and workload checks. A
+shared generated PCM fixture keeps extended playback active for its entire
+measured phase. Idle has no loaded source, playing must advance without ending,
+and paused playback must retain source and position. Window reports retain CPU
+process coverage, Linux PSS availability, renderer/script work, heap and audio
+context count. Each window is saved before validation. A documented package
+command runs the probe without recorded functional QA.
+
+The explicit main-player/resource TypeScript gate now passes. Shared navigation
+predicates use URL.pathname/href, nullable DOM diagnostics normalize text and
+HTML audio boundaries are typed. Gotchas 0z1164 through 0z1167 record the browser
+global type error, URL predicates, observed video encoder contamination and
+Playwright's file-scope worker option requirement. The contaminated run was
+stopped explicitly; it is not a resource baseline.
+
+The corrected two-window-per-state measurement is live with frozen input hashes,
+no video encoder and no concurrent build/test jobs. Both 60-second idle windows
+pass with complete process/PSS coverage, zero AudioContexts, 0.50–0.62% of one
+core and 271–272 MiB whole-browser PSS. Playing and paused evidence is pending.
+This is a measurement batch, not proof that the full low-resource goal is met.
+
+### Repeated native baseline results — 2026-09-28
+
+One isolated headless Chrome for Testing 153.0.8010.12 run on Linux x86_64 /
+AMD Ryzen 9 9950X3D passed all six 60-second windows, with 15-second warmup per
+state. The terminal result is passed (6.8 minutes), metadata has no failed tests
+and frozen probe/helper/tone hashes match. Video was absent, tracing was off
+and no build, lint or other test jobs ran concurrently with these windows.
+
+| State | CPU (% of one core, weighted mean) | Whole-browser PSS range (MiB) | JS heap endpoints (MiB) | Processes sampled |
+| --- | ---: | ---: | ---: | ---: |
+| Idle | 0.558 | 270.97–271.99 | 9.70 → 10.61 | 4 |
+| Playing | 2.008 | 350.99–353.67 | 20.13 → 20.88 | 5 |
+| Paused | 0.508 | 330.77–337.45 | 20.24 → 22.38 | 5 |
+
+All windows have zero added/removed processes, zero unavailable PSS readings
+and zero created AudioContexts. Playing advances continuously from about 15.5
+to 135.6 seconds without ending. Paused windows retain their source and exactly
+the same 135.640435-second position. CPU returns toward idle after pausing.
+
+These are whole-browser results with a generated 195-second mono PCM source,
+not incremental player-only or backend costs. Heap endpoints increase within
+each phase, with a drop between the last playing and first paused reading;
+this does not establish either a leak or a sustained memory plateau. Confidence
+is high in this run's recorded evidence and moderate in its generality. Next:
+longer natural-GC sessions and queue/analyzer/visualizer/radio workloads, plus
+format/browser/device/accessibility/focus contrast coverage and distributed
+state/index ownership, host error/auth/lease/renewal. The full goal stays active.
+
+Final functional and repository gates are running separately from the benchmark.
+Their short resource samples must not replace the isolated baseline above.
+
+### Membership collision found by the final gate — 2026-09-28
+
+The first backend full gate failed ordinary SQLite leave/rejoin (5,316 unit
+passes / one failure). Two deterministic negative regressions reproduced a
+rejected rejoin and a unique-constraint ban failure under frozen/backward clocks.
+Membership history's key includes pod, peer and Unix milliseconds; timestamps
+now use max(current time, prior persisted event plus one) within the membership
+write transaction. Leave and ban follow join's transaction discipline. The
+existing schema/API remains intact, and optional TimeProvider follows the
+listening-party pattern. Gotcha 0z1168 was committed immediately; ADR-0022
+records local event ordering and its distributed/clock boundaries.
+
+All nine focused SQLite service cases pass, including four added cases for
+frozen/backward clocks, restored instances, per-pod/peer history, ban retention
+and eight concurrent joins. The first 22-case browser gate passed in 6.1 minutes
+before the corrected backend Release; a final rebuilt gate is still required.
+The isolated native benchmark completed before backend validation and remains
+valid. Full corrected backend, lint and Release gates are running.
+
+### Writer-control deadline boundary — 2026-09-28
+
+The next full backend run passed corrected membership cases but canceled one
+mesh writer-control setup at its ten-second handshake deadline. All four modes
+passed separately. Cold server/client RSA preparation shared that deadline.
+Certificates now prepare before the timed protocol scenario and have explicit
+disposal; the same ten-second deadline and all handshake/control/writer checks
+remain. Four corrected modes pass. Gotcha 0z1169 records the observed failure
+and the unmeasured scheduling contribution. This is internal-only test setup;
+no production transport timeout changed.
+
+Corrected Release and lint pass. The complete rebuilt browser gate is live.
+The earlier backend gate is terminal (5,320 unit / one handshake setup failure,
+74 smoke and 284 integration passed), and the final backend gate has started
+with the corrected test boundary. This is not yet final publication evidence.
+
+### Final repeated-resource and membership batch evidence — 2026-09-28
+
+Final corrected source passes 5,321 unit / 74 smoke / 284 integration tests,
+1,066 Web tests in 168 files and all 22 rebuilt browser cases. Terminal backend
+and browser results are zero; browser metadata is passed with no failed tests.
+The browser run contains zero descriptor-GC and unhandled-rejection markers.
+The explicit main-player/resource TypeScript gate, documented command discovery,
+repository/Web lint, Release, bundle/output, CSRF/anonymous endpoint and identity
+gates pass. Two release fragments parse without errors. Release retains the two
+existing build-task support warnings. Application frontend source is unchanged;
+backend Release includes the membership ordering correction.
+
+The isolated six-window native benchmark completed before these gates, with
+complete process/PSS coverage and frozen input hashes. It remains separate from
+the short resource samples in functional QA. Membership ordering has four added
+regressions and nine focused cases; four real writer-control modes pass with
+certificate preparation outside their unchanged protocol deadline. No new
+production transport timeout or database migration is introduced.
+
+- [x] 2026-09-28: Establish reproducible repeated native idle/play/pause resource
+  measurement without video/tracing, with workload and coverage evidence.
+- [x] 2026-09-28: Fix rapid SQLite membership history collisions and clock rollback
+  ordering across service instances while preserving bans and concurrent joins.
+- [ ] Follow longer native sessions to distinguish heap allocation/GC cycles from
+  retained growth; do not infer a plateau from two windows per state.
+- [ ] Extend resource budgets to queue, analyzer, visualizer, Picture in Picture,
+  remote radio/high-rate formats and backend cost under sustained workloads.
+
+Next Steps also retain distributed room state/index ownership, host media
+error/auth/lease/renewal and browser/format/device/accessibility/focus contrast
+coverage. The full player goal remains active; this batch does not establish
+whole-session resource completion.
