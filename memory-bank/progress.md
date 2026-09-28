@@ -13563,3 +13563,15 @@ Explicit native server retries now renew the two-minute stream ticket through th
 - Whole-player completion remains unproven; runtime follow-up stays open.
 
 - All 5,178 backend unit tests pass, along with Web/repository lint and local-identity checks. Solution-wide validation is running.
+
+## Update 2026-09-28 00:05:03Z
+
+- Pushed player source/runtime batch c9bec1078 to the verified fork.
+- Added internal browser resource recording to the generated PCM workflow.
+  Six Chromium scenarios pass. In one five-second window per state, full-page
+  renderer task occupancy measured 0.426% playing / 0.456% paused, script work
+  0.196% / 0.131%, and JS heap 10.78 / 9.96 MiB, with zero AudioContexts.
+  These are headless renderer/JS measurements, not total-process resource use
+  or physical-device evidence. The JSON report is attached to Playwright output.
+- Solution-wide smoke (74) and unit (5,178) suites pass. Integration validation
+  remains live; preserve its process instead of restarting it.

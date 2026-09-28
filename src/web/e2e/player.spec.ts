@@ -95,6 +95,40 @@ test.describe('player browser playback', () => {
     await expect.poll(() => activeAudio.evaluateAll((elements) => elements.some((element) => !element.paused && element.currentTime > 0.2 && element.currentTime < 5))).toBe(true);
   });
 
+  test('records native playback and paused browser resource use', async ({ page }, testInfo) => {
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) =>
+      elements.some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+    const session = await page.context().newCDPSession(page);
+    await session.send('Performance.enable');
+    const metrics = async () => {
+      const result = await session.send('Performance.getMetrics');
+      return Object.fromEntries(result.metrics.map(({ name, value }) => [name, value]));
+    };
+    const samples = [];
+    for (const state of ['playing', 'paused']) {
+      if (state === 'paused') await page.getByTestId('player-toggle-playback').click();
+      const before = await metrics();
+      await page.waitForTimeout(5_000);
+      const after = await metrics();
+      samples.push({
+        state,
+        seconds: after.Timestamp - before.Timestamp,
+        rendererTaskPercent: (after.TaskDuration - before.TaskDuration) / (after.Timestamp - before.Timestamp) * 100,
+        scriptPercent: (after.ScriptDuration - before.ScriptDuration) / (after.Timestamp - before.Timestamp) * 100,
+        jsHeapMiB: after.JSHeapUsedSize / 1024 / 1024,
+        audioContexts: await page.evaluate(() => (window as Window & { __playerAudioContexts?: number }).__playerAudioContexts),
+      });
+    }
+    await session.detach();
+    expect(samples.every((sample) => sample.audioContexts === 0)).toBe(true);
+    await testInfo.attach('player-native-resources', {
+      body: Buffer.from(JSON.stringify(samples, null, 2)),
+      contentType: 'application/json',
+    });
+    await fs.writeFile(testInfo.outputPath('native-resources.json'), JSON.stringify(samples, null, 2));
+  });
+
   test('crossfades two local streams and pauses both on transport Pause', async ({ page }) => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles([firstFile, secondFile]);
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();

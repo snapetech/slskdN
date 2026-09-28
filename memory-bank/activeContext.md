@@ -1,3 +1,15 @@
+## Update 2026-09-28 00:05:03Z
+
+- Current task: player source batch c9bec1078 is pushed. Six browser workflows
+  pass, including a measured native resource baseline with zero AudioContexts.
+  Web lint passes. Solution-wide dotnet test is still running integration
+  coverage; smoke 74 and unit 5,178 passed. Resume the live validation handle
+  before starting another solution run.
+- Next: rapid selection between distinct unindexed local downloads, decoded
+  seeking, playlist browser workflows, output/Media Session, room reconnect,
+  radio, Picture-in-Picture, and analyzer/resource coverage. The full goal stays
+  active; physical-device and total-process measurements remain unverified.
+
 ## Update 2026-09-28 00:01:23Z
 
 - Current task: validate and push the player Files identity/recovery and mobile
