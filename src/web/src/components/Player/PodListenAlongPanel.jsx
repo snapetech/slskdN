@@ -33,7 +33,9 @@ const sameDirectory = (previous, next) =>
       party.positionSeconds === next[index]?.positionSeconds &&
       party.startedAtUnixMs === next[index]?.startedAtUnixMs &&
       party.allowMeshStreaming === next[index]?.allowMeshStreaming &&
-      party.streamPath === next[index]?.streamPath,
+      party.streamPath === next[index]?.streamPath &&
+      party.transportUsername === next[index]?.transportUsername &&
+      party.streamTicket === next[index]?.streamTicket,
   );
 
 const applyPartyState = (state, player) => {
@@ -374,6 +376,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
         artist: party.artist || party.hostPeerId,
         contentId: party.contentId,
         streamUrl,
+        radioPartyId: party.transportUsername && party.streamTicket ? party.partyId : null,
         title: party.title || party.contentId,
       },
       {
@@ -633,7 +636,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                     trigger={
                       <Button
                         aria-label={`Play ${party.title || party.contentId} from listed radio`}
-                        disabled={!party.allowMeshStreaming || !party.streamPath}
+                        disabled={!party.allowMeshStreaming || !party.transportUsername || !party.streamTicket}
                         icon
                         onClick={() => joinListedParty(party)}
                         size="mini"

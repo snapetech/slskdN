@@ -88,14 +88,70 @@ public sealed class MeshStreamsController : ControllerBase
 
         try
         {
-            var lease = await _streams.OpenAsync(ticket, cancellationToken).ConfigureAwait(false);
+            var claims = _tickets.Validate(ticket);
+            if (claims?.Radio != null && !_options.CurrentValue.Feature.Mesh)
+            {
+                return NotFound();
+            }
+
+            long start = 0;
+            long? endExclusive = null;
+            if (claims?.Radio != null && claims.ExpectedSize is > 0)
+            {
+                var size = claims.ExpectedSize.Value;
+                endExclusive = size;
+                var header = Request.Headers.Range.ToString();
+                if (!string.IsNullOrWhiteSpace(header))
+                {
+                    if (!Microsoft.Net.Http.Headers.RangeHeaderValue.TryParse(header, out var range) ||
+                        !string.Equals(range.Unit.ToString(), "bytes", StringComparison.OrdinalIgnoreCase) ||
+                        range.Ranges.Count != 1)
+                    {
+                        return BadRequest("A single byte range is required.");
+                    }
+
+                    var requested = range.Ranges.Single();
+                    if (requested.From.HasValue)
+                    {
+                        start = requested.From.Value;
+                        endExclusive = requested.To.HasValue ? Math.Min(size, requested.To.Value == long.MaxValue ? size : requested.To.Value + 1) : size;
+                    }
+                    else if (requested.To is > 0)
+                    {
+                        start = Math.Max(0, size - requested.To.Value);
+                    }
+                    else
+                    {
+                        Response.Headers.ContentRange = $"bytes */{size}";
+                        return StatusCode(416);
+                    }
+
+                    if (start >= size || endExclusive <= start)
+                    {
+                        Response.Headers.ContentRange = $"bytes */{size}";
+                        return StatusCode(416);
+                    }
+
+                    Response.StatusCode = 206;
+                    Response.Headers.ContentRange = $"bytes {start}-{endExclusive - 1}/{size}";
+                }
+            }
+
+            var lease = endExclusive.HasValue
+                ? await _streams.OpenRangeAsync(ticket, start, endExclusive.Value, cancellationToken).ConfigureAwait(false)
+                : await _streams.OpenAsync(ticket, cancellationToken).ConfigureAwait(false);
             if (lease == null)
             {
                 return NotFound();
             }
 
             Response.Headers.CacheControl = "no-store";
-            Response.Headers.AcceptRanges = "none";
+            Response.Headers.AcceptRanges = endExclusive.HasValue ? "bytes" : "none";
+            if (endExclusive.HasValue)
+            {
+                Response.ContentLength = endExclusive.Value - start;
+            }
+
             return File(lease.Stream, lease.ContentType, enableRangeProcessing: false);
         }
         catch (MeshStreamLimitException)

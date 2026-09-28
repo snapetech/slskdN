@@ -16,6 +16,8 @@ public sealed record ListeningPartyAnnouncement
     public string PodId { get; init; } = string.Empty;
     public string ChannelId { get; init; } = string.Empty;
     public string HostPeerId { get; init; } = string.Empty;
+    public string TransportUsername { get; init; } = string.Empty;
+    public string StreamTicket { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string Artist { get; init; } = string.Empty;
     public string? Album { get; init; }

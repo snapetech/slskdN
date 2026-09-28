@@ -429,9 +429,46 @@ describe('PlayerBar', () => {
     expect(selected).toBeEnabled();
   });
 
-  it('does not probe local decoding after a listed-radio stream failure', async () => {
+  it('releases the previous radio source before preparing another snapshot with crossfade enabled', async () => {
+    window.localStorage.setItem('slskdn.player.crossfadeEnabled', 'true');
+    let finish;
+    vi.spyOn(listeningParty, 'createRadioStreamUrl').mockResolvedValueOnce('/api/v0/mesh-streams/first-radio').mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
     vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
-      { partyId: 'radio-test', contentId: 'sha256:test', title: 'Radio fixture', allowMeshStreaming: true, streamPath: '/radio-fixture.wav' },
+      { partyId: 'first-radio', contentId: 'radio:first', title: 'First radio', allowMeshStreaming: true, streamPath: '/first-old-path', transportUsername: 'host-overlay', streamTicket: 'capability' },
+      { partyId: 'second-radio', contentId: 'radio:second', title: 'Second radio', allowMeshStreaming: true, streamPath: '/second-old-path', transportUsername: 'host-overlay', streamTicket: 'capability' },
+    ]);
+    renderPlayer();
+    fireEvent.click(screen.getByTestId('player-open-listed-radio'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Play First radio from listed radio' }));
+    await waitFor(() => expect(document.querySelector('audio').getAttribute('src')).toBe('/api/v0/mesh-streams/first-radio'));
+    fireEvent.play(document.querySelector('audio'));
+    fireEvent.click(screen.getByTestId('player-open-listed-radio'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Play Second radio from listed radio' }));
+    expect(document.querySelector('audio')).not.toHaveAttribute('src');
+    await act(async () => finish('/api/v0/mesh-streams/second-radio'));
+    await waitFor(() => expect(document.querySelector('audio').getAttribute('src')).toBe('/api/v0/mesh-streams/second-radio'));
+  });
+
+  it('reacquires a radio ticket after initial setup failure without falling back to local content', async () => {
+    const create = vi.spyOn(listeningParty, 'createRadioStreamUrl').mockRejectedValueOnce(new Error('Host unavailable')).mockResolvedValueOnce('/api/v0/mesh-streams/retry-ticket');
+    vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
+      { partyId: 'radio-retry', contentId: 'radio:retry', title: 'Retry radio', allowMeshStreaming: true, streamPath: '/old-host-path', transportUsername: 'host-overlay', streamTicket: 'capability' },
+    ]);
+    renderPlayer();
+    fireEvent.click(screen.getByTestId('player-open-listed-radio'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Play Retry radio from listed radio' }));
+    expect(await screen.findByText('The radio host could not provide this snapshot. Retry or refresh listed radio.')).toBeInTheDocument();
+    streaming.createStreamTicket.mockClear();
+    fireEvent.click(screen.getByTestId('player-toggle-playback'));
+    await waitFor(() => expect(document.querySelector('audio').getAttribute('src')).toBe('/api/v0/mesh-streams/retry-ticket'));
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(streaming.createStreamTicket).not.toHaveBeenCalled();
+  });
+
+  it('does not probe local decoding after a listed-radio stream failure', async () => {
+    vi.spyOn(listeningParty, 'createRadioStreamUrl').mockResolvedValue('/radio-fixture.wav');
+    vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
+      { partyId: 'radio-test', contentId: 'sha256:test', title: 'Radio fixture', allowMeshStreaming: true, streamPath: '/radio-fixture.wav', transportUsername: 'host-overlay', streamTicket: 'capability' },
     ]);
     renderPlayer();
     fireEvent.click(screen.getByTestId('player-open-listed-radio'));

@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Host-scoped remote listed radio
+
+- Add manual local playback tickets pinned to the overlay host, party, content and host capability; check current listing and permission on every host read.
+- Advertise the actual overlay transport username separately from the host web account. Keep locally hosted radio on its direct endpoint with fresh tickets.
+- Support single byte ranges for remote snapshots; renew tickets after initial setup or media failure and preserve routing scope through queue normalization.
+- Pace bounded 44 KiB reads, keep the global 500-call RPC budget, and permit one concurrent stream from this node to each host. Older announcements require a host update.
+- Verify byte delivery and permission revocation through a real loopback TLS server, connector and service client. Sustained and dual-participant browser checks remain due.
+
+
 ### Player mesh stream completion
 
 - Preserve short final chunks for unknown-length mesh previews and accept exact end-of-file range responses.

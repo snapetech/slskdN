@@ -5177,7 +5177,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] 2026-09-28 Add reachable listed-radio picker and controlled stream/directory retry coverage.
 - [x] 2026-09-28 Add listen-along manual recovery controls, snapshot failure reporting and disposed-callback guards.
 - [x] 2026-09-28 Exclude custom radio URLs from local-library decode probes.
-- [ ] P1: repair and verify remote listed-radio host routing and ticket renewal through established mesh streaming; verify dual-participant room recovery. See gotcha 0z1065 and the player quality audit.
+- [ ] P1: verify sustained remote listed-radio playback, HTTP seeking and capability expiry across two browser/backend participants; host routing and ticket renewal implemented 2026-09-28. Verify dual-participant room recovery. See gotcha 0z1065 and the player quality audit.
 
 ## Mesh playback completion prerequisites — 2026-09-28
 
@@ -5185,3 +5185,12 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Propagate producer failures to readers; preserve strict known-length and bounded-range checks.
 - [x] Verify the real host range handler, fetcher and preview reader together through controlled RPC, including limiter release.
 - [ ] Complete host-scoped remote listed-radio routing and permission revocation checks; distinguish web-account display identity from mesh transport identity. Existing radio routing task remains open.
+
+
+## Host-scoped remote listed radio — 2026-09-28 02:04 UTC
+
+- [x] Implement host/party/content/capability-scoped reads and manual local playback tickets, with explicit transport username.
+- [x] Retain direct local-host playback and renew tickets on initial setup/media retries; preserve scope through the player queue and exclude radio restore.
+- [x] Support single HTTP byte ranges and pace bounded 44 KiB reads under the existing global RPC budget; enforce and release one stream per listener node/host.
+- [x] Verify real production loopback TLS byte delivery/tail/revocation, gateway/reader ranges, global limits, source replacement and retry.
+- [ ] Verify sustained two-backend browser playback and seek/expiry behavior; complete dual-participant room recovery and the remaining player quality audit.

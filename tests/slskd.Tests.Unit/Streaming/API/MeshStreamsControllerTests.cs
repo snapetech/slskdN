@@ -18,7 +18,7 @@ public class MeshStreamsControllerTests
     private readonly Mock<IMeshStreamService> _streams = new();
     private IOptionsMonitor<slskd.Options> _options = new TestOptionsMonitor(new slskd.Options
     {
-        Feature = new slskd.Options.FeatureOptions { Streaming = true },
+        Feature = new slskd.Options.FeatureOptions { Streaming = true, Mesh = true },
         Soulseek = new slskd.Options.SoulseekOptions { Username = "alice" },
     });
 
@@ -31,6 +31,42 @@ public class MeshStreamsControllerTests
             new Claim(ClaimTypes.Name, "alice"),
         }, "Test"));
         return controller;
+    }
+
+    [Theory]
+    [InlineData("bytes=10-19", 206, 10L, 20L, "bytes 10-19/100")]
+    [InlineData("bytes=90-", 206, 90L, 100L, "bytes 90-99/100")]
+    [InlineData("bytes=-10", 206, 90L, 100L, "bytes 90-99/100")]
+    [InlineData("bytes=100-", 416, 0L, 0L, "bytes */100")]
+    [InlineData("bytes=0-1,4-5", 400, 0L, 0L, "")]
+    public async Task Get_RadioTicket_ProcessesSingleRangesWithoutSeekingThePipe(string header, int status, long start, long end, string contentRange)
+    {
+        var controller = CreateController();
+        controller.Request.Headers.Range = header;
+        _tickets.Setup(service => service.Validate("radio-ticket"))
+            .Returns(new MeshStreamTicket("radio-ticket", "content", "track.wav", "host", 100, null, "user:alice", DateTimeOffset.UtcNow.AddMinutes(1), "audio/wav")
+            {
+                Radio = new MeshRadioScope("party", "capability"),
+            });
+        await using var stream = new MemoryStream(new byte[10]);
+        _streams.Setup(service => service.OpenRangeAsync("radio-ticket", start, end, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeshStreamLease(stream, "audio/wav", "user:alice"));
+
+        var result = await controller.Get("radio-ticket", CancellationToken.None);
+
+        Assert.Equal(contentRange, controller.Response.Headers.ContentRange.ToString());
+        if (status == 206)
+        {
+            Assert.IsType<FileStreamResult>(result);
+            Assert.Equal(status, controller.Response.StatusCode);
+            Assert.Equal(end - start, controller.Response.ContentLength);
+            Assert.Equal("bytes", controller.Response.Headers.AcceptRanges.ToString());
+        }
+        else
+        {
+            Assert.Equal(status, (result as ObjectResult)?.StatusCode ?? (result as StatusCodeResult)?.StatusCode);
+            _streams.Verify(service => service.OpenRangeAsync(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<long>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 
     [Fact]

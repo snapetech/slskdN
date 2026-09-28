@@ -53,6 +53,7 @@ const normalizePlayerItem = (item, options = {}) => ({
   startPaused: options.startPaused === true,
   sourceProviders: asArray(item.sourceProviders || item.providers),
   streamUrl: item.streamUrl || options.streamUrl || '',
+  radioPartyId: item.radioPartyId || '',
   tags: asArray(item.tags || item.genres),
   title: item.title || item.fileName || item.contentId,
   verified: Boolean(
@@ -65,7 +66,7 @@ const normalizePlayerItem = (item, options = {}) => ({
 const isRestorableItem = (item) =>
   typeof item?.contentId === 'string' &&
   !item.contentId.startsWith('local:') &&
-  !item.streamUrl;
+  !item.streamUrl && !item.radioPartyId;
 const sessionKey = 'slskdn.player.session.v1';
 const readSession = () => {
   try {

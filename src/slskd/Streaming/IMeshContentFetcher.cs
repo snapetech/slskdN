@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 /// </summary>
 public interface IMeshContentFetcher
 {
+    Task<MeshContentFetchResult> FetchRadioAsync(string peerId, string contentId, MeshRadioScope radio, long offset, int length, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Fetches content from a mesh peer by ContentId.
     /// </summary>

@@ -48,7 +48,7 @@ import Equalizer from './Equalizer';
 import LyricsPane from './LyricsPane';
 import SpectrumAnalyzer, { getFrequencyBars } from './SpectrumAnalyzer';
 import RadioDirectory from './RadioDirectory';
-import { buildRadioStreamUrl } from '../../lib/listeningParty';
+import { buildRadioStreamUrl, createRadioStreamUrl } from '../../lib/listeningParty';
 import { fadeOutputGain, getExistingAudioGraph, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
 import { usePlayer } from './PlayerContext';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -514,7 +514,7 @@ const getTrackLabel = (item) =>
 const isSavablePlaylistTrack = (item) =>
   typeof item?.contentId === 'string' &&
   !item.contentId.startsWith('local:') &&
-  !item.streamUrl;
+  !item.streamUrl && !item.radioPartyId;
 
 const PlayerQueueModal = ({
   current,
@@ -2724,6 +2724,7 @@ const PlayerBar = () => {
     setPlaybackError('');
     setPlaybackStatus('loading');
     if (activeItemRef.current !== current) {
+      if (current.radioPartyId) setSourceRetryRevision((revision) => revision + 1);
       autoplayRef.current = true;
       return;
     }
@@ -2734,7 +2735,7 @@ const PlayerBar = () => {
         return;
       }
       remountPositionRef.current = element.currentTime;
-      if (!current.streamUrl) {
+      if (!current.streamUrl || current.radioPartyId) {
         playRequestRef.current += 1;
         activeItemRef.current = null;
         autoplayRef.current = true;
@@ -2966,14 +2967,20 @@ const PlayerBar = () => {
     }
 
     if (selectedItemRef.current !== current) {
+      const previousItem = selectedItemRef.current;
       selectedItemRef.current = current;
       failedTranscodeRef.current = null;
       pendingTranscodeRef.current = false;
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
       stopOutgoingFade();
-      if (audioRef.current && (!crossfadeEnabledRef.current || current.startPaused)) {
+      if (audioRef.current && (!crossfadeEnabledRef.current || current.startPaused || current.radioPartyId || previousItem?.radioPartyId)) {
         audioRef.current.pause();
+        if (current.radioPartyId || previousItem?.radioPartyId) {
+          audioRef.current.removeAttribute('src');
+          audioRef.current.load();
+          activeItemRef.current = null;
+        }
         playingRef.current = false;
         setPlaying(false);
       }
@@ -2990,6 +2997,18 @@ const PlayerBar = () => {
       setPosition(startingPosition);
     }
     setSource(null);
+
+    if (current.radioPartyId) {
+      createRadioStreamUrl(current.radioPartyId, current.contentId).then((url) => {
+        if (!cancelled) setSource({ item: current, url });
+      }).catch(() => {
+        if (!cancelled) {
+          setPlaybackStatus('error');
+          setPlaybackError('The radio host could not provide this snapshot. Retry or refresh listed radio.');
+        }
+      });
+      return () => { cancelled = true; };
+    }
 
     if (current.streamUrl) {
       setSource({ item: current, url: current.streamUrl });
@@ -4224,6 +4243,7 @@ const PlayerBar = () => {
             artist: party.artist || party.hostPeerId,
             contentId: party.contentId,
             streamUrl: buildRadioStreamUrl(party),
+            radioPartyId: party.transportUsername && party.streamTicket ? party.partyId : null,
             title: party.title || party.contentId,
           }, {
             positionSeconds: (Number.isFinite(party.positionSeconds) ? Math.max(0, party.positionSeconds) : 0) + elapsed,

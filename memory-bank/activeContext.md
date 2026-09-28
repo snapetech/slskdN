@@ -14554,3 +14554,29 @@ Next Steps: add host-scoped listed-radio transport with active permission/conten
 ### Mesh transport final gates — 2026-09-28
 
 All 26 focused regressions pass, including controlled RPC through the real host range handler, fetcher and reader. Final-source unit rerun: 5,198 passed; solution smoke: 74 passed; integration: 284 passed. Repository lint, whitespace and local-identity checks pass. Remote listed-radio routing remains open.
+
+
+## Host-scoped radio implementation — 2026-09-28 02:04 UTC
+
+Current task: finish the live integration gate, preview the exact release range,
+commit and push the validated radio batch. Source now routes by actual overlay
+username and checks host permission on every bounded read, with fresh local
+tickets and single-range playback. Final Web/browser/unit/smoke gates pass.
+
+Next Steps: sustained two-backend browser radio including seek and capability
+expiry, dual-participant room recovery, then remaining format/browser,
+accessibility, physical-device and sustained-resource rows in the player audit.
+The full player goal remains active; no release tag or deployment is authorized.
+
+## Final radio implementation gates — 2026-09-28 02:07 UTC
+
+Final source passes 5,215 unit, 74 smoke and 284 integration tests; 986 Web
+tests and 16 browser workflows pass. Real loopback TLS covers production
+server/connector/client delivery and revocation. Repository/Web lint,
+Release/frontend builds, bundle/output, CSRF/anonymous-endpoint, whitespace
+and identity checks pass.
+
+Completed implementation batch is cleared. Next Steps: verify sustained
+two-backend browser radio, HTTP seek and capability expiry, dual-participant
+room recovery, and remaining player audit rows. The full goal remains active;
+no release tag or deployment was created.

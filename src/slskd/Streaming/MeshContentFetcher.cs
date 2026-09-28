@@ -107,6 +107,7 @@ public sealed class MeshContentFetcher : IMeshContentFetcher
                     HashValid = false,
                 };
             }
+
             var result = new MeshContentFetchResult
             {
                 Data = new MemoryStream(reply.Payload),
@@ -150,6 +151,28 @@ public sealed class MeshContentFetcher : IMeshContentFetcher
                 HashValid = false
             };
         }
+    }
+
+    public async Task<MeshContentFetchResult> FetchRadioAsync(string peerId, string contentId, MeshRadioScope radio, long offset, int length, CancellationToken cancellationToken = default)
+    {
+        var reply = await _meshClient.CallAsync(peerId, new ServiceCall
+        {
+            ServiceName = "ListedRadio",
+            Method = "Read",
+            CorrelationId = Guid.NewGuid().ToString("N"),
+            Payload = JsonSerializer.SerializeToUtf8Bytes(new slskd.Mesh.ServiceFabric.Services.ListedRadioRequest(radio.PartyId, contentId, radio.HostTicket, offset, length), new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+        }, cancellationToken).ConfigureAwait(false);
+        if (reply.StatusCode != ServiceStatusCodes.OK || reply.Payload == null || reply.Payload.Length != length)
+        {
+            return new MeshContentFetchResult { Error = "Radio read failed or snapshot changed.", SizeValid = false };
+        }
+
+        return new MeshContentFetchResult
+        {
+            Data = new MemoryStream(reply.Payload),
+            Size = reply.Payload.Length,
+            SizeValid = true,
+        };
     }
 
     private async Task<MeshContentFetchResult> FetchChunkedAsync(

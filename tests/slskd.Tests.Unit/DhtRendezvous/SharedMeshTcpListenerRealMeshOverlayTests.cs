@@ -20,6 +20,13 @@ using slskd.Mesh;
 using slskd.Mesh.Messages;
 using slskd.SoulseekRuntime;
 using Xunit;
+using Moq;
+using System.Text.Json;
+using slskd.ListeningParty;
+using slskd.Streaming;
+using slskd.Mesh.ServiceFabric;
+using slskd.Mesh.ServiceFabric.Services;
+using slskd.Mesh.Overlay;
 
 /// <summary>
 /// Proves the mesh-overlay half of port sharing end to end using the REAL production classes on
@@ -96,6 +103,83 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
         {
             await sharedListener.StopAsync(CancellationToken.None);
             await meshOverlayServer.StopAsync();
+        }
+    }
+
+    [Fact]
+    public async Task ListedRadio_RealTlsHostAndClient_ReadBytesAndEnforceRevocation()
+    {
+        var file = Path.Combine(_serverAppDirectory, "radio.wav");
+        var bytes = Enumerable.Range(0, ListedRadioMeshService.MaxChunkBytes + 15).Select(index => (byte)(index % 251)).ToArray();
+        await File.WriteAllBytesAsync(file, bytes);
+        var state = new ListeningPartyEvent { PartyId = "party", ContentId = "track", Listed = true, AllowMeshStreaming = true };
+        var parties = new Mock<IListeningPartyService>();
+        parties.Setup(service => service.GetStateByPartyIdAsync("party", It.IsAny<CancellationToken>())).ReturnsAsync(() => state);
+        var tickets = new StreamTicketService();
+        var capability = tickets.Create("track", "listening-party:party", TimeSpan.FromMinutes(2));
+        var locator = new Mock<IContentLocator>();
+        locator.Setup(service => service.Resolve("track", It.IsAny<CancellationToken>())).Returns(new ResolvedContent(file, bytes.Length, "audio/wav"));
+        var hostOptions = new StaticOptionsMonitor(new slskd.Options
+        {
+            Feature = new slskd.Options.FeatureOptions { Mesh = true, Streaming = true },
+            Soulseek = new slskd.Options.SoulseekOptions { Username = "radio-host" },
+        });
+        var serviceRouter = new MeshServiceRouter(NullLogger<MeshServiceRouter>.Instance, Microsoft.Extensions.Options.Options.Create(new MeshServiceFabricOptions()));
+        serviceRouter.RegisterService(new ListedRadioMeshService(parties.Object, tickets, locator.Object, hostOptions, NullLogger<ListedRadioMeshService>.Instance));
+        var dhtOptions = new DhtRendezvousOptions { Enabled = true };
+        var server = new MeshOverlayServer(
+            NullLogger<MeshOverlayServer>.Instance, hostOptions,
+            new CertificateManager(NullLogger<CertificateManager>.Instance, _serverAppDirectory),
+            new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _serverAppDirectory),
+            new OverlayRateLimiter(), new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance),
+            new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
+            new NoOpMeshOverlayConnector(), new NoOpMeshSyncService(), new NoOpMeshSearchRpcHandler(),
+            new MeshOverlayRequestRouter(), dhtOptions, serviceRouter);
+        var listener = new SharedMeshTcpListener(
+            NullLogger<SharedMeshTcpListener>.Instance,
+            new OptionsAtStartup { Soulseek = new slskd.Options.SoulseekOptions { ListenIpAddress = "127.0.0.1", ListenPort = 0 } },
+            dhtOptions, new FedTcpListener(), server);
+        var registry = new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance);
+        var requests = new MeshOverlayRequestRouter();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        await server.StartAsync(timeout.Token);
+        await listener.StartAsync(timeout.Token);
+        try
+        {
+            var connector = new MeshOverlayConnector(
+                NullLogger<MeshOverlayConnector>.Instance,
+                new StaticOptionsMonitor(new slskd.Options { Soulseek = new slskd.Options.SoulseekOptions { Username = "radio-listener" } }),
+                new CertificateManager(NullLogger<CertificateManager>.Instance, _clientAppDirectory),
+                new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _clientAppDirectory),
+                new OverlayRateLimiter(), new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance),
+                registry, new NoOpMeshSyncService(), new NoOpMeshSearchRpcHandler(), requests);
+            var connection = await connector.ConnectToEndpointAsync(await WaitForBoundEndPointAsync(listener), timeout.Token);
+            Assert.NotNull(connection);
+            var client = new MeshServiceClient(NullLogger<MeshServiceClient>.Instance, Mock.Of<IMeshServiceDirectory>(), Mock.Of<IControlSigner>(), registry, requests);
+            ServiceCall Read(long offset, int length) => new()
+            {
+                ServiceName = "ListedRadio",
+                Method = "Read",
+                CorrelationId = Guid.NewGuid().ToString("N"),
+                Payload = JsonSerializer.SerializeToUtf8Bytes(new ListedRadioRequest("party", "track", capability, offset, length), new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+            };
+
+            var first = await client.CallAsync("radio-host", Read(0, ListedRadioMeshService.MaxChunkBytes), timeout.Token);
+            Assert.Equal(ServiceStatusCodes.OK, first.StatusCode);
+            Assert.Equal(bytes[..ListedRadioMeshService.MaxChunkBytes], first.Payload);
+            var tail = await client.CallAsync("radio-host", Read(ListedRadioMeshService.MaxChunkBytes, 15), timeout.Token);
+            Assert.Equal(ServiceStatusCodes.OK, tail.StatusCode);
+            Assert.Equal(bytes[ListedRadioMeshService.MaxChunkBytes..], tail.Payload);
+            state = state with { AllowMeshStreaming = false };
+            var revoked = await client.CallAsync("radio-host", Read(0, 15), timeout.Token);
+            Assert.Equal(404, revoked.StatusCode);
+            Assert.Empty(revoked.Payload);
+            await connection.DisconnectAsync("Test completed", timeout.Token);
+        }
+        finally
+        {
+            await listener.StopAsync(CancellationToken.None);
+            await server.StopAsync();
         }
     }
 

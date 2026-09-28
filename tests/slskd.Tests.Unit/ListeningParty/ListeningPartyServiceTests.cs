@@ -82,6 +82,48 @@ public sealed class ListeningPartyServiceTests
         dht.Verify(instance => instance.GetRawAsync(DirectoryIndexKey, CancellationToken.None), Times.Exactly(2));
     }
 
+    [Fact]
+    public async Task Publish_ListedSnapshot_SeparatesWebAccountAndOverlayIdentity()
+    {
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(service => service.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((byte[]?)null);
+        byte[]? published = null;
+        dht.Setup(service => service.PutAsync("slskdn:listening-party:party:party-a", It.IsAny<object>(), 900, It.IsAny<CancellationToken>()))
+            .Callback((string key, object value, int ttl, CancellationToken token) => published = (byte[])value);
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(service => service.StoreMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        using var services = new ServiceCollection().AddSingleton(storage.Object).BuildServiceProvider();
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(service => service.RouteMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        var hub = new Mock<IHubContext<ListeningPartyHub>>();
+        var clients = new Mock<IHubClients>();
+        clients.Setup(service => service.Group(It.IsAny<string>())).Returns(Mock.Of<IClientProxy>());
+        hub.SetupGet(service => service.Clients).Returns(clients.Object);
+        var tickets = new StreamTicketService();
+        var service = new ListeningPartyService(hub.Object, dht.Object, router.Object, services.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(), tickets, Mock.Of<ILogger<ListeningPartyService>>(),
+            new TestOptionsMonitor<Options>(new Options { Soulseek = new Options.SoulseekOptions { Username = "overlay-host" } }));
+
+        await service.PublishAsync(new ListeningPartyEvent
+        {
+            PartyId = "party-a",
+            PodId = "pod-a",
+            ChannelId = "channel-a",
+            HostPeerId = "web-account",
+            ContentId = "track",
+            Action = "play",
+            Listed = true,
+            AllowMeshStreaming = true,
+        });
+
+        Assert.NotNull(published);
+        var announcement = JsonSerializer.Deserialize<ListeningPartyAnnouncement>(published, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(announcement);
+        Assert.Equal("web-account", announcement.HostPeerId);
+        Assert.Equal("overlay-host", announcement.TransportUsername);
+        Assert.Equal("listening-party:party-a", tickets.Validate(announcement.StreamTicket, "track")?.OwnerKey);
+    }
+
     private static ListeningPartyService CreateService(IMeshDhtClient dht)
     {
         return new ListeningPartyService(
@@ -91,7 +133,8 @@ public sealed class ListeningPartyServiceTests
             Mock.Of<IServiceScopeFactory>(),
             new NowPlayingService(),
             Mock.Of<IStreamTicketService>(),
-            Mock.Of<ILogger<ListeningPartyService>>());
+            Mock.Of<ILogger<ListeningPartyService>>(),
+            new TestOptionsMonitor<Options>(new Options()));
     }
 
     private static ListeningPartyAnnouncement CreateAnnouncement()

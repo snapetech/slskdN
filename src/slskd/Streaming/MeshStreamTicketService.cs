@@ -50,6 +50,14 @@ public sealed partial class MeshStreamTicketService : IMeshStreamTicketService
             throw new ArgumentException("Expected size must be greater than or equal to zero.", nameof(request));
         }
 
+        var radio = request.Radio == null ? null : new MeshRadioScope(
+            NormalizeId(request.Radio.PartyId, nameof(request.Radio.PartyId)),
+            NormalizeId(request.Radio.HostTicket, nameof(request.Radio.HostTicket)));
+        if (radio != null && (peerId == null || request.ExpectedSize is not > 0 || request.ExpectedHash != null))
+        {
+            throw new ArgumentException("PeerId is required.");
+        }
+
         var ticket = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
             .TrimEnd('=')
             .Replace('+', '-')
@@ -64,7 +72,10 @@ public sealed partial class MeshStreamTicketService : IMeshStreamTicketService
             NormalizeExpectedHash(request.ExpectedHash),
             ownerKey,
             DateTimeOffset.UtcNow.Add(lifetime),
-            contentType);
+            contentType)
+        {
+            Radio = radio,
+        };
 
         _tickets[ticket] = claims;
         return claims;

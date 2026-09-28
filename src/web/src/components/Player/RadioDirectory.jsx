@@ -42,17 +42,17 @@ const RadioDirectory = ({ onClose, onPlay }) => {
         {!loading && !error && parties.length === 0 ? <Message role="status">No radio broadcasts are listed right now.</Message> : null}
         <List divided relaxed>
           {parties.map((party) => {
-            const playable = party.allowMeshStreaming && Boolean(party.streamPath);
+            const playable = party.allowMeshStreaming && Boolean(party.transportUsername && party.streamTicket);
             return (
               <List.Item key={party.partyId}>
                 <List.Content floated="right">
-                  <Popup content={playable ? "Play this host's current track through its permitted stream endpoint." : 'This broadcast shares metadata only; its host has not enabled streaming.'} trigger={
+                  <Popup content={playable ? "Play this host's current track. Remote playback needs an existing mesh connection to the host." : party.allowMeshStreaming ? 'This host needs to publish a current snapshot with radio transport support.' : 'This broadcast shares metadata only; its host has not enabled streaming.'} trigger={
                     <Button aria-label={`Play ${party.title || party.contentId} from listed radio`} disabled={!playable} icon="play" onClick={() => { onPlay(party); onClose(); }} size="small" />
                   } />
                 </List.Content>
                 <List.Content>
                   <List.Header>{party.title || party.contentId}</List.Header>
-                  <List.Description>{party.artist || party.hostPeerId} · {playable ? 'Host enables streaming' : 'Metadata only'}</List.Description>
+                  <List.Description>{party.artist || party.hostPeerId} · {playable ? 'Host enables streaming' : party.allowMeshStreaming ? 'Host update required' : 'Metadata only'}</List.Description>
                 </List.Content>
               </List.Item>
             );

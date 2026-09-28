@@ -92,16 +92,20 @@ test.describe('player browser playback', () => {
       await route.fulfill(directoryFails ? { status: 503, body: 'Unavailable' } : {
         contentType: 'application/json',
         body: JSON.stringify([
-          { partyId: 'controlled-radio', contentId: 'radio:controlled', title: 'Controlled radio', hostPeerId: 'Test host', allowMeshStreaming: true, streamPath: '/controlled-radio.wav', action: 'play', positionSeconds: 0 },
+          { partyId: 'controlled-radio', contentId: 'radio:controlled', title: 'Controlled radio', hostPeerId: 'Test host', allowMeshStreaming: true, streamPath: '/controlled-radio.wav', transportUsername: 'controlled-host', streamTicket: 'controlled-capability', action: 'play', positionSeconds: 0 },
           { partyId: 'metadata-radio', contentId: 'radio:metadata', title: 'Metadata radio', hostPeerId: 'Test host', allowMeshStreaming: false },
         ]),
       });
     });
-    await page.route('**/controlled-radio.wav', async (route) => {
-      if (streamFails) await route.abort('failed');
-      else await route.fulfill({ contentType: 'audio/wav', body: makeTone() });
-    });
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.route('**/api/v0/listed-radio/controlled-radio/tickets', (route) => route.fulfill({
+      json: { streamUrl: '/api/v0/mesh-streams/controlled-radio' },
+    }));
+    await page.route('**/api/v0/mesh-streams/controlled-radio', (route) => route.fulfill({
+      status: streamFails ? 503 : 200,
+      contentType: 'audio/wav',
+      body: makeTone(),
+    }));
     await page.getByTestId('player-open-listed-radio').click();
     await expect(page.getByText('Listed radio could not load. Refresh to try again.', { exact: true })).toBeVisible();
     directoryFails = false;

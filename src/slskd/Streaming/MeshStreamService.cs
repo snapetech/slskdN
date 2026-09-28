@@ -50,12 +50,28 @@ public sealed class MeshStreamService : IMeshStreamService
         _trafficAccounting = trafficAccounting;
     }
 
-    public async Task<MeshStreamLease?> OpenAsync(string ticket, CancellationToken cancellationToken)
+    public Task<MeshStreamLease?> OpenAsync(string ticket, CancellationToken cancellationToken)
+        => OpenCoreAsync(ticket, 0, null, cancellationToken);
+
+    public Task<MeshStreamLease?> OpenRangeAsync(string ticket, long offset, long endExclusive, CancellationToken cancellationToken)
+        => OpenCoreAsync(ticket, offset, endExclusive, cancellationToken);
+
+    private async Task<MeshStreamLease?> OpenCoreAsync(string ticket, long offset, long? endExclusive, CancellationToken cancellationToken)
     {
         var claims = _tickets.Validate(ticket);
         if (claims == null)
         {
             return null;
+        }
+
+        if (offset < 0 || (endExclusive.HasValue && (claims.Radio == null || !claims.ExpectedSize.HasValue || endExclusive > claims.ExpectedSize || endExclusive <= offset)))
+        {
+            throw new ArgumentException("Invalid radio range.");
+        }
+
+        if (endExclusive.HasValue)
+        {
+            claims = claims with { ExpectedSize = endExclusive.Value };
         }
 
         if (_fairnessGuard != null)
@@ -72,6 +88,13 @@ public sealed class MeshStreamService : IMeshStreamService
             throw new MeshStreamLimitException("Too many concurrent mesh preview streams.");
         }
 
+        var hostLimiterKey = claims.Radio == null ? null : $"mesh-radio-host:{claims.PeerId}";
+        if (hostLimiterKey != null && !_limiter.TryAcquire(hostLimiterKey, 1))
+        {
+            _limiter.Release(claims.OwnerKey);
+            throw new MeshStreamLimitException("A radio stream to this host is already active.");
+        }
+
         var pipe = new Pipe(new PipeOptions(
             pauseWriterThreshold: PipePauseWriterThreshold,
             resumeWriterThreshold: PipeResumeWriterThreshold));
@@ -79,7 +102,7 @@ public sealed class MeshStreamService : IMeshStreamService
         var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 #pragma warning restore CA2000
 
-        _ = ProduceAsync(claims, pipe.Writer, cancellationTokenSource.Token);
+        _ = ProduceAsync(claims, pipe.Writer, cancellationTokenSource.Token, offset);
 
         var stream = new ReleaseOnDisposeStream(
             pipe.Reader.AsStream(),
@@ -88,12 +111,16 @@ public sealed class MeshStreamService : IMeshStreamService
                 cancellationTokenSource.Cancel();
                 cancellationTokenSource.Dispose();
                 _limiter.Release(claims.OwnerKey);
+                if (hostLimiterKey != null)
+                {
+                    _limiter.Release(hostLimiterKey);
+                }
             });
 
         return new MeshStreamLease(stream, claims.ContentType, claims.OwnerKey);
     }
 
-    private async Task ProduceAsync(MeshStreamTicket claims, PipeWriter writer, CancellationToken cancellationToken)
+    private async Task ProduceAsync(MeshStreamTicket claims, PipeWriter writer, CancellationToken cancellationToken, long offset)
     {
         Exception? failure = null;
         try
@@ -111,7 +138,7 @@ public sealed class MeshStreamService : IMeshStreamService
                 return;
             }
 
-            await FetchAndCopyAsync(claims, peerId, output, cancellationToken).ConfigureAwait(false);
+            await FetchAndCopyAsync(claims, peerId, output, cancellationToken, startOffset: offset).ConfigureAwait(false);
         }
         catch (OperationCanceledException ex)
         {
@@ -163,22 +190,26 @@ public sealed class MeshStreamService : IMeshStreamService
         string peerId,
         Stream output,
         CancellationToken cancellationToken,
-        IncrementalHash? hash = null)
+        IncrementalHash? hash = null,
+        long startOffset = 0)
     {
         var expectedSize = claims.ExpectedSize;
-        long offset = 0;
-        var buffer = new byte[MeshStreamChunkBytes];
+        long offset = startOffset;
+        var chunkBytes = claims.Radio == null ? MeshStreamChunkBytes : slskd.Mesh.ServiceFabric.Services.ListedRadioMeshService.MaxChunkBytes;
+        var buffer = new byte[chunkBytes];
         while (!expectedSize.HasValue || offset < expectedSize.Value)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var remaining = expectedSize.HasValue ? expectedSize.Value - offset : MeshStreamChunkBytes;
-            var length = (int)Math.Min(MeshStreamChunkBytes, remaining);
+            var length = (int)Math.Min(chunkBytes, remaining);
             if (length <= 0)
             {
                 break;
             }
 
-            var result = await _contentFetcher.FetchAsync(
+            var result = claims.Radio != null
+                ? await _contentFetcher.FetchRadioAsync(peerId, claims.ContentId, claims.Radio, offset, length, cancellationToken).ConfigureAwait(false)
+                : await _contentFetcher.FetchAsync(
                 peerId,
                 claims.ContentId,
                 expectedSize: expectedSize.HasValue ? length : null,
@@ -208,7 +239,12 @@ public sealed class MeshStreamService : IMeshStreamService
                 await _trafficAccounting.AddOverlayDownloadAsync(result.Size, cancellationToken).ConfigureAwait(false);
             }
 
-            if (!expectedSize.HasValue && result.Size < MeshStreamChunkBytes)
+            if (claims.Radio != null && (!expectedSize.HasValue || offset < expectedSize.Value))
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+            }
+
+            if (!expectedSize.HasValue && result.Size < chunkBytes)
             {
                 break;
             }

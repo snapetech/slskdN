@@ -28,3 +28,10 @@ export const buildRadioStreamUrl = (party) => {
   if (!party?.streamPath) return null;
   return `${rootUrl}${party.streamPath}`;
 };
+
+
+export const createRadioStreamUrl = async (partyId, contentId) => {
+  const { data } = await api.post(`/listed-radio/${encodeURIComponent(partyId)}/tickets`, { contentId });
+  if (!data?.streamUrl?.startsWith('/api/v0/mesh-streams/') && !data?.streamUrl?.startsWith('/api/v0/listening-party/radio/')) throw new Error('Invalid radio stream ticket');
+  return `${rootUrl}${data.streamUrl}`;
+};

@@ -958,6 +958,24 @@ internal class StubContentLocator : IContentLocator
 internal class StubMeshContentFetcher : IMeshContentFetcher
 {
     private readonly Dictionary<(string PeerId, string ContentId), byte[]> _contentStore = new();
+    private readonly HashSet<(string PeerId, string ContentId, MeshRadioScope Radio)> _radioScopes = new();
+
+    public void SeedRadioContent(string peerId, string contentId, MeshRadioScope radio, byte[] content)
+    {
+        SeedContent(peerId, contentId, content);
+        _radioScopes.Add((peerId, contentId, radio));
+    }
+
+    public Task<MeshContentFetchResult> FetchRadioAsync(string peerId, string contentId, MeshRadioScope radio, long offset, int length, CancellationToken cancellationToken = default)
+    {
+        if (!_radioScopes.Contains((peerId, contentId, radio)))
+        {
+            return Task.FromResult(new MeshContentFetchResult { Error = "Radio capability is unavailable.", SizeValid = false });
+        }
+
+        return FetchAsync(peerId, contentId, expectedSize: length, offset: offset, length: length, cancellationToken: cancellationToken);
+    }
+
 
     /// <summary>
     /// Seeds content for testing. Call this in tests to set up expected fetch results.

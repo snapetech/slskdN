@@ -32,6 +32,7 @@ public sealed class ListeningPartyService : IListeningPartyService
     private readonly NowPlayingService _nowPlaying;
     private readonly IStreamTicketService _streamTickets;
     private readonly ILogger<ListeningPartyService> _logger;
+    private readonly Microsoft.Extensions.Options.IOptionsMonitor<Options> _options;
     private readonly ConcurrentDictionary<string, ListeningPartyEvent> _states = new();
     private readonly ConcurrentDictionary<string, ListeningPartyAnnouncement> _directory = new();
     private readonly object _directoryRefreshLock = new();
@@ -46,7 +47,8 @@ public sealed class ListeningPartyService : IListeningPartyService
         IServiceScopeFactory scopeFactory,
         NowPlayingService nowPlaying,
         IStreamTicketService streamTickets,
-        ILogger<ListeningPartyService> logger)
+        ILogger<ListeningPartyService> logger,
+        Microsoft.Extensions.Options.IOptionsMonitor<Options> options)
     {
         _hub = hub;
         _dht = dht;
@@ -55,6 +57,7 @@ public sealed class ListeningPartyService : IListeningPartyService
         _nowPlaying = nowPlaying;
         _streamTickets = streamTickets;
         _logger = logger;
+        _options = options;
     }
 
     public Task<ListeningPartyEvent?> GetStateAsync(string podId, string channelId, CancellationToken cancellationToken = default)
@@ -182,6 +185,8 @@ public sealed class ListeningPartyService : IListeningPartyService
             PodId = partyEvent.PodId,
             ChannelId = partyEvent.ChannelId,
             HostPeerId = partyEvent.HostPeerId,
+            TransportUsername = _options.CurrentValue.Soulseek.Username ?? string.Empty,
+            StreamTicket = streamTicket,
             Title = partyEvent.Title,
             Artist = partyEvent.Artist,
             Album = partyEvent.Album,

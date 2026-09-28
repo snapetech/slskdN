@@ -226,3 +226,32 @@ connection, failed rejoin or refresh failure. Retry recreates the connection,
 rejoins the room and refreshes the host snapshot. Existing automatic reconnect
 continues to handle established connections. Radio stream failure retries its
 own source; it does not request local-library decode metadata.
+
+
+## Listed-radio host routing
+
+Listed radio is a manually selected track snapshot. Current hosts publish their
+overlay Soulseek transport username separately from the web account displayed
+in the directory. The listener requests a fresh local ticket rather than
+opening the host's relative URL. Every remote read verifies that the host still
+lists that party, permits streaming, serves the selected content and accepts the
+party capability. A track change, revocation or expired capability interrupts
+the snapshot; refresh the directory and select a current entry.
+
+Both nodes need streaming enabled; remote playback also needs mesh enabled and
+an existing outbound mesh service connection to the host. Playback does not
+discover extra peers or request Soulseek downloads. Locally hosted snapshots
+retain their direct HTTP stream with a fresh ticket. Older directory entries
+without transport metadata show **Host update required**.
+
+Remote reads support one HTTP byte range at a time, use at most 44 KiB per
+request and are paced at no more than five requests per second. The listener
+allows one active radio stream to each host, sharing the existing global
+500-call-per-minute peer budget. High bitrate audio or slow connections may
+buffer. Press Play to retry initial ticket or media failures; retry obtains a
+fresh local ticket. Temporary radio streams are not restored after reload.
+
+Real loopback TLS checks establish remote byte delivery and host permission
+revocation. They do not establish sustained radio quality across real network
+latencies, physical devices or simultaneous listen-along participants; see
+the [player quality audit](dev/player-quality-audit.md).

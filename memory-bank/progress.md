@@ -13673,3 +13673,32 @@ Reproduced 3,000-byte unknown-length playback truncating at 2,048 bytes. Fixed t
 ### Mesh transport final gates — 2026-09-28
 
 All 26 focused regressions pass, including controlled RPC through the real host range handler, fetcher and reader. Final-source unit rerun: 5,198 passed; solution smoke: 74 passed; integration: 284 passed. Repository lint, whitespace and local-identity checks pass. Remote listed-radio routing remains open.
+
+
+## Host-scoped remote listed radio — 2026-09-28 02:04 UTC
+
+Implemented the gateway, dedicated host service, additive transport metadata,
+scoped tickets, single-range playback, fresh-ticket retry and paced read limits.
+Real loopback TLS verifies full 44 KiB replies, tails and revocation through the
+production server/connector/client. Queue normalization and source replacement
+now retain/release radio scope correctly. ADR-0014 records the boundary;
+separate immediate gotcha commits capture each reproduced correction.
+
+Final front-end evidence: 986 Web tests and 16 browser workflows pass. Final
+backend unit/smoke counts: 5,215 / 74 passed; integration is still live.
+Repository/Web lint, build, bundle/output, CSRF/anonymous-endpoint and identity
+checks pass. Sustained two-node browser radio/seek/expiry and dual-participant
+room recovery remain open; controlled browser streams do not prove those.
+
+## Final radio implementation gates — 2026-09-28 02:07 UTC
+
+Final source passes 5,215 unit, 74 smoke and 284 integration tests; 986 Web
+tests and 16 browser workflows pass. Real loopback TLS covers production
+server/connector/client delivery and revocation. Repository/Web lint,
+Release/frontend builds, bundle/output, CSRF/anonymous-endpoint, whitespace
+and identity checks pass.
+
+Completed implementation batch is cleared. Next Steps: verify sustained
+two-backend browser radio, HTTP seek and capability expiry, dual-participant
+room recovery, and remaining player audit rows. The full goal remains active;
+no release tag or deployment was created.

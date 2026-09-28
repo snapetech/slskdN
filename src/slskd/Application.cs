@@ -667,6 +667,11 @@ namespace slskd
                         Log.Warning("HolePunchMeshService not available for registration");
                     }
 
+                    if (OptionsAtStartup.Feature.Mesh && OptionsAtStartup.Feature.Streaming)
+                    {
+                        router.RegisterService(ServiceProvider.GetRequiredService<Mesh.ServiceFabric.Services.ListedRadioMeshService>());
+                    }
+
                     // Register MeshContent service for GetByContentId (T-906, def-5)
                     var meshContentService = OptionsAtStartup.Feature.Mesh
                         ? ServiceProvider.GetService<Mesh.ServiceFabric.Services.MeshContentMeshService>()

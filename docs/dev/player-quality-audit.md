@@ -31,7 +31,7 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in headless Chromium / high; physical window sizing and focus unverified |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Controlled Chromium workflow verified / high; remote routing incomplete |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Controlled Chromium workflow and real loopback TLS host delivery/revocation verified / high; sustained two-backend browser playback unverified |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks and live-event precedence | Simulated regression checks / high; dual-participant runtime recovery unverified |
 
 Final gates: 982 Web tests across 165 files; backend 74 smoke, 5,185 unit and
@@ -57,7 +57,7 @@ moderate; repeated warm-baseline and sustained-session measurements remain due.
 
 ## Remaining completion work
 
-- Repair remote radio routing: announced relative paths resolve through local-only party state and ticket validation. Verify routing/permission scope with isolated hosts using the established mesh streaming path.
+- Complete runtime remote-radio verification: the host-scoped route now has controlled gateway/reader tests and real loopback TLS delivery/revocation checks. Verify sustained playback, HTTP seeking and capability expiry with full browser/backend participants across realistic latency.
 - Verify dual-participant listen-along reconnect and host state recovery. Controlled radio stream retry is covered; real host/ticket boundaries remain due.
 - Exercise supported browser engines and additional audio formats, including
   failures, decode cancellation and recovery.
@@ -88,3 +88,33 @@ dual-participant checks remain required.
 ### Mesh transport final gates — 2026-09-28
 
 All 26 focused regressions pass, including controlled RPC through the real host range handler, fetcher and reader. Final-source unit rerun: 5,198 passed; solution smoke: 74 passed; integration: 284 passed. Repository lint, whitespace and local-identity checks pass. Remote listed-radio routing remains open.
+
+
+## Host-scoped radio transport — 2026-09-28
+
+Implemented manual local ticket acquisition pinned to the actual overlay
+Soulseek transport username, party, content and host capability. The host
+checks permission and content for every read; no alternate-peer discovery or
+general-preview fallback occurs. Controlled gateway/reader tests verify bytes
+and ranges; a real production loopback TLS server, connector and service client
+deliver a 44 KiB response and tail, then deny reads after revocation. Confidence
+in this boundary is high. The browser radio case remains a controlled HTTP
+ticket/stream workflow, rather than a full two-backend network workflow.
+
+Reads are paced at five per second, fit the 64 KiB framed JSON limit and retain
+the global 500-call RPC limit. One listener-node stream per host bounds aggregate
+read pressure. Sustained throughput, full browser HTTP seek behavior across mesh
+and high bitrate audio remain unverified.
+
+## Final radio implementation gates — 2026-09-28 02:07 UTC
+
+Final source passes 5,215 unit, 74 smoke and 284 integration tests; 986 Web
+tests and 16 browser workflows pass. Real loopback TLS covers production
+server/connector/client delivery and revocation. Repository/Web lint,
+Release/frontend builds, bundle/output, CSRF/anonymous-endpoint, whitespace
+and identity checks pass.
+
+Completed implementation batch is cleared. Next Steps: verify sustained
+two-backend browser radio, HTTP seek and capability expiry, dual-participant
+room recovery, and remaining player audit rows. The full goal remains active;
+no release tag or deployment was created.

@@ -63,7 +63,10 @@ public class MeshServiceFabricOptions
     /// Per-service rate limits (service name -> max calls per minute).
     /// If not specified, uses DefaultMaxCallsPerMinute.
     /// </summary>
-    public Dictionary<string, int> PerServiceRateLimits { get; set; } = new();
+    public Dictionary<string, int> PerServiceRateLimits { get; set; } = new()
+    {
+        ["ListedRadio"] = 500,
+    };
 
     /// <summary>
     /// Per-service timeout overrides in seconds (service name -> timeout seconds).

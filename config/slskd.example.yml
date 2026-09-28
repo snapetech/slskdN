@@ -1,3 +1,6 @@
+# Listed mesh radio uses manual host-scoped playback with paced 44 KiB reads.
+# It retains the global 500 RPC calls per peer per minute budget and permits
+# one concurrent listener-node stream to each host; high bitrate media may buffer.
 ## This file is valid when copied as-is. To enable an example line, remove only
 ## its first `#`; the remaining indentation is the intended YAML indentation.
 #debug: false

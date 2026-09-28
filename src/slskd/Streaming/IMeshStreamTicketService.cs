@@ -18,7 +18,12 @@ public sealed record MeshStreamTicketRequest(
     string Filename,
     string? PeerId,
     long? ExpectedSize,
-    string? ExpectedHash);
+    string? ExpectedHash)
+{
+    public MeshRadioScope? Radio { get; init; }
+}
+
+public sealed record MeshRadioScope(string PartyId, string HostTicket);
 
 public sealed record MeshStreamTicket(
     string Ticket,
@@ -29,4 +34,7 @@ public sealed record MeshStreamTicket(
     string? ExpectedHash,
     string OwnerKey,
     DateTimeOffset ExpiresAtUtc,
-    string ContentType);
+    string ContentType)
+{
+    public MeshRadioScope? Radio { get; init; }
+}

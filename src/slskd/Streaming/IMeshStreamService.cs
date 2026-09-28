@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 
 public interface IMeshStreamService
 {
+    Task<MeshStreamLease?> OpenRangeAsync(string ticket, long offset, long endExclusive, CancellationToken cancellationToken);
+
     Task<MeshStreamLease?> OpenAsync(string ticket, CancellationToken cancellationToken);
 }
 

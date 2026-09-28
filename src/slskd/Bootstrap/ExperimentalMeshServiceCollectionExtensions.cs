@@ -292,6 +292,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
         // Hole punching services for NAT traversal
         services.AddSingleton<Mesh.ServiceFabric.Services.HolePunchMeshService>();
         services.AddSingleton<Mesh.ServiceFabric.Services.MeshContentMeshService>();
+        services.AddSingleton<Mesh.ServiceFabric.Services.ListedRadioMeshService>();
         services.AddSingleton<Mesh.Nat.IHolePunchCoordinator, Mesh.Nat.HolePunchCoordinator>();
         services.AddSingleton<Mesh.Nat.INatTraversalService, Mesh.Nat.NatTraversalService>();
 

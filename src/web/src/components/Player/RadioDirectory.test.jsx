@@ -10,7 +10,7 @@ import * as listeningParty from '../../lib/listeningParty';
 
 vi.mock('../../lib/listeningParty', () => ({ getPartyDirectory: vi.fn() }));
 
-const party = { partyId: 'radio-a', title: 'Radio track', artist: 'Radio artist', contentId: 'sha256:radio', allowMeshStreaming: true, streamPath: '/radio/stream' };
+const party = { partyId: 'radio-a', title: 'Radio track', artist: 'Radio artist', contentId: 'sha256:radio', allowMeshStreaming: true, streamPath: '/radio/stream', transportUsername: 'host-overlay', streamTicket: 'capability' };
 
 beforeEach(() => {
   vi.resetAllMocks();
