@@ -81,6 +81,45 @@ test.describe('player browser playback', () => {
     await login(page, harness.getNode('A').nodeCfg);
   });
 
+  test('opens listed radio without a track and recovers directory and stream failures', async ({ page }) => {
+    let directoryFails = true;
+    let streamFails = true;
+    let directoryRequests = 0;
+    let playbackInfoRequests = 0;
+    page.on('request', (request) => { if (request.url().includes('/playback-info')) playbackInfoRequests += 1; });
+    await page.route('**/api/v0/listening-party', async (route) => {
+      directoryRequests += 1;
+      await route.fulfill(directoryFails ? { status: 503, body: 'Unavailable' } : {
+        contentType: 'application/json',
+        body: JSON.stringify([
+          { partyId: 'controlled-radio', contentId: 'radio:controlled', title: 'Controlled radio', hostPeerId: 'Test host', allowMeshStreaming: true, streamPath: '/controlled-radio.wav', action: 'play', positionSeconds: 0 },
+          { partyId: 'metadata-radio', contentId: 'radio:metadata', title: 'Metadata radio', hostPeerId: 'Test host', allowMeshStreaming: false },
+        ]),
+      });
+    });
+    await page.route('**/controlled-radio.wav', async (route) => {
+      if (streamFails) await route.abort('failed');
+      else await route.fulfill({ contentType: 'audio/wav', body: makeTone() });
+    });
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByTestId('player-open-listed-radio').click();
+    await expect(page.getByText('Listed radio could not load. Refresh to try again.', { exact: true })).toBeVisible();
+    directoryFails = false;
+    await page.getByRole('button', { name: 'Refresh listed radio' }).click();
+    await expect(page.getByRole('button', { name: 'Play Metadata radio from listed radio' })).toBeDisabled();
+    await page.getByRole('button', { name: 'Play Controlled radio from listed radio' }).click();
+    await expect(page.locator('.player-title')).toHaveText('Controlled radio');
+    await expect(page.getByText('This audio could not be decoded or streamed.', { exact: true })).toBeVisible();
+    streamFails = false;
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+    expect(directoryRequests).toBe(2);
+    expect(playbackInfoRequests).toBe(0);
+    await page.reload();
+    await expect(page.locator('.player-title')).toHaveText('Nothing playing');
+    expect(directoryRequests).toBe(2);
+  });
+
   test('keeps browser media metadata and transport actions synchronized', async ({ page }) => {
     await page.addInitScript(() => {
       const mediaWindow = window as Window & {

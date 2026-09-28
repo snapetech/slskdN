@@ -5165,3 +5165,16 @@
 - [x] Add output-switch success/failure ordering regressions while another track is selected; physical-device routing remains unverified.
 - [x] Record idle/play/pause CPU and Linux proportional memory across Chromium processes, with process churn and unavailable readings reported.
 - [ ] Continue listen-along reconnect/radio, physical mobile/output verification and sustained-session resource checks. The overall player goal remains active.
+
+## Player listening recovery and listed radio — 2026-09-28 01:19:22Z
+
+Implemented retry and pending/error feedback for initial hub failure, exhausted/closed connections, failed rejoin and state refresh; disposed callbacks cannot join stale rooms. Added a reachable listed-radio picker with manual refresh and capability labels. Controlled HTTP audio verifies stream failure/retry and no temporary session restore; radio failures no longer probe local decoding.
+
+Evidence: 16 browser workflows, 982 Web tests across 165 files; backend 74 smoke, 5,185 unit, 284 integration passed. Final label/tooltip build and lint gates are being completed before commit/push. Separate gotchas record every fix and test harness correction.
+
+Open priority work: remote directory announcements carry relative stream paths, while radio endpoints look up in-process party state and locally signed tickets. Remote routing is not implemented by those paths. Repair through existing mesh transport with manual/permission-scoped streaming and isolated host tests; then verify dual-participant listen-along reconnect, remaining browser/format, physical and sustained-resource work in `docs/dev/player-quality-audit.md`. Overall goal stays active; no tag/deployment authorized.
+
+- [x] 2026-09-28 Add reachable listed-radio picker and controlled stream/directory retry coverage.
+- [x] 2026-09-28 Add listen-along manual recovery controls, snapshot failure reporting and disposed-callback guards.
+- [x] 2026-09-28 Exclude custom radio URLs from local-library decode probes.
+- [ ] P1: repair and verify remote listed-radio host routing and ticket renewal through established mesh streaming; verify dual-participant room recovery. See gotcha 0z1065 and the player quality audit.

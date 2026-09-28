@@ -6,7 +6,7 @@ import { createListeningPartyHubConnection } from '../../lib/hubFactory';
 import * as listeningParty from '../../lib/listeningParty';
 import PodListenAlongPanel from './PodListenAlongPanel';
 import { usePlayer } from './PlayerContext';
-import { act, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../../lib/hubFactory', () => ({
@@ -56,8 +56,85 @@ describe('PodListenAlongPanel directory polling', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.clearAllMocks();
     vi.useRealTimers();
+  });
+
+  it('offers retry after an initial connection failure and joins a fresh hub', async () => {
+    const failed = createHub();
+    failed.start.mockRejectedValueOnce(new Error('Offline'));
+    const recovered = createHub();
+    createListeningPartyHubConnection.mockReturnValueOnce(failed).mockReturnValueOnce(recovered);
+    render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
+    await act(async () => { await Promise.resolve(); });
+    const retry = screen.getByRole('button', { name: 'Retry listen-along connection' });
+    expect(retry).toBeEnabled();
+    fireEvent.click(retry);
+    await act(async () => { await Promise.resolve(); });
+    expect(recovered.invoke).toHaveBeenCalledWith('JoinParty', 'pod-a', 'channel-a');
+    expect(screen.getByLabelText('Listen Along live')).toBeInTheDocument();
+    expect(failed.stop).toHaveBeenCalledOnce();
+  });
+
+  it('does not join after a pending startup is disposed', async () => {
+    const hub = createHub();
+    let finishStart;
+    hub.start.mockReturnValueOnce(new Promise((resolve) => { finishStart = resolve; }));
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    const view = render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
+    view.unmount();
+    await act(async () => finishStart());
+    const reconnect = hub.onreconnected.mock.calls[0][0];
+    await act(async () => reconnect());
+    expect(hub.invoke).not.toHaveBeenCalledWith('JoinParty', 'pod-a', 'channel-a');
+    expect(hub.stop).toHaveBeenCalledOnce();
+  });
+
+  it('shows refresh failures and permits recovery even while the hub is live', async () => {
+    listeningParty.getPartyState.mockRejectedValueOnce(new Error('Snapshot unavailable'));
+    const hub = createHub();
+    let finishJoin;
+    hub.invoke.mockReturnValueOnce(new Promise((resolve) => { finishJoin = resolve; }));
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => finishJoin());
+    listeningParty.getPartyState.mockRejectedValueOnce(new Error('Refresh unavailable'));
+    await act(async () => hub.onreconnected.mock.calls[0][0]());
+    expect(screen.getByRole('alert')).toHaveTextContent('Room state could not refresh');
+    expect(screen.getByRole('button', { name: 'Retry listen-along connection' })).toBeEnabled();
+  });
+
+  it.each(['closed', 'rejoin failed'])('offers recovery after %s', async (failure) => {
+    const hub = createHub();
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      if (failure === 'closed') hub.onclose.mock.calls[0][0]();
+      else {
+        hub.invoke.mockRejectedValueOnce(new Error('Rejoin failed'));
+        hub.onreconnecting.mock.calls[0][0]();
+        await hub.onreconnected.mock.calls[0][0]();
+      }
+    });
+    expect(screen.getByLabelText('Listen Along offline')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry listen-along connection' })).toBeEnabled();
+    expect(screen.getByRole('alert')).toHaveTextContent(failure === 'closed' ? 'connection closed' : 'Could not rejoin');
+  });
+
+  it('keeps live host events ahead of late snapshots', async () => {
+    const hub = createHub();
+    let finishSnapshot;
+    listeningParty.getPartyState.mockReturnValue(new Promise((resolve) => { finishSnapshot = resolve; }));
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    render(<PodListenAlongPanel channelId="channel-a" compact podId="pod-a" user="user-a" />);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => hub.on.mock.calls.find(([event]) => event === 'partyState')[1]({ title: 'Fresh host state', action: 'play', contentId: 'fresh' }));
+    await act(async () => finishSnapshot({ title: 'Stale snapshot', action: 'play', contentId: 'stale' }));
+    expect(screen.getByText('Fresh host state')).toBeInTheDocument();
+    expect(screen.queryByText('Stale snapshot')).not.toBeInTheDocument();
   });
 
   it('does not request the unrendered directory in compact mode', async () => {

@@ -13649,3 +13649,15 @@ Final build passes all 15 browser workflows and 972 Web tests. Repository lint a
 Source `a669f1a2a` is pushed with 15 real-browser workflows, 972 Web tests and all backend/build/lint gates passing. Release preview rejected an unsupported contributors audience, and the shell continued to push after that failure. The unshipped fragment audience is corrected to users; gotcha 0z1059 records schema and command-ordering prevention. The full original-base release preview must pass before the corrective push. No release or tag was created.
 
 Completed implementation batch is cleared. Next Steps: continue the open rows in `docs/dev/player-quality-audit.md`: listen-along/radio runtime recovery, browser/format coverage, physical mobile/output/window behavior, sustained-session resources and accessibility. Overall goal remains active.
+
+## Player listening recovery and listed radio — 2026-09-28 01:19:22Z
+
+Implemented retry and pending/error feedback for initial hub failure, exhausted/closed connections, failed rejoin and state refresh; disposed callbacks cannot join stale rooms. Added a reachable listed-radio picker with manual refresh and capability labels. Controlled HTTP audio verifies stream failure/retry and no temporary session restore; radio failures no longer probe local decoding.
+
+Evidence: 16 browser workflows, 982 Web tests across 165 files; backend 74 smoke, 5,185 unit, 284 integration passed. Final label/tooltip build and lint gates are being completed before commit/push. Separate gotchas record every fix and test harness correction.
+
+Open priority work: remote directory announcements carry relative stream paths, while radio endpoints look up in-process party state and locally signed tickets. Remote routing is not implemented by those paths. Repair through existing mesh transport with manual/permission-scoped streaming and isolated host tests; then verify dual-participant listen-along reconnect, remaining browser/format, physical and sustained-resource work in `docs/dev/player-quality-audit.md`. Overall goal stays active; no tag/deployment authorized.
+
+### Final listening batch gates — 2026-09-28 01:22:02Z
+
+Latest build: 16/16 browser workflows, 982/982 Web tests across 165 files, backend 74 smoke / 5,185 unit / 284 integration, all lint/build/bundle/build-output/identity/whitespace checks pass. The controlled radio case verifies zero local playback-info probes after failure, two explicit directory requests and no restored temporary stream. Source is ready to commit/push. Next task remains real remote-host routing and dual-participant recovery, not another controlled-stream-only check.

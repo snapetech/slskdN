@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Player listening recovery and listed radio
+
+- Add a player-tools listed-radio picker with manual refresh, host-permission labels, metadata-only controls and explicit snapshot playback.
+- Show listen-along connection/refresh failures and provide retry after startup, close or failed rejoin; prevent disposed attempts from joining stale rooms.
+- Keep custom stream failures out of local decode probing and verify directory/stream retry with controlled browser audio.
+- Record remote announcement routing as incomplete: relative host paths and local ticket checks do not establish a remote playback route.
+
 ### Player idle and floating-window lifecycle
 
 - Reset playing state explicitly on Stop so analyzer sampling ends even when a media Pause event does not arrive; close inactive Picture-in-Picture windows. Suspend inactive Web Audio contexts on Pause/Stop and after outgoing crossfades.

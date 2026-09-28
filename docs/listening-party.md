@@ -205,3 +205,24 @@ Browser media controls support Play, Pause, Stop, Previous, Next and seeking whe
 Stop also ends analyzer sampling and closes the floating Picture-in-Picture analyzer. Pause freezes the inline analyzer until playback resumes.
 
 Existing Web Audio contexts suspend on Pause or Stop and resume before playback. Outgoing crossfade contexts suspend after their media stops. These cleanup paths do not create new audio graphs.
+
+## Listed radio and connection recovery
+
+Open player tools and choose **Open listed radio**. No current track is required.
+Opening the picker loads the directory; **Refresh** updates it manually. Each
+entry shows whether its host enables streaming. Metadata-only entries cannot be
+played. Play uses the current track snapshot and its announced position; rejoin
+for later track changes. Temporary URLs are excluded from saved playlists and
+browser refresh recovery.
+
+Remote announcement routing remains incomplete. A relative stream path and host
+permission do not by themselves establish a playable route through another node.
+The picker and controlled-stream recovery are verified; remote-host streaming
+still needs repair and isolated participant checks.
+
+A listen-along panel shows connecting/offline state and reports failed room-state
+refreshes. Use **Retry listen-along connection** after startup failure, a closed
+connection, failed rejoin or refresh failure. Retry recreates the connection,
+rejoins the room and refreshes the host snapshot. Existing automatic reconnect
+continues to handle established connections. Radio stream failure retries its
+own source; it does not request local-library decode metadata.

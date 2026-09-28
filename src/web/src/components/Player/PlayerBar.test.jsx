@@ -11,6 +11,7 @@ import * as streaming from '../../lib/streaming';
 import * as nowPlaying from '../../lib/nowPlaying';
 import * as searches from '../../lib/searches';
 import * as wishlistAPI from '../../lib/wishlist';
+import * as listeningParty from '../../lib/listeningParty';
 
 vi.mock('../../lib/nowPlaying', () => ({
   clearNowPlaying: vi.fn(() => Promise.resolve()),
@@ -426,6 +427,21 @@ describe('PlayerBar', () => {
     await waitFor(() => expect(document.querySelector('.player-title')).toHaveTextContent('Loaded filename.wav'));
     expect(load).toHaveAttribute('aria-busy', 'false');
     expect(selected).toBeEnabled();
+  });
+
+  it('does not probe local decoding after a listed-radio stream failure', async () => {
+    vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
+      { partyId: 'radio-test', contentId: 'sha256:test', title: 'Radio fixture', allowMeshStreaming: true, streamPath: '/radio-fixture.wav' },
+    ]);
+    renderPlayer();
+    fireEvent.click(screen.getByTestId('player-open-listed-radio'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Play Radio fixture from listed radio' }));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toBe('/radio-fixture.wav'));
+    streaming.getPlaybackInfo.mockClear();
+    fireEvent.error(audio);
+    expect(streaming.getPlaybackInfo).not.toHaveBeenCalled();
+    expect(screen.queryByText('Decode for playback')).not.toBeInTheDocument();
   });
 
   it('offers on-demand decoding after a server audio error', async () => {

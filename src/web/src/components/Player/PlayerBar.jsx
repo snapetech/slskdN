@@ -47,6 +47,8 @@ import * as wishlistAPI from '../../lib/wishlist';
 import Equalizer from './Equalizer';
 import LyricsPane from './LyricsPane';
 import SpectrumAnalyzer, { getFrequencyBars } from './SpectrumAnalyzer';
+import RadioDirectory from './RadioDirectory';
+import { buildRadioStreamUrl } from '../../lib/listeningParty';
 import { fadeOutputGain, getExistingAudioGraph, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain } from './audioGraph';
 import { usePlayer } from './PlayerContext';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -2493,6 +2495,7 @@ const PlayerBar = () => {
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [radioOpen, setRadioOpen] = useState(false);
+  const [radioDirectoryOpen, setRadioDirectoryOpen] = useState(false);
   const [shelfOpen, setShelfOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [externalVisualizerStatus, setExternalVisualizerStatus] = useState(null);
@@ -3483,7 +3486,7 @@ const PlayerBar = () => {
       setPlaying(false);
       setPlaybackStatus('error');
       setPlaybackError('This audio could not be decoded or streamed.');
-      if (!transcodeMode && !current.contentId.startsWith('local:')) {
+      if (!transcodeMode && !current.streamUrl && !current.contentId.startsWith('local:')) {
         streaming.getPlaybackInfo(current.contentId).then((response) => {
           if (selectedItemRef.current !== current || audioRef.current !== failedElement ||
               (failedElement.currentSrc || failedElement.src) !== failedSource) return;
@@ -3947,6 +3950,13 @@ const PlayerBar = () => {
               onClick={() => setLyricsOpen((open) => !open)}
             />
             <PlayerToolButton
+              aria-label="Open listed radio"
+              content="Browse listed radio snapshots and choose a host-enabled stream to play."
+              data-testid="player-open-listed-radio"
+              icon="rss"
+              onClick={() => setRadioDirectoryOpen(true)}
+            />
+            <PlayerToolButton
               content="Build smart-radio search seeds from the current track without starting network work yet."
               aria-label="Open smart radio seeds"
               data-testid="player-open-radio"
@@ -4204,6 +4214,24 @@ const PlayerBar = () => {
           />
         </Modal.Actions>
       </Modal>
+      {radioDirectoryOpen ? <RadioDirectory
+        onClose={() => setRadioDirectoryOpen(false)}
+        onPlay={(party) => {
+          const elapsed = party.action === 'play' && Number.isFinite(party.startedAtUnixMs) && party.startedAtUnixMs > 0
+            ? Math.max(0, (Date.now() - party.startedAtUnixMs) / 1000) : 0;
+          playItem({
+            album: party.album,
+            artist: party.artist || party.hostPeerId,
+            contentId: party.contentId,
+            streamUrl: buildRadioStreamUrl(party),
+            title: party.title || party.contentId,
+          }, {
+            positionSeconds: (Number.isFinite(party.positionSeconds) ? Math.max(0, party.positionSeconds) : 0) + elapsed,
+            replaceQueue: true,
+            startPaused: party.action === 'pause',
+          });
+        }}
+      /> : null}
       {radioOpen ? <PlayerRadioModal
         current={current}
         onClose={() => setRadioOpen(false)}

@@ -93,6 +93,9 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     player.current?.contentId && !player.current.contentId.startsWith('local:'),
   );
   const [connected, setConnected] = useState(false);
+  const [connectionPending, setConnectionPending] = useState(false);
+  const [connectionError, setConnectionError] = useState('');
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
   const [directory, setDirectory] = useState([]);
   const [following, setFollowing] = useState(false);
   const [globalRadio, setGlobalRadio] = useState(false);
@@ -148,6 +151,8 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     publishRequestRef.current += 1;
     lastAppliedPartyRef.current = null;
     setConnected(false);
+    setConnectionPending(true);
+    setConnectionError('');
     setPartyState(null);
     setPublishError('');
     let disposed = false;
@@ -156,6 +161,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     const hub = createListeningPartyHubConnection();
 
     const receiveState = (state) => {
+      setConnectionError('');
       setPartyState(state?.action === 'stop' ? null : state);
       if (followingRef.current) {
         if (!state || state.action === 'stop') {
@@ -180,7 +186,9 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           receiveState(state);
         }
       } catch {
-        // A live hub event can still update the room after a snapshot failure.
+        if (!disposed && requestVersion === snapshotVersion && eventVersion === hubVersion) {
+          setConnectionError('Room state could not refresh. Retry the connection to catch up.');
+        }
       }
     };
 
@@ -190,31 +198,53 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       receiveState(state);
     });
     hub.onreconnecting(() => {
-      if (!disposed) setConnected(false);
+      if (!disposed) {
+        setConnected(false);
+        setConnectionPending(true);
+        setConnectionError('');
+      }
     });
     hub.onreconnected(async () => {
+      if (disposed) return;
       try {
         await hub.invoke('JoinParty', podId, channelId);
         if (!disposed) {
           setConnected(true);
+          setConnectionPending(false);
           refreshState();
         }
       } catch {
-        if (!disposed) setConnected(false);
+        if (!disposed) {
+          setConnected(false);
+          setConnectionPending(false);
+          setConnectionError('Could not rejoin this room. Retry the connection.');
+        }
       }
     });
     hub.onclose(() => {
-      if (!disposed) setConnected(false);
+      if (!disposed) {
+        setConnected(false);
+        setConnectionPending(false);
+        setConnectionError('Listen-along connection closed. Retry to rejoin this room.');
+      }
     });
 
     hub
       .start()
-      .then(() => hub.invoke('JoinParty', podId, channelId))
+      .then(() => disposed ? undefined : hub.invoke('JoinParty', podId, channelId))
       .then(() => {
-        if (!disposed) setConnected(true);
+        if (!disposed) {
+          setConnected(true);
+          setConnectionPending(false);
+          refreshState();
+        }
       })
       .catch(() => {
-        if (!disposed) setConnected(false);
+        if (!disposed) {
+          setConnected(false);
+          setConnectionPending(false);
+          setConnectionError('Listen-along could not connect. Retry when the connection is available.');
+        }
       });
 
     refreshState();
@@ -224,7 +254,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       hub.invoke('LeaveParty', podId, channelId).catch(() => {});
       hub.stop().catch(() => {});
     };
-  }, [channelId, podId]);
+  }, [channelId, connectionAttempt, podId]);
 
   const refreshDirectory = useCallback(async () => {
     if (compact || document.hidden || directoryFetchInFlightRef.current) return;
@@ -355,6 +385,22 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     );
   };
 
+  const retryConnection = !connected || connectionError ? (
+    <Popup
+      content="Reconnect to this room and refresh the host's current state after a connection or refresh failure."
+      trigger={
+        <Button
+          aria-label="Retry listen-along connection"
+          disabled={connectionPending || !podId || !channelId}
+          icon="refresh"
+          loading={connectionPending}
+          onClick={() => setConnectionAttempt((attempt) => attempt + 1)}
+          size="mini"
+        />
+      }
+    />
+  ) : null;
+
   if (compact) {
     return (
       <Segment className="pod-listen-along pod-listen-along-compact">
@@ -367,10 +413,10 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             }
             trigger={
               <span
-                aria-label={connected ? 'Listen Along live' : 'Listen Along offline'}
+                aria-label={connected ? 'Listen Along live' : connectionPending ? 'Listen Along connecting' : 'Listen Along offline'}
                 className={`pod-listen-along-orb ${connected ? 'pod-listen-along-orb-live' : ''}`}
                 role="status"
-                title={connected ? 'Listen Along live' : 'Listen Along offline'}
+                title={connected ? 'Listen Along live' : connectionPending ? 'Listen Along connecting' : 'Listen Along offline'}
               />
             }
           />
@@ -379,6 +425,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           </span>
         </div>
         <div className="pod-listen-along-compact-actions">
+          {retryConnection}
           <Popup
             content={player.playerVisible === false
               ? 'Show the browser player before following this room.'
@@ -470,6 +517,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
             }
           />
         </div>
+        {connectionError ? <div className="pod-listen-along-error" role="alert">{connectionError}</div> : null}
         {publishError ? <div className="pod-listen-along-error" role="alert">{publishError}</div> : null}
       </Segment>
     );
@@ -487,8 +535,9 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           </div>
         </div>
         <Label color={connected ? 'green' : 'grey'}>
-          {connected ? 'Live' : 'Offline'}
+          {connected ? 'Live' : connectionPending ? 'Connecting' : 'Offline'}
         </Label>
+        {retryConnection}
       </div>
       <div className="pod-listen-along-toggles">
         <Popup
@@ -570,6 +619,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           }
         />
       </Button.Group>
+      {connectionError ? <div className="pod-listen-along-error" role="alert">{connectionError}</div> : null}
       {publishError ? <div className="pod-listen-along-error" role="alert">{publishError}</div> : null}
       {directory.length > 0 && (
         <div className="pod-listen-along-directory">
