@@ -6,6 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1043. Prime Found Local Files Before Playback Selection
+
+**The Bug**: Positive fallback caching repaired repeated requests for one download, but switching to a second unindexed file still hit the global five-second scan cooldown and returned 404. The Files picker already knows the requested page's real local paths, so scanning again on selection wasted disk work.
+
+**Files Affected**:
+- `src/slskd/Streaming/ContentLocator.cs`
+- `src/slskd/API/Native/LibraryItemsController.cs`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Register only server-discovered allowed local paths from the requested picker page in the existing bounded resolution cache. Recheck roots, size and advertise restrictions at playback; keep arbitrary unknown-ID scans throttled. Test rapid selection between distinct unindexed files.
+
 ### 0z1042. Preserve Bounded Search While Correcting Library Paths
 
 **The Bug**: The first format-code correction built a filename dictionary for every share before converting a limited search page. Wide-miss allocation and early-stop regressions failed because it materialized the entire browse sequence.
