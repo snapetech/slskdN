@@ -12,6 +12,8 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **Prevention**: Route shared graph resume/suspend requests through one per-graph transition loop driven by the latest desired state. Pause must record suspension even while resume is pending; a newer Play waits for an older suspend and resumes before playing. Do not call context state methods directly from player cleanup. Cover both completion orders, rapid Pause/Play/Pause and Stop/remount.
 
+**Evidence boundary**: The browser proved that the audio element resumed and its current time advanced while the graph ended suspended. Physical audible output was not measured.
+
 ### 0z1183. Accept Numeric MusicBrainz Track Positions
 
 **The Bug**: MusicBrainz returned a numeric token for `media[].tracks[].position`,
