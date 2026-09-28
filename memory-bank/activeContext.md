@@ -10,13 +10,14 @@
   tests; both PlayerBar follow browser workflows including real two-node
   playback; repository format gate, Web ESLint and strict browser-spec TS pass.
   Release build has zero errors and two existing package TFM warnings.
-- `.327` to current release-note preview, local-identity/fork checks, final
-  commit and push remain. No release tag is authorized in this turn.
+- The exact `.327` to current HEAD preview validates three user-facing
+  fragments. Local-identity and fork-target checks pass; a fetch found no
+  remote divergence. The source push is authorized by the user. A release tag
+  was not requested in this turn and remains unauthorized.
 
-Next Steps: finish the exact release-note preview and push the validated tree,
-then continue the player audit: publication fairness, sustained resource and
-radio throughput, supported formats/devices, accessibility and focus/contrast.
-The overall player objective remains active.
+Next Steps: push the validated tree, then continue the player audit: publication
+fairness, sustained resource and radio throughput, supported formats/devices,
+accessibility and focus/contrast. The overall player objective remains active.
 
 ## Stable releases and cross-node room state — 2026-09-28 20:27 UTC
 

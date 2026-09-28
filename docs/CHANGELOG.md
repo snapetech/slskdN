@@ -26,6 +26,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Notify local followers before remote mesh fan-out. Bound the fan-out to two seconds so offline peers do not delay room controls.
 
+### Cross-node room delivery availability
+
+- Send authenticated room-state updates before optional radio-directory publication so a directory failure cannot suppress updates to followers on other mesh nodes.
+
 ## [2026092820-slskdn.328] — 2026-09-28
 
 ### Cross-node listen-along room state
