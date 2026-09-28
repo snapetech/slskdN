@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1138. Separate Browser Bootstrap Failures from Player Workflow Failures
+
+**The Gotcha**: A queue-switch case failed in shared login setup before any player action. Six ERR_NETWORK_CHANGED resource errors left the React root empty, and the retained screenshot was blank. Nineteen other cases passed, including radio and network diagnostics; this was not evidence of a queue defect.
+
+**Prevention**: Inspect the failure location, startup network errors and screenshot before changing playback code. Record the failed run, confirm all prior processes are terminal, and rerun the immutable complete suite with traces retained. Do not enable blanket retries or count a partial run as a passing gate. The originating network change remains unknown until directly established.
+
 ### 0z1137. Detach Owned Network Resources After Their Initializer Has Stopped
 
 **The Gotcha**: Stop detached the current engine/listener before canceling and awaiting initialization. An initializer reaching its ownership assignment between detachment and cancellation could leave a new listener outside Stop's captured cleanup set. The new LAN-only listener path makes that ordering relevant even without a public engine.
