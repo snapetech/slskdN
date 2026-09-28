@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1056. Unmount Components Before Restoring Browser API Mocks
+
+**The Bug**: New output-routing tests restored navigator.mediaDevices before React effects unmounted. Output-device listener cleanup then accessed the removed mock and failed both cases.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+
+**Prevention**: Explicitly clean up rendered components before restoring browser API descriptors, globals or spies. Treat teardown exceptions as harness failures, not evidence that physical output switching failed.
+
 ### 0z1055. Reset Playback State Explicitly When Clearing Current Media
 
 **The Bug**: Stop cleared native audio and current metadata but left the React playing state true when no Pause event updated it. A real-browser spectrum regression observed 23 additional analyzer reads after Stop.
