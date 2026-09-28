@@ -13627,3 +13627,7 @@ A Chromium runtime check passed metadata, transport and seek actions but exposed
 ### Final runtime evidence — 2026-09-28 00:45:16Z
 
 Final browser rerun: 12/12 workflows pass. Chromium CPU sample across five surviving processes: 2.80% of one core playing and 4.00% paused over five seconds each. One process exited during the playing interval, so its CPU delta is excluded; the paused sample retained all five processes. Renderer work was 0.50% / 0.86%, JS heap 10.32 / 9.36 MiB, and native playback created zero AudioContexts. These short headless samples do not establish physical-device behavior or total-process memory. Investigate longer idle measurements in the remaining resource audit.
+
+## Player batch pushed — 2026-09-28 00:45:49Z
+
+Source batch `f5930b2fa` and all separate gotcha records are pushed to fork main. Final release preview includes both new fragments; identity and whitespace gates pass. Completed batch is cleared. The full player goal remains active. Next Steps: longer idle/resource sampling, analyzer and actual Picture-in-Picture runtime coverage, output routing and listen-along/radio recovery. Physical-device checks and total-process memory remain unverified. No release tag was created.
