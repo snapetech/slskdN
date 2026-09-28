@@ -4,6 +4,26 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1207. Wire Soulseek Download Totals At The Shared Transfer Event Boundary
+
+**What went wrong:** The fairness summary exposed `SoulseekDownloadBytes`, and
+the traffic-accounting service provided a method to persist it, but no
+production download path called that method. Real Soulseek downloads therefore
+left the reported download total at zero.
+
+**Why:** Download accounting was assumed to exist because the storage field and
+service method already existed. The upload path was later wired to confirmed
+transfer I/O, while ordinary, multi-source, verification, backfill, and preview
+downloads all shared the Soulseek client's global transfer events and remained
+unaccounted.
+
+**Prevention:** Audit production call sites for every public traffic-total
+writer, not just its schema and API exposure. Count only positive deltas from
+Download-direction progress events after subtracting `StartOffset`; include
+active attempt bytes in reads and commit one attempt total on its terminal
+state. Cover both normal progress and a terminal event that carries bytes
+missed by throttled progress callbacks.
+
 ### 0z1206. Match Mesh JSON Casing To The Safe Payload Parser
 
 **What went wrong:** Listen-along routing serialized `PodMessage` with the
