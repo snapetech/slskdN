@@ -1,10 +1,10 @@
-## Post-tag Soulseek download fairness follow-up — 2026-09-28 22:21 UTC
+## Post-tag Soulseek download fairness follow-up — 2026-09-28 22:30 UTC
 
-- The download-accounting implementation and release fragment are committed as `ce5245fec`; the new release-note frontmatter gotcha is `623b259d8`.
-- Focused accounting and Application lifecycle tests pass 21/21; `./bin/lint` passes. Release-note preview now validates the new fairness fragment.
-- `.328` release artifacts remain verified; its PPA and Docker omnibus-tester publication jobs are still active. The .328 Nix metadata commit is on `origin/main` and must be merged before pushing.
+- Download accounting is committed as `ce5245fec`; frontmatter gotcha `623b259d8` records the release-fragment delimiter requirement. Stable `.328` metadata was reconciled in merge `943b7a2f6`; latest pushed head is `0abbd44a0`.
+- Focused accounting and Application lifecycle tests pass 21/21. Full `dotnet test` passes 5,346 unit, 74 smoke and 284 integration tests; `./bin/lint` passes. Exact preview from `.328` validates the single new post-tag player fragment.
+- The new change remains after immutable `.328`; no new tag or release was created. The broader player audit remains active.
 
-Next Steps: reconcile the metadata commit and push all current commits; wait for `.328` publishing to finish, then run the full gate and prepare a separate stable follow-up if all checks pass.
+Next Steps: continue with direct radio-admission validation during actual Soulseek reciprocal transfers, WAN/throughput and source replacement checks, then remaining player browser, format, device, accessibility and sustained-resource work.
 
 ## Post-tag Soulseek download fairness — 2026-09-28 22:12 UTC
 

@@ -15091,3 +15091,15 @@ cover offset exclusion, duplicate/regressive progress, terminal remainder,
 persistence failure, batching, and serialized totals reads; Application lifecycle
 coverage also passes (20 focused tests total). The new release fragment and
 changelog remain on Unreleased because the `.328` tag is already immutable.
+
+## Final download-accounting gates — 2026-09-28 22:30 UTC
+
+After correcting the release fragment delimiters, the focused traffic-accounting
+and Application event tests pass 21/21. Full `dotnet test` passes 5,346 unit,
+74 smoke and 284 integration tests, and `./bin/lint` passes. The stable metadata
+commit was reconciled in merge `943b7a2f6`, and the follow-up is pushed at
+`0abbd44a0`. Exact preview from `build-main-2026092820-slskdn.328` validates the
+single new player fragment. The source follows immutable `.328`; no new tag was
+created. Remaining work is real Soulseek reciprocal-transfer admission, WAN and
+sustained throughput, source replacement, and the wider browser/device/a11y
+audit.
