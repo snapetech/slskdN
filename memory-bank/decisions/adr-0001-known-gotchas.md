@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1083. Seek Within the Track When Testing Continued Playback
+
+**The Bug**: The network radio regression pressed End and then moved backwards. End reaches the actual duration, fires ended and pauses playback; expecting continued playback after that sequence misidentified normal media behavior as a seek failure.
+
+**Prevention**: Seek directly to an interior position through the real slider, then assert both resumed time progression and HTTP range statuses. Test reaching the end separately from seeking while playing.
+
 ### 0z1082. Scope RPC Signature Edits to Their Method
 
 **The Bug**: A broad text replacement while changing FIND_NODE from a KNode argument to a transport address changed PingAsync first, leaving an undeclared address and breaking compilation.
