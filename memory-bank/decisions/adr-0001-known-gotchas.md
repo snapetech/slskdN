@@ -691,6 +691,12 @@ appropriate typed assertion such as `Assert.IsType<T>(value)`.
 
 **Prevention**: Separate methods with a blank line and inspect build/test warnings as well as lint exit codes. Remove newly introduced style warnings before full validation; an error-only formatting check does not prove warning-free source.
 
+### 0z1120. Record Soulseek Upload Bytes for Radio Fairness
+
+**The Bug**: The radio fairness guard compares overlay uploads against Soulseek uploads, but production code never credited Soulseek upload bytes. Once overlay traffic accumulated, the ratio could remain infinite (or below the minimum upload/download ratio) indefinitely, so actual Soulseek sharing could not restore later radio admissions.
+
+**Prevention**: Count payload bytes from Soulseek's upload reporter, whose `actualBytes` value is emitted only after the socket write completes. Accumulate and persist those bytes once per upload attempt, including partial writes before failure. Do not infer credit from requested size, file reads, queue acceptance, or successful completion alone; test completed, partial-failure, and zero-byte attempts.
+
 ### 0z1119. Preserve Bans When a Participant Leaves
 
 **The Bug**: Both in-memory and SQLite LeaveAsync deleted banned membership records. Two direct negative tests reproduced successful leave after ban, allowing a subsequent public-room join to lose the ban barrier. Native and mesh callers share these services, so fixing only one controller would leave another bypass.
