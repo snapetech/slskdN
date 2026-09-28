@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1057. Suspend Inactive Web Audio Processing
+
+**The Bug**: The analyzer stopped reading on Pause, but its existing AudioContext remained running for the entire 20-second runtime check. Clearing or pausing media does not suspend Web Audio processing automatically.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Suspend existing contexts when playback becomes inactive, and suspend outgoing crossfade contexts once their media stops. Reuse the existing resume-before-play path, create no graphs for this cleanup, and verify Pause/Resume/Stop and crossfade transport with actual audio contexts.
+
 ### 0z1056. Unmount Components Before Restoring Browser API Mocks
 
 **The Bug**: New output-routing tests restored navigator.mediaDevices before React effects unmounted. Output-device listener cleanup then accessed the removed mock and failed both cases.
