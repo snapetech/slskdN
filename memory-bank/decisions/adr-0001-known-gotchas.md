@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1130. Isolate DHT Explicitly in Offline Runtime Fixtures
+
+**The Bug**: no_connect disabled Soulseek but left public DHT defaults active in non-radio browser fixtures. Retained startup logs proved public bootstrap, discovered nodes and announcements during supposedly isolated player validation.
+
+**Prevention**: Resolve noConnect once, disable the DHT feature and rendezvous service for offline fixtures, and explicitly use LAN-only discovery with no bootstrap routers. Radio mesh fixtures may enable DHT for their direct local peers. Verify startup logs and generated configuration; no_connect alone is not network isolation.
+
 ### 0z1129. Assert Parameterized Outcomes Without Conditional Expectations
 
 **The Bug**: A paused-position regression put different expect calls inside an if statement. Focused tests reproduced the intended behavior, but Web lint correctly rejected conditional expectations.
