@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1190. Serialize Host Stop Behind an In-Flight Lease Renewal
+
+**What went wrong:** Adding an independent host-renewal request lets Stop and
+renewal complete out of order. If Stop reaches the service first, the renewal
+can receive 409 and release the client session before Stop is acknowledged.
+A caller waiting for confirmed Stop, such as Follow, then cannot proceed.
+
+**Why:** Browser request overlap and service room serialization have different
+completion orders; a terminal response from the renewal is not an acknowledgment
+of the queued Stop.
+
+**Prevention:** Cancel the next renewal timer and await any current renewal
+before publishing Stop. While Stop is pending, let Stop's response decide
+ownership. Test both renewal-first and Stop-first server completions with a
+deferred renewal request.
+
 ### 0z1189. Commit Host Ownership With The Room State Transition
 
 **What went wrong:** A replacement host updated in-memory room state before its
