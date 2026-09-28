@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1137. Detach Owned Network Resources After Their Initializer Has Stopped
+
+**The Gotcha**: Stop detached the current engine/listener before canceling and awaiting initialization. An initializer reaching its ownership assignment between detachment and cancellation could leave a new listener outside Stop's captured cleanup set. The new LAN-only listener path makes that ordering relevant even without a public engine.
+
+**Prevention**: Capture and cancel the initialization task, await it, then detach the final owned resources and clear startup state under the lifecycle lock. Stop those captured resources afterward. Do not treat an early resource snapshot as proof that no initializer can still publish ownership.
+
 ### 0z1136. Treat an Absent Public DHT Engine as Expected in LAN-Only Mode
 
 **The Bug**: After enforcing LAN-only isolation, the network health scorer still deducted points and warned that DHT was not running. The explanatory panel required isDhtRunning=true, so it disappeared in the correctly isolated state. Three negative regressions reproduced the misleading score and missing explanation.
