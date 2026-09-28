@@ -6,6 +6,25 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1073. Preserve Radio Scope Through Queue Normalization
+
+**The Bug**: The player source effect requested scoped radio tickets, but PlayerContext's explicit item normalization dropped radioPartyId. Playback bypassed ticket acquisition and used the obsolete host-relative path; initial host failure and retry were therefore unreachable.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Add playback routing fields to the normalized queue contract and exclude temporary radio items from session restore even when no stream URL is present. Verify initial ticket failure and retry through the actual provider and player component.
+
+### 0z1074. Format Scoped Record Initializers on Separate Lines
+
+**The Bug**: Adding Radio to the mesh ticket record on the constructor's closing line violated the repository's whitespace formatter.
+
+**Files Affected**:
+- `src/slskd/Streaming/MeshStreamTicketService.cs`
+
+**Prevention**: Put the record initializer on following lines and run repository lint before committing.
+
 ### 0z1072. Declare Radio Mesh JSON Field Names Explicitly
 
 **The Bug**: Radio request records were serialized with web camel-case options, but ServicePayloadParser uses case-sensitive default names. Valid capabilities arrived with empty identifiers and all permitted reads failed.
