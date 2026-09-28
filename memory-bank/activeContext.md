@@ -14540,3 +14540,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 ### Final listening batch gates — 2026-09-28 01:22:02Z
 
 Latest build: 16/16 browser workflows, 982/982 Web tests across 165 files, backend 74 smoke / 5,185 unit / 284 integration, all lint/build/bundle/build-output/identity/whitespace checks pass. The controlled radio case verifies zero local playback-info probes after failure, two explicit directory requests and no restored temporary stream. Source is ready to commit/push. Next task remains real remote-host routing and dual-participant recovery, not another controlled-stream-only check.
+
+## Listening batch pushed — 2026-09-28 01:22:37Z
+
+`4e4d1ab34` and its separate gotcha records are pushed to fork main. Full-range release preview passes with both fragments; the tree was clean and synced after the source push. Current implementation batch is cleared. Next Steps: repair the open remote-radio routing/ticket boundary through established mesh streaming and verify isolated host/room recovery. Overall player goal remains active; no release tag was created.
