@@ -5305,4 +5305,15 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Expose room connection feedback in the persistent player.
 - [x] 2026-09-28 Final rebuilt complete runtime gate: 20 passing cases; source publication follows validated release preview. Full player completion remains open.
 
-- [ ] Improve auxiliary player tool touch targets and clipped metadata at 320 pixels; verify complete responsive layout and assistive-technology use, beyond room controls.
+- [x] 2026-09-28 Improve rating/visual/compact touch targets and rating metadata at 320 pixels, return focus after Tools, and cover coarse-pointer tablets. Browser bounds and keyboard checks pass before the final complete gate.
+- [ ] Complete physical-device and assistive-technology validation beyond browser-emulated responsive controls.
+
+## Responsive player controls — 2026-09-28
+
+- [x] Reproduce 24-pixel rating targets and 36-pixel tablet playback with negative browser regressions.
+- [x] Provide responsive rating/visual rows, larger compact controls and explicit pressed state.
+- [x] Reproduce hidden track header after Tools closes; return scroll/focus to the main deck.
+- [x] Preserve optional tools behind their existing toggle on touch layouts and cover keyboard rating without playback interference.
+- [x] 2026-09-28 Rebuilt complete 21-case browser gate passes; source publication follows exact-range release preview.
+
+- [ ] Verify focus-indicator contrast across supported themes and visual modes; outline-style checks establish presence only.

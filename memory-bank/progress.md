@@ -14022,3 +14022,18 @@ all 20 rebuilt runtime cases, lint/build/bundle/output/endpoint/identity checks.
 Traces and mobile screenshots retained privately. Auxiliary touch targets and
 metadata clipping remain open; full goal is not complete. Fixture file-handle
 warnings and the earlier startup network-change origin are not claimed fixed.
+
+## 2026-09-28T06:51:24+00:00 — Responsive player controls
+
+Reproduced 24-pixel mobile rating targets, a hidden track header after closing
+Tools and 36-pixel playback on a coarse-pointer tablet. Ratings and visual tools
+now use responsive rows, compact controls have larger targets, touch layout
+honors pointer capability and selected controls expose pressed state. Closing
+Tools restores scroll and focus to playback, with a visual-tile empty fallback.
+Optional visual controls remain under the existing Tools toggle on touch.
+
+Final gates: 1,018 Web tests, 5,298 unit / 74 smoke / 284 integration tests,
+all 21 rebuilt runtime cases, lint/build/bundle/output/endpoint/identity checks.
+Final mobile/tablet screenshots inspected. No animation, polling or dependency
+was added. Physical-device, assistive-technology, focus-contrast, sustained
+resource and broader networking/session work remain open; full goal active.

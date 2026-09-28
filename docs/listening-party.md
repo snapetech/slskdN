@@ -353,3 +353,12 @@ reconnection, the client rejoins the room and reads its latest snapshot. A pause
 host snapshot selects the requested position without starting local playback.
 These controls apply to pod rooms; direct messages and Soulseek rooms use their
 existing messaging controls.
+
+### Touch and keyboard controls
+
+On narrow screens or devices with a coarse primary pointer, ratings and player
+controls use larger touch targets. Visual mode buttons are available through
+**Show player tools**. Closing Tools returns to the track header and focuses
+Play; without a track, focus returns to the visual tile. Rating and visual-mode
+buttons expose their selected state. Space activates a focused rating without
+pausing playback; selecting the same rating again clears it.

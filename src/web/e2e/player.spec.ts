@@ -483,16 +483,55 @@ test.describe('player browser playback', () => {
         const touchBounds = await page.getByTestId('player-toggle-playback').boundingBox();
         expect(touchBounds!.width).toBeGreaterThanOrEqual(44);
         expect(touchBounds!.height).toBeGreaterThanOrEqual(44);
+        const ratingBounds = await page.getByTestId('player-rating-1').boundingBox();
+        expect(ratingBounds!.width).toBeGreaterThanOrEqual(44);
+        expect(ratingBounds!.height).toBeGreaterThanOrEqual(44);
+        await expect(page.locator('.player-rating-summary')).toHaveText('Not rated');
+        expect(await page.locator('.player-rating-summary').evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+        await expect(page.locator('.player-visual-tile-controls')).toBeHidden();
+        await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+        const visualControls = page.locator('.player-visual-tile-controls').getByRole('button');
+        await expect(visualControls).toHaveCount(7);
+        for (const control of await visualControls.all()) {
+          await control.scrollIntoViewIfNeeded();
+          const controlBounds = await control.boundingBox();
+          expect(controlBounds!.width).toBeGreaterThanOrEqual(44);
+          expect(controlBounds!.height).toBeGreaterThanOrEqual(44);
+          expect(controlBounds!.x).toBeGreaterThanOrEqual(0);
+          expect(controlBounds!.x + controlBounds!.width).toBeLessThanOrEqual(width);
+        }
+        const rating = page.getByTestId('player-rating-3');
+        await rating.focus();
+        await page.keyboard.press('Space');
+        await expect(rating).toHaveAttribute('aria-pressed', 'true');
+        expect(await rating.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('solid');
+        await page.keyboard.press('Space');
+        await expect(rating).toHaveAttribute('aria-pressed', 'false');
+        await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused))).toBe(true);
+        await page.getByRole('button', { name: 'Hide player tools', exact: true }).click();
+        await expect(page.locator('.player-title')).toBeInViewport();
+        expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('player-toggle-playback');
+        await page.getByTestId('player-toggle-playback').scrollIntoViewIfNeeded();
       }
       const bar = page.locator('.player-bar');
       const bounds = await bar.boundingBox();
       expect(bounds).not.toBeNull();
       expect(bounds!.x).toBeGreaterThanOrEqual(0);
       expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1);
+      await page.mouse.move(0, 0);
+      await expect(page.locator('.ui.popup.visible')).toHaveCount(0);
       await page.screenshot({ path: testInfo.outputPath(`expanded-${width}.png`) });
       await page.getByTestId('player-collapse').click();
       await expect(page.getByTestId('player-collapsed-toggle-playback')).toBeInViewport();
       await expect(page.getByTestId('player-expand')).toBeInViewport();
+      if (width <= 720) {
+        for (const control of await page.locator('.player-control-cluster').getByRole('button').all()) {
+          const touchBounds = await control.boundingBox();
+          expect(touchBounds).not.toBeNull();
+          expect(touchBounds!.width).toBeGreaterThanOrEqual(44);
+          expect(touchBounds!.height).toBeGreaterThanOrEqual(44);
+        }
+      }
       if (width <= 420) {
         await expect(page.getByTestId('player-collapsed-toggle-mute')).toBeHidden();
         const titleBounds = await page.locator('.player-title').boundingBox();
@@ -500,9 +539,30 @@ test.describe('player browser playback', () => {
       }
       const overflow = await bar.evaluate((element) => element.scrollWidth - element.clientWidth);
       expect(overflow).toBeLessThanOrEqual(1);
+      await page.mouse.move(0, 0);
+      await expect(page.locator('.ui.popup.visible')).toHaveCount(0);
       await page.screenshot({ path: testInfo.outputPath(`compact-${width}.png`) });
       await page.getByTestId('player-expand').click();
     }
+  });
+
+  test.describe('touchscreen layout', () => {
+    test.use({ hasTouch: true });
+    test('keeps tablet controls touch-sized independently of viewport width', async ({ page }, testInfo) => {
+      await page.setViewportSize({ width: 768, height: 1024 });
+      expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+      await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+      for (const testId of ['player-toggle-playback', 'player-rating-1']) {
+        const bounds = await page.getByTestId(testId).boundingBox();
+        expect(bounds).not.toBeNull();
+        expect(bounds!.width).toBeGreaterThanOrEqual(44);
+        expect(bounds!.height).toBeGreaterThanOrEqual(44);
+      }
+      await expect(page.locator('.player-visual-tile-controls')).toBeHidden();
+      await expect(page.getByTestId('player-toggle-playback')).toBeInViewport();
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: testInfo.outputPath('touchscreen-tablet.png') });
+    });
   });
 
   for (const filename of ['Player runtime first.wav', 'Downloaded runtime.wav']) {

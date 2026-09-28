@@ -321,6 +321,23 @@ describe('PlayerBar', () => {
     expect(document.querySelector('.player-bar-collapsed')).toBeNull();
   });
 
+  it('returns scroll and focus to playback when closing tools', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    await screen.findByText('Local stream');
+    const bar = document.querySelector('.player-bar');
+    bar.scrollTop = 250;
+    fireEvent.click(screen.getByRole('button', { name: 'Hide player tools' }));
+    expect(bar.scrollTop).toBe(0);
+    expect(screen.getByTestId('player-toggle-playback')).toHaveFocus();
+  });
+
+  it('returns focus to the visual tile when closing tools without a track', () => {
+    renderPlayer();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide player tools' }));
+    expect(screen.getByTestId('player-visual-tile')).toHaveFocus();
+  });
+
   it('keeps Collapse available when optional player tools are closed', () => {
     renderPlayer();
     fireEvent.click(screen.getByRole('button', { name: 'Hide player tools' }));
@@ -1064,6 +1081,8 @@ describe('PlayerBar', () => {
     );
 
     fireEvent.click(screen.getByTestId('player-rating-5'));
+    expect(screen.getByTestId('player-rating-5')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('player-rating-4')).toHaveAttribute('aria-pressed', 'false');
 
     expect(screen.getByTestId('player-rating-controls')).toHaveTextContent(
       'Discovery boost',
@@ -1097,6 +1116,7 @@ describe('PlayerBar', () => {
     fireEvent.click(screen.getByTestId('player-close-discovery-shelf'));
 
     fireEvent.click(screen.getByTestId('player-rating-5'));
+    expect(screen.getByTestId('player-rating-5')).toHaveAttribute('aria-pressed', 'false');
 
     expect(screen.getByTestId('player-rating-controls')).toHaveTextContent(
       'Not rated',

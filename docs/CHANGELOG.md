@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Responsive player controls
+
+- Size rating, visual-tool and compact controls for touch on narrow screens and tablets with a coarse pointer.
+- Keep rating text readable and expose rating/visual-mode pressed state; optional visual controls use the existing Tools toggle on touch layouts.
+- Return to the visible main deck and playback focus when closing Tools.
+
+
 ### Room following across navigation
 
 - Keep room following active while browsing, and reuse its connection and selected state on return.

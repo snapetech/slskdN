@@ -552,3 +552,51 @@ quota behavior, publish ongoing host controls, implement authenticated cross-nod
 room state and renewal, and complete sustained/browser/format/physical-device/
 assistive-technology work, responsive auxiliary controls and fixture cleanup.
 The full player goal remains active.
+
+## Responsive player controls — 2026-09-28
+
+Negative real-browser regressions reproduced a 24-pixel mobile rating button,
+a hidden track header after closing Tools, and a 36-pixel playback button in a
+touch-enabled 768-pixel context. Rating and visual controls now use responsive
+rows; touch layouts activate for narrow width or a coarse primary pointer.
+Rating text no longer truncates, selected controls expose pressed state, and
+closing Tools returns scroll/focus to the main deck. Optional visual controls
+remain under the existing Tools toggle on touch layouts. Desktop visual buttons
+have at least 24-pixel targets; touch controls have at least 44 pixels.
+
+Focused layout evidence covers 1440/768/390/320 widths, auxiliary/compact bounds,
+keyboard rating and focus outline. An initial measurement test incorrectly
+queried an intentionally hidden compact button; it now measures rendered
+accessible controls and retains explicit hidden-state checks. Complete final
+browser evidence remains pending against the rebuilt source, including a new
+touch-enabled tablet case. All 1,018 Web tests and 5,298 unit / 74 smoke / 284
+integration tests pass. This work does not establish physical-device or
+assistive-technology completion, and trace timing is not performance evidence.
+
+The full player goal remains active: mesh burst handling, ongoing host controls,
+authenticated distributed room state, renewal, sustained resources, supported
+browser/format/device/accessibility work and fixture cleanup remain open.
+
+### Final responsive-control gates — 2026-09-28
+
+The final complete rebuilt suite passes all 21 cases in 4.7 minutes, including
+the new touch-enabled tablet workflow and broader compact/expanded controls.
+Actual browser evidence verifies 44-pixel rating/visual/visible compact controls
+on narrow screens, coarse-pointer tablet control sizing, complete rating text,
+pressed state, keyboard rating without pausing audio, visible track title and
+actual playback focus after closing Tools. Final screenshots were inspected
+without hover popups obscuring the controls. Outline presence does not establish
+contrast or assistive-technology completion; those remain explicit follow-ups.
+
+All 1,018 Web tests in 166 files and 5,298 unit / 74 smoke / 284 integration
+tests pass. Repository/Web lint, final Release/frontend builds, bundle/output,
+CSRF/anonymous endpoint, identity and whitespace gates pass. The two existing
+Release dependency warnings remain. Retained logs show no public DHT startup
+or message-rate disconnect. Fixture file-handle GC warnings remain tracked.
+Trace-enabled timing is not a new performance baseline. This batch is ready
+for exact-range release preview and fork-verified source publication.
+
+Next Steps remain broad: legitimate mesh bursts, ongoing host control events,
+authenticated distributed room state, renewal, sustained resources, supported
+browser/format/device/accessibility work and fixture cleanup. Full player goal
+remains active; no release tag or deployment is included.

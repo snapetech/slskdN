@@ -310,6 +310,7 @@ const PlayerRatingControls = ({ current, onChange, rating }) => {
                 'player-rating-button',
                 value <= rating ? 'player-rating-button-active' : '',
               ].filter(Boolean).join(' ')}
+              aria-pressed={value === rating}
               data-testid={`player-rating-${value}`}
               onClick={() => onChange(value === rating ? 0 : value)}
               title={
@@ -2103,6 +2104,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
 
 const PlayerVisualTile = ({
   audioElement,
+  controlsOpen,
   current,
   mode,
   onModeChange,
@@ -2188,7 +2190,7 @@ const PlayerVisualTile = ({
   const handleTileActivate = () => setTileMode(nextTileMode);
 
   return (
-    <div className="player-visual-tile">
+    <div className="player-visual-tile" data-controls-open={controlsOpen}>
       <Popup
         content={
           `Show ${tileModeLabels[nextTileMode]} in this square.`
@@ -2258,6 +2260,7 @@ const PlayerVisualTile = ({
               <Button
                 aria-label={`Show ${tileModeLabels[option]}`}
                 active={effectiveTileMode === option}
+                toggle
                 data-testid={`player-visual-tile-mode-${option}`}
                 icon
                 onClick={(event) => switchTileMode(event, option)}
@@ -2422,6 +2425,7 @@ const PlayerBar = () => {
     return [0.75, 1, 1.25, 1.5, 2].includes(stored) ? stored : 1;
   });
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const previousAdvancedOpenRef = useRef(false);
   const [outputDevices, setOutputDevices] = useState([]);
   const [outputDeviceId, setOutputDeviceId] = useState('default');
   const outputDeviceIdRef = useRef('default');
@@ -2588,6 +2592,16 @@ const PlayerBar = () => {
 
     return () => resizeObserver.disconnect();
   }, [collapsed, current, eqPanelOpen, lyricsOpen, playerVisible]);
+
+  useLayoutEffect(() => {
+    if (previousAdvancedOpenRef.current && !advancedOpen && playerBarRef.current) {
+      playerBarRef.current.scrollTop = 0;
+      const target = playerBarRef.current.querySelector('[data-testid="player-toggle-playback"]:not(:disabled)') ||
+        playerBarRef.current.querySelector('[data-testid="player-visual-tile"]');
+      target?.focus({ preventScroll: true });
+    }
+    previousAdvancedOpenRef.current = advancedOpen;
+  }, [advancedOpen]);
 
   const playAudio = useCallback(async () => {
     const element = audioRef.current;
@@ -3731,6 +3745,7 @@ const PlayerBar = () => {
         <div className="player-display">
           <PlayerVisualTile
             audioElement={playing ? playerAudioElement : null}
+            controlsOpen={advancedOpen}
             current={current}
             mode={visualizerMode}
             onModeChange={setVisualizerMode}
@@ -3779,16 +3794,11 @@ const PlayerBar = () => {
                         </Label>
                       ))}
                     </div>
-                    <PlayerRatingControls
-                      current={current}
-                      onChange={updatePlayerRating}
-                      rating={playerRating}
-                    />
                   </div>
                 ) : null}
               </div>
             </div>
-            <div className="player-display-analyzers">
+            <div className="player-display-analyzers" data-active={advancedOpen || analyzerMode !== 'off'}>
               <PlayerAnalyzerTile
                 audioElement={playing ? playerAudioElement : null}
                 mode={analyzerMode}
@@ -3796,6 +3806,7 @@ const PlayerBar = () => {
               />
             </div>
             <PlayerProgress current={current} duration={duration} onSeek={seekTo} position={position} />
+            <PlayerRatingControls current={current} onChange={updatePlayerRating} rating={playerRating} />
             {playbackError ? <Message negative size="mini">{playbackError}</Message> : null}
             {transcodeAvailable && !transcodeMode ? (
               <Popup content="Decode this server library file to MP3 for this playback only. This uses server CPU until playback stops." trigger={
