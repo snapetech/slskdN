@@ -14512,3 +14512,13 @@ Final browser rerun: 12/12 workflows pass. Chromium CPU sample across five survi
 ## Player batch pushed — 2026-09-28 00:45:49Z
 
 Source batch `f5930b2fa` and all separate gotcha records are pushed to fork main. Final release preview includes both new fragments; identity and whitespace gates pass. Completed batch is cleared. The full player goal remains active. Next Steps: longer idle/resource sampling, analyzer and actual Picture-in-Picture runtime coverage, output routing and listen-along/radio recovery. Physical-device checks and total-process memory remain unverified. No release tag was created.
+
+## Player idle work and floating windows — 2026-09-28 01:00:07Z
+
+Current task: finish and push Stop/idle Web Audio/crossfade cleanup, real Picture-in-Picture coverage, output-switch ordering and expanded CPU/memory records. Web tests and backend solution pass; final browser rerun and lint are in progress. Each reproduced defect has a separate immediate gotcha commit.
+
+Next Steps: verify final runtime artifacts, release preview, commit/push to the fork, then continue listen-along reconnect/radio, physical mobile/output checks and sustained-session resource measurement. Full player scope remains active.
+
+### Final player runtime audit — 2026-09-28 01:01:40Z
+
+Final build passes all 15 browser workflows and 972 Web tests. Repository lint and all backend tests pass. `docs/dev/player-quality-audit.md` consolidates evidence and remaining completion work. Native resource sample: 2.80% of one core playing / 2.50% paused; Linux PSS 300.44 MiB idle, 315.18 MiB playing and 309.18 MiB paused across five processes, with no unavailable memory readings. Idle CPU excludes one exited process. These are headless application/browser totals, not player-only or physical-device measurements. Source batch is ready for release preview and commit/push; overall goal remains active.

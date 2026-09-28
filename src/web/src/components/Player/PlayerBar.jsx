@@ -2623,6 +2623,10 @@ const PlayerBar = () => {
     fadeOutgoingRef.current = null;
     if (!outgoing) return;
     outgoing.pause();
+    const context = getExistingAudioGraph(outgoing)?.ctx;
+    if (context?.state === 'running') {
+      context.suspend().catch(() => setPlaybackError('Audio processing could not pause.'));
+    }
     outgoing.removeAttribute('src');
     outgoing.load();
     if (audioRef.current) {
@@ -2632,6 +2636,20 @@ const PlayerBar = () => {
   }, []);
 
   useEffect(() => () => stopOutgoingFade(), [stopOutgoingFade]);
+
+  useEffect(() => {
+    if (playing) return undefined;
+    let cancelled = false;
+    const contexts = [audioRef.current, fadeAudioRef.current]
+      .filter(Boolean).map((element) => getExistingAudioGraph(element)?.ctx)
+      .filter((context) => context?.state === 'running');
+    Promise.allSettled(contexts.map((context) => context.suspend())).then((results) => {
+      if (!cancelled && results.some((result) => result.status === 'rejected')) {
+        setPlaybackError('Audio processing could not pause.');
+      }
+    });
+    return () => { cancelled = true; };
+  }, [current, playerAudioElement, playing]);
 
   const pausePlayback = useCallback(() => {
     playRequestRef.current += 1;
@@ -2933,6 +2951,10 @@ const PlayerBar = () => {
       transcodeRequestRef.current += 1;
       playRequestRef.current += 1;
       stopOutgoingFade();
+      closePictureInPicture();
+      autoplayRef.current = false;
+      playingRef.current = false;
+      setPlaying(false);
       setSource(null);
       setPlaybackStatus('idle');
       localObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -2996,7 +3018,7 @@ const PlayerBar = () => {
     return () => {
       cancelled = true;
     };
-  }, [current, setPlaybackPosition, sourceRetryRevision, stopOutgoingFade]);
+  }, [closePictureInPicture, current, setPlaybackPosition, sourceRetryRevision, stopOutgoingFade]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -3073,12 +3095,7 @@ const PlayerBar = () => {
         fadeOutputGain(standby, 0, 1, fadeDurationSeconds);
         fadeTimeoutRef.current = window.setTimeout(() => {
           if (fadeRequest !== fadeRequestRef.current) return;
-          active.pause();
-          active.removeAttribute('src');
-          active.load();
-          setOutputGain(active, 1);
-          fadeOutgoingRef.current = null;
-          fadeTimeoutRef.current = null;
+          stopOutgoingFade();
         }, fadeDurationSeconds * 1000 + 200);
       }).catch(() => {
         if (fadeRequest !== fadeRequestRef.current) return;

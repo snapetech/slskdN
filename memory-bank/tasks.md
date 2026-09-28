@@ -5156,3 +5156,12 @@
 - [x] Verify saved playlists and repeated server/local entries against real browser audio and an isolated backend.
 - [x] Register and verify browser Media Session Stop; exercise metadata, Play/Pause, seeking and Previous/Next with real media playback.
 - [ ] Complete remaining player runtime coverage: output routing, listen-along reconnect/radio, actual Picture-in-Picture, analyzer idle behavior, total-process memory and physical mobile checks. Overall player overhaul stays active.
+
+## Player idle work and floating windows — 2026-09-28 01:00:07Z
+
+- [x] Reset playing/autoplay state explicitly on Stop and close inactive or pending Picture-in-Picture windows.
+- [x] Suspend existing audio contexts on inactive playback and after outgoing crossfades, with the existing resume path preserved.
+- [x] Verify actual Chromium Picture-in-Picture rendering and Stop/hide closure; assert analyzer reads stop on Pause/Stop and resume during playback.
+- [x] Add output-switch success/failure ordering regressions while another track is selected; physical-device routing remains unverified.
+- [x] Record idle/play/pause CPU and Linux proportional memory across Chromium processes, with process churn and unavailable readings reported.
+- [ ] Continue listen-along reconnect/radio, physical mobile/output verification and sustained-session resource checks. The overall player goal remains active.

@@ -201,3 +201,7 @@ and seeking while paused keeps playback paused.
 Play Next and bulk queue additions use the same title, artist and artwork defaults as direct Play, including filename-only library items and restored sessions.
 
 Browser media controls support Play, Pause, Stop, Previous, Next and seeking where the browser exposes those actions. Stop clears the current media metadata and position as well as the playback source.
+
+Stop also ends analyzer sampling and closes the floating Picture-in-Picture analyzer. Pause freezes the inline analyzer until playback resumes.
+
+Existing Web Audio contexts suspend on Pause or Stop and resume before playback. Outgoing crossfade contexts suspend after their media stops. These cleanup paths do not create new audio graphs.

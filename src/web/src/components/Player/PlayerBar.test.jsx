@@ -2,7 +2,7 @@ import PlayerBar from './PlayerBar';
 import React from 'react';
 import { PlayerProvider, usePlayer } from './PlayerContext';
 import { MemoryRouter } from 'react-router-dom';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import * as externalVisualizer from '../../lib/externalVisualizer';
 import * as collectionsAPI from '../../lib/collections';
@@ -257,6 +257,7 @@ const renderPlayer = () => {
 
 describe('PlayerBar', () => {
   const originalMediaSession = Object.getOwnPropertyDescriptor(navigator, 'mediaSession');
+  const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
@@ -273,8 +274,11 @@ describe('PlayerBar', () => {
   });
 
   afterEach(() => {
+    cleanup();
     if (originalMediaSession) Object.defineProperty(navigator, 'mediaSession', originalMediaSession);
     else delete navigator.mediaSession;
+    if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+    else delete navigator.mediaDevices;
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -570,7 +574,7 @@ describe('PlayerBar', () => {
     expect(audio.currentTime).toBe(37);
   });
 
-  it('closes a stale Picture-in-Picture window after the player is hidden', async () => {
+  it.each(['player-hide', 'player-stop'])('closes a stale Picture-in-Picture window after %s', async (action) => {
     vi.spyOn(audioGraph, 'resumeAudioGraph').mockResolvedValue({});
     let finishWindow;
     const requestWindow = vi.fn(() => new Promise((resolve) => { finishWindow = resolve; }));
@@ -581,7 +585,7 @@ describe('PlayerBar', () => {
     await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
     fireEvent.click(screen.getByTestId('player-document-pip'));
     await waitFor(() => expect(finishWindow).toBeDefined());
-    fireEvent.click(screen.getByTestId('player-hide'));
+    fireEvent.click(screen.getByTestId(action));
     const staleWindow = { close: vi.fn() };
     await act(async () => finishWindow(staleWindow));
     expect(staleWindow.close).toHaveBeenCalledOnce();
@@ -603,6 +607,45 @@ describe('PlayerBar', () => {
     window.documentPictureInPicture.requestWindow.mockImplementationOnce(() => new Promise(() => {}));
     fireEvent.click(screen.getByTestId('player-document-pip'));
     expect(screen.queryByText(/Picture-in-Picture could not open/u)).not.toBeInTheDocument();
+  });
+
+  it.each([false, true])('waits for output switching before new playback (failure: %s)', async (failure) => {
+    vi.stubGlobal('AudioContext', class {
+      setSinkId() {}
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { enumerateDevices: vi.fn(() => Promise.resolve([{ kind: 'audiooutput', deviceId: 'headphones', label: 'Headphones' }])) },
+    });
+    let finishSwitch;
+    let failSwitch;
+    const setSinkId = vi.fn(() => Promise.resolve());
+    setSinkId.mockImplementationOnce(() => new Promise((resolve, reject) => { finishSwitch = resolve; failSwitch = reject; }));
+    const graph = { ctx: { setSinkId } };
+    vi.spyOn(audioGraph, 'getExistingAudioGraph').mockReturnValue(graph);
+    vi.spyOn(audioGraph, 'getOrCreateAudioGraph').mockReturnValue(graph);
+    vi.spyOn(audioGraph, 'resumeAudioGraph').mockResolvedValue(graph);
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalledOnce());
+    const output = await screen.findByLabelText('Audio output device');
+    HTMLMediaElement.prototype.play.mockClear();
+    fireEvent.change(output, { target: { value: 'headphones' } });
+    expect(output).toBeDisabled();
+    expect(setSinkId).toHaveBeenCalledWith('headphones');
+    fireEvent.click(screen.getByText('Play second fixture'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Asecond'));
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    await act(async () => {
+      if (failure) failSwitch(new Error('Device unavailable'));
+      else finishSwitch();
+    });
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalledOnce());
+    expect(output).toBeEnabled();
+    expect(output).toHaveValue(failure ? 'default' : 'headphones');
+    expect(setSinkId).toHaveBeenLastCalledWith(failure ? '' : 'headphones');
+    expect(screen.queryByText('Could not switch audio output device.') !== null).toBe(failure);
   });
 
   it('clears stale Media Session position after Stop', async () => {

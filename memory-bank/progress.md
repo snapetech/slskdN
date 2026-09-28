@@ -13631,3 +13631,15 @@ Final browser rerun: 12/12 workflows pass. Chromium CPU sample across five survi
 ## Player batch pushed — 2026-09-28 00:45:49Z
 
 Source batch `f5930b2fa` and all separate gotcha records are pushed to fork main. Final release preview includes both new fragments; identity and whitespace gates pass. Completed batch is cleared. The full player goal remains active. Next Steps: longer idle/resource sampling, analyzer and actual Picture-in-Picture runtime coverage, output routing and listen-along/radio recovery. Physical-device checks and total-process memory remain unverified. No release tag was created.
+
+## Player idle work and floating windows — 2026-09-28 01:00:07Z
+
+Runtime checks found analyzer work continuing after Stop because React playing state stayed true. Stop now resets state/refs and closes inactive Picture-in-Picture requests/windows. Pause stopped reads but left the AudioContext running; inactive contexts now suspend without graph creation and playback uses the existing resume path. Natural crossfade completion duplicated cleanup and retained its outgoing context; it now uses the same cleanup as interrupted fades.
+
+Real Chromium Picture-in-Picture renders spectrum bars and closes on Stop/hide. Output-switch unit coverage proves a newly selected track waits for switching to finish and routes to the selected or rolled-back default sink. Browser API mocks must be restored only after component cleanup; this harness pitfall is documented separately.
+
+Full Web suite: 972/972 across 164 files. Backend solution: 74 smoke, 5,185 unit, 284 integration passed. Final 15-workflow browser rerun and repository lint are being finalized before commit/push. Resource records now sample idle/play/pause for ten seconds each and collect Linux PSS across all reported browser processes. The goal remains active; no release tag or deployment authorized.
+
+### Final player runtime audit — 2026-09-28 01:01:40Z
+
+Final build passes all 15 browser workflows and 972 Web tests. Repository lint and all backend tests pass. `docs/dev/player-quality-audit.md` consolidates evidence and remaining completion work. Native resource sample: 2.80% of one core playing / 2.50% paused; Linux PSS 300.44 MiB idle, 315.18 MiB playing and 309.18 MiB paused across five processes, with no unavailable memory readings. Idle CPU excludes one exited process. These are headless application/browser totals, not player-only or physical-device measurements. Source batch is ready for release preview and commit/push; overall goal remains active.

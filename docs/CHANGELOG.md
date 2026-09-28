@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Player idle and floating-window lifecycle
+
+- Reset playing state explicitly on Stop so analyzer sampling ends even when a media Pause event does not arrive; close inactive Picture-in-Picture windows. Suspend inactive Web Audio contexts on Pause/Stop and after outgoing crossfades.
+- Verify real Picture-in-Picture rendering and closure, analyzer pause/resume/stop behavior, and output-switch ordering and rollback.
+- Extend browser resource records with idle baselines, longer intervals and Linux proportional process memory.
+
 ### Player playlist and recovery polish
 
 - Register browser Media Session Stop and verify metadata, transport, seeking and queue actions with real audio.

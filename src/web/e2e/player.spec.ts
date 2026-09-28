@@ -62,13 +62,16 @@ test.describe('player browser playback', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
-      const audioWindow = window as Window & { __playerAudioContexts?: number };
+      const audioWindow = window as Window & { __playerAudioContexts?: number; __playerAudioContextInstances?: AudioContext[] };
       audioWindow.__playerAudioContexts = 0;
+      audioWindow.__playerAudioContextInstances = [];
       const original = window.AudioContext;
       window.AudioContext = new Proxy(original, {
         construct(target, argumentsList, newTarget) {
           audioWindow.__playerAudioContexts! += 1;
-          return Reflect.construct(target, argumentsList, newTarget);
+          const context = Reflect.construct(target, argumentsList, newTarget);
+          audioWindow.__playerAudioContextInstances!.push(context);
+          return context;
         },
       });
       if (localStorage.getItem('slskdn.player.collapsed') === null) {
@@ -280,10 +283,7 @@ test.describe('player browser playback', () => {
     await expect(page.locator('.player-title')).toHaveText('Player runtime first');
   });
 
-  test('records native playback and paused browser resource use', async ({ page }, testInfo) => {
-    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) =>
-      elements.some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+  test('records idle, native playback and paused browser resource use', async ({ page }, testInfo) => {
     const session = await page.context().newCDPSession(page);
     await session.send('Performance.enable');
     const browserSession = await page.context().browser()!.newBrowserCDPSession();
@@ -292,18 +292,36 @@ test.describe('player browser playback', () => {
       return Object.fromEntries(result.metrics.map(({ name, value }) => [name, value]));
     };
     const samples = [];
-    for (const state of ['playing', 'paused']) {
+    for (const state of ['idle', 'playing', 'paused']) {
+      if (state === 'playing') {
+        await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+        await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+      }
       if (state === 'paused') await page.getByTestId('player-toggle-playback').click();
       const before = await metrics();
       const processesBefore = await browserSession.send('SystemInfo.getProcessInfo');
-      await page.waitForTimeout(5_000);
+      await page.waitForTimeout(10_000);
       const after = await metrics();
       const processesAfter = await browserSession.send('SystemInfo.getProcessInfo');
       const cpuById = new Map(processesBefore.processInfo.map((entry) => [entry.id, entry.cpuTime]));
       const sampledProcesses = processesAfter.processInfo.filter((entry) => cpuById.has(entry.id));
       const browserCpuSeconds = sampledProcesses.reduce((total, entry) => total + Math.max(0, entry.cpuTime - cpuById.get(entry.id)!), 0);
+      // Linux PSS apportions shared mappings, unlike summing each process's RSS.
+      const memoryReadings = process.platform === 'linux' ? await Promise.allSettled(
+        processesAfter.processInfo.map(async (entry) => {
+          const status = await fs.readFile(`/proc/${entry.id}/smaps_rollup`, 'utf8');
+          const pss = status.match(/^Pss:\s+(\d+) kB$/mu);
+          if (!pss) throw new Error('PSS unavailable');
+          return Number(pss[1]) / 1024;
+        }),
+      ) : [];
+      const measuredMemory = memoryReadings.filter((entry): entry is PromiseFulfilledResult<number> => entry.status === 'fulfilled');
       samples.push({
         state,
+        browserPssMiB: measuredMemory.length > 0 ? measuredMemory.reduce((total, entry) => total + entry.value, 0) : null,
+        memoryProcessesMeasured: measuredMemory.length,
+        memoryProcessesUnavailable: memoryReadings.length - measuredMemory.length,
+        memoryMeasurementSupported: process.platform === 'linux',
         seconds: after.Timestamp - before.Timestamp,
         browserCpuPercentOfOneCore: browserCpuSeconds / (after.Timestamp - before.Timestamp) * 100,
         browserProcessesSampled: sampledProcesses.length,
@@ -326,6 +344,77 @@ test.describe('player browser playback', () => {
     await fs.writeFile(testInfo.outputPath('native-resources.json'), JSON.stringify(samples, null, 2));
   });
 
+  test('stops analyzer sampling while paused and resumes it on playback', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('slskdn.player.visualTileMode', 'spectrum');
+      const audioWindow = window as Window & { __playerAnalyzerReads?: number };
+      audioWindow.__playerAnalyzerReads = 0;
+      const read = AnalyserNode.prototype.getByteFrequencyData;
+      AnalyserNode.prototype.getByteFrequencyData = function (array) {
+        audioWindow.__playerAnalyzerReads! += 1;
+        return read.call(this, array);
+      };
+    });
+    await page.reload();
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    const reads = () => page.evaluate(() => (window as Window & { __playerAnalyzerReads?: number }).__playerAnalyzerReads!);
+    await expect.poll(reads).toBeGreaterThan(5);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.every((element) => element.paused))).toBe(true);
+    await page.waitForTimeout(250);
+    const pausedReads = await reads();
+    await page.waitForTimeout(750);
+    expect(await reads()).toBe(pausedReads);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.every((context) => context.state === 'suspended'))).toBe(true);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(reads).toBeGreaterThan(pausedReads + 5);
+    await page.getByTestId('player-stop').click();
+    await page.waitForTimeout(250);
+    const stoppedReads = await reads();
+    await page.waitForTimeout(750);
+    expect(await reads()).toBe(stoppedReads);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.every((context) => context.state === 'suspended'))).toBe(true);
+  });
+
+  test('opens a real Picture-in-Picture analyzer and closes it on Stop or hide', async ({ page }, testInfo) => {
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await expect(page.getByTestId('player-document-pip')).toBeEnabled();
+    await page.getByTestId('player-document-pip').click();
+    const pipExists = () => page.evaluate(() => Boolean((window as Window & { documentPictureInPicture?: { window: Window | null } }).documentPictureInPicture?.window));
+    await expect.poll(pipExists).toBe(true);
+    await expect.poll(() => page.evaluate(() => {
+      const pip = (window as Window & { documentPictureInPicture?: { window: Window | null } }).documentPictureInPicture?.window;
+      const canvas = pip?.document.querySelector('canvas');
+      if (!canvas) return false;
+      const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+      return pixels.some((value, index) => index % 4 !== 3 && value > 100);
+    })).toBe(true);
+    const png = await page.evaluate(() => (window as Window & { documentPictureInPicture: { window: Window } }).documentPictureInPicture.window.document.querySelector('canvas')!.toDataURL());
+    await fs.writeFile(testInfo.outputPath('picture-in-picture.png'), Buffer.from(png.split(',')[1], 'base64'));
+    await page.getByTestId('player-stop').click();
+    await expect.poll(pipExists).toBe(false);
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    await page.getByTestId('player-document-pip').click();
+    await expect.poll(pipExists).toBe(true);
+    await page.getByTestId('player-hide').click();
+    await expect.poll(pipExists).toBe(false);
+  });
+
+  test('suspends the outgoing graph when a crossfade finishes naturally', async ({ page }) => {
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles([firstFile, secondFile]);
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByTestId('player-toggle-crossfade').click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+    const seek = page.getByLabel('Seek playback', { exact: true });
+    await seek.press('Home');
+    for (let second = 0; second < 34; second++) await seek.press('ArrowRight');
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.filter((element) => !element.paused).length)).toBe(2);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.filter((element) => !element.paused).length)).toBe(1);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.map((context) => context.state).sort())).toEqual(['running', 'suspended']);
+  });
+
   test('crossfades two local streams and pauses both on transport Pause', async ({ page }) => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles([firstFile, secondFile]);
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
@@ -337,6 +426,9 @@ test.describe('player browser playback', () => {
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.filter((element) => !element.paused).length)).toBe(2);
     await page.getByTestId('player-toggle-playback').click();
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.every((element) => element.paused))).toBe(true);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.every((context) => context.state === 'suspended'))).toBe(true);
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.filter((element) => !element.paused).length)).toBe(1);
   });
 
   test('keeps compact and expanded controls within desktop and narrow viewports', async ({ page }, testInfo) => {
