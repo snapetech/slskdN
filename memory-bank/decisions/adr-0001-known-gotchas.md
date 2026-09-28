@@ -35,6 +35,21 @@ diagnostic timeout shorter than the test deadline. Check `audio.buffered` and
 choose a seek beyond the buffered interval before asserting that a new range
 request must occur. Test playback progress independently from request counts.
 
+### 0z1212. Treat An Existing Overlay Connection As A Successful Connect
+
+**What went wrong:** A radio E2E test always expected an overlay connect call to
+return `connected: true`. In the full spec, an earlier case had already
+connected the same peers; the idempotent call returned `connected: false` while
+reporting one active connection.
+
+**Why:** The endpoint reports whether this request created a new connection,
+not whether the requested peer is connected after the call.
+
+**Prevention:** For reusable multi-node fixtures, assert the response's active
+connection count or confirm the peer in status. Accept `connected: false` when
+the connection is already active; reserve exact `connected: true` assertions
+for tests that control a fresh node pair.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
