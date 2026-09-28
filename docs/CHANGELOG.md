@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Cloudron packaging
+
+- Align the Cloudron testing manifest and Dockerfile with the published stable `.328` container image.
+
 ## [2026092823-slskdn.329] — 2026-09-28
 
 ### Radio fairness accounting

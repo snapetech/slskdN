@@ -3,7 +3,7 @@
   "title": "slskdN",
   "description": "AGPL-3.0 Soulseek client with discovery, downloads, library sharing, DHT, and optional mesh networking.",
   "tagline": "Soulseek client with discovery and download automation",
-  "version": "2026.9.2818",
+  "version": "2026.9.2820",
   "healthCheckPath": "/health",
   "httpPort": 5030,
   "tcpPorts": {
@@ -35,7 +35,7 @@
     "p2p"
   ],
   "minBoxVersion": "10.0.0",
-  "changelog": "* Cloudron community package for slskdN 2026092818-slskdn.327.",
+  "changelog": "* Cloudron community package for slskdN 2026092820-slskdn.328.",
   "mediaLinks": [
     "https://raw.githubusercontent.com/snapetech/slskdN/main/packaging/cloudron/screenshot.png"
   ],
