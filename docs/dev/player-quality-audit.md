@@ -51,11 +51,30 @@ physical headset buttons. Output-switch regressions use simulated device APIs.
 | Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in headless Chromium / high; physical window sizing and focus unverified |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; sustained throughput remains open |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; WAN and sustained throughput remain open |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks, live-event precedence and authenticated cross-node updates | Actual Chromium PlayerBar catches the latest state after automatic transport recovery; two authenticated SignalR clients verify leave/rejoin/snapshot/live-ban behavior, and the two-backend browser workflow verifies initial snapshot, playback, Pause/Seek/Stop updates and banned-member denial over loopback / high; WAN behavior remains unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
 record the source version validated at that time.
+
+### Constrained radio buffering and snapshot replacement — 2026-09-28
+
+An opt-in Playwright workflow runs the real two-backend listed-radio path in
+Chromium. CDP throttles only the listener browser's mesh-audio HTTP endpoint to
+24 KiB/s down with 450 ms latency; the test measures received response bytes
+below 36 KiB/s and confirms the player surfaces Buffering/Retry. After the
+profile changes to 128 KiB/s and 120 ms, it seeks beyond the current buffered
+range, receives a real 206 response, and confirms playback time continues to
+advance. The bytes still travel through the real listener gateway to the host;
+only the browser-to-listener HTTP leg is constrained.
+
+A third fresh listener then observes the host replace content under the same
+party ID. After the manual refresh cooldown, the updated title/content appears,
+the old content ticket returns 404, and the new snapshot decodes and advances.
+The fresh listener keeps this source-replacement assertion independent from
+the constrained listener's already-consumed fairness budget. Confidence is
+high for this loopback workflow. It does not establish WAN behavior, direct
+Soulseek reciprocity, or long-duration throughput.
 
 ## Resource sample
 
@@ -108,7 +127,7 @@ are happening; that reciprocal-transfer workflow remains open.
 
 ## Remaining completion work
 
-- Verify repeated radio admissions during actual Soulseek reciprocal transfers, source replacement and sustained playback across realistic latency. Upload/download counters now include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers; WAN latency and sustained throughput also remain due.
+- Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The constrained Chromium case covers only the browser-to-listener HTTP leg over loopback; it does not model a WAN mesh link. Updating a listed snapshot under a stable party ID is covered, while replacement or withdrawal during an already-playing listener session remains open. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
 - Exercise supported browser engines and additional audio formats, including
   failures, decode cancellation and recovery.
 - Verify physical mobile interactions, physical output routing/media buttons,

@@ -5199,6 +5199,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Propagate producer failures to readers; preserve strict known-length and bounded-range checks.
 - [x] Verify the real host range handler, fetcher and preview reader together through controlled RPC, including limiter release.
 - [x] 2026-09-28 Complete host-scoped remote radio routing and permission revocation checks, with separate web-account and mesh transport identities; real TLS and two-backend Chromium evidence is recorded in the player quality audit.
+- [x] 2026-09-28 Verify listed-radio buffering and recovery with URL-scoped Chromium throttling, plus same-party snapshot replacement, stale-content ticket rejection, and playback on a fresh listener. See the constrained-radio evidence in `docs/dev/player-quality-audit.md`.
 
 
 ## Host-scoped remote listed radio — 2026-09-28 02:04 UTC
