@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1108. Read Radio Metadata Contracts and Freeze Compilation Inputs
+
+**The Bug**: A new fixture assumed ListedRadioMetadata included content type, but its positional contract contains only filename and length. Editing the controller dependency contract during an in-flight build also produced tests compiled against an older controller assembly.
+
+**Prevention**: Read record declarations before constructing fixtures. Complete dependent source and test edits before starting compilation; wait for terminal build results before changing those inputs or interpreting compiler failures as production behavior.
+
 ### 0z1107. Serialize Room Publication Through Routing and Fanout
 
 **The Bug**: Concurrent publication changed local state before awaiting routing. Stop could finish and notify listeners while an earlier Play remained blocked; that Play then delivered stale state. A corrected negative regression proved Stop completed before pending Play.
