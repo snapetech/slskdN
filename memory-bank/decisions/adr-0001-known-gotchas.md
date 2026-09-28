@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1119. Preserve Bans When a Participant Leaves
+
+**The Bug**: Both in-memory and SQLite LeaveAsync deleted banned membership records. Two direct negative tests reproduced successful leave after ban, allowing a subsequent public-room join to lose the ban barrier. Native and mesh callers share these services, so fixing only one controller would leave another bypass.
+
+**Prevention**: Refuse removal of banned records in the shared services. Verify leave fails, rejoin fails, active membership stays empty and the SQLite ban row remains. Ordinary active members must still leave normally. Ban removal requires an explicit authorized moderation workflow, not participant self-service.
+
 ### 0z1118. Apply Pod Permission Rules at Every Mesh Service Entry
 
 **The Bug**: Twenty-three negative service-adapter regressions reproduced caller-selected elevated join roles, private/approval admission, private metadata/list leakage, history reads and posting dispatched without membership, and empty transport identities accepted. Stream history reads bypassed membership too. Existing successful fixtures mocked messaging acceptance and therefore did not establish permission checks.
