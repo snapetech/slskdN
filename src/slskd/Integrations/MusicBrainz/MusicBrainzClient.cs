@@ -249,16 +249,29 @@ namespace slskd.Integrations.MusicBrainz
             };
         }
 
-        private static int ResolvePosition(string? position, int fallback)
+        private static int ResolvePosition(JsonElement? position, int fallback)
         {
-            if (!string.IsNullOrWhiteSpace(position))
+            if (!position.HasValue)
             {
-                if (int.TryParse(position, NumberStyles.Integer, CultureInfo.InvariantCulture, out var direct))
+                return fallback;
+            }
+
+            var value = position.Value.ValueKind switch
+            {
+                JsonValueKind.String => position.Value.GetString(),
+                JsonValueKind.Number => position.Value.GetRawText(),
+                JsonValueKind.Null or JsonValueKind.Undefined => null,
+                _ => throw new JsonException("MusicBrainz track positions must be strings or numbers."),
+            };
+
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var direct))
                 {
                     return direct;
                 }
 
-                var segments = position.Split('.', StringSplitOptions.RemoveEmptyEntries);
+                var segments = value.Split('.', StringSplitOptions.RemoveEmptyEntries);
 
                 for (var i = segments.Length - 1; i >= 0; i--)
                 {
@@ -356,7 +369,7 @@ namespace slskd.Integrations.MusicBrainz
 
         private sealed record MediaResponse(string? Format, int? TrackCount, TrackResponse[]? Tracks);
 
-        private sealed record TrackResponse(string? Position, string? Title, RecordingResponse? Recording);
+        private sealed record TrackResponse(JsonElement? Position, string? Title, RecordingResponse? Recording);
 
         private sealed record RecordingResponse(
             string Id,

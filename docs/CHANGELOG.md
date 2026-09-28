@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### MusicBrainz discography coverage
+
+- Discography coverage now accepts numeric and string MusicBrainz track positions, avoiding a server error on numeric values.
+
+## [2026092816-slskdn.326] — 2026-09-28
+
 ### Failed player startup and decoded seek recovery
 
 - Publish paused host intent after rejected Play or crossfade startup and while decoded seeking replaces its stream, retaining the requested absolute recovery position.
@@ -351,6 +357,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Clarified that Solid's anonymous Client ID document requires a canonical
   `solid.clientIdUrl`, made the settings page show when that endpoint is
   disabled, and fixed explicitly allowed loopback WebID resolution for tests.
+
+### MusicBrainz discography coverage
+
+- Discography coverage now accepts numeric and string MusicBrainz track positions, avoiding a server error on numeric values.
 
 ## [2026092517-slskdn.325] — 2026-09-25
 

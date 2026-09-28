@@ -13,6 +13,46 @@ using Xunit;
 
 public sealed class MusicBrainzClientTests
 {
+    [Theory]
+    [InlineData("1", 1)]
+    [InlineData("\"1\"", 1)]
+    [InlineData("\"1.2\"", 2)]
+    public async Task GetReleaseAsync_DeserializesNumericAndStringTrackPositions(string position, int expectedPosition)
+    {
+        var handler = new CapturingHttpMessageHandler(
+            $$"""
+            {
+              "id": "release-1",
+              "title": "Album",
+              "artist-credit": [ { "name": "Artist", "artist": { "id": "artist-1" } } ],
+              "media": [
+                {
+                  "tracks": [
+                    {
+                      "position": {{position}},
+                      "title": "Song",
+                      "recording": {
+                        "id": "recording-1",
+                        "title": "Song",
+                        "artist-credit": [ { "name": "Artist", "artist": { "id": "artist-1" } } ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+        var (client, httpClient) = CreateClient(handler);
+        using var _ = httpClient;
+
+        var album = await client.GetReleaseAsync("release-1");
+
+        Assert.NotNull(album);
+        var track = Assert.Single(album!.Tracks);
+        Assert.Equal(expectedPosition, track.Position);
+        Assert.Equal("Song", track.Title);
+    }
+
     [Fact]
     public async Task SearchRecordingsAsync_TrimsQueryAndDeduplicatesResults()
     {
