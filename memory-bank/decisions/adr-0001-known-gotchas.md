@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1180. Authenticate Against Visible Readiness Rather Than Network Idleness
+
+**The Bug**: A full player browser run failed before its queue scenario because the login helper waited ten seconds for `networkidle`, despite a rendered login form. A controlled unrelated request held open reproduces the same timeout deterministically.
+
+**Prevention**: Navigate to `domcontentloaded` with the same deadline, then await the existing React root, visible credentials, enabled submit, actual successful session response and authenticated navigation. Background network work is not a login-readiness contract. Keep the pending-request regression and rerun the complete browser gate; do not hide the failure with retries or wider timeouts.
+
 ### 0z1179. Drain Pending Playwright Routes With the Correct API
 
 **The Bug**: A new readiness regression passed a behavior option to `page.unroute`, whose second argument is a route handler. TypeScript rejected the incorrect call before the browser test ran.
