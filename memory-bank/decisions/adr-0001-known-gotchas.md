@@ -6,6 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1068. Use Actual Overlay Routing Identity and Audio Request Budgets
+
+**The Gotcha**: Web account names and profile peer IDs do not identify the current service-call connection. MeshServiceClient selects an outbound overlay connection by its Soulseek username. Also, 2 KiB audio RPCs exhaust the default 100-call-per-minute service limit long before a normal track finishes.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/MeshServiceClient.cs`
+- `src/slskd/Mesh/ServiceFabric/MeshServiceFabricOptions.cs`
+- `src/slskd/ListeningParty/ListeningPartyService.cs`
+
+**Prevention**: Advertise the configured overlay transport username separately from display identity. Use bounded audio responses that fit the 64 KiB framed JSON limit, pace requests, and retain the global RPC budget. Verify routing and throughput with real transport, rather than inferring them from a profile or mocked fetch result.
+
 ### 0z1067. Format C# Result Initializers Before Validation
 
 **The Bug**: A mesh regression placed Data and Size assignments on one initializer line. The repository formatter rejected the added test under WHITESPACE.
