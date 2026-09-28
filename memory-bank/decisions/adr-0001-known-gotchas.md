@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1176. Pass Node Values Explicitly Into Browser Evaluation
+
+**The Bug**: The corrected host workflow reached follower verification, then failed with ReferenceError because evaluateAll captured failedPosition from the Node test closure. Playwright executes the serialized callback in the browser, where that binding does not exist; the type gate cannot prove cross-context availability.
+
+**Prevention**: Pass the position as evaluateAll's explicit argument and consume it through the callback parameter. Keep Node-side HTTP assertions outside browser callbacks. Verify the real browser path, including pause and recovery, before treating a typed test as runtime evidence.
+
 ### 0z1175. Type Audio Locators in the Host Browser Specification
 
 **The Bug**: Extending the explicit TypeScript gate to the host workflow exposed existing and new locator callbacks that accessed paused/currentTime on Playwright's generic SVGElement-or-HTMLElement array. Runtime execution alone had not caught the type errors.
