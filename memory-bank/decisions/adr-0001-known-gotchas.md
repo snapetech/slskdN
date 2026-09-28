@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1082. Scope RPC Signature Edits to Their Method
+
+**The Bug**: A broad text replacement while changing FIND_NODE from a KNode argument to a transport address changed PingAsync first, leaving an undeclared address and breaking compilation.
+
+**Prevention**: Restrict signature migrations to the relevant method body and inspect every affected call site before building. Dispose owned synchronization primitives and fix analyzer findings before proceeding.
+
 ### 0z1081. Bootstrap Mesh DHT from Connected Transport Neighbors
 
 **The Bug**: Connected overlay peers were mirrored into the circuit inventory but never seeded the mesh DHT routing table. Radio directory lookup therefore stayed local, and remote ticket acquisition failed despite a live transport. FIND_NODE also omitted successfully contacted seed nodes from its result when they returned no closer peers.
