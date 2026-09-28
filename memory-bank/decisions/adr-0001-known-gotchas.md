@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1092. Read the Most Recently Stored DHT Replica
+
+**The Bug**: In-memory DHT puts appended changed values while single-value reads returned the first retained replica. A radio host's revoked announcement was stored successfully, but manual refresh still received the older streamable announcement until TTL expiry.
+
+**Prevention**: Keep retained values in storage-recency order, promote an identical refreshed value, return newest first for single/multiple reads, and evict the oldest retained value when capacity is exceeded. Recency means local storage order, not globally synchronized or publisher-authenticated version ordering; verify mutable announcements through real directory refresh.
+
 ### 0z1091. Offer Radio Retry While a Native Range Stalls
 
 **The Bug**: After a revoked range returned 503, Chromium stayed in buffering without emitting a media error. The player exposed only Pause, and the existing Play retry renewed tickets only after an error event, leaving stalled radio without a direct reconnect action.
