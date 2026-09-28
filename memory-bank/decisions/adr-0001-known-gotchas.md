@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1091. Offer Radio Retry While a Native Range Stalls
+
+**The Bug**: After a revoked range returned 503, Chromium stayed in buffering without emitting a media error. The player exposed only Pause, and the existing Play retry renewed tickets only after an error event, leaving stalled radio without a direct reconnect action.
+
+**Prevention**: Expose an explicit radio retry during buffering and error states in both player layouts. Clear the previous media source before requesting a replacement, retain position, and recheck host permission. Do not add automatic polling or retry loops. Verify the real revoked-range workflow and a controlled waiting event.
+
 ### 0z1090. Freeze Time in Directory Refresh Rate Tests
 
 **The Bug**: The forced-refresh test assumed its two-second cooldown could not expire while awaiting a shared result. Under the full suite's CPU load the continuation took fifteen seconds, allowing a valid third refresh that exhausted the mock sequence.
