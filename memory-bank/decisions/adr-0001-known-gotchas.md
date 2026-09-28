@@ -87,6 +87,24 @@ keyboard; do not call `.focus()` and assume that it emulates keyboard modality.
 Inspect the visible focus treatment itself rather than requiring one particular
 computed `outline-style` when another visible indicator is valid.
 
+### 0z1215. Do Not Hide Persistent UI Through Stale Relational Modal Selectors
+
+**What went wrong:** After the player file-browser modal closed in Firefox, the
+modal element was gone and `body.matches(':has(.ui.modal)')` returned false, but
+the player still computed to `visibility: hidden`. Playback continued while
+transport, file, decode and queue controls became inaccessible.
+
+**Why:** A persistent player was hidden by a body-level relational selector
+that tracks a portal-based modal's short-lived DOM lifecycle. Firefox retained
+the style result after the modal was removed, leaving the player invisible
+even though the selector no longer matched.
+
+**Prevention:** Do not control a persistent application's visibility through
+`body:has(.ui.modal)`. Let the modal dimmer stack above the player, or maintain
+explicit modal-open state with a lifecycle that is cleared on close. Verify
+that closing a portal modal restores both computed visibility and keyboard-
+accessible player controls in Firefox as well as Chromium.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
