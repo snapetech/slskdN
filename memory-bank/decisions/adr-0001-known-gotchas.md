@@ -4,6 +4,23 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1208. Drain Event-Started Traffic Commits Before Disposing Their Service
+
+**What went wrong:** A transfer event started an asynchronous traffic commit
+without awaiting it. Graceful host shutdown could return from the event owner
+and let dependency injection dispose the accounting service's semaphore while
+the database write still needed to release it.
+
+**Why:** Event handlers are synchronous, so their work must be observed in the
+background. The normal transfer path is short, which can hide a shutdown race
+unless a persistence operation is deliberately held open.
+
+**Prevention:** Register event-started commits in an in-flight set before
+starting them, remove each task on completion, and drain that set after the
+client has stopped emitting transfer events but before the host disposes the
+accounting service. Do not retain completed transfer tasks for the lifetime of
+the application.
+
 ### 0z1207. Wire Soulseek Download Totals At The Shared Transfer Event Boundary
 
 **What went wrong:** The fairness summary exposed `SoulseekDownloadBytes`, and
