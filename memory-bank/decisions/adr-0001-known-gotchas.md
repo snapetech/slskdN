@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1181. Close the Owned Readiness Page Before Its Backend
+
+**The Bug**: The corrected login-readiness scenario passed, but stopping its backend while the authenticated page remained open generated reconnect and connection-refused errors during teardown.
+
+**Prevention**: Release held requests, drain routing, close the owned browser page, then stop its harness. Cleanup ordering must stop consumers before their server; a passing assertion does not justify avoidable teardown diagnostics.
+
 ### 0z1180. Authenticate Against Visible Readiness Rather Than Network Idleness
 
 **The Bug**: A full player browser run failed before its queue scenario because the login helper waited ten seconds for `networkidle`, despite a rendered login form. A controlled unrelated request held open reproduces the same timeout deterministically.
