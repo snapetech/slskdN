@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1184. Serialize Audio Graph Changes Against Latest Playback Intent
+
+**The Bug**: A controlled real-browser race held an outgoing AudioContext.suspend() through transport Pause, started newer playback while the context still reported running, then released the old suspend. Audio resumed but processing stayed suspended.
+
+**Prevention**: Route shared graph resume/suspend requests through one per-graph transition loop driven by the latest desired state. Pause must record suspension even while resume is pending; a newer Play waits for an older suspend and resumes before playing. Do not call context state methods directly from player cleanup. Cover both completion orders, rapid Pause/Play/Pause and Stop/remount.
+
 ### 0z1183. Accept Numeric MusicBrainz Track Positions
 
 **The Bug**: MusicBrainz returned a numeric token for `media[].tracks[].position`,
