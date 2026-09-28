@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1055. Reset Playback State Explicitly When Clearing Current Media
+
+**The Bug**: Stop cleared native audio and current metadata but left the React playing state true when no Pause event updated it. A real-browser spectrum regression observed 23 additional analyzer reads after Stop.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: The no-current lifecycle must reset both playing state and its ref, clear autoplay intent and close inactive Picture-in-Picture work. Do not rely on a media Pause event to define Stop state after the source is cleared.
+
 ### 0z1054. Keep Parameterized Regression Assertions Unconditional
 
 **The Bug**: Adding success/failure playlist-fetch cases put assertions inside branches. The Web lint gate rejected the test under vitest/no-conditional-expect.
