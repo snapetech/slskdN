@@ -6,6 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1050. Checkpoint Current Position Before Session Restoration
+
+**The Bug**: The queue session stored each item's original positionSeconds but ignored the live playback-position ref. Real playlist playback sought to 12 seconds, yet reload restored the track at zero.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Snapshot the current restorable entry with the latest playback-position ref when the tab hides or leaves. Persist queue changes normally, but avoid progress-driven storage writes. Do not assign browser-local or radio playback positions to a surviving server queue entry after filtering.
+
 ### 0z1049. Pass Captured Values Into Browser Evaluation
 
 **The Bug**: The duplicate-local-file browser regression referenced firstSource from a page evaluateAll closure. Browser evaluation runs in a separate JavaScript context, so the captured Node value was unavailable and the test threw ReferenceError.
