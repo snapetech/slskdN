@@ -14,6 +14,18 @@ import { expect, test } from '@playwright/test';
 // Generated PCM exercises the browser decoder without downloaded media,
 // personal files, or remote peer requests.
 
+const seekPlayerTo = async (page, targetSeconds: number) => {
+  const seek = page.getByLabel('Seek playback', { exact: true });
+  await seek.evaluate((input, target) => {
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    if (!setValue) throw new Error('The seek control does not expose its native value setter.');
+    setValue.call(input, String(target));
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'ArrowRight' }));
+  }, targetSeconds);
+  await expect(seek).toHaveValue(String(targetSeconds));
+};
+
 test.describe('player browser playback', () => {
   test.use({ serviceWorkers: 'block' });
   test.setTimeout(60_000);
@@ -461,28 +473,7 @@ test.describe('player browser playback', () => {
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
     await page.getByTestId('player-toggle-crossfade').click();
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
-    const seek = page.getByLabel('Seek playback', { exact: true });
-    await seek.press('Home');
-    for (let second = 0; second < 34; second++) await seek.press('ArrowRight');
-    await page.waitForTimeout(500);
-    console.log('crossfade diagnostic', JSON.stringify(await page.evaluate(() => ({
-      title: document.querySelector('.player-title')?.textContent,
-      status: document.querySelector('.player-status')?.textContent,
-      errors: [...document.querySelectorAll('[role="alert"]')].map((element) => element.textContent),
-      audio: [...document.querySelectorAll('audio')].map((element) => {
-        const audio = element as HTMLAudioElement;
-        return {
-          src: audio.currentSrc,
-          paused: audio.paused,
-          time: audio.currentTime,
-          duration: audio.duration,
-          readyState: audio.readyState,
-          networkState: audio.networkState,
-          error: audio.error && { code: audio.error.code, message: audio.error.message },
-        };
-      }),
-      contexts: (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances?.map((context) => ({ state: context.state, time: context.currentTime })),
-    }))));
+    await seekPlayerTo(page, 34);
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).filter((element) => !element.paused).length)).toBe(2);
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).filter((element) => !element.paused).length)).toBe(1);
     await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.map((context) => context.state).sort())).toEqual(['running', 'suspended']);
@@ -493,28 +484,7 @@ test.describe('player browser playback', () => {
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
     await page.getByTestId('player-toggle-crossfade').click();
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
-    const seek = page.getByLabel('Seek playback', { exact: true });
-    await seek.press('Home');
-    for (let second = 0; second < 34; second++) await seek.press('ArrowRight');
-    await page.waitForTimeout(500);
-    console.log('crossfade diagnostic', JSON.stringify(await page.evaluate(() => ({
-      title: document.querySelector('.player-title')?.textContent,
-      status: document.querySelector('.player-status')?.textContent,
-      errors: [...document.querySelectorAll('[role="alert"]')].map((element) => element.textContent),
-      audio: [...document.querySelectorAll('audio')].map((element) => {
-        const audio = element as HTMLAudioElement;
-        return {
-          src: audio.currentSrc,
-          paused: audio.paused,
-          time: audio.currentTime,
-          duration: audio.duration,
-          readyState: audio.readyState,
-          networkState: audio.networkState,
-          error: audio.error && { code: audio.error.code, message: audio.error.message },
-        };
-      }),
-      contexts: (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances?.map((context) => ({ state: context.state, time: context.currentTime })),
-    }))));
+    await seekPlayerTo(page, 34);
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).filter((element) => !element.paused).length)).toBe(2);
     await page.getByTestId('player-toggle-playback').click();
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((element) => element.paused))).toBe(true);
