@@ -99,6 +99,74 @@ public class ApplicationLifecycleTests
     }
 
     [Fact]
+    public void SoulseekDownloadEvents_AccountProgressAndTerminalRemainder()
+    {
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options());
+        var applicationState = new ManagedState<State>();
+        var shareState = new ManagedState<ShareState>();
+        var relayState = new ManagedState<RelayState>();
+        var trafficAccounting = new Mock<slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService>();
+        trafficAccounting
+            .Setup(service => service.CommitSoulseekDownloadAsync(41, 175, 100, It.IsAny<System.Threading.CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var application = CreateApplication(
+            new OptionsAtStartup(),
+            optionsMonitor,
+            applicationState,
+            shareState,
+            relayState,
+            out _,
+            out var soulseekClient,
+            out _,
+            trafficAccounting);
+
+        var inProgress = new Soulseek.Transfer(
+            Soulseek.TransferDirection.Download,
+            "peer",
+            "track.flac",
+            token: 41,
+            state: Soulseek.TransferStates.InProgress,
+            size: 1_000,
+            startOffset: 100,
+            bytesTransferred: 150);
+        var progressArgs = (Soulseek.TransferProgressUpdatedEventArgs)(typeof(Soulseek.TransferProgressUpdatedEventArgs)
+            .GetConstructor(
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                types: [typeof(long), typeof(Soulseek.Transfer)],
+                modifiers: null)
+            ?? throw new InvalidOperationException("Transfer progress event constructor was not found."))
+            .Invoke([100L, inProgress]);
+
+        soulseekClient.Raise(client => client.TransferProgressUpdated += null, this, progressArgs);
+
+        var completed = new Soulseek.Transfer(
+            Soulseek.TransferDirection.Download,
+            "peer",
+            "track.flac",
+            token: 41,
+            state: Soulseek.TransferStates.Completed | Soulseek.TransferStates.Succeeded,
+            size: 1_000,
+            startOffset: 100,
+            bytesTransferred: 175);
+        var stateArgs = (Soulseek.TransferStateChangedEventArgs)(typeof(Soulseek.TransferStateChangedEventArgs)
+            .GetConstructor(
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                types: [typeof(Soulseek.TransferStates), typeof(Soulseek.Transfer)],
+                modifiers: null)
+            ?? throw new InvalidOperationException("Transfer state event constructor was not found."))
+            .Invoke([Soulseek.TransferStates.InProgress, completed]);
+
+        soulseekClient.Raise(client => client.TransferStateChanged += null, this, stateArgs);
+
+        trafficAccounting.Verify(service => service.RecordSoulseekDownloadProgress(41, 150, 100), Times.Once);
+        trafficAccounting.Verify(service => service.CommitSoulseekDownloadAsync(41, 175, 100, It.IsAny<System.Threading.CancellationToken>()), Times.Once);
+        application.Dispose();
+    }
+
+    [Fact]
     public void Dispose_DetachesManagedStateSubscriptions()
     {
         var optionsMonitor = new TestOptionsMonitor<Options>(new Options());
@@ -387,7 +455,8 @@ public class ApplicationLifecycleTests
         ManagedState<RelayState> relayState,
         out Mock<IClientProxy> applicationHub,
         out Mock<ISoulseekClient> soulseekClient,
-        out Mock<ISearchService> searchService)
+        out Mock<ISearchService> searchService,
+        Mock<slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService>? trafficAccounting = null)
     {
         applicationHub = new Mock<IClientProxy>();
         soulseekClient = new Mock<ISoulseekClient>();
@@ -440,6 +509,11 @@ public class ApplicationLifecycleTests
         var hubClients = new Mock<IHubClients>();
         hubClients.SetupGet(x => x.All).Returns(applicationHub.Object);
 
+        var transferHubClients = new Mock<IHubClients>();
+        transferHubClients.SetupGet(x => x.All).Returns(applicationHub.Object);
+        var transfersHub = new Mock<IHubContext<TransfersHub>>();
+        transfersHub.SetupGet(x => x.Clients).Returns(transferHubClients.Object);
+
         var appHubContext = new Mock<IHubContext<ApplicationHub>>();
         appHubContext.SetupGet(x => x.Clients).Returns(hubClients.Object);
         var eventService = new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>());
@@ -462,12 +536,13 @@ public class ApplicationLifecycleTests
             relayService.Object,
             appHubContext.Object,
             Mock.Of<IHubContext<LogsHub>>(),
-            Mock.Of<IHubContext<TransfersHub>>(),
+            transfersHub.Object,
             new EventBus(eventService),
             eventService,
             Mock.Of<IServiceProvider>(),
             Mock.Of<IServiceScopeFactory>(),
-            Mock.Of<slskd.NowPlaying.NowPlayingService>());
+            Mock.Of<slskd.NowPlaying.NowPlayingService>(),
+            trafficAccounting?.Object ?? Mock.Of<slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService>());
     }
 
     private static Application CreateApplication(

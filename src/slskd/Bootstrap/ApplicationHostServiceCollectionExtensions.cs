@@ -150,12 +150,13 @@ public static class ApplicationHostServiceCollectionExtensions
             Log.Debug("[DI] All dependencies resolved, constructing Application...");
             var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
             var nowPlayingService = sp.GetRequiredService<NowPlaying.NowPlayingService>();
+            var trafficAccountingService = sp.GetRequiredService<Transfers.MultiSource.Metrics.ITrafficAccountingService>();
             var app = new Application(
                 optionsAtStartup, optionsMonitor, state, soulseekClient, fileService,
                 connectionWatchdog, transferService, browseTracker, roomService,
                 userService, messagingService, shareService, searchService,
                 notificationService, relayService, applicationHub, logHub, transfersHub,
-                eventBus, eventService, sp, scopeFactory, nowPlayingService);
+                eventBus, eventService, sp, scopeFactory, nowPlayingService, trafficAccountingService);
             Log.Debug("[DI] Application singleton constructed successfully");
             return app;
         });

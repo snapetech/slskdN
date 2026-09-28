@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Radio fairness accounting
+
+- Include active and completed Soulseek download payload in fairness totals, excluding resumed bytes already present locally.
+
 ## [2026092820-slskdn.328] — 2026-09-28
 
 ### Authenticated cross-node listen-along

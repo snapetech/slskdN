@@ -150,7 +150,8 @@ namespace slskd
             Events.EventService eventService,
             IServiceProvider serviceProvider,
             IServiceScopeFactory serviceScopeFactory,
-            NowPlaying.NowPlayingService nowPlayingService)
+            NowPlaying.NowPlayingService nowPlayingService,
+            Transfers.MultiSource.Metrics.ITrafficAccountingService trafficAccountingService)
         {
             Log.Debug("[Application] Constructor called");
             Log.Debug("[Application] Setting up event handlers...");
@@ -226,6 +227,7 @@ namespace slskd
             ServiceProvider = serviceProvider;
             ServiceScopeFactory = serviceScopeFactory;
             NowPlayingService = nowPlayingService;
+            TrafficAccounting = trafficAccountingService;
 
             Client = soulseekClient;
 
@@ -323,6 +325,12 @@ namespace slskd
         /// </summary>
         private ConcurrentDictionary<string, long> TransferProgressLastEmitTicks { get; } = new(StringComparer.Ordinal);
 
+        /// <summary>
+        ///     Event-started traffic commits must finish before dependency injection
+        ///     disposes their accounting service during graceful shutdown.
+        /// </summary>
+        private ConcurrentDictionary<int, Task> ActiveSoulseekDownloadAccountingCommits { get; } = new();
+
         private const long TransferProgressEmitIntervalMs = 1_000;
 
         private IReadOnlyList<Guid> ActiveDownloadIdsAtPreviousShutdown { get; set; } = [];
@@ -332,6 +340,7 @@ namespace slskd
         private IServiceProvider ServiceProvider { get; set; }
         private IServiceScopeFactory ServiceScopeFactory { get; set; }
         private NowPlaying.NowPlayingService NowPlayingService { get; set; }
+        private Transfers.MultiSource.Metrics.ITrafficAccountingService TrafficAccounting { get; }
 
         public void CollectGarbage()
         {
@@ -940,6 +949,7 @@ namespace slskd
             }
 
             Client.Dispose();
+            await DrainSoulseekDownloadAccountingCommitsAsync().ConfigureAwait(false);
             foreach (var registration in _posixSignalRegistrations)
             {
                 registration.Dispose();
@@ -2208,6 +2218,14 @@ namespace slskd
             // carries the final bytes/percent so a dropped last sample self-corrects.
             var xfer = args.Transfer;
 
+            if (xfer.Direction == TransferDirection.Download)
+            {
+                TrafficAccounting.RecordSoulseekDownloadProgress(
+                    xfer.Token,
+                    xfer.BytesTransferred,
+                    xfer.StartOffset);
+            }
+
             if (!xfer.State.HasFlag(TransferStates.InProgress))
             {
                 return;
@@ -2243,6 +2261,11 @@ namespace slskd
 
             var completed = xfer.State.HasFlag(TransferStates.Completed);
 
+            if (completed && xfer.Direction == TransferDirection.Download)
+            {
+                QueueSoulseekDownloadAccountingCommit(xfer);
+            }
+
             Log.Information($"[{direction}] [{user}/{file}] {oldState} => {state}{(completed ? FormatCompletedTransferProgress(xfer.BytesTransferred, xfer.Size, xfer.PercentComplete, xfer.AverageSpeed) : string.Empty)}");
 
             if (completed)
@@ -2272,6 +2295,51 @@ namespace slskd
         {
             var displaySpeed = Math.Max(0, averageSpeed);
             return $" ({bytesTransferred}/{size} = {percentComplete}%) @ {displaySpeed.SizeSuffix()}/s";
+        }
+
+        private void QueueSoulseekDownloadAccountingCommit(Soulseek.Transfer transfer)
+        {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            if (!ActiveSoulseekDownloadAccountingCommits.TryAdd(transfer.Token, completion.Task))
+            {
+                return;
+            }
+
+            _ = ObserveSoulseekDownloadAccountingCommitAsync(transfer, completion);
+        }
+
+        private async Task ObserveSoulseekDownloadAccountingCommitAsync(
+            Soulseek.Transfer transfer,
+            TaskCompletionSource<bool> completion)
+        {
+            try
+            {
+                await TrafficAccounting.CommitSoulseekDownloadAsync(
+                    transfer.Token,
+                    transfer.BytesTransferred,
+                    transfer.StartOffset).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to account Soulseek download traffic for {Filename} from {Username}", transfer.Filename, transfer.Username);
+            }
+            finally
+            {
+                completion.TrySetResult(true);
+                ActiveSoulseekDownloadAccountingCommits.TryRemove(transfer.Token, out _);
+            }
+        }
+
+        private async Task DrainSoulseekDownloadAccountingCommitsAsync()
+        {
+            while (!ActiveSoulseekDownloadAccountingCommits.IsEmpty)
+            {
+                var commits = ActiveSoulseekDownloadAccountingCommits.Values.ToArray();
+                if (commits.Length > 0)
+                {
+                    await Task.WhenAll(commits).ConfigureAwait(false);
+                }
+            }
         }
 
         private void Client_UserStatusChanged(object? sender, UserStatus args)
