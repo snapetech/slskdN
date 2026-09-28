@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1192. Connect Isolated Nodes Before Cross-Node DHT Assertions
+
+**What went wrong:** A multi-node radio test started both nodes with
+`noConnect: true`, then expected one node to read the other's DHT announcement.
+The directory was empty because the harness had not connected the overlay
+peers.
+
+**Why:** The isolated-node harness intentionally disables automatic peer
+discovery. Separate in-process DHT clients do not share values until the nodes
+are linked through the overlay.
+
+**Prevention:** Explicitly connect the nodes through the overlay API before
+asserting cross-node discovery, and verify the active mesh connection on both
+nodes as the existing radio-network scenario does.
+
 ### 0z1191. Show Pending Stop Before Awaiting Lease Renewal
 
 **What went wrong:** Serializing Stop behind an active renewal delayed the
