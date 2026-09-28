@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
+
+**What went wrong:** A network-emulation E2E test awaited a CDP network-policy
+reset in `finally`. After the test deadline closed the page, the reset error
+replaced the timeout and hid which playback assertion had stalled.
+
+**Why:** Test teardown can close the page and CDP target before asynchronous
+cleanup runs. Cleanup then competes with the same deadline as the assertion it
+should help diagnose.
+
+**Prevention:** Keep CDP overrides scoped to the isolated test context. On
+cleanup, check that the page is still open before sending commands; detach the
+session without allowing a cleanup error to replace the original test failure.
+Use a separate browser context when a network override must not outlive the
+test.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
