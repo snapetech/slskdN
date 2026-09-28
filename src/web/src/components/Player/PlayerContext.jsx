@@ -39,6 +39,29 @@ export const PlayerContext = createContext({
 });
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const normalizePlayerItem = (item, options = {}) => ({
+  album: item.album || item.collectionTitle || '',
+  artist: item.artist || item.username || 'slskdN',
+  artworkUrl: item.artworkUrl || item.coverUrl || item.imageUrl || '',
+  confidence: item.confidence || item.matchConfidence || item.score || 0,
+  contentId: item.contentId,
+  fileName: item.fileName || item.title || item.contentId,
+  genre: item.genre || '',
+  positionSeconds: Number.isFinite(options.positionSeconds)
+    ? Math.max(0, options.positionSeconds)
+    : 0,
+  startPaused: options.startPaused === true,
+  sourceProviders: asArray(item.sourceProviders || item.providers),
+  streamUrl: item.streamUrl || options.streamUrl || '',
+  tags: asArray(item.tags || item.genres),
+  title: item.title || item.fileName || item.contentId,
+  verified: Boolean(
+    item.verified ||
+    item.verifiedAt ||
+    item.fingerprint?.verifiedAt ||
+    item.verification?.verified,
+  ),
+});
 const isRestorableItem = (item) =>
   typeof item?.contentId === 'string' &&
   !item.contentId.startsWith('local:') &&
@@ -47,7 +70,10 @@ const sessionKey = 'slskdn.player.session.v1';
 const readSession = () => {
   try {
     const value = JSON.parse(getSessionStorageItem(sessionKey, '{}'));
-    const queue = asArray(value.queue).filter(isRestorableItem);
+    const queue = asArray(value.queue).filter(isRestorableItem).map((item) => normalizePlayerItem(item, {
+      positionSeconds: item.positionSeconds,
+      startPaused: item.startPaused,
+    }));
     return {
       current: queue[0] || null,
       queue,
@@ -98,29 +124,7 @@ export const PlayerProvider = ({ children }) => {
       if (!playerVisible || !item?.contentId) return;
       if (!options.fromParty) setFollowingParty(null);
 
-      const playable = {
-        album: item.album || item.collectionTitle || '',
-        artist: item.artist || item.username || 'slskdN',
-        artworkUrl: item.artworkUrl || item.coverUrl || item.imageUrl || '',
-        confidence: item.confidence || item.matchConfidence || item.score || 0,
-        contentId: item.contentId,
-        fileName: item.fileName || item.title || item.contentId,
-        genre: item.genre || '',
-        positionSeconds: Number.isFinite(options.positionSeconds)
-          ? Math.max(0, options.positionSeconds)
-          : 0,
-        startPaused: options.startPaused === true,
-        sourceProviders: asArray(item.sourceProviders || item.providers),
-        streamUrl: item.streamUrl || options.streamUrl || '',
-        tags: asArray(item.tags || item.genres),
-        title: item.title || item.fileName || item.contentId,
-        verified: Boolean(
-          item.verified ||
-          item.verifiedAt ||
-          item.fingerprint?.verifiedAt ||
-          item.verification?.verified,
-        ),
-      };
+      const playable = normalizePlayerItem(item, options);
 
       playbackPositionRef.current = playable.positionSeconds;
       setPlayback((existing) => ({
@@ -191,7 +195,7 @@ export const PlayerProvider = ({ children }) => {
       const existingIndex = upcoming.findIndex((entry) => entry.contentId === item.contentId);
       const nextItem = existingIndex >= 0
         ? upcoming.splice(existingIndex, 1)[0]
-        : item;
+        : normalizePlayerItem(item);
       return {
         ...existing,
         queue: [...existing.queue.slice(0, 1), nextItem, ...upcoming],
@@ -213,7 +217,7 @@ export const PlayerProvider = ({ children }) => {
       if (allowDuplicates) {
         const additions = items
           .filter((item) => item?.contentId)
-          .map((item) => ({ ...item }));
+          .map((item) => normalizePlayerItem(item));
         return additions.length > 0
           ? { ...existing, queue: [...existing.queue, ...additions] }
           : existing;
@@ -223,7 +227,7 @@ export const PlayerProvider = ({ children }) => {
         if (!item?.contentId || queuedIds.has(item.contentId)) return false;
         queuedIds.add(item.contentId);
         return true;
-      });
+      }).map((item) => normalizePlayerItem(item));
 
       return additions.length > 0
         ? { ...existing, queue: [...existing.queue, ...additions] }

@@ -62,7 +62,7 @@ File-browser breadcrumbs and folder rows explain where they navigate on hover. Q
 The Collections picker clears the old track list while a new Collection loads and ignores delayed results from previously selected Collections.
 The player requests the Collections list when that browser opens, leaving ordinary transport use free of the extra library request.
 The local file search stops showing Loading when a request is canceled by closing the picker or shortening the query below two characters.
-Explicit file searches can find configured local downloads before share indexing; this fallback reads file metadata without hashing audio. Opening the Files browser without a query does not recursively scan local directories.
+Explicit file searches can find configured local downloads before share indexing; this fallback reads file metadata without hashing audio. Opening the Files browser without a query does not recursively scan local directories. The returned page is registered for playback so switching to another found download does not wait for the fallback scan cooldown.
 Collapse is available with player tools closed. On narrow screens the compact bar keeps the title and primary transport visible; expand it to reach the additional controls.
 
 All normal playback uses `GET /api/v0/streams/{contentId}`. That endpoint supports byte ranges, seeking, content-type detection, authenticated access, share-token access where applicable, and per-user stream limiting.
@@ -185,3 +185,17 @@ The integrated radio endpoint only serves the active party's current `ContentId`
 ## Deferred: Live Mic / Host Commentary
 
 Live microphone or host audio broadcast is a later layer. It should use opt-in WebRTC media with SDP/ICE signaling carried by pod messages, and it needs a separate rights and moderation review before public/listed pods can expose it.
+
+### Server formats and decoded seeking
+
+The Files picker includes AIFF (`.aif`/`.aiff`), ALAC, APE, M4B and WMA alongside
+the usual MP3, FLAC, Ogg, AAC, M4A and WAV audio. If the browser cannot play a
+server file directly, use **Decode for playback** to request an MP3 stream from
+FFmpeg. Decoding uses server CPU only for the requested playback.
+
+Decoded seeks use the original track timeline. A burst of keyboard or slider
+inputs updates the displayed position immediately and combines setup work
+until input settles. The old media request is aborted before replacement,
+and seeking while paused keeps playback paused.
+
+Play Next and bulk queue additions use the same title, artist and artwork defaults as direct Play, including filename-only library items and restored sessions.

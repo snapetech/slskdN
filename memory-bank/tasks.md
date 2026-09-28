@@ -1,3 +1,15 @@
+- [x] Normalize filename-only library metadata across playback and queue paths.
+  - Status: implemented and browser verified (2026-09-28).
+  - Notes: Direct Play, Play Next, bulk additions and restored sessions share
+    metadata defaults. Browser and unit cases keep filename-only titles visible;
+    restored paused positions are preserved.
+
+- [x] Discover and verify server-decoded audio through the Files picker.
+  - Status: implemented and browser verified (2026-09-28).
+  - Notes: AIFF/ALAC/APE/M4B/WMA classify as audio. Generated AIFF streams through
+    actual FFmpeg; paused and playing absolute seek bursts abort old requests,
+    coalesce setup and retain the latest intent without decoder-limit 429s.
+
 - [x] Correct library path identity and finish player mobile transport polish.
   - Status: implemented and browser verified (2026-09-28).
   - Notes: Format codes no longer identify files; explicit local fallback search
@@ -60,9 +72,10 @@
     are complete. Chromium now verifies generated local PCM playback, Pause,
     seeking, queue advance, real two-element crossfade interruption, indexed
     server streams, unindexed downloads, paused queue restoration after reload,
-    and compact/expanded bounds at 1440/768/390/320 pixels. Ordinary native
-    playback creates zero Web Audio contexts in this run. Physical mobile,
-    decoded seeking, output switching, Media Session actions, room reconnect,
+    and compact/expanded bounds at 1440/768/390/320 pixels. Generated server
+    AIFF now exercises actual FFmpeg decode and absolute paused/playing seeking.
+    Ordinary native playback creates zero Web Audio contexts in this run. Physical mobile,
+    output switching, Media Session actions, room reconnect,
     radio, Picture-in-Picture and idle CPU/memory measurements remain pending.
 
 - [x] Normalize saved equalizer gains and guard lyrics lookups against stale results.
@@ -5128,9 +5141,9 @@
 
 - 2026-09-27T23:29:56Z Player verification evidence: 41 focused tests and 959 full Web tests passed, including eight new source/transport regressions. P1 real-audio desktop/mobile inspection remains open; these tests use simulated media events.
 
-- [ ] Verify rapid queue changes between distinct unindexed local downloads.
+- [x] Verify rapid queue changes between distinct unindexed local downloads.
   - Priority: P1
-  - Notes: Positive resolution reuse covers repeated requests for one file;
-    scans for a different unknown path still use the existing five-second
-    cooldown. Exercise Play Next and direct selection before completing local
-    download recovery validation.
+  - Status: implemented and verified (2026-09-28).
+  - Notes: Picker-page registration enables immediate distinct-file resolution,
+    with blocked content and removed roots rejected. Real Chromium verifies
+    both direct switching and Files -> Play Next -> Next playback.

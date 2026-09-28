@@ -88,6 +88,22 @@ public sealed class ContentLocator : IContentLocator
         return new ResolvedContent(finfo.Filename, currentSize, contentType);
     }
 
+    /// <inheritdoc />
+    public string? RegisterLocalFile(string absolutePath)
+    {
+        // ADR-0013: a picker page supplies known paths without weakening fallback scan limits.
+        if (_options == null || !IsAllowedLocalPath(absolutePath) || !File.Exists(absolutePath)) return null;
+        var info = new FileInfo(absolutePath);
+        if (info.Length <= 0) return null;
+        var contentId = $"path:{slskd.Compute.Sha256Hash($"{absolutePath}|{info.Length}")}";
+        var item = _shareService.GetLocalRepository().FindContentItem(contentId);
+        if (item.HasValue && !item.Value.IsAdvertisable) return null;
+        if (_fallbackHits.Count >= MaxFallbackMissCacheEntries) _fallbackHits.Clear();
+        _fallbackHits[contentId] = new ResolvedContent(absolutePath, info.Length, GetContentType(absolutePath));
+        FallbackMissCache.TryRemove(contentId, out _);
+        return contentId;
+    }
+
     private ResolvedContent? ResolveFromAllowedLocalRoots(string contentId, CancellationToken cancellationToken)
     {
         if (_options == null)

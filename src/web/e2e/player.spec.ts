@@ -3,6 +3,8 @@
 // </copyright>
 
 import * as fs from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import * as path from 'node:path';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
 import { login } from './helpers';
@@ -46,9 +48,11 @@ test.describe('player browser playback', () => {
     secondFile = path.join(fixtureDirectory, 'Player runtime second.wav');
     await fs.writeFile(firstFile, makeTone());
     await fs.writeFile(secondFile, makeTone(41));
+    await promisify(execFile)('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', firstFile, '-c:a', 'pcm_s16be', path.join(fixtureDirectory, 'Player decoded runtime.aiff')]);
     harness = new MultiPeerHarness();
     await harness.startNode('A', 'test-data/slskdn-test-fixtures/music', { noConnect: true });
     await fs.writeFile(path.join(harness.getNode('A').getAppDir(), 'downloads', 'Downloaded runtime.wav'), makeTone(42));
+    await fs.writeFile(path.join(harness.getNode('A').getAppDir(), 'downloads', 'Downloaded runtime second.wav'), makeTone(43));
   });
 
   test.afterAll(async () => {
@@ -93,6 +97,55 @@ test.describe('player browser playback', () => {
     await expect(page.locator('.player-title')).toHaveText('Player runtime second');
     expect(await page.evaluate(() => (window as Window & { __playerAudioContexts?: number }).__playerAudioContexts)).toBe(0);
     await expect.poll(() => activeAudio.evaluateAll((elements) => elements.some((element) => !element.paused && element.currentTime > 0.2 && element.currentTime < 5))).toBe(true);
+  });
+
+  for (const selection of ['direct', 'queue']) {
+    test(`switches between unindexed downloads through ${selection} without a scan cooldown failure`, async ({ page }) => {
+      await page.getByTestId('player-open-file-browser').click();
+      const modal = page.getByTestId('player-file-browser-modal');
+      await modal.getByTestId('player-file-browser-search').locator('input').fill('Downloaded runtime');
+      await modal.getByRole('button', { name: 'Play Downloaded runtime.wav', exact: true }).click();
+      await expect.poll(() => page.locator('audio').evaluateAll((elements) =>
+        elements.some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+      await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+      await page.getByTestId('player-open-file-browser').click();
+      await modal.getByTestId('player-file-browser-search').locator('input').fill('Downloaded runtime');
+      if (selection === 'queue') {
+        await modal.getByRole('button', { name: 'Play Downloaded runtime second.wav next', exact: true }).click();
+        await modal.getByRole('button', { name: 'Close', exact: true }).click();
+        await page.getByTestId('player-next').click();
+      } else {
+        await modal.getByRole('button', { name: 'Play Downloaded runtime second.wav', exact: true }).click();
+      }
+      await expect(page.locator('.player-title')).toHaveText('Downloaded runtime second.wav');
+      await expect.poll(() => page.locator('audio').evaluateAll((elements) =>
+        elements.some((element) => !element.paused && element.currentTime > 0.2)), { timeout: 3_000 }).toBe(true);
+    });
+  }
+
+  test('decodes server AIFF and seeks absolutely while paused and playing', async ({ page }) => {
+    await page.getByTestId('player-open-file-browser').click();
+    const modal = page.getByTestId('player-file-browser-modal');
+    await modal.getByTestId('player-file-browser-search').locator('input').fill('Player decoded runtime');
+    await modal.getByRole('button', { name: 'Play Player decoded runtime.aiff', exact: true }).click();
+    await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((element) =>
+      !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('/transcoded')))).toBe(true);
+    await page.getByTestId('player-toggle-playback').click();
+    const seek = page.getByLabel('Seek playback', { exact: true });
+    await seek.press('Home');
+    for (let second = 0; second < 12; second++) await seek.press('ArrowRight');
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((element) =>
+      element.currentSrc.includes('startSeconds=12')))).toBe(true);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.every((element) => element.paused))).toBe(true);
+    await expect(seek).toHaveValue('12');
+    await page.getByTestId('player-toggle-playback').click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((element) =>
+      !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('startSeconds=12')))).toBe(true);
+    await seek.press('Home');
+    for (let second = 0; second < 5; second++) await seek.press('ArrowRight');
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((element) =>
+      !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('startSeconds=5')))).toBe(true);
   });
 
   test('records native playback and paused browser resource use', async ({ page }, testInfo) => {

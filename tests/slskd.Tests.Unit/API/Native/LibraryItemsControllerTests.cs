@@ -20,6 +20,7 @@ using slskd.API.Native;
 using slskd.HashDb;
 using slskd.HashDb.Models;
 using slskd.Shares;
+using slskd.Streaming;
 using Soulseek;
 using Xunit;
 
@@ -435,6 +436,30 @@ public class LibraryItemsControllerTests
     }
 
     [Theory]
+    [InlineData("aif")]
+    [InlineData("aiff")]
+    [InlineData("alac")]
+    [InlineData("ape")]
+    [InlineData("m4b")]
+    [InlineData("wma")]
+    public async Task BrowseItems_IncludesServerDecodedFormatsAsAudio(string extension)
+    {
+        shareServiceMock.Setup(service => service.BrowseAsync(It.IsAny<Share>()))
+            .ReturnsAsync(new[] { new Soulseek.Directory("Music", new[]
+            {
+                new Soulseek.File(1, "decoded." + extension, 1024, "." + extension),
+            }) });
+        shareServiceMock.Setup(service => service.ResolveFileAsync(It.IsAny<string>()))
+            .ReturnsAsync((string filename) => ("local", filename, 1024L));
+        var result = await controller.BrowseItems(query: "decoded", kinds: "Audio");
+        var response = Assert.IsType<OkObjectResult>(result).Value!;
+        var rows = Assert.IsAssignableFrom<System.Collections.IEnumerable>(
+            response.GetType().GetProperty("files")!.GetValue(response));
+        var item = Assert.Single(rows.Cast<object>());
+        Assert.Equal("Audio", item.GetType().GetProperty("MediaKind")!.GetValue(item));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task LibrarySearch_SharedFormatCodesResolveEachDirectoryFilename(bool browser)
@@ -493,8 +518,10 @@ public class LibraryItemsControllerTests
             };
             var settings = new Mock<IOptionsSnapshot<slskd.Options>>();
             settings.SetupGet(value => value.Value).Returns(configuration);
+            var locator = new Mock<IContentLocator>();
+            locator.Setup(value => value.RegisterLocalFile(It.IsAny<string>())).Returns("path:registered");
             var browser = new LibraryItemsController(shareServiceMock.Object, hashDbServiceMock.Object,
-                loggerMock.Object, settings.Object);
+                loggerMock.Object, settings.Object, locator.Object);
 
             var result = await browser.BrowseItems(query: "runtime", limit: 1, offset: offset);
 
@@ -509,6 +536,7 @@ public class LibraryItemsControllerTests
             hashDbServiceMock.Verify(service => service.LookupHashAsync(It.IsAny<string>(),
                 It.IsAny<CancellationToken>()), Times.Never);
             Assert.StartsWith("path:", (string)item.GetType().GetProperty("ContentId")!.GetValue(item)!);
+            locator.Verify(value => value.RegisterLocalFile(It.IsAny<string>()), Times.Once);
         }
         finally
         {

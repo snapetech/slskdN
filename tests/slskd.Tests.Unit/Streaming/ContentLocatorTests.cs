@@ -201,6 +201,45 @@ public class ContentLocatorTests
     }
 
     [Fact]
+    public void RegisterLocalFile_AllowsImmediateDistinctDownloadsAndRechecksAccess()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "ContentLoc_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var first = Path.Combine(root, "first.wav");
+            var second = Path.Combine(root, "second.wav");
+            File.WriteAllBytes(first, new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(second, new byte[] { 4, 5, 6 });
+            var locator = CreateLocator(new slskd.Options
+            {
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = root },
+            });
+            var firstId = locator.RegisterLocalFile(first);
+            var secondId = locator.RegisterLocalFile(second);
+            Assert.NotNull(firstId);
+            Assert.NotNull(secondId);
+            Assert.Equal(first, locator.Resolve(firstId!)!.AbsolutePath);
+            Assert.Equal(second, locator.Resolve(secondId!)!.AbsolutePath);
+            Assert.Null(locator.RegisterLocalFile(Path.Combine(root, "missing.wav")));
+            _repoMock.Setup(repository => repository.FindContentItem(firstId!))
+                .Returns(("Audio", "", first, false, "blocked", 0L));
+            Assert.Null(locator.RegisterLocalFile(first));
+            Assert.Null(locator.Resolve(firstId!));
+            _optionsMock.Setup(options => options.CurrentValue).Returns(new slskd.Options
+            {
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = Path.Combine(root, "removed") },
+            });
+            Assert.Null(locator.Resolve(secondId!));
+            Assert.Null(locator.RegisterLocalFile(second));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void CreateFallbackEnumerationOptions_SkipsReparsePoints()
     {
         var options = ContentLocator.CreateFallbackEnumerationOptions();

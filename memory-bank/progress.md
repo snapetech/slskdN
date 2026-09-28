@@ -13575,3 +13575,36 @@ Explicit native server retries now renew the two-minute stream ticket through th
   or physical-device evidence. The JSON report is attached to Playwright output.
 - Solution-wide smoke (74) and unit (5,178) suites pass. Integration validation
   remains live; preserve its process instead of restarting it.
+
+## Update 2026-09-28 00:16:59Z
+
+- Local picker pages now register server-discovered paths with the existing
+  bounded content locator; allowed roots, sizes and blocked content are checked.
+  ADR-0013 records the internal contract. Unknown-ID scan limits stay intact.
+- Audio discovery now includes all audio extensions in the stream MIME table:
+  AIFF, ALAC, APE, M4B and WMA alongside existing supported formats.
+- Actual FFmpeg AIFF playback exposed 429s during seek bursts. Clearing the old
+  media src and loading it aborts transport; a 150 ms settling window coalesces
+  setup while the displayed timeline and latest Pause/Play intent remain eager.
+  The real paused/playing absolute seek scenario passes without 429 responses.
+- Validation: web 961, player 36, focused library/streaming 143, and solution
+  smoke 74 / unit 5,185 / integration 284 all pass. Web production build and
+  web/repository lint pass. One browser run encountered ERR_NETWORK_CHANGED
+  before login; rerunning serially after integration completes, with direct
+  and Play Next download selection coverage.
+
+## Update 2026-09-28 00:23:09Z
+
+- Final browser run passes all nine workflows: native local transport, direct
+  and queued unindexed downloads, actual AIFF decoding/absolute seeks, native
+  resource recording, crossfade Pause, four viewport layouts and indexed/local
+  download queue restoration without autoplay. No 429 responses occurred.
+- Play Next exposed raw library metadata in the queue. Reusing direct-play
+  normalization repairs title/artist/artwork for Play Next, bulk queue additions
+  and restored sessions; paused restore position remains intact.
+- Final Web regressions: 965 across 164 files. Backend solution: smoke 74,
+  unit 5,185, integration 284. Production builds, web/repository lint,
+  build-output checks, whitespace and identity gates pass.
+- The overall player goal remains active. Next coverage: playlists/duplicates,
+  Media Session/output routing, listen-along recovery/radio, Picture-in-Picture,
+  analyzer idle behavior, and physical/mobile total-process resource evidence.

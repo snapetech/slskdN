@@ -164,10 +164,12 @@ vi.mock('../../lib/wishlist', () => ({
 }));
 
 const TestHarness = () => {
-  const { playItem, queueItems } = usePlayer();
+  const { playItem, playNext, queueItems } = usePlayer();
 
   return (
     <>
+      <button onClick={() => queueItems([{ contentId: 'sha256:filename', fileName: 'Filename only.wav' }])} type="button">Queue filename</button>
+      <button onClick={() => playNext({ contentId: 'sha256:filename', fileName: 'Filename only.wav' })} type="button">Play filename next</button>
       <button
         onClick={() =>
           playItem({
@@ -324,6 +326,29 @@ describe('PlayerBar', () => {
     expect(nowPlaying.clearNowPlaying).toHaveBeenCalled();
   });
 
+  it.each(['Queue filename', 'Play filename next'])('normalizes filename-only metadata through %s', async (action) => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    fireEvent.click(screen.getByText(action));
+    fireEvent.click(screen.getByTestId('player-next'));
+    await waitFor(() => expect(document.querySelector('.player-title')).toHaveTextContent('Filename only.wav'));
+    expect(document.querySelector('.player-title')).not.toHaveTextContent('Nothing playing');
+  });
+
+  it('normalizes a restored filename-only queue without losing its paused position', async () => {
+    sessionStorage.setItem('slskdn.player.session.v1', JSON.stringify({
+      queue: [{ contentId: 'sha256:restored', fileName: 'Restored filename.wav', positionSeconds: 12, startPaused: true }],
+    }));
+    renderPlayer();
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Arestored'));
+    expect(document.querySelector('.player-title')).toHaveTextContent('Restored filename.wav');
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 120 });
+    fireEvent.loadedMetadata(audio);
+    expect(audio.currentTime).toBe(12);
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+  });
+
   it('offers on-demand decoding after a server audio error', async () => {
     renderPlayer();
     fireEvent.click(screen.getByText('Play fixture'));
@@ -332,6 +357,42 @@ describe('PlayerBar', () => {
     fireEvent.error(audio);
     fireEvent.click(await screen.findByText('Decode for playback'));
     await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
+  });
+
+  it('aborts the prior decode stream and coalesces seek setup into the final position', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+    fireEvent.click(await screen.findByText('Decode for playback'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
+    streaming.createStreamTicket.mockClear();
+    HTMLMediaElement.prototype.load.mockClear();
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    expect(audio.getAttribute('src')).toBeNull();
+    expect(HTMLMediaElement.prototype.load).toHaveBeenCalled();
+    expect(streaming.createStreamTicket).not.toHaveBeenCalled();
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('startSeconds=60'));
+    expect(streaming.createStreamTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels delayed decoded setup when the player unmounts', async () => {
+    const { unmount } = renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+    fireEvent.click(await screen.findByText('Decode for playback'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
+    streaming.createStreamTicket.mockClear();
+    streaming.getPlaybackInfo.mockClear();
+    fireEvent.click(screen.getByTestId('player-fast-forward'));
+    unmount();
+    await act(async () => new Promise((resolve) => window.setTimeout(resolve, 200)));
+    expect(streaming.createStreamTicket).not.toHaveBeenCalled();
+    expect(streaming.getPlaybackInfo).not.toHaveBeenCalled();
   });
 
   it('accumulates decoded seeks while setup is pending and preserves Play intent', async () => {

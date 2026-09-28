@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Play Next, bulk additions and restored queues normalize filename-only library
+  metadata, so active tracks retain their title and artist in the transport.
+
+- Player searches register the returned local page for immediate stream-ticket
+  resolution, avoiding scan cooldown failures when switching downloads. Files
+  now includes AIFF, ALAC, APE, M4B and WMA audio. Decoded seek bursts abort the
+  previous media request and coalesce replacement setup while keeping the
+  requested position and current Pause/Play intent.
+
 - Fixed library file identity when multiple audio files share a Soulseek format
   code. Explicit player searches can stream configured local downloads before
   indexing without hashing them; immediate ticket/media requests reuse verified

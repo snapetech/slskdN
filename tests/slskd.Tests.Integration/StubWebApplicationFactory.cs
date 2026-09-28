@@ -945,6 +945,9 @@ internal class StubContentLocator : IContentLocator
         _logger = logger;
     }
 
+    // This fixture intentionally has no local content; registrations remain unavailable.
+    public string? RegisterLocalFile(string absolutePath) => null;
+
     public ResolvedContent? Resolve(string contentId, CancellationToken cancellationToken = default)
     {
         // For tests, return null (content not local) to test remote download path

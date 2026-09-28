@@ -1,3 +1,27 @@
+## Update 2026-09-28 00:23:09Z
+
+- Current task: download registration, decoded seeking/discovery and queue
+  metadata batch is complete and verified. Nine browser workflows, Web 965,
+  backend smoke 74/unit 5,185/integration 284, builds and lint all pass. Commit
+  and push this validated batch to the verified fork with its release fragments.
+- Next: playlist/duplicate browser workflows, Media Session/output routing,
+  listen-along reconnect/radio, Picture-in-Picture and analyzer idle work.
+  Physical mobile and total-process measurements remain unverified. The overall
+  goal stays active; no release tag or deployment is authorized.
+
+## Update 2026-09-28 00:16:59Z
+
+- Current task: finish the download-page registration, discoverable decoded
+  formats and decode seek replacement batch. Full solution tests pass: smoke
+  74, unit 5,185 and integration 284. Web tests 961 and both lint gates pass.
+  Real AIFF paused/playing seeking passes without 429s. The complete browser
+  suite is rerunning serially after a transient pre-login network failure;
+  await that result before committing source and pushing.
+- Next: saved playlist/browser queue scenarios, Media Session actions, output
+  routing, room reconnect/radio, Picture-in-Picture and analyzer idle behavior.
+  Physical mobile and total-process resource use remain unverified. No release
+  tag or deployment is authorized; the overall player goal stays active.
+
 ## Update 2026-09-28 00:05:03Z
 
 - Current task: player source batch c9bec1078 is pushed. Six browser workflows

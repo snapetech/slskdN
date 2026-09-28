@@ -20,6 +20,7 @@ using Microsoft.Extensions.Options;
 using slskd.Core.Security;
 using slskd.HashDb;
 using slskd.Shares;
+using slskd.Streaming;
 using slskd.VirtualSoulfind.Core;
 using Soulseek;
 
@@ -34,6 +35,7 @@ using Soulseek;
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class LibraryItemsController : ControllerBase
 {
+    private readonly IContentLocator? contentLocator;
     private readonly IShareService shareService;
     private readonly IHashDbService? hashDbService;
     private readonly ILogger<LibraryItemsController>? logger;
@@ -43,8 +45,10 @@ public class LibraryItemsController : ControllerBase
         IShareService shareService,
         IHashDbService? hashDbService = null,
         ILogger<LibraryItemsController>? logger = null,
-        IOptionsSnapshot<slskd.Options>? options = null)
+        IOptionsSnapshot<slskd.Options>? options = null,
+        IContentLocator? contentLocator = null)
     {
+        this.contentLocator = contentLocator;
         this.shareService = shareService;
         this.hashDbService = hashDbService;
         this.logger = logger;
@@ -280,15 +284,19 @@ public class LibraryItemsController : ControllerBase
             .ToList();
     }
 
-    private static LibraryItemResponse? ConvertToLibraryItemFromPath(
+    private LibraryItemResponse? ConvertToLibraryItemFromPath(
         string filename,
         IReadOnlyList<string> localDirs)
     {
         if (!System.IO.File.Exists(filename)) return null;
         var info = new FileInfo(filename);
+        var contentId = contentLocator == null
+            ? $"path:{slskd.Compute.Sha256Hash($"{filename}|{info.Length}")}"
+            : contentLocator.RegisterLocalFile(filename);
+        if (contentId == null) return null;
         return new LibraryItemResponse
         {
-            ContentId = $"path:{slskd.Compute.Sha256Hash($"{filename}|{info.Length}")}",
+            ContentId = contentId,
             Path = ToDisplayPath(filename, localDirs),
             FileName = Path.GetFileName(filename),
             Bytes = info.Length,
@@ -521,7 +529,7 @@ public class LibraryItemsController : ControllerBase
     {
         return extension switch
         {
-            "mp3" or "flac" or "ogg" or "opus" or "aac" or "m4a" or "wav" => "Audio",
+            "mp3" or "flac" or "ogg" or "opus" or "aac" or "m4a" or "wav" or "aif" or "aiff" or "alac" or "ape" or "m4b" or "wma" => "Audio",
             "mp4" or "mkv" or "avi" or "mov" or "webm" => "Video",
             "txt" or "pdf" or "epub" or "mobi" => "Book",
             _ => "File",

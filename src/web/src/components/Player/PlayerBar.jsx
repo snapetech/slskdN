@@ -2431,6 +2431,11 @@ const PlayerBar = () => {
   const failedTranscodeRef = useRef(null);
   const pendingTranscodeRef = useRef(false);
 
+  useEffect(() => () => {
+    transcodeRequestRef.current += 1;
+    pendingTranscodeRef.current = false;
+  }, []);
+
   const closePictureInPicture = useCallback(() => {
     pipRequestRef.current += 1;
     const { raf, timer, win } = pipRef.current;
@@ -2640,7 +2645,7 @@ const PlayerBar = () => {
     return () => setPauseHandler(null);
   }, [pausePlayback, setPauseHandler]);
 
-  const startTranscode = useCallback(async (seconds = 0, autoPlay = true) => {
+  const startTranscode = useCallback(async (seconds = 0, autoPlay = true, coalesce = false) => {
     if (!current?.contentId || current.contentId.startsWith('local:')) return;
     const requestId = ++transcodeRequestRef.current;
     failedTranscodeRef.current = null;
@@ -2651,7 +2656,11 @@ const PlayerBar = () => {
     playRequestRef.current += 1;
     activeItemRef.current = null;
     setSource(null);
-    audioRef.current?.pause();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
+    }
     playingRef.current = false;
     setPlaying(false);
     nowPlaying.clearNowPlaying().catch(() => {});
@@ -2661,6 +2670,8 @@ const PlayerBar = () => {
     renderedPositionRef.current = seconds;
     setPosition(seconds);
     try {
+      if (coalesce) await new Promise((resolve) => window.setTimeout(resolve, 150));
+      if (requestId !== transcodeRequestRef.current) return;
       const ticket = await streaming.createStreamTicket(current.contentId);
       const response = await streaming.getPlaybackInfo(current.contentId);
       if (requestId !== transcodeRequestRef.current) return;
@@ -2726,7 +2737,7 @@ const PlayerBar = () => {
       const autoPlay = activeItemRef.current === current
         ? playingRef.current
         : autoplayRef.current;
-      startTranscode(target, autoPlay);
+      startTranscode(target, autoPlay, true);
       return;
     }
     if (activeItemRef.current === current) audioRef.current.currentTime = target;
