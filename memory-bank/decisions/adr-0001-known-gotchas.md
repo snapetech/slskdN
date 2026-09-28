@@ -31684,3 +31684,17 @@ mode must communicate that ownership even when secondary actions are collapsed.
 **Prevention:** Show active broadcasting and accessible error text in the compact
 subtitle. Explain Retry/Stop in the existing Expand tooltip. Keep direct host
 actions in the expanded deck and verify collapse/expand in the real host workflow.
+
+### 0z1153 — Preserve party identity when stopping an existing broadcast (2026-09-28)
+
+**What went wrong:** Review found that moving publication into the player dropped
+the panel's observed party ID. A Stop without it generates a new ID on the server,
+removes room state by room key, and can leave the old radio directory entry.
+
+**Why:** Room ownership and radio-directory identity are distinct. Releasing
+room state alone does not remove an announcement keyed by a different party ID.
+
+**Prevention:** Seed a new host session from the panel's observed party identity.
+When an explicit Stop has no known ID, fetch one abortable room snapshot inside
+the existing serialized writer before sending Stop. Verify directory cleanup
+after reload/manual Stop as well as Stop from a retained host session.
