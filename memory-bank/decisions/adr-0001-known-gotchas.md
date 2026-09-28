@@ -31595,3 +31595,18 @@ before looking for those items.
 - `.github/workflows/e2e-tests.yml`
 
 **Prevention**: Include the DOM library for page-evaluated browser code, type spawned environments as `NodeJS.ProcessEnv`, set hook timeouts with `test.setTimeout()` inside the hook callback, and run the E2E typecheck in CI before browser tests.
+
+### 0z1147 — Uninitialized transport fixtures omit owned lifecycle fields (2026-09-28)
+
+**What went wrong:** The full backend gate failed eleven connection registry,
+router and peer-sync tests during disposal after service-writer ownership was
+added. Their fixtures used uninitialized-object allocation and manually populated
+a subset of fields; the connection lock and bounded queue were absent.
+
+**Why:** Bypassing constructors also bypasses field initializers. Real TLS tests
+construct the connection correctly, so the focused transport gate did not expose
+these artificial lifecycle failures.
+
+**Prevention:** Fixtures that exercise disposal must invoke the actual private
+constructor with owned test TCP/TLS resources instead of maintaining a parallel
+field list. Keep the full suite gate alongside focused real-transport evidence.
