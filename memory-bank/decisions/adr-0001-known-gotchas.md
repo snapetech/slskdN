@@ -691,6 +691,12 @@ appropriate typed assertion such as `Assert.IsType<T>(value)`.
 
 **Prevention**: Separate methods with a blank line and inspect build/test warnings as well as lint exit codes. Remove newly introduced style warnings before full validation; an error-only formatting check does not prove warning-free source.
 
+### 0z1124. Dispose the Traffic Accounting Commit Gate
+
+**The Finding**: `TrafficAccountingService` owns a `SemaphoreSlim` to serialize reads with the pending-to-persisted byte handoff. The .NET analyzer reported CA1001 because the singleton did not expose disposal for that owned synchronization primitive.
+
+**Prevention**: Make the accounting service disposable and let dependency injection dispose it after its consumers. Lifecycle tests should dispose directly constructed instances after awaited work completes.
+
 ### 0z1123. Include Active Soulseek Writes in Fairness Reads
 
 **The Bug**: Persisting Soulseek upload bytes only when an attempt exits leaves a long-running transfer invisible to new radio admissions. The fairness guard can therefore read stale totals while reciprocal payload is already being written.
