@@ -1,3 +1,32 @@
+## Release tag and build status — 2026-09-28 19:21 UTC
+
+- The guarded release gate passed and tag `build-main-2026092818-slskdn.327`
+  was pushed at the validated `main` commit. The `.326` to `main` release
+  preview contains the audio-graph intent and listed-radio host-renewal fixes.
+- Issue #340's numeric-position regression is already included in `.326`; the
+  `.325` baseline reproduces its numeric-token `JsonException`, and current
+  code passes the same regression cases.
+- The retained Build-on-Tag run is queued/in progress; the duplicate run was
+  cancelled before publishing. GitHub has not published `.327` assets yet.
+- Next: wait for the retained workflow, then run the published-artifact
+  verifier. Cross-node room-state propagation, WAN radio latency and sustained
+  throughput remain separate open follow-ups.
+
+## PlayerBar follow-up — 2026-09-28 19:12 UTC
+
+- The complete standard `player-radio-network.spec.ts` run passes all three
+  non-soak cases; the 15-minute test stays opt-in and passed separately. Web
+  lint passes when run after Playwright cleanup. The real Chromium PlayerBar
+  follow/recovery case also passes automatic SignalR reconnect, room rejoin and
+  latest-snapshot catch-up on one backend.
+- The remaining distributed-state gap is confirmed in source:
+  `PodMessageRouter` sends `pod_message` control envelopes, but the control
+  dispatcher has no handler for that type; the UDP/QUIC adapters use the legacy
+  no-peer overload. The separate `PODMSG:` receiver is a Soulseek path. Next:
+  add authenticated mesh-service delivery, current membership checks, local
+  subscriber application, ordering and loop prevention, then test two live
+  nodes. No release tag or deployment in this player task.
+
 ## Update 2026-09-28 19:07 UTC
 
 - Current release work: issue #340's numeric-position fix is already included

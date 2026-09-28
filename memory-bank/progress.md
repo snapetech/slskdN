@@ -14928,3 +14928,28 @@ while both string-position cases pass. The same current-source test passes all
 three cases. The new `.327` candidate is warranted by the two later player
 fixes, and its exact release preview contains only those changes. The full
 release gate, tag and published-artifact verification remain pending.
+
+## Radio suite and automatic follow recovery — 2026-09-28 19:12 UTC
+
+The complete standard `player-radio-network.spec.ts` run passes all three
+non-soak cases; the 15-minute test is skipped by default because it is an
+explicit opt-in and has already passed separately. Web lint passes when run
+after Playwright has finished cleaning its output directory. The real Chromium
+PlayerBar follow/recovery browser case also passes automatic SignalR reconnect,
+room rejoin and latest-snapshot catch-up on one backend.
+
+The current player audit and task state now reflect those results. The remaining
+distributed-state gap is confirmed in source: `PodMessageRouter` sends
+`pod_message` control envelopes, but `ControlDispatcher` has no handler for
+that type; its UDP/QUIC adapters use the legacy no-peer overload. The existing
+`PODMSG:` receiver is a separate Soulseek path. Cross-node listen-along needs
+authenticated mesh-service identity plus current pod membership; remote state
+application must notify local subscribers without re-routing the event.
+
+## Stable release tag and build — 2026-09-28 19:21 UTC
+
+The guarded local release gate passed and pushed
+`build-main-2026092818-slskdn.327` from the validated `main` tree. The release
+workflow is running; a duplicate run for the same tag and commit was cancelled
+before its publishing jobs executed. Artifact verification is pending until
+the retained workflow creates the GitHub release assets.
