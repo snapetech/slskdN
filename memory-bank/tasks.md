@@ -28,6 +28,13 @@
 
 ### High Priority
 
+- [x] Include actual Soulseek downloads in player fairness totals.
+  - Status: implemented and fully validated after immutable `.328` release (2026-09-28).
+  - Notes: Shared transfer events count cumulative payload above `StartOffset`,
+    include active bytes, and coalesce terminal multi-source chunk updates over
+    a short window. Graceful shutdown drains event-started commits. Dedicated
+    event/accounting coverage and the full backend test/lint gates pass.
+
 - [x] Accept numeric track positions in MusicBrainz discography responses.
   - Status: fixed and released (2026-09-28, `2026092816-slskdn.326`).
   - Notes: The pre-fix regression reproduced the `JsonException` when MusicBrainz
