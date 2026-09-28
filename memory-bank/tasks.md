@@ -5632,7 +5632,7 @@ whole-session resource completion.
   gates pass.
 - [x] Finish isolated three-state resource verification, append measured scope,
   and retain matching source/build hashes.
-- [ ] Validate the exact release range, commit and push.
+- [x] Validate the exact release range, commit and push to snapetech/slskdN/main.
 
 
 - [ ] Follow the player quality audit before declaring completion: pending
@@ -5640,3 +5640,16 @@ whole-session resource completion.
   and stale-tab ownership; distributed state/index contention; resource budgets
   for queues/analyzers/visualizers/radio; browser/device/format/accessibility
   validation.
+
+
+### Player start recovery batch published — 2026-09-28
+
+- [x] Recover paused host/follower state and processing after rejected Play,
+  rejected crossfade start and decoded seek ticket failure; explicit retries pass.
+- [x] Replace login network-idle dependency with DOM/control/session readiness;
+  the held-request negative fails before the fix and passes after it.
+- [x] 23 player browser cases; 1,086 Web tests/169 files; 5,321 unit, 74 smoke,
+  284 integration tests; types, builds, lint and security/bundle gates pass.
+- [x] Isolated six-window resource run and 129 frozen source/build hashes.
+- [x] Exact-range release preview, privacy/fork checks, commit and push; see
+  published activeContext/progress entry.

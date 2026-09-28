@@ -14781,3 +14781,25 @@ left live. The functional 23-case browser suite, 1,086 Web tests, 5,321 unit,
 74 smoke and 284 integration tests, build/types/lint/security gates all pass.
 Next, exact-range release preview, identity/fork checks, explicit commit/push and
 origin parity; then continue the broader goal. Do not mark player complete.
+
+
+### Player recovery and readiness batch pushed — 2026-09-28
+
+Commit `edf255ad2 fix(player): Recover failed startup and authenticate at DOM readiness`
+plus immediately documented gotchas `aebcc551d`, `a84b4fd59` and `63c0a0992` are
+pushed to `origin/main`. Exact-range release fragment preview, local identity,
+whitespace and fork-target checks pass. Post-push fetch confirms clean tree,
+HEAD/origin SHA `edf255ad2db589c46ad2f92880abfea07f3b507a`, parity 0/0. No tag,
+release, deployment or workflow change. Hindsight durable evidence is pending.
+
+Batch evidence: 1,086 Web tests, 23 full player browser cases, 5,321 unit /
+74 smoke / 284 integration; browser TypeScript, Web/repository lint, frontend/
+Release build, bundle/output/CSRF/anonymous/identity gates pass. Two existing
+Release support warnings remain. Controlled actual-browser host/follower native
+rejection and decoded 503 recovery pass. Six current-source OS/CDP resource
+windows pass; their workload and unknown ancestry boundary are documented.
+
+Full player goal remains active. Next: force native graph resume/pause races with
+negative tests and make shared lifecycle ordering follow current playback intent;
+verify 900-second listed-host/capability expiry and tab ownership; then proceed
+to distributed-state/index, resource/format/device/accessibility validation.
