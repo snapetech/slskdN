@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1115. Accept Timestamp Duplicates Only When Their Metadata Matches
+
+**The Bug**: SQLite message storage returned success for any matching pod/channel/sender/timestamp key, even with a different body, signature or signature version. Three real SQLite negative cases reproduced silently accepted conflicts. New storage rows also omitted the supplied signature version.
+
+**Prevention**: Compare the stored body, signature and version before accepting an idempotent duplicate. Reject conflicting rows without replacing the original and persist the supplied signature version. Callers must handle rejected storage before changing visible room state; timestamp collisions are not evidence that the new update was saved.
+
 ### 0z1114. Format New Multiline Test Initializers Before the Full Gate
 
 **The Bug**: A new publication fixture placed several properties on one line inside a multiline initializer. Focused compilation passed, but repository lint rejected its whitespace formatting.
