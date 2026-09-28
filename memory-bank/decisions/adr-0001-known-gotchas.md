@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1112. Persist Valid Room Updates Before Publishing Their Effects
+
+**The Bug**: Missing rooms and rejected storage both returned success and exposed a new local/listed snapshot. Negative regressions reproduced both outcomes. Stop could similarly remove an existing broadcast before its write was accepted.
+
+**Prevention**: Check room existence in the publication service, validate the message contract, and require accepted storage before changing snapshots, directory or now-playing state and before routing/fanout. Return stable missing-room or storage-unavailable feedback. Failed Play and Stop must retain previous visible state; successful radio fixtures must use real rooms.
+
 ### 0z1111. Update the Canonical Changelog Before Source Commits
 
 **The Bug**: A player batch updated the root CHANGELOG.md but the commit hook requires a new Unreleased entry in docs/CHANGELOG.md. The hook correctly rejected the source commit before any push.
