@@ -1,3 +1,18 @@
+## Update 2026-09-28 00:24:15Z
+
+- Current task: cleared. The validated download registration, decoded-seek and
+  queued metadata batch is committed and pushed as 9c3168965. The working tree
+  is clean. No release tag or deployment was created.
+- Next: saved playlist/duplicate browser workflows; resumed restored queues
+  through Next/Previous; Media Session/output routing; room reconnect/radio;
+  Picture-in-Picture and analyzer idle behavior. Physical mobile and total-process
+  measurements remain unverified. The broader player goal stays active.
+- Final evidence: nine Chromium workflows, Web 965, backend smoke 74/unit
+  5,185/integration 284, builds, lint, build-output, release-preview, whitespace
+  and identity checks passed. Latest native renderer sample: 0.43% playing /
+  0.51% paused, 10.79 / 9.93 MiB JS heap, zero AudioContexts. These are headless
+  renderer observations, not full-process or physical-device results.
+
 ## Update 2026-09-28 00:23:09Z
 
 - Current task: download registration, decoded seeking/discovery and queue

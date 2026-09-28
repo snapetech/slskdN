@@ -13608,3 +13608,12 @@ Explicit native server retries now renew the two-minute stream ticket through th
 - The overall player goal remains active. Next coverage: playlists/duplicates,
   Media Session/output routing, listen-along recovery/radio, Picture-in-Picture,
   analyzer idle behavior, and physical/mobile total-process resource evidence.
+
+## Update 2026-09-28 00:24:15Z
+
+- Source batch 9c3168965 and its separate gotcha records are pushed to the
+  verified fork. Release preview contains both user-facing fragments.
+- Final native resource sample remains small: renderer work 0.43% playing /
+  0.51% paused, JS heap 10.79 / 9.93 MiB and zero AudioContexts. Full browser
+  process and physical-device resource use remain outside this evidence.
+- The broader player goal remains active; the completed batch task is cleared.
