@@ -1,6 +1,6 @@
 import PlayerBar from './PlayerBar';
 import React from 'react';
-import { PlayerProvider, usePlayer } from './PlayerContext';
+import { PlayerContext, PlayerProvider, usePlayer } from './PlayerContext';
 import { MemoryRouter } from 'react-router-dom';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
@@ -282,6 +282,28 @@ describe('PlayerBar', () => {
     else delete navigator.mediaDevices;
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('describes following an empty room without inventing a host identity', () => {
+    render(<MemoryRouter><PlayerContext.Consumer>{(defaults) => (
+      <PlayerContext.Provider value={{ ...defaults, followingParty: { podId: 'pod-a', channelId: 'music' } }}>
+        <PlayerBar />
+      </PlayerContext.Provider>
+    )}</PlayerContext.Consumer></MemoryRouter>);
+    expect(screen.getByText(/Waiting for room broadcast/)).toBeInTheDocument();
+    expect(screen.queryByText(/Following undefined/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [{ pending: true, error: '' }, 'connecting to room'],
+    [{ pending: false, error: 'Connection closed' }, 'room updates unavailable'],
+  ])('keeps followed-room connection feedback visible away from its panel: %s', (status, message) => {
+    render(<MemoryRouter><PlayerContext.Consumer>{(defaults) => (
+      <PlayerContext.Provider value={{ ...defaults, followingParty: { podId: 'pod-a', channelId: 'music', hostPeerId: 'host-a' }, followingPartyStatus: status }}>
+        <PlayerBar />
+      </PlayerContext.Provider>
+    )}</PlayerContext.Consumer></MemoryRouter>);
+    expect(screen.getByText(new RegExp(`Following host-a.*${message}`))).toBeInTheDocument();
   });
 
   it('collapses by default when no preference has ever been stored', () => {

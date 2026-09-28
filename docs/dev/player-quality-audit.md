@@ -496,3 +496,59 @@ quota behavior; player-owned follow across navigation; ongoing host control
 publication; authenticated distributed state, capability renewal and remaining
 resource/browser/format/accessibility/device requirements. Full goal remains
 active. No tag or deployment is authorized.
+
+## Persistent room following — 2026-09-28
+
+The prior build failed a real routed workflow: follow a room, use the actual SPA
+Downloads link, publish Pause at 16 seconds, and observe that audio never aligns.
+The repaired player retains the room connection independently of its panel.
+The focused rebuilt workflow now aligns offscreen, returns with Follow selected,
+and does not open another connection. This proves navigation continuity for
+that observed browser and same-node room; it does not prove distributed state.
+
+The owner reuses a single hub per room and bounds distinct rooms to two. Tests
+cover unrelated-room revocation, reconnect snapshot deduplication, offscreen
+host Stop, provider disposal and the connection bound. A negative delayed-empty
+snapshot test reproduced a stale-render follow-switch race; owned previous state
+now governs ended-room detection. The player renders waiting state without a
+missing host and displays room connection feedback even away from the panel.
+Final Web evidence is 1,016 passing tests in 166 files, alongside all 5,656
+backend tests and lint/build/bundle/output gates. The final complete browser
+suite remains pending before commit/push, including local Stop away from a room.
+
+The retained 320-pixel screenshot confirms the room controls fit and remain
+44 pixels. It also shows small auxiliary player tools and clipped metadata;
+those need broader responsive and accessibility work. This is correctness and
+layout evidence, not sustained memory/CPU or physical-device evidence.
+
+Remaining completion work still includes legitimate outgoing RPC bursts,
+ongoing host control publication, authenticated cross-node room state,
+capability renewal, fixture resource cleanup and sustained/browser/format/
+physical-device/assistive-technology validation. Automatic transport recovery
+and navigation continuity have direct evidence; neither substitutes for those
+remaining requirements. The earlier blank-login network change is unexplained.
+
+### Final persistent-follow gates — 2026-09-28
+
+The final rebuilt complete suite passes all 20 cases in 4.8 minutes with traces
+retained. Actual SPA navigation preserves host Pause and returning Follow state
+without another connection. Local Stop while offscreen clears playback; a later
+host Play and returning room snapshot do not restart it. Automatic transport
+recovery, two-participant membership, radio playback/seek/revocation/reverse
+publication, elapsed ticket expiry, queue/format/crossfade and layout cases pass.
+
+Final Web gate: 1,016 tests in 166 files. Backend: 5,298 unit / 74 smoke / 284
+integration tests. Repository/Web lint, Release/frontend builds, bundle/output,
+CSRF/anonymous endpoint, identity and whitespace gates pass. Release build keeps
+its two existing dependency support warnings. Retained runtime logs show no
+public DHT startup or message-rate disconnect. Fixture file-handle GC warnings
+remain visible and tracked; they are not claimed fixed. Trace-enabled timing is
+not a new performance baseline. Earlier unrelated bootstrap failure remains
+unexplained. Source publication requires exact-range release preview and fork
+verification; no tag or deployment is part of this batch.
+
+Next Steps: repair legitimate outgoing mesh RPC bursts while preserving inbound
+quota behavior, publish ongoing host controls, implement authenticated cross-node
+room state and renewal, and complete sustained/browser/format/physical-device/
+assistive-technology work, responsive auxiliary controls and fixture cleanup.
+The full player goal remains active.

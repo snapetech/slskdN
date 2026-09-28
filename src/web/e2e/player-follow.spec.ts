@@ -102,6 +102,18 @@ test('follows a real room from routed messaging and catches up after automatic t
     await publish('seek', 12);
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime >= 12))).toBe(true);
 
+    // Use the real SPA link: a document reload legitimately ends this session.
+    const connectionsBeforeNavigation = connections;
+    await page.locator('a[href="/downloads"]').first().click();
+    await expect(page).toHaveURL(/\/downloads$/);
+    await expect(follow).toHaveCount(0);
+    await publish('pause', 16);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => audio.paused && Math.abs(audio.currentTime - 16) < 0.4))).toBe(true);
+    await page.goBack();
+    await expect(page.getByRole('status', { name: 'Listen Along live' })).toBeVisible();
+    await expect(follow).toHaveAttribute('aria-pressed', 'true');
+    expect(connections).toBe(connectionsBeforeNavigation);
+
     // Keep real transport/messages. Only interrupt the socket, then let the
     // production reconnect policy rejoin and fetch the newest backend state.
     const previousJoins = joins;
@@ -154,6 +166,22 @@ test('follows a real room from routed messaging and catches up after automatic t
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime >= 22))).toBe(true);
     await publish('stop', 0);
     await expect(follow).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.every((audio) => audio.paused))).toBe(true);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await publish('play', 0, 'Final follow ownership');
+    await expect(page.locator('.msgv2-room-playback').getByText('Final follow ownership', { exact: true })).toBeVisible();
+    await follow.click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.some((audio) => !audio.paused && audio.currentTime > 0.5))).toBe(true);
+    await page.locator('a[href="/downloads"]').first().click();
+    await expect(page).toHaveURL(/\/downloads$/);
+    await page.getByTestId('player-stop').click();
+    await expect(page.locator('.player-title')).toHaveText('Nothing playing');
+    await publish('play', 24, 'After local stop');
+    await page.goBack();
+    await expect(page.locator('.msgv2-room-playback').getByText('After local stop', { exact: true })).toBeVisible();
+    await expect(follow).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('.player-title')).toHaveText('Nothing playing');
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => elements.every((audio) => audio.paused))).toBe(true);
     const startup = await fs.readFile(path.join(node.getAppDir(), 'artifacts', 'stdout.log'), 'utf8');
     expect(startup).not.toMatch(/Starting DHT rendezvous service|DHT engine started|Announced overlay port .* to DHT/);

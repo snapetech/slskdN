@@ -2374,6 +2374,7 @@ const PlayerBar = () => {
     clear,
     current,
     followingParty,
+    followingPartyStatus,
     history,
     moveQueueItem,
     next,
@@ -3755,7 +3756,11 @@ const PlayerBar = () => {
                 <div className="player-subtitle">
                   {current?.artist || 'Pick a collection or local audio file'}
                   {current?.album ? ` | ${current.album}` : ''}
-                  {followingParty ? ` | Following ${followingParty.hostPeerId}` : ''}
+                  {followingParty ? followingParty.hostPeerId
+                    ? ` | Following ${followingParty.hostPeerId}`
+                    : ' | Waiting for room broadcast' : ''}
+                  {followingPartyStatus?.pending ? ' (connecting to room)'
+                    : followingPartyStatus?.error ? ' (room updates unavailable)' : ''}
                 </div>
                 {current ? (
                   <div className="player-now-playing-meta">

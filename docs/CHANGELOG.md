@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Room following across navigation
+
+- Keep room following active while browsing, and reuse its connection and selected state on return.
+- Scope access revocation to its room; host Stop and local Stop release followed playback even offscreen.
+- Explain waiting for a broadcast and connection failures in the player; bound connections to the viewed and followed rooms without extra polling or discovery.
+
+
 ### LAN-only radio network isolation
 
 - Prevent LAN-only rendezvous from starting the public BitTorrent DHT engine, loading saved public nodes, announcing or discovering public peers.

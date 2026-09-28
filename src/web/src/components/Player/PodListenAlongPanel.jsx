@@ -1,23 +1,9 @@
-import { createListeningPartyHubConnection } from '../../lib/hubFactory';
 import * as listeningParty from '../../lib/listeningParty';
 import { usePlayer } from './PlayerContext';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Checkbox, Icon, Label, List, Popup, Segment } from 'semantic-ui-react';
 
 const DIRECTORY_POLL_INTERVAL_MS = 60_000;
-const PAUSED_POSITION_TOLERANCE_SECONDS = 0.05;
-const partyEventKey = (state) => JSON.stringify([
-  state.podId,
-  state.channelId,
-  state.partyId,
-  state.sequence,
-  state.serverTimeUnixMs,
-  state.action,
-  state.contentId,
-  state.positionSeconds,
-  state.streamUrl,
-]);
-
 const sameDirectory = (previous, next) =>
   previous.length === next.length &&
   previous.every(
@@ -39,68 +25,16 @@ const sameDirectory = (previous, next) =>
       party.streamTicket === next[index]?.streamTicket,
   );
 
-const applyPartyState = (state, player) => {
-  if (!state) return;
-
-  if (state.action === 'play' || state.action === 'seek') {
-    const elapsed =
-      state.action === 'play' && Number.isFinite(state.serverTimeUnixMs) &&
-      state.serverTimeUnixMs > 0
-        ? Math.max(0, (Date.now() - state.serverTimeUnixMs) / 1000)
-        : 0;
-    player.playItem(
-      {
-        album: state.album,
-        artist: state.artist || state.hostPeerId,
-        contentId: state.contentId,
-        streamUrl: state.streamUrl,
-        title: state.title || state.contentId,
-      },
-      {
-        fromParty: true,
-        positionSeconds: (state.positionSeconds || 0) + elapsed,
-        replaceQueue: true,
-      },
-    );
-  } else if (state.action === 'pause') {
-    player.pause();
-    const positionSeconds = Number.isFinite(state.positionSeconds)
-      ? Math.max(0, state.positionSeconds)
-      : 0;
-    if (player.current?.contentId !== state.contentId ||
-        Math.abs(player.getPlaybackPosition() - positionSeconds) > PAUSED_POSITION_TOLERANCE_SECONDS) {
-      player.playItem(
-        {
-          album: state.album,
-          artist: state.artist || state.hostPeerId,
-          contentId: state.contentId,
-          streamUrl: state.streamUrl,
-          title: state.title || state.contentId,
-        },
-        {
-          fromParty: true,
-          positionSeconds,
-          replaceQueue: true,
-          startPaused: true,
-        },
-      );
-    }
-  } else if (state.action === 'stop') {
-    player.clear();
-  }
-};
-
 const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const player = usePlayer();
   const canBroadcastCurrent = Boolean(
     player.current?.contentId && !player.current.contentId.startsWith('local:'),
   );
-  const [connected, setConnected] = useState(false);
-  const [connectionPending, setConnectionPending] = useState(false);
-  const [connectionError, setConnectionError] = useState('');
-  const [connectionAttempt, setConnectionAttempt] = useState(0);
+  const [room, setRoom] = useState({ connected: false, error: '', pending: true, state: null });
+  const { connected, error: connectionError, pending: connectionPending, state: roomState } = room;
   const [directory, setDirectory] = useState([]);
-  const [following, setFollowing] = useState(false);
+  const following = Boolean(player.followingParty &&
+    player.followingParty.podId === podId && player.followingParty.channelId === channelId);
   const [globalRadio, setGlobalRadio] = useState(false);
   const [meshStreaming, setMeshStreaming] = useState(false);
   const [partyState, setPartyState] = useState(null);
@@ -110,10 +44,6 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const publishedPartyIdsRef = useRef(new Map());
   const publishChainRef = useRef(Promise.resolve());
   const publishRequestRef = useRef(0);
-  const followingRef = useRef(false);
-  const lastAppliedPartyRef = useRef(null);
-  const followedPartyRef = useRef(player.followingParty);
-  const playerRef = useRef(player);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -123,163 +53,13 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   }, []);
 
   useEffect(() => {
-    followingRef.current = following;
-  }, [following]);
-
-  useEffect(() => {
-    if (followedPartyRef.current && !player.followingParty && followingRef.current) {
-      followingRef.current = false;
-      lastAppliedPartyRef.current = null;
-      setFollowing(false);
-    }
-    followedPartyRef.current = player.followingParty;
-  }, [player.followingParty]);
-
-  useEffect(() => {
-    if (player.playerVisible === false && followingRef.current) {
-      followingRef.current = false;
-      lastAppliedPartyRef.current = null;
-      setFollowing(false);
-      player.followParty(null);
-    }
-  }, [player.followParty, player.playerVisible]);
-
-  useEffect(() => {
-    playerRef.current = player;
-  }, [player]);
-
-  useEffect(() => {
     if (!podId || !channelId) return undefined;
-
     publishRequestRef.current += 1;
-    lastAppliedPartyRef.current = null;
-    setConnected(false);
-    setConnectionPending(true);
-    setConnectionError('');
-    setPartyState(null);
     setPublishError('');
-    let disposed = false;
-    let accessRevoked = false;
-    let revocationVersion = 0;
-    let hubVersion = 0;
-    let snapshotVersion = 0;
-    const hub = createListeningPartyHubConnection();
+    return player.observePartyRoom(podId, channelId, setRoom);
+  }, [channelId, player.observePartyRoom, podId]);
 
-    const receiveState = (state) => {
-      setConnectionError('');
-      setPartyState(state?.action === 'stop' ? null : state);
-      if (followingRef.current) {
-        if (!state || state.action === 'stop') {
-          setFollowing(false);
-          followingRef.current = false;
-          lastAppliedPartyRef.current = null;
-          playerRef.current.followParty(null);
-          playerRef.current.clear();
-        } else if (lastAppliedPartyRef.current !== partyEventKey(state)) {
-          lastAppliedPartyRef.current = partyEventKey(state);
-          playerRef.current.followParty(state);
-          applyPartyState(state, playerRef.current);
-        }
-      }
-    };
-    const refreshState = async () => {
-      const requestVersion = ++snapshotVersion;
-      const eventVersion = hubVersion;
-      try {
-        const state = await listeningParty.getPartyState(podId, channelId);
-        if (!disposed && !accessRevoked && requestVersion === snapshotVersion && eventVersion === hubVersion) {
-          receiveState(state);
-        }
-      } catch {
-        if (!disposed && !accessRevoked && requestVersion === snapshotVersion && eventVersion === hubVersion) {
-          setConnectionError('Room state could not refresh. Retry the connection to catch up.');
-        }
-      }
-    };
-
-    hub.on('partyAccessRevoked', () => {
-      if (disposed) return;
-      accessRevoked = true;
-      revocationVersion += 1;
-      hubVersion += 1;
-      snapshotVersion += 1;
-      followingRef.current = false;
-      lastAppliedPartyRef.current = null;
-      setFollowing(false);
-      setPartyState(null);
-      setConnected(false);
-      setConnectionPending(false);
-      setConnectionError('Room access was revoked. Rejoin after your membership is restored.');
-      playerRef.current.followParty(null);
-    });
-    hub.on('partyState', (state) => {
-      if (disposed || accessRevoked) return;
-      hubVersion += 1;
-      receiveState(state);
-    });
-    hub.onreconnecting(() => {
-      if (!disposed) {
-        setConnected(false);
-        setConnectionPending(true);
-        if (!accessRevoked) setConnectionError('');
-      }
-    });
-    hub.onreconnected(async () => {
-      if (disposed) return;
-      try {
-        const version = revocationVersion;
-        await hub.invoke('JoinParty', podId, channelId);
-        if (!disposed && version === revocationVersion) {
-          accessRevoked = false;
-          setConnected(true);
-          setConnectionPending(false);
-          refreshState();
-        }
-      } catch {
-        if (!disposed) {
-          setConnected(false);
-          setConnectionPending(false);
-          if (!accessRevoked) setConnectionError('Could not rejoin this room. Retry the connection.');
-        }
-      }
-    });
-    hub.onclose(() => {
-      if (!disposed) {
-        setConnected(false);
-        setConnectionPending(false);
-        if (!accessRevoked) setConnectionError('Listen-along connection closed. Retry to rejoin this room.');
-      }
-    });
-
-    hub
-      .start()
-      .then(async () => {
-        if (disposed) return;
-        const version = revocationVersion;
-        await hub.invoke('JoinParty', podId, channelId);
-        if (!disposed && version === revocationVersion) {
-          accessRevoked = false;
-          setConnected(true);
-          setConnectionPending(false);
-          refreshState();
-        }
-      })
-      .catch(() => {
-        if (!disposed) {
-          setConnected(false);
-          setConnectionPending(false);
-          if (!accessRevoked) setConnectionError('Listen-along could not connect. Retry when the connection is available.');
-        }
-      });
-
-    refreshState();
-
-    return () => {
-      disposed = true;
-      hub.invoke('LeaveParty', podId, channelId).catch(() => {});
-      hub.stop().catch(() => {});
-    };
-  }, [channelId, connectionAttempt, podId]);
+  useEffect(() => { setPartyState(roomState); }, [roomState]);
 
   const refreshDirectory = useCallback(async () => {
     if (compact || document.hidden || directoryFetchInFlightRef.current) return;
@@ -395,9 +175,6 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     const positionSeconds = Number.isFinite(party.positionSeconds)
       ? Math.max(0, party.positionSeconds)
       : 0;
-    setFollowing(false);
-    followingRef.current = false;
-    lastAppliedPartyRef.current = null;
     player.followParty(null);
     player.playItem(
       {
@@ -426,7 +203,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           disabled={connectionPending || !podId || !channelId}
           icon="refresh"
           loading={connectionPending}
-          onClick={() => setConnectionAttempt((attempt) => attempt + 1)}
+          onClick={() => player.retryPartyRoom(podId, channelId)}
           size="mini"
         />
       }
@@ -468,19 +245,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
                 aria-label="Follow room broadcast"
                 disabled={player.playerVisible === false}
                 icon
-                onClick={() => {
-                  const next = !following;
-                  setFollowing(next);
-                  followingRef.current = next;
-                  if (next && partyState) {
-                    lastAppliedPartyRef.current = partyEventKey(partyState);
-                    player.followParty(partyState);
-                    applyPartyState(partyState, player);
-                  } else {
-                    lastAppliedPartyRef.current = null;
-                    player.followParty(null);
-                  }
-                }}
+                onClick={() => player.followParty(following ? null : { podId, channelId })}
                 size="mini"
                 title="Follow room broadcast"
                 toggle
@@ -611,19 +376,7 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
               toggle
               disabled={player.playerVisible === false}
               icon
-              onClick={() => {
-                const next = !following;
-                setFollowing(next);
-                followingRef.current = next;
-                if (next && partyState) {
-                  lastAppliedPartyRef.current = partyEventKey(partyState);
-                  player.followParty(partyState);
-                  applyPartyState(partyState, player);
-                } else {
-                  lastAppliedPartyRef.current = null;
-                  player.followParty(null);
-                }
-              }}
+              onClick={() => player.followParty(following ? null : { podId, channelId })}
             >
               <Icon name={following ? 'volume up' : 'volume off'} />
             </Button>

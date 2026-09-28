@@ -5277,7 +5277,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Verify remote identity/private admission/ban boundaries through two actual TLS endpoints; signed storage and replay remain separate.
 - [x] Correct offline fixture public DHT startup and assert configuration plus runtime logs.
 - [ ] Repair legitimate outgoing bursts behind retained reverse-directory message-rate disconnect, preserving inbound quota.
-- [ ] Keep room-follow subscriptions alive across global-player navigation; verify real route changes.
+- [x] 2026-09-28 Keep room-follow subscriptions alive across global-player navigation; real routed browser regression and connection reuse pass. See ADR-0017.
 - [ ] Publish ongoing host Pause/Seek/track changes under an explicit broadcast session.
 
 - [x] 2026-09-28 Repair LAN-only DHT engine bootstrap: bypass the public engine, preserve known-peer transport, verify actual zero-node radio status and eliminate false network-health diagnostics. See ADR-0016.
@@ -5290,8 +5290,19 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Isolate full-instance integration fixtures; verify local interoperability and mesh workflows in the full backend suite.
 - [x] Verify actual radio playback/seek/revocation/reverse-directory and elapsed ticket expiry under repaired LAN-only mode.
 - [x] Reproduce false LAN-only network-health findings and cover both mode-field spellings.
-- [ ] Reproduce and repair legitimate mesh RPC bursts without weakening inbound quota, then complete global follow ownership and host control publication.
+- [ ] Reproduce and repair legitimate mesh RPC bursts without weakening inbound quota, then complete host control publication; global follow ownership is complete in ADR-0017.
 
 - [x] 2026-09-28 Await initialization before detaching owned network resources; final backend and complete 20-case runtime gates pass.
 - [x] 2026-09-28 Verify the actual connected LAN-only network-health page and retain public-mode engine warnings.
 - [ ] Diagnose the originating network change behind the retained blank pre-login bootstrap interruption; the immutable complete rerun passes but does not explain that event.
+
+## Persistent room follow ownership — 2026-09-28
+
+- [x] Reproduce missed offscreen Pause through actual SPA navigation.
+- [x] Move connection ownership into the player, reuse returning-room state, and bound distinct rooms to two.
+- [x] Keep unrelated revocation separate; deduplicate reconnect snapshots and release offscreen host Stop.
+- [x] Reproduce and fix stale-render empty-room detection; render waiting state without a fabricated host.
+- [x] Expose room connection feedback in the persistent player.
+- [x] 2026-09-28 Final rebuilt complete runtime gate: 20 passing cases; source publication follows validated release preview. Full player completion remains open.
+
+- [ ] Improve auxiliary player tool touch targets and clipped metadata at 320 pixels; verify complete responsive layout and assistive-technology use, beyond room controls.

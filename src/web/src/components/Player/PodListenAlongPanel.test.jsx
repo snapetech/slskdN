@@ -6,8 +6,9 @@ import { createListeningPartyHubConnection } from '../../lib/hubFactory';
 import * as listeningParty from '../../lib/listeningParty';
 import PodListenAlongPanel from './PodListenAlongPanel';
 import { usePlayer } from './PlayerContext';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import React from 'react';
+import useListeningPartyRooms from './useListeningPartyRooms';
+import { act, cleanup, fireEvent, render as renderView, screen } from '@testing-library/react';
+import React, { createContext, useContext, useRef, useState } from 'react';
 
 vi.mock('../../lib/hubFactory', () => ({
   createListeningPartyHubConnection: vi.fn(),
@@ -41,6 +42,17 @@ const player = {
   pause: vi.fn(),
   playItem: vi.fn(),
 };
+
+// Exercise the production owner while retaining controllable media methods.
+const TestPlayerContext = createContext(null);
+const TestPlayer = ({ children }) => {
+  const base = useRef(usePlayer()).current;
+  const [followingParty, setFollowingParty] = useState(null);
+  const methods = useListeningPartyRooms({ ...base, followingParty }, setFollowingParty);
+  usePlayer.mockImplementation(() => useContext(TestPlayerContext));
+  return <TestPlayerContext.Provider value={{ ...base, ...methods, followingParty }}>{children}</TestPlayerContext.Provider>;
+};
+const render = (ui) => renderView(ui, { wrapper: TestPlayer });
 
 describe('PodListenAlongPanel directory polling', () => {
   beforeEach(() => {
@@ -212,9 +224,11 @@ describe('PodListenAlongPanel directory polling', () => {
     await act(async () => { await Promise.resolve(); });
     const revoked = hub.on.mock.calls.find(([event]) => event === 'partyAccessRevoked')[1];
     const receive = hub.on.mock.calls.find(([event]) => event === 'partyState')[1];
+    fireEvent.click(screen.getByRole('button', { name: 'Follow room broadcast' }));
     await act(async () => revoked());
     expect(screen.getByRole('alert')).toHaveTextContent('Room access was revoked');
-    expect(player.followParty).toHaveBeenCalledWith(null);
+    expect(screen.getByRole('button', { name: 'Follow room broadcast' })).toHaveAttribute('aria-pressed', 'false');
+    expect(player.clear).toHaveBeenCalledOnce();
     await act(async () => receive({ action: 'play', contentId: 'stale', title: 'Queued stale event' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Room access was revoked');
     expect(screen.queryByText('Queued stale event')).not.toBeInTheDocument();
@@ -231,6 +245,83 @@ describe('PodListenAlongPanel directory polling', () => {
     await act(async () => finishSnapshot({ title: 'Stale snapshot', action: 'play', contentId: 'stale' }));
     expect(screen.getByText('Fresh host state')).toBeInTheDocument();
     expect(screen.queryByText('Stale snapshot')).not.toBeInTheDocument();
+  });
+
+  it('retains the followed room across navigation and reuses its connection on return', async () => {
+    const hub = createHub();
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    listeningParty.getPartyState.mockResolvedValue({ action: 'play', contentId: 'track', positionSeconds: 0 });
+    usePlayer.mockReturnValue({ ...player, getPlaybackPosition: () => 0 });
+    const panel = <PodListenAlongPanel channelId="music" compact podId="pod-a" user="listener" />;
+    const view = render(panel);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: 'Follow room broadcast' }));
+    view.rerender(<div>Browsing downloads</div>);
+    expect(hub.stop).not.toHaveBeenCalled();
+    const receive = hub.on.mock.calls.find(([event]) => event === 'partyState')[1];
+    await act(async () => receive({ action: 'pause', contentId: 'track', positionSeconds: 16 }));
+    expect(player.pause).toHaveBeenCalledOnce();
+    expect(player.playItem).toHaveBeenLastCalledWith(expect.objectContaining({ contentId: 'track' }),
+      expect.objectContaining({ positionSeconds: 16, startPaused: true }));
+    view.rerender(panel);
+    expect(screen.getByRole('button', { name: 'Follow room broadcast' })).toHaveAttribute('aria-pressed', 'true');
+    expect(createListeningPartyHubConnection).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Follow room broadcast' }));
+    view.rerender(<div>Browsing downloads</div>);
+    expect(hub.stop).toHaveBeenCalledOnce();
+    expect(hub.invoke).toHaveBeenCalledWith('LeaveParty', 'pod-a', 'music');
+  });
+
+  it('keeps another room revocation separate from the followed room', async () => {
+    const followed = createHub();
+    const viewed = createHub();
+    createListeningPartyHubConnection.mockReturnValueOnce(followed).mockReturnValueOnce(viewed);
+    listeningParty.getPartyState.mockResolvedValue({ action: 'play', contentId: 'track' });
+    usePlayer.mockReturnValue({ ...player, getPlaybackPosition: () => 0 });
+    const first = <PodListenAlongPanel channelId="music" compact podId="pod-a" user="listener" />;
+    const view = render(first);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: 'Follow room broadcast' }));
+    view.rerender(<PodListenAlongPanel channelId="other" compact podId="pod-a" user="listener" />);
+    await act(async () => {});
+    expect(screen.getByRole('button', { name: 'Follow room broadcast' })).toHaveAttribute('aria-pressed', 'false');
+    await act(async () => viewed.on.mock.calls.find(([event]) => event === 'partyAccessRevoked')[1]());
+    expect(player.clear).not.toHaveBeenCalled();
+    await act(async () => followed.on.mock.calls.find(([event]) => event === 'partyState')[1]({ action: 'pause', contentId: 'track', positionSeconds: 17 }));
+    expect(player.pause).toHaveBeenCalledOnce();
+    view.rerender(first);
+    expect(screen.getByRole('button', { name: 'Follow room broadcast' })).toHaveAttribute('aria-pressed', 'true');
+    expect(viewed.stop).toHaveBeenCalledOnce();
+    expect(followed.stop).not.toHaveBeenCalled();
+    expect(createListeningPartyHubConnection).toHaveBeenCalledTimes(2);
+  });
+
+  it('deduplicates snapshots after automatic reconnect and releases an offscreen host Stop', async () => {
+    const hub = createHub();
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    const state = { action: 'play', contentId: 'track', sequence: 1 };
+    listeningParty.getPartyState.mockResolvedValue(state);
+    const view = render(<PodListenAlongPanel channelId="music" compact podId="pod-a" user="listener" />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: 'Follow room broadcast' }));
+    view.rerender(<div>Browsing downloads</div>);
+    await act(async () => hub.onreconnected.mock.calls[0][0]());
+    expect(player.playItem).toHaveBeenCalledOnce();
+    await act(async () => hub.on.mock.calls.find(([event]) => event === 'partyState')[1]({ action: 'stop', sequence: 2 }));
+    expect(player.clear).toHaveBeenCalledOnce();
+    expect(hub.stop).toHaveBeenCalledOnce();
+  });
+
+  it('does not automatically restore revoked access on reconnect', async () => {
+    const hub = createHub();
+    createListeningPartyHubConnection.mockReturnValueOnce(hub);
+    render(<PodListenAlongPanel channelId="music" compact podId="pod-a" user="listener" />);
+    await act(async () => {});
+    await act(async () => hub.on.mock.calls.find(([event]) => event === 'partyAccessRevoked')[1]());
+    hub.invoke.mockClear();
+    await act(async () => hub.onreconnected.mock.calls[0][0]());
+    expect(hub.invoke).not.toHaveBeenCalledWith('JoinParty', 'pod-a', 'music');
+    expect(screen.getByRole('alert')).toHaveTextContent('Room access was revoked');
   });
 
   it('does not request the unrendered directory in compact mode', async () => {

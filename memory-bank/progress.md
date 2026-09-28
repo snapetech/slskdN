@@ -14006,3 +14006,19 @@ quota behavior; player-owned follow across navigation; ongoing host control
 publication; authenticated distributed state, capability renewal and remaining
 resource/browser/format/accessibility/device requirements. Full goal remains
 active. No tag or deployment is authorized.
+
+## 2026-09-28T06:33:36+00:00 — Persistent player-owned room following
+
+Reproduced the missed offscreen Pause through real SPA navigation, moved room
+ownership into the persistent player and reused returning-room connections.
+Bound owned distinct rooms to two, isolated revocation, deduplicated reconnect
+snapshots and verified offscreen host/local Stop. Reproduced and fixed stale
+render detection ending an empty follow, plus a missing-host waiting label.
+Player connection feedback remains visible outside the room. ADR-0017 records
+the ownership decision; gotchas were committed immediately.
+
+Final gates: 1,016 Web tests, 5,298 unit / 74 smoke / 284 integration tests,
+all 20 rebuilt runtime cases, lint/build/bundle/output/endpoint/identity checks.
+Traces and mobile screenshots retained privately. Auxiliary touch targets and
+metadata clipping remain open; full goal is not complete. Fixture file-handle
+warnings and the earlier startup network-change origin are not claimed fixed.

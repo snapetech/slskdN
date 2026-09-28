@@ -38,6 +38,8 @@ The protocol payload is JSON in the pod message body:
 Following an already paused room selects the host track at its paused position. A host Stop event ends following and clears the local player.
 If a host Pause arrives while the listener is still obtaining a stream ticket, the player cancels the pending start so the track remains paused when its source becomes ready.
 After a connection interruption, a follower rejoins the room and refreshes the host's current state before continuing.
+Following continues when navigating to other pages or rooms within the app. Returning to the followed room restores its selected Follow control and reuses the same connection. Other rooms show Follow as off; their access changes do not affect the followed room. Access revocation in the followed room stops its playback and requires an explicit authorized retry. The player displays connection feedback while its room panel is offscreen.
+Following an empty room waits for its first broadcast. At most two room connections are kept: the viewed room and the followed room. Connections close when neither a panel nor following needs them. Reloading the page starts a new session and does not restore network following automatically.
 Pressing Stop or choosing another track in the local player also leaves follow mode; later host updates will not restart or replace the listener's playback.
 Hiding the browser player leaves Follow even if a room is idle. Show the player again before following a room.
 

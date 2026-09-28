@@ -1,3 +1,4 @@
+import useListeningPartyRooms from './useListeningPartyRooms';
 import * as nowPlaying from '../../lib/nowPlaying';
 import { useExperiencePreference } from '../../lib/experiencePreferences';
 import { getSessionStorageItem, setSessionStorageItem } from '../../lib/storage';
@@ -17,6 +18,9 @@ export const PlayerContext = createContext({
   current: null,
   followParty: () => {},
   followingParty: null,
+  followingPartyStatus: null,
+  observePartyRoom: () => () => {},
+  retryPartyRoom: () => {},
   getPlaybackPosition: () => 0,
   history: [],
   next: () => {},
@@ -99,6 +103,7 @@ export const PlayerProvider = ({ children }) => {
   const [shuffle, setShuffle] = useState(initialSession.shuffle);
   const [followingParty, setFollowingParty] = useState(null);
   const pauseHandlerRef = useRef(null);
+  const followPartyRef = useRef(() => {});
   const playerVisible = useExperiencePreference('playerVisible', true);
   const previousPlayerVisible = useRef(playerVisible);
   const playbackPositionRef = useRef(initialSession.current?.positionSeconds || 0);
@@ -137,7 +142,7 @@ export const PlayerProvider = ({ children }) => {
   const playItem = useCallback(
     (item, options = {}) => {
       if (!playerVisible || !item?.contentId) return;
-      if (!options.fromParty) setFollowingParty(null);
+      if (!options.fromParty) followPartyRef.current(null);
 
       const playable = normalizePlayerItem(item, options);
 
@@ -181,7 +186,7 @@ export const PlayerProvider = ({ children }) => {
 
     playbackPositionRef.current = 0;
     setPlayback({ current: null, history: [], queue: [] });
-    setFollowingParty(null);
+    followPartyRef.current(null);
     nowPlaying.clearNowPlaying().catch(() => {});
   }, [audioElement]);
 
@@ -260,9 +265,10 @@ export const PlayerProvider = ({ children }) => {
     });
   }, []);
 
-  const followParty = useCallback((partyState) => {
-    setFollowingParty(partyState);
-  }, []);
+  const { followParty, followingPartyStatus, observePartyRoom, retryPartyRoom } = useListeningPartyRooms({
+    clear, current, followingParty, getPlaybackPosition, pause, playItem, playerVisible,
+  }, setFollowingParty);
+  useLayoutEffect(() => { followPartyRef.current = followParty; }, [followParty]);
 
   const next = useCallback(() => {
     const random = Math.random();
@@ -317,6 +323,9 @@ export const PlayerProvider = ({ children }) => {
         current,
         followParty,
         followingParty,
+        followingPartyStatus,
+        observePartyRoom,
+        retryPartyRoom,
         getPlaybackPosition,
         history,
         moveQueueItem,
