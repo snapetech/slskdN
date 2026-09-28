@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1164. Keep Measurement Index Names Distinct From Browser Globals
+
+**The Bug**: The new repeated resource probe named its loop index window. The explicit TypeScript check then treated window inside a serialized browser callback as a number, even though Playwright evaluates that callback against the browser global. This created an incorrect lexical type boundary and obscured which values actually cross processes.
+
+**Prevention**: Use sampleIndex for runner loop state and reserve window for browser callbacks. Type locator audio elements explicitly at the DOM boundary. Run the explicit TypeScript check as well as actual browser execution; transpilation alone does not check these boundaries.
+
 ### 0z1163. Await Every Peer Cleanup Before Reporting Failure
 
 **The Bug**: A negative regression proved the multi-peer harness rejected cleanup while another node's shutdown was still pending. Promise.all returned the first rejection and skipped clearing the registry, so the test teardown could finish while peer cleanup still owned processes and output.
