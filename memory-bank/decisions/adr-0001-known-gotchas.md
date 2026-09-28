@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1048. Scope Queue Assertions To Upcoming Rows
+
+**The Bug**: New playlist and duplicate-file browser assertions counted the Now Playing tile as an upcoming queue row because both use the same row class. Valid queues appeared to have one extra entry.
+
+**Files Affected**:
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Scope upcoming-item counts to the queue-manager-list container. Verify the rendered hierarchy before treating a count mismatch as a playback defect.
+
 ### 0z1047. Preserve Object Closure During Normalization Extraction
 
 **The Bug**: Extracting the existing playable metadata object into an arrow helper omitted the final closing object brace, making PlayerContext invalid JavaScript.
