@@ -6,6 +6,26 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1052. Reset Initial Playback Intent When Navigating Queues
+
+**The Bug**: Previous reused a restored queue entry carrying its saved offset and initial paused intent. Runtime navigation back to a restored track resumed from the old position rather than starting playback at zero.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Next, Previous, and repeat-all navigation must create a new occurrence with zero position and active playback intent. Preserve saved offsets only for initial session restoration or explicit resume requests.
+
+### 0z1051. Preserve Playlists Saved During Initial Fetch
+
+**The Bug**: A late initial collection-list response replaced the selector state and discarded a playlist saved while that request was pending. A deferred-response regression reproduced the missing option.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+
+**Prevention**: Merge fetched playlists with locally created entries by ID. A failed initial request must preserve successful saves and report the retrieval failure visibly.
+
 ### 0z1050. Checkpoint Current Position Before Session Restoration
 
 **The Bug**: The queue session stored each item's original positionSeconds but ignored the live playback-position ref. Real playlist playback sought to 12 seconds, yet reload restored the track at zero.
