@@ -4,6 +4,25 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1187. Renew Listed Host Capabilities Without Reopening Stale Sessions
+
+**The Bug**: A listed radio announcement and its host stream capability both
+expire after 900 seconds. The player only publishes on playback changes, so a
+long-running track silently disappears. A second tab can reuse the observed
+party ID, and a stale tab can then publish over the replacement host.
+
+**Why**: Directory refresh is listener-driven and is not a host renewal. Room
+message coalescing also does not establish which browser tab still owns a host
+session.
+
+**Prevention**: Renew listed capabilities on one bounded host-only timer, using
+a renewal operation that does not create room messages. Give each explicit
+browser host session a private fencing ID; require it for renewal and ongoing
+updates, and permit replacement only on an explicit new-host action. Reject
+stale updates and Stops before normalizing them to the current room identity.
+Cover expiry, renewal failure, supersession and stale Stop with controlled-clock
+and real multi-node/browser regressions.
+
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
 ### 0z1185. Repeat The Existing Admin Role On Player Tag Writes
