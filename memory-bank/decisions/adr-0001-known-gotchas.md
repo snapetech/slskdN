@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1221. Set React-Controlled Range Values Deterministically In E2E
+
+**What went wrong:** WebKit crossfade browser tests advanced the seek slider
+with dozens of simulated ArrowRight key presses, but the expected seek state
+was not reached consistently.
+
+**Why:** A React-controlled range input depends on the native input setter and
+its input event to update component state; repeated keyboard synthesis was not
+a reliable substitute in this browser harness.
+
+**Prevention:** Set the range through `HTMLInputElement.prototype.value`,
+dispatch a bubbling `input` event, and assert the rendered slider value before
+checking playback state. Keep actual keyboard interaction assertions in tests
+that specifically verify keyboard behavior.
+
 ### 0z1220. Advance Cloudron Metadata With The Stable Image
 
 **What went wrong:** The release gate found the Cloudron Dockerfile and current
