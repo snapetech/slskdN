@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1079. Authorize Listen-Along Group Subscriptions
+
+**The Bug**: The listen-along HTTP state endpoint checked pod membership, but the SignalR JoinParty method allowed any authenticated account to subscribe to that pod's playback metadata.
+
+**Files Affected**:
+- `src/slskd/ListeningParty/ListeningPartyHub.cs`
+
+**Prevention**: Apply the same PodApiAuthorizer membership policy when joining the hub group, including banned members and the existing administrator access rule. Authentication alone does not authorize a private pod subscription; test that denied calls never add a connection to the group.
+
 ### 0z1078. Release Previous Radio Reads Before Preparing Another Snapshot
 
 **The Gotcha**: The new per-host radio lease permits one active read stream. Keeping the previous HTTP response open during crossfade preparation can reject the replacement snapshot from the same host.
