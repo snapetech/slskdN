@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1197. Reject Empty Strings When Testing Capabilities
+
+**What went wrong:** The soak's `expect.any(String)` matcher accepted an empty
+`streamTicket`, so the test passed its directory predicate and failed only at a
+later truthiness assertion.
+
+**Why:** Jest/Vitest/Playwright's `expect.any(String)` checks the runtime type,
+not that the string contains a capability value.
+
+**Prevention:** For required token, URL or identifier fields, assert a
+non-empty value (`toBeTruthy`, `stringMatching(/.+/)`, or an explicit length)
+inside the polling predicate so the retry waits for usable state.
+
 ### 0z1196. Match Library Browser Items by `fileName`
 
 **What went wrong:** A radio soak fixture waited for a `name` property on
