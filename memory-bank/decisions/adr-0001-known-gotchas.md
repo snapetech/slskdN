@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1107. Serialize Room Publication Through Routing and Fanout
+
+**The Bug**: Concurrent publication changed local state before awaiting routing. Stop could finish and notify listeners while an earlier Play remained blocked; that Play then delivered stale state. A corrected negative regression proved Stop completed before pending Play.
+
+**Prevention**: Serialize the complete publication within each room, including normalization, storage, directory updates, routing and recipient delivery. Bound active rooms and waiting publications, remove idle queues, release reservations on cancellation or failure, and keep unrelated rooms independent. Reject overload explicitly rather than allowing unbounded waiting tasks.
+
 ### 0z1106. Make Missing DHT Fixture Values Explicit
 
 **The Bug**: An unconfigured DHT mock returned an empty byte array rather than null. The room publication ordering regression failed while parsing directory state before it could exercise the suspected race.
