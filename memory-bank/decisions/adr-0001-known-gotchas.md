@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1173. Report Active Media Failures to Broadcast Followers
+
+**The Bug**: Two negative regressions showed that active native and decoded media errors set local error state without reporting stopped playback. A decode error need not emit a pause event, so an active host could leave followers with a playing snapshot. Decoded positions also need their source offset.
+
+**Prevention**: Pause the failed active element, retain the explicit local error, and report pause at source offset plus current time. Ignore standby/outgoing errors. Verify both source modes without injecting a pause event; keep the host writer's duplicate-event suppression and ordered Stop behavior. Separate playback errors from publication errors so recovery remains explicit.
+
 ### 0z1172. Keep Parameterized Assertions Outside Conditional Setup
 
 **The Bug**: The prepared active/standby and native/decoded error matrix put expectations inside conditional setup and outcome branches. The first Web lint gate rejected five occurrences under `vitest/no-conditional-expect`, preventing the type and negative-test gates from starting.
