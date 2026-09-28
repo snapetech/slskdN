@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1144. Return to the Main Deck After Closing Player Tools
+
+**The Bug**: After using the expanded tool controls, closing Tools retained the drawer's lower scroll offset. The retained mobile screenshot hid the track header, and focus stayed on the former closing location rather than returning to playback.
+
+**Prevention**: On the open-to-closed transition, reset the player scroll offset and focus the enabled Play control without scrolling, with the visual tile as an empty-player fallback. Verify the visible title and actual focused element after closing, and remove hover popups before capturing layout evidence.
+
 ### 0z1143. Respect Intentionally Hidden Controls in Touch-Bounds Checks
 
 **The Bug**: The broader compact-control regression queried the Hide button at narrow widths even though the existing compact layout intentionally hides secondary controls there. Its bounding box was null, producing a test failure rather than a product sizing failure.
