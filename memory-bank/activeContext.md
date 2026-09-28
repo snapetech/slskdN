@@ -14580,3 +14580,22 @@ Completed implementation batch is cleared. Next Steps: verify sustained
 two-backend browser radio, HTTP seek and capability expiry, dual-participant
 room recovery, and remaining player audit rows. The full goal remains active;
 no release tag or deployment was created.
+
+## Connected radio runtime validation — 2026-09-28
+
+Current task: finish real two-backend browser seek/recovery and validation of mesh DHT bootstrap, radio lease handoff and pod membership authorization. The isolated nodes use loopback-only rendezvous with no public bootstrap. Initial production playback and cross-node directory lookup are verified; interior seek rerun is pending after a reproduced 429.
+
+Next Steps: resolve runtime findings, run final solution/lint/browser/release gates and commit/push; then continue expiry, source replacement, participant recovery and remaining player audit requirements. Overall goal stays active; no tag/deployment.
+
+## Connected radio final gates — 2026-09-28
+
+Final source passes 5,224 unit, 74 smoke and 284 integration tests; 986 Web
+tests and 17 browser workflows pass. Repository/Web lint, Release build, CSRF,
+anonymous endpoint, whitespace and identity checks pass. The real two-node
+browser case verifies remote directory discovery and decoded seek progression
+with two successful byte ranges, without intercepted discovery or playback.
+
+Completed source batch is cleared after commit/push. Next Steps: expiry/renewal,
+reciprocal upload accounting and repeated admissions, source replacement, room
+reconnect/revocation and the remaining player quality audit. Overall goal stays
+active; no release tag or deployment is authorized.

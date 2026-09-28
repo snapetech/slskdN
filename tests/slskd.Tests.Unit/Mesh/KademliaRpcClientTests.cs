@@ -4,6 +4,10 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Mesh;
+using slskd.Mesh.ServiceFabric;
+using slskd.Mesh.ServiceFabric.Services;
+using slskd.VirtualSoulfind.ShadowIndex;
+using System.Text.Json;
 using slskd.Mesh.Dht;
 using slskd.Mesh.Messages;
 using slskd.Mesh.Overlay;
@@ -17,6 +21,34 @@ namespace slskd.Tests.Unit.Mesh;
 
 public class KademliaRpcClientTests
 {
+    [Fact]
+    public async Task FindNode_RetainsKnownContactAndLearnsResponderIdentity()
+    {
+        var self = Enumerable.Repeat((byte)1, 20).ToArray();
+        var remote = Enumerable.Repeat((byte)2, 20).ToArray();
+        var routing = new KademliaRoutingTable(self);
+        await routing.TouchAsync(remote, "radio-host");
+        var transport = new Mock<IMeshServiceClient>();
+        transport.Setup(client => client.CallAsync("radio-host", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ServiceReply
+            {
+                CorrelationId = "lookup",
+                StatusCode = ServiceStatusCodes.OK,
+                Payload = JsonSerializer.SerializeToUtf8Bytes(new FindNodeResponse
+                {
+                    TargetId = self,
+                    ResponderId = remote,
+                    Nodes = Array.Empty<DhtNodeInfo>(),
+                }),
+            });
+        using var client = new KademliaRpcClient(NullLogger<KademliaRpcClient>.Instance, transport.Object, routing, Mock.Of<IDhtClient>());
+
+        var closest = await client.FindNodeAsync(self);
+
+        Assert.Equal("radio-host", Assert.Single(closest).Address);
+        Assert.Equal(remote, Assert.Single(routing.GetAllNodes()).NodeId);
+    }
+
     [Fact]
     public void CreateSigned_CopiesMutableInputs()
     {

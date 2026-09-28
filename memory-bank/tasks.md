@@ -5194,3 +5194,14 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Support single HTTP byte ranges and pace bounded 44 KiB reads under the existing global RPC budget; enforce and release one stream per listener node/host.
 - [x] Verify real production loopback TLS byte delivery/tail/revocation, gateway/reader ranges, global limits, source replacement and retry.
 - [ ] Verify sustained two-backend browser playback and seek/expiry behavior; complete dual-participant room recovery and the remaining player quality audit.
+
+## Connected radio playback and room authorization — 2026-09-28
+
+- [x] Require pod membership for live listen-along group joins, with member/banned/outsider/admin tests.
+- [x] Reproduce disconnected mesh DHT routing through two isolated real backends; add bounded connected-neighbor bootstrap and real responder identities.
+- [x] Reproduce native seek range rejection and add cancellable bounded lease handoff without increasing stream concurrency.
+- [x] Complete final real-browser discovery/seek evidence and full validation; expiry and broader recovery remain open as listed below.
+
+- [x] Verify real cross-node directory, scoped ticket, decoded playback and interior seek with replacement 206 and subsequent time progression.
+- [ ] Validate expiry/renewal and repeated radio admissions; repair missing overlay upload accounting so serving participates in fairness totals.
+- [ ] Verify room membership revocation after a live subscription has already joined.

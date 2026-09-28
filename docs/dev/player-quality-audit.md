@@ -118,3 +118,38 @@ Completed implementation batch is cleared. Next Steps: verify sustained
 two-backend browser radio, HTTP seek and capability expiry, dual-participant
 room recovery, and remaining player audit rows. The full goal remains active;
 no release tag or deployment was created.
+
+## Connected radio discovery and seeking — 2026-09-28
+
+A real two-backend Chromium workflow uses loopback overlay transport and no
+intercepted directory, ticket or audio responses. The listener discovers the
+host publication, acquires its scoped ticket, decodes initial audio, seeks
+inside a 180-second generated WAV, receives a replacement 206 range and
+continues decoded time progression. Confidence in this workflow is high.
+
+The run exposed an empty mesh DHT table, native overlapping range responses
+and repeated fairness admission after received audio. On-demand neighbor
+bootstrap, same-ticket response replacement and ticket-lifetime fairness
+admission address those boundaries without increasing concurrent streams or
+read pacing. Live room subscriptions also enforce pod membership on join.
+
+Still required: ticket/capability expiry and renewal, permission revocation in
+the browser, source replacement and dual-participant reconnect. Fairness
+lifecycle needs broader validation: overlay upload accounting has no production
+call sites, so repeated playback admissions and reciprocal serving cannot yet
+be treated as verified. Continuous membership revocation after a hub group
+join is also unverified. These remain open alongside existing format, browser,
+physical-device, accessibility and sustained-resource requirements.
+
+## Connected radio final gates — 2026-09-28
+
+Final source passes 5,224 unit, 74 smoke and 284 integration tests; 986 Web
+tests and 17 browser workflows pass. Repository/Web lint, Release build, CSRF,
+anonymous endpoint, whitespace and identity checks pass. The real two-node
+browser case verifies remote directory discovery and decoded seek progression
+with two successful byte ranges, without intercepted discovery or playback.
+
+Completed source batch is cleared after commit/push. Next Steps: expiry/renewal,
+reciprocal upload accounting and repeated admissions, source replacement, room
+reconnect/revocation and the remaining player quality audit. Overall goal stays
+active; no release tag or deployment is authorized.

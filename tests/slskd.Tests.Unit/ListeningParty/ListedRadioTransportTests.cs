@@ -17,9 +17,121 @@ using slskd.Mesh;
 using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.ServiceFabric.Services;
 using slskd.Streaming;
+using slskd.Transfers.MultiSource.Metrics;
 
 public sealed class ListedRadioTransportTests
 {
+    [Fact]
+    public async Task RadioRange_ReusesAdmittedTicketButChecksNewTicketFairness()
+    {
+        var tickets = new MeshStreamTicketService();
+        var request = new MeshStreamTicketRequest("track", "tone.wav", "host", 4, null)
+        {
+            Radio = new MeshRadioScope("party", "capability"),
+        };
+        var ticket = tickets.Create(request, "listener", TimeSpan.FromMinutes(2));
+        var guard = new Mock<IFairnessGuard>();
+        var deny = false;
+        guard.Setup(service => service.EvaluateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new FairnessDecision { ThrottleOverlayDownloads = deny });
+        var fetcher = new Mock<IMeshContentFetcher>();
+        fetcher.Setup(service => service.FetchRadioAsync("host", "track", It.IsAny<MeshRadioScope>(), It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MeshContentFetchResult { Data = new MemoryStream(new byte[4]), Size = 4, SizeValid = true });
+        var streams = new MeshStreamService(tickets, new StreamSessionLimiter(), Mock.Of<IMeshDirectory>(), fetcher.Object, Mock.Of<ILogger<MeshStreamService>>(), guard.Object);
+        var initial = await streams.OpenRangeAsync(ticket.Ticket, 0, 4, CancellationToken.None);
+        Assert.NotNull(initial);
+        await initial.Stream.DisposeAsync();
+        deny = true;
+
+        var seek = await streams.OpenRangeAsync(ticket.Ticket, 0, 4, CancellationToken.None);
+        Assert.NotNull(seek);
+        await seek.Stream.DisposeAsync();
+        guard.Verify(service => service.EvaluateAsync(It.IsAny<CancellationToken>()), Times.Once);
+        var fresh = tickets.Create(request, "listener", TimeSpan.FromMinutes(2));
+        await Assert.ThrowsAsync<MeshStreamLimitException>(() => streams.OpenRangeAsync(fresh.Ticket, 0, 4, CancellationToken.None));
+        guard.Verify(service => service.EvaluateAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task RadioRange_SignalsOnlyTheSameTicketResponseAndReleasesReservations()
+    {
+        var tickets = new MeshStreamTicketService();
+        var request = new MeshStreamTicketRequest("track", "tone.wav", "host", 4, null)
+        {
+            Radio = new MeshRadioScope("party", "capability"),
+        };
+        var ticket = tickets.Create(request, "listener", TimeSpan.FromMinutes(2));
+        var other = tickets.Create(request, "other", TimeSpan.FromMinutes(2));
+        var limiter = new StreamSessionLimiter();
+        var fetcher = new Mock<IMeshContentFetcher>();
+        fetcher.Setup(service => service.FetchRadioAsync("host", "track", It.IsAny<MeshRadioScope>(), It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MeshContentFetchResult { Data = new MemoryStream(new byte[4]), Size = 4, SizeValid = true });
+        var streams = new MeshStreamService(tickets, limiter, Mock.Of<IMeshDirectory>(), fetcher.Object, Mock.Of<ILogger<MeshStreamService>>());
+        var previous = await streams.OpenRangeAsync(ticket.Ticket, 0, 4, CancellationToken.None);
+        Assert.NotNull(previous);
+        using var cancellation = new CancellationTokenSource();
+        var conflict = streams.OpenRangeAsync(other.Ticket, 0, 4, cancellation.Token);
+        Assert.False(previous.Superseded.IsCancellationRequested);
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => conflict);
+        using var responseAbort = previous.Superseded.Register(previous.Stream.Dispose);
+
+        var replacement = await streams.OpenRangeAsync(ticket.Ticket, 0, 4, CancellationToken.None);
+
+        Assert.True(previous.Superseded.IsCancellationRequested);
+        Assert.NotNull(replacement);
+        Assert.False(replacement.Superseded.IsCancellationRequested);
+        await previous.Stream.DisposeAsync();
+        Assert.False(limiter.TryAcquire("listener", 1));
+        await replacement.Stream.DisposeAsync();
+        Assert.True(limiter.TryAcquire("listener", 1));
+        limiter.Release("listener");
+        Assert.True(limiter.TryAcquire("mesh-radio-host:host", 1));
+        limiter.Release("mesh-radio-host:host");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RadioRange_WaitsForPreviousReservationOrCancelsWithoutLeaking(bool cancel)
+    {
+        var tickets = new MeshStreamTicketService();
+        var ticket = tickets.Create(new MeshStreamTicketRequest("track", "tone.wav", "host", 4, null)
+        {
+            Radio = new MeshRadioScope("party", "capability"),
+        }, "listener", TimeSpan.FromMinutes(2));
+        var limiter = new StreamSessionLimiter();
+        Assert.True(limiter.TryAcquire("mesh-radio-host:host", 1));
+        var fetcher = new Mock<IMeshContentFetcher>();
+        fetcher.Setup(service => service.FetchRadioAsync("host", "track", It.IsAny<MeshRadioScope>(), 0, 4, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MeshContentFetchResult { Data = new MemoryStream(new byte[4]), Size = 4, SizeValid = true });
+        var streams = new MeshStreamService(tickets, limiter, Mock.Of<IMeshDirectory>(), fetcher.Object, Mock.Of<ILogger<MeshStreamService>>());
+        using var cancellation = new CancellationTokenSource();
+        var pending = streams.OpenRangeAsync(ticket.Ticket, 0, 4, cancellation.Token);
+        Assert.False(pending.IsCompleted);
+        Assert.True(limiter.TryAcquire("listener", 1));
+        limiter.Release("listener");
+
+        if (cancel)
+        {
+            cancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+            limiter.Release("mesh-radio-host:host");
+        }
+        else
+        {
+            limiter.Release("mesh-radio-host:host");
+            var lease = await pending;
+            Assert.NotNull(lease);
+            await lease.Stream.DisposeAsync();
+        }
+
+        Assert.True(limiter.TryAcquire("listener", 1));
+        limiter.Release("listener");
+        Assert.True(limiter.TryAcquire("mesh-radio-host:host", 1));
+        limiter.Release("mesh-radio-host:host");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -131,6 +131,7 @@ public class DhtMeshService : IMeshService
             var response = new FindNodeResponse
             {
                 TargetId = request.TargetId,
+                ResponderId = _routingTable.GetSelfId(),
                 Nodes = closestNodes.Select(n => new DhtNodeInfo
                 {
                     NodeId = n.NodeId,
@@ -507,6 +508,7 @@ public record FindNodeRequest
 /// </summary>
 public record FindNodeResponse
 {
+    public byte[]? ResponderId { get; init; }
     public required byte[] TargetId { get; init; }
     public required DhtNodeInfo[] Nodes { get; init; }
 }

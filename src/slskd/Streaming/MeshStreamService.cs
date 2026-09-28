@@ -24,6 +24,9 @@ public sealed class MeshStreamService : IMeshStreamService
     private const long PipePauseWriterThreshold = 512 * 1024;
     private const long PipeResumeWriterThreshold = 128 * 1024;
 
+    private readonly object _radioReadsLock = new();
+    private readonly Dictionary<string, DateTimeOffset> _radioAdmissions = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, CancellationTokenSource> _radioReads = new(StringComparer.Ordinal);
     private readonly IMeshStreamTicketService _tickets;
     private readonly IStreamSessionLimiter _limiter;
     private readonly IMeshDirectory _meshDirectory;
@@ -74,7 +77,22 @@ public sealed class MeshStreamService : IMeshStreamService
             claims = claims with { ExpectedSize = endExclusive.Value };
         }
 
-        if (_fairnessGuard != null)
+        var admitted = false;
+        if (claims.Radio != null)
+        {
+            lock (_radioReadsLock)
+            {
+                var now = DateTimeOffset.UtcNow;
+                foreach (var expired in _radioAdmissions.Where(entry => entry.Value <= now).Select(entry => entry.Key).ToArray())
+                {
+                    _radioAdmissions.Remove(expired);
+                }
+
+                admitted = _radioAdmissions.ContainsKey(ticket);
+            }
+        }
+
+        if (_fairnessGuard != null && !admitted)
         {
             var fairness = await _fairnessGuard.EvaluateAsync(cancellationToken).ConfigureAwait(false);
             if (!fairness.Allowed)
@@ -83,24 +101,61 @@ public sealed class MeshStreamService : IMeshStreamService
             }
         }
 
-        if (!_limiter.TryAcquire(claims.OwnerKey, MaxConcurrentMeshStreamsPerOwner))
+        if (claims.Radio != null && endExclusive.HasValue)
         {
-            throw new MeshStreamLimitException("Too many concurrent mesh preview streams.");
+            lock (_radioReadsLock)
+            {
+                if (_radioReads.TryGetValue(ticket, out var previous))
+                {
+                    previous.Cancel();
+                }
+            }
         }
 
         var hostLimiterKey = claims.Radio == null ? null : $"mesh-radio-host:{claims.PeerId}";
-        if (hostLimiterKey != null && !_limiter.TryAcquire(hostLimiterKey, 1))
+        var attempts = claims.Radio == null ? 1 : 41;
+        var acquired = false;
+        for (var attempt = 0; attempt < attempts; attempt++)
         {
-            _limiter.Release(claims.OwnerKey);
-            throw new MeshStreamLimitException("A radio stream to this host is already active.");
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_limiter.TryAcquire(claims.OwnerKey, MaxConcurrentMeshStreamsPerOwner))
+            {
+                if (hostLimiterKey == null || _limiter.TryAcquire(hostLimiterKey, 1))
+                {
+                    acquired = true;
+                    break;
+                }
+
+                _limiter.Release(claims.OwnerKey);
+            }
+
+            if (attempt + 1 < attempts)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        if (!acquired)
+        {
+            throw new MeshStreamLimitException("Too many concurrent mesh preview streams.");
         }
 
         var pipe = new Pipe(new PipeOptions(
             pauseWriterThreshold: PipePauseWriterThreshold,
             resumeWriterThreshold: PipeResumeWriterThreshold));
 #pragma warning disable CA2000 // Ownership is transferred to ReleaseOnDisposeStream, which disposes it when the HTTP response stream is disposed.
-        var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var replacementSource = claims.Radio == null ? null : new CancellationTokenSource();
+        var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, replacementSource?.Token ?? CancellationToken.None);
 #pragma warning restore CA2000
+
+        if (claims.Radio != null)
+        {
+            lock (_radioReadsLock)
+            {
+                _radioReads[ticket] = replacementSource!;
+                _radioAdmissions[ticket] = claims.ExpiresAtUtc;
+            }
+        }
 
         _ = ProduceAsync(claims, pipe.Writer, cancellationTokenSource.Token, offset);
 
@@ -108,8 +163,18 @@ public sealed class MeshStreamService : IMeshStreamService
             pipe.Reader.AsStream(),
             () =>
             {
-                cancellationTokenSource.Cancel();
-                cancellationTokenSource.Dispose();
+                lock (_radioReadsLock)
+                {
+                    if (_radioReads.TryGetValue(ticket, out var current) && ReferenceEquals(current, replacementSource))
+                    {
+                        _radioReads.Remove(ticket);
+                    }
+
+                    cancellationTokenSource.Cancel();
+                    cancellationTokenSource.Dispose();
+                    replacementSource?.Dispose();
+                }
+
                 _limiter.Release(claims.OwnerKey);
                 if (hostLimiterKey != null)
                 {
@@ -117,7 +182,10 @@ public sealed class MeshStreamService : IMeshStreamService
                 }
             });
 
-        return new MeshStreamLease(stream, claims.ContentType, claims.OwnerKey);
+        return new MeshStreamLease(stream, claims.ContentType, claims.OwnerKey)
+        {
+            Superseded = replacementSource?.Token ?? CancellationToken.None,
+        };
     }
 
     private async Task ProduceAsync(MeshStreamTicket claims, PipeWriter writer, CancellationToken cancellationToken, long offset)

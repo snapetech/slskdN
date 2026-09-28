@@ -262,7 +262,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
             Log.Debug("[DI] Resolving IDhtClient for KademliaRpcClient...");
             var dhtClient = sp.GetRequiredService<VirtualSoulfind.ShadowIndex.IDhtClient>();
             Log.Debug("[DI] All KademliaRpcClient dependencies resolved, creating instance...");
-            var service = new Mesh.Dht.KademliaRpcClient(logger, meshClient, routingTable, dhtClient);
+            var service = new Mesh.Dht.KademliaRpcClient(logger, meshClient, routingTable, dhtClient, sp.GetService<DhtRendezvous.MeshNeighborRegistry>());
             Log.Debug("[DI] KademliaRpcClient constructed");
             return service;
         });

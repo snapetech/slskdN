@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Connected radio discovery
+
+- Retain fairness admission for the lifetime of a short-lived radio ticket so received audio does not make that ticket’s later seeks fail. New tickets still check fairness.
+
+- Cancel the previous producer for the same radio ticket on range replacement, then wait up to two seconds for cancelled reads to release their leases, retaining one active stream per owner and host.
+- Bootstrap an empty mesh DHT routing table on demand through at most three existing outbound neighbors; learn real responder identities and retain seed contacts in lookup results.
+
+### Listen-along subscription authorization
+
+- Require pod membership when joining live playback groups; deny outsiders and banned members while retaining administrator access.
+
 ### Host-scoped remote listed radio
 
 - Add manual local playback tickets pinned to the overlay host, party, content and host capability; check current listing and permission on every host read.

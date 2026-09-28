@@ -145,6 +145,11 @@ public sealed class MeshStreamsController : ControllerBase
                 return NotFound();
             }
 
+            if (lease.Superseded.CanBeCanceled)
+            {
+                Response.RegisterForDispose(lease.Superseded.Register(HttpContext.Abort));
+            }
+
             Response.Headers.CacheControl = "no-store";
             Response.Headers.AcceptRanges = endExclusive.HasValue ? "bytes" : "none";
             if (endExclusive.HasValue)

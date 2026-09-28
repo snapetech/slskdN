@@ -14,4 +14,7 @@ public interface IMeshStreamService
     Task<MeshStreamLease?> OpenAsync(string ticket, CancellationToken cancellationToken);
 }
 
-public sealed record MeshStreamLease(Stream Stream, string ContentType, string OwnerKey);
+public sealed record MeshStreamLease(Stream Stream, string ContentType, string OwnerKey)
+{
+    public CancellationToken Superseded { get; init; }
+}

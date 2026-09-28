@@ -10,6 +10,7 @@ export type NodeConfig = {
   appDir?: string;
   flags?: {
     noConnect?: boolean;
+    radioMesh?: boolean;
   };
   nodeName: string;
   shareDir: string | string[]; // Single dir or array for multiple shares
@@ -455,6 +456,7 @@ feature:
   MeshParallelSearch: true
   MeshPublishAvailability: true
   ScenePodBridge: true
+${this.config.flags?.radioMesh ? '  Mesh: true\n  Dht: true' : ''}
   Swagger: true
 overlay:
   enable: false
@@ -466,6 +468,14 @@ mesh:
   stunServers: []
   peerDescriptorRefresh:
     enableIpChangeDetection: false
+${this.config.flags?.radioMesh ? `dhtRendezvous:
+  enabled: true
+  overlayPort: ${this.soulseekListenPort}
+  dhtPort: ${this.soulseekListenPort}
+  lanOnly: true
+  bootstrapRouters: []
+  minNeighbors: 0
+` : ''}
 flags:
   no_connect: ${this.config.flags?.noConnect ?? process.env.SLSKDN_TEST_NO_CONNECT === 'true'}
 `;
@@ -778,6 +788,10 @@ flags:
   /**
    * Get the app directory path.
    */
+  getOverlayPort(): number {
+    return this.soulseekListenPort;
+  }
+
   getAppDir(): string {
     return this.appDir;
   }

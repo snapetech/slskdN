@@ -13702,3 +13702,20 @@ Completed implementation batch is cleared. Next Steps: verify sustained
 two-backend browser radio, HTTP seek and capability expiry, dual-participant
 room recovery, and remaining player audit rows. The full goal remains active;
 no release tag or deployment was created.
+
+## Connected radio runtime findings — 2026-09-28
+
+Two real isolated nodes connected successfully but radio ticket acquisition failed because their mesh DHT tables were never seeded. On-demand bootstrap now learns real responder identities through existing outbound neighbors; real listener directory lookup passes without interception. Chromium then reproduced 206 for initial playback and 429 for an interior seek while the previous lease unwound. A bounded cancellable two-second handoff preserves single-stream limits. Listen-along group joins now apply the HTTP membership policy. Final browser and source gates remain in progress.
+
+## Connected radio final gates — 2026-09-28
+
+Final source passes 5,224 unit, 74 smoke and 284 integration tests; 986 Web
+tests and 17 browser workflows pass. Repository/Web lint, Release build, CSRF,
+anonymous endpoint, whitespace and identity checks pass. The real two-node
+browser case verifies remote directory discovery and decoded seek progression
+with two successful byte ranges, without intercepted discovery or playback.
+
+Completed source batch is cleared after commit/push. Next Steps: expiry/renewal,
+reciprocal upload accounting and repeated admissions, source replacement, room
+reconnect/revocation and the remaining player quality audit. Overall goal stays
+active; no release tag or deployment is authorized.

@@ -215,10 +215,15 @@ played. Play uses the current track snapshot and its announced position; rejoin
 for later track changes. Temporary URLs are excluded from saved playlists and
 browser refresh recovery.
 
-Remote announcement routing remains incomplete. A relative stream path and host
-permission do not by themselves establish a playable route through another node.
-The picker and controlled-stream recovery are verified; remote-host streaming
-still needs repair and isolated participant checks.
+Remote snapshots use the host-scoped mesh route described below. An empty mesh
+DHT routing table learns responder identities on demand through at most three
+existing outbound overlay neighbors. Directory lookup creates no new peer
+connections. Playback still requires the announced host to be connected.
+
+Joining a live listen-along subscription requires pod membership, just like reading
+the room playback state. Banned members and accounts outside the pod cannot join;
+administrators retain their existing access. This check applies when joining the
+subscription.
 
 A listen-along panel shows connecting/offline state and reports failed room-state
 refreshes. Use **Retry listen-along connection** after startup failure, a closed
@@ -255,3 +260,8 @@ Real loopback TLS checks establish remote byte delivery and host permission
 revocation. They do not establish sustained radio quality across real network
 latencies, physical devices or simultaneous listen-along participants; see
 the [player quality audit](dev/player-quality-audit.md).
+
+Radio seeks retain the fairness admission of their short-lived ticket. A new
+radio ticket still checks the existing fairness policy. Replacing a byte range
+for the same ticket ends its preceding HTTP response; other tickets cannot
+preempt it. One active stream per owner and host remains enforced.

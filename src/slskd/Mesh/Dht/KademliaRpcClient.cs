@@ -3,6 +3,8 @@
 // </copyright>
 using Microsoft.Extensions.Logging;
 using slskd.Mesh;
+using slskd.DhtRendezvous;
+using slskd.DhtRendezvous.Messages;
 using slskd.Mesh.Messages;
 using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.ServiceFabric.Services;
@@ -27,7 +29,7 @@ namespace slskd.Mesh.Dht;
 /// Client for performing Kademlia RPC operations (FIND_NODE, FIND_VALUE, PING).
 /// Implements the iterative lookup algorithm with alpha=3 parallel requests.
 /// </summary>
-public class KademliaRpcClient
+public sealed class KademliaRpcClient : IDisposable
 {
     private const int Alpha = 3; // Number of parallel requests
     private const int K = 20; // Bucket size
@@ -37,17 +39,21 @@ public class KademliaRpcClient
     private readonly IMeshServiceClient _meshClient;
     private readonly KademliaRoutingTable _routingTable;
     private readonly IDhtClient _dhtClient;
+    private readonly MeshNeighborRegistry? _neighbors;
+    private readonly SemaphoreSlim _bootstrapLock = new(1, 1);
 
     public KademliaRpcClient(
         ILogger<KademliaRpcClient> logger,
         IMeshServiceClient meshClient,
         KademliaRoutingTable routingTable,
-        IDhtClient dhtClient)
+        IDhtClient dhtClient,
+        MeshNeighborRegistry? neighbors = null)
     {
         _logger = logger;
         _meshClient = meshClient;
         _routingTable = routingTable;
         _dhtClient = dhtClient;
+        _neighbors = neighbors;
     }
 
     /// <summary>
@@ -61,11 +67,13 @@ public class KademliaRpcClient
         if (targetId.Length != 20)
             throw new ArgumentException("Target ID must be 20 bytes", nameof(targetId));
 
+        await BootstrapConnectedNeighborsAsync(cancellationToken);
+
         // Track contacted peers.
         var visited = new HashSet<string>();
         var candidates = new SortedSet<NodeDistance>(
             _routingTable.GetClosest(targetId, K).Select(n => new NodeDistance(n, targetId)));
-        var closestFound = new SortedSet<NodeDistance>();
+        var closestFound = new SortedSet<NodeDistance>(candidates);
 
         for (int iteration = 0; iteration < MaxIterations && candidates.Any(); iteration++)
         {
@@ -85,7 +93,7 @@ public class KademliaRpcClient
             }
 
             // Contact nodes in parallel
-            var tasks = toContact.Select(node => QueryFindNodeAsync(node.Node, targetId, cancellationToken));
+            var tasks = toContact.Select(node => QueryFindNodeAsync(node.Node.Address, targetId, cancellationToken));
             var results = await Task.WhenAll(tasks);
 
             // Process results
@@ -131,6 +139,8 @@ public class KademliaRpcClient
                 ClosestNodes = Array.Empty<KNode>()
             };
         }
+
+        await BootstrapConnectedNeighborsAsync(cancellationToken);
 
         var visited = new HashSet<string>();
         var candidates = new SortedSet<NodeDistance>(
@@ -263,8 +273,44 @@ public class KademliaRpcClient
         }
     }
 
+    public void Dispose()
+    {
+        _bootstrapLock.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    private async Task BootstrapConnectedNeighborsAsync(CancellationToken cancellationToken)
+    {
+        if (_neighbors == null || _routingTable.GetAllNodes().Count > 0)
+            return;
+
+        await _bootstrapLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (_routingTable.GetAllNodes().Count > 0)
+                return;
+
+            var addresses = _neighbors.GetAllConnections()
+                .Where(connection => connection.IsOutbound && connection.IsConnected && connection.IsHandshakeComplete
+                    && connection.Features.Contains(OverlayFeatures.MeshService, StringComparer.OrdinalIgnoreCase))
+                .Select(connection => connection.Username)
+                .Where(username => !string.IsNullOrWhiteSpace(username))
+                .Distinct(StringComparer.Ordinal)
+                .Take(Alpha);
+            foreach (var address in addresses)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await QueryFindNodeAsync(address!, _routingTable.GetSelfId(), cancellationToken);
+            }
+        }
+        finally
+        {
+            _bootstrapLock.Release();
+        }
+    }
+
     private async Task<KNode[]?> QueryFindNodeAsync(
-        KNode node,
+        string address,
         byte[] targetId,
         CancellationToken cancellationToken)
     {
@@ -284,13 +330,18 @@ public class KademliaRpcClient
                 Payload = JsonSerializer.SerializeToUtf8Bytes(request)
             };
 
-            var reply = await _meshClient.CallAsync(node.Address, call, cancellationToken);
+            var reply = await _meshClient.CallAsync(address, call, cancellationToken);
 
             if (reply.IsSuccess)
             {
                 var response = JsonSerializer.Deserialize<FindNodeResponse>(reply.Payload);
                 if (response?.Nodes != null)
                 {
+                    if (response.ResponderId is { Length: 20 })
+                    {
+                        await _routingTable.TouchAsync(response.ResponderId, address);
+                    }
+
                     // Convert DhtNodeInfo back to KNode
                     return response.Nodes.Select(n => new KNode(
                         n.NodeId,
@@ -302,12 +353,12 @@ public class KademliaRpcClient
             {
                 _logger.LogDebug(
                     "[Kademlia] FIND_NODE query to {Address} failed: {Error}",
-                    node.Address, reply.ErrorMessage);
+                    address, reply.ErrorMessage);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "[Kademlia] FIND_NODE query to {Address} threw exception", node.Address);
+            _logger.LogDebug(ex, "[Kademlia] FIND_NODE query to {Address} threw exception", address);
         }
 
         return null;

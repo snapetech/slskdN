@@ -30,3 +30,24 @@ The transport requires an existing outbound mesh connection and does not
 automatically contact additional peers. Its paced throughput is bounded;
 high bitrate media may buffer. Physical and sustained playback checks remain
 necessary to establish performance beyond controlled transport tests.
+
+## Connected-neighbor discovery — 2026-09-28
+
+A real two-backend browser workflow found that a connected overlay did not seed
+the mesh DHT. Empty routing tables now bootstrap on demand through at most three
+existing outbound neighbors. FIND_NODE responses optionally include the real
+responder node ID, preserving older response compatibility; known seed contacts
+remain in closest-node results. Local values bypass remote bootstrap. This adds
+no periodic discovery sweep and creates no new peer connections.
+
+Native Chromium range replacement can keep the preceding response open. A new
+range cancels the preceding producer for the same ticket, then waits up to two
+seconds for owner/host leases to release. No concurrent stream allowance or
+aggregate read pacing is increased. Different tickets cannot preempt each other.
+
+Fairness is playback admission, rather than a decision repeated for each HTTP
+range. An admitted radio ticket retains its admission only until ticket expiry;
+the cache is bounded by the ticket service's 1,000-ticket limit and expired
+entries are removed on subsequent valid radio opens. New tickets still check
+fairness. Host permission, traffic accounting, concurrency and pacing remain
+active on range reads.
