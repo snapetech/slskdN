@@ -10,6 +10,8 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **The Gotcha**: Radio playback records overlay download bytes, but a source search found no production AddOverlayUploadAsync call sites. Serving audio therefore cannot be assumed to earn fairness credit, and a successful first ticket does not prove repeated playback admission or renewal.
 
+**Implementation boundary**: Credit successful ListedRadio/Read payload bytes after the TLS reply write completes, on both inbound server and outbound connector handlers. Do not credit metadata, denied reads, EOF or failed writes. Counters measure audio payload bytes, excluding framing overhead.
+
 **Prevention**: Validate reciprocal host/listener traffic totals and repeated admissions before claiming fairness lifecycle completion. Keep the accounting repair and expiry/renewal tests on the player audit; do not disable the admission policy to make tests pass.
 
 ### 0z1085. Admit Radio Playback Once Per Short-Lived Ticket
