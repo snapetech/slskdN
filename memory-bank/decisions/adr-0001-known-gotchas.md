@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1088. Remove Withdrawn Remote Listings on a Successful Directory Refresh
+
+**The Bug**: Directory refresh only added or updated announcements. Entries removed from a valid DHT index remained in the local dictionary until their fifteen-minute TTL, even after the host stopped listing them.
+
+**Prevention**: When a valid index is fetched, remove remote cached entries absent from that index. Preserve currently listed local parties so an in-flight index read cannot erase a concurrent local publication. A missing or failed index lookup does not prove withdrawal.
+
 ### 0z1087. Make Manual Radio Refresh Reach the Directory Source
 
 **The Bug**: The listed-radio Refresh button repeated a normal directory GET while the service reused a one-minute cache. Host permission/content changes therefore remained invisible after an explicit refresh.
