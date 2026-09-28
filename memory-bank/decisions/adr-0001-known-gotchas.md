@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1209. Include YAML Delimiters In Release-Note Fragments
+
+**What went wrong:** A new release-note fragment listed all required metadata
+fields but omitted the opening `---` delimiter. The release preview rejected
+the fragment before release validation.
+
+**Why:** The metadata lines looked complete when read as plain text, so the
+fragment was not checked against the parser's full frontmatter format before
+being added.
+
+**Prevention:** Start fragments with `---`, include the required metadata, and
+close the block with `---` before the note text. Run
+`python3 scripts/release_notes.py preview --base <base> --head <head>` before
+starting the release gate.
+
 ### 0z1208. Drain Event-Started Traffic Commits Before Disposing Their Service
 
 **What went wrong:** A transfer event started an asynchronous traffic commit
