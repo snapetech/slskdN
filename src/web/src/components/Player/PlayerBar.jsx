@@ -535,7 +535,7 @@ const PlayerQueueModal = ({
   const [playlists, setPlaylists] = useState([]);
   const [playlistName, setPlaylistName] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState('');
-  const [playlistBusy, setPlaylistBusy] = useState(false);
+  const [playlistBusy, setPlaylistBusy] = useState('');
   const activeRef = useRef(true);
   const similarCandidates = buildSimilarQueueCandidates({
     current,
@@ -559,9 +559,12 @@ const PlayerQueueModal = ({
     if (!open) return undefined;
     let cancelled = false;
     collectionsAPI.getCollections().then((response) => {
-      if (!cancelled) setPlaylists(asArray(response.data).filter((entry) => entry.type === 'Playlist'));
+      if (!cancelled) {
+        const fetched = asArray(response.data).filter((entry) => entry.type === 'Playlist');
+        setPlaylists((existing) => [...fetched, ...existing.filter((entry) => !fetched.some((item) => item.id === entry.id))]);
+      }
     }).catch(() => {
-      if (!cancelled) setPlaylists([]);
+      if (!cancelled) setHandoffStatus('Could not retrieve saved playlists. Close and reopen the queue to retry.');
     });
     return () => { cancelled = true; };
   }, [open]);
@@ -570,7 +573,7 @@ const PlayerQueueModal = ({
     const name = playlistName.trim();
     const items = queue.filter(isSavablePlaylistTrack);
     if (!name || items.length === 0) return;
-    setPlaylistBusy(true);
+    setPlaylistBusy('saving');
     let createdPlaylistId = null;
     try {
       const response = await collectionsAPI.createCollection({ title: name, type: 'Playlist' });
@@ -587,7 +590,7 @@ const PlayerQueueModal = ({
       }
       setPlaylists((existing) => [...existing, response.data]);
       setPlaylistName('');
-      setHandoffStatus(`Saved ${items.length} tracks to ${name}.`);
+      setHandoffStatus(`Saved ${items.length} track${items.length === 1 ? '' : 's'} to ${name}.`);
     } catch {
       if (createdPlaylistId) {
         try {
@@ -599,13 +602,13 @@ const PlayerQueueModal = ({
       }
       setHandoffStatus('Could not save the playlist.');
     } finally {
-      setPlaylistBusy(false);
+      setPlaylistBusy('');
     }
   };
 
   const loadPlaylist = async () => {
     if (!selectedPlaylist) return;
-    setPlaylistBusy(true);
+    setPlaylistBusy('loading');
     try {
       const response = await collectionsAPI.getCollectionItems(selectedPlaylist);
       if (!activeRef.current) return;
@@ -614,12 +617,12 @@ const PlayerQueueModal = ({
         setHandoffStatus('This playlist has no playable tracks.');
       } else {
         onLoadPlaylist(items);
-        setHandoffStatus(`Loaded ${items.length} tracks.`);
+        setHandoffStatus(`Loaded ${items.length} track${items.length === 1 ? '' : 's'}.`);
       }
     } catch {
       if (activeRef.current) setHandoffStatus('Could not load the playlist.');
     } finally {
-      if (activeRef.current) setPlaylistBusy(false);
+      if (activeRef.current) setPlaylistBusy('');
     }
   };
 
@@ -685,20 +688,21 @@ const PlayerQueueModal = ({
             <div className="player-panel-title">Playlists</div>
             <Input
               aria-label="New playlist name"
+              disabled={Boolean(playlistBusy)}
               onChange={(event) => setPlaylistName(event.target.value)}
               placeholder="Name this queue"
               size="small"
               value={playlistName}
             />
             <Popup content="Save the current server library tracks as a new Collection playlist." trigger={
-              <Button disabled={!playlistName.trim() || playlistBusy || !queue.some(isSavablePlaylistTrack)} onClick={savePlaylist} size="small" type="button">Save queue</Button>
+              <Button aria-busy={playlistBusy === 'saving'} disabled={!playlistName.trim() || Boolean(playlistBusy) || !queue.some(isSavablePlaylistTrack)} loading={playlistBusy === 'saving'} onClick={savePlaylist} size="small" type="button">Save queue</Button>
             } />
-            <select aria-label="Saved playlist" onChange={(event) => setSelectedPlaylist(event.target.value)} value={selectedPlaylist}>
+            <select aria-label="Saved playlist" disabled={Boolean(playlistBusy)} onChange={(event) => setSelectedPlaylist(event.target.value)} value={selectedPlaylist}>
               <option value="">Choose playlist</option>
               {playlists.map((playlist) => <option key={playlist.id} value={playlist.id}>{playlist.title}</option>)}
             </select>
             <Popup content="Replace the immediate queue with tracks from this saved playlist." trigger={
-              <Button disabled={!selectedPlaylist || playlistBusy} onClick={loadPlaylist} size="small" type="button">Load</Button>
+              <Button aria-busy={playlistBusy === 'loading'} disabled={!selectedPlaylist || Boolean(playlistBusy)} loading={playlistBusy === 'loading'} onClick={loadPlaylist} size="small" type="button">Load</Button>
             } />
           </section>
           <section>
@@ -827,7 +831,7 @@ const PlayerQueueModal = ({
             )}
           </section>
           {handoffStatus ? (
-            <Message compact size="mini">
+            <Message aria-live="polite" compact role="status" size="mini">
               {handoffStatus}
             </Message>
           ) : null}
@@ -3256,6 +3260,7 @@ const PlayerBar = () => {
       seekbackward: (details) => seekBy(-(details?.seekOffset || 15)),
       seekforward: (details) => seekBy(details?.seekOffset || 30),
       seekto: (details) => seekTo(details?.seekTime),
+      stop: clear,
     };
 
     Object.entries(handlers).forEach(([action, handler]) => {
@@ -3275,7 +3280,7 @@ const PlayerBar = () => {
         }
       });
     };
-  }, [current, next, pausePlayback, previousTrack, seekBy, seekTo, tryPlay]);
+  }, [clear, current, next, pausePlayback, previousTrack, seekBy, seekTo, tryPlay]);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;

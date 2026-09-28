@@ -5147,3 +5147,12 @@
   - Notes: Picker-page registration enables immediate distinct-file resolution,
     with blocked content and removed roots rejected. Real Chromium verifies
     both direct switching and Files -> Play Next -> Next playback.
+
+## Player playlists, recovery and browser controls — 2026-09-28 00:44:55Z
+
+- [x] Checkpoint live server playback position when a tab hides or leaves without progress-driven storage writes.
+- [x] Restart restored history and repeat-all entries from zero during explicit queue navigation.
+- [x] Preserve successful playlist saves across late list success/failure, report retrieval failures and show save/load progress with stable fields.
+- [x] Verify saved playlists and repeated server/local entries against real browser audio and an isolated backend.
+- [x] Register and verify browser Media Session Stop; exercise metadata, Play/Pause, seeking and Previous/Next with real media playback.
+- [ ] Complete remaining player runtime coverage: output routing, listen-along reconnect/radio, actual Picture-in-Picture, analyzer idle behavior, total-process memory and physical mobile checks. Overall player overhaul stays active.

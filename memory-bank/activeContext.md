@@ -14498,3 +14498,13 @@ Current task: pending seek/remount intent and Picture-in-Picture fixes, with foc
 ## Player lifecycle completion — 2026-09-27T23:30:37Z
 
 Pushed `25a058f3f` to fork `main`. Final full Web rerun: 959/959 tests across 164 files; eight new regression cases cover pending seeks, Pause, remount, source retry, ticket renewal, Media Session clear, and Picture-in-Picture lifecycle/error handling. Web/repository lint, build, bundle budget, release preview, whitespace and identity checks passed. Source batch complete; overall player goal remains active. Next Steps: establish isolated real-browser playback evidence for desktop/mobile layouts, native/decoded audio, crossfade, outputs, session/playlist workflows and idle resource use. In-app browser execution tool is unavailable; evaluate supported browser fallback. No release tag created.
+
+## Player playlists, recovery and browser controls — 2026-09-28 00:44:55Z
+
+Current task: complete and push the verified playlist/session/Media Session batch. Twelve real-browser workflows and 969 Web regressions pass; backend solution and lint/build gates pass. Final browser rerun includes all Chromium-process CPU recording. Separate gotcha commits document every reproduced fix.
+
+Next Steps: finish release preview and push this batch to the verified fork, then continue output routing, listen-along reconnect/radio, actual Picture-in-Picture, analyzer idle behavior, total-process memory and physical mobile coverage. The broader player overhaul remains active; no release tag or deployment is authorized.
+
+### Final runtime evidence — 2026-09-28 00:45:16Z
+
+Final browser rerun: 12/12 workflows pass. Chromium CPU sample across five surviving processes: 2.80% of one core playing and 4.00% paused over five seconds each. One process exited during the playing interval, so its CPU delta is excluded; the paused sample retained all five processes. Renderer work was 0.50% / 0.86%, JS heap 10.32 / 9.36 MiB, and native playback created zero AudioContexts. These short headless samples do not establish physical-device behavior or total-process memory. Investigate longer idle measurements in the remaining resource audit.

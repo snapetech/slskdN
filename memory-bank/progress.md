@@ -13617,3 +13617,13 @@ Explicit native server retries now renew the two-minute stream ticket through th
   0.51% paused, JS heap 10.79 / 9.93 MiB and zero AudioContexts. Full browser
   process and physical-device resource use remain outside this evidence.
 - The broader player goal remains active; the completed batch task is cleared.
+
+## Player playlists, recovery and browser controls — 2026-09-28 00:44:55Z
+
+Real playback found a lost refresh position and restored history retaining initial offset/paused intent. Lifecycle checkpoints now preserve live position without continuous storage writes; queue navigation resets initial intent. Deferred list-response regressions found a newly saved playlist being discarded; merging preserves saves and failures are visible. Save/load fields show progress and remain stable until completion.
+
+A Chromium runtime check passed metadata, transport and seek actions but exposed missing Media Session Stop. Stop now uses toolbar clear. Twelve browser workflows passed after these fixes; the resource recorder is being expanded from renderer-only work to CPU samples across Chromium processes. Full Web suite passes 969 tests across 164 files; backend solution passes 74 smoke, 5,185 unit and 284 integration tests. Web/repository lint, production build, bundle budget, build-output and identity checks pass. Final resource rerun, release preview and commit/push remain in progress; the full goal stays active.
+
+### Final runtime evidence — 2026-09-28 00:45:16Z
+
+Final browser rerun: 12/12 workflows pass. Chromium CPU sample across five surviving processes: 2.80% of one core playing and 4.00% paused over five seconds each. One process exited during the playing interval, so its CPU delta is excluded; the paused sample retained all five processes. Renderer work was 0.50% / 0.86%, JS heap 10.32 / 9.36 MiB, and native playback created zero AudioContexts. These short headless samples do not establish physical-device behavior or total-process memory. Investigate longer idle measurements in the remaining resource audit.

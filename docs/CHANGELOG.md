@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Player playlist and recovery polish
+
+- Register browser Media Session Stop and verify metadata, transport, seeking and queue actions with real audio.
+
+- Preserve the latest server-track position when a tab hides or leaves, without progress-driven storage writes; restart replayed queue entries from zero during navigation.
+- Preserve newly saved playlists when the initial list arrives late, report list retrieval failures, and show save/load progress while keeping operation fields stable.
+- Add real-browser saved-playlist, duplicate-entry, refresh-position and history-navigation regressions against an isolated backend.
+
 - Play Next, bulk additions and restored queues normalize filename-only library
   metadata, so active tracks retain their title and artist in the transport.
 

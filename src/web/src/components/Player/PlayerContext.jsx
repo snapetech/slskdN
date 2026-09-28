@@ -112,12 +112,26 @@ export const PlayerProvider = ({ children }) => {
   }, [current]);
 
   useEffect(() => {
-    setSessionStorageItem(sessionKey, JSON.stringify({
-      queue: queue.filter(isRestorableItem),
-      repeatMode,
-      shuffle,
-    }));
-  }, [queue, repeatMode, shuffle]);
+    const saveSession = () => {
+      setSessionStorageItem(sessionKey, JSON.stringify({
+        queue: queue.filter(isRestorableItem).map((item) => item === current
+          ? { ...item, positionSeconds: playbackPositionRef.current }
+          : item),
+        repeatMode,
+        shuffle,
+      }));
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') saveSession();
+    };
+    saveSession();
+    window.addEventListener('pagehide', saveSession);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('pagehide', saveSession);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [current, queue, repeatMode, shuffle]);
 
   const playItem = useCallback(
     (item, options = {}) => {
@@ -254,13 +268,14 @@ export const PlayerProvider = ({ children }) => {
     setPlayback((existing) => {
       if (existing.queue.length < 2) {
         if (repeatMode === 'all' && existing.history.length > 0) {
-          const [nextItem, ...remaining] = [...existing.history].reverse().concat(existing.queue);
+          const [item, ...remaining] = [...existing.history].reverse().concat(existing.queue);
+          const nextItem = { ...item, positionSeconds: 0, startPaused: false };
           return { current: nextItem, history: [], queue: [nextItem, ...remaining] };
         }
         return existing;
       }
       const nextIndex = shuffle ? 1 + Math.floor(random * (existing.queue.length - 1)) : 1;
-      const nextItem = existing.queue[nextIndex];
+      const nextItem = { ...existing.queue[nextIndex], positionSeconds: 0, startPaused: false };
       const remaining = existing.queue.slice(1).filter((_, index) => index + 1 !== nextIndex);
       return {
         current: nextItem,
@@ -283,7 +298,8 @@ export const PlayerProvider = ({ children }) => {
 
     setPlayback((existing) => {
       if (existing.history.length === 0) return existing;
-      const [previousItem, ...remainingHistory] = existing.history;
+      const [item, ...remainingHistory] = existing.history;
+      const previousItem = { ...item, positionSeconds: 0, startPaused: false };
       return {
         current: previousItem,
         history: remainingHistory,

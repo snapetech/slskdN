@@ -18,6 +18,9 @@ vi.mock('../../lib/nowPlaying', () => ({
 }));
 
 vi.mock('../../lib/collections', () => ({
+  createCollection: vi.fn(() => Promise.resolve({ data: { id: 'playlist-created', title: 'Saved queue', type: 'Playlist' } })),
+  addCollectionItem: vi.fn(() => Promise.resolve({ data: { id: 'playlist-item' } })),
+  deleteCollection: vi.fn(() => Promise.resolve({})),
   browseLibraryItems: vi.fn(({ path = '', query = '' } = {}) => {
     if (query) {
       return Promise.resolve({
@@ -347,6 +350,78 @@ describe('PlayerBar', () => {
     fireEvent.loadedMetadata(audio);
     expect(audio.currentTime).toBe(12);
     expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+  });
+
+  it('checkpoints playback on page hide without progress-driven session writes', async () => {
+    const storage = vi.spyOn(Storage.prototype, 'setItem');
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    const writes = () => storage.mock.calls.filter(([key]) => key === 'slskdn.player.session.v1').length;
+    const before = writes();
+    for (let second = 1; second <= 12; second++) {
+      audio.currentTime = second;
+      fireEvent.timeUpdate(audio);
+    }
+    expect(writes()).toBe(before);
+    fireEvent(window, new Event('pagehide'));
+    expect(JSON.parse(sessionStorage.getItem('slskdn.player.session.v1')).queue[0].positionSeconds).toBe(12);
+    expect(writes()).toBe(before + 1);
+    storage.mockRestore();
+  });
+
+  it.each([false, true])('preserves a newly saved playlist when the initial list settles late (failure: %s)', async (failure) => {
+    let finishList;
+    let failList;
+    collectionsAPI.getCollections.mockImplementationOnce(() => new Promise((resolve, reject) => { finishList = resolve; failList = reject; }));
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    fireEvent.click(screen.getByTestId('player-open-queue'));
+    fireEvent.change(screen.getByLabelText('New playlist name'), { target: { value: 'Saved queue' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save queue' }));
+    expect(await screen.findByText('Saved 1 track to Saved queue.')).toBeInTheDocument();
+    if (failure) {
+      await act(async () => failList(new Error('List unavailable')));
+    } else {
+      await act(async () => finishList({ data: [{ id: 'older-playlist', title: 'Older playlist', type: 'Playlist' }] }));
+    }
+    const selected = screen.getByLabelText('Saved playlist');
+    expect(selected.querySelector('option[value="playlist-created"]')).toHaveTextContent('Saved queue');
+    expect(screen.getByRole('status')).toHaveTextContent(failure ? 'Could not retrieve saved playlists.' : 'Saved 1 track to Saved queue.');
+    expect(Array.from(selected.options).map((option) => option.value)).toEqual(failure
+      ? ['', 'playlist-created']
+      : ['', 'older-playlist', 'playlist-created']);
+  });
+
+  it('shows playlist operation progress and keeps fields stable until completion', async () => {
+    let finishSave;
+    collectionsAPI.createCollection.mockImplementationOnce(() => new Promise((resolve) => { finishSave = resolve; }));
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    fireEvent.click(screen.getByTestId('player-open-queue'));
+    const name = screen.getByLabelText('New playlist name');
+    const selected = screen.getByLabelText('Saved playlist');
+    fireEvent.change(name, { target: { value: 'Saved queue' } });
+    const save = screen.getByRole('button', { name: 'Save queue' });
+    fireEvent.click(save);
+    expect(save).toHaveAttribute('aria-busy', 'true');
+    expect(name).toBeDisabled();
+    expect(selected).toBeDisabled();
+    await act(async () => finishSave({ data: { id: 'playlist-created', title: 'Saved queue', type: 'Playlist' } }));
+    expect(await screen.findByText('Saved 1 track to Saved queue.')).toBeInTheDocument();
+    expect(selected).toBeEnabled();
+    fireEvent.change(selected, { target: { value: 'playlist-created' } });
+    let finishLoad;
+    collectionsAPI.getCollectionItems.mockImplementationOnce(() => new Promise((resolve) => { finishLoad = resolve; }));
+    const load = screen.getByRole('button', { name: 'Load', exact: true });
+    fireEvent.click(load);
+    expect(load).toHaveAttribute('aria-busy', 'true');
+    expect(selected).toBeDisabled();
+    await act(async () => finishLoad({ data: [{ contentId: 'sha256:loaded', fileName: 'Loaded filename.wav' }] }));
+    await waitFor(() => expect(document.querySelector('.player-title')).toHaveTextContent('Loaded filename.wav'));
+    expect(load).toHaveAttribute('aria-busy', 'false');
+    expect(selected).toBeEnabled();
   });
 
   it('offers on-demand decoding after a server audio error', async () => {

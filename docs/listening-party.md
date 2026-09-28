@@ -77,9 +77,9 @@ Controls include:
 
 - A compact bar with play/pause, previous/next, elapsed and remaining time, seek, volume, and queue access.
 - An expanded view with stop, rewind/fast-forward, playback speed, shuffle, repeat off/all/one, and additional tools behind **Show player tools**.
-- Queue reorder and Play Next from the player's library browsers. The immediate queue and selected track survive a browser refresh in session storage but do not autoplay; saved playlists use Collections.
+- Queue reorder and Play Next from the player's library browsers. The immediate queue, selected track and latest playback position survive a browser refresh in session storage but do not autoplay; saved playlists use Collections. Position is checkpointed when the tab hides or leaves. Previous and Next start the selected queue occurrence from the beginning.
 - Browser-local files and listen-along or listed-radio streams with short-lived URLs stay in the live queue but are not restored after a refresh. Remaining server-library tracks can request fresh stream tickets.
-- Saving the queue to a Collection playlist also omits temporary radio streams and browser-local files, because those URLs cannot be replayed from a saved content ID.
+- Saving the queue to a Collection playlist also omits temporary radio streams and browser-local files, because those URLs cannot be replayed from a saved content ID. Save and Load show progress and temporarily disable playlist fields until the operation finishes. A playlist saved while the list is still loading remains available.
 - Clear Upcoming removes future tracks while preserving played history for Previous and repeat-all.
 - Browser-local mute. This mutes only the current browser or installed PWA; it does not stop the stream or mute other listeners.
 - Browser Media Session metadata and transport handlers for supported mobile/PWA lock-screen controls.
@@ -199,3 +199,5 @@ until input settles. The old media request is aborted before replacement,
 and seeking while paused keeps playback paused.
 
 Play Next and bulk queue additions use the same title, artist and artwork defaults as direct Play, including filename-only library items and restored sessions.
+
+Browser media controls support Play, Pause, Stop, Previous, Next and seeking where the browser exposes those actions. Stop clears the current media metadata and position as well as the playback source.
