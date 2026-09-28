@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1156. Keep Never-Listed Room Playback Independent of the Directory
+
+**The Bug**: The initial directory-withdrawal fix performed an index read/write for every private playback event. Existing membership regressions exposed the new dependency on directory data even though those rooms had never published a listing.
+
+**Prevention**: Write the index for a listed publication or a pending withdrawal. Do not create withdrawal markers or DHT traffic for ordinary events in a never-listed room. Keep prior failed withdrawals available for explicit retry, and preserve private-room authorization regressions.
+
 ### 0z1155. Withdraw the Previous Room Listing on Unlist, Replacement and Stop
 
 **The Bug**: Three service regressions reproduced stale directory entries after unlisting, replacing a party ID, or stopping with a different supplied ID. Cleanup only removed the Stop request's ID; accepted room state changed without retracting the previous announcement. A refresh already reading old DHT data could also restore withdrawn metadata.
