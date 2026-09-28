@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1070. Reuse the Existing Browser Audio Fixture Generator
+
+**The Bug**: Updating the radio browser route referenced an undeclared audioBytes variable although the fixture exposes makeTone(). The obsolete direct-stream route also remained beside the new ticketed route.
+
+**Files Affected**:
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Inspect and reuse the current fixture generator when changing transport routes; remove obsolete interception and run frontend lint/type checks before browser validation.
+
 ### 0z1069. Qualify Application Options in Mesh Services
 
 **The Bug**: The new radio mesh service resolved Options to the Microsoft.Extensions.Options static helper instead of the application's configuration type, causing CS0718.
