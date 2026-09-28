@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1131. Choose Icons Present in the Bundled Semantic UI Font
+
+**The Bug**: The compact radio-directory button used broadcast tower, which has no glyph in the bundled Semantic UI icon overrides. Mobile screenshots showed a blank control despite its accessible name and popup.
+
+**Prevention**: Use the supported globe glyph and check actual computed pseudo-element content for every room control. JSX icon names and accessible labels do not establish a visible icon. Keep touch bounds and screenshot checks alongside rendered-glyph assertions.
+
 ### 0z1130. Isolate DHT Explicitly in Offline Runtime Fixtures
 
 **The Bug**: no_connect disabled Soulseek but left public DHT defaults active in non-radio browser fixtures. Retained startup logs proved public bootstrap, discovered nodes and announcements during supposedly isolated player validation.
