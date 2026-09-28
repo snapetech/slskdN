@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1109. Resolve Retained Browser Fixture Paths Before Spawning Nodes
+
+**The Bug**: A relative SLSKDN_TEST_ARTIFACTS_DIR created the fixture at the intended runner-relative location, but child processes used that same relative path as both working directory and config argument. Startup resolved the config below the working directory again and exited before HTTP readiness.
+
+**Prevention**: Resolve the configured artifact base to an absolute path before constructing app directories or spawn arguments. Preserve logs for diagnostic reruns and distinguish fixture startup failure from the playback defect being investigated.
+
 ### 0z1108. Read Radio Metadata Contracts and Freeze Compilation Inputs
 
 **The Bug**: A new fixture assumed ListedRadioMetadata included content type, but its positional contract contains only filename and length. Editing the controller dependency contract during an in-flight build also produced tests compiled against an older controller assembly.
