@@ -27,6 +27,14 @@ authorization changes. Runtime access remains admin-only.
 
 **Evidence boundary**: The browser proved that the audio element resumed and its current time advanced while the graph ended suspended. Physical audible output was not measured.
 
+### 0z1186. Hold Only the Intended Audio Transition in Browser Tests
+
+**The Bug**: A race regression replaced `AudioContext.suspend()` with a promise held on every call. The final Pause hit the same hold and never completed. An earlier assertion also expected media time to advance before releasing the held Pause, which contradicted the corrected behavior where Play waits for graph resumption.
+
+**Why**: The test intercepted the whole method instead of one selected transition, then encoded the old race's broken ordering as its expected intermediate state.
+
+**Prevention**: Save the native method, intercept exactly the intended call, and delegate every later call to the saved method. While the native transition is held, assert the player remains in Loading with media paused; release the gate before asserting playback advances and the graph is running.
+
 ### 0z1183. Accept Numeric MusicBrainz Track Positions
 
 **The Bug**: MusicBrainz returned a numeric token for `media[].tracks[].position`,
