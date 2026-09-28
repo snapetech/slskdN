@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1175. Type Audio Locators in the Host Browser Specification
+
+**The Bug**: Extending the explicit TypeScript gate to the host workflow exposed existing and new locator callbacks that accessed paused/currentTime on Playwright's generic SVGElement-or-HTMLElement array. Runtime execution alone had not caught the type errors.
+
+**Prevention**: Cast arrays selected from audio locators to HTMLAudioElement[] at the DOM boundary, as in the main player and resource specifications. Include the modified host spec in the explicit type gate; do not weaken DOM types or suppress the errors. This repeats the audio-boundary requirement recorded in 0z1164.
+
 ### 0z1174. Recheck Process Identity After Reading Memory
 
 **The Bug**: The new OS-tree collector used start time to guard CPU deltas but trusted a later PSS read by PID alone. A deterministic negative case replaced the process identity during memory sampling; the collector incorrectly charged the replacement process's memory.
