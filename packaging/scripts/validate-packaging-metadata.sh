@@ -166,6 +166,10 @@ CLOUDRON_STABLE_VERSION="$(extract_release_from_formula Formula/slskdn.rb)"
 if [[ "$CLOUDRON_IMAGE" != "docker.io/snapetech/slskdn:${CLOUDRON_STABLE_VERSION}" ]]; then
   fail "Cloudron image ${CLOUDRON_IMAGE} does not match stable image version ${CLOUDRON_STABLE_VERSION}"
 fi
+CLOUDRON_DOCKERFILE_IMAGE="$(awk '$1 == "FROM" { print $2; exit }' packaging/cloudron/Dockerfile)"
+if [[ "$CLOUDRON_DOCKERFILE_IMAGE" != "$CLOUDRON_IMAGE" ]]; then
+  fail "Cloudron Dockerfile image ${CLOUDRON_DOCKERFILE_IMAGE} does not match catalog image ${CLOUDRON_IMAGE}"
+fi
 if ! jq -e --arg version "$CLOUDRON_VERSION" '
   .versions[$version] as $entry
   | $entry.manifest as $manifest
