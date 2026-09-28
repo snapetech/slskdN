@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1198. Assert Existing Overlay Links by Status, Not Connect Result
+
+**What went wrong:** A radio-network test required the overlay connect response
+to say `connected:true`. In the full file, the preceding test had already
+connected the same harness nodes, so the duplicate request correctly returned
+`connected:false` with one active connection.
+
+**Why:** Multi-node E2E nodes live for the full test file; their peer state
+survives between tests, and connect reports whether it created a connection.
+
+**Prevention:** Assert the reported active peer count and both nodes' mesh
+status. A false `connected` result is valid when the requested link is already
+active; isolated tests still fail if no active link exists.
+
 ### 0z1197. Reject Empty Strings When Testing Capabilities
 
 **What went wrong:** The soak's `expect.any(String)` matcher accepted an empty
