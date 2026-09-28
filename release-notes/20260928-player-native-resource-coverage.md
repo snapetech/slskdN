@@ -5,4 +5,4 @@ area: validation
 action: none
 breaking: false
 ---
-Native player resource validation uses disk-file input and records browser version, input size, DOM counters and explicit measurement scope. Linux reports distinguish CDP-enumerated processes from the owned OS process tree, including zygotes, PID reuse, process churn and unavailable reads. Earlier CDP totals retain their values with corrected coverage documentation. Application playback configuration is unchanged.
+Native resource validation uses disk-file input and records browser/input metadata and DOM counters. Linux reports distinguish CDP totals from the observed OS tree, including zygotes, PID reuse, churn and unavailable reads. Earlier totals keep their values with corrected scope documentation. Playback configuration is unchanged.
