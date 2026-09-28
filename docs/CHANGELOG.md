@@ -22,7 +22,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-## [2026092822-slskdn.329] — 2026-09-28
+## [2026092823-slskdn.329] — 2026-09-28
 
 ### Radio fairness accounting
 
