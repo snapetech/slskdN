@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1196. Match Library Browser Items by `fileName`
+
+**What went wrong:** A radio soak fixture waited for a `name` property on
+`/library/items/browser` results and timed out before playback began.
+
+**Why:** `LibraryItemResponse` serializes its filename field as `fileName`;
+existing radio tests only read `contentId`, so an assumed property name was not
+caught by their coverage.
+
+**Prevention:** Use the library response contract (`fileName`, `contentId`) or
+inspect the API DTO before adding E2E fixture filters. Type fixture objects from
+the response contract instead of introducing a parallel shape.
+
 ### 0z1195. Keep Cloudron Stable Image Metadata Current Before Tagging
 
 **What went wrong:** The release gate rejected a new stable build because the
