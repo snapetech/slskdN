@@ -6,6 +6,17 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1045. Abort And Coalesce Decoded Stream Replacement
+
+**The Bug**: Real AIFF browser playback exposed repeated 429 responses during keyboard seek bursts. Pausing an audio element and clearing React source state did not abort its existing media fetch, so the previous FFmpeg request retained the per-user decode slot while replacement requests started.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Remove the old media src and call load to abort transport before replacement. Keep the requested timeline eager, but coalesce rapid decode setup requests and discard stale generations before ticket/metadata calls. Preserve the latest Pause/Play intent and cancel delayed work on unmount. Verify real FFmpeg playback and seek bursts without weakening concurrency limits.
+
 ### 0z1044. Keep Audio Discovery Aligned With Decoding Support
 
 **The Bug**: Streaming recognized AIFF, ALAC and WMA as audio and could offer FFmpeg decoding, but library media-kind classification hid them from the Audio-only player picker. Supported server files were therefore unreachable through the normal workflow.
