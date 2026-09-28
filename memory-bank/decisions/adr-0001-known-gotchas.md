@@ -120,6 +120,20 @@ command, or use the `pnpm test:e2e` lifecycle that rebuilds automatically.
 Confirm that the harness receives the new asset bundle before attributing a
 browser regression to unchanged source.
 
+### 0z1217. Provide FFmpeg To Containerized Player E2E Runs
+
+**What went wrong:** A WebKit E2E run moved into the official browser image and
+failed before the browser test began with `spawn ffmpeg ENOENT`.
+
+**Why:** The player fixture setup invokes the system `ffmpeg` command to create
+server AIFF media. The Playwright browser image contains the browser runtime
+but does not guarantee that this application test dependency is on `PATH`.
+
+**Prevention:** Make `ffmpeg` available inside the E2E runtime when moving the
+browser test into a container. Mount the known compatible binary or install
+the package, then verify fixture generation before interpreting any browser
+result. Keep the server AIFF decode workflow in the cross-browser suite.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
