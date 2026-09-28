@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1061. Verify Reachable Entry Points for Listed Radio
+
+**The Bug**: Listed-radio playback was implemented in the full listen-along panel, but the only application placement rendered compact mode. No reachable player control opened the directory.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/components/Player/RadioDirectory.jsx`
+
+**Prevention**: Provide a player entry point independent of an active track. Load the directory on explicit opening/manual refresh, label metadata-only broadcasts, and require an enabled stream path before playback. Verify the actual user navigation rather than only an unused component.
+
 ### 0z1060. Offer Recovery After Listen-Along Startup Failure
 
 **The Bug**: Listen-along's initial hub start failure left the panel offline with no retry control. SignalR automatic reconnect does not cover initial startup failure, and exhausted reconnect or failed room rejoin also left no recovery action.
