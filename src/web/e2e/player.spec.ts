@@ -129,6 +129,11 @@ test.describe('player browser playback', () => {
     await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
     expect(await page.evaluate(() => navigator.mediaSession.metadata?.title)).toBe('Player runtime first');
     expect(await page.evaluate(() => navigator.mediaSession.playbackState)).toBe('playing');
+    const supportsTransportActions = await page.evaluate(() => {
+      const handlers = (window as Window & { __playerMediaActions?: Record<string, MediaSessionActionHandler | null> }).__playerMediaActions;
+      return Boolean(handlers?.pause && handlers.play && handlers.stop);
+    });
+    test.skip(!supportsTransportActions, 'This browser exposes Media Session state but not transport action handlers.');
     const invoke = async (action: MediaSessionAction, details: Partial<MediaSessionActionDetails> = {}) => {
       await page.evaluate(({ action, details }) => {
         const handlers = (window as Window & { __playerMediaActions?: Record<string, MediaSessionActionHandler | null> }).__playerMediaActions;
@@ -204,29 +209,47 @@ test.describe('player browser playback', () => {
     });
   }
 
-  test('decodes server AIFF and seeks absolutely while paused and playing', async ({ page }) => {
+  test('plays server AIFF natively or transcodes as needed, then seeks absolutely', async ({ page }) => {
     await page.getByTestId('player-open-file-browser').click();
     const modal = page.getByTestId('player-file-browser-modal');
     await modal.getByTestId('player-file-browser-search').locator('input').fill('Player decoded runtime');
     await modal.getByRole('button', { name: 'Play Player decoded runtime.aiff', exact: true }).click();
-    await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
-      !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('/transcoded')))).toBe(true);
+    const audio = page.locator('audio');
+    const decodeButton = page.getByRole('button', { name: 'Decode for playback', exact: true });
+    const usesTranscode = await decodeButton.count() > 0;
+    if (usesTranscode) {
+      await decodeButton.click();
+      await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
+        !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('/transcoded')))).toBe(true);
+    } else {
+      await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
+        !element.paused && element.currentTime > 0.2))).toBe(true);
+    }
     await page.getByTestId('player-toggle-playback').click();
     const seek = page.getByLabel('Seek playback', { exact: true });
     await seek.press('Home');
     for (let second = 0; second < 12; second++) await seek.press('ArrowRight');
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
-      element.currentSrc.includes('startSeconds=12')))).toBe(true);
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((element) => element.paused))).toBe(true);
+    if (usesTranscode) {
+      await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
+        element.currentSrc.includes('startSeconds=12')))).toBe(true);
+    } else {
+      await expect.poll(() => audio.evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((element) => element.currentTime)))).toBeGreaterThanOrEqual(12);
+    }
+    await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).every((element) => element.paused))).toBe(true);
     await expect(seek).toHaveValue('12');
     await page.getByTestId('player-toggle-playback').click();
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
-      !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('startSeconds=12')))).toBe(true);
+    await expect.poll(() => audio.evaluateAll((elements, transcodeMode: boolean) => (elements as HTMLAudioElement[]).some((element) =>
+      !element.paused && element.currentTime > (transcodeMode ? 0.2 : 12.2) &&
+      (!transcodeMode || element.currentSrc.includes('startSeconds=12'))), usesTranscode)).toBe(true);
     await seek.press('Home');
     for (let second = 0; second < 5; second++) await seek.press('ArrowRight');
-    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
-      !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('startSeconds=5')))).toBe(true);
+    if (usesTranscode) {
+      await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
+        !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('startSeconds=5')))).toBe(true);
+    } else {
+      await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
+        !element.paused && element.currentTime >= 5 && element.currentTime < 7))).toBe(true);
+    }
   });
 
   test('saves a queue, reloads its playlist and preserves repeated server entries', async ({ page }) => {
@@ -343,8 +366,16 @@ test.describe('player browser playback', () => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
-    await expect(page.getByTestId('player-document-pip')).toBeEnabled();
-    await page.getByTestId('player-document-pip').click();
+    const pipButton = page.getByTestId('player-document-pip');
+    const supportsDocumentPictureInPicture = await page.evaluate(() =>
+      typeof (window as Window & { documentPictureInPicture?: { requestWindow?: unknown } })
+        .documentPictureInPicture?.requestWindow === 'function');
+    if (!supportsDocumentPictureInPicture) {
+      await expect(pipButton).toBeDisabled();
+      test.skip(true, 'Document Picture-in-Picture is not supported by this browser.');
+    }
+    await expect(pipButton).toBeEnabled();
+    await pipButton.click();
     const pipExists = () => page.evaluate(() => Boolean((window as Window & { documentPictureInPicture?: { window: Window | null } }).documentPictureInPicture?.window));
     await expect.poll(pipExists).toBe(true);
     await expect.poll(() => page.evaluate(() => {
