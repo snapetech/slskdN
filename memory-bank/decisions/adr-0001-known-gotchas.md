@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1111. Update the Canonical Changelog Before Source Commits
+
+**The Bug**: A player batch updated the root CHANGELOG.md but the commit hook requires a new Unreleased entry in docs/CHANGELOG.md. The hook correctly rejected the source commit before any push.
+
+**Prevention**: Read the current canonical changelog and hook contract before staging release-worthy work. Match the actual Unreleased heading, keep the release fragment, and validate the canonical entry. When documenting a rejection with source already staged, use an isolated path-only documentation commit.
+
 ### 0z1110. Distinguish Radio Transport Evidence from Valid Room Publication
 
 **The Gotcha**: The radio transport fixture uses synthetic room identifiers. Real node logs reject its pod ID during message storage, while local publication and radio discovery still succeed. PublishAsync ignores the storage boolean and only logs a routing failure, so an HTTP success does not prove durable or distributed room delivery. The overlay dispatcher also lacks a pod_message receiver.
