@@ -10,7 +10,9 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **The Bug**: Real two-backend Chromium playback returned 206 for bytes=0- and then 429 for an interior seek. The browser replaces its HTTP range while the cancelled previous response is still unwinding, so immediate per-owner/per-host rejection made seeking fail.
 
-**Prevention**: For radio only, briefly wait for the previous owner and host leases to release, using cancellable bounded retries and rolling back partial reservations. Keep one active stream per owner and host, preserve existing pacing, and verify interior seek with real HTTP/TLS playback. Requests that remain in conflict still receive a limit error.
+**Follow-up Evidence**: A two-second wait alone still returned 429: Chromium kept the old range response open while requesting the new range.
+
+**Prevention**: Cancel the previous producer for the same radio ticket when replacing its range, then briefly wait for the previous owner and host leases to release, using cancellable bounded retries and rolling back partial reservations. Keep one active stream per owner and host, preserve existing pacing, and verify interior seek with real HTTP/TLS playback. Requests that remain in conflict still receive a limit error.
 
 ### 0z1083. Seek Within the Track When Testing Continued Playback
 
