@@ -73,6 +73,21 @@ contracts.
 status before parsing. Use 204 only for assertions that deliberately expect an
 empty response body.
 
+### 0z1204. Do Not Treat Local Path Content IDs As Cross-Node Identity
+
+**What went wrong:** The two-node follow test used identical media bytes but
+received different `path:` content IDs. The IDs are derived from each local
+absolute path and file size, so the listener cannot resolve the host's ID when
+the files live at different paths.
+
+**Why:** Local stream registration deliberately uses a machine-local path
+identity when no portable content hash is available.
+
+**Prevention:** Cross-node playback tests must use a stable content identity,
+such as a verified SHA-256 ID. Do not assume equal filenames, sizes or bytes
+make path-based IDs portable; keep path-only playback local or provide an
+explicit host-stream path.
+
 ### 0z1199. Assert Mesh Reply Payloads Against Their Wire Contract
 
 **What went wrong:** The new `ApplyListenAlong` service returned success, but
