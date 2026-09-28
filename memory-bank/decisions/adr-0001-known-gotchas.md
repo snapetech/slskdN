@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1116. Charge Mesh Message Quota Only After Receiving a Frame
+
+**The Bug**: The inbound mesh loop charged message quota before waiting for the next frame. After ten permitted messages it immediately charged an eleventh pending read and disconnected an otherwise idle connection. A real TLS negative test received ten valid Pong replies but observed the server connection removed; the eleven-frame rejection case already passed.
+
+**Prevention**: Apply the unchanged quota after reading an actual frame and before dispatch. Verify that exactly ten messages retain the connection while eleven in the same window are rejected. Pending reads and idle waiting are not received messages.
+
 ### 0z1115. Accept Timestamp Duplicates Only When Their Metadata Matches
 
 **The Bug**: SQLite message storage returned success for any matching pod/channel/sender/timestamp key, even with a different body, signature or signature version. Three real SQLite negative cases reproduced silently accepted conflicts. New storage rows also omitted the supplied signature version.
