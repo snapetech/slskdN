@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1118. Apply Pod Permission Rules at Every Mesh Service Entry
+
+**The Bug**: Twenty-three negative service-adapter regressions reproduced caller-selected elevated join roles, private/approval admission, private metadata/list leakage, history reads and posting dispatched without membership, and empty transport identities accepted. Stream history reads bypassed membership too. Existing successful fixtures mocked messaging acceptance and therefore did not establish permission checks.
+
+**Prevention**: Bind authority to the authenticated transport context, grant only the member role to fresh remote joins, preserve existing approved membership, and enforce private/approval rules. Require current non-banned membership before history or posting through both RPC and streams. Filter private listed metadata for unrelated peers. Verify denial prevents storage/messaging calls; preserve approved and public metadata workflows. These adapter regressions do not by themselves prove cross-node state delivery.
+
 ### 0z1117. Keep Release Fragment Bodies Within the Validated Limit
 
 **The Bug**: A new room-integrity fragment combined detailed publication, storage and quota explanations into a body exceeding 400 characters. Exact-range preview rejected the unpublished source commit and prevented the push.
