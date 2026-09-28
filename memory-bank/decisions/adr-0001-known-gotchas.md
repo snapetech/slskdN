@@ -20,11 +20,11 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 ### 0z1084. Allow Native Range Replacement to Release Its Previous Lease
 
-**The Bug**: Real two-backend Chromium playback returned 206 for bytes=0- and then 429 for an interior seek. The browser replaces its HTTP range while the cancelled previous response is still unwinding, so immediate per-owner/per-host rejection made seeking fail.
+**The Finding**: Real two-backend Chromium playback returned 206 for bytes=0- and then 429 for an interior seek. Replacement ranges must handle an existing response under the one-stream policy. The HTTP status alone did not prove concurrency was the cause of this observed rejection; later inspection established the independent fairness rejection in 0z1085.
 
 **Additional Cause**: The default fairness guard independently rejected the second range after accounting the initial download; see 0z1085. The HTTP 429 alone does not identify whether fairness or concurrency rejected the request.
 
-**Follow-up Evidence**: A two-second wait alone still returned 429: Chromium kept the old range response open while requesting the new range. Cancelling only the producer was also insufficient when the old HTTP response was blocked writing buffered bytes; the replacement must signal the controller to abort that old response.
+**Follow-up Evidence**: A two-second wait alone still returned 429: Chromium kept the old range response open while requesting the new range. The producer-cancellation experiment also returned 429, but fairness was evaluated before cancellation, so that run did not prove socket backpressure caused the rejection. The implemented response replacement explicitly ends the preceding HTTP response; unit tests verify reservation release and distinct-ticket isolation.
 
 **Prevention**: Cancel the previous producer for the same radio ticket when replacing its range, then briefly wait for the previous owner and host leases to release, using cancellable bounded retries and rolling back partial reservations. Keep one active stream per owner and host, preserve existing pacing, and verify interior seek with real HTTP/TLS playback. Requests that remain in conflict still receive a limit error.
 
