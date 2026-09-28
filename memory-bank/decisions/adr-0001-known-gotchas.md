@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1220. Advance Cloudron Metadata With The Stable Image
+
+**What went wrong:** The release gate found the Cloudron Dockerfile and current
+catalog entry pinned to `.327` while the stable image metadata had advanced to
+`.328`.
+
+**Why:** The stable release metadata updater does not advance Cloudron's
+versioned community manifest, catalog history, or Dockerfile image pin.
+
+**Prevention:** For each stable image update, add a new CloudronVersions entry
+and update CloudronManifest plus the Dockerfile together to the current stable
+image. Run packaging metadata validation before creating the next tag.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
