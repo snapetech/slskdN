@@ -1,3 +1,18 @@
+## Update 2026-09-28 17:10:00Z — MusicBrainz issue #340 released
+
+Reproduced the reported failure with a numeric track `position`: the old client
+raised `JsonException` while reading `$.media[0].tracks[0].position`. The client
+now accepts JSON numbers and strings. Numeric `1`, string `"1"` and dotted
+`"1.2"` regression cases pass. Focused tests pass 3/3; full solution validation
+passed with 5,324 unit, 74 smoke and 284 integration tests, plus 1,086 Web tests
+and lint. The guarded release gate passed.
+
+Committed and pushed the fix, then published main release
+`2026092816-slskdn.326`. Downloaded platform assets match `SHA256SUMS.txt`; the
+Linux bundle contains the expected payload and Web marker, and its binary reports
+the release version. At this note's timestamp, Docker image and PPA publication
+jobs were still running; other hosted release jobs had passed.
+
 ## Update 2026-09-25 16:37:34Z
 
 - Preparing stable release 2026092516-slskdn.324 with the Linux Mint installer

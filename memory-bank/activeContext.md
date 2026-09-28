@@ -1,3 +1,15 @@
+## Update 2026-09-28 17:10:00Z
+
+- Current task: issue #340 is fixed and released as `2026092816-slskdn.326`.
+  The pre-fix numeric-position regression was reproduced; string, number and
+  dotted-position tests pass with the fix. Full solution tests, lint, guarded
+  release gate and published artifact verification passed. Docker image and PPA
+  jobs are still running in the hosted tag workflow.
+- Next: confirm those hosted publishing jobs reach a terminal result, then
+  resume the open player inspection on real desktop/mobile audio. Physical
+  mobile, output switching, Media Session, room reconnect, radio,
+  Picture-in-Picture and idle resource measurements remain pending.
+
 ## Update 2026-09-28 00:24:15Z
 
 - Current task: cleared. The validated download registration, decoded-seek and

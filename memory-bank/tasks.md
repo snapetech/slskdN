@@ -28,6 +28,13 @@
 
 ### High Priority
 
+- [x] Accept numeric track positions in MusicBrainz discography responses.
+  - Status: fixed and released (2026-09-28, `2026092816-slskdn.326`).
+  - Notes: The pre-fix regression reproduced the `JsonException` when MusicBrainz
+    returned a numeric `position`. Numeric, string and dotted-string cases pass
+    after the fix; focused tests, the full solution suite, lint and release gates
+    passed. Published release checksums and Linux payload/version checks passed.
+
 - [x] Preserve repeated tracks when loading saved playlists.
   - Status: implemented (2026-09-27).
   - Notes: Playlist load keeps every row in order; upcoming removal targets
