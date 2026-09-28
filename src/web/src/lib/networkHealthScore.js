@@ -44,7 +44,7 @@ export const buildNetworkHealthScore = ({
       severity: 'info',
       summary: 'DHT rendezvous disabled',
     });
-  } else if (!dhtRunning) {
+  } else if (!dhtRunning && !lanOnly) {
     score -= 18;
     findings.push({
       action: 'Check DHT startup logs and listener configuration.',

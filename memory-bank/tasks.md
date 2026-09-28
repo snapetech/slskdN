@@ -5280,4 +5280,18 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [ ] Keep room-follow subscriptions alive across global-player navigation; verify real route changes.
 - [ ] Publish ongoing host Pause/Seek/track changes under an explicit broadcast session.
 
-- [ ] Repair and verify LAN-only DHT engine bootstrap before further radio runtime runs; retained logs contradict the startup isolation warning. Inspect the installed dependency rather than assuming empty routers disable bootstrap.
+- [x] 2026-09-28 Repair LAN-only DHT engine bootstrap: bypass the public engine, preserve known-peer transport, verify actual zero-node radio status and eliminate false network-health diagnostics. See ADR-0016.
+
+## LAN-only radio reliability — 2026-09-28
+
+- [x] Inspect the installed dependency and establish empty-router public-default fallback.
+- [x] Preserve independent shared UDP overlay/QUIC initialization and reject public DHT callbacks/requests in LAN-only mode.
+- [x] Reproduce late initialization after Stop and clear startup state only after its writer stops.
+- [x] Isolate full-instance integration fixtures; verify local interoperability and mesh workflows in the full backend suite.
+- [x] Verify actual radio playback/seek/revocation/reverse-directory and elapsed ticket expiry under repaired LAN-only mode.
+- [x] Reproduce false LAN-only network-health findings and cover both mode-field spellings.
+- [ ] Reproduce and repair legitimate mesh RPC bursts without weakening inbound quota, then complete global follow ownership and host control publication.
+
+- [x] 2026-09-28 Await initialization before detaching owned network resources; final backend and complete 20-case runtime gates pass.
+- [x] 2026-09-28 Verify the actual connected LAN-only network-health page and retain public-mode engine warnings.
+- [ ] Diagnose the originating network change behind the retained blank pre-login bootstrap interruption; the immutable complete rerun passes but does not explain that event.

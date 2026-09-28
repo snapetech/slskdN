@@ -14812,3 +14812,90 @@ This implementation batch is complete after commit/push and exact-range release
 preview. Next Steps: repair LAN-only DHT bootstrap, preserve mesh quota while
 pacing legitimate bursts, then follow ownership across navigation and distributed
 state delivery. Full player goal remains active. No tag or deployment is authorized.
+
+## LAN-only radio isolation and diagnostics — 2026-09-28
+
+Decompiling the exact installed MonoTorrent assembly established the leak's
+cause: its initialization replaces an empty router list with three public
+bootstrap defaults and caches bootstrap nodes statically. LAN-only now skips
+constructing/starting the public engine and saved public node tables. Shared
+UDP overlay/QUIC routing is initialized independently when configured; known
+peer transport and connection maintenance remain available. Explicit public
+announce/discovery requests and DHT peer callbacks honor the same boundary.
+Ordinary public-mode defaults remain unchanged. ADR-0016 records this decision.
+
+A negative lifecycle regression held overlay startup through Stop and reproduced
+a stale completed-start marker. Cancellation is rechecked and startup/beacon
+state is cleared after awaiting initialization. Five LAN-only regressions cover
+engine absence, shared listener initialization, peer callback rejection,
+idempotent start and stop during initialization. The focused suite passes 37.
+
+The full-instance integration runner also configured public routers for local
+workflows. It now uses LAN-only rendezvous and no bootstrap routers. All 5,298
+unit / 74 smoke / 284 integration tests pass with that configuration. Real
+radio playback, seeking, permission revocation, reverse-directory delivery and
+elapsed ticket expiry/manual reselection pass. Both actual nodes expose zero
+public DHT nodes with a live mesh connection; retained logs show no public
+engine startup, bootstrap, discovery or announcements.
+
+Three negative Web regressions reproduced a false DHT-not-running health penalty
+and a missing LAN-only explanation. Diagnostics now treat the absent public
+engine as expected in LAN-only mode while retaining public-mode warnings.
+Both field spellings are covered. All 1,007 Web tests in 165 files pass.
+Repository/Web lint, Release/frontend builds, bundle/output, endpoint and
+identity/whitespace gates pass. A complete 20-case runtime run is still live
+and must finish before source commit/push; its network page also checks the
+actual LAN-only snapshot and absence of a false public-engine warning.
+
+Confidence is high for the observed isolation, lifecycle and diagnostic fixes.
+The earlier reverse-directory failure coincided with a message-rate disconnect;
+a passing repaired radio run does not establish burst handling under sustained
+or concurrent legitimate calls. Keep the inbound quota unchanged and reproduce
+that traffic separately. The full player goal remains active, with follow
+continuity across navigation, host event publication, authenticated distributed
+room state, capability renewal and sustained/device/browser/format work due.
+
+### Final ownership validation — 2026-09-28
+
+The first complete runtime run passed all 20 cases and its actual network-health
+page verified a connected LAN-only mesh without the false public-engine warning.
+A subsequent ownership review moved resource detachment after canceling and
+awaiting initialization, closing a possible late listener assignment outside the
+cleanup set. The final Release build passes with only its two existing dependency
+support warnings. Full backend and 20-case runtime validation now run against
+this final ownership ordering before source commit/push.
+
+### Retained bootstrap interruption — 2026-09-28
+
+The final-ownership complete runtime attempt passed 19 cases and failed one
+queue-switch case during shared login setup, before any player action. Six
+ERR_NETWORK_CHANGED resource errors left an empty React root and blank retained
+screenshot. This does not establish a queue defect. The originating network
+change remains unknown. All preceding runtime/backend processes are terminal;
+the unchanged complete suite is rerunning with traces enabled. No test retries,
+product code, timeout or assertions were changed to conceal the failure.
+
+### Final LAN-only gates — 2026-09-28
+
+The final ownership ordering passes 5,298 unit / 74 smoke / 284 integration
+tests, 1,007 Web tests in 165 files and all 20 runtime cases in the unchanged
+complete rerun with traces retained. The earlier 19-pass bootstrap-interrupted
+attempt remains documented; its originating network change is unknown and is
+not claimed fixed. The previously blocked login/queue workflow passes in the
+complete rerun. No assertion, timeout, product code or retry policy was weakened.
+
+Actual radio nodes retain live mesh connections with zero public DHT nodes;
+no public engine startup, bootstrap/discovery/announce or message-rate disconnect
+appears in the final retained node logs. The actual network-health page reports
+that connected LAN-only state without a false engine warning. A direct scoring
+check also verifies public-mode absence still warns. Trace-enabled timing is
+correctness evidence, not a new player performance measurement.
+
+Repository/Web lint, final Release/frontend builds, bundle/output,
+controller/fetch CSRF, anonymous endpoint, identity and whitespace gates pass.
+This implementation batch is complete after exact-range release preview and
+commit/push. Next Steps: bounded legitimate mesh RPC bursts preserving inbound
+quota behavior; player-owned follow across navigation; ongoing host control
+publication; authenticated distributed state, capability renewal and remaining
+resource/browser/format/accessibility/device requirements. Full goal remains
+active. No tag or deployment is authorized.

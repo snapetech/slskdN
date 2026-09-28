@@ -199,11 +199,13 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             return;
         }
 
-        _logger.LogInformation("Starting DHT rendezvous service with MonoTorrent DHT");
+        _logger.LogInformation(_options.LanOnly
+            ? "Starting LAN-only mesh rendezvous service"
+            : "Starting DHT rendezvous service with MonoTorrent DHT");
 
         lock (_lifecycleSync)
         {
-            if (_dhtEngine is not null)
+            if (_dhtEngine is not null || _startedAt is not null || _backgroundInitializationTask is { IsCompleted: false })
             {
                 return;
             }
@@ -227,6 +229,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
 
                 IsBeaconCapable = await StartOverlayServerIfPossibleAsync(cancellationToken).ConfigureAwait(false);
 
+                cancellationToken.ThrowIfCancellationRequested();
                 _startedAt = DateTimeOffset.UtcNow;
                 _logger.LogInformation("DHT rendezvous service initialization complete");
             }, CancellationToken.None).ConfigureAwait(false);
@@ -257,8 +260,6 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             _backgroundInitializationCts = null;
             backgroundInitializationTask = _backgroundInitializationTask;
             _backgroundInitializationTask = null;
-            dhtEngine = DetachDhtEngineNoLock();
-            dhtListener = DetachDhtListenerNoLock();
         }
 
         backgroundInitializationCts?.Cancel();
@@ -276,6 +277,13 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         }
 
         backgroundInitializationCts?.Dispose();
+        lock (_lifecycleSync)
+        {
+            dhtEngine = DetachDhtEngineNoLock();
+            dhtListener = DetachDhtListenerNoLock();
+            _startedAt = null;
+            IsBeaconCapable = false;
+        }
 
         _logger.LogInformation("Stopping DHT rendezvous service");
 
@@ -326,56 +334,58 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             return;
         }
 
-        // Wait for DHT initialization to complete (it's running in background from StartAsync)
-        _logger.LogInformation("Waiting for DHT initialization to complete...");
-        var initTimeout = TimeSpan.FromSeconds(60);
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-
-        while (_dhtEngine == null && sw.Elapsed < initTimeout && !stoppingToken.IsCancellationRequested)
+        if (!_options.LanOnly)
         {
-            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
-        }
+            // Wait for DHT initialization to complete (it's running in background from StartAsync)
+            _logger.LogInformation("Waiting for DHT initialization to complete...");
+            var initTimeout = TimeSpan.FromSeconds(60);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
 
-        if (_dhtEngine == null)
-        {
-            _logger.LogWarning("DHT initialization did not complete within timeout, continuing anyway");
-            return;
-        }
+            while (_dhtEngine == null && sw.Elapsed < initTimeout && !stoppingToken.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+            }
 
-        // Wait for DHT to bootstrap. Cold public-DHT starts routinely need longer
-        // than warm saved-node starts; LAN-only mode should fail fast because it
-        // intentionally skips public routers.
-        var bootstrapTimeoutSeconds = GetBootstrapTimeoutSeconds(_options, _loadedSavedNodeTableBytes);
-        _logger.LogInformation(
-            "Waiting up to {TimeoutSeconds}s for DHT to bootstrap (savedNodeTableBytes={SavedNodeTableBytes}, lanOnly={LanOnly})...",
-            bootstrapTimeoutSeconds,
-            _loadedSavedNodeTableBytes,
-            _options.LanOnly);
-        var bootstrapTimeout = TimeSpan.FromSeconds(bootstrapTimeoutSeconds);
-        sw.Restart();
+            if (_dhtEngine == null)
+            {
+                _logger.LogWarning("DHT initialization did not complete within timeout, continuing anyway");
+                return;
+            }
 
-        while (_dhtEngine?.State != DhtState.Ready && sw.Elapsed < bootstrapTimeout && !stoppingToken.IsCancellationRequested)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
-        }
-
-        if (_dhtEngine?.State == DhtState.Ready)
-        {
-            _logger.LogInformation("DHT bootstrapped successfully with {NodeCount} nodes", _dhtEngine.NodeCount);
-        }
-        else
-        {
-            _logger.LogWarning(
-                "DHT bootstrap did not reach Ready within adaptive {TimeoutSeconds}s on UDP port {Port} (state: {State}, nodes: {Nodes}, savedNodeTableBytes: {SavedNodeTableBytes}, lanOnly: {LanOnly}). " +
-                "Peer announce/discovery will stay disabled until bootstrap succeeds. If the DHT still has not reached Ready after this grace period, " +
-                "verify that UDP port {Port} is reachable, forwarded, and allowed through the host firewall.",
-                (int)bootstrapTimeout.TotalSeconds,
-                _options.DhtPort,
-                _dhtEngine?.State,
-                _dhtEngine?.NodeCount ?? 0,
+            // Cold public-DHT starts routinely need longer than warm saved-node starts.
+            var bootstrapTimeoutSeconds = GetBootstrapTimeoutSeconds(_options, _loadedSavedNodeTableBytes);
+            _logger.LogInformation(
+                "Waiting up to {TimeoutSeconds}s for DHT to bootstrap (savedNodeTableBytes={SavedNodeTableBytes}, lanOnly={LanOnly})...",
+                bootstrapTimeoutSeconds,
                 _loadedSavedNodeTableBytes,
-                _options.LanOnly,
-                _options.DhtPort);
+                _options.LanOnly);
+            var bootstrapTimeout = TimeSpan.FromSeconds(bootstrapTimeoutSeconds);
+            sw.Restart();
+
+            while (_dhtEngine?.State != DhtState.Ready && sw.Elapsed < bootstrapTimeout && !stoppingToken.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+            }
+
+            if (_dhtEngine?.State == DhtState.Ready)
+            {
+                _logger.LogInformation("DHT bootstrapped successfully with {NodeCount} nodes", _dhtEngine.NodeCount);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "DHT bootstrap did not reach Ready within adaptive {TimeoutSeconds}s on UDP port {Port} (state: {State}, nodes: {Nodes}, savedNodeTableBytes: {SavedNodeTableBytes}, lanOnly: {LanOnly}). " +
+                    "Peer announce/discovery will stay disabled until bootstrap succeeds. If the DHT still has not reached Ready after this grace period, " +
+                    "verify that UDP port {Port} is reachable, forwarded, and allowed through the host firewall.",
+                    (int)bootstrapTimeout.TotalSeconds,
+                    _options.DhtPort,
+                    _dhtEngine?.State,
+                    _dhtEngine?.NodeCount ?? 0,
+                    _loadedSavedNodeTableBytes,
+                    _options.LanOnly,
+                    _options.DhtPort);
+            }
+
         }
 
         // Main loop
@@ -384,13 +394,13 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             try
             {
                 // Announce if beacon capable
-                if (IsBeaconCapable && ShouldAnnounce())
+                if (!_options.LanOnly && IsBeaconCapable && ShouldAnnounce())
                 {
                     await AnnounceAsync(stoppingToken);
                 }
 
                 // Discover peers if needed
-                if (_registry.NeedsMoreNeighbors && ShouldDiscover())
+                if (!_options.LanOnly && _registry.NeedsMoreNeighbors && ShouldDiscover())
                 {
                     await DiscoverPeersAsync(stoppingToken);
                 }
@@ -438,6 +448,33 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
 
     private async Task InitializeDhtAsync(CancellationToken cancellationToken)
     {
+        if (_options.LanOnly)
+        {
+            // The installed engine falls back to public routers for an empty bootstrap list.
+            // Keep shared overlay/QUIC UDP transport without creating a public DHT engine (ADR-0016).
+            if (ShouldUseSharedMeshUdpListener(_options, _overlayOptions))
+            {
+                var sharedListener = CreateDhtListener(_options.DhtPort);
+                try
+                {
+                    sharedListener.Start();
+                    lock (_lifecycleSync)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        _dhtListener = sharedListener;
+                    }
+                }
+                catch
+                {
+                    sharedListener.Stop();
+                    throw;
+                }
+            }
+
+            _logger.LogInformation("LAN-only mesh: public DHT engine, bootstrap, saved nodes, announcements and discovery are disabled; known-peer overlay transport remains available");
+            return;
+        }
+
         _logger.LogDebug("Initializing MonoTorrent DHT engine");
 
         DhtEngine? dhtEngine = null;
@@ -484,24 +521,9 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                 }
             }
 
-            // Start DHT engine (will bootstrap from saved nodes or public bootstrap nodes).
-            // HARDENING-2026-04-20 H12: LanOnly suppresses all public bootstraps so the DHT
-            // engine never contacts router.bittorrent.com / router.utorrent.com / dht.transmissionbt.com
-            // and never publishes this node's (ip, port) to the public rendezvous. Saved node
-            // tables are also skipped in this mode to avoid re-leaking a previously announced IP.
-            var bootstrapRouters = _options.LanOnly
-                ? Array.Empty<string>()
-                : _options.BootstrapRouters?.Where(router => !string.IsNullOrWhiteSpace(router)).ToArray() ?? Array.Empty<string>();
+            var bootstrapRouters = _options.BootstrapRouters?.Where(router => !string.IsNullOrWhiteSpace(router)).ToArray() ?? Array.Empty<string>();
 
-            if (_options.LanOnly)
-            {
-                _logger.LogWarning(
-                    "[DHT] HARDENING-2026-04-20 H12: LanOnly=true — public DHT bootstrap is DISABLED. " +
-                    "This node will not appear on the public BitTorrent DHT and cannot be discovered " +
-                    "via DHT rendezvous. Mesh peer discovery is confined to local / already-known peers.");
-                await dhtEngine.StartAsync(Array.Empty<string>());
-            }
-            else if (initialNodes.Length > 0)
+            if (initialNodes.Length > 0)
             {
                 await dhtEngine.StartAsync(initialNodes, bootstrapRouters);
             }
@@ -625,6 +647,11 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
 
     private void OnPeersFound(object? sender, PeersFoundEventArgs e)
     {
+        if (_options.LanOnly)
+        {
+            return;
+        }
+
         _logger.LogDebug("[DHT EVENT] OnPeersFound fired - InfoHash: {Hash}, Peer count: {Count}, IsOurs: {IsOurs}",
             e.InfoHash, e.Peers.Count, IsOurRendezvousHash(e.InfoHash));
 
@@ -869,6 +896,11 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
 
     public async Task<int> DiscoverPeersAsync(CancellationToken cancellationToken = default)
     {
+        if (_options.LanOnly)
+        {
+            return 0;
+        }
+
         if (_dhtEngine is null || _dhtEngine.State != DhtState.Ready)
         {
             _logger.LogWarning("Cannot discover peers - DHT not ready (state: {State})", _dhtEngine?.State);
@@ -901,6 +933,11 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
 
     public Task AnnounceAsync(CancellationToken cancellationToken = default)
     {
+        if (_options.LanOnly)
+        {
+            return Task.CompletedTask;
+        }
+
         if (!IsBeaconCapable)
         {
             _logger.LogWarning("Cannot announce - not beacon capable");

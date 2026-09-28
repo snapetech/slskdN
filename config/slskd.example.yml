@@ -174,7 +174,7 @@
 #    arguments: [] # optional configured-only args; the browser cannot supply launch args
 #dht:
 #  enabled: true # public BitTorrent DHT rendezvous; set false to stop DHT startup and dependent services
-#  lan_only: false # set true to block public BitTorrent DHT bootstrap/discoverability
+#  lan_only: false # set true to skip the public BitTorrent DHT engine; known-peer mesh remains available
 #  overlay_port: 50305 # TCP slskdN mesh overlay rendezvous; when DHT rendezvous is enabled, the application
 #                      # automatically shares soulseek.listen_port and classifies each accepted connection by
 #                      # its first bytes (TLS ClientHello vs. Soulseek peer framing) through SharedMeshTcpListener.
@@ -196,7 +196,7 @@
 #  min_neighbors: 3
 #  bootstrap_timeout_seconds: 120 # warm startup when a saved DHT node table exists
 #  cold_bootstrap_timeout_seconds: 180 # first startup or missing saved DHT node table
-#  lan_only_bootstrap_timeout_seconds: 30 # shorter because public bootstrap routers are disabled
+#  lan_only_bootstrap_timeout_seconds: 30 # retained for compatibility; LAN-only mode skips public DHT initialization
 #  enable_upnp: false # opt in only; when true slskdn will try to map overlay/dht ports automatically
 #  enable_stun: true
 #destinations:

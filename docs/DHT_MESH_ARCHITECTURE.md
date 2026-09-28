@@ -121,3 +121,15 @@ Related implementation references:
 - `src/slskd/Mesh/ServiceFabric/Services/MeshContentMeshService.cs`
 - [DHT Rendezvous Design](DHT_RENDEZVOUS_DESIGN.md)
 - [T-902 DHT Node and Routing Table Design](research/T-902-dht-node-design.md)
+
+## LAN-only rendezvous
+
+With `dht.lan_only: true`, the public BitTorrent DHT engine is not started.
+No saved public node table, public bootstrap, announce or peer query runs in
+that mode. Status reports zero public DHT nodes and `isDhtRunning: false`;
+this does not mean known-peer mesh transport is disabled. Shared overlay/QUIC
+UDP routing remains available when configured, and operators can connect to
+known peers. The separate mesh service-fabric DHT is not public BitTorrent DHT.
+
+An empty bootstrap-router list alone is insufficient isolation: the installed
+library selects public defaults for that list. See ADR-0016 for the boundary.

@@ -107,7 +107,7 @@ describe('Network', () => {
         dhtNodeCount: 0,
         isEnabled: true,
         isLanOnly: true,
-        isDhtRunning: true,
+        isDhtRunning: false,
       },
       hashDb: { currentSeqId: 0, totalEntries: 0 },
       mesh: {
@@ -125,7 +125,7 @@ describe('Network', () => {
 
     expect(screen.queryByText('Connectivity diagnostics')).not.toBeInTheDocument();
     expect(
-      screen.getByText(/intentionally skips the public BitTorrent DHT bootstrap/i),
+      screen.getByText(/intentionally disables the public BitTorrent DHT engine/i),
     ).toBeInTheDocument();
   });
 

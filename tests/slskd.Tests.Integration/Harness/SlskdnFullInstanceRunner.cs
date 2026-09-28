@@ -278,10 +278,8 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         sb.AppendLine("  enabled: true");
         sb.AppendLine($"  overlay_port: {overlayPort ?? 50305}");
         sb.AppendLine($"  dht_port: {dhtPort ?? 50305}");
-        sb.AppendLine("  bootstrap_routers:");
-        sb.AppendLine("    - router.bittorrent.com");
-        sb.AppendLine("    - router.utorrent.com");
-        sb.AppendLine("    - dht.transmissionbt.com");
+        sb.AppendLine("  lan_only: true");
+        sb.AppendLine("  bootstrap_routers: []");
         sb.AppendLine("  announce_interval_seconds: 900");
         sb.AppendLine("  discovery_interval_seconds: 600");
         sb.AppendLine("  min_neighbors: 1");

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### LAN-only radio network isolation
+
+- Prevent LAN-only rendezvous from starting the public BitTorrent DHT engine, loading saved public nodes, announcing or discovering public peers.
+- Keep known-peer mesh and shared overlay/QUIC UDP transport available; LAN-only status now correctly reports zero public DHT nodes.
+- Treat the intentionally absent public engine as expected in LAN-only network health diagnostics.
+
+
 ### Routed room playback and recovery
 
 - Put listen-along controls on active pod channels in Messages, excluding direct messages and Soulseek rooms.

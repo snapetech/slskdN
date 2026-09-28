@@ -237,7 +237,7 @@ const Network = ({ theme }) => {
   );
   const shouldExplainLanOnlyDht =
     dhtIsLanOnly &&
-    dhtIsRunning &&
+    (stats?.dht?.isEnabled ?? false) &&
     dhtNodeCount === 0 &&
     observedMeshPeerCount === 0 &&
     observedDiscoveredPeerCount === 0;
@@ -291,9 +291,8 @@ const Network = ({ theme }) => {
         >
           <Message.Header>LAN-only DHT is isolated</Message.Header>
           <p>
-            DHT rendezvous is running with <code>dhtRendezvous.lanOnly: true</code>,
-            so slskdN intentionally skips the public BitTorrent DHT bootstrap
-            routers. Seeing <code>0</code> DHT nodes and <code>0</code> discovered
+            LAN-only mesh uses <code>dhtRendezvous.lanOnly: true</code>,
+            so slskdN intentionally disables the public BitTorrent DHT engine. Seeing <code>0</code> DHT nodes and <code>0</code> discovered
             peers can be expected in this privacy mode even when the overlay and
             DHT ports are open.
           </p>

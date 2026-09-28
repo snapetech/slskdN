@@ -21,6 +21,105 @@ using Xunit;
 
 public class DhtRendezvousServiceTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LanOnly_InitializesOverlayTransportWithoutPublicDhtEngine(bool sharedUdp)
+    {
+        using var service = new DhtRendezvousService(
+            NullLogger<DhtRendezvousService>.Instance,
+            Mock.Of<IMeshOverlayServer>(),
+            Mock.Of<IMeshOverlayConnector>(),
+            new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
+            new MeshPeerManager(NullLogger<MeshPeerManager>.Instance),
+            new DhtRendezvousOptions { Enabled = true, LanOnly = true, DhtPort = 0 },
+            Microsoft.Extensions.Options.Options.Create(new OverlayOptions { Enable = sharedUdp, ListenPort = 0 }));
+        var initialize = typeof(DhtRendezvousService).GetMethod("InitializeDhtAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        await (Task)initialize.Invoke(service, new object[] { CancellationToken.None })!;
+
+        Assert.Null(typeof(DhtRendezvousService).GetField("_dhtEngine", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(service));
+        var listener = typeof(DhtRendezvousService).GetField("_dhtListener", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(service);
+        Assert.Equal(sharedUdp, listener is SharedMeshUdpListener);
+        Assert.Equal(0, service.DhtNodeCount);
+        Assert.False(service.IsDhtRunning);
+        service.AddPeerEndpoint(new IPEndPoint(IPAddress.Loopback, 50305));
+        Assert.Equal(IPAddress.Loopback, Assert.Single(service.GetDiscoveredPeers()).Address);
+        Assert.Equal(0, await service.DiscoverPeersAsync());
+        await service.AnnounceAsync();
+    }
+
+    [Fact]
+    public void LanOnly_RejectsDhtPeerCallbacksBeforeTrackingOrConnection()
+    {
+        var connector = new Mock<IMeshOverlayConnector>();
+        using var service = new DhtRendezvousService(
+            NullLogger<DhtRendezvousService>.Instance,
+            Mock.Of<IMeshOverlayServer>(), connector.Object,
+            new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
+            new MeshPeerManager(NullLogger<MeshPeerManager>.Instance),
+            new DhtRendezvousOptions { Enabled = true, LanOnly = true });
+
+        InvokeOnPeersFound(service, CreatePeersFoundEventArgs("ipv4://203.0.113.10:50305"));
+        Assert.Empty(service.GetDiscoveredPeers());
+        connector.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task LanOnly_StartIsIdempotentAndStopReleasesTransport()
+    {
+        var overlay = new Mock<IMeshOverlayServer>();
+        overlay.Setup(server => server.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        overlay.Setup(server => server.StopAsync()).Returns(Task.CompletedTask);
+        using var service = new DhtRendezvousService(
+            NullLogger<DhtRendezvousService>.Instance,
+            overlay.Object, Mock.Of<IMeshOverlayConnector>(),
+            new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
+            new MeshPeerManager(NullLogger<MeshPeerManager>.Instance),
+            new DhtRendezvousOptions { Enabled = true, LanOnly = true });
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await service.StartAsync(timeout.Token);
+        await service.StartAsync(timeout.Token);
+        while (service.GetStats().StartedAt is null)
+        {
+            await Task.Delay(10, timeout.Token);
+        }
+
+        await service.StartAsync(timeout.Token);
+        overlay.Verify(server => server.StartAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(0, service.DhtNodeCount);
+        await service.StopAsync(timeout.Token);
+        Assert.Null(service.GetStats().StartedAt);
+        Assert.False(service.IsDhtRunning);
+        overlay.Verify(server => server.StopAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task LanOnly_StopDuringInitializationDoesNotRetainCompletedStartupState()
+    {
+        var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var overlay = new Mock<IMeshOverlayServer>();
+        overlay.Setup(server => server.StartAsync(It.IsAny<CancellationToken>())).Returns(async () =>
+        {
+            entered.TrySetResult(true);
+            await release.Task;
+        });
+        overlay.Setup(server => server.StopAsync()).Returns(Task.CompletedTask);
+        using var service = new DhtRendezvousService(
+            NullLogger<DhtRendezvousService>.Instance,
+            overlay.Object, Mock.Of<IMeshOverlayConnector>(),
+            new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
+            new MeshPeerManager(NullLogger<MeshPeerManager>.Instance),
+            new DhtRendezvousOptions { Enabled = true, LanOnly = true });
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await service.StartAsync(timeout.Token);
+        await entered.Task.WaitAsync(timeout.Token);
+        var stopped = service.StopAsync(timeout.Token);
+        release.TrySetResult(true);
+        await stopped;
+        Assert.Null(service.GetStats().StartedAt);
+    }
+
     [Fact]
     public void ShouldShareDhtPortWithQuic_WhenConfiguredForSharedPortAndRuntimeAvailable_ReturnsRuntimeSupport()
     {

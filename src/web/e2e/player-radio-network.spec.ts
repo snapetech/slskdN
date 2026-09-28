@@ -82,6 +82,15 @@ test.describe('listed radio between isolated nodes', () => {
       headers: listenerHeaders, data: { address: '127.0.0.1', port: host.getOverlayPort() },
     });
     expect(await connection.text()).toContain('"connected":true');
+    for (const [node, headers] of [[host, hostHeaders], [listener, listenerHeaders]] as const) {
+      const status = await request.get(`${node.apiUrl}/api/v0/dht/status`, { headers });
+      expect(status.ok()).toBe(true);
+      expect(await status.json()).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0, activeMeshConnections: 1 });
+      const startup = await fs.readFile(path.join(node.getAppDir(), 'artifacts', 'stdout.log'), 'utf8');
+      expect(startup).toContain('LAN-only mesh: public DHT engine, bootstrap, saved nodes, announcements and discovery are disabled');
+      expect(startup).not.toMatch(/DHT engine started|DHT bootstrapped successfully|Announced overlay port .* to DHT/);
+    }
+
     const library = await request.get(`${host.apiUrl}/api/v0/library/items/browser?query=Radio%20network%20tone&kinds=Audio`, { headers: hostHeaders });
     expect(library.ok()).toBe(true);
     const item = (await library.json()).files[0];
@@ -169,6 +178,14 @@ test.describe('listed radio between isolated nodes', () => {
     const hostRefresh = await request.get(`${host.apiUrl}/api/v0/listening-party?refresh=true`, { headers: hostHeaders });
     expect(hostRefresh.ok()).toBe(true);
     expect((await hostRefresh.json()).some((party: { partyId: string; transportUsername: string }) => party.partyId === 'reverse-radio' && party.transportUsername === 'nodeB')).toBe(true);
+
+    const networkSnapshot = page.waitForResponse((response) => response.url().includes('/api/v0/network/stats') && response.status() === 200);
+    await page.goto(`${listener.nodeCfg.baseUrl}/system/network`);
+    expect((await (await networkSnapshot).json()).dht).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0 });
+    const health = page.locator('.network-health-panel');
+    await expect(health.locator('.label').filter({ hasText: /^Mesh\s*1$/ })).toBeVisible();
+    await expect(health.getByText('DHT: DHT rendezvous not running')).toHaveCount(0);
+
 
 
   });
