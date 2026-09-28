@@ -1,13 +1,13 @@
 # Current API surface inventory
 
-Generated: 2026-09-07T02:32:21Z
+Generated: 2026-09-28T16:35:50Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
 ## Summary
 
-- Controller files: 118
-- Versioned API controllers: 108
+- Controller files: 120
+- Versioned API controllers: 110
 - Legacy or compatibility API controllers: 7
 - Protocol controllers outside versioned API routing: 3
 - Other route buckets: 0
@@ -71,6 +71,7 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/Jobs/API/DiscographyJobsController.cs` | `"api/jobs/discography"<br>"api/v{version:apiVersion}/jobs/discography"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 2 |
 | `src/slskd/Jobs/API/LabelCrateJobsController.cs` | `"api/jobs/label-crate"<br>"api/v{version:apiVersion}/jobs/label-crate"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 2 |
 | `src/slskd/LibraryHealth/API/LibraryHealthController.cs` | `"api/library/health"<br>"api/v{version:apiVersion}/library/health"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize] | yes | no | 11 |
+| `src/slskd/ListeningParty/API/ListedRadioController.cs` | `"api/v{version:apiVersion}/listed-radio"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 1 |
 | `src/slskd/ListeningParty/API/ListeningPartyController.cs` | `"api/v{version:apiVersion}/listening-party"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 4 |
 | `src/slskd/MediaCore/API/Controllers/ContentDescriptorPublisherController.cs` | `"api/v{version:apiVersion}/mediacore/publish"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 6 |
 | `src/slskd/MediaCore/API/Controllers/ContentIdController.cs` | `"api/v{version:apiVersion}/mediacore/contentid"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 8 |
@@ -119,7 +120,8 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/SourceFeeds/API/SpotifyConnectionController.cs` | `"api/integrations/spotify"<br>"api/v{version:apiVersion}/integrations/spotify"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 4 |
 | `src/slskd/Streaming/MeshStreamsController.cs` | `"api/v{version:apiVersion}/mesh-streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 2 |
 | `src/slskd/Streaming/PeerStreamsController.cs` | `"api/v{version:apiVersion}/peer-streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 2 |
-| `src/slskd/Streaming/StreamsController.cs` | `"api/v{version:apiVersion}/streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] /// <summary>Stream content by ID. Auth: ?ticket=, ?token=, Authorization: Bearer (share:token), or normal [Authorize]. Single byte-range only; multi-range returns 400.</summary> | yes | yes | 3 |
+| `src/slskd/Streaming/PlayerTagsController.cs` | `"api/v{version:apiVersion}/player-tags"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] | yes | no | 1 |
+| `src/slskd/Streaming/StreamsController.cs` | `"api/v{version:apiVersion}/streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] /// <summary>Stream content by ID. Auth: ?ticket=, ?token=, Authorization: Bearer (share:token), or normal [Authorize]. Single byte-range only; multi-range returns 400.</summary> | yes | yes | 5 |
 | `src/slskd/Telemetry/API/MetricsController.cs` | `"api/v{version:apiVersion}/telemetry/prometheus"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
 | `src/slskd/Telemetry/API/ReportsController.cs` | `"api/v{version:apiVersion}/telemetry/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |
 | `src/slskd/Telemetry/API/TelemetryController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
@@ -187,10 +189,10 @@ None found.
   - 121:    [HttpPost("invite")]
 - src/slskd/ListeningParty/API/ListeningPartyController.cs
   - 57:    [HttpGet]
-  - 65:    [HttpGet("{podId}/{channelId}")]
-  - 79:    [HttpPost("{podId}/{channelId}")]
-  - 119:    [HttpGet("radio/{partyId}/{contentId}")]
-  - 120:    [AllowAnonymous]
+  - 67:    [HttpGet("{podId}/{channelId}")]
+  - 81:    [HttpPost("{podId}/{channelId}")]
+  - 136:    [HttpGet("radio/{partyId}/{contentId}")]
+  - 137:    [AllowAnonymous]
 - src/slskd/PodCore/API/Controllers/PodDhtController.cs
   - 49:    [HttpPost("publish")]
   - 98:    [HttpPost("update")]
@@ -253,8 +255,11 @@ None found.
   - 85:    [HttpGet("{ticket}")]
   - 86:    [AllowAnonymous]
 - src/slskd/Streaming/StreamsController.cs
-  - 58:    [HttpPost("{contentId}/ticket")]
-  - 87:    [HttpPost("{contentId}/share-ticket")]
-  - 88:    [AllowAnonymous]
-  - 152:    [HttpGet("{contentId}")]
-  - 153:    [AllowAnonymous]
+  - 62:    [HttpPost("{contentId}/ticket")]
+  - 86:    [HttpGet("{contentId}/playback-info")]
+  - 105:    [HttpGet("{contentId}/transcoded")]
+  - 106:    [AllowAnonymous]
+  - 196:    [HttpPost("{contentId}/share-ticket")]
+  - 197:    [AllowAnonymous]
+  - 261:    [HttpGet("{contentId}")]
+  - 262:    [AllowAnonymous]
