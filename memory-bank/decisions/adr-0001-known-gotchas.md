@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1134. Clear Rendezvous Startup State After Initialization Has Stopped
+
+**The Bug**: A regression held overlay initialization open while Stop began, then released it. The startup task wrote StartedAt after Stop had cleared the new idempotency marker, leaving stopped status populated and preventing a later normal start.
+
+**Prevention**: Recheck cancellation after overlay startup and clear startup/beacon state only after awaiting the owned initialization task. Verify stop during initialization with a deliberately late collaborator completion; clearing a marker before its writer has stopped creates a lifecycle race.
+
 ### 0z1133. Empty MonoTorrent Bootstrap Lists Select Public Defaults
 
 **The Bug**: Inspection of the installed MonoTorrent assembly proved InitialiseTask replaces an empty router list with its three public defaults. LanOnly passed exactly that list, so warning text and configuration did not prevent public bootstrap, discovery or announcements. Cached bootstrap nodes also make dummy-router workarounds unreliable.
