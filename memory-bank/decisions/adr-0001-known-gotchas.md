@@ -10,7 +10,7 @@ This document captures known issues, anti-patterns, and "gotchas" that AI models
 
 **The Bug**: The initial directory-withdrawal fix performed an index read/write for every private playback event. Existing membership regressions exposed the new dependency on directory data even though those rooms had never published a listing.
 
-**Prevention**: Write the index for a listed publication or a pending withdrawal. Do not create withdrawal markers or DHT traffic for ordinary events in a never-listed room. Keep prior failed withdrawals available for explicit retry, and preserve private-room authorization regressions.
+**Prevention**: Write the index for a listed publication or a pending withdrawal belonging to the affected party ID. A stronger regression also reproduced cross-room leakage when any server-wide withdrawal marker triggered index traffic for an unrelated private room. Do not create withdrawal markers or DHT traffic for ordinary events in a never-listed room. Keep prior failed withdrawals available for explicit retry, and preserve private-room authorization regressions.
 
 ### 0z1155. Withdraw the Previous Room Listing on Unlist, Replacement and Stop
 
