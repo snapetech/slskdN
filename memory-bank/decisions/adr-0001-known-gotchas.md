@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1123. Use Joined Room Fixtures When Testing Messaging Navigation
+
+**The Bug**: A new pod playback navigation test tried to click an available Soulseek room while its joined-room fixture was empty. The panel assertions passed, then the test failed on a missing room row rather than on playback behavior.
+
+**Prevention**: Populate joined rooms when navigating the joined-room tree. Available-room discovery is a separate workflow. Inspect the failed assertion and fixture contract before attributing a navigation failure to the player.
+
 ### 0z1122. Put Room Playback Controls on the Routed Messaging Surface
 
 **The Bug**: Listen-along controls were mounted only by the legacy Pods component, while every live pod route renders Messaging V2. A regression could open a pod channel but found no playback panel. A second regression showed DirectMessage channels with custom names were classified as rooms because the classifier recognized Direct but not the backend enum's DirectMessage spelling.
