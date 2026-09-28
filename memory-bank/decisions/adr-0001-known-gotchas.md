@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1100. Keep Revoked Room Access Ahead of Queued Events
+
+**The Bug**: The new access-revoked handler cleared following state and showed an error, but a queued older partyState event immediately cleared that error and restored room metadata. A negative Web regression reproduced the lost revocation feedback.
+
+**Prevention**: Latch revoked access for the current connection attempt and ignore room events and pending snapshots until an authorized rejoin succeeds. A snapshot/version guard alone does not cover already queued hub events.
+
 ### 0z1099. Reauthorize Listen-Along Recipients After Join
 
 **The Bug**: JoinParty checked membership once, but publication sent to the entire SignalR group. Group membership persists until leave/disconnect and does not recheck pod membership, so removing or banning a member did not prevent subsequent room state delivery.
