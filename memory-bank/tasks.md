@@ -5317,3 +5317,13 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] 2026-09-28 Rebuilt complete 21-case browser gate passes; source publication follows exact-range release preview.
 
 - [ ] Verify focus-indicator contrast across supported themes and visual modes; outline-style checks establish presence only.
+
+## Listed-radio mesh RPC pacing — 2026-09-28
+
+- [x] Reproduce legitimate sequential RPC quota failure over actual TLS.
+- [x] Add bounded connection-owned call/reply pacing outside the reader and framer lock.
+- [x] Preserve raw ten/eleven-frame ingress rejection and actual-send accounting.
+- [x] Cover canceled entry skipping, control progress, queue overflow, failure and shutdown in real TLS tests.
+- [x] Repair constructor-bypassing lifecycle fixtures exposed by the full gate.
+- [x] 2026-09-28 Complete final backend, Release and all 21 runtime cases; publish after exact-range release preview and fork verification.
+- [ ] Establish sustained radio throughput for supported high-rate formats.

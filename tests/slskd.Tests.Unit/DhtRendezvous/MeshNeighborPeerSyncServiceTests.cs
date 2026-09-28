@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Net.Security;
 using System.IO;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging.Abstractions;
 using slskd.DhtRendezvous;
 using slskd.DhtRendezvous.Messages;
@@ -112,14 +111,9 @@ public class MeshNeighborPeerSyncServiceTests
 
     private static MeshOverlayConnection CreateConnection(string username, string address, int port, IReadOnlyList<string> features, bool isOutbound = false)
     {
-        var connection = (MeshOverlayConnection)RuntimeHelpers.GetUninitializedObject(typeof(MeshOverlayConnection));
-
-        var sslStream = new SslStream(new MemoryStream());
-        SetField(connection, "_cts", new CancellationTokenSource());
-        SetField(connection, "_tcpClient", new TcpClient());
-        SetField(connection, "_sslStream", sslStream);
-        SetField(connection, "_framer", new SecureMessageFramer(sslStream));
-
+        var connection = (MeshOverlayConnection)Activator.CreateInstance(typeof(MeshOverlayConnection),
+            BindingFlags.Instance | BindingFlags.NonPublic, binder: null,
+            args: [new TcpClient(), new SslStream(new MemoryStream()), new IPEndPoint(IPAddress.Loopback, 5000)], culture: null)!;
         SetPropertyOrField(connection, "ConnectionId", $"conn-{port}-{username}");
         SetPropertyOrField(connection, "RemoteEndPoint", new IPEndPoint(IPAddress.Parse(address), port));
         SetPropertyOrField(connection, "Username", username);
@@ -130,13 +124,6 @@ public class MeshNeighborPeerSyncServiceTests
         return connection;
     }
 
-    private static void SetField(object target, string fieldName, object? value)
-    {
-        var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException($"Field '{fieldName}' was not found.");
-
-        field.SetValue(target, value);
-    }
 
     private static void SetPropertyOrField(object target, string memberName, object? value)
     {

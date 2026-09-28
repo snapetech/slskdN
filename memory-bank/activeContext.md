@@ -14996,3 +14996,60 @@ Next Steps remain broad: legitimate mesh bursts, ongoing host control events,
 authenticated distributed room state, renewal, sustained resources, supported
 browser/format/device/accessibility work and fixture cleanup. Full player goal
 remains active; no release tag or deployment is included.
+
+## Listed-radio mesh RPC pacing — 2026-09-28
+
+Ordinary sequential radio metadata requests reproduced a quota disconnect on a
+real TLS connection before the fix. Calls and replies now share a bounded
+connection-owned writer with a 140-millisecond interval. Receive loops enqueue
+replies without delaying ingress checks; controls bypass pacing. Actual sent
+radio payloads trigger upload accounting, and cancellation, overflow, failure
+and shutdown release owned work. ADR-0018 records the design.
+
+Ten focused real TLS cases pass, covering forward/reverse metadata bursts,
+raw ten/eleven-frame boundaries, canceled entry skipping, control progress,
+queue overflow and observed writer failure. The first full backend gate exposed
+eleven constructor-bypassing fixture disposal failures; registry/router/peer-sync
+fixtures now invoke the real constructor. Gotchas 0z1146 and 0z1147 record both
+failures. All 1,018 Web tests and Web lint pass. Frontend build and bundle/output
+gates pass. Final backend, Release and complete runtime gates remain pending.
+
+This proves focused burst handling, not sustained high-rate radio formats or
+arbitrary control bursts. Ongoing host publication, authenticated cross-node
+room state, renewal, sustained resources, browser/format/device/accessibility
+coverage and fixture cleanup remain open. Full player goal remains active.
+
+### Final mesh unit gate — 2026-09-28
+
+The final corrected source passes all 5,304 unit tests and 74 smoke tests,
+including eleven real TLS transport cases. Caller cancellation now skips
+waiting entries while allowing a committed frame to finish under connection
+ownership. Active write timeouts remain failures even when the caller canceled.
+Integration, final Release and rebuilt runtime gates remain pending.
+
+### Final mesh pacing gates — 2026-09-28
+
+All 5,304 unit / 74 smoke / 284 integration tests and 1,018 Web tests in 166
+files pass. Eleven actual TLS cases cover forward/reverse RPC bursts, raw
+ten/eleven-frame boundaries, queued/committed cancellation, control progress,
+overflow, writer failure and shutdown. Repository/Web lint, frontend and final
+Release builds, bundle/output, controller/fetch CSRF, anonymous endpoint and
+identity/whitespace gates pass. Final Release retains its two existing dependency
+support warnings. A newly introduced comment-spacing warning was corrected
+before the final rebuilt browser run; the interrupted run is not counted.
+
+The complete final browser suite passes all 21 cases in 4.9 minutes, including
+real two-node radio playback/seeking, reverse directory delivery, revocation,
+elapsed ticket expiry/manual reselection, room following/recovery, media controls,
+queue/format/crossfade/analyzer/PiP and responsive/touch cases. Final browser
+metadata reports passed with no failed tests; a final expanded screenshot was
+inspected. Retained node logs contain no message-rate disconnect or public DHT
+engine startup. Fixture file-handle GC warnings remain tracked, and trace-enabled
+resource samples do not establish sustained performance.
+
+This batch is complete for source publication after exact-range release preview
+and fork verification. Next Steps: persistent ongoing host publication,
+authenticated distributed room state and renewal; sustained resources and
+throughput; supported browser/format/device/assistive-technology and focus
+contrast validation; fixture cleanup. The full player goal remains active.
+No tag, release or deployment is included.

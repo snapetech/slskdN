@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Listed-radio mesh request reliability
+
+- Pace service calls and replies through a bounded connection-owned writer so ordinary RPC bursts preserve the inbound quota.
+- Keep controls responsive during pacing, release canceled and pending writes on shutdown, and count uploads after successful sends.
+- Preserve raw inbound abuse limits; sustained high-rate format validation remains open.
+
+
 ### Responsive player controls
 
 - Size rating, visual-tool and compact controls for touch on narrow screens and tablets with a coarse pointer.

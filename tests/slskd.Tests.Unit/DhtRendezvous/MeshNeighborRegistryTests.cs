@@ -9,7 +9,6 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging.Abstractions;
 using slskd.DhtRendezvous;
 using slskd.DhtRendezvous.Security;
@@ -72,7 +71,6 @@ public class MeshNeighborRegistryTests
         await registry.UnregisterAsync(connection);
     }
 
-
     [Fact]
     public async Task RegisterAsync_WhenOutboundArrivesForInboundPeer_KeepsBothDirections()
     {
@@ -117,13 +115,9 @@ public class MeshNeighborRegistryTests
 
     private static MeshOverlayConnection CreateConnection(string username, string address, int port, bool isOutbound = false)
     {
-        var connection = (MeshOverlayConnection)RuntimeHelpers.GetUninitializedObject(typeof(MeshOverlayConnection));
-
-        SetField(connection, "_cts", new CancellationTokenSource());
-        SetField(connection, "_tcpClient", new TcpClient());
-        var sslStream = new SslStream(new MemoryStream());
-        SetField(connection, "_sslStream", sslStream);
-        SetField(connection, "_framer", new SecureMessageFramer(sslStream));
+        var connection = (MeshOverlayConnection)Activator.CreateInstance(typeof(MeshOverlayConnection),
+            BindingFlags.Instance | BindingFlags.NonPublic, binder: null,
+            args: [new TcpClient(), new SslStream(new MemoryStream()), new IPEndPoint(IPAddress.Loopback, 5000)], culture: null)!;
         SetPropertyOrField(connection, "ConnectionId", $"conn-{port}");
         SetPropertyOrField(connection, "RemoteEndPoint", new IPEndPoint(IPAddress.Parse(address), port));
         SetPropertyOrField(connection, "Username", username);
@@ -147,11 +141,4 @@ public class MeshNeighborRegistryTests
         field.SetValue(target, value);
     }
 
-    private static void SetField(object target, string fieldName, object? value)
-    {
-        var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException($"Field '{fieldName}' was not found.");
-
-        field.SetValue(target, value);
-    }
 }

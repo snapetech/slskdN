@@ -560,7 +560,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         var callMessage = SecureMessageFramer.DeserializeMessage<Messages.MeshServiceCallMessage>(rawMessage);
         if (_serviceRouter == null)
         {
-            await connection.WriteMessageAsync(ToMeshServiceReplyMessage(new ServiceReply
+            connection.QueueServiceReply(ToMeshServiceReplyMessage(new ServiceReply
             {
                 CorrelationId = callMessage.CorrelationId,
                 StatusCode = ServiceStatusCodes.ServiceUnavailable,
@@ -578,12 +578,14 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         };
 
         var reply = await _serviceRouter.RouteAsync(call, connection.Username ?? connection.ConnectionId, connection.CertificateThumbprint, cancellationToken);
-        await connection.WriteMessageAsync(ToMeshServiceReplyMessage(reply), cancellationToken);
+        Func<CancellationToken, Task>? onSent = null;
         if (_trafficAccounting != null && reply.IsSuccess && reply.Payload.Length > 0 &&
             string.Equals(call.ServiceName, "ListedRadio", StringComparison.OrdinalIgnoreCase) && call.Method == "Read")
         {
-            await _trafficAccounting.AddOverlayUploadAsync(reply.Payload.Length, cancellationToken).ConfigureAwait(false);
+            onSent = token => _trafficAccounting.AddOverlayUploadAsync(reply.Payload.Length, token);
         }
+
+        connection.QueueServiceReply(ToMeshServiceReplyMessage(reply), cancellationToken, onSent);
     }
 
     private static ServiceReply ToServiceReply(Messages.MeshServiceReplyMessage message)

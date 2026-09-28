@@ -109,9 +109,11 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
     }
 
     [Theory]
-    [InlineData(10, true)]
-    [InlineData(11, false)]
-    public async Task RealServer_MessageLimitCountsReceivedFramesNotPendingReads(int count, bool allowed)
+    [InlineData(10, true, false)]
+    [InlineData(11, false, false)]
+    [InlineData(10, true, true)]
+    [InlineData(11, false, true)]
+    public async Task RealServer_MessageLimitCountsReceivedFramesNotPendingReads(int count, bool allowed, bool serviceFrames)
     {
         var dhtOptions = new DhtRendezvousOptions { Enabled = true };
         var meshOverlayServer = new MeshOverlayServer(
@@ -167,14 +169,29 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
             Assert.Equal(0, meshOverlayServer.TotalConnectionsRejected);
             Assert.Equal(1, meshOverlayServer.ActiveConnections);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            // An adversarial peer bypasses our sender pacing and writes raw
+            // authenticated frames. Reply pacing must not delay quota checks.
+            using var raw = new SecureMessageFramer((System.Net.Security.SslStream)typeof(MeshOverlayConnection)
+                .GetField("_sslStream", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(connection)!);
             for (var index = 0; index < count; index++)
             {
-                await connection.WriteMessageAsync(new PingMessage { Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }, timeout.Token);
+                if (serviceFrames)
+                {
+                    await raw.WriteMessageAsync(new MeshServiceCallMessage { CorrelationId = index.ToString(), ServiceName = "unknown", Method = "Read" }, timeout.Token);
+                }
+                else
+                {
+                    await connection.WriteMessageAsync(new PingMessage { Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }, timeout.Token);
+                }
             }
 
-            for (var index = 0; index < Math.Min(count, OverlayRateLimiter.MaxMessagesPerSecond); index++)
+            if (!serviceFrames || allowed)
             {
-                Assert.NotNull(await connection.ReadMessageAsync<PongMessage>(timeout.Token));
+                for (var index = 0; index < Math.Min(count, OverlayRateLimiter.MaxMessagesPerSecond); index++)
+                {
+                    if (serviceFrames) Assert.NotNull(await connection.ReadMessageAsync<MeshServiceReplyMessage>(timeout.Token));
+                    else Assert.NotNull(await connection.ReadMessageAsync<PongMessage>(timeout.Token));
+                }
             }
 
             if (allowed)
@@ -192,6 +209,94 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
         {
             await sharedListener.StopAsync(CancellationToken.None);
             await meshOverlayServer.StopAsync();
+        }
+    }
+
+    [Theory]
+    [InlineData("overflow")]
+    [InlineData("failure")]
+    [InlineData("resume")]
+    [InlineData("active-cancel")]
+    public async Task RealConnection_ServiceWriterBoundsCancellationControlAndShutdown(string mode)
+    {
+        var options = new DhtRendezvousOptions { Enabled = true };
+        var server = new MeshOverlayServer(NullLogger<MeshOverlayServer>.Instance,
+            new StaticOptionsMonitor(new slskd.Options { Soulseek = new slskd.Options.SoulseekOptions { Username = "server-peer" } }),
+            new CertificateManager(NullLogger<CertificateManager>.Instance, _serverAppDirectory),
+            new CertificatePinStore(NullLogger<CertificatePinStore>.Instance, _serverAppDirectory),
+            new OverlayRateLimiter(), new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance),
+            new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance), new NoOpMeshOverlayConnector(),
+            new NoOpMeshSyncService(), new NoOpMeshSearchRpcHandler(), new MeshOverlayRequestRouter(), options);
+        var listener = new SharedMeshTcpListener(NullLogger<SharedMeshTcpListener>.Instance,
+            new OptionsAtStartup { Soulseek = new slskd.Options.SoulseekOptions { ListenIpAddress = "127.0.0.1", ListenPort = 0 } },
+            options, new FedTcpListener(), server);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await server.StartAsync(timeout.Token);
+        await listener.StartAsync(timeout.Token);
+        try
+        {
+            var certificate = new CertificateManager(NullLogger<CertificateManager>.Instance, _clientAppDirectory).GetOrCreateServerCertificate();
+            await using var connection = await MeshOverlayConnection.ConnectAsync(await WaitForBoundEndPointAsync(listener), certificate, timeout.Token);
+            await connection.PerformClientHandshakeAsync("client-peer", overlayPort: 12345, cancellationToken: timeout.Token);
+            var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var activeCancellation = new CancellationTokenSource();
+            var exited = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            connection.QueueServiceReply(new MeshServiceReplyMessage { CorrelationId = "held" },
+                mode == "active-cancel" ? activeCancellation.Token : timeout.Token, async token =>
+            {
+                entered.TrySetResult(true);
+                try { await release.Task.WaitAsync(token); }
+                finally { exited.TrySetResult(true); }
+            });
+            await entered.Task.WaitAsync(timeout.Token);
+            if (mode == "active-cancel")
+            {
+                activeCancellation.Cancel();
+                await Task.WhenAny(exited.Task, Task.Delay(100, timeout.Token));
+                Assert.False(exited.Task.IsCompleted);
+            }
+
+            // The writer is held outside the framer lock. A control round trip
+            // must still progress while service writes remain queued.
+            await connection.WriteMessageAsync(new PingMessage { Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }, timeout.Token);
+            Assert.NotNull(await connection.ReadMessageAsync<PongMessage>(timeout.Token));
+            using var canceled = new CancellationTokenSource();
+            var canceledWrite = connection.WriteMessageAsync(new MeshServiceCallMessage { CorrelationId = "canceled" }, canceled.Token);
+            canceled.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => canceledWrite);
+            if (mode is "resume" or "active-cancel")
+            {
+                var next = connection.WriteMessageAsync(new MeshServiceCallMessage { CorrelationId = "next" }, timeout.Token);
+                release.TrySetResult(true);
+                await next;
+                var reply = await connection.ReadMessageAsync<MeshServiceReplyMessage>(timeout.Token);
+                Assert.Equal("next", reply.CorrelationId);
+                Assert.True(connection.IsConnected);
+                return;
+            }
+
+            var queued = Enumerable.Range(0, 31).Select(index => connection.WriteMessageAsync(
+                new MeshServiceCallMessage { CorrelationId = index.ToString() }, timeout.Token)).ToArray();
+            Assert.All(queued, pending => Assert.False(pending.IsCompleted));
+            if (mode == "failure")
+            {
+                release.TrySetException(new IOException("Injected post-send failure"));
+                foreach (var pending in queued) await Assert.ThrowsAsync<IOException>(() => pending);
+            }
+            else
+            {
+                await Assert.ThrowsAsync<IOException>(() => connection.WriteMessageAsync(new MeshServiceCallMessage { CorrelationId = "overflow" }, timeout.Token));
+                foreach (var pending in queued) await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+            }
+
+            await connection.DisposeAsync();
+            Assert.False(connection.IsConnected);
+        }
+        finally
+        {
+            await listener.StopAsync(CancellationToken.None);
+            await server.StopAsync();
         }
     }
 
@@ -275,6 +380,14 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
             hostAccounting.Verify(service => service.AddOverlayUploadAsync(15, It.IsAny<CancellationToken>()), Times.Once);
             hostAccounting.VerifyNoOtherCalls();
 
+            // Twenty ordinary sequential calls must survive on the same link;
+            // pending-call capacity alone does not pace received frame bursts.
+            for (var index = 0; index < 20; index++)
+            {
+                var burstReply = await client.CallAsync("radio-host", Read(0, 15) with { Method = "Metadata" }, timeout.Token);
+                Assert.Equal(ServiceStatusCodes.OK, burstReply.StatusCode);
+            }
+
             // Exercise the connector's inbound RPC handler on the same real TLS link.
             var inbound = Assert.Single(serverRegistry.GetAllConnections());
             Assert.False(inbound.IsOutbound);
@@ -300,6 +413,12 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
             Assert.Single(serverRegistry.GetAllConnections());
             clientAccounting.Verify(service => service.AddOverlayUploadAsync(15, It.IsAny<CancellationToken>()), Times.Once);
             clientAccounting.VerifyNoOtherCalls();
+
+            for (var index = 0; index < 20; index++)
+            {
+                var burstReply = await reverseClient.CallAsync("radio-listener", Read(0, 15) with { Method = "Metadata" }, timeout.Token);
+                Assert.Equal(ServiceStatusCodes.OK, burstReply.StatusCode);
+            }
 
             // Keep the ten-call client quota probe within the real ten-message
             // per-second overlay budget, independently of preceding RPC checks.

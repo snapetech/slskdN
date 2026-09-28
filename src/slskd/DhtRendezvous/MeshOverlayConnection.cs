@@ -5,7 +5,9 @@ namespace slskd.DhtRendezvous;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
@@ -13,6 +15,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Channels;
 using slskd.DhtRendezvous.Messages;
 using slskd.DhtRendezvous.Security;
 using Serilog;
@@ -30,6 +33,13 @@ public sealed class MeshOverlayConnection : IAsyncDisposable
     private readonly SecureMessageFramer _framer;
     private readonly CancellationTokenSource _cts = new();
     private readonly object _lock = new();
+
+    // At most eight RPC frames per rolling second leave room for controls.
+    // Pace outside the framer lock and receive loop; see ADR-0018.
+    private static readonly TimeSpan ServiceWriteInterval = TimeSpan.FromMilliseconds(140);
+    private readonly Channel<PendingServiceWrite> _serviceWrites = Channel.CreateBounded<PendingServiceWrite>(
+        new BoundedChannelOptions(32) { SingleReader = true, FullMode = BoundedChannelFullMode.Wait });
+    private Task? _serviceWriteTask;
 
     private DateTimeOffset _lastActivity;
     private DateTimeOffset? _lastPingSent;
@@ -374,7 +384,109 @@ public sealed class MeshOverlayConnection : IAsyncDisposable
     public async Task WriteMessageAsync<T>(T message, CancellationToken cancellationToken = default)
     {
         ThrowIfNotActive();
+        if (message is MeshServiceCallMessage or MeshServiceReplyMessage)
+        {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var registration = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+            EnqueueServiceWrite(new PendingServiceWrite(token => WriteMessageCoreAsync(message, token), cancellationToken, completion));
+            await completion.Task.ConfigureAwait(false);
+            return;
+        }
 
+        await WriteMessageCoreAsync(message, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Queue a reply without delaying the receive loop's inbound quota checks.
+    /// The owned writer observes failure and closes the connection on write errors.
+    /// </summary>
+    public void QueueServiceReply(MeshServiceReplyMessage message, CancellationToken cancellationToken,
+        Func<CancellationToken, Task>? onSent = null)
+    {
+        ThrowIfNotActive();
+        EnqueueServiceWrite(new PendingServiceWrite(async token =>
+        {
+            await WriteMessageCoreAsync(message, token).ConfigureAwait(false);
+            if (onSent != null) await onSent(token).ConfigureAwait(false);
+        }, cancellationToken, null));
+    }
+
+    private void EnqueueServiceWrite(PendingServiceWrite pending)
+    {
+        lock (_lock)
+        {
+            ThrowIfNotActive();
+            if (!_serviceWrites.Writer.TryWrite(pending))
+            {
+                _cts.Cancel();
+                _tcpClient.Close();
+                throw new IOException("Mesh service write queue capacity exceeded.");
+            }
+
+            _serviceWriteTask ??= RunServiceWritesAsync();
+        }
+    }
+
+    private async Task RunServiceWritesAsync()
+    {
+        var lastWrite = 0L;
+        Exception? failure = null;
+        try
+        {
+            await foreach (var pending in _serviceWrites.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
+            {
+                using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(pending.CancellationToken, _cts.Token);
+                var committed = false;
+                try
+                {
+                    cancellation.Token.ThrowIfCancellationRequested();
+                    var remaining = lastWrite == 0 ? TimeSpan.Zero : ServiceWriteInterval - Stopwatch.GetElapsedTime(lastWrite);
+                    if (remaining > TimeSpan.Zero) await Task.Delay(remaining, cancellation.Token).ConfigureAwait(false);
+                    cancellation.Token.ThrowIfCancellationRequested();
+
+                    // Once committed, finish the frame even if its caller cancels.
+                    // Interrupting header/payload writes would corrupt the stream.
+                    committed = true;
+                    await pending.Write(_cts.Token).ConfigureAwait(false);
+                    lastWrite = Stopwatch.GetTimestamp();
+                    pending.Completion?.TrySetResult(true);
+                }
+                catch (OperationCanceledException) when (_cts.IsCancellationRequested || (!committed && cancellation.IsCancellationRequested))
+                {
+                    pending.Completion?.TrySetCanceled(cancellation.Token);
+                    if (_cts.IsCancellationRequested) break;
+                }
+                catch (Exception ex)
+                {
+                    pending.Completion?.TrySetException(ex);
+                    failure = ex;
+                    Log.Warning(ex, "Mesh service writer failed for {Username}", OverlayLogSanitizer.Username(Username));
+                    _cts.Cancel();
+                    _tcpClient.Close();
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+        {
+            // Owned shutdown interrupts idle queue waiting as well as pacing.
+        }
+        finally
+        {
+            _serviceWrites.Writer.TryComplete(failure);
+            while (_serviceWrites.Reader.TryRead(out var pending))
+            {
+                if (failure != null) pending.Completion?.TrySetException(failure);
+                else pending.Completion?.TrySetCanceled(_cts.Token);
+            }
+        }
+    }
+
+    private sealed record PendingServiceWrite(Func<CancellationToken, Task> Write,
+        CancellationToken CancellationToken, TaskCompletionSource<bool>? Completion);
+
+    private async Task WriteMessageCoreAsync<T>(T message, CancellationToken cancellationToken)
+    {
         using var writeCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
 
         // SECURITY: Use shorter write timeout to prevent slow clients from holding connections
@@ -549,10 +661,19 @@ public sealed class MeshOverlayConnection : IAsyncDisposable
             return;
         }
 
-        _disposed = true;
-        State = ConnectionState.Disconnected;
+        Task? serviceWriter;
+        lock (_lock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            State = ConnectionState.Disconnected;
+            _serviceWrites.Writer.TryComplete();
+            serviceWriter = _serviceWriteTask;
+        }
 
         await _cts.CancelAsync();
+        _tcpClient.Close();
+        if (serviceWriter != null) await serviceWriter.ConfigureAwait(false);
         _cts.Dispose();
 
         try

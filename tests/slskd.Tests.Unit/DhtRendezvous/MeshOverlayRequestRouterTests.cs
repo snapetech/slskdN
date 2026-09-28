@@ -8,7 +8,6 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using slskd.DhtRendezvous;
 using slskd.DhtRendezvous.Security;
@@ -48,13 +47,9 @@ public class MeshOverlayRequestRouterTests
 
     private static MeshOverlayConnection CreateConnection(string connectionId)
     {
-        var connection = (MeshOverlayConnection)RuntimeHelpers.GetUninitializedObject(typeof(MeshOverlayConnection));
-
-        SetField(connection, "_cts", new CancellationTokenSource());
-        SetField(connection, "_tcpClient", new TcpClient());
-        var sslStream = new SslStream(new MemoryStream());
-        SetField(connection, "_sslStream", sslStream);
-        SetField(connection, "_framer", new SecureMessageFramer(sslStream));
+        var connection = (MeshOverlayConnection)Activator.CreateInstance(typeof(MeshOverlayConnection),
+            BindingFlags.Instance | BindingFlags.NonPublic, binder: null,
+            args: [new TcpClient(), new SslStream(new MemoryStream()), new IPEndPoint(IPAddress.Loopback, 5000)], culture: null)!;
         SetPropertyOrField(connection, "ConnectionId", connectionId);
         SetPropertyOrField(connection, "RemoteEndPoint", new IPEndPoint(IPAddress.Loopback, 5000));
         SetPropertyOrField(connection, "Username", "peer-1");
@@ -77,11 +72,4 @@ public class MeshOverlayRequestRouterTests
         field.SetValue(target, value);
     }
 
-    private static void SetField(object target, string fieldName, object? value)
-    {
-        var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException($"Field '{fieldName}' was not found.");
-
-        field.SetValue(target, value);
-    }
 }
