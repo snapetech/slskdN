@@ -14724,3 +14724,29 @@ proof before authenticated distributed room state; verify automatic recovery,
 remote and long host-capability renewal, sustained resources, browser/format,
 accessibility and physical-device workflows. Full goal remains active. No tag
 or deployment is authorized.
+
+## Remote room permission repair final gates — 2026-09-28
+
+Mesh pod calls require transport identity, fresh joins grant member only,
+private/approval admission requires existing membership, and approved roles and
+keys are retained. Active membership protects private metadata, history/posting
+and stream history. In-memory and SQLite services preserve banned records on
+leave. Twenty-three adapter failures and two direct banned-leave failures were
+reproduced before repair; ordinary active leave/rejoin and real-service adapter
+checks remain successful. Separate gotchas record defects and style/doc fixes.
+
+Final source: 5,292 unit / 74 smoke / 284 integration pass; repository lint and
+Release build pass without new style warnings. Web lint and endpoint/identity/
+whitespace gates pass. The unchanged Web source retains 998 full-suite tests
+and frontend/bundle/output validation from the preceding batch. The updated
+actual two-client runtime passes: banned leave/rejoin cannot restore access,
+and the other participant retains delivery. Prior batch's 19-case runtime
+evidence is retained with its tested scope; cross-node state is still absent.
+
+This batch is complete after commit/push and exact-range release preview.
+Next Steps: two actual authenticated mesh endpoint permission calls; remote
+state application with current membership, ordering and no republishing loop;
+automatic recovery and browser follow, remote/long capability renewal, retained
+reverse-directory diagnostics, sustained resources, format/browser, accessibility
+and physical-device workflows. The full player goal remains active. No tag
+or deployment is authorized.

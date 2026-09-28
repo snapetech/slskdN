@@ -77,6 +77,15 @@ test('reauthorizes two live room participants across leave, disconnect and revoc
     expect((await currentMembers.json()).some((member: { peerId: string }) => member.peerId === 'roomlistener')).toBe(true);
     const ban = await request.post(`${node.apiUrl}/api/v0/pods/${encodeURIComponent(podId)}/ban`, { headers: admin, data: { peerId: 'roomlistener' } });
     expect(ban.ok(), await ban.text()).toBe(true);
+    const bannedHeaders = { 'X-API-Key': 'room-listener-fixture-key' };
+    const leaveAfterBan = await request.post(`${node.apiUrl}/api/v0/pods/${encodeURIComponent(podId)}/leave`, {
+      headers: bannedHeaders, data: { peerId: 'roomobserver' },
+    });
+    expect(leaveAfterBan.status()).toBe(404);
+    const rejoinAfterBan = await request.post(`${node.apiUrl}/api/v0/pods/${encodeURIComponent(podId)}/join`, {
+      headers: bannedHeaders, data: { peerId: 'roomobserver' },
+    });
+    expect(rejoinAfterBan.status()).toBe(400);
     await publish('Private after ban');
     await expect.poll(() => revoked).toBe(1);
     expect(events).not.toContain('Private after ban');

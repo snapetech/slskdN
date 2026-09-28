@@ -5255,5 +5255,16 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Reject conflicting SQLite timestamp duplicates, retain original data and store signature versions.
 - [x] Count actual received mesh frames; verify ten-frame survival and eleven-frame denial through real TLS.
 - [x] Use actual room creation and verify accepted publication in runtime message storage.
-- [ ] Repair and negatively verify mesh pod admission roles, private/approval checks and message-read authorization before distributed room delivery.
+- [x] 2026-09-28 Repair and negatively verify mesh pod admission roles, private/approval checks and message-read authorization before distributed room delivery; adapter and direct service regressions establish this boundary.
 - [ ] Keep the intermittent reverse-directory investigation open until retained logs establish a cause.
+
+## Remote room permission prerequisites — 2026-09-28
+
+- [x] Bind all mesh room calls to nonempty transport identity; deny private/approval admission and grant fresh joins only member roles.
+- [x] Preserve existing approved roles/keys; protect private metadata and RPC/stream history or posting with active membership.
+- [x] Reproduce banned leave in both in-memory and SQLite services and preserve ban records; verify ordinary members can still leave/rejoin.
+- [ ] Verify permission calls through two actual authenticated mesh endpoints, including revocation and replay/ordering before cross-node state application.
+- [ ] Implement actual cross-node state receiver and browser follow/recovery; this admission repair does not establish those workflows.
+
+- [x] 2026-09-28 Verify banned HTTP leave/rejoin cannot restore room subscription access with actual service and two clients; observer delivery remains available.
+- [ ] Close successful test-node log handles and clear stop timers explicitly; retained runtime emitted Node file-descriptor garbage-collection warnings. Keep fixture overhead separate from player resource claims.

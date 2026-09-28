@@ -176,6 +176,217 @@ public class PodsMeshServiceTests
         Assert.Equal("msg-1", sentMessages[0].MessageId);
     }
 
+    [Theory]
+    [InlineData("owner")]
+    [InlineData("mod")]
+    [InlineData(" member ")]
+    public async Task Join_PublicPod_UsesTransportIdentityAndMemberRole(string requestedRole)
+    {
+        var pods = CreatePods(isPublic: true);
+        pods.Setup(service => service.JoinAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var service = CreateService(pods: pods.Object);
+
+        var reply = await service.HandleCallAsync(Call("Join", new { PodId, Role = requestedRole, PeerId = "owner" }),
+            new MeshServiceContext { RemotePeerId = " peer-2 ", RemotePublicKey = "transport-key" });
+
+        Assert.Equal(ServiceStatusCodes.OK, reply.StatusCode);
+        pods.Verify(service => service.JoinAsync(PodId,
+            It.Is<PodMember>(member => member.PeerId == "peer-2" && member.Role == "member" && member.PublicKey == "transport-key"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    public async Task Join_RejectsPrivateApprovalOrBannedAdmission(bool isPublic, bool approval, bool banned)
+    {
+        var pods = CreatePods(isPublic, approval, banned ? new PodMember { PeerId = "peer-2", IsBanned = true } : null);
+        pods.Setup(service => service.JoinAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var reply = await CreateService(pods: pods.Object).HandleCallAsync(Call("Join", new { PodId, Role = "owner" }),
+            new MeshServiceContext { RemotePeerId = "peer-2" });
+
+        Assert.Equal(ServiceStatusCodes.Forbidden, reply.StatusCode);
+        pods.Verify(service => service.JoinAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Join_ExistingApprovedMember_DoesNotReplaceRoleOrKey()
+    {
+        var pods = CreatePods(false, true, new PodMember { PeerId = "peer-2", Role = "mod", PublicKey = "existing-key" });
+        var reply = await CreateService(pods: pods.Object).HandleCallAsync(Call("Join", new { PodId, Role = "owner" }),
+            new MeshServiceContext { RemotePeerId = "peer-2", RemotePublicKey = "replacement-key" });
+
+        Assert.Equal(ServiceStatusCodes.OK, reply.StatusCode);
+        pods.Verify(service => service.JoinAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("Get", false)]
+    [InlineData("Get", true)]
+    [InlineData("Leave", false)]
+    [InlineData("Leave", true)]
+    [InlineData("GetMessages", false)]
+    [InlineData("GetMessages", true)]
+    [InlineData("PostMessage", false)]
+    [InlineData("PostMessage", true)]
+    public async Task PrivateRoom_DeniesUnrelatedAndBannedPeers(string method, bool banned)
+    {
+        var pods = CreatePods(false, member: banned ? new PodMember { PeerId = "peer-2", IsBanned = true } : null);
+        var messaging = new Mock<IPodMessaging>();
+        var reply = await CreateService(messaging.Object, pods.Object).HandleCallAsync(
+            Call(method, new { PodId, ChannelId = "general", Body = "hello", PeerId = "peer-1" }),
+            new MeshServiceContext { RemotePeerId = "peer-2" });
+
+        Assert.Equal(ServiceStatusCodes.Forbidden, reply.StatusCode);
+        messaging.Verify(service => service.GetMessagesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<long?>(), It.IsAny<CancellationToken>()), Times.Never);
+        messaging.Verify(service => service.SendAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("GetMessages")]
+    [InlineData("PostMessage")]
+    public async Task PublicRoom_HistoryAndPostingStillRequireMembership(string method)
+    {
+        var messaging = new Mock<IPodMessaging>();
+        var reply = await CreateService(messaging.Object, CreatePods(true).Object).HandleCallAsync(
+            Call(method, new { PodId, ChannelId = "general", Body = "hello" }),
+            new MeshServiceContext { RemotePeerId = "peer-2" });
+        Assert.Equal(ServiceStatusCodes.Forbidden, reply.StatusCode);
+        messaging.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Stream_DeniesUnrelatedOrBannedPeerWithoutReadingHistory(bool banned)
+    {
+        var messaging = new Mock<IPodMessaging>();
+        var pods = CreatePods(false, member: banned ? new PodMember { PeerId = "peer-2", IsBanned = true } : null);
+        var stream = new TestMeshServiceStream(JsonSerializer.SerializeToUtf8Bytes(new { PodId, ChannelId = "general" }));
+        await CreateService(messaging.Object, pods.Object).HandleStreamAsync(stream, new MeshServiceContext { RemotePeerId = "peer-2" });
+        Assert.True(stream.Closed);
+        Assert.Empty(stream.SentPayloads);
+        messaging.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("List")]
+    [InlineData("Join")]
+    [InlineData("Leave")]
+    [InlineData("Get")]
+    [InlineData("GetMessages")]
+    [InlineData("PostMessage")]
+    public async Task Calls_RequireNonemptyTransportIdentity(string method)
+    {
+        var pods = CreatePods(true);
+        var reply = await CreateService(pods: pods.Object).HandleCallAsync(Call(method, new { PodId, ChannelId = "general" }),
+            new MeshServiceContext { RemotePeerId = " " });
+        Assert.Equal(ServiceStatusCodes.Unauthorized, reply.StatusCode);
+        pods.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task List_HidesPrivateListedPodsFromUnrelatedPeer()
+    {
+        var pods = CreatePods(false);
+        var privatePod = await pods.Object.GetPodAsync(PodId);
+        privatePod!.Visibility = PodVisibility.Listed;
+        pods.Setup(service => service.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new[] { privatePod });
+        var reply = await CreateService(pods: pods.Object).HandleCallAsync(Call("List", new { }),
+            new MeshServiceContext { RemotePeerId = "peer-2" });
+        Assert.Equal(ServiceStatusCodes.OK, reply.StatusCode);
+        Assert.Empty(JsonSerializer.Deserialize<Pod[]>(reply.Payload)!);
+    }
+
+    [Fact]
+    public async Task PublicPodMetadata_IsReadableBeforeJoining()
+    {
+        var reply = await CreateService(pods: CreatePods(true).Object).HandleCallAsync(Call("Get", new { PodId }),
+            new MeshServiceContext { RemotePeerId = "peer-2" });
+        Assert.Equal(ServiceStatusCodes.OK, reply.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Get")]
+    [InlineData("List")]
+    public async Task PrivateMetadata_ApprovedMemberRetainsAccess(string method)
+    {
+        var pods = CreatePods(false, member: new PodMember { PeerId = "peer-2" });
+        pods.Setup(service => service.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new Pod { PodId = PodId, Visibility = PodVisibility.Listed } });
+        var reply = await CreateService(pods: pods.Object).HandleCallAsync(Call(method, new { PodId }),
+            new MeshServiceContext { RemotePeerId = "peer-2" });
+        Assert.Equal(ServiceStatusCodes.OK, reply.StatusCode);
+        if (method == "List")
+        {
+            Assert.Single(JsonSerializer.Deserialize<Pod[]>(reply.Payload)!);
+        }
+        else
+        {
+            Assert.Equal(PodId, JsonSerializer.Deserialize<Pod>(reply.Payload)!.PodId);
+        }
+    }
+
+    [Fact]
+    public async Task Join_MissingPod_DoesNotAttemptMembershipWrite()
+    {
+        var pods = new Mock<IPodService>();
+        var reply = await CreateService(pods: pods.Object).HandleCallAsync(Call("Join", new { PodId }),
+            new MeshServiceContext { RemotePeerId = "peer-2" });
+        Assert.Equal(ServiceStatusCodes.ServiceNotFound, reply.StatusCode);
+        pods.Verify(service => service.JoinAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Stream_EmptyIdentity_ClosesWithoutReadingHistory()
+    {
+        var messaging = new Mock<IPodMessaging>();
+        var stream = new TestMeshServiceStream(JsonSerializer.SerializeToUtf8Bytes(new { PodId, ChannelId = "general" }));
+        await CreateService(messaging.Object).HandleStreamAsync(stream, new MeshServiceContext { RemotePeerId = " " });
+        Assert.True(stream.Closed);
+        Assert.Empty(stream.SentPayloads);
+        messaging.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task RealPodService_RemoteJoinCannotGainOwnerOrEraseBan()
+    {
+        var pods = new PodService();
+        await pods.CreateAsync(new Pod { PodId = PodId, Name = "Room", IsPublic = true });
+        var service = CreateService(pods: pods);
+        var context = new MeshServiceContext { RemotePeerId = "peer-2", RemotePublicKey = "transport-key" };
+        var joined = await service.HandleCallAsync(Call("Join", new { PodId, Role = "owner" }), context);
+        Assert.Equal(ServiceStatusCodes.OK, joined.StatusCode);
+        Assert.Equal("member", Assert.Single(await pods.GetMembersAsync(PodId)).Role);
+        Assert.True(await pods.BanAsync(PodId, "peer-2"));
+        Assert.Equal(ServiceStatusCodes.Forbidden, (await service.HandleCallAsync(Call("Leave", new { PodId }), context)).StatusCode);
+        Assert.Equal(ServiceStatusCodes.Forbidden, (await service.HandleCallAsync(Call("Join", new { PodId }), context)).StatusCode);
+        Assert.Empty(await pods.GetMembersAsync(PodId));
+    }
+
+    private const string PodId = "pod:00000000000000000000000000000001";
+
+    private static ServiceCall Call(string method, object payload) => new()
+    {
+        ServiceName = "pods",
+        Method = method,
+        CorrelationId = Guid.NewGuid().ToString(),
+        Payload = JsonSerializer.SerializeToUtf8Bytes(payload),
+    };
+
+    private static Mock<IPodService> CreatePods(bool isPublic, bool approval = false, PodMember? member = null)
+    {
+        var pods = new Mock<IPodService>();
+        pods.Setup(service => service.GetPodAsync(PodId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Pod { PodId = PodId, IsPublic = isPublic, RequireApproval = approval });
+        pods.Setup(service => service.GetMembersAsync(PodId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(member == null ? Array.Empty<PodMember>() : new[] { member });
+        return pods;
+    }
+
     private sealed class TestMeshServiceStream : MeshServiceStream
     {
         private readonly byte[] _requestPayload;
@@ -207,7 +418,7 @@ public class PodsMeshServiceTests
         }
     }
 
-    private static PodsMeshService CreateService(IPodMessaging? podMessaging = null)
+    private static PodsMeshService CreateService(IPodMessaging? podMessaging = null, IPodService? pods = null)
     {
         var services = new ServiceCollection();
         services.AddScoped(_ => podMessaging ?? Mock.Of<IPodMessaging>());
@@ -215,7 +426,7 @@ public class PodsMeshServiceTests
 
         return new PodsMeshService(
             Mock.Of<ILogger<PodsMeshService>>(),
-            Mock.Of<IPodService>(),
+            pods ?? CreatePods(false, member: new PodMember { PeerId = "peer-1" }).Object,
             provider.GetRequiredService<IServiceScopeFactory>());
     }
 }

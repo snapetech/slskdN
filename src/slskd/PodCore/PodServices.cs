@@ -288,7 +288,7 @@ public class PodService : IPodService
 
         if (podMembers.TryGetValue(podId, out var members))
         {
-            var removed = members.RemoveAll(m => m.PeerId == peerId);
+            var removed = members.RemoveAll(m => m.PeerId == peerId && !m.IsBanned);
             return Task.FromResult(removed > 0);
         }
 

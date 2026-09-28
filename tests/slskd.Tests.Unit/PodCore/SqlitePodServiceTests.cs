@@ -16,6 +16,53 @@ using Xunit;
 public sealed class SqlitePodServiceTests
 {
     [Fact]
+    public async Task LeaveAsync_ActiveMemberCanLeaveAndRejoin()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var factory = new TestDbContextFactory(options);
+        await using (var context = await factory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Listed));
+            context.Members.Add(new PodMemberEntity { PodId = podId, PeerId = "listener" });
+            await context.SaveChangesAsync();
+        }
+        var service = new SqlitePodService(factory, Mock.Of<IPodPublisher>(), Mock.Of<IPodMembershipSigner>(),
+            NullLogger<SqlitePodService>.Instance);
+        Assert.True(await service.LeaveAsync(podId, "listener"));
+        Assert.True(await service.JoinAsync(podId, new PodMember { PeerId = "listener" }));
+        Assert.Single(await service.GetMembersAsync(podId));
+    }
+
+    [Fact]
+    public async Task LeaveAsync_BannedMemberCannotEraseBanAndRejoin()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var factory = new TestDbContextFactory(options);
+        await using (var context = await factory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Listed));
+            context.Members.Add(new PodMemberEntity { PodId = podId, PeerId = "listener", IsBanned = true });
+            await context.SaveChangesAsync();
+        }
+        var service = new SqlitePodService(factory, Mock.Of<IPodPublisher>(), Mock.Of<IPodMembershipSigner>(),
+            NullLogger<SqlitePodService>.Instance);
+
+        Assert.False(await service.LeaveAsync(podId, "listener"));
+        Assert.False(await service.JoinAsync(podId, new PodMember { PeerId = "listener" }));
+        await using var verification = await factory.CreateDbContextAsync();
+        Assert.True((await verification.Members.SingleAsync()).IsBanned);
+        Assert.Empty(await service.GetMembersAsync(podId));
+    }
+
+    [Fact]
     public async Task DeletePodAsync_UsesBoundedSetBasedDeletes()
     {
         const string podId = "pod:00000000000000000000000000000001";

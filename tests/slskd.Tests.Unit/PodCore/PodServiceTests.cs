@@ -12,6 +12,32 @@ using Xunit;
 public class PodServiceTests
 {
     [Fact]
+    public async Task LeaveAsync_ActiveMemberCanLeaveAndRejoin()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        var service = new PodService();
+        await service.CreateAsync(new Pod { PodId = podId, Name = "Room", IsPublic = true });
+        Assert.True(await service.JoinAsync(podId, new PodMember { PeerId = "listener" }));
+        Assert.True(await service.LeaveAsync(podId, "listener"));
+        Assert.True(await service.JoinAsync(podId, new PodMember { PeerId = "listener" }));
+        Assert.Single(await service.GetMembersAsync(podId));
+    }
+
+    [Fact]
+    public async Task LeaveAsync_BannedMemberCannotEraseBanAndRejoin()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        var service = new PodService();
+        await service.CreateAsync(new Pod { PodId = podId, Name = "Room", IsPublic = true });
+        Assert.True(await service.JoinAsync(podId, new PodMember { PeerId = "listener" }));
+        Assert.True(await service.BanAsync(podId, "listener"));
+
+        Assert.False(await service.LeaveAsync(podId, "listener"));
+        Assert.False(await service.JoinAsync(podId, new PodMember { PeerId = "listener" }));
+        Assert.Empty(await service.GetMembersAsync(podId));
+    }
+
+    [Fact]
     public async Task CreateAsync_StillStartsBackgroundPublish_WhenCallerTokenIsAlreadyCancelled()
     {
         var publisher = new Mock<IPodPublisher>();

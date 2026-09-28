@@ -48,3 +48,17 @@ snapshot, directory or now-playing state. Missing rooms return 404; rejected
 storage returns a stable retryable 503. Failed Play and Stop retain the prior
 broadcast. This guarantees the local storage boundary; it does not guarantee
 remote routing success or distributed state application.
+
+### Authenticated mesh permission prerequisite — 2026-09-28
+
+Before distributed room delivery, the existing Pods mesh service binds every
+call to transport identity. Fresh admission grants member only, private and
+approval rooms require existing approved membership, and current membership
+protects history/posting through RPC and streams. Private metadata is filtered
+for unrelated peers. Existing approved joins do not replace role or key.
+
+Both pod service implementations refuse self-removal of banned rows, preventing
+leave/rejoin from erasing denial through either HTTP or mesh. GetMembersAsync
+returns active members only in production; ban retention and underlying join
+rejection remain necessary. This prerequisite does not implement remote state
+application, replay ordering, browser follow or reconnect recovery.

@@ -9,6 +9,7 @@ using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.Transport;
 using slskd.PodCore;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -49,6 +50,16 @@ public class PodsMeshService : IMeshService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(context.RemotePeerId))
+            {
+                return new ServiceReply
+                {
+                    CorrelationId = call.CorrelationId,
+                    StatusCode = ServiceStatusCodes.Unauthorized,
+                    ErrorMessage = "Remote peer identity is required"
+                };
+            }
+
             _logger.LogDebug(
                 "[PodsMeshService] Handling call: {Method} from {PeerId}",
                 call.Method, context.RemotePeerId);
@@ -96,10 +107,16 @@ public class PodsMeshService : IMeshService
     {
         try
         {
-            var requestPayload = await stream.ReceiveAsync(cancellationToken);
-            if (requestPayload == null || requestPayload.Length == 0)
+            if (string.IsNullOrWhiteSpace(context.RemotePeerId))
             {
-                _logger.LogWarning("[PodsMeshService] Empty stream payload from {PeerId}", context.RemotePeerId);
+                await stream.CloseAsync(cancellationToken);
+                return;
+            }
+
+            var requestPayload = await stream.ReceiveAsync(cancellationToken);
+            if (requestPayload == null || requestPayload.Length == 0 || requestPayload.Length > _maxPayload)
+            {
+                _logger.LogWarning("[PodsMeshService] Invalid stream payload from {PeerId}", context.RemotePeerId);
                 await stream.CloseAsync(cancellationToken);
                 return;
             }
@@ -110,6 +127,13 @@ public class PodsMeshService : IMeshService
             if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(channelId))
             {
                 _logger.LogWarning("[PodsMeshService] Invalid stream request from {PeerId}: missing pod or channel ID", context.RemotePeerId);
+                await stream.CloseAsync(cancellationToken);
+                return;
+            }
+
+            var member = await GetMemberAsync(podId, context, cancellationToken);
+            if (member == null || member.IsBanned)
+            {
                 await stream.CloseAsync(cancellationToken);
                 return;
             }
@@ -144,10 +168,17 @@ public class PodsMeshService : IMeshService
     {
         var pods = await _podService.ListAsync(cancellationToken);
 
-        // Only return public/listed pods to external callers
-        var publicPods = pods.Where(p => p.Visibility == PodVisibility.Listed).ToArray();
+        var visiblePods = new List<Pod>();
+        foreach (var pod in pods.Where(p => p.Visibility == PodVisibility.Listed))
+        {
+            var member = pod.IsPublic ? null : await GetMemberAsync(pod.PodId, context, cancellationToken);
+            if (pod.IsPublic || (member != null && !member.IsBanned))
+            {
+                visiblePods.Add(pod);
+            }
+        }
 
-        var response = JsonSerializer.Serialize(publicPods);
+        var response = JsonSerializer.Serialize(visiblePods);
 
         return new ServiceReply
         {
@@ -186,6 +217,20 @@ public class PodsMeshService : IMeshService
             };
         }
 
+        if (!pod.IsPublic)
+        {
+            var member = await GetMemberAsync(podId, context, cancellationToken);
+            if (member == null || member.IsBanned)
+            {
+                return new ServiceReply
+                {
+                    CorrelationId = call.CorrelationId,
+                    StatusCode = ServiceStatusCodes.Forbidden,
+                    ErrorMessage = "Pod membership is required"
+                };
+            }
+        }
+
         var response = JsonSerializer.Serialize(pod);
 
         return new ServiceReply
@@ -214,12 +259,43 @@ public class PodsMeshService : IMeshService
             };
         }
 
-        var role = string.IsNullOrWhiteSpace(request!.Role) ? "member" : request.Role.Trim();
+        var pod = await _podService.GetPodAsync(podId, cancellationToken);
+        if (pod == null)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.ServiceNotFound,
+                ErrorMessage = "Pod not found"
+            };
+        }
+
+        var existing = await GetMemberAsync(podId, context, cancellationToken);
+        if ((existing != null && existing.IsBanned) || (existing == null && (!pod.IsPublic || pod.RequireApproval)))
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.Forbidden,
+                ErrorMessage = "Pod admission is not permitted"
+            };
+        }
+
+        if (existing != null)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.OK,
+                Payload = JsonSerializer.SerializeToUtf8Bytes(new { Success = true })
+            };
+        }
+
         var member = new PodMember
         {
             PeerId = context.RemotePeerId?.Trim() ?? string.Empty,
             PublicKey = context.RemotePublicKey ?? string.Empty,
-            Role = role
+            Role = "member"
         };
 
         var success = await _podService.JoinAsync(podId, member, cancellationToken);
@@ -229,7 +305,7 @@ public class PodsMeshService : IMeshService
         return new ServiceReply
         {
             CorrelationId = call.CorrelationId,
-            StatusCode = success ? ServiceStatusCodes.OK : ServiceStatusCodes.UnknownError,
+            StatusCode = success ? ServiceStatusCodes.OK : ServiceStatusCodes.Forbidden,
             Payload = System.Text.Encoding.UTF8.GetBytes(response)
         };
     }
@@ -249,6 +325,17 @@ public class PodsMeshService : IMeshService
                 CorrelationId = call.CorrelationId,
                 StatusCode = ServiceStatusCodes.InvalidPayload,
                 ErrorMessage = "PodId is required"
+            };
+        }
+
+        var member = await GetMemberAsync(podId, context, cancellationToken);
+        if (member == null || member.IsBanned)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.Forbidden,
+                ErrorMessage = "Pod membership is required"
             };
         }
 
@@ -325,6 +412,17 @@ public class PodsMeshService : IMeshService
             Signature = request.Signature?.Trim() ?? string.Empty
         };
 
+        var member = await GetMemberAsync(podId, context, cancellationToken);
+        if (member == null || member.IsBanned)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.Forbidden,
+                ErrorMessage = "Pod membership is required"
+            };
+        }
+
         using var scope = _serviceScopeFactory.CreateScope();
         var podMessaging = scope.ServiceProvider.GetRequiredService<IPodMessaging>();
         var success = await podMessaging.SendAsync(message, cancellationToken);
@@ -358,6 +456,17 @@ public class PodsMeshService : IMeshService
             };
         }
 
+        var member = await GetMemberAsync(podId, context, cancellationToken);
+        if (member == null || member.IsBanned)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.Forbidden,
+                ErrorMessage = "Pod membership is required"
+            };
+        }
+
         using var scope = _serviceScopeFactory.CreateScope();
         var podMessaging = scope.ServiceProvider.GetRequiredService<IPodMessaging>();
         var messages = await podMessaging.GetMessagesAsync(
@@ -375,6 +484,13 @@ public class PodsMeshService : IMeshService
             Payload = System.Text.Encoding.UTF8.GetBytes(response)
         };
     }
+
+    private async Task<PodMember?> GetMemberAsync(string podId, MeshServiceContext context, CancellationToken cancellationToken)
+    {
+        var members = await _podService.GetMembersAsync(podId, cancellationToken);
+        return members.FirstOrDefault(member => string.Equals(member.PeerId, context.RemotePeerId.Trim(), StringComparison.Ordinal));
+    }
+
 }
 
 // Request/Response DTOs

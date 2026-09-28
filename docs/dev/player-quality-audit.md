@@ -316,3 +316,36 @@ surviving processes supply memory readings; one exits during idle, so its CPU
 delta is excluded. Native playback creates zero AudioContexts. Confidence is
 moderate for these short measurements; sustained sessions and device validation
 remain due. The overall player goal remains active.
+
+## Remote room permission prerequisites — 2026-09-28
+
+Twenty-three negative adapter regressions reproduced permission failures before
+repair: requested elevated join roles, private/approval admission, private listed
+metadata and details exposed to unrelated peers, history/posting without active
+membership and empty transport identities. RPC and stream history now check
+current membership before messaging dispatch. Public metadata remains readable,
+existing approved members retain their roles/keys and new joins grant member only.
+
+Two direct negative regressions proved banned LeaveAsync succeeded in both pod
+service implementations. Ban records now survive attempted self-removal, so
+public-room rejoin cannot erase denial. Tests also exercise ordinary leave/rejoin
+and the real in-memory service behind the mesh adapter. Production membership
+queries omit banned records; underlying row retention and join rejection remain
+necessary rather than assuming the adapter can inspect every ban.
+
+Confidence is high for the reproduced adapter and direct-service boundaries.
+Real two-node permission calls, authenticated state application, replay/ordering,
+automatic transport recovery and actual browser follow remain completion work.
+
+### Final permission gates — 2026-09-28
+
+Final source passes 5,292 unit, 74 smoke and 284 integration tests, repository
+lint and Release build. Web lint, controller/fetch CSRF, anonymous endpoint,
+identity and whitespace gates pass. The unchanged Web implementation retains
+the preceding 998-test full suite and frontend/bundle/output validation.
+
+The updated actual two-client runtime passes against the final Release build.
+A banned client's leave returns 404, rejoin returns 400, hub rejoin and snapshot
+read remain denied, and the other member keeps receiving updates. This adds
+ban-retention evidence to the preceding 19-case runtime suite; it is not a new
+claim that cross-node permission calls or browser follow were exercised.

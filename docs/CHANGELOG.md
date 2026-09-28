@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Remote room permission boundaries
+
+- Bind mesh room calls to transport identity and grant only the member role to fresh joins; preserve existing approved roles and keys.
+- Enforce private-room and approval admission, hide private listed metadata from unrelated peers, and require active membership for room history and posting through RPC and streams.
+- Preserve ban records when participants try to leave, preventing leave/rejoin from restoring access through native or mesh entry points.
+- Verify denied messaging has no storage dispatch and extend the actual two-client runtime with banned leave/rejoin attempts.
+
 ### Room publication storage integrity
 
 - Accept only equivalent message retries at a duplicate timestamp, preserve signature versions and reject conflicts without replacing stored metadata.

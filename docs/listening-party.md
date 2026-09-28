@@ -325,3 +325,16 @@ Broadcast to an existing pod room. If the room is unavailable, choose another
 existing room. If an update cannot be saved, the player reports the failure and
 you can retry. A rejected Play or Stop keeps the previous broadcast snapshot
 and listed entry; the controls do not claim that the failed update succeeded.
+
+### Remote room permissions
+
+Remote mesh room calls use the connected peer's identity. A fresh public-room
+join grants membership; requesting an owner or moderator role does not grant
+that role. Private rooms and rooms requiring approval accept only participants
+who already have approved membership. Existing roles and keys are preserved.
+
+Room history and posting require active membership through both calls and
+streams. Unrelated peers cannot read private room details or listed private
+metadata. A banned participant cannot erase the ban by leaving and rejoining.
+Local web accounts and connected mesh peers have distinct identities; access
+for one does not automatically authorize the other.

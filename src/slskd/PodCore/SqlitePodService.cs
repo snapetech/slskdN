@@ -421,7 +421,7 @@ namespace slskd.PodCore
             var member = await db.Members
                 .FirstOrDefaultAsync(m => m.PodId == podId && m.PeerId == peerId, ct);
 
-            if (member == null)
+            if (member == null || member.IsBanned)
             {
                 logger.LogWarning("Attempted to remove non-member {PeerId} from pod {PodId}", peerId, podId);
                 return false;
