@@ -6,6 +6,16 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1058. Share Cleanup Between Natural and Interrupted Crossfades
+
+**The Bug**: Natural crossfade completion duplicated media cleanup instead of using stopOutgoingFade. After the outgoing media stopped, a real-browser check still found both AudioContexts running; only interrupted fades suspended the outgoing context.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/e2e/player.spec.ts`
+
+**Prevention**: Route natural completion through the existing fade cleanup so timer invalidation, source removal, gain restoration and context suspension stay aligned. Verify natural completion and interrupted Pause/Resume separately.
+
 ### 0z1057. Suspend Inactive Web Audio Processing
 
 **The Bug**: The analyzer stopped reading on Pause, but its existing AudioContext remained running for the entire 20-second runtime check. Clearing or pausing media does not suspend Web Audio processing automatically.
