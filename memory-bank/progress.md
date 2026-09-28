@@ -15061,3 +15061,11 @@ Promoted the committed Soulseek accounting and live-progress summaries into the
 fragments: authenticated cross-node state, local responsiveness, directory
 independence, confirmed upload accounting, and live fairness feedback. The
 full gate must be rerun after these fairness changes on the exact pushed head.
+
+## Final tag-gate backlog refresh — 2026-09-28 21:44 UTC
+
+The guarded tag helper completed target, branch-sync, and release-note checks but
+stopped before tagging on a stale red-team candidate count (11,446 expected
+11,449 after the fairness docs landed). Ran the prescribed scanner and refreshed
+the documentation count; no release tag was created. Rerun the focused backlog
+check and guarded helper after pushing this correction.

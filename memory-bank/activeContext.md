@@ -1,3 +1,10 @@
+## Final tag-gate count refresh — 2026-09-28 21:44 UTC
+
+- The guarded tag helper validated target, branch sync and all five release-note fragments, then stopped before tagging because new fairness documentation changed the active red-team candidate count to 11,449. Refreshed the durable backlog count; rerun its focused check before pushing. No `.328` tag was created.
+- Current source and release notes remain committed; after this documentation update is pushed, rerun the guarded helper on the same release candidate.
+
+Next Steps: pass the active backlog check, commit/push the count refresh, and rerun the full tag helper.
+
 ## Final `.328` candidate prepared — 2026-09-28 21:41 UTC
 
 - `.327` published successfully. `.328` now includes authenticated cross-node listen-along and the completed Soulseek fairness accounting updates. The `.327` to `HEAD` range has five append-only product fragments: three cross-node player changes and two fairness changes.
