@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1160. Place the Conversation View Across the Mobile Grid
+
+**The Bug**: A real 320-pixel room-control regression measured Stop ending at 382 pixels. The conversation view auto-placed into the 44-pixel rail column, and its implicit inner grid column expanded to 399 pixels. Room playback also inserted a fourth child into a three-row layout intended for tabs, messages and composer.
+
+**Prevention**: Span the mobile conversation view across both grid columns, constrain its inner column with minmax(0, 1fr), and allocate an explicit automatic row for room playback before the flexible message row. Allow narrow/coarse-pointer room actions to wrap while preserving 44-pixel targets. Assert every room action's actual viewport bounds, including Stop, and inspect the narrow failure/retry screenshot.
+
 ### 0z1159. Reset Staged Sharing Choices When Changing Rooms
 
 **The Bug**: A route-change regression reproduced another room inheriting listing and streaming choices from the retained host. The panel kept its local checkbox state when its room props changed, even though those choices were not that room's broadcast settings.
