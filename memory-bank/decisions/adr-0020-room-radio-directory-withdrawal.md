@@ -1,6 +1,7 @@
 # ADR-0020: Room-Owned Radio Directory Withdrawal
 
-**Status**: Accepted  
+**Status**: Accepted
+
 **Date**: 2026-09-28
 
 ## Context
