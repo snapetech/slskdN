@@ -105,6 +105,21 @@ explicit modal-open state with a lifecycle that is cleared on close. Verify
 that closing a portal modal restores both computed visibility and keyboard-
 accessible player controls in Firefox as well as Chromium.
 
+### 0z1216. Rebuild The Frontend Before Direct Playwright Runs
+
+**What went wrong:** A browser regression run used `pnpm exec playwright` after
+editing frontend CSS. The harness copied the existing `src/web/build` directory
+into its temporary app, so Firefox kept loading stale assets and appeared to
+disprove the CSS fix.
+
+**Why:** `pnpm exec` bypasses the package's `pretest:e2e` lifecycle build, and
+the harness rebuilds only when the frontend build directory is missing.
+
+**Prevention:** Run `pnpm build` before a filtered `pnpm exec playwright`
+command, or use the `pnpm test:e2e` lifecycle that rebuilds automatically.
+Confirm that the harness receives the new asset bundle before attributing a
+browser regression to unchanged source.
+
 ### 0z1209. Include YAML Delimiters In Release-Note Fragments
 
 **What went wrong:** A new release-note fragment listed all required metadata
