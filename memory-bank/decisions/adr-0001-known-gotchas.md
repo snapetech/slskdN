@@ -4,6 +4,16 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1188. Pass Header Parameters Explicitly in Direct Controller Tests
+
+**What went wrong:** Controller unit tests set `Request.Headers` and invoked the
+action method directly, but the test call bypassed MVC model binding. The action
+therefore received default values for `[FromHeader]` parameters.
+
+**Prevention:** Pass bound header values as action arguments in direct unit
+tests. Use an HTTP integration test when the model-binding pipeline itself is
+under test.
+
 ### 0z1187. Renew Listed Host Capabilities Without Reopening Stale Sessions
 
 **The Bug**: A listed radio announcement and its host stream capability both
