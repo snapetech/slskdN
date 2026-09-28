@@ -54,8 +54,10 @@ export class MultiPeerHarness {
    * Stop all nodes and clean up.
    */
   async stopAll(): Promise<void> {
-    await Promise.all([...this.nodes.values()].map((node) => node.stop()));
+    const results = await Promise.allSettled([...this.nodes.values()].map((node) => node.stop()));
     this.nodes.clear();
+    const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+    if (failures.length) throw new AggregateError(failures.map((result) => result.reason), 'Peer cleanup failed');
   }
 
   /**

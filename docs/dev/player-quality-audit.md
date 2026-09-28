@@ -853,3 +853,42 @@ and index ownership, host error/auth/lease/renewal, sustained throughput and
 browser/format/device/assistive-technology/focus contrast coverage. Fixture GC
 warnings remain reproduced; short trace-enabled runs do not prove low resource
 use across a sustained session. The full player goal remains active.
+
+## Isolated player fixture lifecycle — 2026-09-28
+
+Ten focused Node-environment lifecycle tests pass. A negative timer regression
+proved successful Stop left a hard-kill deadline alive, and a held-peer negative
+regression proved cleanup returned before every node finished. File streams now
+own complete disk logs and drain after child close; in-memory diagnostics retain
+only the last 64 Ki characters per stream. Stderr is retained once. Spawn and
+log failures surface through awaited startup/cleanup; failed starts clean up
+before escaping registration. Concurrent/repeated Stop shares cleanup, force
+kill waits for close, and every peer settles before aggregated failures return.
+Exit diagnostics also have an awaited owner. Gotchas 0z1162 and 0z1163 were
+committed immediately. The explicit Node TypeScript check passes.
+
+This batch is internal-only validation infrastructure. Final rebuilt playback
+assets remain frozen from the prior verified source. The full browser suite is
+running with the corrected harness to check that the reproduced descriptor GC
+warnings are gone. Sustained player resource use is still unproven; full player
+goal remains active.
+
+### Final fixture lifecycle evidence — 2026-09-28
+
+All 10 focused lifecycle tests and all 1,066 Web tests in 168 files pass. The
+explicit Node TypeScript check passes with Node types enabled, as do repository
+and Web lint, bundle/output, identity and CSRF/anonymous endpoint gates. The
+complete 22-case real browser suite passes in 6.0 minutes with terminal exit zero
+and passed metadata. Its log contains zero descriptor-GC warnings and zero
+unhandled-rejection markers. The earlier uncorrected run reproduced descriptor
+warnings. Temporary media fixtures were cleaned up. Application assets and
+backend source remain unchanged from the prior validated Release and backend
+suite. The internal-only validation release fragment parses without errors.
+
+Fixture lifecycle cleanup is complete for source publication. Next Steps:
+establish sustained idle/native playback/paused CPU and memory samples without
+tracing or concurrent builds, ensure playback remains active for the full sample,
+and extend to queue/visualizer/radio throughput. Distributed room state/index
+ownership, host error/auth/lease/renewal, compatibility/device/accessibility
+and focus contrast remain open. Ten-second trace samples are diagnostic evidence
+and do not prove sustained low resource use. The full player goal remains active.

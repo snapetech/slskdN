@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Isolated player validation lifecycle
+
+- Close and drain test-node log streams, retain full disk logs with bounded diagnostic tails, and report write/spawn failures through awaited work.
+- Clean up failed starts, clear shutdown deadlines and wait for every peer cleanup before reporting errors.
+- Internal-only test harness changes; application playback behavior is unchanged.
+
 ### Live broadcast settings
 
 - Apply listing and streaming changes to the active browser-owned host without restarting local playback or changing party identity.

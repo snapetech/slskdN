@@ -1,6 +1,8 @@
 import { type ChildProcess, execFile, spawn } from 'node:child_process';
 import * as crypto from 'node:crypto';
+import { createWriteStream } from 'node:fs';
 import * as fs from 'node:fs/promises';
+import { pipeline } from 'node:stream/promises';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import { ensureFixtures } from '../fixtures/ensure-fixtures';
@@ -44,9 +46,11 @@ async function waitForTcpListen(
   host: string,
   port: number,
   timeoutMs: number,
+  signal: AbortSignal,
 ): Promise<void> {
   const start = Date.now();
   for (;;) {
+    signal.throwIfAborted();
     const ok = await new Promise<boolean>((resolve) => {
       const sock = new net.Socket();
       sock.setTimeout(500); // Reduced from 750ms
@@ -64,6 +68,7 @@ async function waitForTcpListen(
       sock.connect(port, host);
     });
 
+    signal.throwIfAborted();
     if (ok) return;
     if (Date.now() - start > timeoutMs) {
       throw new Error(
@@ -169,6 +174,16 @@ export class SlskdnNode {
   private static webBuildPromise: Promise<void> | null = null;
 
   private process: ChildProcess | null = null;
+
+  private processClosed: Promise<void> | null = null;
+
+  private outputDrained: Promise<void> | null = null;
+
+  private outputError: Error | null = null;
+
+  private exitLogWritten: Promise<void> | null = null;
+
+  private stopping: Promise<void> | null = null;
 
   private apiPort: number = 0;
 
@@ -307,6 +322,19 @@ export class SlskdnNode {
    * Start the slskdn node process.
    */
   async start(): Promise<void> {
+    try {
+      await this.startProcess();
+    } catch (error) {
+      try {
+        await this.stop();
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], 'Node startup and cleanup failed');
+      }
+      throw error;
+    }
+  }
+
+  private async startProcess(): Promise<void> {
     const repoRoot = this.getRepoRoot();
 
     // Enforce test fixtures exist and validate checksums (fail fast if missing/corrupt)
@@ -539,8 +567,8 @@ flags:
     await fs.mkdir(artifactsDir, { recursive: true });
     const stdoutPath = path.join(artifactsDir, 'stdout.log');
     const stderrPath = path.join(artifactsDir, 'stderr.log');
-    const stdoutFd = await fs.open(stdoutPath, 'w');
-    const stderrFd = await fs.open(stderrPath, 'w');
+    const startupAbort = new AbortController();
+    this.outputError = null;
 
     // Force binding to harness port via ASPNETCORE_URLS (bypasses config binding issues)
     this.process = spawn('dotnet', args, {
@@ -556,6 +584,24 @@ flags:
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+
+    const child = this.process;
+    this.processClosed = new Promise((resolve) => child.once('close', () => resolve()));
+    child.on('error', (error) => {
+      startupAbort.abort(new Error(`Failed to start slskdn process: ${error.message}`));
+    });
+    const drain = async (source: NodeJS.ReadableStream, file: string) => {
+      try {
+        await pipeline(source, createWriteStream(file));
+      } catch (error) {
+        this.outputError ??= new Error(`Could not write node log: ${file}`, { cause: error });
+        startupAbort.abort(this.outputError);
+        child.kill('SIGTERM');
+      }
+    };
+    this.outputDrained = Promise.all([
+      drain(child.stdout!, stdoutPath), drain(child.stderr!, stderrPath),
+    ]).then(() => {});
 
     // Capture output for debugging (always log on error)
     let stdout = '';
@@ -574,27 +620,20 @@ flags:
       `[start] Launch mode: ${useBuiltRelease ? `prebuilt ${builtDllPath}` : 'dotnet run -c Release'}`,
     );
 
-    this.process.stdout?.on('data', async (data) => {
+    this.process.stdout?.on('data', (data) => {
       const text = data.toString();
-      stdout += text;
-      await stdoutFd.write(data);
+      stdout = (stdout + text).slice(-65_536);
       if (process.env.DEBUG) {
         logWithTimestamp(text.trim());
       }
     });
 
-    this.process.stderr?.on('data', async (data) => {
+    this.process.stderr?.on('data', (data) => {
       const text = data.toString();
-      await stderrFd.write(data);
-      stderr += text;
+      stderr = (stderr + text).slice(-65_536);
       if (process.env.DEBUG) {
         logWithTimestamp(`STDERR: ${text.trim()}`);
       }
-    });
-
-    // Handle process errors
-    this.process.on('error', (error) => {
-      throw new Error(`Failed to start slskdn process: ${error.message}`);
     });
 
     // Check if process exits early
@@ -607,14 +646,16 @@ flags:
         console.error(
           `[${timestamp}] [${this.config.nodeName}] [+${elapsed}ms] ${errorMessage}`,
         );
-        // Write full logs to artifacts for debugging
+        // Full streams stay in stdout/stderr.log; retain bounded exit diagnostics.
         if (this.appDir) {
           const exitLogPath = path.join(this.appDir, 'artifacts', 'exit.log');
-          fs.writeFile(
+          this.exitLogWritten = fs.writeFile(
             exitLogPath,
             `Exit code: ${code}\nSignal: ${signal || 'none'}\nUptime: ${elapsed}ms\nTimestamp: ${timestamp}\n\nSTDOUT:\n${stdout}\n\nSTDERR:\n${stderr}\n`,
             'utf8',
-          ).catch(() => {});
+          ).catch((error) => {
+            this.outputError ??= new Error('Could not write node exit diagnostics', { cause: error });
+          });
         }
       } else if (code === 0 && signal) {
         console.log(
@@ -627,7 +668,6 @@ flags:
     if (!process.env.DEBUG) {
       this.process.stderr?.on('data', (data) => {
         const text = data.toString();
-        stderr += text;
         // Log errors even without DEBUG
         if (
           text.toLowerCase().includes('error') ||
@@ -644,12 +684,13 @@ flags:
     const tcpStartTime = Date.now();
     logWithTimestamp(`[start] Waiting for TCP port ${this.apiPort} to listen`);
     try {
-      await waitForTcpListen('127.0.0.1', this.apiPort, 60_000);
+      await waitForTcpListen('127.0.0.1', this.apiPort, 60_000, startupAbort.signal);
       const tcpElapsed = Date.now() - tcpStartTime;
       logWithTimestamp(
         `[start] TCP port ${this.apiPort} listening after ${tcpElapsed}ms`,
       );
     } catch {
+      startupAbort.signal.throwIfAborted();
       // TCP never opened - true startup/bind problem
       const stdoutTail = tail(stdout, 200);
       const stderrTail = tail(stderr, 200);
@@ -658,8 +699,6 @@ flags:
         this.process?.pid !== undefined
           ? await getListenSummaryForPid(this.process.pid)
           : 'No process pid available';
-      await stdoutFd.close();
-      await stderrFd.close();
       throw new Error(
         `TCP port ${this.apiPort} never started listening.\n` +
           `This indicates a true startup/bind problem.\n\n` +
@@ -681,6 +720,7 @@ flags:
     logWithTimestamp(`[start] Starting health check (timeout: ${timeout}ms)`);
 
     while (Date.now() - healthStartTime < timeout) {
+      startupAbort.signal.throwIfAborted();
       // Check if process died
       if (this.process.exitCode !== null) {
         if (this.process.exitCode !== 0) {
@@ -755,8 +795,6 @@ flags:
     }
 
     // If we timeout, include tail of captured output
-    await stdoutFd.close();
-    await stderrFd.close();
     const stdoutTail = tail(stdout, 200);
     const stderrTail = tail(stderr, 200);
     const errorMessage =
@@ -950,23 +988,33 @@ flags:
    * Stop the node process and clean up.
    */
   async stop(): Promise<void> {
-    if (this.process) {
-      this.process.kill('SIGTERM');
-      await new Promise<void>((resolve) => {
-        if (this.process) {
-          this.process.on('exit', () => resolve());
-          // Force kill after 5s
-          setTimeout(() => {
-            if (this.process) {
-              this.process.kill('SIGKILL');
-              resolve();
-            }
-          }, 5_000);
-        } else {
-          resolve();
-        }
-      });
+    if (this.stopping) return this.stopping;
+    this.stopping = this.stopProcess();
+    try {
+      await this.stopping;
+    } finally {
+      this.stopping = null;
+    }
+  }
+
+  private async stopProcess(): Promise<void> {
+    const child = this.process;
+    if (child) {
+      const deadline = setTimeout(() => {
+        if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+      }, 5_000);
+      try {
+        if (child.pid && child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+        await this.processClosed;
+      } finally {
+        clearTimeout(deadline);
+      }
+      await this.outputDrained;
+      await this.exitLogWritten;
+      this.exitLogWritten = null;
       this.process = null;
+      this.processClosed = null;
+      this.outputDrained = null;
     }
 
     if (this.webContentDir) {
@@ -974,13 +1022,11 @@ flags:
       this.webContentDir = '';
     }
 
-    // Cleanup app directory unless KEEP_ARTIFACTS is set
     if (this.appDir && process.env.SLSKDN_TEST_KEEP_ARTIFACTS !== '1') {
-      try {
-        await fs.rm(this.appDir, { force: true, recursive: true });
-      } catch {
-        // Ignore cleanup errors
-      }
+      await fs.rm(this.appDir, { force: true, recursive: true });
     }
+    const outputError = this.outputError;
+    this.outputError = null;
+    if (outputError) throw outputError;
   }
 }
