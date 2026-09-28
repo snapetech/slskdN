@@ -32251,5 +32251,6 @@ controls and playback feedback.
 state path, and per-peer timeouts did not bound total fan-out duration.
 
 **Prevention:** Notify local subscribers immediately after committing the state.
-Keep remote fan-out bounded by both concurrency and one overall time budget.
-Measure local update latency separately from remote delivery outcomes.
+Route room state before optional directory I/O, and bound remote fan-out by both
+concurrency and one overall time budget. Measure local update latency separately
+from remote delivery outcomes.
