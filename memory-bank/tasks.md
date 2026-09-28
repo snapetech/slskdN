@@ -1,3 +1,10 @@
+- [x] Correct library path identity and finish player mobile transport polish.
+  - Status: implemented and browser verified (2026-09-28).
+  - Notes: Format codes no longer identify files; explicit local fallback search
+    uses path IDs without hashing. Repeated media resolution reuses a bounded
+    positive cache with current root/size checks. Collapse is always available;
+    mobile titles remain visible and expanded buttons are at least 44 pixels.
+
 # Tasks (Source of Truth)
 
 > This file is the canonical task list for slskdN development.  
@@ -50,7 +57,13 @@
     duplicate local files, output switching, Media Session controls, room follow
     and reconnect, listed radio tune-in, Picture-in-Picture, analyzer idle work,
     and collapsed/expanded layout. Source review, lint, and production builds
-    are complete; interactive validation remains pending.
+    are complete. Chromium now verifies generated local PCM playback, Pause,
+    seeking, queue advance, real two-element crossfade interruption, indexed
+    server streams, unindexed downloads, paused queue restoration after reload,
+    and compact/expanded bounds at 1440/768/390/320 pixels. Ordinary native
+    playback creates zero Web Audio contexts in this run. Physical mobile,
+    decoded seeking, output switching, Media Session actions, room reconnect,
+    radio, Picture-in-Picture and idle CPU/memory measurements remain pending.
 
 - [x] Normalize saved equalizer gains and guard lyrics lookups against stale results.
   - Status: implemented (2026-09-27).
@@ -5114,3 +5127,10 @@
 - [x] 2026-09-27T23:27:34Z Fix pending native/decoded seeking, remount intent, stale Media Session position and Picture-in-Picture cancellation; add focused regressions for source recovery and transport behavior.
 
 - 2026-09-27T23:29:56Z Player verification evidence: 41 focused tests and 959 full Web tests passed, including eight new source/transport regressions. P1 real-audio desktop/mobile inspection remains open; these tests use simulated media events.
+
+- [ ] Verify rapid queue changes between distinct unindexed local downloads.
+  - Priority: P1
+  - Notes: Positive resolution reuse covers repeated requests for one file;
+    scans for a different unknown path still use the existing five-second
+    cooldown. Exercise Play Next and direct selection before completing local
+    download recovery validation.

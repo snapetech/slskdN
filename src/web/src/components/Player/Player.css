@@ -1536,6 +1536,8 @@ body:has(.ui.modal) .player-bar {
   .player-control-row .player-tool-button.ui.button,
   .player-control-row .player-library-button.ui.button {
     flex: 1 1 0;
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .player-tool-bank,
@@ -1578,7 +1580,12 @@ body:has(.ui.modal) .player-bar {
 }
 
 @media (max-width: 420px) {
-  .player-bar-collapsed .player-compact-secondary {
+  .player-bar-collapsed .player-compact-secondary.ui.button,
+  .player-bar-collapsed input.player-compact-secondary {
+    display: none;
+  }
+
+  .player-bar-collapsed .player-track > .icon {
     display: none;
   }
 

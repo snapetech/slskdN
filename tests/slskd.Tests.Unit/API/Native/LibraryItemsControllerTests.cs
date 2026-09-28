@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using slskd.API.Native;
 using slskd.HashDb;
@@ -41,7 +42,7 @@ public class LibraryItemsControllerTests
         loggerMock = new Mock<ILogger<LibraryItemsController>>();
         shareRepositoryMock = new Mock<IShareRepository>();
 
-        // GetLocalRepository() is called by BuildCodeToMaskedFilenameMap() on every action
+        // Content registration uses the local share repository.
         shareRepositoryMock
             .Setup(x => x.ListFiles(It.IsAny<string>(), It.IsAny<bool>()))
             .Returns(Enumerable.Empty<Soulseek.File>());
@@ -431,6 +432,88 @@ public class LibraryItemsControllerTests
         hashDbServiceMock.Verify(service => service.LookupHashAsync(
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LibrarySearch_SharedFormatCodesResolveEachDirectoryFilename(bool browser)
+    {
+        var files = new[]
+        {
+            new Soulseek.File(1, "first.wav", 1024, ".wav"),
+            new Soulseek.File(1, "second.wav", 2048, ".wav"),
+        };
+        shareServiceMock.Setup(service => service.BrowseAsync(It.IsAny<Share>()))
+            .ReturnsAsync(new[] { new Soulseek.Directory("Music", files) });
+        shareRepositoryMock.Setup(repository => repository.ListFiles(It.IsAny<string>(), It.IsAny<bool>()))
+            .Returns(new[] { new Soulseek.File(1, "Other\\unrelated.wav", 512, ".wav") });
+        shareServiceMock.Setup(service => service.ResolveFileAsync(It.IsAny<string>()))
+            .ReturnsAsync((string filename) => ("local", filename, 1024L));
+
+        var result = browser
+            ? await controller.BrowseItems(query: ".wav")
+            : await controller.SearchItems(query: ".wav");
+
+        var response = Assert.IsType<OkObjectResult>(result).Value!;
+        var rows = Assert.IsAssignableFrom<System.Collections.IEnumerable>(
+            response.GetType().GetProperty(browser ? "files" : "items")!.GetValue(response));
+        Assert.Equal(2, rows.Cast<object>().Count());
+        shareServiceMock.Verify(service => service.ResolveFileAsync("Music\\first.wav"), Times.Once);
+        shareServiceMock.Verify(service => service.ResolveFileAsync("Music\\second.wav"), Times.Once);
+        shareServiceMock.Verify(service => service.ResolveFileAsync("Other\\unrelated.wav"), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    public async Task BrowseItems_LocalFallbackPagesOnlyMatchingAllowedAudio(int offset, bool hasMore)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "player-library-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(root);
+        try
+        {
+            await System.IO.File.WriteAllTextAsync(Path.Combine(root, "runtime-first.wav"), "first");
+            await System.IO.File.WriteAllTextAsync(Path.Combine(root, "runtime-second.wav"), "second");
+            await System.IO.File.WriteAllTextAsync(Path.Combine(root, "runtime-hidden.wav"), "excluded");
+            await System.IO.File.WriteAllTextAsync(Path.Combine(root, "runtime-video.mp4"), "video");
+            shareServiceMock.Setup(service => service.BrowseAsync(It.IsAny<Share>()))
+                .ReturnsAsync(Array.Empty<Soulseek.Directory>());
+            var configuration = new slskd.Options
+            {
+                Shares = new slskd.Options.SharesOptions
+                {
+                    Directories = Array.Empty<string>(),
+                    Filters = new[] { "hidden" },
+                },
+                Directories = new slskd.Options.DirectoriesOptions
+                {
+                    Downloads = root,
+                },
+            };
+            var settings = new Mock<IOptionsSnapshot<slskd.Options>>();
+            settings.SetupGet(value => value.Value).Returns(configuration);
+            var browser = new LibraryItemsController(shareServiceMock.Object, hashDbServiceMock.Object,
+                loggerMock.Object, settings.Object);
+
+            var result = await browser.BrowseItems(query: "runtime", limit: 1, offset: offset);
+
+            var response = Assert.IsType<OkObjectResult>(result).Value!;
+            var responseType = response.GetType();
+            var files = Assert.IsAssignableFrom<System.Collections.IEnumerable>(responseType.GetProperty("files")!.GetValue(response));
+            var item = Assert.Single(files.Cast<object>());
+            var fileName = (string)item.GetType().GetProperty("FileName")!.GetValue(item)!;
+            Assert.Contains(fileName, new[] { "runtime-first.wav", "runtime-second.wav" });
+            Assert.Equal(2, responseType.GetProperty("totalFiles")!.GetValue(response));
+            Assert.Equal(hasMore, responseType.GetProperty("hasMore")!.GetValue(response));
+            hashDbServiceMock.Verify(service => service.LookupHashAsync(It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            Assert.StartsWith("path:", (string)item.GetType().GetProperty("ContentId")!.GetValue(item)!);
+        }
+        finally
+        {
+            System.IO.Directory.Delete(root, recursive: true);
+        }
     }
 
     [Fact]

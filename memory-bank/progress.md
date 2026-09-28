@@ -13546,3 +13546,20 @@ Explicit native server retries now renew the two-minute stream ticket through th
 - 2026-09-27T23:29:56Z Verification: focused player/listen-along/shortcut suite passed 41 tests; full Web suite passed 959 tests across 164 files after correcting outdated queue/listening and Collection API fixtures. No unhandled test errors. Web/repository lint, production build, bundle budget and identity checks passed. Runtime desktop/mobile playback remains unverified. Final retry-feedback regression rerun and commit/push pending.
 
 - 2026-09-27T23:30:37Z Pushed `25a058f3f` player lifecycle batch. Final Web suite remained 959/959 after retry-feedback change; release-note preview passed. Runtime P1 remains open and full player goal is not complete.
+
+## Update 2026-09-28 00:01:23Z
+
+- Real Chromium verification exposed incorrect library identity: repeated
+  Soulseek format codes collapsed file paths, while fallback content registration
+  violated the indexed-file foreign key. Directory-derived paths and local path
+  identities fix the actual SQLite/stream-ticket workflow.
+- Native local playback, seek, queue advance, crossfade Pause, indexed server
+  playback, unindexed downloads and paused reload restoration pass in five
+  browser workflows. Native playback allocates zero Web Audio contexts.
+- Responsive assertions and screenshots cover 1440/768/390/320 pixels; compact
+  titles are readable and expanded mobile targets are at least 44 pixels.
+- Web regressions: 960 passing. Focused library/streaming regressions: 136
+  passing, including bounded search allocations and repeated format codes.
+- Whole-player completion remains unproven; runtime follow-up stays open.
+
+- All 5,178 backend unit tests pass, along with Web/repository lint and local-identity checks. Solution-wide validation is running.

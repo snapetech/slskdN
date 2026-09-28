@@ -62,6 +62,8 @@ File-browser breadcrumbs and folder rows explain where they navigate on hover. Q
 The Collections picker clears the old track list while a new Collection loads and ignores delayed results from previously selected Collections.
 The player requests the Collections list when that browser opens, leaving ordinary transport use free of the extra library request.
 The local file search stops showing Loading when a request is canceled by closing the picker or shortening the query below two characters.
+Explicit file searches can find configured local downloads before share indexing; this fallback reads file metadata without hashing audio. Opening the Files browser without a query does not recursively scan local directories.
+Collapse is available with player tools closed. On narrow screens the compact bar keeps the title and primary transport visible; expand it to reach the additional controls.
 
 All normal playback uses `GET /api/v0/streams/{contentId}`. That endpoint supports byte ranges, seeking, content-type detection, authenticated access, share-token access where applicable, and per-user stream limiting.
 

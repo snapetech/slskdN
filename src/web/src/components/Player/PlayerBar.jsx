@@ -3851,6 +3851,13 @@ const PlayerBar = () => {
               value={volume}
             />
             <PlayerToolButton
+              content="Collapse the player into a small drawer bar above the footer."
+              aria-label="Collapse player"
+              data-testid="player-collapse"
+              icon="angle down"
+              onClick={() => setCollapsed(true)}
+            />
+            <PlayerToolButton
               active={advancedOpen}
               aria-label={advancedOpen ? 'Hide player tools' : 'Show player tools'}
               content={advancedOpen ? 'Hide audio, discovery, and visual tools.' : 'Show audio, discovery, and visual tools.'}
@@ -3961,13 +3968,6 @@ const PlayerBar = () => {
                   onClick={chooseOutputDevice}
                 />
               ) : null}
-            <PlayerToolButton
-              content="Collapse the player into a small drawer bar above the footer."
-              aria-label="Collapse player"
-              data-testid="player-collapse"
-              icon="angle down"
-              onClick={() => setCollapsed(true)}
-            />
             <PlayerToolButton
               active={karaokeEnabled}
               content={

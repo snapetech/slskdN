@@ -77,23 +77,16 @@ public class LibraryItemsController : ControllerBase
             var directories = await shareService.BrowseAsync();
             var results = BuildSearchFilePage(directories, query, kinds, limit);
 
-            var codeToMasked = BuildCodeToMaskedFilenameMap();
-            var items = await ConvertToLibraryItemsAsync(
-                results.Select(file => new LibraryItemCandidate(
-                    File: file,
-                    RemoteFilename: GetMaskedFilename(file, codeToMasked),
-                    DisplayPath: null,
-                    DuplicateCount: 1)),
-                cancellationToken).ConfigureAwait(false);
+            var items = await ConvertToLibraryItemsAsync(results, cancellationToken).ConfigureAwait(false);
 
             if (items.Count == 0 && options != null)
             {
-                var fallbackItems = await SearchLocalDirectoriesAsync(
+                var fallbackItems = SearchLocalDirectories(
                     query,
                     kinds,
                     limit,
                     cancellationToken);
-                return Ok(new { items = fallbackItems });
+                return Ok(new { items = fallbackItems.Items });
             }
 
             return Ok(new { items });
@@ -134,13 +127,11 @@ public class LibraryItemsController : ControllerBase
         try
         {
             var directories = (await shareService.BrowseAsync()).ToList();
-            var codeToMasked = BuildCodeToMaskedFilenameMap();
             var directoryEntries = query == null
                 ? BuildDirectoryEntries(directories, browserPath)
                 : new List<LibraryDirectoryResponse>();
             var filePage = BuildFilePage(
                 directories,
-                codeToMasked,
                 browserPath,
                 query,
                 kinds,
@@ -154,18 +145,29 @@ public class LibraryItemsController : ControllerBase
                     DuplicateCount: file.DuplicateCount)),
                 cancellationToken).ConfigureAwait(false);
 
+            var totalFiles = filePage.TotalFiles;
+            var duplicatesRemoved = filePage.CandidateCount - filePage.TotalFiles;
+            if (query != null && totalFiles == 0 && options != null)
+            {
+                var fallback = SearchLocalDirectories(
+                    query, kinds, limit, cancellationToken, offset, countAllMatches: true);
+                items = fallback.Items;
+                totalFiles = fallback.TotalFiles;
+                duplicatesRemoved = 0;
+            }
+
             return Ok(new
             {
                 path = browserPath,
                 breadcrumbs = BuildBreadcrumbs(browserPath),
                 directories = directoryEntries,
                 files = items,
-                totalFiles = filePage.TotalFiles,
+                totalFiles,
                 totalDirectories = directoryEntries.Count,
                 offset,
                 limit,
-                hasMore = offset + items.Count < filePage.TotalFiles,
-                duplicatesRemoved = filePage.CandidateCount - filePage.TotalFiles,
+                hasMore = (long)offset + limit < totalFiles,
+                duplicatesRemoved,
             });
         }
         catch (Exception ex)
@@ -175,24 +177,26 @@ public class LibraryItemsController : ControllerBase
         }
     }
 
-    private async Task<List<LibraryItemResponse>> SearchLocalDirectoriesAsync(
+    private (List<LibraryItemResponse> Items, int TotalFiles) SearchLocalDirectories(
         string? query,
         string? kinds,
         int limit,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int offset = 0,
+        bool countAllMatches = false)
     {
         query = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
         kinds = string.IsNullOrWhiteSpace(kinds) ? null : kinds.Trim();
         if (options == null)
         {
-            return new List<LibraryItemResponse>();
+            return (new List<LibraryItemResponse>(), 0);
         }
 
         var localDirs = GetAllowedLocalDirectories();
 
         if (!localDirs.Any())
         {
-            return new List<LibraryItemResponse>();
+            return (new List<LibraryItemResponse>(), 0);
         }
 
         var regexOptions = options.Value.Flags.CaseSensitiveRegEx
@@ -240,16 +244,22 @@ public class LibraryItemsController : ControllerBase
         files = files.Where(file => !filters.Any(filter => filter.IsMatch(file)));
 
         var items = new List<LibraryItemResponse>();
-        foreach (var file in files.Take(limit))
+        var totalFiles = 0;
+        foreach (var file in files)
         {
-            var item = await ConvertToLibraryItemFromPathAsync(file, localDirs, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            var index = totalFiles++;
+            if (index < offset || index - offset >= limit) continue;
+            var item = ConvertToLibraryItemFromPath(file, localDirs);
             if (item != null)
             {
                 items.Add(item);
             }
+
+            if (!countAllMatches && totalFiles >= limit) break;
         }
 
-        return items;
+        return (items, totalFiles);
     }
 
     private IReadOnlyList<string> GetAllowedLocalDirectories()
@@ -270,89 +280,20 @@ public class LibraryItemsController : ControllerBase
             .ToList();
     }
 
-    private async Task<LibraryItemResponse?> ConvertToLibraryItemFromPathAsync(
+    private static LibraryItemResponse? ConvertToLibraryItemFromPath(
         string filename,
-        IReadOnlyList<string> localDirs,
-        CancellationToken cancellationToken)
+        IReadOnlyList<string> localDirs)
     {
-        try
+        if (!System.IO.File.Exists(filename)) return null;
+        var info = new FileInfo(filename);
+        return new LibraryItemResponse
         {
-            if (!System.IO.File.Exists(filename))
-            {
-                return null;
-            }
-
-            var info = new FileInfo(filename);
-            var size = info.Length;
-            string? sha256 = null;
-
-            if (hashDbService != null)
-            {
-                try
-                {
-                    var flacKey = HashDb.Models.HashDbEntry.GenerateFlacKey(filename, size);
-                    var hashEntry = await hashDbService.LookupHashAsync(flacKey, cancellationToken);
-                    if (hashEntry != null && !string.IsNullOrEmpty(hashEntry.FileSha256))
-                    {
-                        sha256 = hashEntry.FileSha256;
-                    }
-                }
-                catch
-                {
-                    // HashDb lookup failed, will compute on-demand if needed
-                }
-            }
-
-            if (string.IsNullOrEmpty(sha256))
-            {
-                try
-                {
-                    sha256 = await ComputeSha256Async(filename, cancellationToken);
-                }
-                catch
-                {
-                    // File may not be accessible, skip sha256
-                }
-            }
-
-            var contentId = !string.IsNullOrEmpty(sha256)
-                ? $"sha256:{sha256}"
-                : $"path:{slskd.Compute.Sha256Hash($"{filename}|{size}")}";
-
-            try
-            {
-                shareService.GetLocalRepository().UpsertContentItem(
-                    contentId,
-                    ContentDomain.GenericFile.ToString(),
-                    string.Empty,
-                    filename,
-                    true,
-                    string.Empty,
-                    DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            }
-            catch (Exception ex)
-            {
-                logger?.LogDebug(ex, "Failed to upsert local file content item for {Filename}", filename);
-            }
-
-            var ext = Path.GetExtension(filename).TrimStart('.').ToLowerInvariant();
-            var mediaKind = GetMediaKind(ext);
-            var fileName = Path.GetFileName(filename);
-
-            return new LibraryItemResponse
-            {
-                ContentId = contentId,
-                Path = ToDisplayPath(filename, localDirs),
-                FileName = fileName,
-                Bytes = size,
-                MediaKind = mediaKind,
-                Sha256 = sha256,
-            };
-        }
-        catch
-        {
-            return null;
-        }
+            ContentId = $"path:{slskd.Compute.Sha256Hash($"{filename}|{info.Length}")}",
+            Path = ToDisplayPath(filename, localDirs),
+            FileName = Path.GetFileName(filename),
+            Bytes = info.Length,
+            MediaKind = GetMediaKind(Path.GetExtension(filename).TrimStart('.').ToLowerInvariant()),
+        };
     }
 
     /// <summary>
@@ -378,42 +319,18 @@ public class LibraryItemsController : ControllerBase
         try
         {
             // Search all files to find one matching the contentId
-            var directories = await shareService.BrowseAsync();
-            Soulseek.File? foundFile = null;
-
-            var codeToMasked = BuildCodeToMaskedFilenameMap();
-            foreach (var dir in directories)
+            var directories = (await shareService.BrowseAsync()).ToList();
+            foreach (var directory in directories)
             {
-                if (dir.Files != null)
+                foreach (var file in directory.Files)
                 {
-                    foreach (var file in dir.Files)
-                    {
-                        var maskedFilename = GetMaskedFilename(file, codeToMasked);
-                        var item = await ConvertToLibraryItemAsync(file, maskedFilename, cancellationToken);
-                        if (item != null && item.ContentId == contentId)
-                        {
-                            foundFile = file;
-                            break;
-                        }
-                    }
-
-                    if (foundFile != null)
-                    {
-                        break;
-                    }
+                    var item = await ConvertToLibraryItemAsync(
+                        file, GetMaskedFilename(directory.Name, file), cancellationToken);
+                    if (item?.ContentId == contentId) return Ok(item);
                 }
             }
 
-            if (foundFile == null)
-            {
-                return NotFound(new { error = "Item not found" });
-            }
-
-            var foundItem = await ConvertToLibraryItemAsync(
-                foundFile,
-                GetMaskedFilename(foundFile, codeToMasked),
-                cancellationToken);
-            return Ok(foundItem);
+            return NotFound(new { error = "Item not found" });
         }
         catch (Exception ex)
         {
@@ -422,24 +339,11 @@ public class LibraryItemsController : ControllerBase
         }
     }
 
-    private IReadOnlyDictionary<int, string> BuildCodeToMaskedFilenameMap()
+    private static string GetMaskedFilename(string directory, Soulseek.File file)
     {
-        var files = shareService.GetLocalRepository().ListFiles(includeFullPath: true);
-        return files
-            .GroupBy(file => file.Code)
-            .ToDictionary(group => group.Key, group => group.First().Filename);
-    }
-
-    private static string GetMaskedFilename(
-        Soulseek.File file,
-        IReadOnlyDictionary<int, string> codeToMasked)
-    {
-        if (codeToMasked.TryGetValue(file.Code, out var masked))
-        {
-            return masked;
-        }
-
-        return file.Filename;
+        return file.Filename.Contains('\\') || file.Filename.Contains('/')
+            ? file.Filename
+            : JoinVirtualPath(directory, file.Filename);
     }
 
     private async Task<LibraryItemResponse?> ConvertToLibraryItemAsync(
@@ -707,7 +611,7 @@ public class LibraryItemsController : ControllerBase
         return separatorIndex < 0 ? string.Empty : path[..separatorIndex];
     }
 
-    private static List<Soulseek.File> BuildSearchFilePage(
+    private static List<LibraryItemCandidate> BuildSearchFilePage(
         IEnumerable<Soulseek.Directory> directories,
         string? query,
         string? kinds,
@@ -719,7 +623,7 @@ public class LibraryItemsController : ControllerBase
             : kinds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(kind => kind.ToLowerInvariant())
                 .ToHashSet();
-        var results = new List<Soulseek.File>(limit);
+        var results = new List<LibraryItemCandidate>(limit);
 
         foreach (var directory in directories)
         {
@@ -739,7 +643,7 @@ public class LibraryItemsController : ControllerBase
                     }
                 }
 
-                results.Add(file);
+                results.Add(new LibraryItemCandidate(file, GetMaskedFilename(directory.Name, file), null, DuplicateCount: 1));
                 if (results.Count == limit)
                 {
                     return results;
@@ -752,7 +656,6 @@ public class LibraryItemsController : ControllerBase
 
     private static LibraryFilePage BuildFilePage(
         IReadOnlyList<Soulseek.Directory> directories,
-        IReadOnlyDictionary<int, string> codeToMasked,
         string path,
         string? query,
         string? kinds,
@@ -774,18 +677,8 @@ public class LibraryItemsController : ControllerBase
             var directoryPath = NormalizeVirtualPath(directory.Name);
             foreach (var file in directory.Files ?? Enumerable.Empty<Soulseek.File>())
             {
-                string remoteFilename;
-                string displayPath;
-                if (codeToMasked.TryGetValue(file.Code, out var masked))
-                {
-                    remoteFilename = masked;
-                    displayPath = NormalizeVirtualPath(remoteFilename);
-                }
-                else
-                {
-                    remoteFilename = JoinVirtualPath(directoryPath, file.Filename);
-                    displayPath = remoteFilename;
-                }
+                var remoteFilename = GetMaskedFilename(directoryPath, file);
+                var displayPath = NormalizeVirtualPath(remoteFilename);
 
                 if (queryLower == null
                     ? !IsDirectChildFile(displayPath, path)
@@ -875,7 +768,9 @@ public class LibraryItemsController : ControllerBase
     {
         directory = NormalizeVirtualPath(directory);
         filename = NormalizeVirtualPath(filename);
-        return string.IsNullOrEmpty(directory) ? filename : $"{directory}\\{filename}";
+        return string.IsNullOrEmpty(directory) || filename.StartsWith(directory + "\\", StringComparison.OrdinalIgnoreCase)
+            ? filename
+            : $"{directory}\\{filename}";
     }
 
     private static string GetVirtualFileName(string path)

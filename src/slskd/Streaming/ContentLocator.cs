@@ -25,6 +25,7 @@ public sealed class ContentLocator : IContentLocator
     private static readonly ConcurrentDictionary<string, DateTimeOffset> FallbackMissCache = new(StringComparer.Ordinal);
     private static DateTimeOffset _nextFallbackScanUtc = DateTimeOffset.MinValue;
 
+    private readonly ConcurrentDictionary<string, ResolvedContent> _fallbackHits = new(StringComparer.Ordinal);
     private readonly IShareService _shareService;
     private readonly ILogger<ContentLocator> _log;
     private readonly IOptionsMonitor<slskd.Options>? _options;
@@ -94,6 +95,18 @@ public sealed class ContentLocator : IContentLocator
             return null;
         }
 
+        if (_fallbackHits.TryGetValue(contentId, out var cached))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (IsAllowedLocalPath(cached.AbsolutePath) && File.Exists(cached.AbsolutePath))
+            {
+                var size = new FileInfo(cached.AbsolutePath).Length;
+                if (size > 0 && size == cached.Length) return cached;
+            }
+
+            _fallbackHits.TryRemove(contentId, out _);
+        }
+
         if (!contentId.StartsWith("path:", StringComparison.Ordinal) ||
             (FallbackMissCache.TryGetValue(contentId, out var cachedMissUntil) && cachedMissUntil > DateTimeOffset.UtcNow) ||
             DateTimeOffset.UtcNow < _nextFallbackScanUtc)
@@ -129,7 +142,10 @@ public sealed class ContentLocator : IContentLocator
                 continue;
             }
 
-            return new ResolvedContent(path, info.Length, GetContentType(path));
+            var resolved = new ResolvedContent(path, info.Length, GetContentType(path));
+            if (_fallbackHits.Count >= MaxFallbackMissCacheEntries) _fallbackHits.Clear();
+            _fallbackHits[contentId] = resolved;
+            return resolved;
         }
 
         PruneAndRecordFallbackMiss(contentId);

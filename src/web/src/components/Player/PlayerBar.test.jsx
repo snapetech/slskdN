@@ -289,6 +289,14 @@ describe('PlayerBar', () => {
     expect(document.querySelector('.player-bar-collapsed')).toBeNull();
   });
 
+  it('keeps Collapse available when optional player tools are closed', () => {
+    renderPlayer();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide player tools' }));
+    expect(screen.getByTestId('player-collapse')).toBeVisible();
+    fireEvent.click(screen.getByTestId('player-collapse'));
+    expect(screen.getByTestId('player-expand')).toBeVisible();
+  });
+
   it('seeks and adjusts volume in the compact bar', async () => {
     window.localStorage.removeItem('slskdn.player.collapsed');
     renderPlayer();

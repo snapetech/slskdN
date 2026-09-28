@@ -190,6 +190,9 @@ public class ContentLocatorTests
             Assert.Equal(path, r.AbsolutePath);
             Assert.Equal(4, r.Length);
             Assert.Equal("audio/ogg", r.ContentType);
+            Assert.Equal(r, locator.Resolve(contentId));
+            File.WriteAllBytes(path, new byte[] { 1, 2, 3 });
+            Assert.Null(locator.Resolve(contentId));
         }
         finally
         {

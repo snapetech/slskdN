@@ -1,3 +1,16 @@
+## Update 2026-09-28 00:01:23Z
+
+- Current task: validate and push the player Files identity/recovery and mobile
+  controls batch. Five real Chromium workflows pass, including indexed shares,
+  unindexed downloads, queue reload without autoplay and native playback without
+  Web Audio allocation. The web suite passes 960 tests; focused backend tests
+  pass 136. All 5,178 backend unit tests pass; solution-wide validation is
+  running.
+- Next: decoded seeking, queue/playlist browser scenarios, output and Media
+  Session actions, room reconnect/radio, Picture-in-Picture, and idle resource
+  measurements. Physical mobile validation remains open. No release tag or
+  deployment is authorized.
+
 ## Update 2026-09-27 21:58:00Z
 
 - Current task: expanded transport no longer fetches Collections on mount. The list loads when its browser opens and shows a loading state while the request is pending.

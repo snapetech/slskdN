@@ -48,7 +48,8 @@ public class PublicProtocolAnonymousActionTests
         AssertAnonymousActions(
             typeof(StreamsController),
             nameof(StreamsController.CreateShareTicket),
-            nameof(StreamsController.Get));
+            nameof(StreamsController.Get),
+            nameof(StreamsController.Transcode));
     }
 
     [Fact]

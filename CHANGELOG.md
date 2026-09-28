@@ -19,6 +19,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Player file browsing and search now resolve each directory/filename instead
+  of treating a Soulseek format code as a unique file ID. Explicit file-picker
+  searches can play configured local downloads before indexing, with no file
+  hashing for that fallback. Successful path resolution is reused across
+  ticket and media requests while rechecking allowed roots and file size.
+- Collapse remains available while player tools are closed. Narrow compact
+  layouts retain readable titles; expanded mobile controls have 44-pixel
+  minimum touch targets.
+
 - Wishlist auto-download now rechecks the persisted enablement and download
   budget immediately before enqueueing ranked results, so disabling an item
   during ranking cannot start a stale batch.

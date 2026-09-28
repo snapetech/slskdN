@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed library file identity when multiple audio files share a Soulseek format
+  code. Explicit player searches can stream configured local downloads before
+  indexing without hashing them; immediate ticket/media requests reuse verified
+  path resolution. Collapse stays available with tools closed, compact mobile
+  titles remain readable, and expanded touch controls are at least 44 pixels.
+
 - Fixed repeated seeks during stream setup and preserved pending position and
   Play/Pause intent across player layout changes. Lock-screen seek state now
   clears when no track duration is known, and Picture-in-Picture opens cancel

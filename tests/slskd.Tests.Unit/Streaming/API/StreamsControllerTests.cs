@@ -92,15 +92,37 @@ public class StreamsControllerTests
         _locatorMock.Verify(x => x.Resolve(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task Transcode_RejectsInvalidSeekBeforeStartingProcess()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("invalid-ticket")]
+    public async Task Transcode_RejectsMissingOrInvalidTicketBeforeResolvingLocalFile(string? ticket)
+    {
+        var controller = CreateController();
+        SetContext(controller);
+
+        var result = await controller.Transcode("c1", ticket, 0, CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result);
+        _locatorMock.Verify(x => x.Resolve(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _limiterMock.Verify(x => x.TryAcquire(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    [InlineData(-1)]
+    [InlineData(86401)]
+    public async Task Transcode_RejectsInvalidSeekBeforeStartingProcess(double startSeconds)
     {
         var controller = CreateController();
         SetContext(controller);
         _ticketsServiceMock.Setup(x => x.Validate("ticket", "c1"))
             .Returns(new StreamTicketClaims("c1", "user:alice", DateTimeOffset.UtcNow.AddMinutes(1)));
 
-        var result = await controller.Transcode("c1", "ticket", double.NaN, CancellationToken.None);
+        var result = await controller.Transcode("c1", "ticket", startSeconds, CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result);
         _locatorMock.Verify(x => x.Resolve(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
