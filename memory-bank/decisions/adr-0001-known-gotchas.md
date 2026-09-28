@@ -6,6 +6,19 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1183. Accept Numeric MusicBrainz Track Positions
+
+**The Bug**: MusicBrainz returned a numeric token for `media[].tracks[].position`,
+but the response model required a JSON string. Release deserialization threw a
+`JsonException`, making discography coverage return HTTP 500.
+
+**Why**: The MusicBrainz response model treated track position as string-only,
+although the service returns both numeric and string position forms.
+
+**Prevention**: Preserve the raw JSON position, accept both string and number
+tokens, and feed their text into the existing position parser. Keep a client
+regression covering numeric positions and existing string position formats.
+
 ### 0z1182. Do Not Chain xUnit Null Assertions
 
 **The Bug**: A regression test chained `Assert.NotNull(value).Property`, but the
