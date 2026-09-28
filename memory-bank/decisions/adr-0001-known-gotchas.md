@@ -49,6 +49,21 @@ the active track and position, then assert the overlap and pause behavior. Keep
 keyboard-seeking coverage in a separate test that does not rely on a narrow
 timing window.
 
+### 0z1222. Verify Native Media Retry In Every Browser Engine
+
+**What went wrong:** A real-browser radio recovery test changed its controlled
+HTTP route from 503 to 200 and retried playback. Chromium and WebKit resumed,
+but Firefox kept the failed media element stopped. The previous browser gate
+had not run this retry path across engines.
+
+**Why:** Native media error and reload behavior differs between browser
+engines; a successful retry in one engine does not establish that another
+engine left its failed resource state.
+
+**Prevention:** Exercise a rejected native media response followed by a
+successful retry in every supported browser engine. Assert both that the
+retry made a fresh request and that the media actually advances after it.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
