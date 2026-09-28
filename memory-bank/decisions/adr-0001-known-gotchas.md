@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1136. Treat an Absent Public DHT Engine as Expected in LAN-Only Mode
+
+**The Bug**: After enforcing LAN-only isolation, the network health scorer still deducted points and warned that DHT was not running. The explanatory panel required isDhtRunning=true, so it disappeared in the correctly isolated state. Three negative regressions reproduced the misleading score and missing explanation.
+
+**Prevention**: Honor both LAN-only field spellings in health scoring and gate the explanatory panel on enabled LAN-only mode, not public engine readiness. Keep warnings for a missing public-mode engine. Describe the actual engine suppression so configured privacy is not presented as a failure.
+
 ### 0z1135. Isolate Full-Instance Integration Fixtures from Public Rendezvous
 
 **The Bug**: The full-instance integration runner explicitly configured public BitTorrent bootstrap routers while its workflows use local Soulfind, direct mesh peers or no-connect mode. Offline flags only covered Soulseek, so the same validation could contact unrelated public DHT peers.
