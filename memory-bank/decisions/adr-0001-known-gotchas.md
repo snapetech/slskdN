@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1172. Keep Parameterized Assertions Outside Conditional Setup
+
+**The Bug**: The prepared active/standby and native/decoded error matrix put expectations inside conditional setup and outcome branches. The first Web lint gate rejected five occurrences under `vitest/no-conditional-expect`, preventing the type and negative-test gates from starting.
+
+**Prevention**: Branch only for required setup actions. Assert the selected source afterward and compare the complete callback trace against a parameter-derived expected value. Keep every matrix case's assertions unconditional and fix lint before running tests; do not disable the rule.
+
 ### 0z1171. Disclose CDP Resource Enumeration Boundaries
 
 **The Bug**: Native resource summaries described CDP-enumerated PSS and CPU as whole-browser totals. A live Linux browser-tree inspection found seven OS processes while CDP reported five; the two zygotes held about 18 MiB combined PSS in that snapshot. Zero unavailable readings proved coverage of the CDP list, not every OS browser process.
