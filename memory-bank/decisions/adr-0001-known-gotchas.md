@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1166. Disable Video as Well as Tracing for Resource Measurements
+
+**The Bug**: The initial sustained resource run disabled tracing but inherited retain-on-failure video. A live process inspection proved Playwright's video encoder was active while the probe measured CPU. Retaining videos only on failure still records every run, so those samples include recording overhead.
+
+**Prevention**: Scope both video off and trace off to the resource measurement test, assert page.video() is null, and run without concurrent builds or other browser suites. Keep recording enabled for separate functional QA. Stop a contaminated measurement and rerun with frozen corrected inputs; do not publish it as a low-resource baseline.
+
 ### 0z1165. Match Playwright Navigation Predicates to URL Objects
 
 **The Bug**: The player suite's explicit TypeScript check exposed login navigation predicates calling includes on a URL object and a route-change predicate comparing that object to a string. Their caught failures hid invalid checks. Nullable DOM diagnostic text and untyped audio locators also prevented the suite from passing a real type gate; successful browser transpilation did not reveal them.
