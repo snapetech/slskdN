@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1195. Keep Cloudron Stable Image Metadata Current Before Tagging
+
+**What went wrong:** The release gate rejected a new stable build because the
+Cloudron manifest and Dockerfile still referenced `.325`, while the stable
+release metadata had advanced to `.326`.
+
+**Why:** The stable metadata updater does not update Cloudron packaging, and
+the packaging validator requires Cloudron's catalog image to match the current
+stable image before another stable tag can be created.
+
+**Prevention:** Before tagging a stable release, update the Cloudron manifest,
+version catalog, and Dockerfile base image together to the currently published
+stable release, then run the packaging metadata validator.
+
 ### 0z1194. Delimit Release-Note Frontmatter on Both Sides
 
 **What went wrong:** A release fragment had valid-looking metadata and a
