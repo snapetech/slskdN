@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1078. Release Previous Radio Reads Before Preparing Another Snapshot
+
+**The Gotcha**: The new per-host radio lease permits one active read stream. Keeping the previous HTTP response open during crossfade preparation can reject the replacement snapshot from the same host.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.jsx`
+
+**Prevention**: Radio selection transitions pause and clear the previous media source before ticket acquisition; do not overlap radio crossfades. Preserve normal Pause/resume within the same snapshot, and verify source replacement through browser playback.
+
 ### 0z1077. Model Missing DHT Records as Null in Publish Tests
 
 **The Bug**: The new announcement publish regression left GetRawAsync unconfigured. Moq returned an empty byte array, which is invalid JSON, rather than the null returned for a missing directory index.
