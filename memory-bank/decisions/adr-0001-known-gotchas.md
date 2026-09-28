@@ -31628,3 +31628,19 @@ must remain a transport failure even when its caller was also canceled; distingu
 pre-commit cancellation from active-write failure. Keep canceled queue entries
 skippable. A real TLS regression holds post-send work, cancels its
 caller and verifies that committed work remains owned until release.
+
+### 0z1149 — Route-owned manual publication leaves host playback unsynchronized (2026-09-28)
+
+**What went wrong:** The room panel serialized manual Broadcast/Stop requests,
+but player Pause, Seek and track changes did not publish continuing host state.
+Navigating away also discarded host publication ownership.
+
+**Why:** A route-owned control cannot own a broadcast that must follow the
+persistent player. Following and hosting also need exclusive ownership to avoid
+republishing received room state as new host state.
+
+**Prevention:** Retain an explicitly started host session in PlayerProvider,
+reuse the existing room connection and authorization, and publish meaningful
+playback events rather than time ticks. Bound/coalesce pending updates, serialize
+Stop after in-flight writes, preserve paused seeks and release on revocation.
+Stop hosting before following another room.
