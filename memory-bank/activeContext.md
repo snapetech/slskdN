@@ -14522,3 +14522,9 @@ Next Steps: verify final runtime artifacts, release preview, commit/push to the 
 ### Final player runtime audit — 2026-09-28 01:01:40Z
 
 Final build passes all 15 browser workflows and 972 Web tests. Repository lint and all backend tests pass. `docs/dev/player-quality-audit.md` consolidates evidence and remaining completion work. Native resource sample: 2.80% of one core playing / 2.50% paused; Linux PSS 300.44 MiB idle, 315.18 MiB playing and 309.18 MiB paused across five processes, with no unavailable memory readings. Idle CPU excludes one exited process. These are headless application/browser totals, not player-only or physical-device measurements. Source batch is ready for release preview and commit/push; overall goal remains active.
+
+## Player batch push and release metadata correction — 2026-09-28 01:03:13Z
+
+Source `a669f1a2a` is pushed with 15 real-browser workflows, 972 Web tests and all backend/build/lint gates passing. Release preview rejected an unsupported contributors audience, and the shell continued to push after that failure. The unshipped fragment audience is corrected to users; gotcha 0z1059 records schema and command-ordering prevention. The full original-base release preview must pass before the corrective push. No release or tag was created.
+
+Completed implementation batch is cleared. Next Steps: continue the open rows in `docs/dev/player-quality-audit.md`: listen-along/radio runtime recovery, browser/format coverage, physical mobile/output/window behavior, sustained-session resources and accessibility. Overall goal remains active.

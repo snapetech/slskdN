@@ -1,6 +1,6 @@
 ---
 category: fixed
-audience: users, contributors
+audience: users
 area: player
 action: none
 breaking: false
