@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1098. Anchor Changelog Insertions to Actual Headings
+
+**The Bug**: A scripted insertion searched for the first Unreleased heading text and matched its inline mention in the introduction. New bullets landed above the actual section instead of belonging to the release range.
+
+**Prevention**: Match the complete heading line when editing changelogs, not a substring also used in prose or code examples. Inspect the edited section before previewing or committing release metadata.
+
 ### 0z1097. Respect Overlay Message Pacing in Concurrent RPC Tests
 
 **The Bug**: A real TLS test burst ten held calls immediately after discovery RPCs to probe the client concurrency bound. The separate ten-message-per-second overlay limit rejected the burst, so responses exercised transport pacing rather than the intended client quota.
