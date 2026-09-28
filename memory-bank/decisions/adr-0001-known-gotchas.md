@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1167. Isolate Resource Probe Worker Options at File Scope
+
+**The Bug**: The first video-removal implementation placed video and trace overrides inside a describe group. Playwright rejected discovery because these options force a new worker and cannot be changed there.
+
+**Prevention**: Put resource measurement in its own spec with top-level worker options. Keep functional QA recording in its existing specs, share the deterministic generated tone fixture, and run the isolated resource spec explicitly. Check discovery as well as types before starting a long measurement.
+
 ### 0z1166. Disable Video as Well as Tracing for Resource Measurements
 
 **The Bug**: The initial sustained resource run disabled tracing but inherited retain-on-failure video. A live process inspection proved Playwright's video encoder was active while the probe measured CPU. Retaining videos only on failure still records every run, so those samples include recording overhead.
