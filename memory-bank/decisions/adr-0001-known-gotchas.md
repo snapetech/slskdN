@@ -18,6 +18,20 @@ of the successful persistence boundary.
 message is stored successfully. Then retire the prior party and commit the
 local state while still holding the room's publication ordering.
 
+### 0z1201. Verify Mesh Requests by Their Serialized Fields
+
+**What went wrong:** A mesh-service unit test verified that the listening-party
+mock received the exact `PodMessage` instance used to build the request. The
+request crossed the JSON payload boundary, so the mock correctly received a
+deserialized instance and the reference-based verification failed.
+
+**Why:** Mesh service calls carry serialized payloads; in-process object
+identity is not part of their contract.
+
+**Prevention:** Match and verify RPC payload objects by stable wire fields such
+as message ID, room, sender and sequence. Reserve reference-equality checks for
+calls that actually share the original object.
+
 ### 0z1199. Assert Mesh Reply Payloads Against Their Wire Contract
 
 **What went wrong:** The new `ApplyListenAlong` service returned success, but
