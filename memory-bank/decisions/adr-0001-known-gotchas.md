@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1189. Commit Host Ownership With The Room State Transition
+
+**What went wrong:** A replacement host updated in-memory room state before its
+DHT announcement finished, but the session fence was installed only after the
+whole publication returned. A DHT failure could leave the new state protected
+by the old tab's fence.
+
+**Why:** Room state and its directory side effects have different failure
+boundaries; the room write can be committed even when a later directory write
+fails.
+
+**Prevention:** Commit the host-session fence at the same serialized in-memory
+room-state transition. Test a failed directory write after state acceptance,
+then verify the replaced session cannot publish, renew or Stop.
+
 ### 0z1188. Pass Header Parameters Explicitly in Direct Controller Tests
 
 **What went wrong:** Controller unit tests set `Request.Headers` and invoked the
