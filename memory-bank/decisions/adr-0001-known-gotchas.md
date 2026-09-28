@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1113. Authenticate and Authorize Remote Room Delivery Separately
+
+**Source Finding / Open Work**: Legacy UDP and QUIC control reception calls the dispatcher overload without peer validation. The existing Pods mesh Join handler forwards caller-selected roles and does not check public visibility or approval before JoinAsync. Transport identity alone therefore must not be treated as permission to publish private room state or gain a moderator role.
+
+**Prevention**: Route new listen-along delivery through established authenticated service links, bind authority to the actual transport context and current room permission, and verify the join/approval boundary with negative regressions before using it. Do not attach state mutation to unvalidated legacy control handling or trust payload author/role claims. Keep this finding open until tested and repaired.
+
 ### 0z1112. Persist Valid Room Updates Before Publishing Their Effects
 
 **The Bug**: Missing rooms and rejected storage both returned success and exposed a new local/listed snapshot. Negative regressions reproduced both outcomes. Stop could similarly remove an existing broadcast before its write was accepted.
