@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1143. Respect Intentionally Hidden Controls in Touch-Bounds Checks
+
+**The Bug**: The broader compact-control regression queried the Hide button at narrow widths even though the existing compact layout intentionally hides secondary controls there. Its bounding box was null, producing a test failure rather than a product sizing failure.
+
+**Prevention**: Measure all rendered accessible buttons in the compact control cluster and assert non-null bounds first. Keep separate explicit hidden-state checks for secondary controls. Do not force hidden controls into the layout merely to satisfy a blanket measurement loop.
+
 ### 0z1142. Measure Every Player Control Rather Than Only Play
 
 **The Bug**: Mobile playback passed a 44-pixel Play-button check while rating buttons remained 24 pixels and seven visual controls were squeezed into an artwork-width strip. The real-browser negative rating regression measured 24 pixels; retained 320-pixel screenshots also showed clipped rating metadata.
