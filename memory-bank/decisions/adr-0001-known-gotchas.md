@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1084. Allow Native Range Replacement to Release Its Previous Lease
+
+**The Bug**: Real two-backend Chromium playback returned 206 for bytes=0- and then 429 for an interior seek. The browser replaces its HTTP range while the cancelled previous response is still unwinding, so immediate per-owner/per-host rejection made seeking fail.
+
+**Prevention**: For radio only, briefly wait for the previous owner and host leases to release, using cancellable bounded retries and rolling back partial reservations. Keep one active stream per owner and host, preserve existing pacing, and verify interior seek with real HTTP/TLS playback. Requests that remain in conflict still receive a limit error.
+
 ### 0z1083. Seek Within the Track When Testing Continued Playback
 
 **The Bug**: The network radio regression pressed End and then moved backwards. End reaches the actual duration, fires ended and pauses playback; expecting continued playback after that sequence misidentified normal media behavior as a seek failure.
