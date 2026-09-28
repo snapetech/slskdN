@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1120. Inspect Compiler Style Warnings Beyond the Error-Only Format Gate
+
+**The Gotcha**: A new mesh permission helper lacked a blank line after the preceding method. Error-only repository formatting passed, but focused compilation reported StyleCop SA1513.
+
+**Prevention**: Separate methods with a blank line and inspect build/test warnings as well as lint exit codes. Remove newly introduced style warnings before full validation; an error-only formatting check does not prove warning-free source.
+
 ### 0z1119. Preserve Bans When a Participant Leaves
 
 **The Bug**: Both in-memory and SQLite LeaveAsync deleted banned membership records. Two direct negative tests reproduced successful leave after ban, allowing a subsequent public-room join to lose the ban barrier. Native and mesh callers share these services, so fixing only one controller would leave another bypass.
