@@ -6,6 +6,12 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1177. Validate the Release Fragment Body Budget Before Publication
+
+**The Bug**: The publication preview rejected a newly created, unpublished resource fragment because its body exceeded 400 characters. Valid front matter alone did not satisfy the release-note contract.
+
+**Prevention**: Keep each new fragment body within 30–400 characters and describe user impact concisely. Put detailed methodology in the linked documentation. Validate the exact proposed range before push; correct unpublished draft fragments without modifying validated historical fragments.
+
 ### 0z1176. Pass Node Values Explicitly Into Browser Evaluation
 
 **The Bug**: The corrected host workflow reached follower verification, then failed with ReferenceError because evaluateAll captured failedPosition from the Node test closure. Playwright executes the serialized callback in the browser, where that binding does not exist; the type gate cannot prove cross-context availability.
