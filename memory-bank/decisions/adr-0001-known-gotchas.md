@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1072. Declare Radio Mesh JSON Field Names Explicitly
+
+**The Bug**: Radio request records were serialized with web camel-case options, but ServicePayloadParser uses case-sensitive default names. Valid capabilities arrived with empty identifiers and all permitted reads failed.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/Services/ListedRadioMeshService.cs`
+
+**Prevention**: Put explicit JsonPropertyName attributes on protocol request fields, matching existing mesh services. Verify a serialized client request against the real host parser, not only mocked method arguments.
+
 ### 0z1071. Avoid Options Shadowing in Radio Regression Tests
 
 **The Bug**: The radio regression imported Microsoft.Extensions.Options unnecessarily and repeated the Options static-helper collision in its test factory.
