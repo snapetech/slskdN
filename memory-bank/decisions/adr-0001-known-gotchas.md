@@ -6,6 +6,15 @@
 
 This document captures known issues, anti-patterns, and "gotchas" that AI models and developers have encountered. **Read this before making changes.**
 
+### 0z1071. Avoid Options Shadowing in Radio Regression Tests
+
+**The Bug**: The radio regression imported Microsoft.Extensions.Options unnecessarily and repeated the Options static-helper collision in its test factory.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/ListeningParty/ListedRadioTransportTests.cs`
+
+**Prevention**: Remove unused options imports or qualify the application configuration type in test factories as well as production services. This repeats the pattern in 0z1069.
+
 ### 0z1070. Reuse the Existing Browser Audio Fixture Generator
 
 **The Bug**: Updating the radio browser route referenced an undeclared audioBytes variable although the fixture exposes makeTone(). The obsolete direct-stream route also remained beside the new ticketed route.
