@@ -380,6 +380,19 @@ automatically retain the package's default export or CommonJS interop shape.
 module mock. When testing a CommonJS-wrapped dependency, provide its default
 export explicitly and keep a test that reaches the actual failure/cleanup path.
 
+### 0z1246. Use The Exact-Call Vitest Matcher For One-Off Assertions
+
+**What went wrong:** A new cleanup test separately asserted that a mock was
+called once and with a particular argument. The repository's Vitest lint rule
+rejected the pair because one exact-call assertion expresses both conditions.
+
+**Why:** Split call-count and argument assertions can diverge as a test evolves
+and duplicate the same mock expectation.
+
+**Prevention:** Use `toHaveBeenCalledExactlyOnceWith()` when a mock must be called
+once with specific arguments. Reserve separate count and argument matchers for
+cases where the total call count and one individual call are distinct facts.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
