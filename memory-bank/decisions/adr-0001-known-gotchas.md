@@ -33341,3 +33341,20 @@ corresponding HTML media interface.
 **Prevention:** Use an `instanceof HTMLAudioElement` guard inside
 `locator.evaluate()` and return only the measured state. Typecheck the browser
 specs independently of Playwright's runtime transpilation.
+
+### 0z1271. Scroll The Player Before Touching Clipped Controls (2026-09-29)
+
+**What went wrong:** A phone E2E case tapped the expanded volume slider using
+its bounding box and expected a touch update. The player is a fixed-height,
+vertically scrollable surface, so the slider could have a layout box while
+still sitting below the visible part of the player.
+
+**Why:** Playwright visibility checks and `boundingBox()` do not establish that
+an element is inside the viewport or unclipped by a scrollable ancestor.
+`touchscreen.tap()` dispatches at the supplied coordinates; it does not first
+reveal an offscreen control.
+
+**Prevention:** Scroll the player control into view, assert its bounds are
+inside the visible player surface, then tap and verify the resulting native
+media state. For touch-specific coverage, also assert a touch pointer event
+reached the intended control.
