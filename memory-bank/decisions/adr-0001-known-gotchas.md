@@ -467,6 +467,20 @@ can therefore change the renderer's actual resource and image quality settings.
 then retrieve that same context for teardown. If failure cleanup needs to
 acquire it, pass the exact same low-resource attributes.
 
+### 0z1252. Normalize Optional WebGL Context Attribute Values
+
+**What went wrong:** A strict browser probe recorded values returned by
+`getContextAttributes()` as definite booleans. The WebGL DOM declaration makes
+those attributes optional, so the standalone TypeScript gate rejected the
+probe.
+
+**Why:** Context-attribute support and Web IDL optional dictionary members do
+not guarantee that every property is present in the returned JavaScript object.
+
+**Prevention:** Preserve absence explicitly as `null` or `undefined` in probe
+telemetry and assert the required value is exactly `false`; do not coerce a
+missing attribute to false with truthiness checks.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
