@@ -1,3 +1,14 @@
+## Player keyboard Tab order verified — 2026-09-29 03:38 UTC
+
+- Added a browser workflow that walks every visible player focus stop with
+  actual Tab input in the expanded layout, advanced-tools layout and compact
+  layout. It asserts primary transport order and includes the asynchronous
+  output selector deterministically where supported.
+- Chromium and host Firefox pass 26/26; WebKit passes 24 with two unsupported
+  API skips. All 1,098 Web tests, Web lint, strict browser TypeScript and
+  `./bin/lint` pass. Actual screen-reader speech and physical controls remain
+  open. This validation/docs batch is internal-only; no release fragment or tag.
+
 ## Player decode setup cancellation — 2026-09-29 03:16 UTC
 
 - Pending stream-ticket and playback-info requests now receive an abort signal.

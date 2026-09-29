@@ -31,6 +31,54 @@ const seekPlayerTo = async (page: Page, targetSeconds: number) => {
   await expect(seek).toHaveValue(String(targetSeconds));
 };
 
+const readPlayerTabOrder = async (page: Page) => page.locator('.player-bar').evaluate((player) => {
+  const candidates = Array.from(player.querySelectorAll<HTMLElement>([
+    'a[href]',
+    'button',
+    'input',
+    'select',
+    'textarea',
+    '[contenteditable="true"]',
+    '[tabindex]',
+  ].join(',')));
+  return candidates.filter((element) =>
+    element.tabIndex >= 0 &&
+    !element.matches(':disabled') &&
+    element.getClientRects().length > 0 &&
+    window.getComputedStyle(element).visibility !== 'hidden')
+    .map((element) => element.dataset.testid || element.getAttribute('aria-label') ||
+      element.getAttribute('title') || element.textContent?.trim() || element.tagName.toLowerCase());
+});
+
+const assertPlayerTabSequence = async (page: Page, expected: string[]) => {
+  await page.locator('.player-bar').evaluate((player) => {
+    const first = Array.from(player.querySelectorAll<HTMLElement>([
+      'a[href]',
+      'button',
+      'input',
+      'select',
+      'textarea',
+      '[contenteditable="true"]',
+      '[tabindex]',
+    ].join(','))).find((element) =>
+      element.tabIndex >= 0 &&
+      !element.matches(':disabled') &&
+      element.getClientRects().length > 0 &&
+      window.getComputedStyle(element).visibility !== 'hidden');
+    if (!first) throw new Error('The player has no visible keyboard stops.');
+    first.focus();
+  });
+  for (const [index, expectedStop] of expected.entries()) {
+    if (index > 0) await page.keyboard.press('Tab');
+    await expect.poll(() => page.locator('.player-bar').evaluate((player) => {
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement) || !player.contains(active)) return null;
+      return active.dataset.testid || active.getAttribute('aria-label') || active.getAttribute('title') ||
+        active.textContent?.trim() || active.tagName.toLowerCase();
+    })).toBe(expectedStop);
+  }
+};
+
 test.describe('player browser playback', () => {
   test.use({ serviceWorkers: 'block' });
   test.setTimeout(60_000);
@@ -576,6 +624,75 @@ test.describe('player browser playback', () => {
     await page.keyboard.press('Space');
     await expect(compactPlay).toHaveAccessibleName('Resume local playback');
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
+  });
+
+  test('keeps the visible player controls in keyboard Tab order across modes', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles([firstFile, secondFile]);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+
+    const expandedOrder = await readPlayerTabOrder(page);
+    expect(expandedOrder).toContain('player-visual-tile');
+    expect(expandedOrder).toContain('player-analyzer-tile');
+    expect(expandedOrder.indexOf('Seek playback')).toBeLessThan(expandedOrder.indexOf('player-previous'));
+    expect(expandedOrder.indexOf('player-previous')).toBeLessThan(expandedOrder.indexOf('player-rewind'));
+    expect(expandedOrder.indexOf('player-rewind')).toBeLessThan(expandedOrder.indexOf('player-toggle-playback'));
+    expect(expandedOrder.indexOf('player-toggle-playback')).toBeLessThan(expandedOrder.indexOf('player-fast-forward'));
+    expect(expandedOrder.indexOf('player-fast-forward')).toBeLessThan(expandedOrder.indexOf('player-next'));
+    expect(expandedOrder.indexOf('player-next')).toBeLessThan(expandedOrder.indexOf('player-stop'));
+    expect(expandedOrder.indexOf('player-stop')).toBeLessThan(expandedOrder.indexOf('Playback speed'));
+    await assertPlayerTabSequence(page, expandedOrder);
+
+    const canEnumerateOutputs = await page.evaluate(() => {
+      const audioContext = window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const mediaDevices = Reflect.get(navigator, 'mediaDevices');
+      return Boolean(mediaDevices && Reflect.get(mediaDevices, 'enumerateDevices') && audioContext &&
+        Reflect.get(audioContext.prototype, 'setSinkId'));
+    });
+    if (canEnumerateOutputs) {
+      await page.evaluate(() => Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', {
+        configurable: true,
+        value: async () => [{
+          deviceId: 'keyboard-order-test-output',
+          groupId: 'keyboard-order-test',
+          kind: 'audiooutput',
+          label: 'Keyboard order test output',
+        }],
+      }));
+    }
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    if (canEnumerateOutputs) await expect(page.getByLabel('Audio output device')).toHaveCount(1);
+    const expandedToolsOrder = await readPlayerTabOrder(page);
+    for (const testId of [
+      'player-toggle-visualizer',
+      'player-toggle-eq',
+      'player-toggle-lyrics',
+      'player-open-listed-radio',
+      'player-open-radio',
+      'player-open-listening-stats',
+      'player-open-discovery-shelf',
+      'player-toggle-karaoke',
+      'player-toggle-crossfade',
+      'player-open-integrations',
+    ]) expect(expandedToolsOrder).toContain(testId);
+    await assertPlayerTabSequence(page, expandedToolsOrder);
+
+    await page.getByTestId('player-collapse').click();
+    const compactOrder = await readPlayerTabOrder(page);
+    expect(compactOrder).toEqual([
+      'Seek playback',
+      'Previous local track',
+      'player-collapsed-toggle-playback',
+      'Next local track',
+      'Open playback queue',
+      'player-expand',
+      'player-hide',
+      'player-collapsed-toggle-mute',
+      'Playback volume',
+    ]);
+    await assertPlayerTabSequence(page, compactOrder);
   });
 
   test('contains keyboard focus in the queue dialog and restores its opener', async ({ page }) => {

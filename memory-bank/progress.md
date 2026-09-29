@@ -1,3 +1,16 @@
+## Update 2026-09-29 03:38:00Z — Player full keyboard focus order
+
+Added a browser-level Tab walk for all visible expanded controls, the open
+player-tools layout, and compact controls. It verifies that visible focus stops
+match the browser's actual Tab path and asserts the main transport order. Output
+device enumeration is deterministic in capable browsers so the optional select
+cannot arrive after the focus-order snapshot. Chromium and host Firefox pass
+26/26; WebKit passes 24/26 with Media Session and Document PiP capability skips.
+All 1,098 Web tests, Web lint, strict E2E TypeScript and `./bin/lint` pass. The
+quality audit closes the full keyboard-order gap; actual screen-reader speech,
+physical controls and the other player audit items remain open. This is internal
+validation/docs work; no release note or tag was added.
+
 ## Update 2026-09-29 03:20:00Z — Player decode cancellation published
 
 The exact preview from `build-main-2026092900-slskdn.329` included the decode

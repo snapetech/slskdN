@@ -62,7 +62,8 @@
   - Notes: All eight player dialogs expose their title to assistive technology,
     focus their contents on entry, wrap Tab and Shift+Tab, and restore their
     opener on Escape. The queue workflow passes in Chromium, host Firefox and
-    WebKit; full control Tab order and screen-reader output remain open.
+    WebKit; the separate player keyboard-order regression passes in all three
+    engines. Screen-reader output remains open.
 
 - [x] Explain the ListenBrainz token-clear action with a player tooltip.
   - Status: implemented and unit verified (2026-09-28).
@@ -102,8 +103,10 @@
     paths are verified. Crossfade, analyzer pause/resume, keyboard transport and
     seeking, queue/files, responsive viewports and queue-dialog focus entry/exit
     pass in all three. Physical mobile/output routing, headset controls,
-    WAN/listen-along, resource duration, full control Tab order/assistive tech
-    and format-specific decode failure/cancellation coverage remain open.
+    WAN/listen-along, resource duration, actual assistive-technology speech,
+    and format-specific decode failure/retry coverage remain open. The separate
+    keyboard Tab-order task now verifies expanded, tools-open and compact modes
+    in all three browser engines.
 
 - [x] Normalize saved equalizer gains and guard lyrics lookups against stale results.
   - Status: implemented (2026-09-27).
@@ -5734,8 +5737,8 @@ resource completion.
   contrast in Chromium, Firefox and WebKit.
 - [x] Run strict E2E TypeScript and update the quality audit, changelog and
   append-only release fragment.
-- [ ] Continue the wider player audit: full control Tab order and screen-reader
-  workflows, codec cancellation, physical device behavior, sustained resource
+- [ ] Continue the wider player audit: screen-reader speech, codec failure and
+  retry, physical device behavior, sustained resource
   budgets, WAN playback and live reciprocal-transfer admission.
 
 
@@ -5778,6 +5781,19 @@ resource completion.
   browser gates.
 - [x] Preview the exact release range and push commit `7c51ff0e8` with gotcha
   record `113236404`.
-- [ ] Continue format-specific decode failure/retry, full screen-reader and
-  keyboard workflows, physical devices, sustained resources, WAN and live
+- [ ] Continue format-specific decode failure/retry, actual screen-reader
+  speech, physical devices, sustained resources, WAN and live
   reciprocal-transfer validation.
+
+
+### Player keyboard Tab order — 2026-09-29
+
+- [x] Exercise the real visible Tab sequence in the expanded, tools-open and
+  compact player; assert the transport workflow order and traverse every
+  visible stop in each state.
+- [x] Pass the full 26-case PlayerBar suite in Chromium and Firefox and 24/26
+  in WebKit (two unsupported API skips); pass all 1,098 Web tests, Web lint,
+  strict browser TypeScript and repository lint.
+- [ ] Continue actual assistive-technology speech, physical media controls and
+  output routing, decode failure/retry, sustained resources, WAN radio and
+  reciprocal-transfer verification.

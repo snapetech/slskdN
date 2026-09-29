@@ -34,8 +34,8 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. Its 25 workflows pass in Chromium and host Firefox; WebKit
-passes 24 and feature-skips one unsupported API. The suite covers actual native
+peer connections. Its 26 workflows pass in Chromium and host Firefox; WebKit
+passes 24 and feature-skips two unsupported APIs. The suite covers actual native
 or server-decoded playback for each compressed format, plus controlled HTTP radio
 failure/retry and a synthetic directory response. Media Session callbacks are
 invoked in Chromium and Firefox, but this does not exercise physical headset
@@ -48,7 +48,7 @@ buttons. Output-switch regressions use simulated device APIs.
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
 | Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount | Component/API tests / high; format-specific server-decode failure and retry remain open |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
-| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full control order and screen-reader output remain open |
+| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; screen-reader output remains open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 104 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
@@ -94,6 +94,19 @@ workflow adjusts the first vertical band by keyboard and verifies the spoken
 value attribute in Chromium, Firefox and WebKit. Confidence is high for the
 accessible value and update. Actual assistive-technology speech remains
 unverified.
+
+### Expanded and compact keyboard focus order — 2026-09-29
+
+A browser regression snapshots the visible player tab stops, then walks each
+stop with real Tab input in the browser. It verifies the complete expanded
+layout, expanded audio/discovery tools, and compact layout; the primary
+transport controls remain ordered Previous, Rewind, Play/Pause, Fast-forward,
+Next, Stop, shuffle, repeat and playback speed. Browsers that expose output
+routing use a deterministic enumerated device so the optional selector is part
+of the settled order. The test passes in Chromium and host Firefox (26/26 each)
+and WebKit (24 passed, two capability skips). Confidence is high for visible
+DOM focus order across these browser engines. This does not verify spoken
+output from assistive technology or physical hardware.
 
 ### Decoded setup request cancellation — 2026-09-29
 
@@ -188,12 +201,13 @@ are happening; that reciprocal-transfer workflow remains open.
   for retained memory, stray timers and active contexts. The repeated two-window
   idle/play/pause baseline is complete; it does not establish a long-session
   memory plateau.
-- Audit full keyboard focus order and assistive-technology workflows. All eight
+- Complete assistive-technology speech workflows. All eight
   player dialogs now expose their title, receive focus on entry, wrap Tab in
   both directions, and restore the opener on Escape. The queue dialog workflow
-  verifies those behaviors in three browser engines; full control-by-control
-  order and screen-reader output remain open. Core playback, paused seeking and
-  compact-mode keyboard activation also pass in all three engines.
+  verifies those behaviors in three browser engines; the visible expanded,
+  advanced and compact player Tab order now passes in all three too. Actual
+  screen-reader output remains open. Core playback, paused seeking and compact
+  mode keyboard activation also pass in all three engines.
 - Resolve newly discovered defects and update this audit with direct evidence.
 
 ## Cross-engine media suite — 2026-09-28
