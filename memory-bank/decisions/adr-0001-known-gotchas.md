@@ -33190,3 +33190,20 @@ off, but it treated the current topology as if the fixture restarted per test.
 mesh connection) and the LAN-only/DHT fields separately. For a new cross-node
 connection workflow, start a fresh host/listener pair or stop the old peers
 first. If an exact topology is under test, give that test its own harness.
+
+### 0z1261. Keep Active Listed-Radio Stream Failures Actionable (2026-09-29)
+
+**What went wrong:** A two-node browser run replaced a listed-radio snapshot
+while the listener's HTTP media response was active. The host correctly stopped
+serving the old snapshot, but the audio-element error handler showed only the
+generic message `This audio could not be decoded or streamed.`
+
+**Why:** Ticket-creation failures had radio-specific retry guidance, while an
+active response can fail later after HTTP 206 has already started. That path
+reached the generic media-error branch without explaining that the radio
+snapshot may have changed or how to refresh it.
+
+**Prevention:** Exercise replacement and withdrawal during real playback in
+the two-node browser harness. Verify the active media request terminates, the
+player gives radio-specific retry/refresh guidance, and refreshing the picker
+plays the replacement or removes the withdrawn snapshot.
