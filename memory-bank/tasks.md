@@ -64,6 +64,11 @@
     opener on Escape. The queue workflow passes in Chromium, host Firefox and
     WebKit; full control Tab order and screen-reader output remain open.
 
+- [x] Explain the ListenBrainz token-clear action with a player tooltip.
+  - Status: implemented and unit verified (2026-09-28).
+  - Notes: The clear-token Popup explains that it removes the browser-session
+    token; the existing autosave/clear test verifies the tooltip and action.
+
 - [x] Keep Listening Stats import text on the user's latest input.
   - Status: implemented (2026-09-27).
   - Notes: Older file reads cannot replace later manual edits, later file

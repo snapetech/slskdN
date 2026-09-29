@@ -1,3 +1,28 @@
+## Player button tooltip audit — 2026-09-29 01:21 UTC
+
+- The ListenBrainz token-clear button now explains that it removes the saved
+  browser-session token. Its existing regression checks hover content and
+  clearing behavior.
+- Repeated AST audit: all 104 Button/button declarations across 23 player
+  source files have Popup content. Full Web tests pass (1,094), Web lint and
+  production build pass. The prior full browser and .NET/repository lint gates
+  cover the modal change; this follow-up only changes a player tooltip/test.
+- The `.329` follow-up preview must contain both the dialog-accessibility and
+  tooltip fragments. Commit and push this follow-up after final gates; no tag.
+
+Next Steps: validate the two-fragment release preview, commit/push the tooltip
+fix, then continue the remaining player device, focus-order, codec-cancellation,
+resource and WAN audit.
+
+## Player control tooltip coverage — 2026-09-29 01:18 UTC
+
+- A JSX scan found 103/104 player button declarations wrapped in a `Popup` with
+  content. Added an explanation to the ListenBrainz token-clear button and
+  extended its autosave/clear unit test to verify hover content.
+- Release fragment and Unreleased changelog bullet are prepared. Validate Web
+  tests/lint, rerun the source scan and range preview, then commit and push.
+  The overall player audit remains open.
+
 ## Player dialog accessibility follow-up — 2026-09-29 01:09 UTC
 
 - All eight player modal entrypoints now provide a named dialog, initial focus,

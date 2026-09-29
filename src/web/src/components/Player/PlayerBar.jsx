@@ -4187,18 +4187,23 @@ const PlayerBar = () => {
           <Input
             aria-label="ListenBrainz user token"
             action={
-              <Button
-                aria-label="Clear ListenBrainz token"
-                data-testid="player-clear-listenbrainz-token"
-                icon
-                onClick={() => {
-                  setListenBrainzTokenState('');
-                  listenBrainz.setListenBrainzToken('');
-                }}
-                type="button"
-              >
-                <Icon name="trash alternate outline" />
-              </Button>
+              <Popup
+                content="Remove the saved ListenBrainz token from this browser session. You can enter a new token at any time."
+                trigger={
+                  <Button
+                    aria-label="Clear ListenBrainz token"
+                    data-testid="player-clear-listenbrainz-token"
+                    icon
+                    onClick={() => {
+                      setListenBrainzTokenState('');
+                      listenBrainz.setListenBrainzToken('');
+                    }}
+                    type="button"
+                  >
+                    <Icon name="trash alternate outline" />
+                  </Button>
+                }
+              />
             }
             data-testid="player-listenbrainz-token"
             fluid

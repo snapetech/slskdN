@@ -48,6 +48,7 @@ buttons. Output-switch regressions use simulated device APIs.
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
 | Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close and opener restoration | Queue workflow verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full control order and screen-reader output remain open |
+| Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 104 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
 | Analyzer | Reads stop on Pause/Stop, resume on Play; existing contexts suspend | Verified in Chromium, host Firefox and WebKit / high |

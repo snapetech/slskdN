@@ -1142,7 +1142,7 @@ describe('PlayerBar', () => {
     );
   });
 
-  it('makes ListenBrainz autosave explicit and clearable', () => {
+  it('makes ListenBrainz autosave explicit and clearable', async () => {
     renderPlayer();
 
     fireEvent.click(screen.getByTestId('player-open-integrations'));
@@ -1156,7 +1156,12 @@ describe('PlayerBar', () => {
     expect(window.sessionStorage.getItem('slskdn.listenbrainz.token')).toBe('token-1');
     expect(screen.getByTestId('player-close-integrations')).toHaveTextContent('Done');
 
-    fireEvent.click(screen.getByTestId('player-clear-listenbrainz-token'));
+    const clearTokenButton = screen.getByTestId('player-clear-listenbrainz-token');
+    fireEvent.mouseEnter(clearTokenButton);
+    expect(await screen.findByText(
+      'Remove the saved ListenBrainz token from this browser session. You can enter a new token at any time.',
+    )).toBeInTheDocument();
+    fireEvent.click(clearTokenButton);
 
     expect(tokenInput).toHaveValue('');
     expect(window.sessionStorage.getItem('slskdn.listenbrainz.token')).toBeNull();

@@ -15148,3 +15148,26 @@ fragment is prepared; range preview, commit and push remain. No tag was created.
 Full control-by-control Tab order and screen-reader output remain unverified.
 Continue the player audit across codec cancellation, hardware, long sessions,
 WAN and reciprocal-transfer admission.
+
+## Player control tooltip audit — 2026-09-29 01:18 UTC
+
+A source audit parsed 104 Button/button declarations across 23 Player source
+files; 103 had Semantic UI Popup content. The ListenBrainz token-clear action
+was the only gap. Added a tooltip explaining that it removes the browser-session
+token and expanded its existing autosave/clear regression to check the tooltip
+appears on hover. The player audit, strict source scan, Web gates, release
+preview and publication remain in progress.
+
+## Player control tooltip fix — 2026-09-29 01:21 UTC
+
+Added a Semantic UI Popup to the ListenBrainz token-clear action. The tooltip
+explains that it removes the browser-session token; the existing autosave/clear
+test now verifies hover content and the clear operation. Repeated the JSX AST
+audit and confirmed 104/104 player Button/button declarations across 23 source
+files have Popup content.
+
+Focused tooltip regression passes 1/1; the full Web suite passes 1,094 tests
+across 170 files. Web lint and production build pass. The full repository lint
+and .NET suite passed on the immediately preceding player-only source batch;
+this follow-up changes only Web source and tests. The new user-facing release
+fragment and changelog bullet are present. Exact preview, commit and push remain.
