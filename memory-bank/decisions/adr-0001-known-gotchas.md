@@ -393,6 +393,20 @@ and duplicate the same mock expectation.
 once with specific arguments. Reserve separate count and argument matchers for
 cases where the total call count and one individual call are distinct facts.
 
+### 0z1247. Type `this` In Wrapped DOM Methods Under Strict TypeScript
+
+**What went wrong:** A resource probe wrapped `HTMLCanvasElement.getContext()`
+inside an init script and used the method receiver to call the native method and
+attach an event listener. The strict standalone TypeScript check rejected the
+unannotated `this` receiver.
+
+**Why:** A normal function's receiver is not inferred from the DOM method whose
+property it replaces; strict TypeScript treats it as implicit `any`.
+
+**Prevention:** Annotate the receiver directly in wrapped function expressions,
+for example `function (this: HTMLCanvasElement, ...)`, and run the standalone
+strict check on browser probes as part of the change.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
