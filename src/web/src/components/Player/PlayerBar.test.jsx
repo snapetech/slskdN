@@ -458,7 +458,7 @@ describe('PlayerBar', () => {
     }
     const selected = screen.getByLabelText('Saved playlist');
     expect(selected.querySelector('option[value="playlist-created"]')).toHaveTextContent('Saved queue');
-    expect(screen.getByRole('status')).toHaveTextContent(failure ? 'Could not retrieve saved playlists.' : 'Saved 1 track to Saved queue.');
+    expect(screen.getByText(failure ? 'Could not retrieve saved playlists. Close and reopen the queue to retry.' : 'Saved 1 track to Saved queue.')).toBeInTheDocument();
     expect(Array.from(selected.options).map((option) => option.value)).toEqual(failure
       ? ['', 'playlist-created']
       : ['', 'older-playlist', 'playlist-created']);
@@ -590,6 +590,34 @@ describe('PlayerBar', () => {
     fireEvent.error(audio);
     fireEvent.click(await screen.findByText('Decode for playback'));
     await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
+  });
+
+  it('announces playback, pause, and media errors without announcing seek updates', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    const announcement = screen.getByTestId('player-playback-announcement');
+    expect(announcement).toHaveAttribute('role', 'status');
+    expect(announcement).toHaveAttribute('aria-live', 'polite');
+    expect(announcement).toHaveAttribute('aria-atomic', 'true');
+    expect(announcement).toHaveTextContent('Loading: Local stream.');
+
+    fireEvent.play(audio);
+    await waitFor(() => expect(announcement).toHaveTextContent('Now playing: Local stream.'));
+    audio.currentTime = 12;
+    fireEvent.timeUpdate(audio);
+    expect(announcement).toHaveTextContent('Now playing: Local stream.');
+
+    fireEvent.pause(audio);
+    await waitFor(() => expect(announcement).toHaveTextContent('Paused: Local stream.'));
+    fireEvent.error(audio);
+    await waitFor(() => expect(announcement).toHaveTextContent(
+      'Playback error: Local stream. This audio could not be decoded or streamed.',
+    ));
+
+    fireEvent.click(screen.getByTestId('player-stop'));
+    await waitFor(() => expect(announcement).toHaveTextContent('Playback stopped.'));
   });
 
   it.each([

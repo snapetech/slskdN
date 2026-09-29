@@ -46,6 +46,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Cancel obsolete stream-ticket and playback-info requests when seeking supersedes decode setup, a different track is selected, or the player unmounts.
 
+### Player playback announcements
+
+- Expose track loading and playback-state changes through a polite status message for assistive technology, without announcing each time update.
+
 ### Player visualizer resources
 
 - Release Butterchurn's WebGL context and audio connection when the visualizer closes, including when initial preset setup fails.

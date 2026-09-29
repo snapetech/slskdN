@@ -2426,6 +2426,8 @@ const PlayerBar = () => {
   const playingRef = useRef(false);
   const [playbackStatus, setPlaybackStatus] = useState('idle');
   const [playbackError, setPlaybackError] = useState('');
+  const [playbackAnnouncement, setPlaybackAnnouncement] = useState('');
+  const previousAnnouncementItemRef = useRef(current);
   const [position, setPosition] = useState(0);
   const renderedPositionRef = useRef(0);
   const [duration, setDuration] = useState(0);
@@ -2537,6 +2539,51 @@ const PlayerBar = () => {
   useEffect(() => {
     crossfadeEnabledRef.current = crossfadeEnabled;
   }, [crossfadeEnabled]);
+
+  useEffect(() => {
+    const previousItem = previousAnnouncementItemRef.current;
+    previousAnnouncementItemRef.current = current;
+    if (!current) {
+      if (previousItem) setPlaybackAnnouncement('Playback stopped.');
+      return undefined;
+    }
+
+    const title = current.title || current.fileName || current.contentId || 'Current track';
+    if (previousItem !== current) {
+      setPlaybackAnnouncement(`Loading: ${title}.`);
+      return undefined;
+    }
+    const messages = {
+      buffering: `Buffering: ${title}.`,
+      ended: `Finished: ${title}.`,
+      error: `Playback error: ${title}. ${playbackError || 'Playback could not continue.'}`,
+      paused: `Paused: ${title}.`,
+      playing: `Now playing: ${title}.`,
+    };
+    const message = messages[playbackStatus];
+    if (!message) return undefined;
+    if (playbackStatus !== 'error' && activeItemRef.current !== current) return undefined;
+
+    if (playbackStatus === 'buffering') {
+      const timer = window.setTimeout(() => setPlaybackAnnouncement(message), 1200);
+      return () => window.clearTimeout(timer);
+    }
+
+    setPlaybackAnnouncement(message);
+    return undefined;
+  }, [current, playbackError, playbackStatus]);
+
+  const playbackAnnouncementRegion = (
+    <div
+      aria-atomic="true"
+      aria-live="polite"
+      className="player-playback-announcement"
+      data-testid="player-playback-announcement"
+      role="status"
+    >
+      {playbackAnnouncement}
+    </div>
+  );
 
   const refreshExternalVisualizerStatus = useCallback(() => {
     setExternalVisualizerLoading(true);
@@ -3483,6 +3530,7 @@ const PlayerBar = () => {
         className="player-bar player-bar-hidden player-bar-modern"
         ref={playerBarRef}
       >
+        {playbackAnnouncementRegion}
         <div className="player-hidden-label">
           <Icon name="music" />
           Player hidden
@@ -3686,6 +3734,7 @@ const PlayerBar = () => {
         className="player-bar player-bar-collapsed player-bar-modern"
         ref={playerBarRef}
       >
+        {playbackAnnouncementRegion}
         {audio}
         <div className="player-track player-track-lcd">
           <Icon name="music" />
@@ -3795,6 +3844,7 @@ const PlayerBar = () => {
       className="player-bar player-bar-modern"
       ref={playerBarRef}
     >
+      {playbackAnnouncementRegion}
       {audio}
       <div className="player-main-deck">
         <div className="player-display">

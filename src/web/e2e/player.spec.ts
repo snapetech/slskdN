@@ -654,6 +654,8 @@ test.describe('player browser playback', () => {
       const state = await audioState();
       return state !== null && !state.paused && state.currentTime > 0.2;
     }).toBe(true);
+    const playbackAnnouncement = page.getByTestId('player-playback-announcement');
+    await expect(playbackAnnouncement).toHaveText(/Now playing: .+/u);
 
     const play = page.getByTestId('player-toggle-playback');
     await expect(play).toHaveAccessibleName('Pause local playback');
@@ -661,6 +663,7 @@ test.describe('player browser playback', () => {
     await page.keyboard.press('Space');
     await expect(play).toHaveAccessibleName('Resume local playback');
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
+    await expect(playbackAnnouncement).toHaveText(/Paused: .+/u);
 
     const seek = page.getByLabel('Seek playback', { exact: true });
     await expect(seek).toBeEnabled();
@@ -677,6 +680,7 @@ test.describe('player browser playback', () => {
       const state = await audioState();
       return state !== null && !state.paused && state.currentTime > 1.2;
     }).toBe(true);
+    await expect(playbackAnnouncement).toHaveText(/Now playing: .+/u);
 
     const collapse = page.getByTestId('player-collapse');
     await collapse.focus();
@@ -687,6 +691,9 @@ test.describe('player browser playback', () => {
     await page.keyboard.press('Space');
     await expect(compactPlay).toHaveAccessibleName('Resume local playback');
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
+    await page.getByTestId('player-expand').click();
+    await page.getByTestId('player-stop').click();
+    await expect(playbackAnnouncement).toHaveText('Playback stopped.');
   });
 
   test('keeps the visible player controls in keyboard Tab order across modes', async ({ page }) => {

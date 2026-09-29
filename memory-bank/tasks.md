@@ -5833,3 +5833,14 @@ resource completion.
 - [ ] Attribute the combined run's renderer-PSS residual and elevated detached
   DOM/event-listener counters; do not claim lifetime resource completion from
   these cycle samples.
+
+
+### Player playback status announcements — 2026-09-29
+
+- [x] Expose selected track, play, pause, sustained buffering, completion,
+  Stop and error changes through one polite atomic status region in all modes.
+- [x] Keep position updates outside the live region and delay buffering
+  announcements so short stalls do not chatter.
+- [x] Cover state changes in PlayerBar tests and the real Chromium keyboard
+  workflow; rebuild the frontend.
+- [ ] Verify actual spoken output with supported screen-reader/browser pairs.

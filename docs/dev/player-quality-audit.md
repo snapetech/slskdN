@@ -132,6 +132,27 @@ in Firefox and WebKit because their current local Playwright runtimes do not
 launch successfully. Confidence is high for Chromium and open for the remaining
 engine/server-failure cases.
 
+### Playback state announcements — 2026-09-29
+
+The player now maintains a polite, atomic status message in expanded, compact
+and hidden layouts. It announces a track when it is selected, then announces
+playback, pause, sustained buffering, completion, errors and Stop. Buffering is
+announced only after 1.2 seconds, so a short network stall that recovers does
+not interrupt the user. Playback position updates do not change the live region.
+Component coverage and the real Chromium keyboard workflow verify its role,
+text and play/pause/Stop changes. The `status` role is a
+polite live region that does not require focus under the
+[W3C ARIA22 technique](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22).
+This browser evidence does not establish spoken output for any screen-reader
+and browser pairing; that remains open. Confidence is high for the DOM status
+contract and unknown for actual assistive-technology speech.
+
+Validation on this change: all 1,103 Web tests, all 29 Chromium player browser
+tests, production Web build, strict browser TypeScript, Web lint, repository
+lint, and the .NET unit/smoke/integration suites (5,346/74/284) passed. This is
+automated DOM and interaction evidence only; screen-reader speech has not been
+listened to or certified.
+
 ### Decoded setup request cancellation — 2026-09-29
 
 Stream-ticket and playback-info requests used by server-decoded playback now

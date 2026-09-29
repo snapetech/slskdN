@@ -15362,3 +15362,21 @@ The first feature commit was rejected because the canonical
 `docs/CHANGELOG.md` Unreleased section had not been updated; the root changelog
 does not satisfy that hook. Gotcha `0z1253` was recorded and committed alone
 immediately. The release bullet is now in the canonical changelog.
+
+## Update 2026-09-29 — Player playback status announcements
+
+Added a polite, atomic live status shared by the hidden, compact and expanded
+player. It announces track selection, play, pause, sustained buffering (after
+1.2 seconds), completion, Stop and playback errors; seek-time updates stay
+outside the region. PlayerBar tests verify the status role/state text and that a
+seek does not rewrite the announcement. The Chromium keyboard workflow verifies
+play, pause, resume and Stop in the built application. W3C ARIA status semantics
+support this approach, but no screen reader was attached; actual speech remains
+unverified.
+
+Validation: full Web tests, 1,103 across 171 files; full PlayerBar Chromium
+browser suite, 29/29; production Web build; strict browser TypeScript; Web lint;
+repository lint; and .NET tests (5,346 unit, 74 smoke, 284 integration) pass.
+The initial focused suite run exposed two existing global `role=status` test
+queries; gotcha `0z1254` was committed immediately, and those assertions now
+match their queue message text. Actual screen-reader speech remains unverified.

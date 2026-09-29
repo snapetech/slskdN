@@ -27,6 +27,18 @@
   z-index: 900;
 }
 
+.player-playback-announcement {
+  border: 0;
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 .player-main-deck {
   align-items: stretch;
   display: grid;

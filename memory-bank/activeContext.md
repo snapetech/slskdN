@@ -16224,3 +16224,16 @@ Fork-target and local-identity checks pass. Next Steps: preview the exact releas
 range from `.329`, commit/push after review, then continue retained renderer-PSS
 attribution, screen-reader and cross-engine/device/WAN/reciprocal-transfer audit
 items. No tag, release or deployment is authorized.
+
+## Player playback status announcements — 2026-09-29
+
+The player now renders one polite, atomic screen-reader status in hidden,
+expanded and compact layouts for track selection, play, pause, sustained
+buffering, finish, Stop and playback error. Buffering waits 1.2 seconds;
+ordinary position updates never change the region. Full Web tests pass 1,103/171,
+PlayerBar Chromium browser tests pass 29/29, strict E2E TypeScript, Web lint,
+repository lint and all .NET tests (5,346 unit, 74 smoke, 284 integration) pass.
+Actual assistive-technology speech has not been measured. Next: finalize exact
+release preview, commit and push this batch, then continue cross-engine speech,
+physical devices, WAN/radio and lifetime-resource attribution. The player goal
+remains active; no tag or deployment is authorized.
