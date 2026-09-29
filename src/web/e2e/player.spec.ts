@@ -228,6 +228,8 @@ test.describe('player browser playback', () => {
     await modal.getByRole('button', { name: 'Play Player decoded runtime.aiff', exact: true }).click();
     const audio = page.locator('audio');
     const decodeButton = page.getByRole('button', { name: 'Decode for playback', exact: true });
+    await expect.poll(async () => (await decodeButton.count()) > 0 || await audio.evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
     const usesTranscode = await decodeButton.count() > 0;
     if (usesTranscode) {
       await decodeButton.click();
