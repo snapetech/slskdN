@@ -127,6 +127,22 @@ unique `aria-labelledby` target. Move focus inside when opened, contain Tab and
 Shift+Tab, and restore the opener when closed. Validate the real portal in a
 browser; a visual screenshot cannot establish dialog semantics or focus.
 
+### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
+
+**What went wrong:** A new focus-cycle browser assertion queried focusable
+elements without a concrete DOM type. The strict standalone TypeScript check
+rejected `tabIndex` access and passing `document.activeElement` to the typed
+focus-candidate list.
+
+**Why:** `querySelectorAll()` defaults to `Element`; runtime selector text does
+not narrow its result to `HTMLElement`, and `document.activeElement` is broader
+than that list's element type.
+
+**Prevention:** Pass `HTMLElement` to `querySelectorAll` when its selector
+contains only HTML controls, and narrow `document.activeElement` with
+`instanceof HTMLElement` before comparing it with that list. Run the strict
+standalone browser-spec TypeScript check after adding DOM evaluation helpers.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
