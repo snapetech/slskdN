@@ -481,6 +481,22 @@ not guarantee that every property is present in the returned JavaScript object.
 telemetry and assert the required value is exactly `false`; do not coerce a
 missing attribute to false with truthiness checks.
 
+### 0z1253. Update The Canonical Changelog Before A Feature Commit
+
+**What went wrong:** The Butterchurn teardown batch added a valid release
+fragment and updated the root `CHANGELOG.md`, but its feature commit was rejected
+because the staged tree did not change `docs/CHANGELOG.md`'s Unreleased section.
+
+**Why:** The local commit hook treats `docs/CHANGELOG.md` as the canonical
+release-facing changelog. The root changelog is not read by that validation.
+This repeats an already documented failure mode, showing that prior entries did
+not prevent the mistake.
+
+**Prevention:** Before staging release-worthy product changes, add the concise
+user-facing bullet under the single `## [Unreleased]` section in
+`docs/CHANGELOG.md`, alongside the validated release fragment. Do not rely on a
+root `CHANGELOG.md` update to satisfy the commit gate.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
