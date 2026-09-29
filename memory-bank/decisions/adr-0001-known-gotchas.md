@@ -303,6 +303,20 @@ belong to the visible title contract.
 the extension itself matters, inspect the selected file or media source rather
 than inferring it from `.player-title`.
 
+### 0z1241. Install Browser API Shims In The Document Under Test
+
+**What went wrong:** The resource-cycle test installed fake audio-output
+enumeration with `page.evaluate()`, reloaded the page, and then waited forever
+for the selector options that the discarded document had exposed.
+
+**Why:** `page.evaluate()` only mutates the current document's JavaScript
+realm. A navigation creates a fresh `navigator.mediaDevices` and audio-context
+prototype, so those test overrides do not survive reload.
+
+**Prevention:** Register browser capability shims with `page.addInitScript()`
+before navigation or reload. Use `page.evaluate()` only when the target
+document is already loaded and no subsequent navigation discards the override.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
