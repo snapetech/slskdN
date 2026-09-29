@@ -33390,3 +33390,18 @@ exercise mesh streaming rather than DHT discovery.
 direct-overlay endpoint. Suppress DHT network participation through a separate
 runtime setting, or use a mesh-specific connection path whose feature gate
 matches the behavior being exercised.
+
+### 0z1274. Open Soulseek User Connections Before Browsing Shares (2026-09-29)
+
+**What went wrong:** The local radio/transfer workflow connected the two test
+nodes over the slskdN mesh, then immediately called the Soulseek user browse
+API. The browse request failed because the remote Soulseek peer was unavailable.
+
+**Why:** A mesh overlay connection and a Soulseek peer connection are separate
+transports. Direct mesh connectivity does not make the other account available
+to Soulseek browse or transfer operations.
+
+**Prevention:** Verify Soulseek server login and establish the explicit
+Soulseek peer relationship required by the browse/transfer API before asking
+for the remote share list. Keep mesh connection assertions separate from
+Soulseek peer readiness.
