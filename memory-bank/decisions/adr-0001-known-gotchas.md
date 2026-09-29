@@ -289,6 +289,20 @@ element, or use `evaluateAll()` when both active and standby elements matter.
 Continue checking the active element's `currentSrc` when a source transition is
 part of the regression.
 
+### 0z1240. Assert Local Player Titles Without Their File Extensions
+
+**What went wrong:** A repeated-player resource test expected the displayed
+title `Resource cycle 1.wav` after loading a local WAV, but the player rendered
+`Resource cycle 1` and the test timed out.
+
+**Why:** The browser-local media model presents the filename stem as the track
+title. The extension remains a property of the selected file and does not
+belong to the visible title contract.
+
+**Prevention:** Assert the extensionless title for locally selected files. When
+the extension itself matters, inspect the selected file or media source rather
+than inferring it from `.player-title`.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
