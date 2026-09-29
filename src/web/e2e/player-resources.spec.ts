@@ -303,9 +303,43 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
   await session.send('Performance.enable');
   const actionMetrics: Array<Record<string, unknown>> = [];
   const actionReportPath = testInfo.outputPath('player-resource-cycle-actions.json');
+  const inspectListenerTargets = async () => {
+    const targets = [
+      ['window', 'window'],
+      ['document', 'document'],
+      ['body', 'document.body'],
+      ['root', 'document.querySelector("#root")'],
+      ['player', 'document.querySelector(".player-bar")'],
+      ['audio-primary', 'document.querySelectorAll("audio")[0]'],
+      ['audio-secondary', 'document.querySelectorAll("audio")[1]'],
+    ] as const;
+    const results: Record<string, Record<string, number> | null> = {};
+    for (const [name, expression] of targets) {
+      const evaluated = await session.send('Runtime.evaluate', { expression });
+      const objectId = evaluated.result.objectId;
+      if (!objectId) {
+        results[name] = null;
+        continue;
+      }
+      try {
+        const { listeners } = await session.send('DOMDebugger.getEventListeners', { objectId });
+        results[name] = listeners.reduce((counts, listener) => {
+          counts[listener.type] = (counts[listener.type] || 0) + 1;
+          return counts;
+        }, {} as Record<string, number>);
+      } finally {
+        await session.send('Runtime.releaseObject', { objectId });
+      }
+    }
+    return results;
+  };
   const captureActionMetrics = async (cycleIndex: number, step: string) => {
     const result = await session.send('Performance.getMetrics');
     const metrics = Object.fromEntries(result.metrics.map(({ name, value }) => [name, value]));
+    const listenerTargets = step === 'track-restored' &&
+      [0, 1, 5, 10, cycleCount].includes(cycleIndex)
+      ? await inspectListenerTargets()
+      : undefined;
     actionMetrics.push({
       cycle: cycleIndex,
       step,
@@ -314,17 +348,47 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
       documents: metrics.Documents ?? null,
       eventListeners: metrics.JSEventListeners ?? null,
       jsHeapMiB: typeof metrics.JSHeapUsedSize === 'number' ? metrics.JSHeapUsedSize / 1024 / 1024 : null,
+      listenerTargets,
     });
     await fs.writeFile(actionReportPath, JSON.stringify(actionMetrics, null, 2));
   };
 
   const cycle = async (cycleIndex: number) => {
-    const currentTitle = await page.locator('.player-title').textContent();
+    const currentTitle = profile === 'queue' ? null : await page.locator('.player-title').textContent();
     if (profile === 'full' || profile === 'queue') {
-      await page.getByTestId('player-open-queue').click();
-      await expect(page.locator('.player-queue-modal')).toBeVisible();
-      await page.keyboard.press('Escape');
-      await expect(page.locator('.player-queue-modal')).toHaveCount(0);
+      if (profile === 'queue' && process.env.SLSKDN_PLAYER_RESOURCE_DIRECT_QUEUE === '1') {
+        await page.evaluate(async () => {
+          const waitForQueue = (open: boolean) => new Promise<void>((resolve) => {
+            const isOpen = () => Boolean(document.querySelector('.player-queue-modal'));
+            if (isOpen() === open) {
+              resolve();
+              return;
+            }
+            const observer = new MutationObserver(() => {
+              if (isOpen() === open) {
+                observer.disconnect();
+                resolve();
+              }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+          });
+          const opened = waitForQueue(true);
+          document.querySelector<HTMLButtonElement>('[data-testid="player-open-queue"]')!.click();
+          await opened;
+          const closed = waitForQueue(false);
+          document.dispatchEvent(new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Escape',
+          }));
+          await closed;
+        });
+      } else {
+        await page.getByTestId('player-open-queue').click();
+        await expect(page.locator('.player-queue-modal')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.locator('.player-queue-modal')).toHaveCount(0);
+      }
       await captureActionMetrics(cycleIndex, 'queue-closed');
     }
 
@@ -398,6 +462,56 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
   expect(root).toBeDefined();
   const samples: Array<Record<string, unknown>> = [];
   const reportPath = testInfo.outputPath('player-resource-cycles.json');
+  const inspectDetachedElements = async () => {
+    const tags = ['a', 'audio', 'button', 'canvas', 'div', 'img', 'input', 'li', 'p', 'path', 'span', 'svg'];
+    const results: Record<string, {
+      total: number;
+      detached: number;
+      queueModalDetached?: number;
+      examples: Record<string, number>;
+    } | null> = {};
+    for (const tag of tags) {
+      const prototype = await session.send('Runtime.evaluate', {
+        expression: `Object.getPrototypeOf(document.createElement(${JSON.stringify(tag)}))`,
+      });
+      const prototypeObjectId = prototype.result.objectId;
+      if (!prototypeObjectId) {
+        results[tag] = null;
+        continue;
+      }
+      let objectsObjectId: string | undefined;
+      try {
+        const queried = await session.send('Runtime.queryObjects', { prototypeObjectId });
+        objectsObjectId = queried.objects.objectId;
+        const inspected = await session.send('Runtime.callFunctionOn', {
+          objectId: objectsObjectId,
+          functionDeclaration: `function () {
+            const examples = {};
+            let detached = 0;
+            let queueModalDetached = 0;
+            for (let index = 0; index < this.length; index += 1) {
+              const element = this[index];
+              if (!element || element.isConnected) continue;
+              detached += 1;
+              const classes = typeof element.className === 'string'
+                ? element.className.split(/\\s+/u).filter(Boolean).slice(0, 3).join('.')
+                : '';
+              const label = element.tagName.toLowerCase() + (classes ? '.' + classes : '');
+              examples[label] = (examples[label] || 0) + 1;
+              if (element.classList.contains('player-queue-modal')) queueModalDetached += 1;
+            }
+            return { total: this.length, detached, queueModalDetached, examples };
+          }`,
+          returnByValue: true,
+        });
+        results[tag] = inspected.result.value;
+      } finally {
+        if (objectsObjectId) await session.send('Runtime.releaseObject', { objectId: objectsObjectId });
+        await session.send('Runtime.releaseObject', { objectId: prototypeObjectId });
+      }
+    }
+    return results;
+  };
   const capture = async (phase: string) => {
     const [metricResult, processTree, processInfo, telemetry] = await Promise.all([
       session.send('Performance.getMetrics'),
@@ -444,6 +558,7 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
       }),
     ]);
     const metrics = Object.fromEntries(metricResult.metrics.map(({ name, value }) => [name, value]));
+    const detachedDom = phase === 'forced-gc' ? await inspectDetachedElements() : undefined;
     const measured = processTree?.processes.filter((entry) => entry.pssMiB !== null) || [];
     const processTypeByPid = new Map(processInfo.processInfo.map((entry) => [Number(entry.id), entry.type]));
     const pssByType = new Map<string, { processCount: number; pssMiB: number }>();
@@ -477,7 +592,7 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
         documents: metrics.Documents ?? null,
         eventListeners: metrics.JSEventListeners ?? null,
       },
-      telemetry,
+      telemetry: { ...telemetry, detachedDom },
     });
     await fs.writeFile(reportPath, JSON.stringify(samples, null, 2));
     console.log(`Player resource cycle sample: ${phase}`);
@@ -512,6 +627,26 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
     });
     expect(analyzerReadsAfterSettle).toEqual(analyzerReadsAtStop);
     await capture('natural-settle');
+    if (process.env.SLSKDN_PLAYER_RESOURCE_CYCLE_FORCE_GC === '1') {
+      await session.send('HeapProfiler.enable');
+      try {
+        await session.send('HeapProfiler.collectGarbage');
+        await page.waitForTimeout(1000);
+        await capture('forced-gc');
+        if (profile === 'full' || profile === 'queue') {
+          const forcedGc = samples.find((sample) => sample.phase === 'forced-gc')!;
+          const detachedDom = (forcedGc.telemetry as {
+            detachedDom?: Record<string, {
+              queueModalDetached?: number;
+            } | null>;
+          }).detachedDom;
+          expect(detachedDom?.div?.queueModalDetached ?? 0,
+            'Closed queue modals should not remain reachable after collection.').toBe(0);
+        }
+      } finally {
+        await session.send('HeapProfiler.disable');
+      }
+    }
 
     expect(samples.every((sample) => {
       const value = sample.telemetry as { pictureInPictureOpen: boolean };

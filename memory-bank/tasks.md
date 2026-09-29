@@ -5830,9 +5830,14 @@ resource completion.
 - [x] Add an opt-in 50-cycle full player resource soak and 20-cycle visualizer
   profile with natural-GC endpoint telemetry.
 - [x] Rebuild and pass the 50-cycle combined run and 20-cycle visualizer run.
-- [ ] Attribute the combined run's renderer-PSS residual and elevated detached
-  DOM/event-listener counters; do not claim lifetime resource completion from
-  these cycle samples.
+- [x] Trace retained queue modal trees to stale ref targets in the shared
+  Semantic UI EventStack and patch subscription teardown to reuse the original
+  resolved target.
+- [x] Add a forced-GC detached-modal regression; pass five direct queue cycles
+  and 20 full queue/analyzer/output/PiP/navigation/visualizer cycles with zero
+  detached divs after collection.
+- [ ] Attribute the remaining renderer-PSS residual and establish a
+  multi-hour resource plateau; cycle samples do not prove lifetime use.
 
 
 ### Player playback status announcements — 2026-09-29

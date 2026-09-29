@@ -54,6 +54,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Release Butterchurn's WebGL context and audio connection when the visualizer closes, including when initial preset setup fails.
 
+### Player dialog resources
+
+- Release event targets when player dialogs close so repeated opens do not retain detached dialog trees.
+
 ## [2026092900-slskdn.329] — 2026-09-29
 
 ### Radio fairness accounting

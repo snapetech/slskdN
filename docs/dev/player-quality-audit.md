@@ -1511,3 +1511,25 @@ states, low for lifetime memory behavior.
 The rebuilt Release assets also pass the complete 29-case Chromium PlayerBar
 browser suite. This validates the user workflows alongside the resource soak;
 Firefox/WebKit visualizer context-loss behavior was not measured in this batch.
+
+## Retained queue modal cleanup — 2026-09-29
+
+The detached modal follow-up localized the combined-cycle DOM retention to
+`@semantic-ui-react/event-stack@3.1.3`. Declarative subscriptions accepted a
+React ref and resolved it at mount; teardown resolved the same ref again after
+React had cleared `current`, so the global event stack removed nothing from the
+original DOM target. A pnpm package patch now snapshots that resolved target
+for update and unmount cleanup. The resource regression checks detached DOM
+after forced collection, because connected-node counts alone missed the bug.
+
+The regression failed before the fix after one warmup and five queue
+open/Escape cycles, finding detached queue modal subtrees. It passes after the
+fix both with direct DOM input and through a 20-cycle full interaction soak.
+After forced GC the full run found zero detached `div` nodes; JS heap was 12.5
+MiB versus 37.3 MiB warmup, and process-tree PSS was 547.7 MiB versus 520.3 MiB.
+The ten-second natural-settle values were 45.1 MiB heap and 681.6 MiB PSS.
+Window/document/body/app-root/player/audio listener counts stayed constant at
+the sampled checkpoints. This closes the detached portal-tree issue with high
+confidence for the tested Chromium workload. The remaining renderer-PSS
+residual and multi-hour resource plateau are open; forced-GC endpoints do not
+represent natural long-session memory use.

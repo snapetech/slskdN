@@ -154,7 +154,22 @@ counts, heap and process PSS are recorded as trends without fixed thresholds:
 detached objects can remain visible until natural collection, and browser
 process churn changes those values. The default run is a cycle soak, not
 evidence of a lifetime memory plateau; retain the separate ten-minute per-state
-native baseline for longer-session trends. Do not force GC.
+native baseline for longer-session trends. The default run leaves garbage
+collection natural. A separate opt-in queue/full check can force collection to
+assert that closed queue dialogs are no longer reachable:
+
+```bash
+SLSKDN_PLAYER_RESOURCE_CYCLES=1 \
+SLSKDN_PLAYER_RESOURCE_CYCLE_COUNT=20 \
+SLSKDN_PLAYER_RESOURCE_CYCLE_SETTLE_SECONDS=10 \
+SLSKDN_PLAYER_RESOURCE_CYCLE_PROFILE=full \
+SLSKDN_PLAYER_RESOURCE_CYCLE_FORCE_GC=1 \
+pnpm --filter @slskdn/web exec playwright test e2e/player-resources.spec.ts \
+  --grep '@player-resource-cycles' --workers=1 --retries=0 --trace=off
+```
+
+That forced-GC sample is diagnostic reachability evidence; it is not a natural
+memory endpoint or a lifetime resource budget.
 
 ### Repeated-cycle observations — 2026-09-29
 
@@ -183,3 +198,24 @@ The event-listener counter also remained elevated. These counters do not identif
 their owners; renderer PSS also remained elevated after the longer settle. Keep
 this as an open retained-resource investigation and do not claim a lifetime
 plateau. Raw reports remain in ignored `.local/player-resource-evidence/` files.
+
+### Retained queue modal follow-up — 2026-09-29
+
+The earlier 20-cycle forced-GC inspection found 21 detached queue modal roots
+and 960 detached `div` elements after all queue dialogs had closed. The owner
+was `@semantic-ui-react/event-stack@3.1.3`: its declarative component resolved a
+React ref when subscribing, then resolved that ref again during unmount after
+React had cleared it. Cleanup therefore targeted `document` and left the
+original DOM target registered in the shared event stack.
+
+The package patch now stores the resolved target for each subscription and
+reuses it during update/unmount cleanup. A new forced-GC regression fails when
+any detached queue modal remains. It passes after five direct DOM open/Escape
+cycles and after 20 full player cycles covering queue, analyzer, output, PiP,
+track navigation and visualizer. In the full run, all detached `div` elements
+were collected: 0 remained after forced GC, against 2,028 DOM nodes and a 37.3
+MiB JS heap at warmup. After the ten-second natural settle, JS heap was 45.1 MiB
+and process-tree PSS 681.6 MiB; forced GC reduced them to 12.5 MiB and 547.7
+MiB. Connected listener targets remained stable across checkpoints. The PSS
+residual remains unattributed, and these cycles do not establish a lifetime
+memory plateau. Raw artifacts remain local under ignored test output paths.
