@@ -33466,3 +33466,20 @@ does not reopen the picker.
 **Prevention:** Reopen the listed-radio directory after stopping playback
 before locating another entry. Assert the entry is visible before clicking it,
 and give the second wait a local timeout so a UI-state mismatch fails quickly.
+
+### 0z1279. Do Not Assume A One-Way Radio Listener Can Rejoin (2026-09-29)
+
+**What went wrong:** The loopback radio stress case admitted a remote stream,
+then stopped it and expected a second ticket while the same node had downloaded
+overlay bytes but uploaded none. The fairness guard correctly rejected the new
+ticket with `radio_fairness_limited`.
+
+**Why:** Remote ticket creation checks cumulative overlay upload/download
+fairness. A one-way receiver falls below the configured minimum after its
+first stream has transferred data; Soulseek uploads do not rebalance the
+overlay ratio.
+
+**Prevention:** Keep a single admitted radio stream active for one-way
+receiver/transfer overlap coverage. Test a second admission only with a
+balanced overlay workload, and assert the fairness rejection separately when
+the receiver has no overlay uploads.
