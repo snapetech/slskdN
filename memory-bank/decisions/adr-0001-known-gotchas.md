@@ -33547,3 +33547,17 @@ does not override Chromium's mute flag.
 filtering `--mute-audio` from Playwright's default arguments. Keep that launch
 override behind a dedicated environment flag and skip the output test outside
 its virtual-sink runner.
+
+### 0z1284. Exit After Cleaning Up A Signal-Interrupted Test Container (2026-09-29)
+
+**What went wrong:** The Soulseek/radio shell runner installed one cleanup
+function for `EXIT`, `INT` and `TERM`. A caught signal could run cleanup and
+then return to the script, allowing later test commands to continue after the
+temporary container had been removed.
+
+**Why:** A cleanup trap does not by itself guarantee that a shell exits after
+handling an interrupt or termination signal.
+
+**Prevention:** Keep cleanup on `EXIT`, and make `INT` and `TERM` traps exit
+with their conventional signal statuses so the exit trap performs cleanup
+while the interrupted workflow remains stopped.
