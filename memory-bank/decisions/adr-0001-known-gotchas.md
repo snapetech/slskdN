@@ -195,6 +195,19 @@ the main player's native form controls were not included.
 the player bar and browser-test the computed focus indicator on volume, speed,
 and seek in supported engines.
 
+### 0z1234. Keep Player Volume Accessibility In Both Layouts
+
+**What went wrong:** The main volume control is rendered by separate compact
+and expanded JSX branches. Both expose a raw 0-to-1 range to assistive
+technology without the percentage label users expect from a volume control.
+
+**Why:** The duplicated inputs look and behave alike but do not share markup,
+so accessibility attributes can be missed in both or drift between layouts.
+
+**Prevention:** Update the compact and expanded volume inputs together and
+assert their accessible values independently. Present the normalized value as
+a rounded percentage while retaining the numeric range for adjustment.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
