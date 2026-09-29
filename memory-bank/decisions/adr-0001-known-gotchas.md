@@ -257,6 +257,22 @@ track replacement or unmount. Keep the request-generation check because mocks,
 adapters, and already-settled responses may still complete after cancellation.
 Make the short seek-coalescing delay cancelable too.
 
+### 0z1238. Settle Output Discovery Before Player Tab-Order Tests
+
+**What went wrong:** A browser test captured the expanded player's visible Tab
+stops immediately after opening its tools. Device enumeration later rendered
+the audio-output selector before the remaining output controls, so the browser's
+actual Tab sequence diverged from the stale snapshot.
+
+**Why:** The optional output selector is conditional on asynchronous
+`enumerateDevices()` results. Expanding the player can therefore change its
+focusable DOM after the controls first appear.
+
+**Prevention:** Settle output-device enumeration before taking a focus-order
+snapshot. Use a deterministic fake output when the browser supports routing;
+preserve the no-output-control path when the API is unavailable. Then walk the
+actual browser Tab sequence and compare it with the settled visible controls.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
