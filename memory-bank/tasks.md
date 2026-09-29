@@ -83,14 +83,15 @@
     duplicate local files, output switching, Media Session controls, room follow
     and reconnect, listed radio tune-in, Picture-in-Picture, analyzer idle work,
     and collapsed/expanded layout. Source review, lint, and production builds
-    are complete. Chromium now verifies generated local PCM playback, Pause,
-    seeking, queue advance, real two-element crossfade interruption, indexed
-    server streams, unindexed downloads, paused queue restoration after reload,
-    and compact/expanded bounds at 1440/768/390/320 pixels. Generated server
-    AIFF now exercises actual FFmpeg decode and absolute paused/playing seeking.
-    Ordinary native playback creates zero Web Audio contexts in this run. Physical mobile,
-    output switching, Media Session actions, room reconnect,
-    radio, Picture-in-Picture and idle CPU/memory measurements remain pending.
+    are complete. Chromium, host Firefox and WebKit now pass the isolated
+    22-case browser media suite (WebKit skips unsupported Media Session transport
+    handlers and Document PiP). Generated local PCM, server AIFF seeking while
+    paused/playing, and FLAC/MP3/Ogg playback through native or on-demand decode
+    paths are verified. Crossfade, analyzer pause/resume, keyboard transport and
+    seeking, queue/files and responsive viewports pass in all three. Physical
+    mobile/output routing, headset controls, WAN/listen-along, resource duration,
+    full tab order/assistive tech and format-specific decode failure/cancellation
+    coverage remain open.
 
 - [x] Normalize saved equalizer gains and guard lyrics lookups against stale results.
   - Status: implemented (2026-09-27).
@@ -5689,3 +5690,20 @@ resource completion.
 - [x] Isolated six-window resource run and 129 frozen source/build hashes.
 - [x] Exact-range release preview, privacy/fork checks, commit and push; see
   published activeContext/progress entry.
+
+
+### Player cross-engine codec validation — 2026-09-28
+
+- [x] Generate server WAV, AIFF, FLAC, MP3 and Ogg Vorbis fixtures and verify
+  playback progress via browser-native or actual on-demand server decoding.
+- [x] Stabilize crossfade boundary setup with deterministic absolute seeks and
+  wait for asynchronous native-playback/decode fallback selection.
+- [x] Add keyboard playback/paused-seek/compact transport coverage and run all
+  22 player media cases in Chromium and host Firefox; run WebKit with 20 passes
+  and capability-based skips for unsupported Media Session
+  actions and Document PiP.
+- [x] Pass strict browser-spec TypeScript, 1,094 Web tests/170 files, Web lint,
+  full `dotnet test`, repository lint, local-identity and GitHub-target checks.
+- [ ] Continue codec cancellation/retry, full keyboard focus order and
+  assistive-tech checks, physical device, sustained resource, WAN and
+  distributed-state validation before closing the broader player audit.

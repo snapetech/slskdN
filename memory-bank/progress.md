@@ -15103,3 +15103,26 @@ single new player fragment. The source follows immutable `.328`; no new tag was
 created. Remaining work is real Soulseek reciprocal-transfer admission, WAN and
 sustained throughput, source replacement, and the wider browser/device/a11y
 audit.
+
+## Player codec, cross-engine and keyboard validation — 2026-09-28 18:37 CST
+
+Extended the real-media browser suite with generated FLAC, MP3 and Ogg Vorbis
+files, deterministic crossfade seeking, asynchronous decode-fallback waits, and
+keyboard Space/Enter transport plus paused ArrowRight seeking in expanded and
+compact modes. The complete 22-case suite passes in Chromium and host Firefox;
+the WebKit container passes 20 and capability-skips Media Session transport
+actions and Document PiP. AIFF paused/playing seeking and native/on-demand codec
+playback make real timeline progress.
+
+The current E2E spec passes strict standalone TypeScript. Web lint and 1,094 Web
+tests across 170 files pass; full `dotnet test` and `./bin/lint` exit zero. The
+production frontend build passed before these test-only edits. Runtime changes
+are absent. Two strict TypeScript failures were documented immediately as
+gotchas 0z1224 and 0z1225; the media-locator advice was corrected after checking
+the installed Playwright API.
+
+The stable `.329` build tag was already present on `origin` at the compressed-
+media test commit when this work resumed. No tag was created or changed here.
+Next: complete full tab-order/dialog and assistive-technology checks, then
+continue codec cancellation, physical-device, sustained-resource, WAN and
+distributed-state validation. The player objective remains open.

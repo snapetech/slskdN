@@ -152,6 +152,25 @@ focus/contrast. The overall player objective remains active.
 
 ## Update 2026-09-28 18:19 UTC
 
+## Update 2026-09-28 18:37 CST
+
+The player media browser suite now has 22 workflows: all pass in Chromium and
+host Firefox; WebKit passes 20 and skips its unsupported Media Session transport
+actions and Document PiP. Generated WAV/AIFF/FLAC/MP3/Ogg playback, absolute
+decoded seeks and keyboard transport/paused seek in expanded and compact modes
+are covered. Full Tab order and assistive technology are not established.
+
+Strict E2E TypeScript, Web lint and 1,094 Web tests/170 files pass. Full
+`dotnet test` and `./bin/lint` pass. Gotchas 0z1224/0z1225 document and prevent
+the two strict-typing mistakes fixed during this work. The tagged `.329` codec
+test commit was already on origin before this turn; no tag was created here.
+
+Current changes are test/audit/memory only. Before push, rerun whitespace and
+identity gates and verify the `snapetech/slskdN` target. After publication,
+continue full keyboard-focus/dialog and screen-reader checks, decoder
+cancellation, physical hardware, long-session resource, WAN and distributed
+state work. Keep the player goal open.
+
 ## Update 2026-09-28 21:19 UTC — Player fairness accounting
 
 Production Soulseek uploads now contribute only payload bytes confirmed written by the transfer reporter, batched once per upload attempt and retained on partial failure. Accounting persistence failure does not change the upload result. The focused upload lifecycle suite passes; full validation, release-fragment preview, commit and push remain for this batch. No release tag or deployment was created.

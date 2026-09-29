@@ -32,24 +32,27 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 ## Current evidence
 
-The isolated Chromium suite in `src/web/e2e/player.spec.ts` uses generated PCM,
-server-side AIFF decoding and a backend configured without remote peer connections.
-It passes 16 workflows, including controlled HTTP radio failure/retry and a synthetic directory response. Browser metadata/action checks call the registered Media
-Session handlers while retaining the browser implementation; they do not exercise
-physical headset buttons. Output-switch regressions use simulated device APIs.
+The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
+AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
+peer connections. Its 22 workflows pass in Chromium and host Firefox; WebKit
+passes 20 and feature-skips two unsupported APIs. The suite covers actual native
+or server-decoded playback for each compressed format, plus controlled HTTP radio
+failure/retry and a synthetic directory response. Media Session callbacks are
+invoked in Chromium and Firefox, but this does not exercise physical headset
+buttons. Output-switch regressions use simulated device APIs.
 
 | Area | Evidence | Status / confidence |
 | --- | --- | --- |
-| Native transport | Actual PCM playback, Pause, absolute seeks, remount and queue advancement | Verified in Chromium / high |
-| Server files | Indexed and unindexed downloads, direct switching and Play Next | Verified in Chromium / high |
-| Decoding | Actual AIFF to MP3, absolute seeks while paused/playing | Verified in Chromium / high; other formats need runtime coverage |
-| Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium / high |
-| Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium / high |
-| Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified / high; physical controls unverified |
-| Analyzer | Reads stop on Pause/Stop, resume on Play; existing contexts suspend | Verified in Chromium / high |
-| Crossfade | Both streams play; Pause suspends both; Resume plays one; natural completion suspends outgoing context | Verified in Chromium / high |
-| Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in headless Chromium / high; physical window sizing and focus unverified |
-| Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium viewport checks / high; physical mobile unverified |
+| Native transport | Actual PCM playback, Pause, absolute seeks, remount and queue advancement | Verified in Chromium, host Firefox and WebKit / high |
+| Server files | Indexed and unindexed downloads, direct switching and Play Next | Verified in Chromium, host Firefox and WebKit / high |
+| Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
+| Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
+| Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
+| Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
+| Analyzer | Reads stop on Pause/Stop, resume on Play; existing contexts suspend | Verified in Chromium, host Firefox and WebKit / high |
+| Crossfade | Both streams play; Pause suspends both; Resume plays one; natural completion suspends outgoing context | Verified in Chromium, host Firefox and WebKit / high |
+| Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in Chromium and host Firefox / high; WebKit does not support Document PiP; physical window sizing and focus unverified |
+| Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium, host Firefox and WebKit viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
 | Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; WAN and sustained throughput remain open |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks, live-event precedence and authenticated cross-node updates | Actual Chromium PlayerBar catches the latest state after automatic transport recovery; two authenticated SignalR clients verify leave/rejoin/snapshot/live-ban behavior, and the two-backend browser workflow verifies initial snapshot, playback, Pause/Seek/Stop updates and banned-member denial over loopback / high; WAN behavior remains unverified |
@@ -128,16 +131,46 @@ are happening; that reciprocal-transfer workflow remains open.
 ## Remaining completion work
 
 - Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The constrained Chromium case covers only the browser-to-listener HTTP leg over loopback; it does not model a WAN mesh link. Updating a listed snapshot under a stable party ID is covered, while replacement or withdrawal during an already-playing listener session remains open. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
-- Exercise supported browser engines and additional audio formats, including
-  failures, decode cancellation and recovery.
+- Complete format-specific server-decode failure, cancellation and retry
+  coverage; current codec cases verify playback paths but not every teardown edge.
 - Verify physical mobile interactions, physical output routing/media buttons,
   and Picture-in-Picture window sizing/focus.
 - Measure sustained queue, visualizer, output-switch and floating-window cycles
   for retained memory, stray timers and active contexts. The repeated two-window
   idle/play/pause baseline is complete; it does not establish a long-session
   memory plateau.
-- Inspect accessibility with keyboard-only and assistive-technology workflows.
+- Audit full keyboard focus order, dialog entry/exit and assistive-technology
+  workflows. Core playback, paused seeking and compact-mode keyboard activation
+  now pass in all three automated browser engines.
 - Resolve newly discovered defects and update this audit with direct evidence.
+
+## Cross-engine media suite — 2026-09-28
+
+The complete 22-case `src/web/e2e/player.spec.ts` suite passes in Chromium and
+host Firefox. In the Playwright WebKit container, 20 cases pass and two are
+skipped after capability checks: WebKit does not expose Media Session transport
+action handlers or Document Picture-in-Picture. Those skips do not mask failed
+assertions. Firefox ran on the host because the stripped Playwright Firefox
+image fails the generated-WAV and AudioContext controls; the host runtime passes
+those controls and the full suite.
+
+Each run uses generated media and a local test backend without remote peer
+connections. Coverage includes native WAV, AIFF with absolute seeks while paused
+and playing, and FLAC, MP3 and Ogg Vorbis with a real playback-progress
+assertion on the browser-native or server-transcoded route. Crossfade, analyzer
+pause/resume, queue/file playback and responsive viewport checks pass in all
+three engines. A keyboard workflow uses Space/Enter for transport, ArrowRight
+for seeking while paused, and Space to pause in compact mode. It verifies
+accessible playback names and paused/playing state, but does not establish the
+entire Tab order or screen-reader output. This is browser-engine coverage, not
+physical device validation:
+headset/media buttons, hardware output routing, mobile gestures, real PiP window
+geometry/focus and sustained resource use remain unverified.
+
+The exact 22-case suite also passes strict standalone TypeScript checking.
+Web lint, all 1,094 Web unit tests across 170 files, the full `dotnet test` run,
+and repository lint pass. The production frontend build passed before the final
+test-only edits; no production source changed in this validation batch.
 
 
 ## Mesh transport prerequisites — 2026-09-28

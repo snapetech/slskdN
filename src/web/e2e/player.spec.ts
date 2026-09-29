@@ -9,7 +9,7 @@ import * as path from 'node:path';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
 import { makeTone } from './fixtures/player-tone';
 import { getAuthToken, login } from './helpers';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 // Generated PCM exercises the browser decoder without downloaded media,
 // personal files, or remote peer requests.
@@ -19,9 +19,9 @@ const compressedFormats = [
   { extension: 'ogg', label: 'Ogg Vorbis', encoder: ['-c:a', 'libvorbis', '-q:a', '5'] },
 ];
 
-const seekPlayerTo = async (page, targetSeconds: number) => {
+const seekPlayerTo = async (page: Page, targetSeconds: number) => {
   const seek = page.getByLabel('Seek playback', { exact: true });
-  await seek.evaluate((input, target) => {
+  await seek.evaluate((input: HTMLInputElement, target: number) => {
     const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
     if (!setValue) throw new Error('The seek control does not expose its native value setter.');
     setValue.call(input, String(target));
@@ -531,6 +531,51 @@ test.describe('player browser playback', () => {
     await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.every((context) => context.state === 'suspended'))).toBe(true);
     await page.getByTestId('player-toggle-playback').click();
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).filter((element) => !element.paused).length)).toBe(1);
+  });
+
+  test('controls playback and seeking with the keyboard in expanded and compact modes', async ({ page }) => {
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    const audioState = () => page.evaluate(() => {
+      const element = document.querySelector<HTMLAudioElement>('audio');
+      return element ? { currentTime: element.currentTime, paused: element.paused } : null;
+    });
+    await expect.poll(async () => {
+      const state = await audioState();
+      return state !== null && !state.paused && state.currentTime > 0.2;
+    }).toBe(true);
+
+    const play = page.getByTestId('player-toggle-playback');
+    await expect(play).toHaveAccessibleName('Pause local playback');
+    await play.focus();
+    await page.keyboard.press('Space');
+    await expect(play).toHaveAccessibleName('Resume local playback');
+    await expect.poll(async () => (await audioState())?.paused).toBe(true);
+
+    const seek = page.getByLabel('Seek playback', { exact: true });
+    await expect(seek).toBeEnabled();
+    await seek.focus();
+    await page.keyboard.press('Home');
+    await page.keyboard.press('ArrowRight');
+    await expect(seek).toHaveValue('1');
+    await expect.poll(async () => (await audioState())?.currentTime).toBe(1);
+    await expect.poll(async () => (await audioState())?.paused).toBe(true);
+
+    await play.focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(async () => {
+      const state = await audioState();
+      return state !== null && !state.paused && state.currentTime > 1.2;
+    }).toBe(true);
+
+    const collapse = page.getByTestId('player-collapse');
+    await collapse.focus();
+    await page.keyboard.press('Enter');
+    const compactPlay = page.getByTestId('player-collapsed-toggle-playback');
+    await expect(compactPlay).toBeVisible();
+    await compactPlay.focus();
+    await page.keyboard.press('Space');
+    await expect(compactPlay).toHaveAccessibleName('Resume local playback');
+    await expect.poll(async () => (await audioState())?.paused).toBe(true);
   });
 
   test('keeps compact and expanded controls within desktop and narrow viewports', async ({ page }, testInfo) => {
