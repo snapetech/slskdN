@@ -497,6 +497,20 @@ user-facing bullet under the single `## [Unreleased]` section in
 `docs/CHANGELOG.md`, alongside the validated release fragment. Do not rely on a
 root `CHANGELOG.md` update to satisfy the commit gate.
 
+### 0z1254. Scope Status Queries After Adding A Player Live Region
+
+**What went wrong:** Adding a playback `role="status"` live region caused two
+existing player tests to fail because they used `getByRole('status')` to find a
+queue message and now matched both the queue message and player status.
+
+**Why:** A global accessible role query assumes there is only one status in the
+rendered application. Player announcements coexist with other independent
+status messages, as they should.
+
+**Prevention:** Scope a status query to the owning dialog or component, or query
+its stable message text. Do not rely on the application containing a single
+live status region.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
