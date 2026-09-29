@@ -424,6 +424,21 @@ path that builds the web bundle, copies it to `src/slskd/wwwroot`, and builds th
 Release backend. Verify the served bundle contains the changed code before
 interpreting browser evidence.
 
+### 0z1249. Dispose Visualizer Resources After Preset Initialization Fails
+
+**What went wrong:** The Butterchurn adapter guarded renderer creation and
+audio connection, but loaded the initial preset after leaving that cleanup
+boundary. A rejected initial preset could therefore leave the audio edge and
+WebGL context alive even though engine creation failed.
+
+**Why:** Resource acquisition spans both library construction and first-use
+initialization; treating the first renderable preset as post-construction work
+leaves a partially created engine on the failure path.
+
+**Prevention:** Keep initial preset loading inside the resource-owning setup
+boundary. On any setup failure, disconnect an established audio edge and release
+the acquired WebGL context. Cover failure at each stage with a focused test.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
