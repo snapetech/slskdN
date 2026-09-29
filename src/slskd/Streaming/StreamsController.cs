@@ -173,11 +173,26 @@ public class StreamsController : ControllerBase
                 if (!process.HasExited) process.Kill(entireProcessTree: true);
             });
             var stderr = process.StandardError.BaseStream.CopyToAsync(Stream.Null, ct);
+            var stdout = process.StandardOutput.BaseStream;
+            var firstChunk = new byte[16 * 1024];
+            var firstChunkLength = await stdout.ReadAsync(firstChunk.AsMemory(), ct);
+            if (firstChunkLength == 0)
+            {
+                await process.WaitForExitAsync(ct);
+                await stderr;
+                var failureReason = process.ExitCode == 0
+                    ? "FFmpeg produced no audio output."
+                    : "FFmpeg could not decode this audio.";
+                return StatusCode(503, failureReason);
+            }
+
             Response.ContentType = "audio/mpeg";
             Response.Headers.CacheControl = "no-store";
-            await process.StandardOutput.BaseStream.CopyToAsync(Response.Body, ct);
+            await Response.Body.WriteAsync(firstChunk.AsMemory(0, firstChunkLength), ct);
+            await stdout.CopyToAsync(Response.Body, ct);
             await process.WaitForExitAsync(ct);
             await stderr;
+            if (process.ExitCode != 0) HttpContext.Abort();
             return new EmptyResult();
         }
         finally

@@ -34,7 +34,7 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. Its 29 workflows pass in Chromium. The previous 26-workflow
+peer connections. Its 31 workflows pass in Chromium. The previous 26-workflow
 cross-engine run passed in host Firefox and passed 24 with two capability skips
 in WebKit; it predates the three new codec-retry cases. The new cases have not
 run in Firefox or WebKit here: Playwright Firefox timed out during navigation,
@@ -52,7 +52,7 @@ regressions use simulated device APIs.
 | Native transport | Actual PCM playback, Pause, absolute seeks, remount and queue advancement | Verified in Chromium, host Firefox and WebKit / high |
 | Server files | Indexed and unindexed downloads, direct switching and Play Next | Verified in Chromium, host Firefox and WebKit / high |
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
-| Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error | Setup cancellation: component/API tests / high; codec retry: real FFmpeg playback after a controlled 503, Chromium only / high; cross-engine and server-generated decoder failures remain open |
+| Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before first output | Setup cancellation: component/API tests / high; codec retry and real server-generated decode failures: Chromium only / high; cross-engine execution and nonzero exit after partial output remain open |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
 | Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; screen-reader output remains open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 104 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
@@ -139,8 +139,12 @@ uses a test node configured with a missing FFmpeg executable. The real
 `StreamsController` returns HTTP 503. The player surfaces a server-decoding
 message with an explicit Play retry, then resumes actual FFmpeg decoding after
 the watched test configuration is restored. This verifies the server-generated
-startup-failure and UI-recovery path in Chromium; cross-engine execution and a
-failure after FFmpeg has emitted partial audio remain open.
+startup-failure and UI-recovery path in Chromium. A second workflow supplies an
+indexed malformed WAV to the real FFmpeg process. The browser receives HTTP 503
+with the decode failure response instead of the former empty HTTP 200. The
+controller also aborts a stream if FFmpeg exits unsuccessfully after output has
+started, but that partial-output path has not yet been exercised end to end.
+Cross-engine execution of the generated failure cases remains open.
 
 ### Playback state announcements — 2026-09-29
 

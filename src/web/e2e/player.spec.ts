@@ -93,6 +93,7 @@ test.describe('player browser playback', () => {
     secondFile = path.join(fixtureDirectory, 'Player runtime second.wav');
     await fs.writeFile(firstFile, makeTone());
     await fs.writeFile(secondFile, makeTone(41));
+    await fs.writeFile(path.join(fixtureDirectory, 'Player invalid runtime.wav'), Buffer.from('not an audio stream'));
     await promisify(execFile)('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', firstFile, '-c:a', 'pcm_s16be', path.join(fixtureDirectory, 'Player decoded runtime.aiff')]);
     for (const format of compressedFormats) {
       const outputPath = path.join(fixtureDirectory, `Player format ${format.label} runtime.${format.extension}`);
@@ -484,6 +485,31 @@ test.describe('player browser playback', () => {
       !audio.paused && audio.currentTime > 0.2 && audio.currentSrc.includes('/transcoded')))).toBe(true);
     expect(nativeStreamFailures).toBe(1);
     expect(transcodeRequests).toBe(2);
+  });
+
+  test('returns a decode failure when FFmpeg rejects an audio file before output', async ({ page }) => {
+    await page.route((url) => url.pathname.startsWith('/api/v0/streams/') &&
+      url.pathname.split('/').length === 5, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({ status: 415, contentType: 'text/plain', body: 'Injected native-format rejection.' });
+    });
+
+    await page.getByTestId('player-open-file-browser').click();
+    const modal = page.getByTestId('player-file-browser-modal');
+    await modal.getByTestId('player-file-browser-search').locator('input').fill('Player invalid runtime');
+    await modal.getByRole('button', { name: 'Play Player invalid runtime.wav', exact: true }).click();
+    const failedDecode = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.startsWith('/api/v0/streams/') && url.pathname.endsWith('/transcoded');
+    });
+    await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
+    const response = await failedDecode;
+    expect(response.status()).toBe(503);
+    expect(await response.text()).toContain('FFmpeg could not decode this audio.');
+    await expect(page.getByText('The server could not decode this audio. Press Play to retry.', { exact: true })).toBeVisible();
   });
 
   test('saves a queue, reloads its playlist and preserves repeated server entries', async ({ page }) => {
