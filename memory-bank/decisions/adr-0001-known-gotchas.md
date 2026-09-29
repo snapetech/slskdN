@@ -234,7 +234,9 @@ current gain uses.
 
 **Prevention:** Give each equalizer slider an `aria-valuetext` with its current
 gain and `dB` unit, and verify that presets and direct slider changes update
-the announced value while preserving the native numeric range.
+the announced value while preserving the native numeric range. These sliders
+use vertical writing mode, so use ArrowUp when testing an increase; ArrowRight
+decreases the value in WebKit and is not a cross-engine increase assertion.
 
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
