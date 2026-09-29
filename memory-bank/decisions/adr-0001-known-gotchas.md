@@ -208,6 +208,23 @@ so accessibility attributes can be missed in both or drift between layouts.
 assert their accessible values independently. Present the normalized value as
 a rounded percentage while retaining the numeric range for adjustment.
 
+### 0z1235. Do Not Nest Player Controls In A Button Role
+
+**What went wrong:** Chromium could not find the visualizer engine control by
+its accessible button name after the visualizer was opened.
+
+**Why:** The visual tile was exposed as a `role="button"` container while it
+rendered its own button controls as descendants. ARIA button descendants are
+presented as a flattened name, so the nested controls disappeared from the
+accessibility tree. Their clicks also bubbled to the tile's mode-cycling
+handler.
+
+**Prevention:** Keep interactive player controls outside button-role
+containers. Use a non-interactive visual container with a separate native
+button for its action, and stop or filter bubbling so child controls do not
+trigger that action. Add browser assertions using accessible role and name
+locators, not just `data-testid` visibility.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
