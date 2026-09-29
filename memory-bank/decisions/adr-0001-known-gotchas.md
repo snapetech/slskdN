@@ -439,6 +439,19 @@ leaves a partially created engine on the failure path.
 boundary. On any setup failure, disconnect an established audio edge and release
 the acquired WebGL context. Cover failure at each stage with a focused test.
 
+### 0z1250. Reset Vitest Mock Implementations Between Fault Cases
+
+**What went wrong:** A visualizer failure-path test changed `loadPreset` to
+throw, then a later test inherited that behavior. `vi.clearAllMocks()` cleared
+the call history but the unrelated test still failed during setup.
+
+**Why:** Clearing a Vitest mock does not reset its configured implementation;
+fault injection therefore leaked across cases despite a per-test clear.
+
+**Prevention:** Reset mock implementations in `beforeEach` when tests override
+them, then reinstall shared default return values. Use `vi.resetAllMocks()` or
+explicitly reset each configurable mock so failure cases remain independent.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
