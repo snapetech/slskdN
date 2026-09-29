@@ -82,6 +82,21 @@ through media and network events, not synchronously with file selection.
 action before choosing the native/transcode assertion path. Do not infer format
 support from a single immediate DOM count.
 
+### 0z1224. Type Standalone Playwright Helpers Explicitly
+
+**What went wrong:** A new seek helper accepted an untyped `page` parameter, so
+its page and locator callback arguments became implicit `any` under the
+standalone strict TypeScript check. Playwright's test runner transpiled the spec
+and the browser cases passed, which did not expose the compile-time gap.
+
+**Why:** Test-runner transformation is not a substitute for an explicit
+TypeScript check. Losing the `Page` type also removes the locator callback's
+element and argument inference.
+
+**Prevention:** Import and annotate `Page` on standalone helpers and type the
+DOM element and evaluation argument when inference is not available. Run the
+browser-spec TypeScript check as well as the Playwright suite.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
