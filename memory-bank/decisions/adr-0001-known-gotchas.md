@@ -180,6 +180,21 @@ reach the browser.
 inheritance, then inspect computed browser styles before recording a visual
 defect. Keep a regression for the actual rendered focus state.
 
+### 0z1233. Player Form Controls Outside Dialogs Need Focus Indicators
+
+**What went wrong:** The volume slider, playback-speed selector, and seek
+slider sit outside player dialogs, so neither the app's button-only global
+focus rule nor the dialog-scoped field rule covers them. Chromium renders a
+one-pixel black native outline on these controls against charcoal player
+surfaces.
+
+**Why:** Focus coverage was audited on buttons and then within modal portals;
+the main player's native form controls were not included.
+
+**Prevention:** Apply the player focus token to visible form controls throughout
+the player bar and browser-test the computed focus indicator on volume, speed,
+and seek in supported engines.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
