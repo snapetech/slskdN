@@ -512,6 +512,48 @@ test.describe('player browser playback', () => {
     await expect(page.getByText('The server could not decode this audio. Press Play to retry.', { exact: true })).toBeVisible();
   });
 
+  test('reports a retryable error when FFmpeg fails after stream output begins', async ({ page }) => {
+    test.skip(process.platform !== 'linux', 'This process-exit fixture uses a POSIX executable shim.');
+    const partialOutputDecoder = path.join(fixtureDirectory, 'ffmpeg-partial-output');
+    await fs.writeFile(partialOutputDecoder, '#!/bin/sh\nprintf "invalid partial audio"\nexit 7\n', 'utf8');
+    await fs.chmod(partialOutputDecoder, 0o755);
+    await harness.startNode('B', 'test-data/slskdn-test-fixtures/music', {
+      noConnect: true,
+      ffmpegPath: partialOutputDecoder,
+    });
+    const node = harness.getNode('B');
+    await login(page, node.nodeCfg);
+
+    await page.route((url) => url.pathname.startsWith('/api/v0/streams/') &&
+      url.pathname.split('/').length === 5, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({ status: 415, contentType: 'text/plain', body: 'Injected native-format rejection.' });
+    });
+
+    await page.getByTestId('player-open-file-browser').click();
+    const modal = page.getByTestId('player-file-browser-modal');
+    await modal.getByTestId('player-file-browser-search').locator('input').fill('Player format FLAC runtime');
+    await modal.getByRole('button', {
+      name: 'Play Player format FLAC runtime.flac',
+      exact: true,
+    }).click();
+    await expect(page.getByRole('button', { name: 'Decode for playback', exact: true })).toBeVisible();
+
+    const interruptedStream = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.startsWith('/api/v0/streams/') && url.pathname.endsWith('/transcoded');
+    });
+    await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
+    const response = await interruptedStream;
+    expect(response.status()).toBe(200);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) =>
+      audio.paused && Boolean(audio.error) && audio.currentSrc.includes('/transcoded')))).toBe(true);
+    await expect(page.getByText('The server could not decode this audio. Press Play to retry.', { exact: true })).toBeVisible();
+  });
+
   test('saves a queue, reloads its playlist and preserves repeated server entries', async ({ page }) => {
     await page.getByTestId('player-open-file-browser').click();
     const files = page.getByTestId('player-file-browser-modal');

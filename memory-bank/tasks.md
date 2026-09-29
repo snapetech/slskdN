@@ -5859,13 +5859,16 @@ resource completion.
 - [x] Abort a stream if FFmpeg exits unsuccessfully after response bytes have
   begun, so a partial decode is not presented as a clean end-of-file.
 - [x] Verify the real server-generated malformed-audio 503 and player recovery
-  guidance in Chromium; pass the full 31-case PlayerBar suite and all 1,105 Web
+  guidance in Chromium; pass the full 32-case PlayerBar suite and all 1,105 Web
   tests, Web lint, strict browser-spec TypeScript, repository lint, and full
   `dotnet test` (5,346 unit, 74 smoke, 284 integration).
 - [x] Add release note, update the player quality audit, and record gotcha
   `0z1258` in commit `5b365ef51`.
-- [ ] Exercise partial-output failure end to end and run the malformed-media
-  and server-generated failure cases in functioning Firefox/WebKit runtimes.
+- [x] Exercise partial-output failure end to end with a Linux POSIX decoder
+  shim; verify the aborted response becomes a browser media error with recovery
+  guidance. The fixture skips outside Linux.
+- [ ] Run the malformed-media and server-generated failure cases in functioning
+  Firefox/WebKit runtimes.
 - [ ] Continue actual screen-reader speech, physical media controls/routing,
   multi-hour resource plateau, WAN throughput, and reciprocal-transfer
   admission validation before closing the player audit.

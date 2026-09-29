@@ -34,25 +34,27 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. Its 31 workflows pass in Chromium. The previous 26-workflow
-cross-engine run passed in host Firefox and passed 24 with two capability skips
-in WebKit; it predates the three new codec-retry cases. The new cases have not
-run in Firefox or WebKit here: Playwright Firefox timed out during navigation,
-the installed host Firefox exits when launched with Playwright's Juggler pipe,
-and WebKit could not launch because host dependencies are missing. Treat the
-cross-engine baseline as 26 cases until those runtimes can execute the new
-workflows. The suite covers actual native or server-decoded playback for each
-compressed format, plus controlled HTTP radio failure/retry and a synthetic
-directory response. Media Session callbacks are invoked in Chromium and
-Firefox, but this does not exercise physical headset buttons. Output-switch
-regressions use simulated device APIs.
+peer connections. Its 32 workflows pass in Linux Chromium. One partial-output
+failure workflow uses a POSIX decoder shim and skips outside Linux. The previous
+26-workflow cross-engine run passed in host Firefox and passed 24 with two
+capability skips in WebKit; it predates the three new codec-retry cases and the
+two server-generated FFmpeg failure cases. The new cases have not run in Firefox
+or WebKit here: Playwright Firefox timed out during navigation, the installed
+host Firefox exits when launched with Playwright's Juggler pipe, and WebKit
+could not launch because host dependencies are missing. Treat the cross-engine
+baseline as 26 cases until those runtimes can execute the new workflows. The
+suite covers actual native or server-decoded playback for each compressed
+format, plus controlled HTTP radio failure/retry and a synthetic directory
+response. Media Session callbacks are invoked in Chromium and Firefox, but this
+does not exercise physical headset buttons. Output-switch regressions use
+simulated device APIs.
 
 | Area | Evidence | Status / confidence |
 | --- | --- | --- |
 | Native transport | Actual PCM playback, Pause, absolute seeks, remount and queue advancement | Verified in Chromium, host Firefox and WebKit / high |
 | Server files | Indexed and unindexed downloads, direct switching and Play Next | Verified in Chromium, host Firefox and WebKit / high |
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
-| Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before first output | Setup cancellation: component/API tests / high; codec retry and real server-generated decode failures: Chromium only / high; cross-engine execution and nonzero exit after partial output remain open |
+| Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before and after first output | Setup cancellation: component/API tests / high; codec retry and both server-generated decode failure paths: Linux Chromium / high; cross-engine execution remains open |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
 | Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; screen-reader output remains open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 104 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
@@ -143,8 +145,11 @@ startup-failure and UI-recovery path in Chromium. A second workflow supplies an
 indexed malformed WAV to the real FFmpeg process. The browser receives HTTP 503
 with the decode failure response instead of the former empty HTTP 200. The
 controller also aborts a stream if FFmpeg exits unsuccessfully after output has
-started, but that partial-output path has not yet been exercised end to end.
-Cross-engine execution of the generated failure cases remains open.
+started. A Linux-only POSIX decoder shim writes partial bytes and exits nonzero;
+Chromium receives the HTTP 200 headers, then observes the connection reset as a
+media error and displays the actionable retry copy. The pre-output 503 and
+post-output abort paths both pass in Chromium. Cross-engine execution remains
+open, and the POSIX shim is skipped outside Linux.
 
 ### Playback state announcements — 2026-09-29
 
@@ -250,12 +255,11 @@ are happening; that reciprocal-transfer workflow remains open.
 ## Remaining completion work
 
 - Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The constrained Chromium case covers only the browser-to-listener HTTP leg over loopback; it does not model a WAN mesh link. Updating a listed snapshot under a stable party ID is covered, while replacement or withdrawal during an already-playing listener session remains open. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
-- Complete the codec-retry matrix outside Chromium and exercise a failure
-  produced by the server's FFmpeg process. Current FLAC/MP3/Ogg tests inject
-  HTTP 415/503 at the browser route, then verify recovery through actual FFmpeg
-  playback; they do not prove server-generated decoder errors. Setup-request
-  cancellation separately covers seek supersession, track replacement and
-  player unmount.
+- Complete the codec-retry matrix outside Chromium. Chromium verifies FLAC,
+  MP3 and Ogg recovery after a controlled 503, plus actual server-generated
+  FFmpeg launch failure, malformed-media failure before output, and a
+  nonzero-exit connection abort after output begins. Setup-request cancellation
+  separately covers seek supersession, track replacement and player unmount.
 - Verify physical mobile interactions, physical output routing/media buttons,
   and Picture-in-Picture window sizing/focus.
 - Measure sustained queue, visualizer, output-switch and floating-window cycles
