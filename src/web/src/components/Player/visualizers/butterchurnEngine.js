@@ -32,32 +32,58 @@ export const createButterchurnEngine = async ({
 
   const presetsApi = presetsModule.default || presetsModule;
   const presets = presetsApi.getPresets();
-  const visualizer = butterchurn.createVisualizer(
-    audioContext,
-    canvas,
-    {
-      height: 600,
-      pixelRatio,
-      textureRatio: 1,
-      width: 800,
-    },
-  );
-  visualizer.connectAudio(audioNode);
-
+  const gl = canvas.getContext('webgl2', {
+    alpha: false,
+    antialias: false,
+    depth: false,
+    premultipliedAlpha: false,
+    stencil: false,
+  });
+  const releaseWebGlContext = () => gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  let visualizer;
+  let audioConnected = false;
   const loadRandomPreset = (blendSeconds) => {
     const picked = pickRandomPreset(presets);
     if (!picked) return '';
     visualizer.loadPreset(picked.data, blendSeconds);
     return picked.name;
   };
-
-  const presetName = loadRandomPreset(0);
+  let presetName;
+  try {
+    visualizer = butterchurn.createVisualizer(
+      audioContext,
+      canvas,
+      {
+        height: 600,
+        pixelRatio,
+        textureRatio: 1,
+        width: 800,
+      },
+    );
+    visualizer.connectAudio(audioNode);
+    audioConnected = true;
+    presetName = loadRandomPreset(0);
+  } catch (error) {
+    try {
+      if (audioConnected) visualizer.disconnectAudio(audioNode);
+    } finally {
+      releaseWebGlContext();
+    }
+    throw error;
+  }
+  let disposed = false;
 
   return {
     name: 'Butterchurn',
     presetName,
     dispose: () => {
-      visualizer.disconnectAudio(audioNode);
+      if (disposed) return;
+      disposed = true;
+      try {
+        visualizer.disconnectAudio(audioNode);
+      } finally {
+        releaseWebGlContext();
+      }
     },
     nextPreset: () => loadRandomPreset(2.0),
     render: () => {

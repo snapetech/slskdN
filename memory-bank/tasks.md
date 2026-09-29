@@ -5818,3 +5818,18 @@ resource completion.
 - [ ] Run these three retries in functioning Firefox/WebKit runtimes and test a
   server-generated FFmpeg startup/decode error; the current first failure is a
   browser-injected 503.
+
+
+### Player visualizer resource teardown — 2026-09-29
+
+- [x] Release Butterchurn's WebGL context and audio connection on normal
+  teardown and initial-preset setup failure; keep the library's low-resource
+  context attributes intact.
+- [x] Add focused cleanup tests and browser checks for actual context attributes
+  and loss events.
+- [x] Add an opt-in 50-cycle full player resource soak and 20-cycle visualizer
+  profile with natural-GC endpoint telemetry.
+- [x] Rebuild and pass the 50-cycle combined run and 20-cycle visualizer run.
+- [ ] Attribute the combined run's renderer-PSS residual and elevated detached
+  DOM/event-listener counters; do not claim lifetime resource completion from
+  these cycle samples.

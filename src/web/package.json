@@ -93,6 +93,7 @@
     "test:e2e:ci": "playwright test --reporter=line",
     "test:player:radio-soak": "RUN_PLAYER_RADIO_SOAK=1 pnpm exec playwright test e2e/player-radio-network.spec.ts --grep @player-radio-soak --workers=1 --retries=0 --trace=off --reporter=line",
     "test:player:resources": "playwright test e2e/player-resources.spec.ts --workers=1 --trace=off --reporter=line",
+    "test:player:resource-cycles": "SLSKDN_PLAYER_RESOURCE_CYCLES=1 playwright test e2e/player-resources.spec.ts --grep @player-resource-cycles --workers=1 --retries=0 --trace=off --reporter=line",
     "test:native-milkdrop-compatibility": "node ./scripts/report-native-milkdrop-compatibility.mjs",
     "test:native-milkdrop-performance": "node ./scripts/measure-native-milkdrop-performance.mjs",
     "test:native-milkdrop-smoke": "node ./scripts/smoke-native-milkdrop.mjs",

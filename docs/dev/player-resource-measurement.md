@@ -107,3 +107,79 @@ A native baseline does not establish queue, analyzer, visualizer, Picture in
 Picture, remote radio, high-rate format or whole-session resource budgets. Those
 workloads require their own sustained measurements. A short or recorded run does
 not establish low resource use.
+
+## Repeated player-control cycle soak
+
+The opt-in Chromium cycle soak combines queue-dialog open/close, spectrum/scope/
+off analyzer transitions, output-device selection changes, Document Picture-in-
+Picture open/close, next/previous media navigation, and Butterchurn visualizer
+mount/unmount. The `full` profile runs all of them once per cycle. It uses three
+generated PCM files and a local backend with remote peer connections disabled.
+Output enumeration and `AudioContext.setSinkId` are deterministic browser test
+shims: this exercises the player's switching and cleanup paths, not physical
+speaker routing. Document Picture-in-Picture support is required for the test.
+
+Run the default 50 measured cycles, preceded by one warmup cycle, followed by a
+30-second stopped-state observation:
+
+```bash
+pnpm --filter @slskdn/web test:player:resource-cycles \
+  --output=../../.local/player-resource-cycles
+```
+
+The cycle count can be set from 5 to 100 with
+`SLSKDN_PLAYER_RESOURCE_CYCLE_COUNT`; natural settle time can be set from 10 to
+60 seconds with `SLSKDN_PLAYER_RESOURCE_CYCLE_SETTLE_SECONDS`. The test records
+five-cycle milestones and final stopped/settled snapshots to
+`player-resource-cycles.json`. Browser CDP metrics include heap, DOM nodes,
+documents and event listeners. Linux adds independently enumerated owned
+browser descendants with process count, PSS coverage and enumeration failures.
+Audio telemetry records created/closed/live context states, analyzer reads,
+pending main-window animation frames, playback state and PiP presence. Visualizer
+telemetry records WebGL context creation/loss events and the actual attributes
+returned by `getContextAttributes()`.
+
+Set `SLSKDN_PLAYER_RESOURCE_CYCLE_PROFILE` to `queue`, `analyzer`, `output`,
+`pip`, `navigation` or `visualizer` to repeat one subsystem at a time when a
+combined run shows unexplained growth; omit it for the full interaction cycle.
+The profile name and connected document/player node counts are included in each
+snapshot.
+Set `SLSKDN_PLAYER_RESOURCE_CYCLE_TRACK_COUNT` from 2 to 10 to distinguish
+per-track decoder retention from per-transition growth.
+
+Assertions cover at most two retained non-closed AudioContexts after Stop, no
+running context or PiP window, paused audio, and analyzer reads remaining
+stopped during the natural settle interval. DOM nodes, documents, event-listener
+counts, heap and process PSS are recorded as trends without fixed thresholds:
+detached objects can remain visible until natural collection, and browser
+process churn changes those values. The default run is a cycle soak, not
+evidence of a lifetime memory plateau; retain the separate ten-minute per-state
+native baseline for longer-session trends. Do not force GC.
+
+### Repeated-cycle observations — 2026-09-29
+
+The 20-cycle visualizer-only run passed with one warmup and a 30-second natural
+settle. Its warmed browser-tree PSS was 519.8 MiB and JS heap 32.0 MiB; after
+settle they were 453.4 MiB and 13.3 MiB. All 21 WebGL contexts, including
+warmup, emitted `webglcontextlost`. Every observed context reported alpha,
+antialiasing, depth, premultiplied alpha and stencil disabled, matching the
+renderer request. Connected DOM stayed at 434 before Stop and 414 after Stop;
+pending main-window animation frames were zero after teardown.
+
+The 50-cycle full profile also passed, followed by a 60-second natural settle.
+It exercised queue, analyzer, output, PiP, navigation and visualizer changes.
+PSS rose from 532.0 MiB warmed to 947.4 MiB at Stop, then settled at 693.9 MiB;
+renderer PSS settled 155.6 MiB above warmup while GPU PSS settled 16.6 MiB above
+warmup. JS heap fell from 53.9 MiB to 18.7 MiB. All 51 visualizer contexts were
+reported lost, their requested low-resource attributes were observed, audio
+was paused with a suspended context, analyzer reads stopped, PiP was closed,
+and pending animation frames were zero. Connected player DOM was 184 nodes
+warmed and 167 stopped. The OS process tree had complete PSS reads at settle;
+one process-ancestry enumeration read was unavailable at the stopped sample.
+
+The combined run's browser DOM-node counter remained above warmup after settle,
+although the connected DOM count fell slightly and Documents returned to one.
+The event-listener counter also remained elevated. These counters do not identify
+their owners; renderer PSS also remained elevated after the longer settle. Keep
+this as an open retained-resource investigation and do not claim a lifetime
+plateau. Raw reports remain in ignored `.local/player-resource-evidence/` files.

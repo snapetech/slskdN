@@ -1456,3 +1456,37 @@ per-chunk database writes are introduced.
 This proves the accounting-service handoff but not a full radio playback and
 Soulseek upload running concurrently on real nodes. Keep repeated admission
 during sustained peer traffic open until that workload is exercised.
+
+## Repeated player resource cycles — 2026-09-29
+
+The opt-in Chromium cycle soak now covers queue-modal close, analyzer mode
+changes, output selection, Document PiP open/close, next/previous source
+transitions, and Butterchurn mount/unmount. The 50-cycle full run is preceded by
+one warmup and followed by a 60-second natural settle. It verifies that the
+renderer receives the requested alpha/antialias/depth/stencil settings, every
+visualizer context reports loss after teardown, PiP closes, analyzer reads stop,
+and no main-window animation frame or audio context remains running. It does
+not force GC or impose arbitrary DOM/heap/PSS endpoint limits.
+
+On the current Linux Chromium run, warmed process-tree PSS was 532.0 MiB and the
+cycle peak was 947.4 MiB. After settle, PSS was 693.9 MiB, including renderer
+PSS of 409.0 MiB (155.6 MiB above warmup); JS heap fell from 53.9 to 18.7 MiB.
+All 51 created WebGL contexts emitted `webglcontextlost`, and their five
+low-resource attributes were observed as false. Connected player DOM stayed
+stable (184 nodes warmed, 167 after Stop), Documents returned to one, and no
+animation frames remained. CDP DOM-node and event-listener counters stayed above
+warmup; one OS ancestry enumeration read was unavailable at the stopped sample.
+Raw artifacts remain local under `.local/player-resource-evidence/`.
+
+The 20-cycle visualizer-only run also passed. PSS fell from 519.8 MiB warm to
+453.4 MiB after natural settle; JS heap fell from 32.0 to 13.3 MiB. All 21
+contexts were lost and the context attributes matched Butterchurn's request.
+The full run still has a renderer-PSS residual and elevated detached-object
+counters. These samples do not establish a lifetime plateau or identify the
+retained owners; source-transition and combined-feature retention remain open
+resource investigations. Confidence: high for teardown and sampled endpoint
+states, low for lifetime memory behavior.
+
+The rebuilt Release assets also pass the complete 29-case Chromium PlayerBar
+browser suite. This validates the user workflows alongside the resource soak;
+Firefox/WebKit visualizer context-loss behavior was not measured in this batch.

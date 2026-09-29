@@ -15326,3 +15326,39 @@ suite is 29/29; FLAC, MP3 and Ogg each recover from a controlled first-response
 TypeScript, repository lint, and full .NET tests (5,346 unit, 74 smoke, 284
 integration) pass. Firefox/WebKit runs for the new cases remain unavailable in
 the current local runtimes. This is internal validation; no tag/release.
+
+## Update 2026-09-29 — Repeated player resources and Butterchurn cleanup
+
+Added an opt-in 50-cycle full player resource soak and isolated subsystem
+profiles. The full workload covers queue modal, analyzer, output selection,
+Document PiP, next/previous media source changes and Butterchurn mount/unmount.
+Browser telemetry now checks actual WebGL attributes and context-loss events,
+audio/analyzer teardown, PiP closure, connected DOM, natural-GC metrics and
+Linux process-tree PSS. No forced collection or arbitrary endpoint threshold is
+used.
+
+Butterchurn teardown disconnects its audio tap and loses the WebGL context;
+initial preset setup failures perform the same cleanup. The renderer's requested
+alpha, antialias, depth, premultiplied-alpha and stencil settings remain false.
+Focused tests cover idempotent teardown and setup/disconnect failures.
+
+Validation: the 20-cycle visualizer profile and 50-cycle full profile pass.
+Every one of 21 and 51 WebGL contexts, respectively, emitted the loss event.
+The full run's JS heap fell from 53.9 MiB warmed to 18.7 MiB after a 60-second
+settle, but process-tree PSS remained 161.9 MiB above warmup, mostly renderer
+PSS. Connected player DOM returned to its stopped layout, while CDP node and
+event-listener counters stayed elevated. This is an observed retained-resource
+trend, not a proven leak or a lifetime plateau; attribution remains open.
+Raw browser reports stay in ignored `.local/player-resource-evidence/`.
+
+Added the release fragment, changelog, resource protocol, quality-audit evidence
+and an explicit remaining attribution task. Gotchas `0z1240`–`0z1252` were
+committed immediately as separate documentation commits. No release tag was
+created. Final gates pass: 1,102 Web tests across 171 files, 29/29 Chromium
+PlayerBar browser cases, 5,346 unit, 74 smoke and 284 integration tests, Web
+lint and `./bin/lint`. Exact-range preview and publication checks remain.
+
+The first feature commit was rejected because the canonical
+`docs/CHANGELOG.md` Unreleased section had not been updated; the root changelog
+does not satisfy that hook. Gotcha `0z1253` was recorded and committed alone
+immediately. The release bullet is now in the canonical changelog.

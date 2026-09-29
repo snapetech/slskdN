@@ -16199,3 +16199,28 @@ Next Steps: validate both post-`.329` fragments, verify GitHub target and
 identity, commit and push the control-focus follow-up plus separately committed
 gotchas. Continue full Tab order/screen-reader, device, codec cancellation,
 resource, WAN and reciprocal-transfer audits. No tag or deployment.
+
+## Player resource cycle and visualizer teardown — 2026-09-29
+
+The current batch adds the opt-in queue/analyzer/output/PiP/navigation/
+Butterchurn resource cycle soak and explicitly releases Butterchurn audio and
+WebGL resources on teardown or initial preset failure. Browser verification
+checks all 51 context-loss events and the actual low-resource context attributes.
+The 50-cycle run passes with a 60-second natural settle. JS heap is below the
+warmed sample afterward, but renderer PSS is still about 156 MiB above warmup;
+connected player DOM is stable while CDP node/listener counters remain elevated.
+The 20-cycle visualizer-only profile settles below its warmed heap/PSS values.
+These measurements do not close lifetime resource validation.
+
+Current files: `src/web/src/components/Player/visualizers/butterchurnEngine.js`,
+its focused test, `src/web/e2e/player-resources.spec.ts`, and
+`docs/dev/player-resource-measurement.md`. Raw reports remain ignored under
+`.local/player-resource-evidence/`.
+
+Final gates pass: 1,102 Web tests / 171 files, Web lint, `./bin/lint`, all .NET
+tests (5,346 unit, 74 smoke, 284 integration), strict resource-spec TypeScript,
+the 29-case Chromium PlayerBar browser suite and 50-cycle full resource soak.
+Fork-target and local-identity checks pass. Next Steps: preview the exact release
+range from `.329`, commit/push after review, then continue retained renderer-PSS
+attribution, screen-reader and cross-engine/device/WAN/reciprocal-transfer audit
+items. No tag, release or deployment is authorized.
