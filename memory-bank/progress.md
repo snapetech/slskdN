@@ -1,3 +1,12 @@
+## Update 2026-09-29 02:56:00Z — Player equalizer batch published
+
+The equalizer gain value announcement batch passed the exact release preview
+from `build-main-2026092900-slskdn.329`, then commit `35811a6f3` was pushed to
+`snapetech/slskdN/main`. The required vertical range keyboard-direction gotcha
+records were included in the push. Identity and GitHub target checks passed.
+No tag was created. The full player objective and broader follow-up items
+remain active.
+
 ## Update 2026-09-29 02:54:00Z — Player equalizer gain units
 
 Equalizer sliders now expose their current filter gain with a `dB` unit through

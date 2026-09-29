@@ -1,4 +1,4 @@
-## Player equalizer accessibility — 2026-09-29 02:40 UTC
+## Player equalizer accessibility published — 2026-09-29 02:56 UTC
 
 - Equalizer range sliders now announce their gain in dB. Component coverage
   verifies the default 0 dB and a changed -3 dB value while retaining the
@@ -11,8 +11,9 @@
   complete Web suite (1,095 tests / 170 files), full PlayerBar browser suites
   (Chromium 25, Firefox 25, WebKit 24 with one capability skip), browser type
   check, web lint/build, `./bin/lint`, and `dotnet test` all pass. Exact release
-  preview and publication remain. No tag is authorized or created. Actual
-  screen-reader speech and the broader player audit remain open.
+  preview passed and commit `35811a6f3` (plus required gotcha records) is pushed
+  to `snapetech/slskdN/main`. No tag was created. Actual screen-reader speech
+  and the broader player audit remain open.
 
 ## Player volume accessibility published — 2026-09-29 02:40 UTC
 

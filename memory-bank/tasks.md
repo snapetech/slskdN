@@ -5762,6 +5762,6 @@ resource completion.
   so coverage checks the announced units against each browser's resulting value.
 - [x] Pass full Web/browser, type, lint and build gates and update audit/release
   records.
-- [ ] Validate the exact release range, then commit and push.
+- [x] Validate the exact release range, then commit and push as `35811a6f3`.
 - [ ] Continue full screen-reader workflow, codec cancellation/retry, physical
   devices, sustained resources, WAN and live reciprocal-transfer validation.
