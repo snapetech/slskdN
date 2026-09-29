@@ -33532,3 +33532,18 @@ failure also misclassified successful partial-content responses.
 **Prevention:** Give temporary login listeners named callbacks and remove them
 in `finally`, including on early return or failure. Match backend HTTP URLs by
 prefix, and classify successful 2xx and 304 responses before logging failures.
+
+### 0z1283. Remove Playwright's Default Audio Mute For Output Capture (2026-09-29)
+
+**What went wrong:** The first virtual-output probe launched the shared
+Playwright browser with its default `--mute-audio` argument. A sink recording
+could therefore report silence even when HTML audio playback advanced.
+
+**Why:** Playwright intentionally mutes Chromium audio in its standard browser
+launch arguments so ordinary tests do not produce sound. Setting `PULSE_SINK`
+does not override Chromium's mute flag.
+
+**Prevention:** For audio-output capture only, opt into unmuted Chromium by
+filtering `--mute-audio` from Playwright's default arguments. Keep that launch
+override behind a dedicated environment flag and skip the output test outside
+its virtual-sink runner.
