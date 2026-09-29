@@ -5746,7 +5746,22 @@ resource completion.
 - [x] Verify the keyboard update in Chromium, Firefox and WebKit; pass all
   1,094 Web tests, Web lint, strict player E2E TypeScript and `./bin/lint`.
 - [x] Update the player quality audit, Unreleased changelog and append-only
-  release fragment; exact-range validation, commit and push remain.
+  release fragment; validate the exact range and commit/push (`db11fa812`).
 - [ ] Continue broader player accessibility, codec cancellation, physical
   device behavior, sustained-resource budgets, WAN playback and live
   reciprocal-transfer admission.
+
+
+### Player equalizer accessibility — 2026-09-29
+
+- [x] Announce all ten equalizer gains in decibels while retaining the native
+  -12 to +12 range and keyboard adjustment.
+- [x] Add component coverage for disabled/default and enabled/changed gain;
+  run the keyboard announcement regression in Chromium, Firefox and WebKit.
+  Browser engines map physical arrow keys differently for the vertical range,
+  so coverage checks the announced units against each browser's resulting value.
+- [x] Pass full Web/browser, type, lint and build gates and update audit/release
+  records.
+- [ ] Validate the exact release range, then commit and push.
+- [ ] Continue full screen-reader workflow, codec cancellation/retry, physical
+  devices, sustained resources, WAN and live reciprocal-transfer validation.

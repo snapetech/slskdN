@@ -38,6 +38,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Announce the compact and expanded volume slider values as percentages, including keyboard adjustments.
 
+### Player equalizer accessibility
+
+- Announce equalizer gain values in decibels while preserving the sliders' numeric range.
+
 ## [2026092900-slskdn.329] — 2026-09-29
 
 ### Radio fairness accounting

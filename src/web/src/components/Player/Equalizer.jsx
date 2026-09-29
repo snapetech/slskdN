@@ -117,6 +117,7 @@ const Equalizer = ({ audioElement, fadeAudioElement, onAudioError }) => {
           <label className="player-eq-band" key={frequency}>
             <input
               aria-label={`${formatBand(frequency)} equalizer gain`}
+              aria-valuetext={`${state.gains[index]} dB`}
               data-testid={`player-eq-slider-${frequency}`}
               disabled={!state.enabled}
               max="12"

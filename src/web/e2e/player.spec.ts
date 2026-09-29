@@ -770,6 +770,20 @@ test.describe('player browser playback', () => {
     }
   });
 
+  test('announces equalizer gain values in decibels during keyboard adjustment', async ({ page }) => {
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByRole('button', { name: 'Show equalizer', exact: true }).click();
+
+    const gain = page.getByRole('slider', { name: '31 equalizer gain', exact: true });
+    await expect(gain).toHaveAttribute('aria-valuetext', '0 dB');
+    await page.getByRole('button', { name: 'Enable equalizer', exact: true }).click();
+    await gain.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(async () => Number(await gain.inputValue())).not.toBe(0);
+    const value = await gain.inputValue();
+    await expect(gain).toHaveAttribute('aria-valuetext', `${value} dB`);
+  });
+
   test('keeps compact and expanded controls within desktop and narrow viewports', async ({ page }, testInfo) => {
     const minimumMeasuredTouchSize = 44 - 0.01;
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);

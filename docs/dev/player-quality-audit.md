@@ -84,6 +84,16 @@ update the announced value in Chromium, Firefox and WebKit. Confidence is high
 for the rendered accessible value and keyboard update. Speech output from
 specific screen reader/browser combinations remains unverified.
 
+### Equalizer gain announcements — 2026-09-29
+
+The ten equalizer sliders now expose their gain in decibels through
+`aria-valuetext`; the native range remains -12 to +12. Component coverage checks
+the disabled default, enabled state and a direct -3 dB adjustment. A browser
+workflow adjusts the first vertical band by keyboard and verifies the spoken
+value attribute in Chromium, Firefox and WebKit. Confidence is high for the
+accessible value and update. Actual assistive-technology speech remains
+unverified.
+
 ### Constrained radio buffering and snapshot replacement — 2026-09-28
 
 An opt-in Playwright workflow runs the real two-backend listed-radio path in

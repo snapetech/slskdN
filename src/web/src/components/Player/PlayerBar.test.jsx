@@ -329,6 +329,22 @@ describe('PlayerBar', () => {
     expect(volume).toHaveAttribute('aria-valuetext', '42%');
   });
 
+  it('announces equalizer slider values in decibels', () => {
+    renderPlayer();
+    fireEvent.click(screen.getByRole('button', { name: 'Show equalizer' }));
+
+    const gain = screen.getByLabelText('31 equalizer gain');
+    expect(gain).toHaveAttribute('aria-valuetext', '0 dB');
+    expect(gain).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable equalizer' }));
+    expect(gain).toBeEnabled();
+    fireEvent.change(gain, { target: { value: '-3' } });
+    expect(gain).toHaveAttribute('aria-valuetext', '-3 dB');
+    expect(gain).toHaveAttribute('min', '-12');
+    expect(gain).toHaveAttribute('max', '12');
+  });
+
   it('returns scroll and focus to playback when closing tools', async () => {
     renderPlayer();
     fireEvent.click(screen.getByText('Play fixture'));

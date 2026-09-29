@@ -1,3 +1,19 @@
+## Update 2026-09-29 02:54:00Z — Player equalizer gain units
+
+Equalizer sliders now expose their current filter gain with a `dB` unit through
+`aria-valuetext`, while keeping their -12 to +12 native range. Component
+coverage verifies the default value, enabled state and a changed -3 dB gain.
+The browser regression opens EQ, adjusts the vertical slider with a keyboard,
+  and checks that accessible dB text matches the browser's resulting value. The
+  focused test passes in Chromium, Firefox and WebKit. The full PlayerBar
+  browser suites pass in Chromium (25) and Firefox (25); WebKit passed 24 with
+  one capability skip. All 1,095 Web tests, strict browser TypeScript, web
+  lint/build, `./bin/lint`, and `dotnet test` pass. Engine mappings for physical
+  arrow directions differ, so the regression does not assume a fixed increase
+  key. Exact release-range preview, commit and push remain. The volume
+  percentage batch is already published as `db11fa812`; no tag was created.
+  The overall player objective remains active.
+
 ## Update 2026-09-28 18:20 UTC — Listed host renewal release candidate
 
 The release candidate renews active host leases and listed-radio tickets every
@@ -15186,6 +15202,19 @@ unit tests, Web lint and production build, strict standalone browser-spec
 TypeScript, `./bin/lint`, and `dotnet test` (5,346 unit, 74 smoke, 284
 integration) pass. Exact release-range preview and publication checks remain.
 No tag was created. The full player objective remains active.
+
+## Update 2026-09-29 02:40:00Z — Player equalizer gain units
+
+Equalizer sliders now expose their current filter gain with a `dB` unit through
+`aria-valuetext`, while keeping their -12 to +12 native range. The component
+regression verifies default and changed values; the browser regression opens
+the EQ panel and checks keyboard adjustment. Chromium and Firefox passed the
+first pass. WebKit revealed that the vertical slider's increasing key is
+ArrowUp, not ArrowRight; the corrected WebKit run passes and the other engines
+still need that final-key rerun. Full gates, the release fragment/range preview,
+commit and push remain. The user-visible volume percentage batch is already
+published as `db11fa812`; no tag was created. The full player objective remains
+active.
 
 ## Update 2026-09-29 02:22:00Z — Player volume accessibility
 
