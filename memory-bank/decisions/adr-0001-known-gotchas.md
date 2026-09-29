@@ -33140,3 +33140,22 @@ but JSDOM does not reproduce that transition when `load()` is mocked.
 **Prevention:** When a component test explicitly sets a media error, make its
 `load()` mock clear that error before asserting the retry. Use a browser-level
 test for end-to-end server and decoder recovery.
+
+### 0z1258. Check FFmpeg Output Before Committing The Transcode Response
+
+**What went wrong:** A real FFmpeg process rejected malformed audio before
+producing bytes, but the transcoded stream route had already selected HTTP 200
+and `audio/mpeg`. It ignored the process exit code, so the player saw an empty
+successful response instead of an actionable server-decode failure.
+
+**Why:** Starting the decoder is not evidence that it produced a valid stream.
+Copying stdout directly into the response commits headers before the process
+has emitted its first byte, after which the route cannot return an HTTP error.
+
+**Prevention:** Drain stderr and read the first stdout chunk before setting the
+response content type or writing the body. If stdout closes first, await the
+process exit and return a server error for its nonzero exit code. Verify this
+with a real FFmpeg launch against malformed media, not only an executable that
+fails to start. If a nonzero exit occurs after response bytes have been sent,
+abort the connection so the client observes an incomplete stream rather than
+a clean end-of-file.
