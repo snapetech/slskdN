@@ -33515,3 +33515,20 @@ their absence is expected on other hosts and is not a malformed capture.
 **Prevention:** Treat process-tree data as optional throughout the report. Keep
 browser/page metrics available and print `n/a` for unavailable process-tree
 coverage rather than requiring Linux-only fields.
+
+### 0z1282. Scope E2E Login Diagnostics To The Login Flow (2026-09-29)
+
+**What went wrong:** The shared Playwright login helper attached response and
+console diagnostics but never removed them after login. A multi-hour resource
+test therefore kept collecting events for the entire playback session, and a
+normal HTTP 206 response from a `blob:` audio URL was reported as a non-200
+failure.
+
+**Why:** Diagnostic arrays and listeners lived for the lifetime of the page,
+and matching the origin with `includes` admitted blob URLs whose embedded
+origin looked like the backend. Treating every status other than 200 as a
+failure also misclassified successful partial-content responses.
+
+**Prevention:** Give temporary login listeners named callbacks and remove them
+in `finally`, including on early return or failure. Match backend HTTP URLs by
+prefix, and classify successful 2xx and 304 responses before logging failures.
