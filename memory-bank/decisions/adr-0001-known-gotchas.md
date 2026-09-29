@@ -157,6 +157,13 @@ verify at least 3:1 contrast against the corresponding page surface for every
 palette. Add a regression over the whole palette set so new palettes cannot
 silently weaken keyboard focus visibility.
 
+**Scope correction (2026-09-29):** The low ratios above came from evaluating
+light-mode palette tokens directly. `App.jsx` clears palette overrides in
+light mode and applies palettes only to dark variants, so that calculation did
+not describe a reachable current UI state and does not establish a shipped
+focus-contrast defect. Verify that the application actually applies a tested
+mode/palette combination before recording a contrast failure.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
