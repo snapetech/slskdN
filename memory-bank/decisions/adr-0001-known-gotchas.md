@@ -33427,10 +33427,12 @@ remote share prefix before enqueueing reciprocal transfers.
 snapshot only after all 16 MiB transfers had completed. Its later assertion
 then incorrectly required transfer byte totals to increase after radio began.
 
-**Why:** The workflow performs several backend, directory, pod and browser
-setup steps before the first radio admission. At the configured 128 KiB/s
-Soulseek limits, the chosen fixture duration did not cover that setup time.
+**Why:** The test launcher set `UPLOAD_SPEED_LIMIT` and `DOWNLOAD_SPEED_LIMIT`,
+but those names were not bound to the node's Soulseek limit options. The test
+therefore ran unthrottled and completed both 16 MiB transfers in about three
+seconds despite printing a 128 KiB/s target.
 
-**Prevention:** Size or shape the workload from measured time to first radio
-admission, assert transfers remain active at that point, and verify increasing
-bytes during playback before waiting for completion.
+**Prevention:** Verify that configured rate limits are actually loaded and
+measure transfer duration before sizing the workload. Assert transfers remain
+active at radio admission, then verify increasing bytes during playback before
+waiting for completion.
