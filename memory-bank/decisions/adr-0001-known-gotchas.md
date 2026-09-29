@@ -33328,3 +33328,16 @@ parallelizing them removes the required ordering.
 
 **Prevention:** Await creation of fixture directories first, then write their
 contents. Use parallel work only between operations with no dependency.
+
+### 0z1270. Narrow Generic Playwright Locators Before Reading Media State (2026-09-29)
+
+**What went wrong:** A phone-touch E2E case read `paused`, `currentTime` and
+`volume` directly from a locator matching `audio`, but Playwright's generic
+locator type is `SVGElement | HTMLElement` under strict TypeScript.
+
+**Why:** CSS selector strings do not narrow Playwright's element type to the
+corresponding HTML media interface.
+
+**Prevention:** Use an `instanceof HTMLAudioElement` guard inside
+`locator.evaluate()` and return only the measured state. Typecheck the browser
+specs independently of Playwright's runtime transpilation.
