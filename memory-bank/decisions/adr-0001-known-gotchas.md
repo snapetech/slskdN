@@ -164,6 +164,16 @@ not describe a reachable current UI state and does not establish a shipped
 focus-contrast defect. Verify that the application actually applies a tested
 mode/palette combination before recording a contrast failure.
 
+**Additional current-state finding (2026-09-29):** The default light theme
+does have a separate low-contrast player state. It falls back to `#6f5796`,
+which measures 2.66:1 against the live `#202126` player modal surface and 1.38:1
+against the player display's composed dark surface. The player modals keep that
+dark surface in light mode, so this path is reachable.
+
+**Prevention:** Check actual component surfaces as well as the page background.
+Use a locally scoped light outline on dark player panels while keeping the
+global dark outline for the surrounding light surface; verify contrast on both.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
