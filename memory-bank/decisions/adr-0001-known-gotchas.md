@@ -538,12 +538,18 @@ so Playwright locator handles were not the cause.
 
 **Why:** Portal removal makes `querySelector()` and connected-node counts look
 clean even while another retained reference keeps the detached subtree and its
-DOM objects alive. Natural-settle snapshots alone did not identify that owner.
+DOM objects alive. The owner was the declarative Semantic UI `EventStack`: it
+resolved a React ref while subscribing, then resolved that same ref again
+during unmount after React had cleared it, so cleanup targeted `document` and
+left the original DOM target registered. Natural-settle snapshots alone did
+not identify that owner.
 
 **Prevention:** For repeated portal/modal lifecycles, inspect detached DOM after
-forced garbage collection as well as connected DOM and total listeners. Treat
-an absent selector as proof of visibility cleanup only; trace retained owners
-before declaring the resource cycle complete.
+forced garbage collection as well as connected DOM and total listeners. Store
+the resolved subscription target and reuse it during cleanup; a ref may no
+longer point to the subscribed node by unmount time. Treat an absent selector
+as proof of visibility cleanup only; trace retained owners before declaring the
+resource cycle complete.
 
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
