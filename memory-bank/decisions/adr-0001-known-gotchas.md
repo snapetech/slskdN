@@ -366,6 +366,20 @@ underlying WebGL context or its GPU allocations.
 open/close resource cycles in the player soak so GPU allocation cleanup remains
 observable.
 
+### 0z1245. Preserve Default Exports In Vitest Module Mocks
+
+**What went wrong:** Butterchurn teardown unit tests mocked only the named
+`createVisualizer` export. The production adapter resolves the package's
+default export first, so every test failed in the mock resolver before reaching
+the teardown behavior under test.
+
+**Why:** A Vitest factory replaces the complete module namespace; it does not
+automatically retain the package's default export or CommonJS interop shape.
+
+**Prevention:** Match the import shape the production code consumes in every
+module mock. When testing a CommonJS-wrapped dependency, provide its default
+export explicitly and keep a test that reaches the actual failure/cleanup path.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
