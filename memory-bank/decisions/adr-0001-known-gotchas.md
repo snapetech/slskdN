@@ -208,20 +208,20 @@ so accessibility attributes can be missed in both or drift between layouts.
 assert their accessible values independently. Present the normalized value as
 a rounded percentage while retaining the numeric range for adjustment.
 
-### 0z1235. Activate The Visualizer Tile Before Auditing Its Controls
+### 0z1235. Respect Compact Visualizer Control Visibility In Browser Tests
 
 **What went wrong:** An E2E accessibility assertion could not find the
-visualizer engine control after opening the visualizer tools.
+visualizer engine control after selecting the compact Butterchurn tile.
 
-**Why:** Opening the player tools only reveals the visualizer toggle; the tile
-still defaults to album art, so the Visualizer component and its engine control
-were not mounted. The failed role query did not prove an accessibility-tree
-problem.
+**Why:** `PlayerVisualTile` passes `compactControls` to the embedded
+`Visualizer`, and the compact CSS intentionally hides its overlay toolbar with
+`display: none`. The tile-level mode and maximize controls are rendered beside
+the visualizer and remain the compact player's accessible controls.
 
-**Prevention:** Select an actual visualizer tile mode and assert its canvas or
-component is mounted before querying embedded controls by accessible role and
-name. Distinguish an unrendered control from a rendered control missing from
-the accessibility tree.
+**Prevention:** Use the visible tile-level controls when testing the compact
+player. Before treating a missing role locator as an accessibility defect,
+check that the control is rendered and visible in that mode. Test the full
+visualizer toolbar only in a mode where compact controls are not enabled.
 
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
