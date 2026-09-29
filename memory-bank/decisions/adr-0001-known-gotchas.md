@@ -33501,3 +33501,17 @@ alone did not make both applications use the same bus.
 registry with the identical `DISPLAY` string, `DBUS_SESSION_BUS_ADDRESS`, and
 XDG cache directory. Confirm the browser appears in `orca --list-apps` before
 counting any spoken-output test as a pass.
+
+### 0z1281. Handle Missing Linux Process-Tree Data In Resource Reports (2026-09-29)
+
+**What went wrong:** The first version of the Player resource summarizer assumed
+every capture included Linux `/proc` process-tree counters. Non-Linux captures
+retain browser and page metrics but set the owned-process-tree section to null,
+which left the coverage summary without a process count.
+
+**Why:** Process-level PSS and descendant enumeration are Linux-only probes;
+their absence is expected on other hosts and is not a malformed capture.
+
+**Prevention:** Treat process-tree data as optional throughout the report. Keep
+browser/page metrics available and print `n/a` for unavailable process-tree
+coverage rather than requiring Linux-only fields.
