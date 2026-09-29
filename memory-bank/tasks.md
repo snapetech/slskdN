@@ -5794,6 +5794,8 @@ resource completion.
 - [x] Pass the full 26-case PlayerBar suite in Chromium and Firefox and 24/26
   in WebKit (two unsupported API skips); pass all 1,098 Web tests, Web lint,
   strict browser TypeScript and repository lint.
+- [x] Commit and push the Tab-order regression and its immediate gotcha record
+  as `86badd421` and `282e14e6b`.
 - [ ] Continue actual assistive-technology speech, physical media controls and
   output routing, decode failure/retry, sustained resources, WAN radio and
   reciprocal-transfer verification.

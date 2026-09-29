@@ -1,3 +1,18 @@
+## Player keyboard Tab-order batch published — 2026-09-29 03:46 UTC
+
+Commits `282e14e6b` (immediate Tab-order gotcha) and `86badd421` (browser
+regression plus audit/task records) are published to `snapetech/slskdN/main`.
+Fetch confirms the local and remote SHA match and the worktree is clean. The
+26-workflow PlayerBar suites pass in Chromium and host Firefox; WebKit passes
+24 and capability-skips Media Session transport and Document PiP. All 1,098
+Web tests, strict browser TypeScript, Web lint and repository lint passed.
+This batch changes browser validation and internal audit records only.
+
+Next Steps: pursue actual assistive-technology speech, per-format server-decode
+failure/retry, physical device controls/routing, long-session resource plateau,
+WAN radio playback and real reciprocal-transfer admission. The player goal
+remains active; no release tag or deployment was created.
+
 ## Player keyboard Tab order verified — 2026-09-29 03:38 UTC
 
 - Added a browser workflow that walks every visible player focus stop with

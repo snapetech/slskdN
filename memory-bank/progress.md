@@ -1,3 +1,14 @@
+## Update 2026-09-29 03:46:00Z — Keyboard-order batch published
+
+Published immediate gotcha commit `282e14e6b` and Tab-order test/audit commit
+`86badd421` to `snapetech/slskdN/main`. The post-push fetch confirms exact
+local/origin SHA parity and a clean worktree. Browser matrix: Chromium 26/26,
+host Firefox 26/26, WebKit 24 passed with two capability skips. The 1,098 Web
+tests, Web lint, standalone strict E2E TypeScript and `./bin/lint` passed before
+publication. This batch adds complete visible Tab-order traversal across
+expanded, tools-open and compact player states; it does not claim actual
+assistive-technology speech. No release note/tag/deployment was added.
+
 ## Update 2026-09-29 03:38:00Z — Player full keyboard focus order
 
 Added a browser-level Tab walk for all visible expanded controls, the open
