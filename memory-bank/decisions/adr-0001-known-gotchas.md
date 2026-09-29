@@ -33561,3 +33561,16 @@ handling an interrupt or termination signal.
 **Prevention:** Keep cleanup on `EXIT`, and make `INT` and `TERM` traps exit
 with their conventional signal statuses so the exit trap performs cleanup
 while the interrupted workflow remains stopped.
+
+### 0z1285. Treat HTTP Redirects As Navigation, Not Failed Page Resources (2026-09-29)
+
+**What went wrong:** The Playwright login diagnostic classified successful 3xx
+redirect responses as failed resources even though the browser was following
+them to the final page.
+
+**Why:** The status filter handled ordinary 2xx responses and 304 cache hits but
+did not include HTTP redirect responses.
+
+**Prevention:** Treat HTTP 200–399 responses as non-failures in this diagnostic
+listener. Verify the final navigation and application state separately when a
+redirected page fails to load.
