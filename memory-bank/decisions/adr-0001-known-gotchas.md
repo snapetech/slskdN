@@ -33303,3 +33303,16 @@ consumption.
 **Prevention:** Use distinct names for authentication and browser-protocol
 sessions, read response content once, and parse that saved content only after
 checking the status.
+
+### 0z1268. Capture The Proxy Outside Transform Callbacks (2026-09-29)
+
+**What went wrong:** The TCP latency transform needed the owning proxy's delay
+settings and observation recorder. An initial draft referenced an outer owner
+through an identifier that had not been declared.
+
+**Why:** A Node.js `Transform` object's `transform` method receives the stream
+as `this`; it does not inherit the enclosing proxy instance.
+
+**Prevention:** Capture the proxy instance in a local variable before creating
+the transform callback, and typecheck the harness before running the network
+workflow.
