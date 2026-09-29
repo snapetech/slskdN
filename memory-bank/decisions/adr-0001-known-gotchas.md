@@ -33436,3 +33436,17 @@ seconds despite printing a 128 KiB/s target.
 measure transfer duration before sizing the workload. Assert transfers remain
 active at radio admission, then verify increasing bytes during playback before
 waiting for completion.
+
+### 0z1277. Use The SLSKD Prefix For Option Environment Variables (2026-09-29)
+
+**What went wrong:** The loopback transfer workflow set `UPLOAD_SPEED_LIMIT`
+and `DOWNLOAD_SPEED_LIMIT`, but the test nodes continued transferring hundreds
+of MiB per second with the supposed 128 KiB/s cap.
+
+**Why:** slskdN's option binder consumes the documented `SLSKD_`-prefixed
+environment variables. The unprefixed names are not effective overrides even
+though the option attributes use unprefixed keys internally.
+
+**Prevention:** Use the environment names listed in `docs/config.md`, including
+`SLSKD_UPLOAD_SPEED_LIMIT` and `SLSKD_DOWNLOAD_SPEED_LIMIT`, and verify observed
+transfer duration before relying on a throttled stress workload.
