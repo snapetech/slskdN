@@ -3623,7 +3623,9 @@ const PlayerBar = () => {
       playingRef.current = false;
       setPlaying(false);
       setPlaybackStatus('error');
-      setPlaybackError('This audio could not be decoded or streamed.');
+      setPlaybackError(transcodeMode
+        ? 'The server could not decode this audio. Press Play to retry.'
+        : 'This audio could not be decoded or streamed.');
       reportPlaybackEvent?.('pause', transcodeOffset + failedElement.currentTime);
       if (!transcodeMode && !current.streamUrl && !current.contentId.startsWith('local:')) {
         streaming.getPlaybackInfo(current.contentId).then((response) => {

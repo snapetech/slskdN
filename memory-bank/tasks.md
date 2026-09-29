@@ -5816,8 +5816,8 @@ resource completion.
 - [x] Commit and push the regression and immediate gotcha as `20de6ec67` and
   `55bd897e6`.
 - [ ] Run these three retries in functioning Firefox/WebKit runtimes and test a
-  server-generated FFmpeg startup/decode error; the current first failure is a
-  browser-injected 503.
+  server-generated FFmpeg startup/decode error in functioning Firefox/WebKit
+  runtimes; Chromium now covers the real server startup failure.
 
 
 ### Player visualizer resource teardown — 2026-09-29

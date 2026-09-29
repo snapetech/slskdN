@@ -132,6 +132,16 @@ in Firefox and WebKit because their current local Playwright runtimes do not
 launch successfully. Confidence is high for Chromium and open for the remaining
 engine/server-failure cases.
 
+### Server-generated FFmpeg startup failure — 2026-09-29
+
+A separate Chromium workflow forces the browser's native stream to fail, then
+uses a test node configured with a missing FFmpeg executable. The real
+`StreamsController` returns HTTP 503. The player surfaces a server-decoding
+message with an explicit Play retry, then resumes actual FFmpeg decoding after
+the watched test configuration is restored. This verifies the server-generated
+startup-failure and UI-recovery path in Chromium; cross-engine execution and a
+failure after FFmpeg has emitted partial audio remain open.
+
 ### Playback state announcements — 2026-09-29
 
 The player now maintains a polite, atomic status message in expanded, compact

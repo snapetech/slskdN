@@ -16,7 +16,13 @@ export class MultiPeerHarness {
   async startNode(
     name: string,
     shareDir: string | string[],
-    flags?: { noConnect?: boolean; radioMesh?: boolean; listenAlongMembers?: boolean; listenAlongPeers?: string[] },
+    flags?: {
+      noConnect?: boolean;
+      radioMesh?: boolean;
+      listenAlongMembers?: boolean;
+      listenAlongPeers?: string[];
+      ffmpegPath?: string;
+    },
   ): Promise<SlskdnNode> {
     if (this.nodes.has(name)) {
       throw new Error(`Node ${name} already exists`);
@@ -48,6 +54,16 @@ export class MultiPeerHarness {
     }
 
     return node;
+  }
+
+  /**
+   * Stop and remove a test node without affecting the other active nodes.
+   */
+  async stopNode(name: string): Promise<void> {
+    const node = this.nodes.get(name);
+    if (!node) return;
+    await node.stop();
+    this.nodes.delete(name);
   }
 
   /**

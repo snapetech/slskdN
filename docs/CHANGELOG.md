@@ -58,6 +58,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Release event targets when player dialogs close so repeated opens do not retain detached dialog trees.
 
+### Player transcode recovery
+
+- Explain that a server-decoding failure can be retried with Play.
+
 ## [2026092900-slskdn.329] — 2026-09-29
 
 ### Radio fairness accounting

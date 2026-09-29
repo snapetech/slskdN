@@ -113,6 +113,13 @@ test.describe('player browser playback', () => {
     if (fixtureDirectory) await fs.rm(fixtureDirectory, { recursive: true, force: true });
   });
 
+  test.afterEach(async ({ page }) => {
+    if (harness?.getNodeNames().includes('B')) {
+      await page.goto('about:blank');
+      await harness.stopNode('B');
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       const audioWindow = window as Window & { __playerAudioContexts?: number; __playerAudioContextInstances?: AudioContext[] };
@@ -414,6 +421,70 @@ test.describe('player browser playback', () => {
       expect(transcodeRequests).toBe(2);
     });
   }
+
+  test('recovers playback after the server cannot start FFmpeg', async ({ page }) => {
+    const missingFfmpegPath = path.join(fixtureDirectory, 'ffmpeg-unavailable');
+    await harness.startNode('B', 'test-data/slskdn-test-fixtures/music', {
+      noConnect: true,
+      ffmpegPath: missingFfmpegPath,
+    });
+    const node = harness.getNode('B');
+    await login(page, node.nodeCfg);
+
+    let nativeStreamFailures = 0;
+    let transcodeRequests = 0;
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname.endsWith('/transcoded')) transcodeRequests += 1;
+    });
+    await page.route((url) => url.pathname.startsWith('/api/v0/streams/') &&
+      url.pathname.split('/').length === 5, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      nativeStreamFailures += 1;
+      await route.fulfill({ status: 415, contentType: 'text/plain', body: 'Injected native-format rejection.' });
+    });
+
+    await page.getByTestId('player-open-file-browser').click();
+    const modal = page.getByTestId('player-file-browser-modal');
+    await modal.getByTestId('player-file-browser-search').locator('input').fill('Player format FLAC runtime');
+    await modal.getByRole('button', {
+      name: 'Play Player format FLAC runtime.flac',
+      exact: true,
+    }).click();
+    await expect(page.getByRole('button', { name: 'Decode for playback', exact: true })).toBeVisible();
+    expect(nativeStreamFailures).toBe(1);
+
+    const failedTranscode = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.startsWith('/api/v0/streams/') && url.pathname.endsWith('/transcoded');
+    });
+    await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
+    const failure = await failedTranscode;
+    expect(failure.status()).toBe(503);
+    expect(await failure.text()).toContain('FFmpeg is unavailable on this server.');
+    await expect(page.getByText('The server could not decode this audio. Press Play to retry.', { exact: true })).toBeVisible();
+
+    const configPath = path.join(node.getAppDir(), 'config', 'slskd.yml');
+    const config = await fs.readFile(configPath, 'utf8');
+    const restoredConfig = config.replace(/^    ffmpegPath: .*$/mu, '    ffmpegPath: "ffmpeg"');
+    expect(restoredConfig).not.toBe(config);
+    await fs.writeFile(configPath, restoredConfig, 'utf8');
+    await page.waitForTimeout(500);
+
+    const recoveredTranscode = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.startsWith('/api/v0/streams/') && url.pathname.endsWith('/transcoded') && response.status() === 200;
+    });
+    await page.getByTestId('player-toggle-playback').click();
+    const recovered = await recoveredTranscode;
+    expect(recovered.headers()['content-type']).toContain('audio/mpeg');
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) =>
+      !audio.paused && audio.currentTime > 0.2 && audio.currentSrc.includes('/transcoded')))).toBe(true);
+    expect(nativeStreamFailures).toBe(1);
+    expect(transcodeRequests).toBe(2);
+  });
 
   test('saves a queue, reloads its playlist and preserves repeated server entries', async ({ page }) => {
     await page.getByTestId('player-open-file-browser').click();

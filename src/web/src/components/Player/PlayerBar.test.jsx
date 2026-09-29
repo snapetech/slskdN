@@ -592,6 +592,32 @@ describe('PlayerBar', () => {
     await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
   });
 
+  it('explains server decode failures', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+    fireEvent.click(await screen.findByText('Decode for playback'));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('/transcoded?'));
+
+    Object.defineProperty(audio, 'error', { configurable: true, value: { code: 4 } });
+    fireEvent.error(audio);
+    expect(await screen.findByText('The server could not decode this audio. Press Play to retry.')).toBeInTheDocument();
+    expect(screen.getByTestId('player-playback-announcement')).toHaveTextContent(
+      'Playback error: Local stream. The server could not decode this audio. Press Play to retry.',
+    );
+
+    HTMLMediaElement.prototype.load.mockImplementation(() => {
+      Object.defineProperty(audio, 'error', { configurable: true, value: null });
+    });
+    streaming.createStreamTicket.mockClear();
+    streaming.createStreamTicket.mockResolvedValueOnce('retry-ticket');
+    fireEvent.click(screen.getByTestId('player-toggle-playback'));
+    await waitFor(() => expect(streaming.createStreamTicket).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('retry-ticket'));
+  });
+
   it('announces playback, pause, and media errors without announcing seek updates', async () => {
     renderPlayer();
     fireEvent.click(screen.getByText('Play fixture'));

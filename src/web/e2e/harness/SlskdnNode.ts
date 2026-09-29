@@ -15,6 +15,7 @@ export type NodeConfig = {
     radioMesh?: boolean;
     listenAlongMembers?: boolean;
     listenAlongPeers?: string[];
+    ffmpegPath?: string;
   };
   nodeName: string;
   shareDir: string | string[]; // Single dir or array for multiple shares
@@ -457,6 +458,9 @@ ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
     const listenAlongApiKeysYaml = listenAlongApiKeys.length > 0
       ? `    api_keys:\n${listenAlongApiKeys.map(([name, key]) => `      ${name}:\n        key: ${key}\n        role: readwrite`).join('\n')}\n`
       : '';
+    const ffmpegYaml = this.config.flags?.ffmpegPath === undefined
+      ? ''
+      : `integration:\n  chromaprint:\n    ffmpegPath: ${JSON.stringify(this.config.flags.ffmpegPath)}\n`;
     const configYaml = `web:
   port: ${this.apiPort}
   host: 127.0.0.1
@@ -491,7 +495,7 @@ directories:
   downloads: ${path.join(this.appDir, 'downloads')}
   incomplete: ${path.join(this.appDir, 'incomplete')}
 ${sharesYaml}
-feature:
+${ffmpegYaml}feature:
   IdentityFriends: true
   CollectionsSharing: true
   Streaming: true
