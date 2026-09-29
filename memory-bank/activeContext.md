@@ -1,3 +1,20 @@
+## Player FFmpeg decode failure published — 2026-09-29 07:49 UTC
+
+Commits `5b365ef51` (immediate gotcha 0z1258) and `ec758fa1e` (controller,
+Chromium regression, release note and audit/task updates) are published to
+`snapetech/slskdN/main`. The actual malformed-audio FFmpeg process previously
+returned empty HTTP 200; it now returns 503 before response headers commit.
+The 31-case PlayerBar suite, all 1,105 Web tests, Web lint, strict E2E
+TypeScript, repository lint and all .NET suites (5,346 unit, 74 smoke, 284
+integration) pass. Release preview, target and identity checks pass; remote and
+local SHAs match and the worktree is clean. No tag was created.
+
+Next Steps: test FFmpeg's post-output failure abort path and run the current
+server-decode failure cases in functioning Firefox/WebKit runtimes. Continue
+actual screen-reader speech, physical media controls and output routing,
+multi-hour resource plateau, WAN radio behavior and reciprocal-transfer
+admission validation. The player goal remains active.
+
 ## Player codec-retry batch published — 2026-09-29 04:07 UTC
 
 Gotcha `55bd897e6` and test/audit commit `20de6ec67` are published to

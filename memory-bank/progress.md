@@ -1,3 +1,21 @@
+## Update 2026-09-29 07:49:00Z — Player FFmpeg decode failure published
+
+Reproduced malformed audio returning an empty HTTP 200 after the real FFmpeg
+process failed. The route now waits for its first stdout bytes before committing
+the response, returns HTTP 503 when no audio is produced, and aborts a stream
+when the decoder exits unsuccessfully after output begins. A Chromium regression
+checks the real server error and player recovery guidance. Commits `5b365ef51`
+(gotcha 0z1258) and `ec758fa1e` are pushed to `snapetech/slskdN/main`; fetched
+`origin/main` matches exactly. Release preview, identity and fork checks pass.
+The 31-case PlayerBar suite, all 1,105 Web tests, Web lint, strict E2E
+TypeScript, repository lint, and `dotnet test` (5,346 unit, 74 smoke, 284
+integration) pass. No tag or build trigger was created.
+
+Next Steps: exercise the post-output abort path and new server-failure workflows
+in functioning Firefox/WebKit runtimes, then continue screen-reader, hardware,
+multi-hour resource, WAN and reciprocal-transfer validation. The player goal
+remains active.
+
 ## Update 2026-09-29 03:46:00Z — Keyboard-order batch published
 
 Published immediate gotcha commit `282e14e6b` and Tab-order test/audit commit
