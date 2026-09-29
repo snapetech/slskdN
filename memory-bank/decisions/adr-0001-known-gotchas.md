@@ -33207,3 +33207,20 @@ snapshot may have changed or how to refresh it.
 the two-node browser harness. Verify the active media request terminates, the
 player gives radio-specific retry/refresh guidance, and refreshing the picker
 plays the replacement or removes the withdrawn snapshot.
+
+### 0z1262. Synchronize Routed Media Failures At The Route Boundary (2026-09-29)
+
+**What went wrong:** A browser workflow fulfilled an audio-element request with
+an injected HTTP 503 and waited for Playwright's page-level response event.
+Chromium exposed that response, but WebKit entered the player's media-error
+state without emitting the matching page response event, leaving the test
+waiting until timeout.
+
+**Why:** Browser automation does not report fulfilled media-element routes
+through identical page response events across engines. The route handler is the
+reliable observation point for a response that the test itself injects.
+
+**Prevention:** Resolve test synchronization from the route handler when an
+injected media failure is fulfilled, then assert the browser media error and
+retry behavior separately. Run the workflow across engines instead of inferring
+WebKit coverage from a Chromium-only response event.
