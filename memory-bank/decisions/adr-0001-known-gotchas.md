@@ -407,6 +407,23 @@ property it replaces; strict TypeScript treats it as implicit `any`.
 for example `function (this: HTMLCanvasElement, ...)`, and run the standalone
 strict check on browser probes as part of the change.
 
+### 0z1248. Rebuild The Served UI Before Prebuilt-Backend Browser Probes
+
+**What went wrong:** An opt-in player resource script launched the existing
+Release backend directly. Its bundled `wwwroot` predated the Butterchurn
+cleanup change, so the browser exercised the old adapter and the new context
+loss event assertion timed out.
+
+**Why:** This focused Playwright script does not use the normal E2E lifecycle
+that builds assets. Vite's output alone is also not the static content served
+by the prebuilt backend; the current assets must be copied and included in a
+backend build.
+
+**Prevention:** Before a prebuilt-backend browser check, run the repository build
+path that builds the web bundle, copies it to `src/slskd/wwwroot`, and builds the
+Release backend. Verify the served bundle contains the changed code before
+interpreting browser evidence.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
