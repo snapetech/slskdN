@@ -3742,6 +3742,7 @@ const PlayerBar = () => {
           />
           <input
             aria-label="Playback volume"
+            aria-valuetext={`${Math.round(volume * 100)}%`}
             className="player-volume player-compact-secondary"
             max="1"
             min="0"
@@ -3979,6 +3980,7 @@ const PlayerBar = () => {
             />
             <input
               aria-label="Playback volume"
+              aria-valuetext={`${Math.round(volume * 100)}%`}
               className="player-volume"
               max="1"
               min="0"

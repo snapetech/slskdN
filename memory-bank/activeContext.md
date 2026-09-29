@@ -1,3 +1,18 @@
+## Player volume accessibility — 2026-09-29 02:22 UTC
+
+- Both compact and expanded volume sliders now expose a rounded percentage
+  through `aria-valuetext`; unit tests cover initial/change values, and the
+  cross-browser keyboard case verifies ArrowLeft/ArrowRight announcements.
+- Chromium, Firefox and WebKit targeted regressions pass. All 1,094 Web tests,
+  Web lint, strict player E2E TypeScript and repository `./bin/lint` pass.
+- The audit records that actual screen-reader speech remains unverified. Release
+  fragment and Unreleased changelog are prepared; exact-range preview, identity
+  and fork checks, commit and push remain. No tag is authorized or created.
+
+Next Steps: validate and publish this accessibility improvement, then continue
+the remaining player accessibility, codec cancellation, device, sustained
+resource, WAN and reciprocal-transfer audit.
+
 ## Player button tooltip audit — 2026-09-29 01:21 UTC
 
 - The ListenBrainz token-clear button now explains that it removes the saved

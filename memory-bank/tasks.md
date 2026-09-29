@@ -5737,3 +5737,16 @@ resource completion.
 - [ ] Continue the wider player audit: full control Tab order and screen-reader
   workflows, codec cancellation, physical device behavior, sustained resource
   budgets, WAN playback and live reciprocal-transfer admission.
+
+
+### Player volume accessibility — 2026-09-29
+
+- [x] Expose the compact and expanded volume slider values as accessible
+  percentages and cover initial values, changes, and keyboard adjustments.
+- [x] Verify the keyboard update in Chromium, Firefox and WebKit; pass all
+  1,094 Web tests, Web lint, strict player E2E TypeScript and `./bin/lint`.
+- [x] Update the player quality audit, Unreleased changelog and append-only
+  release fragment; exact-range validation, commit and push remain.
+- [ ] Continue broader player accessibility, codec cancellation, physical
+  device behavior, sustained-resource budgets, WAN playback and live
+  reciprocal-transfer admission.

@@ -323,6 +323,10 @@ describe('PlayerBar', () => {
     renderPlayer();
 
     expect(document.querySelector('.player-bar-collapsed')).toBeNull();
+    const volume = screen.getByLabelText('Playback volume');
+    expect(volume).toHaveAttribute('aria-valuetext', '100%');
+    fireEvent.change(volume, { target: { value: '0.42' } });
+    expect(volume).toHaveAttribute('aria-valuetext', '42%');
   });
 
   it('returns scroll and focus to playback when closing tools', async () => {
@@ -360,9 +364,11 @@ describe('PlayerBar', () => {
     fireEvent.loadedMetadata(audio);
     fireEvent.change(screen.getByLabelText('Seek playback'), { target: { value: '42' } });
     fireEvent.pointerUp(screen.getByLabelText('Seek playback'));
-    fireEvent.change(screen.getByLabelText('Playback volume'), { target: { value: '0.35' } });
+    const volume = screen.getByLabelText('Playback volume');
+    fireEvent.change(volume, { target: { value: '0.35' } });
     expect(audio.currentTime).toBe(42);
     expect(audio.volume).toBe(0.35);
+    expect(volume).toHaveAttribute('aria-valuetext', '35%');
   });
 
   it('publishes Now Playing only after playback starts and clears it at the final end', async () => {

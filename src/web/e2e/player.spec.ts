@@ -719,6 +719,13 @@ test.describe('player browser playback', () => {
       await page.keyboard.press('Shift+Tab');
       await expect(control).toBeFocused();
       await expect.poll(() => control.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+      if (name === 'Playback volume') {
+        await expect(control).toHaveAttribute('aria-valuetext', '100%');
+        await page.keyboard.press('ArrowLeft');
+        await expect(control).toHaveAttribute('aria-valuetext', '99%');
+        await page.keyboard.press('ArrowRight');
+        await expect(control).toHaveAttribute('aria-valuetext', '100%');
+      }
       const fieldFocus = await control.evaluate((element) => {
         const playerBar = element.closest('.player-bar');
         const surface = element.closest('.player-control-pad') || playerBar;

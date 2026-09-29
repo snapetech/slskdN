@@ -15187,6 +15187,18 @@ TypeScript, `./bin/lint`, and `dotnet test` (5,346 unit, 74 smoke, 284
 integration) pass. Exact release-range preview and publication checks remain.
 No tag was created. The full player objective remains active.
 
+## Update 2026-09-29 02:22:00Z — Player volume accessibility
+
+Added rounded percentage announcements to both compact and expanded volume
+sliders. Component tests cover default and changed values; a keyboard regression
+checks ArrowLeft/ArrowRight updates in Chromium, Firefox and WebKit. All 1,094
+Web tests, Web lint, strict E2E TypeScript and repository lint pass. Browser
+coverage confirms the accessible value exposed in the DOM; screen-reader speech
+across specific assistive-technology/browser combinations remains unverified.
+The release fragment and Unreleased changelog entry are prepared. Exact-range
+preview, commit and push remain. No tag was created; the full player audit stays
+active.
+
 ## Update 2026-09-29 02:10:00Z — Main player form-control focus
 
 Extended the Light-theme focus fix to the always-visible player controls. A

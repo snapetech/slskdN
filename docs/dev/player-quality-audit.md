@@ -75,6 +75,15 @@ used a one-pixel black native outline. Confidence is high for the tested
 controls; full player control order and assistive-technology output remain
 open.
 
+### Volume slider announcements — 2026-09-29
+
+The compact and expanded volume sliders now expose `aria-valuetext` as a
+rounded percentage. Unit coverage checks initial, changed and compact values;
+the cross-browser keyboard regression verifies that ArrowLeft and ArrowRight
+update the announced value in Chromium, Firefox and WebKit. Confidence is high
+for the rendered accessible value and keyboard update. Speech output from
+specific screen reader/browser combinations remains unverified.
+
 ### Constrained radio buffering and snapshot replacement — 2026-09-28
 
 An opt-in Playwright workflow runs the real two-backend listed-radio path in
