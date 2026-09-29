@@ -511,6 +511,22 @@ status messages, as they should.
 its stable message text. Do not rely on the application containing a single
 live status region.
 
+### 0z1255. Announce When The Current Player Item Is Cleared
+
+**What went wrong:** The first playback live-region implementation returned
+without updating its message when `current` became null. Pressing Stop therefore
+left stale “Now playing” text in the status and provided no announcement that
+playback had stopped.
+
+**Why:** The status mapping handled named track states but treated the empty
+player as “no update.” Clearing is itself a meaningful state transition and
+must replace the last announced track state.
+
+**Prevention:** Track the previously selected item and announce `Playback
+stopped.` when it transitions to null. Keep the live region mounted in compact,
+expanded and hidden-player render paths so the update is not lost during a
+layout change.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
