@@ -317,6 +317,22 @@ prototype, so those test overrides do not survive reload.
 before navigation or reload. Use `page.evaluate()` only when the target
 document is already loaded and no subsequent navigation discards the override.
 
+### 0z1242. Replace Native Output Routing When Using Fake Device IDs
+
+**What went wrong:** The resource-cycle test kept Chromium's native
+`AudioContext.setSinkId` when it was already available, then supplied synthetic
+output IDs. Chromium rejected the IDs and the player correctly restored the
+default output, causing the selection assertion to time out.
+
+**Why:** Feature detection only installs a test shim when an API is missing.
+That lets a supported native implementation receive fake hardware identifiers
+and makes a control-flow test depend on the machine's physical outputs.
+
+**Prevention:** For deterministic output-switch state tests, replace
+`AudioContext.prototype.setSinkId` unconditionally before navigation and
+provide matching fake `enumerateDevices()` results. Keep physical routing
+validation as a separate hardware test.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
