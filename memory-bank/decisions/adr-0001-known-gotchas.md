@@ -33242,3 +33242,18 @@ the server response.
 same ticketed stream URL with a direct fetch when server headers or an error
 body must be verified. For a deliberately truncated response, read only its
 headers and separately assert that the browser media request fails.
+
+### 0z1264. Avoid Exact HTML Media Request Counts Across Engines (2026-09-29)
+
+**What went wrong:** The server-generated FFmpeg recovery workflow expected
+exactly two transcoded media requests: one failed request and one user retry.
+WebKit issued additional media requests around the failure even though the
+explicit retry returned audio and playback resumed successfully.
+
+**Why:** HTML media elements can retry or reissue a resource request differently
+across browser engines. Counting every request does not identify which one was
+the user-triggered recovery.
+
+**Prevention:** Assert the failed media state, the successful response observed
+after the Play retry, and advancing playback. Reserve exact request counts for
+controlled API operations rather than browser-managed media loading.
