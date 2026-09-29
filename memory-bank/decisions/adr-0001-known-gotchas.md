@@ -165,6 +165,19 @@ its packaged frontend assets; it does not compile the current CSS on demand.
 prebuilt browser validation. Confirm the tested server serves the resulting
 assets.
 
+### 0z1232. Custom Focus Styles Can Override Shared Contrast Tokens
+
+**What went wrong:** Player rating buttons replaced the shared outline with a
+20%-opacity accent. A style-only regression passed even though the keyboard
+focus indicator was too faint to locate reliably.
+
+**Why:** A component-specific `:focus-visible` declaration silently overrode
+the inherited theme-aware focus color.
+
+**Prevention:** Audit computed per-control focus styles, including opacity and
+contrast. Reuse the shared focus token instead of adding translucent outlines;
+an `outline-style: solid` assertion alone does not establish visibility.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
