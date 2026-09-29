@@ -49,20 +49,23 @@ the active track and position, then assert the overlap and pause behavior. Keep
 keyboard-seeking coverage in a separate test that does not rely on a narrow
 timing window.
 
-### 0z1222. Verify Native Media Retry In Every Browser Engine
+### 0z1222. Validate The Browser Media Runtime Before Cross-Engine Claims
 
-**What went wrong:** A real-browser radio recovery test changed its controlled
-HTTP route from 503 to 200 and retried playback. Chromium and WebKit resumed,
-but Firefox kept the failed media element stopped. The previous browser gate
-had not run this retry path across engines.
+**What went wrong:** A Firefox run in the local Playwright container reported
+that radio recovery left playback stopped. The same run also failed ordinary
+generated-WAV playback, analyzer reads and AudioContext startup. The identical
+radio retry and crossfade cases passed in the installed host Firefox, so the
+container result did not isolate a player defect.
 
-**Why:** Native media error and reload behavior differs between browser
-engines; a successful retry in one engine does not establish that another
-engine left its failed resource state.
+**Why:** The container's Firefox/media runtime is not equivalent to the
+installed host browser environment. Without a passing native-media control,
+its application-level failures are ambiguous.
 
-**Prevention:** Exercise a rejected native media response followed by a
-successful retry in every supported browser engine. Assert both that the
-retry made a fresh request and that the media actually advances after it.
+**Prevention:** Before interpreting cross-engine player failures, require a
+basic generated-WAV playback and AudioContext smoke in that browser runtime.
+Use the known-functional host Firefox for this suite until the container media
+runtime passes those controls; record environment-specific failures without
+attributing them to the player.
 
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
