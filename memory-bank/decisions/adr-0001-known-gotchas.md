@@ -33358,3 +33358,19 @@ reveal an offscreen control.
 inside the visible player surface, then tap and verify the resulting native
 media state. For touch-specific coverage, also assert a touch pointer event
 reached the intended control.
+
+### 0z1272. Give Temporary Multi-Peer Shares A Fixture Root (2026-09-29)
+
+**What went wrong:** A local Soulseek integration case created peer share
+directories directly inside a temporary directory. `SlskdnNode` treated their
+parent as the test-fixture root and rejected startup because it lacked
+`meta/manifest.json` and the standard fixture directories.
+
+**Why:** The multi-peer harness validates the parent of each configured share
+directory as a complete E2E fixture root, even when the test supplies its own
+temporary share contents.
+
+**Prevention:** For temporary shares, create a dedicated fixture root with its
+`meta/manifest.json` and `book`, `music`, `movie` and `tv` directories, then
+place each peer's share directory directly under that root. Keep share file
+creation ordered after that scaffolding is ready.
