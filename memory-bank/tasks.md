@@ -5721,8 +5721,10 @@ resource completion.
   actions and Document PiP.
 - [x] Pass strict browser-spec TypeScript, 1,094 Web tests/170 files, Web lint,
   full `dotnet test`, repository lint, local-identity and GitHub-target checks.
-- [ ] Continue actual assistive-tech speech, cross-engine codec retry, physical
-  device, sustained resource, WAN and
+- [x] Run the six added codec-retry and server-generated FFmpeg failure
+  workflows in host Firefox and the matching Playwright WebKit container.
+- [ ] Continue actual assistive-tech speech, physical-device, sustained-resource,
+  WAN and
   distributed-state validation before closing the broader player audit.
 
 
@@ -5815,9 +5817,10 @@ resource completion.
   unit, 74 smoke, 284 integration).
 - [x] Commit and push the regression and immediate gotcha as `20de6ec67` and
   `55bd897e6`.
-- [ ] Run these three retries in functioning Firefox/WebKit runtimes and test a
-  server-generated FFmpeg startup/decode error in functioning Firefox/WebKit
-  runtimes; Chromium now covers the real server startup failure.
+- [x] Run all three retries plus real FFmpeg startup, pre-output and partial-
+  output failures in functioning Firefox/WebKit runtimes. The six workflows
+  pass in host Firefox and the matching Playwright WebKit container; WebKit's
+  failed media response status is verified with a direct ticketed fetch.
 
 
 ### Player visualizer resource teardown — 2026-09-29
@@ -5867,11 +5870,29 @@ resource completion.
 - [x] Exercise partial-output failure end to end with a Linux POSIX decoder
   shim; verify the aborted response becomes a browser media error with recovery
   guidance. The fixture skips outside Linux.
-- [ ] Run the malformed-media and server-generated failure cases in functioning
-  Firefox/WebKit runtimes.
+- [x] Run malformed-media, server startup and partial-output failure cases in
+  functioning Firefox/WebKit runtimes as part of the six-case media failure
+  matrix.
 - [ ] Continue actual screen-reader speech, physical media controls/routing,
   multi-hour resource plateau, WAN throughput, and reciprocal-transfer
   admission validation before closing the player audit.
+
+
+### Player listed-radio active snapshot recovery — 2026-09-29
+
+- [x] Replace listed content under the same party ID during actual two-backend
+  playback; verify the listener stream stops and the player gives retry/refresh
+  guidance.
+- [x] Discover and play the replacement on a fresh listener, then withdraw it
+  during playback; verify stream cancellation, guidance and directory removal.
+- [x] Pass the five runnable radio network workflows and the 32-case Player
+  media suite in Chromium and host Firefox; WebKit passes 30 and capability-
+  skips Media Session transport handlers and Document PiP. The separately
+  tagged 15-minute radio soak is skipped by default.
+- [x] Add user-facing release note/changelog and document the stale error-copy
+  assertion gotcha (`0z1265`).
+- [ ] Verify repeated admission during real Soulseek reciprocal transfers and
+  representative WAN conditions; see `docs/dev/player-quality-audit.md`.
 
 
 ### Player native playback resource baseline — 2026-09-29

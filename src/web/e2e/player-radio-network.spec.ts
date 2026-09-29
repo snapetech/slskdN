@@ -59,12 +59,14 @@ test.describe('listed radio between isolated nodes', () => {
   test.setTimeout(120_000);
   let harness: MultiPeerHarness;
   const activeTcpProxies: LatencyTcpProxy[] = [];
+  const transientRadioNodeNames: string[] = [];
 
   test.beforeAll(async () => {
     harness = new MultiPeerHarness();
     await harness.startNode('A', [], { noConnect: true, radioMesh: true });
     await harness.startNode('B', [], { noConnect: true, radioMesh: true });
     await fs.writeFile(path.join(harness.getNode('A').getAppDir(), 'downloads', 'Radio network tone.wav'), radioTone());
+    await fs.writeFile(path.join(harness.getNode('A').getAppDir(), 'downloads', 'Radio replacement tone.wav'), radioTone());
     await fs.writeFile(path.join(harness.getNode('B').getAppDir(), 'downloads', 'Reverse radio tone.wav'), radioTone(5));
   });
 
@@ -74,9 +76,13 @@ test.describe('listed radio between isolated nodes', () => {
 
   test.afterEach(async () => {
     const proxies = activeTcpProxies.splice(0);
-    const results = await Promise.allSettled(proxies.map((proxy) => proxy.close()));
+    const nodeNames = transientRadioNodeNames.splice(0);
+    const results = await Promise.allSettled([
+      ...proxies.map((proxy) => proxy.close()),
+      ...nodeNames.map((name) => harness.stopNode(name)),
+    ]);
     const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
-    if (failures.length) throw new AggregateError(failures.map((result) => result.reason), 'Latency proxy cleanup failed');
+    if (failures.length) throw new AggregateError(failures.map((result) => result.reason), 'Radio network fixture cleanup failed');
   });
 
   test('plays and seeks the real host snapshot through the listener gateway', async ({ page, request }) => {
@@ -234,6 +240,114 @@ test.describe('listed radio between isolated nodes', () => {
 
 
 
+  });
+
+  test('stops active radio when its host replaces or withdraws the snapshot', async ({ page, request }) => {
+    test.setTimeout(180_000);
+    const host = harness.getNode('A');
+    const listener = await harness.startNode('G', [], { noConnect: true, radioMesh: true });
+    transientRadioNodeNames.push('G');
+    const [hostSession, listenerSession] = await Promise.all([
+      request.post(`${host.apiUrl}/api/v0/session`, { data: { username: host.nodeCfg.username, password: host.nodeCfg.password } }),
+      request.post(`${listener.apiUrl}/api/v0/session`, { data: { username: listener.nodeCfg.username, password: listener.nodeCfg.password } }),
+    ]);
+    expect(hostSession.ok()).toBe(true);
+    expect(listenerSession.ok()).toBe(true);
+    const hostHeaders = { Authorization: `Bearer ${(await hostSession.json()).token}` };
+    const listenerHeaders = { Authorization: `Bearer ${(await listenerSession.json()).token}` };
+    const connection = await request.post(`${listener.apiUrl}/api/v0/overlay/connect`, {
+      headers: listenerHeaders, data: { address: '127.0.0.1', port: host.getOverlayPort() },
+    });
+    expect(connection.ok(), await connection.text()).toBe(true);
+
+    const findItem = async (title: string) => {
+      const response = await request.get(`${host.apiUrl}/api/v0/library/items/browser?query=${encodeURIComponent(title)}&kinds=Audio`, { headers: hostHeaders });
+      expect(response.ok()).toBe(true);
+      return (await response.json()).files.find((file: { fileName: string }) => file.fileName === `${title}.wav`) as { contentId: string } | undefined;
+    };
+    await expect.poll(async () => (await findItem('Radio network tone'))?.contentId).toBeTruthy();
+    await expect.poll(async () => (await findItem('Radio replacement tone'))?.contentId).toBeTruthy();
+    const initialItem = await findItem('Radio network tone');
+    const replacementItem = await findItem('Radio replacement tone');
+    expect(initialItem?.contentId).toBeTruthy();
+    expect(replacementItem?.contentId).toBeTruthy();
+
+    const radioPod = await createRadioRoom(request, host.apiUrl, hostHeaders, 'Active radio snapshot room');
+    const partyId = `active-radio-${randomUUID()}`;
+    const publish = (contentId: string, title: string, listed = true) => request.post(`${host.apiUrl}/api/v0/listening-party/${radioPod}/music`, {
+      headers: hostHeaders,
+      data: { partyId, action: 'play', contentId, title, listed, allowMeshStreaming: true, positionSeconds: 0 },
+    });
+    const initialPublication = await publish(initialItem!.contentId, 'Radio network tone');
+    expect(initialPublication.ok(), await initialPublication.text()).toBe(true);
+    const refreshDirectory = async () => {
+      const response = await request.get(`${listener.apiUrl}/api/v0/listening-party?refresh=true`, { headers: listenerHeaders });
+      expect(response.ok()).toBe(true);
+      return (await response.json()).find((party: { partyId: string }) => party.partyId === partyId) ?? null;
+    };
+    await expect.poll(refreshDirectory).toMatchObject({ contentId: initialItem!.contentId, title: 'Radio network tone' });
+
+    await page.addInitScript(() => localStorage.setItem('slskdn.player.collapsed', 'false'));
+    await login(page, listener.nodeCfg);
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByTestId('player-open-listed-radio').click();
+    const initialPlay = page.getByRole('button', { name: 'Play Radio network tone from listed radio', exact: true });
+    await expect(initialPlay).toBeVisible();
+    const initialResponsePromise = page.waitForResponse((response) => response.url().includes('/api/v0/mesh-streams/') && response.status() === 206);
+    const initialRequestPromise = page.waitForEvent('request', (current) => current.url().includes('/api/v0/mesh-streams/'));
+    await initialPlay.click();
+    const initialRequest = await initialRequestPromise;
+    expect((await initialResponsePromise).request()).toBe(initialRequest);
+    await expect.poll(() => audioElements(page).evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
+    const initialStreamFailure = page.waitForEvent('requestfailed', (current) => current === initialRequest);
+
+    const replacementPublication = await publish(replacementItem!.contentId, 'Radio replacement tone');
+    expect(replacementPublication.ok(), await replacementPublication.text()).toBe(true);
+    expect((await initialStreamFailure).failure()).not.toBeNull();
+    const streamStoppedCopy = 'The listed radio stream stopped or changed. Retry playback or refresh listed radio.';
+    await expect(page.locator('.player-now-playing .ui.mini.negative.message')).toHaveText(streamStoppedCopy);
+
+    const replacementListener = await harness.startNode('H', [], { noConnect: true, radioMesh: true });
+    transientRadioNodeNames.push('H');
+    const replacementListenerSession = await request.post(`${replacementListener.apiUrl}/api/v0/session`, {
+      data: { username: replacementListener.nodeCfg.username, password: replacementListener.nodeCfg.password },
+    });
+    expect(replacementListenerSession.ok()).toBe(true);
+    const replacementListenerHeaders = { Authorization: `Bearer ${(await replacementListenerSession.json()).token}` };
+    const replacementConnection = await request.post(`${replacementListener.apiUrl}/api/v0/overlay/connect`, {
+      headers: replacementListenerHeaders,
+      data: { address: '127.0.0.1', port: host.getOverlayPort() },
+    });
+    expect(replacementConnection.ok(), await replacementConnection.text()).toBe(true);
+    const replacementDirectory = await request.get(`${replacementListener.apiUrl}/api/v0/listening-party?refresh=true`, { headers: replacementListenerHeaders });
+    expect(replacementDirectory.ok()).toBe(true);
+    expect((await replacementDirectory.json()).some((party: { partyId: string; contentId: string }) =>
+      party.partyId === partyId && party.contentId === replacementItem!.contentId)).toBe(true);
+
+    await page.goto(replacementListener.nodeCfg.baseUrl);
+    await login(page, replacementListener.nodeCfg);
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByTestId('player-open-listed-radio').click();
+    await expect(page.getByRole('button', { name: 'Play Radio replacement tone from listed radio', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Play Radio network tone from listed radio', exact: true })).toHaveCount(0);
+    const replacementPlay = page.getByRole('button', { name: 'Play Radio replacement tone from listed radio', exact: true });
+    const replacementResponsePromise = page.waitForResponse((response) => response.url().includes('/api/v0/mesh-streams/') && response.status() === 206);
+    const replacementRequestPromise = page.waitForEvent('request', (current) => current.url().includes('/api/v0/mesh-streams/'));
+    await replacementPlay.click();
+    const replacementRequest = await replacementRequestPromise;
+    expect((await replacementResponsePromise).request()).toBe(replacementRequest);
+    await expect.poll(() => audioElements(page).evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime > 1))).toBe(true);
+    const replacementStreamFailure = page.waitForEvent('requestfailed', (current) => current === replacementRequest);
+
+    const withdrawal = await publish(replacementItem!.contentId, 'Radio replacement tone', false);
+    expect(withdrawal.ok(), await withdrawal.text()).toBe(true);
+    expect((await replacementStreamFailure).failure()).not.toBeNull();
+    await expect(page.locator('.player-now-playing .ui.mini.negative.message')).toHaveText(streamStoppedCopy);
+    await page.getByTestId('player-open-listed-radio').click();
+    await page.getByRole('button', { name: 'Refresh listed radio' }).click();
+    await expect(page.getByRole('button', { name: 'Play Radio replacement tone from listed radio', exact: true })).toHaveCount(0);
   });
 
   test('recovers listed radio on constrained browser and latency-shaped mesh links', async ({ page, request }) => {

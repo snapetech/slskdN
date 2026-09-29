@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Player listed-radio recovery
+
+- Explain when a listed radio stream stops or changes and offer retry or directory refresh guidance.
+
 ### Player dialog accessibility
 
 - Give player dialogs accessible names, contain keyboard focus while open, and restore focus to the control that opened them.

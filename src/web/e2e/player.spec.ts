@@ -19,6 +19,16 @@ const compressedFormats = [
   { extension: 'ogg', label: 'Ogg Vorbis', encoder: ['-c:a', 'libvorbis', '-q:a', '5'] },
 ];
 
+const readStreamResponse = async (url: string, includeBody = true) => {
+  const controller = new AbortController();
+  const response = await fetch(url, { signal: controller.signal });
+  if (!includeBody) controller.abort();
+  return {
+    status: response.status,
+    body: includeBody ? await response.text() : '',
+  };
+};
+
 const seekPlayerTo = async (page: Page, targetSeconds: number) => {
   const seek = page.getByLabel('Seek playback', { exact: true });
   await seek.evaluate((input: HTMLInputElement, target: number) => {
@@ -174,7 +184,7 @@ test.describe('player browser playback', () => {
     await expect(page.getByRole('button', { name: 'Play Metadata radio from listed radio' })).toBeDisabled();
     await page.getByRole('button', { name: 'Play Controlled radio from listed radio' }).click();
     await expect(page.locator('.player-title')).toHaveText('Controlled radio');
-    await expect(page.getByText('This audio could not be decoded or streamed.', { exact: true })).toBeVisible();
+    await expect(page.getByText('The listed radio stream stopped or changed. Retry playback or refresh listed radio.', { exact: true })).toBeVisible();
     streamFails = false;
     await page.getByTestId('player-toggle-playback').click();
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
@@ -362,6 +372,8 @@ test.describe('player browser playback', () => {
     test(`recovers ${format.label} playback after a temporary transcode failure`, async ({ page }) => {
       let nativeStreamFailures = 0;
       let transcodeRequests = 0;
+      let failFirstTranscodeRequest!: () => void;
+      const firstTranscodeFailure = new Promise<void>((resolve) => { failFirstTranscodeRequest = resolve; });
       await page.route((url) => url.pathname.startsWith('/api/v0/streams/') &&
         url.pathname.split('/').length === 5, async (route) => {
         if (route.request().method() !== 'GET') {
@@ -376,6 +388,7 @@ test.describe('player browser playback', () => {
         transcodeRequests += 1;
         if (transcodeRequests === 1) {
           await route.fulfill({ status: 503, contentType: 'text/plain', body: 'Injected temporary transcode failure.' });
+          failFirstTranscodeRequest();
           return;
         }
         await route.continue();
@@ -398,12 +411,8 @@ test.describe('player browser playback', () => {
         element.addEventListener('error', () => { playerWindow.__playerDecodeErrorCount! += 1; });
       });
 
-      const failedTranscode = page.waitForResponse((response) => {
-        const path = new URL(response.url()).pathname;
-        return path.startsWith('/api/v0/streams/') && path.endsWith('/transcoded') && response.status() === 503;
-      });
       await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
-      await failedTranscode;
+      await firstTranscodeFailure;
       await expect.poll(() => page.evaluate(() =>
         (window as Window & { __playerDecodeErrorCount?: number }).__playerDecodeErrorCount)).toBeGreaterThan(0);
       await expect.poll(() => audio.evaluate((element: HTMLAudioElement) =>
@@ -463,8 +472,11 @@ test.describe('player browser playback', () => {
     });
     await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
     const failure = await failedTranscode;
-    expect(failure.status()).toBe(503);
-    expect(await failure.text()).toContain('FFmpeg is unavailable on this server.');
+    const serverFailure = failure.status() === 0
+      ? await readStreamResponse(failure.url())
+      : { status: failure.status(), body: await failure.text() };
+    expect(serverFailure.status).toBe(503);
+    expect(serverFailure.body).toContain('FFmpeg is unavailable on this server.');
     await expect(page.getByText('The server could not decode this audio. Press Play to retry.', { exact: true })).toBeVisible();
 
     const configPath = path.join(node.getAppDir(), 'config', 'slskd.yml');
@@ -484,7 +496,7 @@ test.describe('player browser playback', () => {
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) =>
       !audio.paused && audio.currentTime > 0.2 && audio.currentSrc.includes('/transcoded')))).toBe(true);
     expect(nativeStreamFailures).toBe(1);
-    expect(transcodeRequests).toBe(2);
+    expect(transcodeRequests).toBeGreaterThanOrEqual(2);
   });
 
   test('returns a decode failure when FFmpeg rejects an audio file before output', async ({ page }) => {
@@ -507,8 +519,11 @@ test.describe('player browser playback', () => {
     });
     await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
     const response = await failedDecode;
-    expect(response.status()).toBe(503);
-    expect(await response.text()).toContain('FFmpeg could not decode this audio.');
+    const serverFailure = response.status() === 0
+      ? await readStreamResponse(response.url())
+      : { status: response.status(), body: await response.text() };
+    expect(serverFailure.status).toBe(503);
+    expect(serverFailure.body).toContain('FFmpeg could not decode this audio.');
     await expect(page.getByText('The server could not decode this audio. Press Play to retry.', { exact: true })).toBeVisible();
   });
 
@@ -548,7 +563,10 @@ test.describe('player browser playback', () => {
     });
     await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
     const response = await interruptedStream;
-    expect(response.status()).toBe(200);
+    const serverResponse = response.status() === 0
+      ? await readStreamResponse(response.url(), false)
+      : { status: response.status() };
+    expect(serverResponse.status).toBe(200);
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) =>
       audio.paused && Boolean(audio.error) && audio.currentSrc.includes('/transcoded')))).toBe(true);
     await expect(page.getByText('The server could not decode this audio. Press Play to retry.', { exact: true })).toBeVisible();

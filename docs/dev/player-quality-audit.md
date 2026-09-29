@@ -34,19 +34,16 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. Its 32 workflows pass in Linux Chromium. One partial-output
-failure workflow uses a POSIX decoder shim and skips outside Linux. The previous
-26-workflow cross-engine run passed in host Firefox and passed 24 with two
-capability skips in WebKit; it predates the three new codec-retry cases and the
-two server-generated FFmpeg failure cases. The new cases have not run in Firefox
-or WebKit here: Playwright Firefox timed out during navigation, the installed
-host Firefox exits when launched with Playwright's Juggler pipe, and WebKit
-could not launch because host dependencies are missing. Treat the cross-engine
-baseline as 26 cases until those runtimes can execute the new workflows. The
-suite covers actual native or server-decoded playback for each compressed
-format, plus controlled HTTP radio failure/retry and a synthetic directory
-response. Media Session callbacks are invoked in Chromium and Firefox, but this
-does not exercise physical headset buttons. Output-switch regressions use
+peer connections. All 32 workflows pass in Linux Chromium and host Firefox; in
+the matching Playwright WebKit container, 30 pass and two capability checks
+skip unsupported Media Session transport handlers and Document PiP. The
+partial-output failure uses a POSIX decoder shim and skips outside Linux. Host
+Firefox cannot launch with Playwright's Juggler pipe; the WebKit container
+supplies ABI libraries missing from the Arch host. WebKit reports status zero
+for failed page-level media responses, so tests probe the same ticketed URL
+directly to verify server headers while retaining the browser media error
+assertion. Media Session callbacks are invoked in Chromium and Firefox, but
+this does not exercise physical headset buttons. Output-switch regressions use
 simulated device APIs.
 
 | Area | Evidence | Status / confidence |
@@ -54,7 +51,7 @@ simulated device APIs.
 | Native transport | Actual PCM playback, Pause, absolute seeks, remount and queue advancement | Verified in Chromium, host Firefox and WebKit / high |
 | Server files | Indexed and unindexed downloads, direct switching and Play Next | Verified in Chromium, host Firefox and WebKit / high |
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
-| Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before and after first output | Setup cancellation: component/API tests / high; codec retry and both server-generated decode failure paths: Linux Chromium / high; cross-engine execution remains open |
+| Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before and after first output | Setup cancellation: component/API tests / high; six codec-retry/server-failure workflows pass in Chromium, Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
 | Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; screen-reader output remains open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 104 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
@@ -66,11 +63,30 @@ simulated device APIs.
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium, host Firefox and WebKit viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
 | Native playback resources | Fifteen one-minute samples across idle, local PCM playing, and paused states | Linux headless Chromium; measured browser process CPU/PSS and renderer/heap counters / moderate; multi-hour plateau, other engines/devices and portable budgets remain open |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; loopback mesh-link delay plus URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; WAN behavior and sustained throughput remain open |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket, 15-minute live renewal soak, active-stream replacement and withdrawal verified / high; loopback mesh-link delay plus URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; WAN behavior and sustained throughput remain open |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks, live-event precedence and authenticated cross-node updates | Actual Chromium PlayerBar catches the latest state after automatic transport recovery; two authenticated SignalR clients verify leave/rejoin/snapshot/live-ban behavior, and the two-backend browser workflow verifies initial snapshot, playback, Pause/Seek/Stop updates and banned-member denial over loopback / high; WAN behavior remains unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
 record the source version validated at that time.
+
+### Listed-radio active stream recovery — 2026-09-29
+
+The two-backend browser workflow starts playback from a published radio, swaps
+the content under the same party ID, and verifies the listener's active mesh
+request is cut off and the player explains how to retry or refresh. A fresh
+listener discovers and plays the replacement. Withdrawing that publication
+during playback cuts off the second stream, shows the same actionable guidance,
+and removes the room from the refreshed directory. The complete radio network
+spec passes five workflows; its separately tagged 15-minute soak is skipped by
+default. Confidence is high for replacement and withdrawal on the real loopback
+mesh path. WAN behavior and real Soulseek upload/download overlap remain open.
+
+The generic isolated PlayerBar radio regression also checks the same
+radio-specific failure copy before retrying a controlled HTTP stream. The full
+32-workflow suite passes in Chromium and Firefox; WebKit passes 30 and skips
+the two unsupported APIs. WebKit's page media response status is zero on failed
+requests; a separate ticketed fetch verifies the actual server status and error
+body. These cases do not validate physical audio output or physical media keys.
 
 ### Light-theme player focus contrast — 2026-09-29
 
@@ -297,12 +313,7 @@ are happening; that reciprocal-transfer workflow remains open.
 
 ## Remaining completion work
 
-- Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The loopback radio scenario now delays each mesh TCP stream chunk by 60 ms per direction and separately constrains the browser-to-listener HTTP leg; this does not model WAN packet loss, jitter, route changes or real sustained congestion. Updating a listed snapshot under a stable party ID is covered, while replacement or withdrawal during an already-playing listener session remains open. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
-- Complete the codec-retry matrix outside Chromium. Chromium verifies FLAC,
-  MP3 and Ogg recovery after a controlled 503, plus actual server-generated
-  FFmpeg launch failure, malformed-media failure before output, and a
-  nonzero-exit connection abort after output begins. Setup-request cancellation
-  separately covers seek supersession, track replacement and player unmount.
+- Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The loopback radio scenario now delays each mesh TCP stream chunk by 60 ms per direction and separately constrains the browser-to-listener HTTP leg; this does not model WAN packet loss, jitter, route changes or real sustained congestion. Active snapshot replacement and withdrawal now pass against two real backends. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
 - Verify physical mobile interactions, physical output routing/media buttons,
   and Picture-in-Picture window sizing/focus.
 - Measure sustained queue, visualizer, output-switch and floating-window cycles

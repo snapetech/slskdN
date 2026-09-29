@@ -1,3 +1,29 @@
+## Player listed-radio recovery and cross-engine media audit — 2026-09-29 15:07 UTC
+
+An active listed-radio stream now reports actionable retry/refresh guidance
+when its host replaces or withdraws the published content. A real two-backend
+browser workflow verifies stream cancellation during both changes, refreshed
+directory state, replacement playback and the visible recovery copy. The full
+radio network spec passes five workflows; its opt-in 15-minute soak is skipped
+by default. Immediate gotcha `0z1265` was committed separately as
+`b9d475c2d` after the updated message exposed a stale generic-error assertion.
+
+The complete Player media suite passes 32/32 in Chromium and host Firefox. The
+matching WebKit container passes 30 and capability-skips its two unsupported
+Media Session transport and Document PiP cases. All 1,105 Web tests, strict E2E
+TypeScript, Web lint, production build, `./bin/lint`, and `dotnet test` pass
+(5,346 unit, 74 smoke, 284 integration). The player copy, browser regression,
+audit and release note are updated. Exact release preview, target/identity
+checks, and commit/push remain for this batch.
+
+Next Steps: publish the validated player batch without creating a tag. Keep the
+broader Player initiative active: get real spoken live-region output through a
+disposable screen-reader setup if available, run a long-session resource
+plateau, and connect the browser fixture to the local Soulfind simulator for
+radio plus actual reciprocal file-transfer validation. Continue to record
+physical-device, deployment-WAN and target-hardware requirements with evidence;
+do not mark the initiative complete while local work or unresolved gaps remain.
+
 ## Player FFmpeg decode failure published — 2026-09-29 07:49 UTC
 
 Commits `5b365ef51` (immediate gotcha 0z1258) and `ec758fa1e` (controller,

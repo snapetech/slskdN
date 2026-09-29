@@ -15428,3 +15428,28 @@ congestion. Open player work still includes actual screen-reader output,
 physical controls/routing, cross-engine execution of the newest codec recovery
 cases, multi-hour resource plateau, portable resource budgets, WAN behavior and
 reciprocal Soulseek transfers. No tag or release was created.
+## Player listed-radio recovery and cross-engine media audit — 2026-09-29 15:07 UTC
+
+The player now explains that a listed-radio stream stopped or changed and
+offers retry/refresh guidance. A two-backend Playwright workflow verifies that
+replacing the publication under the same party ID stops the active stream,
+fresh directory state exposes the replacement, and withdrawing it also stops
+playback and removes the listing. The five runnable radio workflows pass; the
+optional 15-minute soak is skipped by default. Gotcha `0z1265` was documented
+and committed separately as `b9d475c2d` when the broader regression suite
+exposed one stale assertion for the previous generic error copy.
+
+Full Player media browser results: Chromium 32/32, host Firefox 32/32, and
+WebKit 30 passed with two capability skips for unsupported Media Session
+transport handlers and Document PiP. The six codec-retry and server-generated
+FFmpeg failure paths run in all three engines; WebKit's status-zero media event
+is checked against the same ticketed URL directly. All 1,105 Web tests, E2E
+TypeScript, Web lint, production build, repository lint, and full `dotnet test`
+(5,346 unit, 74 smoke, 284 integration) pass.
+
+The release fragment, changelog, player quality audit and task checklist are
+updated. Exact-range preview, GitHub target/identity checks, and publication
+are pending. Continue the Player goal after this batch: validate actual
+screen-reader speech, sustained resource plateau, local Soulfind reciprocal
+transfer plus radio overlap, and physical/WAN/target-hardware requirements.
+No tag, release or deployment was created.
