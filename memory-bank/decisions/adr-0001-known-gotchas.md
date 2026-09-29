@@ -33405,3 +33405,18 @@ to Soulseek browse or transfer operations.
 Soulseek peer relationship required by the browse/transfer API before asking
 for the remote share list. Keep mesh connection assertions separate from
 Soulseek peer readiness.
+
+### 0z1275. Keep Peer Browse Results Paired With Their Download Owners (2026-09-29)
+
+**What went wrong:** A two-node transfer test fetched the listener's file first
+and the host's file second, but assigned those positional results to variables
+in the opposite order. Each node then requested the other node's own file, and
+the remote upload path correctly rejected it as not shared.
+
+**Why:** `Promise.all` preserves input order; it does not infer names from the
+semantic role of the returned values. The reversed assignment made both enqueue
+requests validly refer to files that the recipient did not own.
+
+**Prevention:** Name peer-specific browse results at the point they are
+requested, keep each result paired with the node that owns it, and assert the
+remote share prefix before enqueueing reciprocal transfers.
