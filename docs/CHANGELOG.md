@@ -30,6 +30,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Explain the ListenBrainz token removal action on hover so users know it clears the browser-session token.
 
+### Player keyboard focus
+
+- Keep keyboard focus visible on form fields in dark player dialogs when using the Light theme.
+
 ## [2026092900-slskdn.329] — 2026-09-29
 
 ### Radio fairness accounting

@@ -15171,3 +15171,18 @@ across 170 files. Web lint and production build pass. The full repository lint
 and .NET suite passed on the immediately preceding player-only source batch;
 this follow-up changes only Web source and tests. The new user-facing release
 fragment and changelog bullet are present. Exact preview, commit and push remain.
+## Update 2026-09-29 01:45:00Z — Player Light-theme focus contrast
+
+Browser measurements found that the keyboard-focused playlist-name field in
+the queue dialog had no focus outline: the global rule did not include form
+fields. Added a player-dialog field outline and a brighter outline token for
+the dark player panels used in Light theme. The E2E assertion confirms a solid
+focus-visible ring with at least 3:1 contrast against the rendered dark queue
+modal in Chromium, host Firefox and WebKit.
+
+The full 24-case player suite passes in Chromium and Firefox; WebKit passes 22
+with capability skips for Media Session actions and Document PiP. The 1,094 Web
+unit tests, Web lint and production build, strict standalone browser-spec
+TypeScript, `./bin/lint`, and `dotnet test` (5,346 unit, 74 smoke, 284
+integration) pass. Exact release-range preview and publication checks remain.
+No tag was created. The full player objective remains active.

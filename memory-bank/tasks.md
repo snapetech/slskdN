@@ -5719,3 +5719,18 @@ resource completion.
 - [ ] Continue codec cancellation/retry, full keyboard focus order and
   assistive-tech checks, physical device, sustained resource, WAN and
   distributed-state validation before closing the broader player audit.
+
+
+### Player Light-theme focus contrast — 2026-09-29
+
+- [x] Fix the missing keyboard outline on form fields focused when a dark
+  player dialog opens in the Light theme; use a brighter shared outline across
+  dark player surfaces.
+- [x] Measure the rendered dialog focus outline at 3:1 or higher in Chromium,
+  Firefox and WebKit. Full player suite passes 24/24 in Chromium and Firefox;
+  WebKit passes 22 and skips its two unsupported APIs.
+- [x] Run strict E2E TypeScript and update the quality audit, changelog and
+  append-only release fragment.
+- [ ] Continue the wider player audit: full control Tab order and screen-reader
+  workflows, codec cancellation, physical device behavior, sustained resource
+  budgets, WAN playback and live reciprocal-transfer admission.

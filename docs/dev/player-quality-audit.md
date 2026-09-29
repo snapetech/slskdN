@@ -1,6 +1,6 @@
 # Player quality audit
 
-Updated: 2026-09-28. The player overhaul remains active.
+Updated: 2026-09-29. The player overhaul remains active.
 
 ### Resource coverage correction — 2026-09-28
 
@@ -34,8 +34,8 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. Its 23 workflows pass in Chromium and host Firefox; WebKit
-passes 21 and feature-skips two unsupported APIs. The suite covers actual native
+peer connections. Its 24 workflows pass in Chromium and host Firefox; WebKit
+passes 22 and feature-skips two unsupported APIs. The suite covers actual native
 or server-decoded playback for each compressed format, plus controlled HTTP radio
 failure/retry and a synthetic directory response. Media Session callbacks are
 invoked in Chromium and Firefox, but this does not exercise physical headset
@@ -47,7 +47,7 @@ buttons. Output-switch regressions use simulated device APIs.
 | Server files | Indexed and unindexed downloads, direct switching and Play Next | Verified in Chromium, host Firefox and WebKit / high |
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
-| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close and opener restoration | Queue workflow verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full control order and screen-reader output remain open |
+| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full control order and screen-reader output remain open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 104 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
@@ -61,6 +61,17 @@ buttons. Output-switch regressions use simulated device APIs.
 
 See the dated validation sections below for latest gate counts; earlier counts
 record the source version validated at that time.
+
+### Light-theme player focus contrast — 2026-09-29
+
+Dark player surfaces remain in use in Light theme. Their inherited page focus
+outline was only 2.66:1 against the browser modal. The player now supplies a
+brighter outline color on its dark display, visualizer, analyzer tiles, and
+browser dialogs, and adds a visible outline to keyboard-focused form fields
+inside player dialogs. The real queue dialog test measures the rendered outline
+against its dark surface and requires at least 3:1 in Chromium, Firefox and
+WebKit. Confidence is high for that tested dialog surface; full player control
+order and assistive-technology output remain open.
 
 ### Constrained radio buffering and snapshot replacement — 2026-09-28
 
@@ -151,8 +162,8 @@ are happening; that reciprocal-transfer workflow remains open.
 
 ## Cross-engine media suite — 2026-09-28
 
-The complete 23-case `src/web/e2e/player.spec.ts` suite passes in Chromium and
-host Firefox. In the Playwright WebKit container, 21 cases pass and two are
+The complete 24-case `src/web/e2e/player.spec.ts` suite passes in Chromium and
+host Firefox. In the Playwright WebKit container, 22 cases pass and two are
 skipped after capability checks: WebKit does not expose Media Session transport
 action handlers or Document Picture-in-Picture. Those skips do not mask failed
 assertions. Firefox ran on the host because the stripped Playwright Firefox

@@ -633,6 +633,62 @@ test.describe('player browser playback', () => {
     await expect(trigger).toBeFocused();
   });
 
+  test('keeps the keyboard focus ring visible on dark player dialogs in light theme', async ({ page }) => {
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    await expect.poll(() => page.locator('audio').evaluateAll(
+      (elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2),
+    )).toBe(true);
+
+    await page.getByTestId('theme-menu').click();
+    await page.getByTestId('theme-option-light').click();
+    await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('light'))).toBe(true);
+
+    const trigger = page.getByTestId('player-open-queue');
+    await expect(trigger).toBeEnabled();
+    await trigger.focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(trigger).toBeFocused();
+    await expect.poll(() => trigger.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+    await page.keyboard.press('Enter');
+
+    const dialog = page.getByRole('dialog', { name: 'Playback Queue', exact: true });
+    await expect(dialog).toBeVisible();
+    const initialFocus = page.getByRole('textbox', { name: 'New playlist name', exact: true });
+    await expect(initialFocus).toBeFocused();
+    await expect.poll(() => initialFocus.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+    const focusContrast = await page.evaluate(() => {
+      const modal = document.querySelector('.player-queue-modal');
+      const focused = document.activeElement;
+      if (!modal || !(focused instanceof HTMLElement)) return null;
+
+      const relativeLuminance = (color: string) => {
+        const channels = color.match(/[\d.]+/g);
+        if (!channels || channels.length < 3) return null;
+        const linear = channels.slice(0, 3).map((channel) => {
+          const value = Number(channel) / 255;
+          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        });
+        return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      };
+
+      const outlineColor = window.getComputedStyle(focused).outlineColor;
+      const surfaceColor = window.getComputedStyle(modal).backgroundColor;
+      const outlineLuminance = relativeLuminance(outlineColor);
+      const surfaceLuminance = relativeLuminance(surfaceColor);
+      if (outlineLuminance === null || surfaceLuminance === null) return null;
+
+      const [lighter, darker] = [outlineLuminance, surfaceLuminance].sort((left, right) => right - left);
+      return {
+        outlineStyle: window.getComputedStyle(focused).outlineStyle,
+        ratio: (lighter + 0.05) / (darker + 0.05),
+      };
+    });
+
+    expect(focusContrast?.outlineStyle).toBe('solid');
+    expect(focusContrast?.ratio).toBeGreaterThanOrEqual(3);
+  });
+
   test('keeps compact and expanded controls within desktop and narrow viewports', async ({ page }, testInfo) => {
     const minimumMeasuredTouchSize = 44 - 0.01;
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);

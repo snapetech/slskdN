@@ -16047,3 +16047,21 @@ negative tests and make shared lifecycle ordering follow current playback intent
 verify 900-second listed-host/capability expiry and tab ownership; then proceed
 to distributed-state/index, resource/format/device/accessibility validation.
 ## Update 2026-09-28 18:19 UTC
+## Player Light-theme focus contrast — 2026-09-29 01:45 UTC
+
+Added visible keyboard focus to player-dialog form fields and a brighter focus
+outline for dark player surfaces under the Light theme. Chromium, host Firefox
+and WebKit each pass the real queue-modal contrast regression at 3:1 or higher.
+The full 24-case suite passes in Chromium and Firefox; WebKit passes 22 with its
+two unsupported APIs skipped. Strict E2E TypeScript and the Web production build
+pass. The 1,094 Web unit tests, Web lint, `./bin/lint`, and `dotnet test` (5,346
+unit, 74 smoke, 284 integration) also pass. The release fragment, changelog,
+quality audit and task record are updated; exact-range release preview and
+publication checks remain.
+
+Next Steps: validate the release-note range from `.329`, verify fork and
+identity checks, commit and push the complete player batch including its
+separately committed gotchas. Continue full player
+Tab order/screen-reader validation, codec cancellation, physical device checks,
+sustained resource budgets, WAN behavior and reciprocal-transfer admission. No
+tag or deployment was created.
