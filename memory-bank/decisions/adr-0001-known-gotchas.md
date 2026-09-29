@@ -33589,3 +33589,15 @@ container even when a suitable mounted directory was already prepared.
 **Prevention:** Pass the mounted test home explicitly to both `docker run` and
 each `docker exec` process. Keep the host home unchanged for the build and
 Playwright commands.
+
+### 0z1287. Use Orca's Registered Speech-Backend Module Name (2026-09-29)
+
+**What went wrong:** The screen-reader runner selected `speechdispatcher`, but
+the installed Orca version registers its Speech Dispatcher backend as
+`speechdispatcherfactory`.
+
+**Why:** Orca's `--speech-system` option expects a registered speech factory
+module name, not the shorter name of the external speech-dispatcher service.
+
+**Prevention:** Check the installed Orca `speechFactoryModules` list and use
+the exact registered module name when selecting a speech backend.
