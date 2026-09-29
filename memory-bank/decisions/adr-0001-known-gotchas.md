@@ -139,6 +139,19 @@ not establish the player state required by that control.
 **Prevention:** Load generated media and wait for playback progress before
 testing the queue dialog. Assert the launcher is enabled before activating it.
 
+### 0z1230. Dialog Focus Can Land On Form Fields
+
+**What went wrong:** The queue dialog correctly moved focus to its first field,
+but the shared focus-visible rule only covered links, buttons, and menu-like
+controls. The focused playlist-name input had no visible keyboard outline.
+
+**Why:** The dialog's first focusable element is an input, while the global
+focus-ring selector omitted inputs, selects, textareas, and editable content.
+
+**Prevention:** Include form fields in focus-indicator coverage, especially for
+dialogs that programmatically move focus on entry. Verify the focused field's
+visible outline and contrast in a real browser.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
