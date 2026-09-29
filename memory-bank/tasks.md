@@ -5776,7 +5776,8 @@ resource completion.
   Web lint and strict browser TypeScript.
 - [x] Pass production build, repository lint, backend tests and full player
   browser gates.
-- [ ] Preview release notes, then commit and push.
+- [x] Preview the exact release range and push commit `7c51ff0e8` with gotcha
+  record `113236404`.
 - [ ] Continue format-specific decode failure/retry, full screen-reader and
   keyboard workflows, physical devices, sustained resources, WAN and live
   reciprocal-transfer validation.

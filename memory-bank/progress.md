@@ -1,3 +1,11 @@
+## Update 2026-09-29 03:20:00Z — Player decode cancellation published
+
+The exact preview from `build-main-2026092900-slskdn.329` included the decode
+setup cancellation release note. After GitHub-target and identity checks passed,
+commit `7c51ff0e8` and its required gotcha record `113236404` were pushed to
+`snapetech/slskdN/main`. No tag was created; the wider player audit remains
+active.
+
 ## Update 2026-09-29 03:16:00Z — Player decode cancellation validation
 
 Server-decoded setup now passes abort signals to stream-ticket and playback-info

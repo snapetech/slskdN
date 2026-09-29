@@ -8,7 +8,8 @@
   across 170 files. Web lint, strict browser TypeScript, production build,
   repository lint and full backend tests pass. Full PlayerBar browsers pass
   Chromium 25/25, Firefox 25/25, WebKit 24/25 with one unsupported-API skip.
-  Exact release preview, commit and push remain. No tag was created.
+  The exact release preview passed and commit `7c51ff0e8` (plus gotcha
+  `113236404`) is pushed to `snapetech/slskdN/main`. No tag was created.
 - Player quality audit records actual screen-reader speech, format-specific
   server-decode failure/retry, physical devices, sustained resources, and WAN
   reciprocal-transfer evidence as remaining gaps.
