@@ -33159,3 +33159,17 @@ with a real FFmpeg launch against malformed media, not only an executable that
 fails to start. If a nonzero exit occurs after response bytes have been sent,
 abort the connection so the client observes an incomplete stream rather than
 a clean end-of-file.
+
+### 0z1259. Scope Visible Player Errors Away From Mirrored Live Announcements
+
+**What went wrong:** A radio recovery browser assertion used a page-wide exact
+text locator for an error shown in the visible inline alert. The assertion
+failed strict mode when the same copy also appeared in the player's live status.
+
+**Why:** The accessible playback announcement intentionally mirrors visible
+error text so screen-reader users receive the same recovery message. Page-wide
+text queries therefore match both the inline alert and the live region.
+
+**Prevention:** Scope visible-error checks to the inline alert container and
+announcement checks to the player status test id or `status` role. Keep
+assertions explicit about whether they target visual copy or live-region text.
