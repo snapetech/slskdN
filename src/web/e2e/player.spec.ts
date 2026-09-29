@@ -13,6 +13,11 @@ import { expect, test } from '@playwright/test';
 
 // Generated PCM exercises the browser decoder without downloaded media,
 // personal files, or remote peer requests.
+const compressedFormats = [
+  { extension: 'flac', label: 'FLAC', encoder: ['-c:a', 'flac'] },
+  { extension: 'mp3', label: 'MP3', encoder: ['-c:a', 'libmp3lame', '-q:a', '5'] },
+  { extension: 'ogg', label: 'Ogg Vorbis', encoder: ['-c:a', 'libvorbis', '-q:a', '5'] },
+];
 
 const seekPlayerTo = async (page, targetSeconds: number) => {
   const seek = page.getByLabel('Seek playback', { exact: true });
@@ -41,6 +46,14 @@ test.describe('player browser playback', () => {
     await fs.writeFile(firstFile, makeTone());
     await fs.writeFile(secondFile, makeTone(41));
     await promisify(execFile)('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', firstFile, '-c:a', 'pcm_s16be', path.join(fixtureDirectory, 'Player decoded runtime.aiff')]);
+    for (const format of compressedFormats) {
+      const outputPath = path.join(fixtureDirectory, `Player format ${format.label} runtime.${format.extension}`);
+      await promisify(execFile)('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error', '-i', firstFile,
+        ...format.encoder,
+        outputPath,
+      ]);
+    }
     harness = new MultiPeerHarness();
     await harness.startNode('A', 'test-data/slskdn-test-fixtures/music', { noConnect: true });
     await fs.writeFile(path.join(harness.getNode('A').getAppDir(), 'downloads', 'Downloaded runtime.wav'), makeTone(42));
@@ -265,6 +278,31 @@ test.describe('player browser playback', () => {
         !element.paused && element.currentTime >= 5 && element.currentTime < 7))).toBe(true);
     }
   });
+
+  for (const format of compressedFormats) {
+    test(`plays server ${format.label} natively or through on-demand decoding`, async ({ page }) => {
+      await page.getByTestId('player-open-file-browser').click();
+      const modal = page.getByTestId('player-file-browser-modal');
+      await modal.getByTestId('player-file-browser-search').locator('input').fill(`Player format ${format.label} runtime`);
+      await modal.getByRole('button', {
+        name: `Play Player format ${format.label} runtime.${format.extension}`,
+        exact: true,
+      }).click();
+
+      const audio = page.locator('audio');
+      const decodeButton = page.getByRole('button', { name: 'Decode for playback', exact: true });
+      await expect.poll(async () => (await decodeButton.count()) > 0 || await audio.evaluateAll((elements) =>
+        (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+      if (await decodeButton.count() > 0) {
+        await decodeButton.click();
+        await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
+          !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('/transcoded')))).toBe(true);
+      } else {
+        await expect.poll(() => audio.evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) =>
+          !element.paused && element.currentTime > 0.2 && !element.currentSrc.includes('/transcoded')))).toBe(true);
+      }
+    });
+  }
 
   test('saves a queue, reloads its playlist and preserves repeated server entries', async ({ page }) => {
     await page.getByTestId('player-open-file-browser').click();
