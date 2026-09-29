@@ -33316,3 +33316,15 @@ as `this`; it does not inherit the enclosing proxy instance.
 **Prevention:** Capture the proxy instance in a local variable before creating
 the transform callback, and typecheck the harness before running the network
 workflow.
+
+### 0z1269. Create E2E Fixture Directories Before Writing Their Files (2026-09-29)
+
+**What went wrong:** The local Soulseek radio fixture started directory
+creation and file writes together in one `Promise.all`, allowing writes to run
+before their parent directories existed.
+
+**Why:** The file-write promises depend on the directory-creation promises;
+parallelizing them removes the required ordering.
+
+**Prevention:** Await creation of fixture directories first, then write their
+contents. Use parallel work only between operations with no dependency.
