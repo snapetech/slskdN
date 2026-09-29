@@ -33272,3 +33272,19 @@ radio branch, while the old test encoded stale copy.
 **Prevention:** Assert the recovery guidance for the media source being tested.
 For listed-radio failures, verify retry/refresh direction; reserve generic
 decode copy assertions for ordinary audio sources.
+
+### 0z1266. Extend JWT Lifetime For Multi-Hour Browser Measurements (2026-09-29)
+
+**What went wrong:** A two-hour native player resource run stopped after about
+65 minutes. The audio source disappeared and the resource assertion failed,
+leaving a partial sample that could not establish a multi-hour plateau.
+
+**Why:** The isolated E2E backend used the normal one-hour JWT lifetime. Its
+first expired-token 401 correctly cleared the browser token and reloaded the
+app to the login page, ending the measured playback session.
+
+**Prevention:** Give the isolated backend an explicitly longer JWT lifetime
+for any single-session browser measurement that exceeds the default
+`web.authentication.jwt.ttl` of 3,600,000 milliseconds. Keep the production
+authentication lifetime unchanged, and verify the complete sample reaches its
+terminal pass before using its resource data.
