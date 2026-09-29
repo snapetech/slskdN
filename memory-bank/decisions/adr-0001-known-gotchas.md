@@ -551,6 +551,23 @@ longer point to the subscribed node by unmount time. Treat an absent selector
 as proof of visibility cleanup only; trace retained owners before declaring the
 resource cycle complete.
 
+### 0z1257. Test The Peer-Resolved EventStack Instance
+
+**What went wrong:** A cleanup regression test imported the transitive
+`@semantic-ui-react/event-stack` package directly from the workspace root. pnpm
+resolved that import to its hoisted, unpatched copy, while Semantic UI used the
+peer-qualified patched copy. The test therefore failed against a different
+singleton than the player modal uses.
+
+**Why:** pnpm can install distinct package instances for different peer
+dependency contexts even when their package names and versions match. A direct
+test import does not guarantee that it observes the dependency instance loaded
+by the component under test.
+
+**Prevention:** For patched transitive peer dependencies, exercise the consuming
+component or import through its resolved package context. Check the actual
+runtime module path before treating a singleton mismatch as a product failure.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
