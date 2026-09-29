@@ -65,7 +65,8 @@ simulated device APIs.
 | Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in Chromium and host Firefox / high; WebKit does not support Document PiP; physical window sizing and focus unverified |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium, host Firefox and WebKit viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; WAN and sustained throughput remain open |
+| Native playback resources | Fifteen one-minute samples across idle, local PCM playing, and paused states | Linux headless Chromium; measured browser process CPU/PSS and renderer/heap counters / moderate; multi-hour plateau, other engines/devices and portable budgets remain open |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket and 15-minute live renewal soak verified / high; loopback mesh-link delay plus URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; WAN behavior and sustained throughput remain open |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks, live-event precedence and authenticated cross-node updates | Actual Chromium PlayerBar catches the latest state after automatic transport recovery; two authenticated SignalR clients verify leave/rejoin/snapshot/live-ban behavior, and the two-backend browser workflow verifies initial snapshot, playback, Pause/Seek/Stop updates and banned-member denial over loopback / high; WAN behavior remains unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
@@ -203,6 +204,23 @@ the constrained listener's already-consumed fairness budget. Confidence is
 high for this loopback workflow. It does not establish WAN behavior, direct
 Soulseek reciprocity, or long-duration throughput.
 
+### Added mesh-link delay shaping — 2026-09-29
+
+The constrained listener now connects to the host overlay through an E2E-only
+local TCP proxy. It delays each forwarded Node TCP stream chunk by 60 ms in
+both directions while the browser's URL-scoped 24 KiB/s and 450 ms profile is
+active. The test checks that the proxy carried bytes in both directions, the
+radio buffered under load, and an unbuffered seek recovers after the browser
+profile improves. It closes the proxy and temporary peer before testing a new
+listener, so the suite does not accumulate local overlay connections. The
+complete four-workflow non-soak radio network suite passes in Linux Chromium,
+including the two-minute ticket-expiry and host-session fencing cases.
+
+This is a deterministic loopback delay injection, not a calibrated RTT or WAN
+emulator. Per-chunk scheduling can affect throughput as well as propagation;
+it does not model packet loss, jitter, routing changes or real deployment
+congestion. WAN performance and reciprocal Soulseek transfers remain open.
+
 ## Resource sample
 
 Ten-second intervals, one isolated headless browser, native PCM, no audio graphs:
@@ -221,6 +239,31 @@ playing memory increase over idle was 14.74 MiB. Confidence in these samples is
 moderate. They are retained as an earlier measurement; the repeated
 current-source windows below supersede them for idle/play/pause baseline
 coverage. Sustained queue, visualizer and room workloads remain open.
+
+## Fifteen-minute native playback resource sample — 2026-09-29
+
+One Linux headless Chromium run collected fifteen consecutive 60-second
+windows: five each while idle, playing a local generated PCM WAV, and paused
+with the same source selected. The input was a 375-second, 22.05 kHz mono WAV
+(16,537,544 bytes). No analyzer, visualizer, output switch, or remote stream
+was active, and the player created zero AudioContexts in every window.
+
+| State | Browser CPU (% of one core) | CDP-reported Chromium PSS (MiB) | Renderer task (%) | JS heap (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Idle | 0.53 | 275.1 (272.2–277.5) | 0.19 | 9.8 |
+| Playing | 1.90 | 312.0 (306.5–319.5) | 0.56 | 9.7 |
+| Paused | 0.53 | 295.7 (289.7–303.7) | 0.20 | 10.8 |
+
+Every CDP-reported process PSS read was available. Four processes were reported
+while idle and five while playing or paused; counts stayed stable within each
+60-second window. The separate Linux process-tree probe saw six processes idle
+and seven active, with seven unavailable ancestry reads across all windows, so
+it does not prove complete OS-tree enumeration. Paused PSS averaged 20.6 MiB
+above idle while the selected audio remained loaded; this run does not isolate
+how much belongs to retained source/decoder buffers. The values establish a
+15-minute native-playback baseline on this browser and workload, not a portable
+memory/CPU limit or a multi-hour plateau. Confidence is high for the recorded
+measurements and moderate for comparing these three states.
 
 ## Live host renewal soak — 2026-09-28
 
@@ -254,7 +297,7 @@ are happening; that reciprocal-transfer workflow remains open.
 
 ## Remaining completion work
 
-- Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The constrained Chromium case covers only the browser-to-listener HTTP leg over loopback; it does not model a WAN mesh link. Updating a listed snapshot under a stable party ID is covered, while replacement or withdrawal during an already-playing listener session remains open. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
+- Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The loopback radio scenario now delays each mesh TCP stream chunk by 60 ms per direction and separately constrains the browser-to-listener HTTP leg; this does not model WAN packet loss, jitter, route changes or real sustained congestion. Updating a listed snapshot under a stable party ID is covered, while replacement or withdrawal during an already-playing listener session remains open. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
 - Complete the codec-retry matrix outside Chromium. Chromium verifies FLAC,
   MP3 and Ogg recovery after a controlled 503, plus actual server-generated
   FFmpeg launch failure, malformed-media failure before output, and a
@@ -266,6 +309,9 @@ are happening; that reciprocal-transfer workflow remains open.
   for retained memory, stray timers and active contexts. The repeated two-window
   idle/play/pause baseline is complete; it does not establish a long-session
   memory plateau.
+- Define CPU and memory acceptance budgets on representative minimum and target
+  hardware; the current browser-process measurements are a host-specific
+  baseline rather than portable thresholds.
 - Complete assistive-technology speech workflows. All eight
   player dialogs now expose their title, receive focus on entry, wrap Tab in
   both directions, and restore the opener on Escape. The queue dialog workflow

@@ -15398,3 +15398,33 @@ repository lint; and .NET tests (5,346 unit, 74 smoke, 284 integration) pass.
 The initial focused suite run exposed two existing global `role=status` test
 queries; gotcha `0z1254` was committed immediately, and those assertions now
 match their queue message text. Actual screen-reader speech remains unverified.
+
+## Update 2026-09-29 — Player radio network and native resource evidence
+
+Added a local TCP proxy to the constrained-radio browser workflow. It delays
+each forwarded mesh stream chunk by 60 ms in both directions, confirms traffic
+flows both ways, and is closed before the fresh snapshot-replacement listener
+starts. The test still applies the 24 KiB/s and 450 ms browser profile, then
+checks retry and unbuffered-seek recovery. The full four-workflow non-soak radio
+network suite passes in Linux Chromium, including the real two-minute ticket
+expiry workflow. The host-capability workflow now uses an isolated E/F pair.
+
+Fixed a radio recovery assertion that matched both the visible error and its
+mirrored live announcement; it now checks each surface intentionally. Mesh
+status assertions verify LAN-only/DHT invariants and require at least one link,
+without assuming a reused harness has exactly one connection. Gotcha `0z1260`
+records the stale-topology issue. The same batch records a 15-minute native
+playback sample: five one-minute windows each for idle, local PCM playing and
+paused. CDP process PSS reads and zero AudioContext count were complete; the
+result is a Chromium-specific baseline, not a portable budget or long-session
+plateau.
+
+Validation: radio network Playwright suite 4/4, focused proxy and host-session
+cases, strict E2E TypeScript, 1,105 Web tests, Web lint, repository formatting
+lint, and full `dotnet test` (5,346 unit, 74 smoke, 284 integration). Build
+output included existing Microsoft.Build net10.0 support warnings. The proxy
+simulates local per-chunk delay, not WAN RTT, packet loss, jitter or deployment
+congestion. Open player work still includes actual screen-reader output,
+physical controls/routing, cross-engine execution of the newest codec recovery
+cases, multi-hour resource plateau, portable resource budgets, WAN behavior and
+reciprocal Soulseek transfers. No tag or release was created.

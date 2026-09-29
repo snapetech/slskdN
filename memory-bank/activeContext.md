@@ -16254,3 +16254,28 @@ Actual assistive-technology speech has not been measured. Next: finalize exact
 release preview, commit and push this batch, then continue cross-engine speech,
 physical devices, WAN/radio and lifetime-resource attribution. The player goal
 remains active; no tag or deployment is authorized.
+
+## Player radio network and native resource evidence — 2026-09-29
+
+This batch adds a 60 ms per-stream-chunk delay in each direction on the real
+loopback mesh TCP path while preserving the browser bandwidth/latency profile.
+It verifies bidirectional traffic, buffering, seek recovery, listener snapshot
+replacement and host-session fencing. The four non-soak radio network workflows
+pass together in Linux Chromium. Test assertions now scope the visible radio
+error separately from the mirrored live announcement and tolerate additional
+live connections in the reused multi-peer harness. Temporary proxy peers are
+closed; host-session fencing uses an isolated E/F pair. Gotcha `0z1260` records
+the fixture-lifetime rule.
+
+The 15-minute native PCM resource sample is documented in the player quality
+audit. Its per-state CPU/PSS/renderer/heap values are a browser-specific
+baseline; portable limits and a multi-hour plateau remain unfinished. Strict
+E2E TypeScript, all 1,105 Web tests, Web lint, repository formatting lint, the
+radio network suite and backend test gate pass. The local proxy is not a WAN
+emulator.
+
+Next Steps: continue the open player audit in `docs/dev/player-quality-audit.md`:
+actual assistive-technology speech, supported cross-engine codec retry,
+physical media controls/output routing, portable CPU/memory budgets, a
+multi-hour resource plateau, WAN testing and reciprocal transfer admission.
+The Player initiative remains active. Do not create a tag or deployment.

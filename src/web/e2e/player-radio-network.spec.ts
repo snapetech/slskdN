@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import * as path from 'node:path';
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
+import { LatencyTcpProxy } from './harness/LatencyTcpProxy';
 import { login } from './helpers';
 
 async function createRadioRoom(request: APIRequestContext, apiUrl: string, headers: Record<string, string>, name: string): Promise<string> {
@@ -57,6 +58,7 @@ test.describe('listed radio between isolated nodes', () => {
   test.use({ serviceWorkers: 'block' });
   test.setTimeout(120_000);
   let harness: MultiPeerHarness;
+  const activeTcpProxies: LatencyTcpProxy[] = [];
 
   test.beforeAll(async () => {
     harness = new MultiPeerHarness();
@@ -68,6 +70,13 @@ test.describe('listed radio between isolated nodes', () => {
 
   test.afterAll(async () => {
     if (harness) await harness.stopAll();
+  });
+
+  test.afterEach(async () => {
+    const proxies = activeTcpProxies.splice(0);
+    const results = await Promise.allSettled(proxies.map((proxy) => proxy.close()));
+    const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+    if (failures.length) throw new AggregateError(failures.map((result) => result.reason), 'Latency proxy cleanup failed');
   });
 
   test('plays and seeks the real host snapshot through the listener gateway', async ({ page, request }) => {
@@ -89,7 +98,9 @@ test.describe('listed radio between isolated nodes', () => {
     for (const [node, headers] of [[host, hostHeaders], [listener, listenerHeaders]] as const) {
       const status = await request.get(`${node.apiUrl}/api/v0/dht/status`, { headers });
       expect(status.ok()).toBe(true);
-      expect(await status.json()).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0, activeMeshConnections: 1 });
+      const meshStatus = await status.json();
+      expect(meshStatus).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0 });
+      expect(meshStatus.activeMeshConnections).toBeGreaterThanOrEqual(1);
       const startup = await fs.readFile(path.join(node.getAppDir(), 'artifacts', 'stdout.log'), 'utf8');
       expect(startup).toContain('LAN-only mesh: public DHT engine, bootstrap, saved nodes, announcements and discovery are disabled');
       expect(startup).not.toMatch(/DHT engine started|DHT bootstrapped successfully|Announced overlay port .* to DHT/);
@@ -161,7 +172,9 @@ test.describe('listed radio between isolated nodes', () => {
     expect(revoke.ok()).toBe(true);
     await seek.click({ position: { x: bounds!.width * 0.35, y: bounds!.height / 2 } });
     await page.getByRole('button', { name: 'Retry radio playback', exact: true }).click();
-    await expect(page.getByText('The radio host could not provide this snapshot. Retry or refresh listed radio.')).toBeVisible();
+    const snapshotError = 'The radio host could not provide this snapshot. Retry or refresh listed radio.';
+    await expect(page.locator('.player-now-playing .ui.mini.negative.message')).toHaveText(snapshotError);
+    await expect(page.getByTestId('player-playback-announcement')).toContainText(snapshotError);
     expect(statuses).not.toContain(500);
     await page.getByTestId('player-open-listed-radio').click();
     await page.getByRole('button', { name: 'Refresh listed radio' }).click();
@@ -223,7 +236,7 @@ test.describe('listed radio between isolated nodes', () => {
 
   });
 
-  test('recovers listed radio on a constrained browser link and switches to a replacement snapshot', async ({ page, request }) => {
+  test('recovers listed radio on constrained browser and latency-shaped mesh links', async ({ page, request }) => {
     test.setTimeout(180_000);
     const host = harness.getNode('A');
     await harness.startNode('C', [], { noConnect: true, radioMesh: true });
@@ -247,14 +260,18 @@ test.describe('listed radio between isolated nodes', () => {
     const listenerHeaders = { Authorization: `Bearer ${(await listenerSession.json()).token}` };
     const meshStatusResponse = await request.get(`${listener.apiUrl}/api/v0/dht/status`, { headers: listenerHeaders });
     expect(meshStatusResponse.ok()).toBe(true);
-    if ((await meshStatusResponse.json()).activeMeshConnections === 0) {
-      const connection = await request.post(`${listener.apiUrl}/api/v0/overlay/connect`, {
-        headers: listenerHeaders,
-        data: { address: '127.0.0.1', port: host.getOverlayPort() },
-      });
-      expect(connection.ok()).toBe(true);
-      expect((await connection.json()).activeConnections).toBeGreaterThan(0);
-    }
+    expect((await meshStatusResponse.json()).activeMeshConnections).toBe(0);
+    // Delay each forwarded TCP chunk by 60 ms in either direction to add
+    // data-path latency on the real mesh connection. This is not a WAN model.
+    const meshProxy = new LatencyTcpProxy(host.getOverlayPort(), 60);
+    await meshProxy.start();
+    activeTcpProxies.push(meshProxy);
+    const connection = await request.post(`${listener.apiUrl}/api/v0/overlay/connect`, {
+      headers: listenerHeaders,
+      data: { address: '127.0.0.1', port: meshProxy.port },
+    });
+    expect(connection.ok(), await connection.text()).toBe(true);
+    expect((await connection.json()).activeConnections).toBeGreaterThan(0);
 
     const libraryUrl = `${host.apiUrl}/api/v0/library/items/browser?query=${encodeURIComponent(title)}&kinds=Audio`;
     await expect.poll(async () => {
@@ -350,7 +367,11 @@ test.describe('listed radio between isolated nodes', () => {
       const recoveredAt = await audioElements(page).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)));
       await expect.poll(() => audioElements(page).evaluateAll((elements) => Math.max(...(elements as HTMLAudioElement[]).map((audio) => audio.currentTime)))).toBeGreaterThan(recoveredAt + 1);
 
+      expect(meshProxy.traffic.hostToListener).toBeGreaterThan(0);
+      expect(meshProxy.traffic.listenerToHost).toBeGreaterThan(0);
       await expect(page.locator('.player-now-playing .player-title')).toHaveText(title);
+      await meshProxy.close();
+      await harness.stopNode('C');
       await harness.startNode('D', [], { noConnect: true, radioMesh: true });
       const replacementListener = harness.getNode('D');
       const replacementSession = await request.post(`${replacementListener.apiUrl}/api/v0/session`, {
@@ -362,7 +383,7 @@ test.describe('listed radio between isolated nodes', () => {
         headers: replacementHeaders,
         data: { address: '127.0.0.1', port: host.getOverlayPort() },
       });
-      expect(replacementConnection.ok()).toBe(true);
+      expect(replacementConnection.ok(), await replacementConnection.text()).toBe(true);
       expect((await replacementConnection.json()).activeConnections).toBeGreaterThan(0);
       await expect.poll(async () => {
         const response = await request.get(`${replacementListener.apiUrl}/api/v0/listening-party?refresh=true`, { headers: replacementHeaders });
@@ -457,8 +478,9 @@ test.describe('listed radio between isolated nodes', () => {
   });
 
   test('renews a host capability across nodes and rejects replaced-tab writes and Stop', async ({ request }) => {
-    const host = harness.getNode('A');
-    const listener = harness.getNode('B');
+    const host = await harness.startNode('E', [], { noConnect: true, radioMesh: true });
+    const listener = await harness.startNode('F', [], { noConnect: true, radioMesh: true });
+    await fs.writeFile(path.join(host.getAppDir(), 'downloads', 'Host capability tone.wav'), radioTone(5));
     const hostLogin = await request.post(`${host.apiUrl}/api/v0/session`, {
       data: { username: host.nodeCfg.username, password: host.nodeCfg.password },
     });
@@ -473,17 +495,19 @@ test.describe('listed radio between isolated nodes', () => {
       headers: listenerHeaders,
       data: { address: '127.0.0.1', port: host.getOverlayPort() },
     });
-    expect(overlayConnection.ok()).toBe(true);
+    expect(overlayConnection.ok(), await overlayConnection.text()).toBe(true);
     const overlayConnectionResult = await overlayConnection.json();
     expect(overlayConnectionResult.connected).toBe(true);
     expect(overlayConnectionResult.activeConnections).toBeGreaterThanOrEqual(1);
     for (const [node, headers] of [[host, hostHeaders], [listener, listenerHeaders]] as const) {
       const status = await request.get(`${node.apiUrl}/api/v0/dht/status`, { headers });
       expect(status.ok()).toBe(true);
-      expect(await status.json()).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0, activeMeshConnections: 1 });
+      const meshStatus = await status.json();
+      expect(meshStatus).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0 });
+      expect(meshStatus.activeMeshConnections).toBeGreaterThanOrEqual(1);
     }
 
-    const library = await request.get(`${host.apiUrl}/api/v0/library/items/browser?query=Radio%20network%20tone&kinds=Audio`, { headers: hostHeaders });
+    const library = await request.get(`${host.apiUrl}/api/v0/library/items/browser?query=Host%20capability%20tone&kinds=Audio`, { headers: hostHeaders });
     expect(library.ok()).toBe(true);
     const item = (await library.json()).files[0];
     const podId = await createRadioRoom(request, host.apiUrl, hostHeaders, 'Host-session fencing room');
@@ -579,7 +603,9 @@ test.describe('listed radio between isolated nodes', () => {
     for (const [node, headers] of [[host, hostHeaders], [listener, listenerHeaders]] as const) {
       const status = await request.get(`${node.apiUrl}/api/v0/dht/status`, { headers });
       expect(status.ok()).toBe(true);
-      expect(await status.json()).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0, activeMeshConnections: 1 });
+      const meshStatus = await status.json();
+      expect(meshStatus).toMatchObject({ lanOnly: true, isDhtRunning: false, dhtNodeCount: 0 });
+      expect(meshStatus.activeMeshConnections).toBeGreaterThanOrEqual(1);
     }
 
     const libraryUrl = `${host.apiUrl}/api/v0/library/items/browser?query=Host%20renewal%20soak&kinds=Audio`;

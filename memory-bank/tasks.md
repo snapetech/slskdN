@@ -5872,3 +5872,34 @@ resource completion.
 - [ ] Continue actual screen-reader speech, physical media controls/routing,
   multi-hour resource plateau, WAN throughput, and reciprocal-transfer
   admission validation before closing the player audit.
+
+
+### Player native playback resource baseline — 2026-09-29
+
+- [x] Run fifteen consecutive 60-second Linux headless Chromium samples: five
+  idle, five playing a generated 375-second WAV, and five paused with the source
+  retained. Record CPU, CDP PSS, renderer task, JS heap and process counts.
+- [x] Confirm every CDP process PSS read succeeded and no AudioContext was
+  created during native playback. Record that process count changed between
+  idle and active states but stayed stable within each sample window.
+- [ ] Repeat on supported Firefox/WebKit and representative minimum hardware;
+  define portable CPU/memory budgets and establish a multi-hour plateau with
+  graph, queue and radio workloads.
+
+
+### Player radio mesh-link delay regression — 2026-09-29
+
+- [x] Route the constrained listener through a local TCP proxy that delays
+  forwarded stream chunks by 60 ms in both directions on the real backend mesh
+  connection. Retain the browser bandwidth/latency profile and verify traffic
+  flows both ways, buffering is recoverable, and a seek advances afterward.
+- [x] Shut down the temporary proxy peer before testing a fresh replacement
+  listener; the multi-peer harness retains nodes between tests and local
+  overlay connections share a per-IP connection budget.
+- [x] Give the host-session fencing workflow its own E/F backend pair instead
+  of reconnecting nodes left active by the earlier scenarios.
+- [x] Run the complete four-workflow non-soak radio network suite in Linux
+  Chromium after the harness-isolation fixes.
+- [ ] Validate over a representative WAN and reciprocal Soulseek file transfer;
+  the local delay injection does not cover packet loss, jitter or sustained
+  deployment congestion.
