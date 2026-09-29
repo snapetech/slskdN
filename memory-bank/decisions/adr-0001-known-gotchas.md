@@ -33257,3 +33257,18 @@ the user-triggered recovery.
 **Prevention:** Assert the failed media state, the successful response observed
 after the Play retry, and advancing playback. Reserve exact request counts for
 controlled API operations rather than browser-managed media loading.
+
+### 0z1265. Keep Radio Failure Assertions Specific To Radio Recovery (2026-09-29)
+
+**What went wrong:** The listed-radio stream failure UI was improved to explain
+that the host stream stopped or changed and tell the user to retry or refresh.
+The shared player browser workflow still expected the older generic decode
+error, so the full suite failed despite the intended user-facing recovery copy.
+
+**Why:** A single generic media error assertion hid the source-specific guidance
+provided for listed-radio content. The new product behavior correctly took the
+radio branch, while the old test encoded stale copy.
+
+**Prevention:** Assert the recovery guidance for the media source being tested.
+For listed-radio failures, verify retry/refresh direction; reserve generic
+decode copy assertions for ordinary audio sources.
