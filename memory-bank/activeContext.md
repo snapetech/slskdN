@@ -1,3 +1,17 @@
+## Player codec-retry batch published — 2026-09-29 04:07 UTC
+
+Gotcha `55bd897e6` and test/audit commit `20de6ec67` are published to
+`snapetech/slskdN/main`. Post-push fetch shows exact SHA parity and a clean
+worktree. The 29-case PlayerBar suite and three FLAC/MP3/Ogg recovery workflows
+pass in Chromium; all 1,098 Web tests, both frontend lint/type gates, repository
+lint, and `dotnet test` (5,346 unit, 74 smoke, 284 integration) pass. No
+product behavior, release note, tag, or deployment changed.
+
+Next Steps: pursue actual assistive-technology speech, cross-engine and real
+FFmpeg failure cases, physical device controls/routing, sustained resource
+plateau, WAN radio behavior, and reciprocal-transfer admission. The player goal
+remains active.
+
 ## Player compressed-format retry validation — 2026-09-29 04:04 UTC
 
 - Added three generated-format browser regressions: FLAC, MP3 and Ogg each

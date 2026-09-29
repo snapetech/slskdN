@@ -15316,3 +15316,13 @@ new cases could not execute in current Firefox/WebKit runtimes; exact launch
 failures and the 26-case previous cross-engine baseline are recorded in the
 player audit. Immediate Playwright locator gotcha `0z1239` is committed as
 `55bd897e6`. Internal QA only; no release fragment or tag.
+## Update 2026-09-29 04:07:00Z — Codec retry batch published
+
+Published immediate locator gotcha `55bd897e6` and compressed-format retry
+regressions/audit `20de6ec67` to `snapetech/slskdN/main`. A post-push fetch
+confirms exact local/origin SHA parity and a clean worktree. Chromium PlayerBar
+suite is 29/29; FLAC, MP3 and Ogg each recover from a controlled first-response
+503 through real FFmpeg playback. All 1,098 Web tests, Web lint, strict E2E
+TypeScript, repository lint, and full .NET tests (5,346 unit, 74 smoke, 284
+integration) pass. Firefox/WebKit runs for the new cases remain unavailable in
+the current local runtimes. This is internal validation; no tag/release.
