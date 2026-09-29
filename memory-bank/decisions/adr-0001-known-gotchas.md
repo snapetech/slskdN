@@ -333,6 +333,23 @@ and makes a control-flow test depend on the machine's physical outputs.
 provide matching fake `enumerateDevices()` results. Keep physical routing
 validation as a separate hardware test.
 
+### 0z1243. Interpret Browser Resource Counts Across Natural GC Cycles
+
+**What went wrong:** A player cycle soak asserted that the final Chromium DOM
+node and document counters remained close to the warmed sample. The 20-cycle
+run failed although the JS heap was below its warmed value; intermediate samples
+showed large counter drops at later collection points.
+
+**Why:** Performance counters can include detached UI and Picture-in-Picture
+documents that remain reachable until the browser performs natural garbage
+collection. A final snapshot can land before that collection and is not a
+steady-state measurement.
+
+**Prevention:** Preserve node, document, listener, heap and process-memory
+samples as time-series evidence. Use multiple natural-GC cycles and describe
+the observed trend; do not infer a leak or plateau from one endpoint and do not
+force collection to make the counters look stable.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
