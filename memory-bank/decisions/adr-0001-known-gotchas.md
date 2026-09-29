@@ -452,6 +452,21 @@ fault injection therefore leaked across cases despite a per-test clear.
 them, then reinstall shared default return values. Use `vi.resetAllMocks()` or
 explicitly reset each configurable mock so failure cases remain independent.
 
+### 0z1251. Preserve The Visualizer's Requested WebGL Context Attributes
+
+**What went wrong:** The teardown adapter acquired a WebGL2 context before
+Butterchurn initialized its renderer. That first request used browser defaults,
+so the later request for `antialias: false` and opaque rendering could not take
+effect on the already-created context.
+
+**Why:** A canvas returns its existing context for later requests of the same
+type; later context attributes do not reconfigure it. An early cleanup probe
+can therefore change the renderer's actual resource and image quality settings.
+
+**Prevention:** Let the renderer create its context with its intended options,
+then retrieve that same context for teardown. If failure cleanup needs to
+acquire it, pass the exact same low-resource attributes.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
