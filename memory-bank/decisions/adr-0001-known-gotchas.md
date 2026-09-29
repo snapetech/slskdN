@@ -67,6 +67,21 @@ Use the known-functional host Firefox for this suite until the container media
 runtime passes those controls; record environment-specific failures without
 attributing them to the player.
 
+### 0z1223. Await Asynchronous Native-Format Fallback Discovery
+
+**What went wrong:** The AIFF browser test checked for the Decode action
+immediately after selecting a server file. Firefox's native decoder then
+failed and the player requested playback metadata; the API returned 200 and
+the Decode action appeared asynchronously. Under the full suite, the test
+sampled too early, assumed native playback, and timed out.
+
+**Why:** Native playback failure and the follow-up capability UI are delivered
+through media and network events, not synchronously with file selection.
+
+**Prevention:** Wait for either native playback progress or the explicit Decode
+action before choosing the native/transcode assertion path. Do not infer format
+support from a single immediate DOM count.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
