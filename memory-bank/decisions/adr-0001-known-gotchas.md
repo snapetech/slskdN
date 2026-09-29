@@ -33110,3 +33110,19 @@ state path, and per-peer timeouts did not bound total fan-out duration.
 Route room state before optional directory I/O, and bound remote fan-out by both
 concurrency and one overall time budget. Measure local update latency separately
 from remote delivery outcomes.
+
+### 0z1156 — Keep Server-Decode Stream Errors Actionable (2026-09-29)
+
+**What went wrong:** A real FFmpeg launch failure returned HTTP 503 from the
+transcoded media URL, but the audio element's error handler replaced it with a
+generic decode message that did not explain that the server was decoding or that
+Play retries the stream.
+
+**Why:** Transcode setup requests and the later media-element request fail at
+different boundaries. The setup catch had actionable retry copy, while the
+stream error handler treated decoded audio like every native or local source.
+
+**Prevention:** Exercise a server-generated FFmpeg failure through the real
+player media element. Keep the transcode-mode error copy actionable, verify the
+Play retry reaches the server again and recovers, and do not claim an exact
+decoder cause when the browser only exposes a media error.
