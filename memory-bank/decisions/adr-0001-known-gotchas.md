@@ -143,6 +143,20 @@ contains only HTML controls, and narrow `document.activeElement` with
 `instanceof HTMLElement` before comparing it with that list. Run the strict
 standalone browser-spec TypeScript check after adding DOM evaluation helpers.
 
+### 0z1228. Keep Palette Focus Outlines Contrasting In Light Mode
+
+**What went wrong:** Light-mode palette focus outlines reused the accent's
+midtone. A contrast check against each palette's light page surface measured
+as low as 1.20:1, making keyboard focus difficult to distinguish.
+
+**Why:** The palette token selected the same primary color-scale index in both
+modes even though light surfaces require a substantially darker outline.
+
+**Prevention:** Select focus-outline colors according to the active mode and
+verify at least 3:1 contrast against the corresponding page surface for every
+palette. Add a regression over the whole palette set so new palettes cannot
+silently weaken keyboard focus visibility.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
