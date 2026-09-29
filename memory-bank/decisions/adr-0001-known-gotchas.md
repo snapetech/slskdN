@@ -33126,3 +33126,17 @@ stream error handler treated decoded audio like every native or local source.
 player media element. Keep the transcode-mode error copy actionable, verify the
 Play retry reaches the server again and recovers, and do not claim an exact
 decoder cause when the browser only exposes a media error.
+
+### 0z1157 — Reset Mocked Media Errors Before Testing Retry (2026-09-29)
+
+**What went wrong:** A component retry regression assigned `audio.error` and
+then used the test suite's no-op `HTMLMediaElement.load()` mock. The stale error
+survived source replacement and made the retry test spin instead of reaching a
+stable new-source state.
+
+**Why:** A real browser clears the media error as it loads a replacement source,
+but JSDOM does not reproduce that transition when `load()` is mocked.
+
+**Prevention:** When a component test explicitly sets a media error, make its
+`load()` mock clear that error before asserting the retry. Use a browser-level
+test for end-to-end server and decoder recovery.
