@@ -33288,3 +33288,18 @@ for any single-session browser measurement that exceeds the default
 `web.authentication.jwt.ttl` of 3,600,000 milliseconds. Keep the production
 authentication lifetime unchanged, and verify the complete sample reaches its
 terminal pass before using its resource data.
+
+### 0z1267. Read E2E Session Responses Once Before Assertion (2026-09-29)
+
+**What went wrong:** The resource probe used the same `session` identifier for
+an authentication response and the Chrome DevTools Protocol session. Its
+failure-message expression also read the response body before the later JSON
+parse.
+
+**Why:** The test put a second session concern in the same function and did not
+account for eager evaluation of assertion arguments or one-shot response-body
+consumption.
+
+**Prevention:** Use distinct names for authentication and browser-protocol
+sessions, read response content once, and parse that saved content only after
+checking the status.
