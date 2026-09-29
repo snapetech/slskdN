@@ -33173,3 +33173,20 @@ text queries therefore match both the inline alert and the live region.
 **Prevention:** Scope visible-error checks to the inline alert container and
 announcement checks to the player status test id or `status` role. Keep
 assertions explicit about whether they target visual copy or live-region text.
+
+### 0z1260. Do Not Assume One Mesh Connection In A Reused Multi-Node Harness
+
+**What went wrong:** Radio network tests assumed the multi-node fixture reset
+between cases. Earlier tests kept extra isolated peers connected, so later
+status reported three connections instead of one; another case's explicit
+`overlay/connect` call then failed while reusing the already-connected A/B
+pair.
+
+**Why:** The multi-peer harness keeps started nodes alive until suite teardown.
+The test only needed to prove that a mesh link existed and public DHT remained
+off, but it treated the current topology as if the fixture restarted per test.
+
+**Prevention:** Assert the required topology invariant (at least one active
+mesh connection) and the LAN-only/DHT fields separately. For a new cross-node
+connection workflow, start a fresh host/listener pair or stop the old peers
+first. If an exact topology is under test, give that test its own harness.
