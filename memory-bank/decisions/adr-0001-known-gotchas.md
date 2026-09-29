@@ -223,6 +223,19 @@ player. Before treating a missing role locator as an accessibility defect,
 check that the control is rendered and visible in that mode. Test the full
 visualizer toolbar only in a mode where compact controls are not enabled.
 
+### 0z1236. Announce Equalizer Gain Units To Screen Readers
+
+**What went wrong:** Equalizer sliders exposed their gain as a bare number,
+even though the Web Audio filter parameter is measured in decibels.
+
+**Why:** A native range input announces its numeric value by default. Its
+frequency-and-gain label does not tell assistive technology which unit the
+current gain uses.
+
+**Prevention:** Give each equalizer slider an `aria-valuetext` with its current
+gain and `dB` unit, and verify that presets and direct slider changes update
+the announced value while preserving the native numeric range.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
