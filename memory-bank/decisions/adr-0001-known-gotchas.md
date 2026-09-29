@@ -33224,3 +33224,21 @@ reliable observation point for a response that the test itself injects.
 injected media failure is fulfilled, then assert the browser media error and
 retry behavior separately. Run the workflow across engines instead of inferring
 WebKit coverage from a Chromium-only response event.
+
+### 0z1263. Read Failed Media HTTP Status Outside The WebKit Media Event (2026-09-29)
+
+**What went wrong:** Server-generated FFmpeg startup and pre-output failures
+returned HTTP 503, and the partial-output stream began with HTTP 200 before the
+server aborted it. WebKit's Playwright response objects for these audio-element
+requests exposed status `0`, so tests could not inspect the server status or
+error body from the media event.
+
+**Why:** WebKit reports failed media transfers through its media/network error
+path without preserving the HTTP response metadata for Playwright's page-level
+response object. A zero status there describes that automation boundary, not
+the server response.
+
+**Prevention:** Keep the real audio-element error assertions, then probe the
+same ticketed stream URL with a direct fetch when server headers or an error
+body must be verified. For a deliberately truncated response, read only its
+headers and separately assert that the browser media request fails.
