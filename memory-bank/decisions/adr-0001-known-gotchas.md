@@ -240,6 +240,23 @@ browser engines. Test that keyboard input changes the value and that the
 announced dB text matches that browser's actual numeric value; do not assume a
 single arrow direction means increase everywhere.
 
+### 0z1237. Abort Superseded Player Decode Setup Requests
+
+**What went wrong:** Decode setup requests for a stream ticket and playback
+metadata remained active after a seek superseded setup, a different track was
+selected, or the player unmounted. A request-generation check prevented stale
+responses from taking effect but did not stop the network work.
+
+**Why:** Ignoring an outdated response and canceling the request are separate
+operations. Request IDs protected player state while leaving unnecessary
+server and browser work running.
+
+**Prevention:** Pass an `AbortSignal` to both stream-ticket and playback-info
+requests. Abort the previous setup as soon as a new seek starts, and abort on
+track replacement or unmount. Keep the request-generation check because mocks,
+adapters, and already-settled responses may still complete after cancellation.
+Make the short seek-coalescing delay cancelable too.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
