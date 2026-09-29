@@ -97,6 +97,20 @@ element and argument inference.
 DOM element and evaluation argument when inference is not available. Run the
 browser-spec TypeScript check as well as the Playwright suite.
 
+### 0z1225. Give Media Locators Their DOM Element Type
+
+**What went wrong:** A new browser test read `paused` and `currentTime` from a
+CSS `audio` locator, but strict TypeScript inferred its element as the generic
+HTML/SVG union and rejected the media properties.
+
+**Why:** Playwright's selector parser cannot always infer the concrete DOM
+element type from a CSS tag selector, even when the browser selector is
+unambiguous at runtime.
+
+**Prevention:** Supply `HTMLAudioElement` as the locator's generic type (or
+explicitly type the evaluated element) before using media-only properties. Keep
+the standalone strict browser-spec TypeScript check in the validation gates.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
