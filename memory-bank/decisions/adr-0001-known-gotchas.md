@@ -33574,3 +33574,18 @@ did not include HTTP redirect responses.
 **Prevention:** Treat HTTP 200–399 responses as non-failures in this diagnostic
 listener. Verify the final navigation and application state separately when a
 redirected page fails to load.
+
+### 0z1286. Give The Container A Mounted Home Directory (2026-09-29)
+
+**What went wrong:** The Orca screen-reader runner created a dedicated writable
+home directory but initially passed the host's `HOME` value into the container.
+Orca could not reliably write its per-user configuration in that path because
+the host home is not mounted in the disposable container.
+
+**Why:** Docker's `--env HOME` without an explicit value copies the caller's
+host path. A host-only home can therefore be missing or unwritable in a test
+container even when a suitable mounted directory was already prepared.
+
+**Prevention:** Pass the mounted test home explicitly to both `docker run` and
+each `docker exec` process. Keep the host home unchanged for the build and
+Playwright commands.
