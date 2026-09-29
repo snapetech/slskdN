@@ -33374,3 +33374,19 @@ temporary share contents.
 `meta/manifest.json` and `book`, `music`, `movie` and `tv` directories, then
 place each peer's share directory directly under that root. Keep share file
 creation ordered after that scaffolding is ready.
+
+### 0z1273. Keep The DHT Feature Gate Enabled For Direct Overlay Test Connects (2026-09-29)
+
+**What went wrong:** The local Soulseek/radio test disabled the DHT feature to
+avoid DHT rendezvous, then attempted a direct loopback peer connection through
+`/api/v0/overlay/connect`. The API rejected it with `Experimental feature is
+disabled` before the mesh workflow could start.
+
+**Why:** The harness's direct-overlay connection setup is guarded by the DHT
+feature gate, even though the test uses an explicit peer address and intends to
+exercise mesh streaming rather than DHT discovery.
+
+**Prevention:** Keep the API feature gate enabled when tests use the existing
+direct-overlay endpoint. Suppress DHT network participation through a separate
+runtime setting, or use a mesh-specific connection path whose feature gate
+matches the behavior being exercised.
