@@ -33483,3 +33483,21 @@ overlay ratio.
 receiver/transfer overlap coverage. Test a second admission only with a
 balanced overlay workload, and assert the fairness rejection separately when
 the receiver has no overlay uploads.
+
+### 0z1280. Use The Same DISPLAY Value For Orca And The Browser (2026-09-29)
+
+**What went wrong:** The isolated screen-reader session launched Orca with
+`DISPLAY=:97` and Chromium with `DISPLAY=127.0.0.1:97`. They reached the same X
+server through different display names, but AT-SPI selected different bus socket
+names. Orca spoke its startup prompt while the browser stayed outside its
+registered application list.
+
+**Why:** The disposable Xvfb setup used a TCP display for host-launched browser
+processes and a local display spelling for container-launched Orca. AT-SPI uses
+the display value when locating its per-session bus, so sharing the X server
+alone did not make both applications use the same bus.
+
+**Prevention:** Launch Orca, the browser, the AT-SPI bus launcher, and the
+registry with the identical `DISPLAY` string, `DBUS_SESSION_BUS_ADDRESS`, and
+XDG cache directory. Confirm the browser appears in `orca --list-apps` before
+counting any spoken-output test as a pass.
