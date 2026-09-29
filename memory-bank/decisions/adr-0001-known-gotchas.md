@@ -527,6 +527,24 @@ stopped.` when it transitions to null. Keep the live region mounted in compact,
 expanded and hidden-player render paths so the update is not lost during a
 layout change.
 
+### 0z1256. Count Detached Player Modal Trees After Close
+
+**What went wrong:** The player resource soak checked that the queue modal was
+absent from the document and that connected player DOM stayed stable. A
+repeated open/close profile followed by forced garbage collection still found
+one detached Semantic UI modal subtree per close, including the modal portal,
+queue rows and controls. Direct DOM-triggered clicks and Escape reproduced it,
+so Playwright locator handles were not the cause.
+
+**Why:** Portal removal makes `querySelector()` and connected-node counts look
+clean even while another retained reference keeps the detached subtree and its
+DOM objects alive. Natural-settle snapshots alone did not identify that owner.
+
+**Prevention:** For repeated portal/modal lifecycles, inspect detached DOM after
+forced garbage collection as well as connected DOM and total listeners. Treat
+an absent selector as proof of visibility cleanup only; trace retained owners
+before declaring the resource cycle complete.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
