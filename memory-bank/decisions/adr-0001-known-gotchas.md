@@ -273,6 +273,22 @@ snapshot. Use a deterministic fake output when the browser supports routing;
 preserve the no-output-control path when the API is unavailable. Then walk the
 actual browser Tab sequence and compare it with the settled visible controls.
 
+### 0z1239. Select The Active Audio Element In Player Browser Tests
+
+**What went wrong:** A player recovery test used a singular Playwright
+`locator('audio').evaluate(...)` to attach an error listener. The player renders
+both active and standby audio elements, so strict locator evaluation failed
+before the decode retry assertions ran.
+
+**Why:** The player intentionally keeps two media elements available for
+crossfade. A tag selector therefore does not identify which element owns the
+current source or playback state.
+
+**Prevention:** Use `locator('audio').first()` when asserting the active player
+element, or use `evaluateAll()` when both active and standby elements matter.
+Continue checking the active element's `currentSrc` when a source transition is
+part of the regression.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
