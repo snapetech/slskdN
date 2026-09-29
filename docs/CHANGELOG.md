@@ -42,6 +42,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Announce equalizer gain values in decibels while preserving the sliders' numeric range.
 
+### Player decode setup cancellation
+
+- Cancel obsolete stream-ticket and playback-info requests when seeking supersedes decode setup, a different track is selected, or the player unmounts.
+
 ## [2026092900-slskdn.329] — 2026-09-29
 
 ### Radio fairness accounting

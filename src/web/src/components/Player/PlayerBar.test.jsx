@@ -742,7 +742,7 @@ describe('PlayerBar', () => {
     expect(streaming.getPlaybackInfo).not.toHaveBeenCalled();
   });
 
-  it('accumulates decoded seeks while setup is pending and preserves Play intent', async () => {
+  it('aborts superseded decode metadata while accumulating seeks and preserving Play intent', async () => {
     renderPlayer();
     fireEvent.click(screen.getByText('Play fixture'));
     const audio = document.querySelector('audio');
@@ -750,19 +750,50 @@ describe('PlayerBar', () => {
     fireEvent.error(audio);
     const decode = await screen.findByText('Decode for playback');
     let finishInitialSetup;
-    streaming.getPlaybackInfo.mockImplementationOnce(() => new Promise((resolve) => {
-      finishInitialSetup = resolve;
-    }));
+    let initialSignal;
+    streaming.getPlaybackInfo.mockImplementationOnce((contentId, signal) => {
+      initialSignal = signal;
+      return new Promise((resolve) => {
+        finishInitialSetup = resolve;
+      });
+    });
     fireEvent.click(decode);
-    await waitFor(() => expect(finishInitialSetup).toBeDefined());
+    await waitFor(() => {
+      expect(finishInitialSetup).toBeDefined();
+      expect(initialSignal).toBeInstanceOf(AbortSignal);
+    });
     HTMLMediaElement.prototype.play.mockClear();
     fireEvent.click(screen.getByTestId('player-fast-forward'));
     fireEvent.click(screen.getByTestId('player-fast-forward'));
+    expect(initialSignal.aborted).toBe(true);
     await waitFor(() => expect(audio.getAttribute('src')).toContain('startSeconds=60'));
     await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
     await act(async () => finishInitialSetup({ data: { durationSeconds: 120 } }));
     await waitFor(() => expect(audio.getAttribute('src')).toContain('startSeconds=60'));
     expect(screen.getByLabelText('Seek playback')).toHaveAttribute('aria-valuetext', '1:00 of 2:00');
+  });
+
+  it('aborts decoded metadata setup when the player unmounts', async () => {
+    const { unmount } = renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+
+    let finishPlaybackInfo;
+    let setupSignal;
+    streaming.getPlaybackInfo.mockImplementationOnce((contentId, signal) => {
+      setupSignal = signal;
+      return new Promise((resolve) => { finishPlaybackInfo = resolve; });
+    });
+    fireEvent.click(await screen.findByText('Decode for playback'));
+    await waitFor(() => expect(finishPlaybackInfo).toBeDefined());
+
+    unmount();
+    expect(setupSignal).toBeInstanceOf(AbortSignal);
+    expect(setupSignal.aborted).toBe(true);
+    await act(async () => finishPlaybackInfo({ data: { durationSeconds: 120 } }));
+    expect(audio.getAttribute('src')).toBeNull();
   });
 
   it('keeps pending decoded seeks paused after transport Pause', async () => {
@@ -786,6 +817,34 @@ describe('PlayerBar', () => {
     expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
     expect(screen.getByTestId('player-toggle-playback')).toHaveAccessibleName('Resume local playback');
     await act(async () => finishInitialSetup({ data: { durationSeconds: 120 } }));
+  });
+
+  it('aborts a pending decoded ticket request when another track is selected', async () => {
+    renderPlayer();
+    fireEvent.click(screen.getByText('Play fixture'));
+    const audio = document.querySelector('audio');
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Atest'));
+    fireEvent.error(audio);
+
+    let finishTicket;
+    let setupSignal;
+    streaming.getPlaybackInfo.mockClear();
+    streaming.createStreamTicket.mockImplementationOnce((contentId, signal) => {
+      setupSignal = signal;
+      return new Promise((resolve) => { finishTicket = resolve; });
+    });
+    fireEvent.click(await screen.findByText('Decode for playback'));
+    await waitFor(() => expect(finishTicket).toBeDefined());
+
+    fireEvent.click(screen.getByText('Play second fixture'));
+    expect(setupSignal).toBeInstanceOf(AbortSignal);
+    expect(setupSignal.aborted).toBe(true);
+    await waitFor(() => expect(audio.getAttribute('src')).toContain('sha256%3Asecond'));
+
+    await act(async () => finishTicket('stale-ticket'));
+    expect(audio.getAttribute('src')).toContain('sha256%3Asecond');
+    expect(audio.getAttribute('src')).not.toContain('/transcoded?');
+    expect(streaming.getPlaybackInfo).not.toHaveBeenCalled();
   });
 
   it('preserves native pending seek and autoplay across layout remounts', async () => {

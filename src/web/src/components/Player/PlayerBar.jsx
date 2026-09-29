@@ -2456,13 +2456,18 @@ const PlayerBar = () => {
   const autoplayRef = useRef(false);
   const remountPositionRef = useRef(null);
   const transcodeRequestRef = useRef(0);
+  const transcodeAbortRef = useRef(null);
   const failedTranscodeRef = useRef(null);
   const pendingTranscodeRef = useRef(false);
 
-  useEffect(() => () => {
+  const cancelTranscodeSetup = useCallback(() => {
     transcodeRequestRef.current += 1;
+    transcodeAbortRef.current?.abort();
+    transcodeAbortRef.current = null;
     pendingTranscodeRef.current = false;
   }, []);
+
+  useEffect(() => () => cancelTranscodeSetup(), [cancelTranscodeSetup]);
 
   const closePictureInPicture = useCallback(() => {
     pipRequestRef.current += 1;
@@ -2706,6 +2711,9 @@ const PlayerBar = () => {
 
   const startTranscode = useCallback(async (seconds = 0, autoPlay = true, coalesce = false) => {
     if (!current?.contentId || current.contentId.startsWith('local:')) return;
+    transcodeAbortRef.current?.abort();
+    const controller = new AbortController();
+    transcodeAbortRef.current = controller;
     const requestId = ++transcodeRequestRef.current;
     failedTranscodeRef.current = null;
     pendingTranscodeRef.current = true;
@@ -2730,11 +2738,24 @@ const PlayerBar = () => {
     setPosition(seconds);
     reportPlaybackEvent?.('pause', seconds);
     try {
-      if (coalesce) await new Promise((resolve) => window.setTimeout(resolve, 150));
+      if (coalesce) {
+        await new Promise((resolve) => {
+          let timer;
+          const finish = () => {
+            window.clearTimeout(timer);
+            controller.signal.removeEventListener('abort', finish);
+            resolve();
+          };
+          timer = window.setTimeout(finish, 150);
+          controller.signal.addEventListener('abort', finish, { once: true });
+        });
+      }
       if (requestId !== transcodeRequestRef.current) return;
-      const ticket = await streaming.createStreamTicket(current.contentId);
-      const response = await streaming.getPlaybackInfo(current.contentId);
+      const ticket = await streaming.createStreamTicket(current.contentId, controller.signal);
       if (requestId !== transcodeRequestRef.current) return;
+      const response = await streaming.getPlaybackInfo(current.contentId, controller.signal);
+      if (requestId !== transcodeRequestRef.current) return;
+      if (transcodeAbortRef.current === controller) transcodeAbortRef.current = null;
       pendingTranscodeRef.current = false;
       setDuration(Number(response.data?.durationSeconds) || 0);
       setTranscodeMode(true);
@@ -2743,6 +2764,7 @@ const PlayerBar = () => {
       setSource({ item: current, url: transcodedSource });
     } catch {
       if (requestId !== transcodeRequestRef.current) return;
+      if (transcodeAbortRef.current === controller) transcodeAbortRef.current = null;
       pendingTranscodeRef.current = false;
       setPlaybackStatus('error');
       failedTranscodeRef.current = seconds;
@@ -2992,9 +3014,8 @@ const PlayerBar = () => {
     if (!current) {
       selectedItemRef.current = null;
       failedTranscodeRef.current = null;
-      pendingTranscodeRef.current = false;
       activeItemRef.current = null;
-      transcodeRequestRef.current += 1;
+      cancelTranscodeSetup();
       playRequestRef.current += 1;
       stopOutgoingFade();
       closePictureInPicture();
@@ -3012,8 +3033,7 @@ const PlayerBar = () => {
       const previousItem = selectedItemRef.current;
       selectedItemRef.current = current;
       failedTranscodeRef.current = null;
-      pendingTranscodeRef.current = false;
-      transcodeRequestRef.current += 1;
+      cancelTranscodeSetup();
       playRequestRef.current += 1;
       stopOutgoingFade();
       if (audioRef.current && (!crossfadeEnabledRef.current || current.startPaused || current.radioPartyId || previousItem?.radioPartyId)) {
@@ -3089,7 +3109,7 @@ const PlayerBar = () => {
     return () => {
       cancelled = true;
     };
-  }, [closePictureInPicture, current, setPlaybackPosition, sourceRetryRevision, stopOutgoingFade]);
+  }, [cancelTranscodeSetup, closePictureInPicture, current, setPlaybackPosition, sourceRetryRevision, stopOutgoingFade]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {

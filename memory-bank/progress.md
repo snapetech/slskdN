@@ -1,3 +1,18 @@
+## Update 2026-09-29 03:16:00Z — Player decode cancellation validation
+
+Server-decoded setup now passes abort signals to stream-ticket and playback-info
+requests. New seeks cancel earlier metadata work and coalesce their position;
+track replacement and player unmount abort outstanding setup. A retained
+request-generation guard prevents late adapter/mock results from replacing the
+new source. The focused streaming/PlayerBar tests pass 74/74, all 1,098 Web tests
+across 170 files pass, as do Web lint, strict player E2E TypeScript, production
+build and repository lint. The rebuilt PlayerBar suite passes Chromium (25),
+host Firefox (25), and WebKit (24 with one unsupported API skip). `dotnet test`
+passes 74 smoke, 5,346 unit and 284 integration tests. The first concurrent
+full run transiently missed an unrelated allocation ceiling; the isolated test
+and clean full rerun passed. Exact release preview, commit and push remain. No
+tag was created.
+
 ## Update 2026-09-29 02:56:00Z — Player equalizer batch published
 
 The equalizer gain value announcement batch passed the exact release preview

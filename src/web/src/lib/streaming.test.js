@@ -40,4 +40,23 @@ describe('streaming', () => {
 
     expect(ticket).toBe('');
   });
+
+  it('passes cancellation to stream-ticket and playback-info requests', async () => {
+    const controller = new AbortController();
+    api.post.mockResolvedValue({ data: { ticket: 'opaque-ticket' } });
+    api.get.mockResolvedValue({ data: { durationSeconds: 120 } });
+
+    await streaming.createStreamTicket('content/1', controller.signal);
+    await streaming.getPlaybackInfo('content/1', controller.signal);
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/streams/content%2F1/ticket',
+      undefined,
+      { signal: controller.signal },
+    );
+    expect(api.get).toHaveBeenCalledWith(
+      '/streams/content%2F1/playback-info',
+      { signal: controller.signal },
+    );
+  });
 });

@@ -1,10 +1,11 @@
 import api from './api';
 import { urlBase } from '../config';
 
-export const createStreamTicket = async (contentId) => {
-  const response = await api.post(
-    `/streams/${encodeURIComponent(contentId)}/ticket`,
-  );
+export const createStreamTicket = async (contentId, signal) => {
+  const path = `/streams/${encodeURIComponent(contentId)}/ticket`;
+  const response = signal
+    ? await api.post(path, undefined, { signal })
+    : await api.post(path);
   return response.data?.ticket || '';
 };
 
@@ -26,8 +27,10 @@ export const createShareStreamTicket = async (contentId, shareToken) => {
 export const buildDirectStreamUrl = (contentId) =>
   `${urlBase}/api/v0/streams/${encodeURIComponent(contentId)}`;
 
-export const getPlaybackInfo = (contentId) =>
-  api.get(`/streams/${encodeURIComponent(contentId)}/playback-info`);
+export const getPlaybackInfo = (contentId, signal) => {
+  const path = `/streams/${encodeURIComponent(contentId)}/playback-info`;
+  return signal ? api.get(path, { signal }) : api.get(path);
+};
 
 export const updatePlayerTags = (contentId, data) =>
   api.put(`/player-tags/${encodeURIComponent(contentId)}`, data);

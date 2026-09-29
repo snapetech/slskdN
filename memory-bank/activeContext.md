@@ -1,3 +1,18 @@
+## Player decode setup cancellation — 2026-09-29 03:16 UTC
+
+- Pending stream-ticket and playback-info requests now receive an abort signal.
+  New seeks cancel the previous metadata request and coalesce to the latest
+  target; track replacement and unmount abort setup too. Request-generation
+  fencing remains because canceled adapters may still settle.
+- Focused streaming/player regressions pass 74/74; full Web tests pass 1,098
+  across 170 files. Web lint, strict browser TypeScript, production build,
+  repository lint and full backend tests pass. Full PlayerBar browsers pass
+  Chromium 25/25, Firefox 25/25, WebKit 24/25 with one unsupported-API skip.
+  Exact release preview, commit and push remain. No tag was created.
+- Player quality audit records actual screen-reader speech, format-specific
+  server-decode failure/retry, physical devices, sustained resources, and WAN
+  reciprocal-transfer evidence as remaining gaps.
+
 ## Player equalizer accessibility published — 2026-09-29 02:56 UTC
 
 - Equalizer range sliders now announce their gain in dB. Component coverage

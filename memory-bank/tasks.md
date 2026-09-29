@@ -5763,5 +5763,20 @@ resource completion.
 - [x] Pass full Web/browser, type, lint and build gates and update audit/release
   records.
 - [x] Validate the exact release range, then commit and push as `35811a6f3`.
-- [ ] Continue full screen-reader workflow, codec cancellation/retry, physical
+- [ ] Continue full screen-reader workflow, codec failure/retry, physical
   devices, sustained resources, WAN and live reciprocal-transfer validation.
+
+
+### Player decode setup cancellation — 2026-09-29
+
+- [x] Pass abort signals through stream-ticket and playback-info calls; cancel
+  superseded seeks, track replacement, unmount and the seek-coalescing timer.
+- [x] Verify signal propagation, late-result fencing, and cancellation in all
+  three lifecycle cases; pass the focused 74-test set, all 1,098 Web tests,
+  Web lint and strict browser TypeScript.
+- [x] Pass production build, repository lint, backend tests and full player
+  browser gates.
+- [ ] Preview release notes, then commit and push.
+- [ ] Continue format-specific decode failure/retry, full screen-reader and
+  keyboard workflows, physical devices, sustained resources, WAN and live
+  reciprocal-transfer validation.

@@ -34,8 +34,8 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. Its 24 workflows pass in Chromium and host Firefox; WebKit
-passes 22 and feature-skips two unsupported APIs. The suite covers actual native
+peer connections. Its 25 workflows pass in Chromium and host Firefox; WebKit
+passes 24 and feature-skips one unsupported API. The suite covers actual native
 or server-decoded playback for each compressed format, plus controlled HTTP radio
 failure/retry and a synthetic directory response. Media Session callbacks are
 invoked in Chromium and Firefox, but this does not exercise physical headset
@@ -46,6 +46,7 @@ buttons. Output-switch regressions use simulated device APIs.
 | Native transport | Actual PCM playback, Pause, absolute seeks, remount and queue advancement | Verified in Chromium, host Firefox and WebKit / high |
 | Server files | Indexed and unindexed downloads, direct switching and Play Next | Verified in Chromium, host Firefox and WebKit / high |
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
+| Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount | Component/API tests / high; format-specific server-decode failure and retry remain open |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
 | Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full control order and screen-reader output remain open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 104 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
@@ -93,6 +94,18 @@ workflow adjusts the first vertical band by keyboard and verifies the spoken
 value attribute in Chromium, Firefox and WebKit. Confidence is high for the
 accessible value and update. Actual assistive-technology speech remains
 unverified.
+
+### Decoded setup request cancellation — 2026-09-29
+
+Stream-ticket and playback-info requests used by server-decoded playback now
+receive an `AbortSignal`. A newer seek aborts pending metadata work immediately
+while coalescing the final seek position; track replacement and player unmount
+also abort setup. Request-generation checks remain in place so a late result
+from a mock or adapter cannot replace the newer source. Component tests verify
+seek supersession, track replacement, unmount and late-result fencing. Confidence
+is high for request cancellation and player-state fencing; cancellation of a
+server's already accepted transcode stream is handled separately by clearing
+and reloading the media element.
 
 ### Constrained radio buffering and snapshot replacement — 2026-09-28
 
@@ -165,8 +178,10 @@ are happening; that reciprocal-transfer workflow remains open.
 ## Remaining completion work
 
 - Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The constrained Chromium case covers only the browser-to-listener HTTP leg over loopback; it does not model a WAN mesh link. Updating a listed snapshot under a stable party ID is covered, while replacement or withdrawal during an already-playing listener session remains open. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
-- Complete format-specific server-decode failure, cancellation and retry
-  coverage; current codec cases verify playback paths but not every teardown edge.
+- Complete format-specific server-decode failure and retry coverage. Setup
+  request cancellation now covers seek supersession, track replacement and
+  player unmount; each codec's server-decoded playback failure path remains to
+  be checked independently.
 - Verify physical mobile interactions, physical output routing/media buttons,
   and Picture-in-Picture window sizing/focus.
 - Measure sustained queue, visualizer, output-switch and floating-window cycles
