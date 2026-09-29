@@ -350,6 +350,22 @@ samples as time-series evidence. Use multiple natural-GC cycles and describe
 the observed trend; do not infer a leak or plateau from one endpoint and do not
 force collection to make the counters look stable.
 
+### 0z1244. Release Butterchurn WebGL Contexts When The Visualizer Closes
+
+**What went wrong:** Repeatedly opening and closing the Butterchurn player tile
+left renderer heap and GPU process memory rising while connected player DOM
+stayed constant. The adapter's cleanup disconnected its audio node but retained
+the dependency's WebGL resources until browser collection.
+
+**Why:** The installed Butterchurn visualizer API exposes no renderer
+`dispose()` method. Removing its canvas does not synchronously release the
+underlying WebGL context or its GPU allocations.
+
+**Prevention:** On Butterchurn engine teardown, disconnect audio and request
+`WEBGL_lose_context` on the context owned by the canvas. Keep visualizer
+open/close resource cycles in the player soak so GPU allocation cleanup remains
+observable.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
