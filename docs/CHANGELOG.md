@@ -32,7 +32,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Player keyboard focus
 
-- Keep keyboard focus visible on form fields in dark player dialogs when using the Light theme.
+- Keep keyboard focus visible on dark player dialogs and the volume, speed, and seek controls when using the Light theme.
 
 ## [2026092900-slskdn.329] — 2026-09-29
 

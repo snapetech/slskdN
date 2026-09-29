@@ -15186,3 +15186,20 @@ unit tests, Web lint and production build, strict standalone browser-spec
 TypeScript, `./bin/lint`, and `dotnet test` (5,346 unit, 74 smoke, 284
 integration) pass. Exact release-range preview and publication checks remain.
 No tag was created. The full player objective remains active.
+
+## Update 2026-09-29 02:10:00Z — Main player form-control focus
+
+Extended the Light-theme focus fix to the always-visible player controls. A
+browser check showed Playback volume, Playback speed, and Seek playback were
+using the browser's one-pixel black native outline against charcoal surfaces.
+The player now uses its opaque three-pixel theme-aware outline for form fields
+across the bar, as well as player dialog portals. The cross-engine regression
+measures at least 3:1 on the tested bar and modal surfaces; it passes in
+Chromium, Firefox and WebKit.
+
+All 24 player cases pass in Chromium and Firefox; WebKit passes 22 and has two
+capability skips. The 1,094 Web tests, Web lint, production build, strict E2E
+TypeScript and `./bin/lint` pass. Full `dotnet test` (5,346 unit, 74 smoke,
+284 integration) passed immediately before this frontend-only follow-up; no
+backend files changed. Exact `.329` release-range and publication checks remain.
+No tag was created; the overall player objective remains active.

@@ -66,12 +66,14 @@ record the source version validated at that time.
 
 Dark player surfaces remain in use in Light theme. Their inherited page focus
 outline was only 2.66:1 against the browser modal. The player now supplies a
-brighter outline color on its dark display, visualizer, analyzer tiles, and
-browser dialogs, and adds a visible outline to keyboard-focused form fields
-inside player dialogs. The real queue dialog test measures the rendered outline
-against its dark surface and requires at least 3:1 in Chromium, Firefox and
-WebKit. Confidence is high for that tested dialog surface; full player control
-order and assistive-technology output remain open.
+brighter outline color across its dark controls, display, visualizer, analyzer
+tiles and browser dialogs. Keyboard-focused fields in dialogs and the main
+player's volume, speed and seek controls receive an opaque three-pixel ring.
+The browser regression measures at least 3:1 against the modal and player
+control surfaces in Chromium, Firefox and WebKit. The main controls previously
+used a one-pixel black native outline. Confidence is high for the tested
+controls; full player control order and assistive-technology output remain
+open.
 
 ### Constrained radio buffering and snapshot replacement — 2026-09-28
 

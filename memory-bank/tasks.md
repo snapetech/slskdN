@@ -5729,6 +5729,9 @@ resource completion.
 - [x] Measure the rendered dialog focus outline at 3:1 or higher in Chromium,
   Firefox and WebKit. Full player suite passes 24/24 in Chromium and Firefox;
   WebKit passes 22 and skips its two unsupported APIs.
+- [x] Extend the Light-theme focus ring to the main player's volume, playback
+  speed and seek controls; verify an opaque three-pixel ring with at least 3:1
+  contrast in Chromium, Firefox and WebKit.
 - [x] Run strict E2E TypeScript and update the quality audit, changelog and
   append-only release fragment.
 - [ ] Continue the wider player audit: full control Tab order and screen-reader

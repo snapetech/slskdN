@@ -633,7 +633,7 @@ test.describe('player browser playback', () => {
     await expect(trigger).toBeFocused();
   });
 
-  test('keeps the keyboard focus ring visible on dark player dialogs in light theme', async ({ page }) => {
+  test('keeps the keyboard focus ring visible on dark player surfaces in light theme', async ({ page }) => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     await expect.poll(() => page.locator('audio').evaluateAll(
       (elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2),
@@ -687,6 +687,80 @@ test.describe('player browser playback', () => {
 
     expect(focusContrast?.outlineStyle).toBe('solid');
     expect(focusContrast?.ratio).toBeGreaterThanOrEqual(3);
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    const rating = page.getByTestId('player-rating-3');
+    await rating.focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(rating).toBeFocused();
+    await expect.poll(() => rating.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+    const ratingFocus = await rating.evaluate((element) => {
+      const display = element.closest('.player-display');
+      if (!display) return null;
+
+      const expectedColor = document.createElement('span');
+      expectedColor.style.color = window.getComputedStyle(display).getPropertyValue('--slskdn-affordance-outline');
+      display.append(expectedColor);
+      const expectedOutline = window.getComputedStyle(expectedColor).color;
+      expectedColor.remove();
+
+      const style = window.getComputedStyle(element);
+      return { expectedOutline, outlineColor: style.outlineColor, outlineStyle: style.outlineStyle };
+    });
+    expect(ratingFocus?.outlineStyle).toBe('solid');
+    expect(ratingFocus?.outlineColor).toBe(ratingFocus?.expectedOutline);
+
+    for (const name of ['Playback volume', 'Playback speed', 'Seek playback']) {
+      const control = page.getByLabel(name, { exact: true });
+      await control.focus();
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Shift+Tab');
+      await expect(control).toBeFocused();
+      await expect.poll(() => control.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+      const fieldFocus = await control.evaluate((element) => {
+        const playerBar = element.closest('.player-bar');
+        const surface = element.closest('.player-control-pad') || playerBar;
+        if (!playerBar || !surface) return null;
+
+        const expectedColor = document.createElement('span');
+        expectedColor.style.color = window.getComputedStyle(playerBar).getPropertyValue('--slskdn-affordance-outline');
+        playerBar.append(expectedColor);
+        const expectedOutline = window.getComputedStyle(expectedColor).color;
+        expectedColor.remove();
+
+        const style = window.getComputedStyle(element);
+        const parseColor = (color: string) => {
+          const channels = color.match(/[\d.]+/g);
+          if (!channels || channels.length < 3) return null;
+          const values = channels.slice(0, 3).map((channel) => Number(channel) / 255);
+          const linear = values.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+          return {
+            alpha: channels.length > 3 ? Number(channels[3]) : 1,
+            luminance: linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722,
+          };
+        };
+        const outline = parseColor(style.outlineColor);
+        const surfaceColor = parseColor(window.getComputedStyle(surface).backgroundColor);
+        if (!outline || !surfaceColor) return null;
+
+        const [lighter, darker] = [outline.luminance, surfaceColor.luminance].sort((left, right) => right - left);
+        return {
+          expectedOutline,
+          outlineAlpha: outline.alpha,
+          outlineColor: style.outlineColor,
+          outlineStyle: style.outlineStyle,
+          outlineWidth: style.outlineWidth,
+          ratio: (lighter + 0.05) / (darker + 0.05),
+        };
+      });
+      expect(fieldFocus?.outlineStyle, name).toBe('solid');
+      expect(fieldFocus?.outlineWidth, name).toBe('3px');
+      expect(fieldFocus?.outlineAlpha, name).toBe(1);
+      expect(fieldFocus?.outlineColor, name).toBe(fieldFocus?.expectedOutline);
+      expect(fieldFocus?.ratio, name).toBeGreaterThanOrEqual(3);
+    }
   });
 
   test('keeps compact and expanded controls within desktop and narrow viewports', async ({ page }, testInfo) => {

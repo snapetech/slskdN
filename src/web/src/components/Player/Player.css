@@ -660,12 +660,13 @@
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.66);
 }
 
+.player-bar :where(input, select, textarea, [contenteditable="true"]):focus-visible,
 .player-browser-modal :where(input, select, textarea, [contenteditable="true"]):focus-visible {
   outline: 3px solid var(--slskdn-affordance-outline, #b79bf6) !important;
   outline-offset: 3px;
 }
 
-:root:not(.dark) .player-bar .player-display,
+:root:not(.dark) .player-bar,
 :root:not(.dark) .player-visual-stage,
 :root:not(.dark) .player-analyzer-tile,
 :root:not(.dark) .player-browser-modal.ui.modal {

@@ -16065,3 +16065,21 @@ separately committed gotchas. Continue full player
 Tab order/screen-reader validation, codec cancellation, physical device checks,
 sustained resource budgets, WAN behavior and reciprocal-transfer admission. No
 tag or deployment was created.
+
+## Main player focus controls — 2026-09-29 02:10 UTC
+
+The Light-theme dialog field fix now includes the main player's visible form
+controls. Volume, playback speed and seek had a one-pixel black browser-native
+outline on charcoal surfaces; they now render an opaque three-pixel ring from
+the player theme token. The browser test measures at least 3:1 on the modal and
+main control surfaces in Chromium, Firefox and WebKit. Full Chromium and Firefox
+player suites pass 24/24; WebKit's focused regression passes, and its complete
+suite previously passed 22 with two capability skips. Strict E2E TypeScript and
+Web production build pass. All 1,094 Web unit tests, Web lint, and `./bin/lint`
+pass. Full `dotnet test` (5,346 unit, 74 smoke, 284 integration) passed before
+this frontend-only follow-up; backend files did not change.
+
+Next Steps: validate both post-`.329` fragments, verify GitHub target and
+identity, commit and push the control-focus follow-up plus separately committed
+gotchas. Continue full Tab order/screen-reader, device, codec cancellation,
+resource, WAN and reciprocal-transfer audits. No tag or deployment.
