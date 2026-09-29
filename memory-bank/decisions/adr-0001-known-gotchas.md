@@ -152,6 +152,19 @@ focus-ring selector omitted inputs, selects, textareas, and editable content.
 dialogs that programmatically move focus on entry. Verify the focused field's
 visible outline and contrast in a real browser.
 
+### 0z1231. Rebuild Frontend Assets Before Prebuilt Player Browser Tests
+
+**What went wrong:** A focused browser regression ran against the server's
+prebuilt static assets after Player CSS had changed, so it could not observe
+the new focus rule.
+
+**Why:** The player Playwright harness launches the prebuilt backend and serves
+its packaged frontend assets; it does not compile the current CSS on demand.
+
+**Prevention:** Run the Web production build after Player CSS edits and before
+prebuilt browser validation. Confirm the tested server serves the resulting
+assets.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
