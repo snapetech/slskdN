@@ -33420,3 +33420,17 @@ requests validly refer to files that the recipient did not own.
 **Prevention:** Name peer-specific browse results at the point they are
 requested, keep each result paired with the node that owns it, and assert the
 remote share prefix before enqueueing reciprocal transfers.
+
+### 0z1276. Keep The Transfer Workload Active Until Radio Starts (2026-09-29)
+
+**What went wrong:** The local radio-over-transfer test reached its pre-radio
+snapshot only after all 16 MiB transfers had completed. Its later assertion
+then incorrectly required transfer byte totals to increase after radio began.
+
+**Why:** The workflow performs several backend, directory, pod and browser
+setup steps before the first radio admission. At the configured 128 KiB/s
+Soulseek limits, the chosen fixture duration did not cover that setup time.
+
+**Prevention:** Size or shape the workload from measured time to first radio
+admission, assert transfers remain active at that point, and verify increasing
+bytes during playback before waiting for completion.
