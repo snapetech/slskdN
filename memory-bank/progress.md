@@ -15126,3 +15126,25 @@ media test commit when this work resumed. No tag was created or changed here.
 Next: complete full tab-order/dialog and assistive-technology checks, then
 continue codec cancellation, physical-device, sustained-resource, WAN and
 distributed-state validation. The player objective remains open.
+
+## Player dialog accessibility — 2026-09-29 01:09 UTC
+
+Fixed the player modals' missing dialog semantics and keyboard focus lifecycle.
+The shared hook gives each dialog a unique title relationship, focuses its
+contents, wraps Tab and Shift+Tab, and restores the opener. It covers all seven
+PlayerBar modals and Listed Radio. The queue browser test verifies open by
+keyboard, both wrap directions, Escape close and restored focus in Chromium,
+host Firefox and WebKit. A Listed Radio unit assertion checks its named dialog.
+
+The complete 23-case player suite passes in Chromium and host Firefox; WebKit
+passes 21 and capability-skips Media Session transport actions and Document
+PiP. The strengthened focus cycle passes individually in all three engines.
+Strict standalone browser-spec TypeScript, Web lint, 1,094 Web tests, the
+production build, `./bin/lint`, and `dotnet test` (5,346 unit, 74 smoke, 284
+integration) pass. ADR-0001 entries 0z1226 and 0z1227 document the Semantic UI
+modal requirement and the DOM typing mistake caught by strict TS. The release
+fragment is prepared; range preview, commit and push remain. No tag was created.
+
+Full control-by-control Tab order and screen-reader output remain unverified.
+Continue the player audit across codec cancellation, hardware, long sessions,
+WAN and reciprocal-transfer admission.

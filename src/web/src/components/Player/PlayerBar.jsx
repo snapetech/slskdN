@@ -48,6 +48,7 @@ import Equalizer from './Equalizer';
 import LyricsPane from './LyricsPane';
 import SpectrumAnalyzer, { getFrequencyBars } from './SpectrumAnalyzer';
 import RadioDirectory from './RadioDirectory';
+import usePlayerDialog from './usePlayerDialog';
 import { buildRadioStreamUrl, createRadioStreamUrl } from '../../lib/listeningParty';
 import { fadeOutputGain, getExistingAudioGraph, getOrCreateAudioGraph, releaseAudioGraph, resumeAudioGraph, setKaraokeEnabled, setOutputGain, suspendAudioGraph } from './audioGraph';
 import { usePlayer } from './PlayerContext';
@@ -331,6 +332,7 @@ const PlayerRatingControls = ({ current, onChange, rating }) => {
 };
 
 const PlayerRadioModal = ({ current, onClose, onOpenSearch, open }) => {
+  const dialog = usePlayerDialog(open);
   const plan = buildPlayerRadioPlan(current);
   const copyText = getPlayerRadioCopyText(plan);
   const [runningSearches, setRunningSearches] = useState(false);
@@ -393,12 +395,13 @@ const PlayerRadioModal = ({ current, onClose, onOpenSearch, open }) => {
 
   return (
     <Modal
+      {...dialog.dialogProps}
       className="player-browser-modal player-radio-modal"
       onClose={onClose}
       open={open}
       size="small"
     >
-      <Modal.Header>Smart Radio Seed</Modal.Header>
+      <Modal.Header {...dialog.titleProps}>Smart Radio Seed</Modal.Header>
       <Modal.Content>
         <p className="player-modal-copy">
           Build review-first radio searches from the current track. Nothing is
@@ -531,6 +534,7 @@ const PlayerQueueModal = ({
   open,
   queue,
 }) => {
+  const dialog = usePlayerDialog(open);
   const upcoming = queue.slice(1);
   const [handoffStatus, setHandoffStatus] = useState('');
   const [searchingSimilar, setSearchingSimilar] = useState(false);
@@ -679,12 +683,13 @@ const PlayerQueueModal = ({
 
   return (
     <Modal
+      {...dialog.dialogProps}
       className="player-browser-modal player-queue-modal"
       onClose={closeModal}
       open={open}
       size="small"
     >
-      <Modal.Header>Playback Queue</Modal.Header>
+      <Modal.Header {...dialog.titleProps}>Playback Queue</Modal.Header>
       <Modal.Content>
         <div className="player-queue-manager">
           <section className="player-playlist-actions">
@@ -912,6 +917,7 @@ const PlayerQueueModal = ({
 };
 
 const PlayerDiscoveryShelfModal = ({ onClose, open }) => {
+  const dialog = usePlayerDialog(open);
   const [expiryDays, setExpiryDays] = useState(14);
   const [items, setItems] = useState(() => getDiscoveryShelf());
   const [message, setMessage] = useState('');
@@ -960,12 +966,13 @@ const PlayerDiscoveryShelfModal = ({ onClose, open }) => {
 
   return (
     <Modal
+      {...dialog.dialogProps}
       className="player-browser-modal player-discovery-shelf-modal"
       onClose={onClose}
       open={open}
       size="small"
     >
-      <Modal.Header>Discovery Shelf</Modal.Header>
+      <Modal.Header {...dialog.titleProps}>Discovery Shelf</Modal.Header>
       <Modal.Content>
         <div className="player-shelf-summary" data-testid="player-shelf-summary">
           <div>
@@ -1128,6 +1135,7 @@ const PlayerDiscoveryShelfModal = ({ onClose, open }) => {
 };
 
 const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
+  const dialog = usePlayerDialog(open);
   const fileInputRef = useRef(null);
   const importFileRequestRef = useRef(0);
   const [rangeDays, setRangeDays] = useState(30);
@@ -1278,12 +1286,13 @@ const PlayerStatsModal = ({ onClose, onOpenSearch, open }) => {
 
   return (
     <Modal
+      {...dialog.dialogProps}
       className="player-browser-modal player-stats-modal"
       onClose={onClose}
       open={open}
       size="small"
     >
-      <Modal.Header>Listening Stats</Modal.Header>
+      <Modal.Header {...dialog.titleProps}>Listening Stats</Modal.Header>
       <Modal.Content>
         <div className="player-stats-summary" data-testid="player-stats-summary">
           <Icon name="bar chart" />
@@ -1576,6 +1585,8 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
     totalFiles: 0,
   });
   const [filesOpen, setFilesOpen] = useState(false);
+  const collectionsDialog = usePlayerDialog(collectionsOpen);
+  const filesDialog = usePlayerDialog(filesOpen);
   const [query, setQuery] = useState('');
   const [itemsLoading, setItemsLoading] = useState(false);
 
@@ -1761,13 +1772,14 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
       />
 
       <Modal
+        {...collectionsDialog.dialogProps}
         className="player-browser-modal"
         data-testid="player-collection-browser-modal"
         onClose={closeCollections}
         open={collectionsOpen}
         size="large"
       >
-        <Modal.Header>Choose from Collections</Modal.Header>
+        <Modal.Header {...collectionsDialog.titleProps}>Choose from Collections</Modal.Header>
         <Modal.Content>
           <div className="player-browser-grid">
             <Segment className="player-browser-panel">
@@ -1895,13 +1907,14 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
       </Modal>
 
       <Modal
+        {...filesDialog.dialogProps}
         className="player-browser-modal"
         data-testid="player-file-browser-modal"
         onClose={() => setFilesOpen(false)}
         open={filesOpen}
         size="fullscreen"
       >
-        <Modal.Header>Browse Local Audio Library</Modal.Header>
+        <Modal.Header {...filesDialog.titleProps}>Browse Local Audio Library</Modal.Header>
         <Modal.Content>
           <div className="player-file-explorer">
             <div className="player-file-explorer-toolbar">
@@ -2502,6 +2515,7 @@ const PlayerBar = () => {
     listenBrainz.getListenBrainzToken(),
   );
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
+  const integrationsDialog = usePlayerDialog(integrationsOpen);
   const [queueOpen, setQueueOpen] = useState(false);
   const [radioOpen, setRadioOpen] = useState(false);
   const [radioDirectoryOpen, setRadioDirectoryOpen] = useState(false);
@@ -4159,12 +4173,13 @@ const PlayerBar = () => {
       </div>
 
       <Modal
+        {...integrationsDialog.dialogProps}
         className="player-browser-modal player-integrations-modal"
         onClose={() => setIntegrationsOpen(false)}
         open={integrationsOpen}
         size="tiny"
       >
-        <Modal.Header>Player Integrations</Modal.Header>
+        <Modal.Header {...integrationsDialog.titleProps}>Player Integrations</Modal.Header>
         <Modal.Content>
           <p className="player-modal-copy">
             ListenBrainz submissions are opt-in and the token is kept for this browser session.

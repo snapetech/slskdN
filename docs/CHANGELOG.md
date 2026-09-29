@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Player dialog accessibility
+
+- Give player dialogs accessible names, contain keyboard focus while open, and restore focus to the control that opened them.
+
 ## [2026092900-slskdn.329] — 2026-09-29
 
 ### Radio fairness accounting

@@ -57,6 +57,13 @@
   - Notes: Collection choices now include a focused button and explanatory
     Popup; stats time ranges have accessible names and Popup help.
 
+- [x] Give player dialogs accessible names and keyboard focus management.
+  - Status: implemented and browser verified (2026-09-28).
+  - Notes: All eight player dialogs expose their title to assistive technology,
+    focus their contents on entry, wrap Tab and Shift+Tab, and restore their
+    opener on Escape. The queue workflow passes in Chromium, host Firefox and
+    WebKit; full control Tab order and screen-reader output remain open.
+
 - [x] Keep Listening Stats import text on the user's latest input.
   - Status: implemented (2026-09-27).
   - Notes: Older file reads cannot replace later manual edits, later file
@@ -84,14 +91,14 @@
     and reconnect, listed radio tune-in, Picture-in-Picture, analyzer idle work,
     and collapsed/expanded layout. Source review, lint, and production builds
     are complete. Chromium, host Firefox and WebKit now pass the isolated
-    22-case browser media suite (WebKit skips unsupported Media Session transport
+    23-case browser media suite (WebKit skips unsupported Media Session transport
     handlers and Document PiP). Generated local PCM, server AIFF seeking while
     paused/playing, and FLAC/MP3/Ogg playback through native or on-demand decode
     paths are verified. Crossfade, analyzer pause/resume, keyboard transport and
-    seeking, queue/files and responsive viewports pass in all three. Physical
-    mobile/output routing, headset controls, WAN/listen-along, resource duration,
-    full tab order/assistive tech and format-specific decode failure/cancellation
-    coverage remain open.
+    seeking, queue/files, responsive viewports and queue-dialog focus entry/exit
+    pass in all three. Physical mobile/output routing, headset controls,
+    WAN/listen-along, resource duration, full control Tab order/assistive tech
+    and format-specific decode failure/cancellation coverage remain open.
 
 - [x] Normalize saved equalizer gains and guard lyrics lookups against stale results.
   - Status: implemented (2026-09-27).

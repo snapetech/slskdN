@@ -1,3 +1,23 @@
+## Player dialog accessibility follow-up — 2026-09-29 01:09 UTC
+
+- All eight player modal entrypoints now provide a named dialog, initial focus,
+  bidirectional Tab wrapping, and opener restoration. The queue dialog proves
+  the entire keyboard entry/exit path; Listed Radio has a semantic role/name
+  regression assertion.
+- The visual-but-unnamed queue modal reproduced in Chromium before the fix.
+  Full player suites pass in Chromium and host Firefox (23/23) and WebKit
+  (21 passed, two unsupported-capability skips). The strengthened focus-wrap
+  case passes individually in all three. Strict standalone E2E TypeScript,
+  Web lint, 1,094 Web tests, production build, `./bin/lint`, and all 5,704
+  backend tests pass. ADR-0001 gotchas 0z1226 and 0z1227 record modal semantics
+  and strict DOM typing; 0z1227 was committed separately.
+- A user-facing player accessibility fragment is prepared. No tag was created.
+
+Next Steps: validate the release-note range, finish the audit/memory updates,
+commit and push the change, then continue the wider player audit. Full control
+Tab order and screen-reader output, codec cancellation, physical devices,
+sustained resources, WAN behavior and reciprocal-transfer admission remain open.
+
 ## Post-tag Soulseek download fairness follow-up — 2026-09-28 22:30 UTC
 
 - Download accounting is committed as `ce5245fec`; frontmatter gotcha `623b259d8` records the release-fragment delimiter requirement. Stable `.328` metadata was reconciled in merge `943b7a2f6`; latest pushed head is `0abbd44a0`.

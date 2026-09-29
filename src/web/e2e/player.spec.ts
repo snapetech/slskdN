@@ -578,6 +578,61 @@ test.describe('player browser playback', () => {
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
   });
 
+  test('contains keyboard focus in the queue dialog and restores its opener', async ({ page }) => {
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles([firstFile, secondFile]);
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+
+    const trigger = page.getByTestId('player-open-queue');
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+
+    const dialog = page.getByRole('dialog', { name: 'Playback Queue', exact: true });
+    await expect(dialog).toBeVisible();
+    const focusIsInDialog = () => page.evaluate(() => {
+      const modal = document.querySelector('.player-queue-modal');
+      return Boolean(modal && document.activeElement && modal.contains(document.activeElement));
+    });
+    const focusState = () => page.evaluate(() => {
+      const modal = document.querySelector('.player-queue-modal');
+      if (!modal) return { activeIndex: -1, count: 0 };
+
+      const focusables = Array.from(modal.querySelectorAll<HTMLElement>([
+        'a[href]',
+        'button:not([disabled])',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[contenteditable="true"]',
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(','))).filter((element) =>
+        element.tabIndex >= 0 &&
+        !element.closest('[aria-hidden="true"]') &&
+        element.getClientRects().length > 0 &&
+        window.getComputedStyle(element).visibility !== 'hidden');
+
+      const activeElement = document.activeElement;
+      return {
+        activeIndex: activeElement instanceof HTMLElement ? focusables.indexOf(activeElement) : -1,
+        count: focusables.length,
+      };
+    });
+    await expect.poll(focusIsInDialog).toBe(true);
+    await expect.poll(async () => (await focusState()).activeIndex).toBe(0);
+    const { count } = await focusState();
+    expect(count).toBeGreaterThan(1);
+
+    await page.keyboard.press('Shift+Tab');
+    await expect.poll(focusIsInDialog).toBe(true);
+    await expect.poll(async () => (await focusState()).activeIndex).toBe(count - 1);
+    await page.keyboard.press('Tab');
+    await expect.poll(async () => (await focusState()).activeIndex).toBe(0);
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
   test('keeps compact and expanded controls within desktop and narrow viewports', async ({ page }, testInfo) => {
     const minimumMeasuredTouchSize = 44 - 0.01;
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);

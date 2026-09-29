@@ -5,8 +5,10 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Icon, List, Message, Modal, Popup } from 'semantic-ui-react';
 import * as listeningParty from '../../lib/listeningParty';
+import usePlayerDialog from './usePlayerDialog';
 
 const RadioDirectory = ({ onClose, onPlay }) => {
+  const dialog = usePlayerDialog(true);
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,8 +29,15 @@ const RadioDirectory = ({ onClose, onPlay }) => {
   }, [refresh]);
 
   return (
-    <Modal className="player-browser-modal" closeOnDimmerClick onClose={onClose} open size="small">
-      <Modal.Header>Listed radio</Modal.Header>
+    <Modal
+      {...dialog.dialogProps}
+      className="player-browser-modal"
+      closeOnDimmerClick
+      onClose={onClose}
+      open
+      size="small"
+    >
+      <Modal.Header {...dialog.titleProps}>Listed radio</Modal.Header>
       <Modal.Content scrolling>
         <p>Play a host's current track snapshot. Rejoin for later track changes. Refresh checks the directory only when you request it.</p>
         <Popup content="Refresh the listed snapshots to see current host streaming permissions. Playback starts only when you choose a track." trigger={

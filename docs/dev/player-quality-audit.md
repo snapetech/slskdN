@@ -34,8 +34,8 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. Its 22 workflows pass in Chromium and host Firefox; WebKit
-passes 20 and feature-skips two unsupported APIs. The suite covers actual native
+peer connections. Its 23 workflows pass in Chromium and host Firefox; WebKit
+passes 21 and feature-skips two unsupported APIs. The suite covers actual native
 or server-decoded playback for each compressed format, plus controlled HTTP radio
 failure/retry and a synthetic directory response. Media Session callbacks are
 invoked in Chromium and Firefox, but this does not exercise physical headset
@@ -47,6 +47,7 @@ buttons. Output-switch regressions use simulated device APIs.
 | Server files | Indexed and unindexed downloads, direct switching and Play Next | Verified in Chromium, host Firefox and WebKit / high |
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
+| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close and opener restoration | Queue workflow verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full control order and screen-reader output remain open |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
 | Analyzer | Reads stop on Pause/Stop, resume on Play; existing contexts suspend | Verified in Chromium, host Firefox and WebKit / high |
@@ -139,15 +140,18 @@ are happening; that reciprocal-transfer workflow remains open.
   for retained memory, stray timers and active contexts. The repeated two-window
   idle/play/pause baseline is complete; it does not establish a long-session
   memory plateau.
-- Audit full keyboard focus order, dialog entry/exit and assistive-technology
-  workflows. Core playback, paused seeking and compact-mode keyboard activation
-  now pass in all three automated browser engines.
+- Audit full keyboard focus order and assistive-technology workflows. All eight
+  player dialogs now expose their title, receive focus on entry, wrap Tab in
+  both directions, and restore the opener on Escape. The queue dialog workflow
+  verifies those behaviors in three browser engines; full control-by-control
+  order and screen-reader output remain open. Core playback, paused seeking and
+  compact-mode keyboard activation also pass in all three engines.
 - Resolve newly discovered defects and update this audit with direct evidence.
 
 ## Cross-engine media suite — 2026-09-28
 
-The complete 22-case `src/web/e2e/player.spec.ts` suite passes in Chromium and
-host Firefox. In the Playwright WebKit container, 20 cases pass and two are
+The complete 23-case `src/web/e2e/player.spec.ts` suite passes in Chromium and
+host Firefox. In the Playwright WebKit container, 21 cases pass and two are
 skipped after capability checks: WebKit does not expose Media Session transport
 action handlers or Document Picture-in-Picture. Those skips do not mask failed
 assertions. Firefox ran on the host because the stripped Playwright Firefox
@@ -161,16 +165,22 @@ assertion on the browser-native or server-transcoded route. Crossfade, analyzer
 pause/resume, queue/file playback and responsive viewport checks pass in all
 three engines. A keyboard workflow uses Space/Enter for transport, ArrowRight
 for seeking while paused, and Space to pause in compact mode. It verifies
-accessible playback names and paused/playing state, but does not establish the
-entire Tab order or screen-reader output. This is browser-engine coverage, not
-physical device validation:
-headset/media buttons, hardware output routing, mobile gestures, real PiP window
-geometry/focus and sustained resource use remain unverified.
+accessible playback names and paused/playing state. A separate queue-dialog
+workflow opens the named dialog by keyboard, confirms initial focus, wraps
+Shift+Tab from first to last and Tab from last to first, then verifies Escape
+close and focus restoration. The shared focus hook is wired to all eight player
+dialogs; a Listed Radio unit assertion checks dialog naming. This does not
+establish the entire control Tab order or screen-reader output. This is
+browser-engine coverage, not physical device validation. Headset/media buttons,
+hardware output routing, mobile gestures, real PiP window geometry/focus and
+sustained resource use remain unverified.
 
-The exact 22-case suite also passes strict standalone TypeScript checking.
-Web lint, all 1,094 Web unit tests across 170 files, the full `dotnet test` run,
-and repository lint pass. The production frontend build passed before the final
-test-only edits; no production source changed in this validation batch.
+The exact player spec passes strict standalone TypeScript checking. Web lint,
+all 1,094 Web unit tests across 170 files, the full `dotnet test` run (5,346
+unit, 74 smoke and 284 integration tests), repository lint and the production
+frontend build pass. The current player source passed the full browser suite;
+the strengthened two-way focus assertion then passed independently in all three
+engines.
 
 
 ## Mesh transport prerequisites — 2026-09-28

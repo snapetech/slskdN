@@ -22,6 +22,7 @@ it('plays only host-enabled streams through an explicit action', async () => {
   const onPlay = vi.fn();
   const onClose = vi.fn();
   render(<RadioDirectory onClose={onClose} onPlay={onPlay} />);
+  expect(await screen.findByRole('dialog', { name: 'Listed radio' })).toHaveAttribute('aria-modal', 'true');
   const play = await screen.findByRole('button', { name: 'Play Radio track from listed radio' });
   expect(screen.getByRole('button', { name: 'Play Metadata track from listed radio' })).toBeDisabled();
   expect(onPlay).not.toHaveBeenCalled();
