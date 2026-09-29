@@ -127,6 +127,18 @@ unique `aria-labelledby` target. Move focus inside when opened, contain Tab and
 Shift+Tab, and restore the opener when closed. Validate the real portal in a
 browser; a visual screenshot cannot establish dialog semantics or focus.
 
+### 0z1229. Start Playback Before Opening The Queue In Browser Tests
+
+**What went wrong:** A new browser test tried to open the queue dialog on an
+empty player. The queue control is correctly disabled until a track is active,
+so the dialog never opened and the accessibility assertion timed out.
+
+**Why:** The test setup assumed the queue launcher is always available and did
+not establish the player state required by that control.
+
+**Prevention:** Load generated media and wait for playback progress before
+testing the queue dialog. Assert the launcher is enabled before activating it.
+
 ### 0z1227. Type DOM Focus Candidates In Strict Browser Tests
 
 **What went wrong:** A new focus-cycle browser assertion queried focusable
