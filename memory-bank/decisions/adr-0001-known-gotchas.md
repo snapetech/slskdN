@@ -33450,3 +33450,19 @@ though the option attributes use unprefixed keys internally.
 **Prevention:** Use the environment names listed in `docs/config.md`, including
 `SLSKD_UPLOAD_SPEED_LIMIT` and `SLSKD_DOWNLOAD_SPEED_LIMIT`, and verify observed
 transfer duration before relying on a throttled stress workload.
+
+### 0z1278. Reopen The Radio Directory Before A Second Admission (2026-09-29)
+
+**What went wrong:** The local Soulseek/radio workflow played one listed-radio
+entry, stopped playback, then waited for the same Play button without opening
+the radio directory again. The first play action closes that directory, so the
+locator never existed and the case timed out after the transfers had already
+completed.
+
+**Why:** The test assumed the picker remained open after `onPlay` called
+`onClose`. Stopping playback only stops and clears the active player item; it
+does not reopen the picker.
+
+**Prevention:** Reopen the listed-radio directory after stopping playback
+before locating another entry. Assert the entry is visible before clicking it,
+and give the second wait a local timeout so a UI-state mismatch fails quickly.
