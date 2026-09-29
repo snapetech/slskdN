@@ -113,6 +113,20 @@ cast the evaluated node to `HTMLAudioElement` before using media-only
 properties. Keep the standalone strict browser-spec TypeScript check in the
 validation gates.
 
+### 0z1226. Give Semantic UI Modals Dialog Semantics And Focus Management
+
+**What went wrong:** A visible Playback Queue modal was absent from the
+accessibility tree as a named dialog, and keyboard focus remained outside it.
+
+**Why:** Semantic UI React 2.1.5 renders its Modal as visual markup; `Modal.Header`
+does not provide a dialog role, accessible-name relationship, or focus trap and
+restoration.
+
+**Prevention:** For player modals, add `role="dialog"`, `aria-modal`, and a
+unique `aria-labelledby` target. Move focus inside when opened, contain Tab and
+Shift+Tab, and restore the opener when closed. Validate the real portal in a
+browser; a visual screenshot cannot establish dialog semantics or focus.
+
 ### 0z1210. Preserve The Original Playwright Failure During CDP Cleanup
 
 **What went wrong:** A network-emulation E2E test awaited a CDP network-policy
