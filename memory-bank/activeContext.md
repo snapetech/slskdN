@@ -1,3 +1,23 @@
+## Player compressed-format retry validation — 2026-09-29 04:04 UTC
+
+- Added three generated-format browser regressions: FLAC, MP3 and Ogg each
+  recover from a controlled transcode-stream 503 through an actual successful
+  server FFmpeg retry. The native stream failure and first 503 are injected at
+  the browser route; they are not evidence of FFmpeg itself failing.
+- Full PlayerBar Chromium suite: 29/29. Web: 1,098 tests / 170 files, lint and
+  strict browser TypeScript pass. `./bin/lint` and full `dotnet test` pass
+  (5,346 unit, 74 smoke, 284 integration).
+- New cases could not run in Firefox/WebKit in this shell: Playwright Firefox
+  timed out at navigation, installed Firefox exits on `-juggler-pipe`, and
+  WebKit lacks host libraries. The earlier 26-case cross-engine results do not
+  include these cases. Audit and tasks now preserve that boundary.
+- Gotcha `55bd897e6` is committed locally. The test and evidence updates are
+  uncommitted; exact range is internal-only with no release note or tag.
+
+Next Steps: finish diff and publication checks, commit and push this batch, then
+continue assistive-technology speech, cross-engine/real decoder failure,
+physical device, resource plateau, WAN and reciprocal-transfer validation.
+
 ## Player keyboard Tab-order batch published — 2026-09-29 03:46 UTC
 
 Commits `282e14e6b` (immediate Tab-order gotcha) and `86badd421` (browser

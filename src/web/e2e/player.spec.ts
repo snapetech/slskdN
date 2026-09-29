@@ -350,6 +350,69 @@ test.describe('player browser playback', () => {
           !element.paused && element.currentTime > 0.2 && !element.currentSrc.includes('/transcoded')))).toBe(true);
       }
     });
+
+    test(`recovers ${format.label} playback after a temporary transcode failure`, async ({ page }) => {
+      let nativeStreamFailures = 0;
+      let transcodeRequests = 0;
+      await page.route((url) => url.pathname.startsWith('/api/v0/streams/') &&
+        url.pathname.split('/').length === 5, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+        nativeStreamFailures += 1;
+        await route.fulfill({ status: 415, contentType: 'text/plain', body: 'Injected native-format rejection.' });
+      });
+      await page.route((url) => url.pathname.startsWith('/api/v0/streams/') &&
+        url.pathname.endsWith('/transcoded'), async (route) => {
+        transcodeRequests += 1;
+        if (transcodeRequests === 1) {
+          await route.fulfill({ status: 503, contentType: 'text/plain', body: 'Injected temporary transcode failure.' });
+          return;
+        }
+        await route.continue();
+      });
+
+      await page.getByTestId('player-open-file-browser').click();
+      const modal = page.getByTestId('player-file-browser-modal');
+      await modal.getByTestId('player-file-browser-search').locator('input').fill(`Player format ${format.label} runtime`);
+      await modal.getByRole('button', {
+        name: `Play Player format ${format.label} runtime.${format.extension}`,
+        exact: true,
+      }).click();
+
+      const audio = page.locator('audio').first();
+      await expect(page.getByRole('button', { name: 'Decode for playback', exact: true })).toBeVisible();
+      expect(nativeStreamFailures).toBe(1);
+      await audio.evaluate((element) => {
+        const playerWindow = window as Window & { __playerDecodeErrorCount?: number };
+        playerWindow.__playerDecodeErrorCount = 0;
+        element.addEventListener('error', () => { playerWindow.__playerDecodeErrorCount! += 1; });
+      });
+
+      const failedTranscode = page.waitForResponse((response) => {
+        const path = new URL(response.url()).pathname;
+        return path.startsWith('/api/v0/streams/') && path.endsWith('/transcoded') && response.status() === 503;
+      });
+      await page.getByRole('button', { name: 'Decode for playback', exact: true }).click();
+      await failedTranscode;
+      await expect.poll(() => page.evaluate(() =>
+        (window as Window & { __playerDecodeErrorCount?: number }).__playerDecodeErrorCount)).toBeGreaterThan(0);
+      await expect.poll(() => audio.evaluate((element: HTMLAudioElement) =>
+        element.paused && Boolean(element.error) && element.currentSrc.includes('/transcoded'))).toBe(true);
+
+      const successfulRetry = page.waitForResponse((response) => {
+        const path = new URL(response.url()).pathname;
+        return path.startsWith('/api/v0/streams/') && path.endsWith('/transcoded') && response.status() === 200;
+      });
+      await page.getByTestId('player-toggle-playback').click();
+      const retriedStream = await successfulRetry;
+      expect(retriedStream.headers()['content-type']).toContain('audio/mpeg');
+      await expect.poll(() => audio.evaluate((element: HTMLAudioElement) =>
+        !element.paused && element.currentTime > 0.2 && element.currentSrc.includes('/transcoded'))).toBe(true);
+      expect(nativeStreamFailures).toBe(1);
+      expect(transcodeRequests).toBe(2);
+    });
   }
 
   test('saves a queue, reloads its playlist and preserves repeated server entries', async ({ page }) => {

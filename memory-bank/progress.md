@@ -15300,3 +15300,19 @@ TypeScript and `./bin/lint` pass. Full `dotnet test` (5,346 unit, 74 smoke,
 284 integration) passed immediately before this frontend-only follow-up; no
 backend files changed. Exact `.329` release-range and publication checks remain.
 No tag was created; the overall player objective remains active.
+## Update 2026-09-29 04:04:00Z — Compressed-format playback retry
+
+Added one browser recovery workflow for each generated FLAC, MP3 and Ogg
+Vorbis fixture. The test rejects the native stream, injects a 503 for the first
+transcoded response, observes the media error and explicit paused state, then
+retries through a fresh stream ticket. The retry reaches the real backend
+FFmpeg decoder, returns `audio/mpeg`, and advances playback. Full PlayerBar
+Chromium suite: 29/29. This is client recovery with a controlled response
+failure, not evidence of FFmpeg itself failing.
+
+All 1,098 Web tests / 170 files, Web lint, strict browser TypeScript, repository
+lint and full `dotnet test` (5,346 unit, 74 smoke, 284 integration) pass. The
+new cases could not execute in current Firefox/WebKit runtimes; exact launch
+failures and the 26-case previous cross-engine baseline are recorded in the
+player audit. Immediate Playwright locator gotcha `0z1239` is committed as
+`55bd897e6`. Internal QA only; no release fragment or tag.

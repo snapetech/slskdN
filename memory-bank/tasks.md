@@ -96,15 +96,17 @@
     duplicate local files, output switching, Media Session controls, room follow
     and reconnect, listed radio tune-in, Picture-in-Picture, analyzer idle work,
     and collapsed/expanded layout. Source review, lint, and production builds
-    are complete. Chromium, host Firefox and WebKit now pass the isolated
-    23-case browser media suite (WebKit skips unsupported Media Session transport
-    handlers and Document PiP). Generated local PCM, server AIFF seeking while
+    are complete. The current 29-case browser suite passes in Chromium. The
+    previous 26-case cross-engine suite passed in host Firefox and passed 24
+    with two capability skips in WebKit; the three codec-retry workflows still
+    need working Firefox/WebKit runs. Generated local PCM, server AIFF seeking while
     paused/playing, and FLAC/MP3/Ogg playback through native or on-demand decode
     paths are verified. Crossfade, analyzer pause/resume, keyboard transport and
     seeking, queue/files, responsive viewports and queue-dialog focus entry/exit
     pass in all three. Physical mobile/output routing, headset controls,
-    WAN/listen-along, resource duration, actual assistive-technology speech,
-    and format-specific decode failure/retry coverage remain open. The separate
+    WAN/listen-along, resource duration and actual assistive-technology speech
+    remain open. Per-format retry passes in Chromium; cross-engine retries and
+    server-generated decoder failures remain open. The separate
     keyboard Tab-order task now verifies expanded, tools-open and compact modes
     in all three browser engines.
 
@@ -5719,8 +5721,8 @@ resource completion.
   actions and Document PiP.
 - [x] Pass strict browser-spec TypeScript, 1,094 Web tests/170 files, Web lint,
   full `dotnet test`, repository lint, local-identity and GitHub-target checks.
-- [ ] Continue codec cancellation/retry, full keyboard focus order and
-  assistive-tech checks, physical device, sustained resource, WAN and
+- [ ] Continue actual assistive-tech speech, cross-engine codec retry, physical
+  device, sustained resource, WAN and
   distributed-state validation before closing the broader player audit.
 
 
@@ -5781,8 +5783,9 @@ resource completion.
   browser gates.
 - [x] Preview the exact release range and push commit `7c51ff0e8` with gotcha
   record `113236404`.
-- [ ] Continue format-specific decode failure/retry, actual screen-reader
-  speech, physical devices, sustained resources, WAN and live
+- [ ] Repeat per-format retries in Firefox/WebKit and test a server-generated
+  FFmpeg failure; complete actual screen-reader speech, physical devices,
+  sustained resources, WAN and live
   reciprocal-transfer validation.
 
 
@@ -5797,5 +5800,19 @@ resource completion.
 - [x] Commit and push the Tab-order regression and its immediate gotcha record
   as `86badd421` and `282e14e6b`.
 - [ ] Continue actual assistive-technology speech, physical media controls and
-  output routing, decode failure/retry, sustained resources, WAN radio and
+  output routing, cross-engine decode retry, sustained resources, WAN radio and
   reciprocal-transfer verification.
+
+
+### Player compressed-format transcode retries — 2026-09-29
+
+- [x] Force the native-stream fallback and a first transcode-stream failure for
+  generated FLAC, MP3 and Ogg Vorbis server files.
+- [x] Retry from the visible player control and verify a fresh ticket, real
+  `audio/mpeg` FFmpeg response and advancing playback for each format.
+- [x] Pass the full 29-case Chromium PlayerBar suite; all 1,098 Web tests,
+  Web lint, strict browser TypeScript, `./bin/lint`, and `dotnet test` (5,346
+  unit, 74 smoke, 284 integration).
+- [ ] Run these three retries in functioning Firefox/WebKit runtimes and test a
+  server-generated FFmpeg startup/decode error; the current first failure is a
+  browser-injected 503.
