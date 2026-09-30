@@ -33903,3 +33903,18 @@ the input value.
 use direct DOM refs, replace `<Ref innerRef>` with native refs, and audit all
 `.inputRef.current` accesses. Run the full web suite, including browse polling
 and search creation, before accepting the migration.
+
+### 0z1308. Return Fomantic Portal Timer Cleanup From Its Effect (2026-09-30)
+
+**What went wrong:** The full React 19 release gate reported an uncaught
+`window is not defined` after all Web assertions passed. A delayed Portal open
+callback updated React state after `DownloadDestinationSelector`'s jsdom
+environment had been torn down.
+
+**Why:** Fomantic UI React 3 cleared the Portal's mouse-enter and mouse-leave
+timers while the effect was being set up, but did not return that cleanup for
+component unmount. A pending hover timeout therefore survived teardown.
+
+**Prevention:** Return a cleanup callback from the Portal effect that clears
+both timers. Add a fake-timer regression that unmounts while an open delay is
+pending, and require the full Vitest run to finish without uncaught errors.
