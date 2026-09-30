@@ -387,28 +387,30 @@
 
 - [x] Reassess React 19 compatibility and plan a fresh migration when the Web
   dependency stack has a supported path.
-  - Status: migration validated on the Fomantic UI React 3 branch (2026-09-30);
-    merge/push and stable publication are tracked below.
+  - Status: migration implemented and validated by the `.333` guarded release
+    gate (2026-09-30); stable publication is tracked below.
   - Priority: P1
   - Notes: React and React DOM 19.3.0 now run with the npm Fomantic UI React
     beta.5 package patched from upstream PR #49. The patch carries its
     React 19 source and CommonJS/ESM outputs; pnpm overrides cover React peers
     and remove the unused Fluent event listener. Browse, Users, Search, Chat,
-    and Rooms use direct DOM refs. Full Web tests (1,114), .NET tests (5,704),
-    Web build/lint, and repository lint pass. The upstream PR is still open;
-    refresh the patch only after a published replacement passes the Web suite.
+    and Rooms use direct DOM refs. The complete `.333` gate passed: 1,115 Web
+    tests, 5,346 .NET unit tests, 74 smoke tests and 40 integration smoke tests;
+    Web build, bundle budget, output verification and subpath smoke passed.
+    The upstream PR is still open; refresh the patch only after a published
+    replacement passes the Web suite.
 
 - [ ] Push the React 19 compatibility migration and publish stable `.333`.
-  - Status: migration pushed to `main` at `c5809fcfa` on 2026-09-30;
-    dependency PRs #343 and #344 are merged. `.332` is published and its
-    release assets are verified. The Portal timer cleanup fix is pushed and
-    all 1,115 Web tests pass. A second guarded `.333` attempt found that the
-    Fomantic alias overflowed Vite's generic vendor chunk; the chunk mapping
-    fix is local, and build plus bundle-budget checks pass. Push that fix, then
-    rerun the guarded tag helper.
+  - Status: migration and validated source are pushed at `6f13371c0` on
+    2026-09-30; dependency PRs #343 and #344 are merged. `.332` is published
+    and verified. Guarded `.333` tag `build-main-2026093022-slskdn.333` was
+    pushed at 22:01 UTC, but Build on Tag run `36783137317` remains queued at
+    Parse Tag and no release assets exist yet.
   - Priority: P1
-  - Notes: The exact release fragment and changelog bullet are ready. The
-    release range preview from `build-main-2026093019-slskdn.332` passes.
+  - Notes: Exact release fragments and changelog entries cover React 19
+    compatibility and Fomantic Portal timer cleanup. Release-range preview and
+    the guarded local release gate passed. Finish when the published `.333`
+    assets pass `scripts/verify-release-artifacts.sh`.
 
 
 - [x] Fix Wishlist matching, blocked-user policy, and transfer/navigation regressions.

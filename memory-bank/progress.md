@@ -15678,3 +15678,18 @@ No tag, release or deployment was created.
 - The `.333` release heading is updated to `2026093022-slskdn.333` because the
   guarded release gate must be rerun after these last changes. The Vite fix
   and release-status docs still need commit/push before tagging.
+
+## Update 2026-09-30 22:09 UTC
+
+- The final guarded release gate passed after fixing the Vite chunk mapping.
+  It passed 1,115 Web tests, production build and bundle budget (94 assets,
+  3.81 MB total; generic vendor chunk 584.13 KB), output/subpath smoke, 5,346
+  .NET unit tests, 74 smoke tests and 40 integration smoke tests.
+- React 19 migration source is synced to `main` at `6f13371c0`; PRs #343 and
+  #344 are merged. The fork has no open issues or pull requests. Stable tag
+  `build-main-2026093022-slskdn.333` was pushed at 22:01 UTC.
+- Build on Tag run `36783137317` is still queued on Parse Tag with no runner
+  assigned; no `.333` GitHub Release or archives exist yet. Verify all
+  published assets with `scripts/verify-release-artifacts.sh` when the run
+  completes. The earlier `.332` PPA and Omnibus Testers Docker jobs remain in
+  progress; its six core platform archives were already verified.
