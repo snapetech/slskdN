@@ -33700,3 +33700,17 @@ but the Cloudron check assumed they always advance together.
 separately from the latest binary release. Validate Cloudron against that
 image record, and advance both the record and Cloudron catalog only after the
 Docker publish job succeeds.
+
+### 0z1294. Pin Reduced-Motion Preference In Player Tests (2026-09-29)
+
+**What went wrong:** The first focused Player test run inherited a reduced-motion
+preference in the Visualizer suite. The renderer correctly stayed stopped, but
+existing tests expected it to start and failed.
+
+**Why:** Those tests depended on the test environment's ambient `matchMedia`
+value instead of declaring the motion preference required by each case.
+
+**Prevention:** Set the Visualizer suite's default motion preference explicitly
+to `false`, then enable reduced motion only in cases that exercise that
+behavior. This keeps renderer lifecycle tests independent of host and test
+environment settings.
