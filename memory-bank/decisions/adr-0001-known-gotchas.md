@@ -33787,3 +33787,18 @@ speech engine synthesized audio.
 before launching Orca, verify the speech service is responding, and require
 non-silent captured PCM before reporting actual screen-reader speech as
 validated.
+
+
+### 0z1300. Check Orca Application Registration Before Closing Chromium (2026-09-30)
+
+**What went wrong:** The screen-reader runner queried Orca's application list
+after the Playwright test had exited and Chromium had closed, then failed
+because the browser was no longer registered.
+
+**Why:** Orca only lists applications while their accessible processes are
+alive. A post-test snapshot cannot establish whether Chromium registered
+during playback.
+
+**Prevention:** Verify the browser's Orca speech events while the test page is
+open, or take the application-list snapshot before Playwright closes it.
+Do not use a post-shutdown list as a runtime registration gate.
