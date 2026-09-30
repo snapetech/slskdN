@@ -33815,3 +33815,17 @@ quote boundary as well as the nested shell's syntax.
 
 **Prevention:** Use double-quoted messages inside the nested script, and run
 `bash -n` plus an isolated wrapper launch after editing its embedded commands.
+
+### 0z1302. Preserve The Offset Value In Nested Shell Output (2026-09-30)
+
+**What went wrong:** The player screen-reader workflow passed and Orca spoke
+its status messages, but Python could not parse the captured-audio offset
+because the nested script's single-quoted `printf` format broke the outer
+single-quoted `bash -c` argument.
+
+**Why:** Shell syntax inside an embedded command string is parsed again by the
+outer shell; a valid inner `printf '%s\n'` still closes the outer quote.
+
+**Prevention:** Use double-quoted format strings inside this runner's embedded
+shell program, then inspect the written offset as an integer before analyzing
+the speech recording.
