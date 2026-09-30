@@ -33757,3 +33757,17 @@ inside the container. A container cache setting was applied to both layers.
 **Prevention:** Keep the isolated cache on the Orca container and leave the host
 Playwright process pointed at its installed browser binaries. Continue using
 separate per-run profile, runtime and evidence directories for the speech test.
+
+### 0z1298. Keep Chromium Singleton Socket Paths Short In The Orca Runner (2026-09-30)
+
+**What went wrong:** Chromium exited before the Orca workflow because the
+Playwright profile under the evidence directory produced a Unix singleton
+socket path longer than the platform limit.
+
+**Why:** The runner put temporary Chromium files under the checkout's nested
+evidence path, and Chromium adds several more path components before creating
+its process-singleton socket.
+
+**Prevention:** Put only the per-run browser temp profile in a private, short
+temporary directory. Keep durable logs and speech captures in the evidence
+directory, and remove the temporary profile in the runner's cleanup trap.
