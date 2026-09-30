@@ -1,0 +1,1254 @@
+diff --git a/dist/commonjs/addons/Portal/usePortalElement.js b/dist/commonjs/addons/Portal/usePortalElement.js
+index 0a22b86..aacbdab 100644
+--- a/dist/commonjs/addons/Portal/usePortalElement.js
++++ b/dist/commonjs/addons/Portal/usePortalElement.js
+@@ -7,6 +7,7 @@ var React = require('react');
+ var ReactIs = require('react-is');
+ require('../../lib/index.js');
+ var useMergedRefs = require('../../lib/hooks/useMergedRefs.js');
++var getElementRef = require('../../lib/getElementRef.js');
+ 
+ function _interopNamespaceDefault(e) {
+   var n = Object.create(null);
+@@ -26,11 +27,13 @@ function _interopNamespaceDefault(e) {
+ }
+ 
+ var React__namespace = /*#__PURE__*/_interopNamespaceDefault(React);
++var ReactIs__namespace = /*#__PURE__*/_interopNamespaceDefault(ReactIs);
+ 
+ function usePortalElement(node, userRef) {
+-  const ref = useMergedRefs.default(node.ref, userRef);
++  var _a;
++  const ref = useMergedRefs.default(getElementRef.default(node), userRef);
+   if (React__namespace.isValidElement(node)) {
+-    if (ReactIs.isForwardRef(node)) {
++    if (((_a = node.type) == null ? void 0 : _a.$$typeof) === ReactIs__namespace.ForwardRef) {
+       return React__namespace.cloneElement(node, { ref });
+     }
+     if (typeof node.type === "string") {
+diff --git a/dist/commonjs/addons/Portal/utils/useTrigger.js b/dist/commonjs/addons/Portal/utils/useTrigger.js
+index 05840c8..8aa83ff 100644
+--- a/dist/commonjs/addons/Portal/utils/useTrigger.js
++++ b/dist/commonjs/addons/Portal/utils/useTrigger.js
+@@ -7,6 +7,7 @@ var React = require('react');
+ require('../../../lib/index.js');
+ var validateTrigger = require('./validateTrigger.js');
+ var useMergedRefs = require('../../../lib/hooks/useMergedRefs.js');
++var getElementRef = require('../../../lib/getElementRef.js');
+ 
+ function _interopNamespaceDefault(e) {
+   var n = Object.create(null);
+@@ -28,7 +29,7 @@ function _interopNamespaceDefault(e) {
+ var React__namespace = /*#__PURE__*/_interopNamespaceDefault(React);
+ 
+ function useTrigger(trigger, triggerRef) {
+-  const ref = useMergedRefs.default(trigger == null ? void 0 : trigger.ref, triggerRef);
++  const ref = useMergedRefs.default(getElementRef.default(trigger), triggerRef);
+   if (trigger) {
+     if (process.env.NODE_ENV !== "production") {
+       validateTrigger.default(trigger);
+diff --git a/dist/commonjs/addons/Portal/utils/validateTrigger.js b/dist/commonjs/addons/Portal/utils/validateTrigger.js
+index 0e54969..f31e317 100644
+--- a/dist/commonjs/addons/Portal/utils/validateTrigger.js
++++ b/dist/commonjs/addons/Portal/utils/validateTrigger.js
+@@ -3,7 +3,6 @@
+ Object.defineProperty(exports, '__esModule', { value: true });
+ 
+ var React = require('react');
+-var ReactIs = require('react-is');
+ 
+ function _interopNamespaceDefault(e) {
+   var n = Object.create(null);
+@@ -23,11 +22,10 @@ function _interopNamespaceDefault(e) {
+ }
+ 
+ var React__namespace = /*#__PURE__*/_interopNamespaceDefault(React);
+-var ReactIs__namespace = /*#__PURE__*/_interopNamespaceDefault(ReactIs);
+ 
+ function validateTrigger(element) {
+   React__namespace.Children.only(element);
+-  if (ReactIs__namespace.isFragment(element)) {
++  if (element.type === React__namespace.Fragment) {
+     throw new Error('An "React.Fragment" cannot be used as a `trigger`.');
+   }
+ }
+diff --git a/dist/commonjs/elements/Image/Image.js b/dist/commonjs/elements/Image/Image.js
+index 3e83ddd..9ef0392 100644
+--- a/dist/commonjs/elements/Image/Image.js
++++ b/dist/commonjs/elements/Image/Image.js
+@@ -106,7 +106,7 @@ const Image = React__namespace.forwardRef(function(props, ref) {
+   const ElementType = getComponentType.default(props, {
+     defaultAs: "img",
+     getDefault: () => {
+-      if (!_.isNil(dimmer) || !_.isNil(label) || !_.isNil(wrapped) || !childrenUtils.isNil(children)) {
++      if (!_.isNil(dimmer) || !_.isNil(label) || !_.isNil(wrapped) || !childrenUtils.isNil(children) || !childrenUtils.isNil(content)) {
+         return "div";
+       }
+     }
+diff --git a/dist/commonjs/elements/Input/Input.js b/dist/commonjs/elements/Input/Input.js
+index 3e22599..acce476 100644
+--- a/dist/commonjs/elements/Input/Input.js
++++ b/dist/commonjs/elements/Input/Input.js
+@@ -20,6 +20,7 @@ var classNameBuilders = require('../../lib/classNameBuilders.js');
+ var getComponentType = require('../../lib/getComponentType.js');
+ var childrenUtils = require('../../lib/childrenUtils.js');
+ var useMergedRefs = require('../../lib/hooks/useMergedRefs.js');
++var getElementRef = require('../../lib/getElementRef.js');
+ var Button = require('../Button/Button.js');
+ var Label = require('../Label/Label.js');
+ var factories = require('../../lib/factories.js');
+@@ -144,7 +145,7 @@ const Input = React__namespace.forwardRef(function(props, ref) {
+       if (child.type === "input") {
+         return React__namespace.cloneElement(child, __spreadProps(__spreadValues(__spreadValues({}, htmlInputProps), child.props), {
+           ref: (c) => {
+-            useMergedRefs.setRef(child.ref, c);
++            useMergedRefs.setRef(getElementRef.default(child), c);
+             useMergedRefs.setRef(ref, c);
+           }
+         }));
+diff --git a/dist/commonjs/generic.d.ts b/dist/commonjs/generic.d.ts
+index 10a972e..65037dc 100644
+--- a/dist/commonjs/generic.d.ts
++++ b/dist/commonjs/generic.d.ts
+@@ -68,7 +68,7 @@ export interface StrictHtmlSpanProps {
+ export type SemanticShorthandItemFunc<TProps> = (
+   component: React.ElementType<TProps>,
+   props: TProps,
+-  children?: React.ReactNode | React.ReactNodeArray,
++  children?: React.ReactNode,
+ ) => React.ReactElement<any> | null
+ 
+ export type ShorthandRenderFunction<C extends React.ElementType, P> = (
+diff --git a/dist/commonjs/lib/getElementRef.js b/dist/commonjs/lib/getElementRef.js
+new file mode 100644
+index 0000000..1d00f43
+--- /dev/null
++++ b/dist/commonjs/lib/getElementRef.js
+@@ -0,0 +1,10 @@
++'use strict';
++
++Object.defineProperty(exports, '__esModule', { value: true });
++
++function getElementRef(element) {
++  var _a, _b;
++  return (_b = (_a = element == null ? void 0 : element.props) == null ? void 0 : _a.ref) != null ? _b : element == null ? void 0 : element.ref;
++}
++
++exports.default = getElementRef;
+diff --git a/dist/commonjs/lib/hooks/useEventListener.js b/dist/commonjs/lib/hooks/useEventListener.js
+new file mode 100644
+index 0000000..c80d6ef
+--- /dev/null
++++ b/dist/commonjs/lib/hooks/useEventListener.js
+@@ -0,0 +1,82 @@
++'use client';
++'use strict';
++
++Object.defineProperty(exports, '__esModule', { value: true });
++
++var React = require('react');
++var isBrowser = require('../isBrowser.js');
++
++function _interopNamespaceDefault(e) {
++  var n = Object.create(null);
++  if (e) {
++    Object.keys(e).forEach(function (k) {
++      if (k !== 'default') {
++        var d = Object.getOwnPropertyDescriptor(e, k);
++        Object.defineProperty(n, k, d.get ? d : {
++          enumerable: true,
++          get: function () { return e[k]; }
++        });
++      }
++    });
++  }
++  n.default = e;
++  return Object.freeze(n);
++}
++
++var React__namespace = /*#__PURE__*/_interopNamespaceDefault(React);
++
++const documentRef = { current: isBrowser.default() ? document : null };
++const getWindowEvent = () => typeof window === "undefined" ? void 0 : window.event;
++function useEventListener(options) {
++  const { capture = false, enabled = true, listener, target, targetRef, type } = options;
++  const latestListener = React__namespace.useRef(listener);
++  latestListener.current = listener;
++  const eventHandler = React__namespace.useCallback((event) => latestListener.current(event), []);
++  const timeoutId = React__namespace.useRef();
++  if (process.env.NODE_ENV !== "production") {
++    React__namespace.useEffect(() => {
++      if (typeof target !== "undefined" && typeof targetRef !== "undefined") {
++        throw new Error(
++          "useEventListener(): `target` and `targetRef` are mutually exclusive, use one of them."
++        );
++      }
++      if (typeof target === "undefined" && typeof targetRef === "undefined") {
++        throw new Error("useEventListener(): one of `target` or `targetRef` is required.");
++      }
++    }, [target, targetRef]);
++  }
++  React__namespace.useEffect(() => {
++    if (!enabled) {
++      return void 0;
++    }
++    const element = typeof targetRef === "undefined" ? target : targetRef.current;
++    if (!element || typeof element.addEventListener !== "function") {
++      if (process.env.NODE_ENV !== "production") {
++        throw new Error(
++          "useEventListener(): the passed element does not support addEventListener()."
++        );
++      }
++      return void 0;
++    }
++    let currentEvent = getWindowEvent();
++    const conditionalHandler = (event) => {
++      if (event === currentEvent) {
++        currentEvent = void 0;
++        return;
++      }
++      eventHandler(event);
++    };
++    element.addEventListener(type, conditionalHandler, capture);
++    timeoutId.current = setTimeout(() => {
++      currentEvent = void 0;
++    }, 1);
++    return () => {
++      clearTimeout(timeoutId.current);
++      currentEvent = void 0;
++      element.removeEventListener(type, conditionalHandler, capture);
++    };
++  }, [capture, enabled, eventHandler, target, targetRef, type]);
++}
++
++exports.default = useEventListener;
++exports.documentRef = documentRef;
+diff --git a/dist/commonjs/lib/index.js b/dist/commonjs/lib/index.js
+index 06e4251..457b2b1 100644
+--- a/dist/commonjs/lib/index.js
++++ b/dist/commonjs/lib/index.js
+@@ -18,9 +18,11 @@ var numberToWord = require('./numberToWord.js');
+ var normalizeTransitionDuration = require('./normalizeTransitionDuration.js');
+ var objectDiff = require('./objectDiff.js');
+ var isRefObject = require('./isRefObject.js');
++var getElementRef = require('./getElementRef.js');
+ var useAutoControlledValue = require('./hooks/useAutoControlledValue.js');
+ var useClassNamesOnNode = require('./hooks/useClassNamesOnNode.js');
+ var useEventCallback = require('./hooks/useEventCallback.js');
++var useEventListener = require('./hooks/useEventListener.js');
+ var useForceUpdate = require('./hooks/useForceUpdate.js');
+ var useIsomorphicLayoutEffect = require('./hooks/useIsomorphicLayoutEffect.js');
+ var useMergedRefs = require('./hooks/useMergedRefs.js');
+@@ -64,9 +66,12 @@ exports.numberToWordMap = numberToWord.numberToWordMap;
+ exports.normalizeTransitionDuration = normalizeTransitionDuration.default;
+ exports.objectDiff = objectDiff.default;
+ exports.isRefObject = isRefObject.default;
++exports.getElementRef = getElementRef.default;
+ exports.useAutoControlledValue = useAutoControlledValue.default;
+ exports.useClassNamesOnNode = useClassNamesOnNode.default;
+ exports.useEventCallback = useEventCallback.default;
++exports.documentRef = useEventListener.documentRef;
++exports.useEventListener = useEventListener.default;
+ exports.useForceUpdate = useForceUpdate.default;
+ exports.useIsomorphicLayoutEffect = useIsomorphicLayoutEffect.default;
+ exports.setRef = useMergedRefs.setRef;
+diff --git a/dist/commonjs/modules/Dropdown/Dropdown.js b/dist/commonjs/modules/Dropdown/Dropdown.js
+index d8b82a3..19a5ea3 100644
+--- a/dist/commonjs/modules/Dropdown/Dropdown.js
++++ b/dist/commonjs/modules/Dropdown/Dropdown.js
+@@ -652,11 +652,7 @@ class DropdownInner extends ModernAutoControlledComponent.default {
+       const { multiple, placeholder, search, text } = this.props;
+       const { searchQuery, selectedIndex, value, open } = this.state;
+       const hasValue = this.hasValue();
+-      const classes = cx(
+-        placeholder && !hasValue && "default",
+-        "text",
+-        search && searchQuery && "filtered"
+-      );
++      const classes = cx(placeholder && !hasValue && "default", search && searchQuery && "filtered");
+       let _text = placeholder;
+       let selectedItem;
+       if (text) {
+diff --git a/dist/commonjs/modules/Dropdown/DropdownText.js b/dist/commonjs/modules/Dropdown/DropdownText.js
+index 52c0a10..9b96166 100644
+--- a/dist/commonjs/modules/Dropdown/DropdownText.js
++++ b/dist/commonjs/modules/Dropdown/DropdownText.js
+@@ -52,7 +52,7 @@ var __spreadValues = (a, b) => {
+ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+ const DropdownText = React__namespace.forwardRef(function(props, ref) {
+   const { children, className, content } = props;
+-  const classes = cx("divider", className);
++  const classes = cx("text", className);
+   const rest = getUnhandledProps.default(DropdownText, props);
+   const ElementType = getComponentType.default(props);
+   return /* @__PURE__ */ React__namespace.createElement(
+diff --git a/dist/commonjs/modules/Embed/Embed.js b/dist/commonjs/modules/Embed/Embed.js
+index 499a8e5..af0d671 100644
+--- a/dist/commonjs/modules/Embed/Embed.js
++++ b/dist/commonjs/modules/Embed/Embed.js
+@@ -84,23 +84,23 @@ const Embed = React__namespace.forwardRef(function(props, ref) {
+       return [
+         `//www.youtube.com/embed/${id}`,
+         "?autohide=true",
+-        `&amp;autoplay=${autoplay}`,
+-        `&amp;color=${encodeURIComponent(color)}`,
+-        `&amp;hq=${hd}`,
+-        "&amp;jsapi=false",
+-        `&amp;modestbranding=${brandedUI}`,
+-        `&amp;rel=${brandedUI ? 0 : 1}`
++        `&autoplay=${autoplay}`,
++        `&color=${encodeURIComponent(color)}`,
++        `&hq=${hd}`,
++        "&jsapi=false",
++        `&modestbranding=${brandedUI}`,
++        `&rel=${brandedUI ? 0 : 1}`
+       ].join("");
+     }
+     if (source === "vimeo") {
+       return [
+         `//player.vimeo.com/video/${id}`,
+         "?api=false",
+-        `&amp;autoplay=${autoplay}`,
+-        "&amp;byline=false",
+-        `&amp;color=${encodeURIComponent(color)}`,
+-        "&amp;portrait=false",
+-        "&amp;title=false"
++        `&autoplay=${autoplay}`,
++        "&byline=false",
++        `&color=${encodeURIComponent(color)}`,
++        "&portrait=false",
++        "&title=false"
+       ].join("");
+     }
+     return url;
+diff --git a/dist/commonjs/modules/Search/Search.js b/dist/commonjs/modules/Search/Search.js
+index 47f2050..1c5fbf5 100644
+--- a/dist/commonjs/modules/Search/Search.js
++++ b/dist/commonjs/modules/Search/Search.js
+@@ -263,9 +263,10 @@ class SearchInner extends ModernAutoControlledComponent.default {
+       let nextIndex = selectedIndex + offset;
+       if (nextIndex > lastIndex) nextIndex = 0;
+       else if (nextIndex < 0) nextIndex = lastIndex;
+-      this.setState({ selectedIndex: nextIndex });
+-      this.scrollSelectedItemIntoView();
+-      this.handleSelectionChange(e);
++      this.setState({ selectedIndex: nextIndex }, () => {
++        this.scrollSelectedItemIntoView();
++        this.handleSelectionChange(e);
++      });
+     });
+     // ----------------------------------------
+     // Behavior
+diff --git a/dist/commonjs/modules/Sidebar/Sidebar.js b/dist/commonjs/modules/Sidebar/Sidebar.js
+index b9205b9..b2d668b 100644
+--- a/dist/commonjs/modules/Sidebar/Sidebar.js
++++ b/dist/commonjs/modules/Sidebar/Sidebar.js
+@@ -3,7 +3,6 @@
+ 
+ Object.defineProperty(exports, '__esModule', { value: true });
+ 
+-var reactComponentEventListener = require('@fluentui/react-component-event-listener');
+ var cx = require('clsx');
+ var _lodash$invoke = require('lodash/invoke');
+ var PropTypes = require('prop-types');
+@@ -13,14 +12,15 @@ var SidebarPushable = require('./SidebarPushable.js');
+ var SidebarPusher = require('./SidebarPusher.js');
+ var usePrevious = require('../../lib/hooks/usePrevious.js');
+ var useForceUpdate = require('../../lib/hooks/useForceUpdate.js');
++var useEventListener = require('../../lib/hooks/useEventListener.js');
+ var useMergedRefs = require('../../lib/hooks/useMergedRefs.js');
+ var useEventCallback = require('../../lib/hooks/useEventCallback.js');
+ var doesNodeContainClick = require('../../lib/doesNodeContainClick.js');
+ var useIsomorphicLayoutEffect = require('../../lib/hooks/useIsomorphicLayoutEffect.js');
++var isRefObject = require('../../lib/isRefObject.js');
+ var classNameBuilders = require('../../lib/classNameBuilders.js');
+ var getUnhandledProps = require('../../lib/getUnhandledProps.js');
+ var getComponentType = require('../../lib/getComponentType.js');
+-var isRefObject = require('../../lib/isRefObject.js');
+ var childrenUtils = require('../../lib/childrenUtils.js');
+ var customPropTypes = require('../../lib/customPropTypes.js');
+ 
+@@ -85,7 +85,7 @@ const Sidebar = React__namespace.forwardRef((props, ref) => {
+     children,
+     content,
+     direction = "left",
+-    target = reactComponentEventListener.documentRef,
++    target = useEventListener.documentRef,
+     visible = false,
+     width
+   } = props;
+@@ -117,6 +117,11 @@ const Sidebar = React__namespace.forwardRef((props, ref) => {
+   useIsomorphicLayoutEffect.default(() => {
+     handleAnimationStart();
+   }, [animationTick]);
++  useEventListener.default(__spreadValues({
++    enabled: visible,
++    listener: handleDocumentClick,
++    type: "click"
++  }, isRefObject.default(target) ? { targetRef: target } : { target }));
+   React__namespace.useEffect(() => {
+     return () => {
+       clearTimeout(animationTimer.current);
+@@ -134,8 +139,7 @@ const Sidebar = React__namespace.forwardRef((props, ref) => {
+   );
+   const rest = getUnhandledProps.default(Sidebar, props);
+   const ElementType = getComponentType.default(props);
+-  const targetProp = isRefObject.default(target) ? { targetRef: target } : { target };
+-  return /* @__PURE__ */ React__namespace.createElement(React__namespace.Fragment, null, /* @__PURE__ */ React__namespace.createElement(ElementType, __spreadProps(__spreadValues({}, rest), { className: classes, ref: elementRef }), childrenUtils.isNil(children) ? content : children), visible && /* @__PURE__ */ React__namespace.createElement(reactComponentEventListener.EventListener, __spreadValues({ listener: handleDocumentClick, type: "click" }, targetProp)));
++  return /* @__PURE__ */ React__namespace.createElement(ElementType, __spreadProps(__spreadValues({}, rest), { className: classes, ref: elementRef }), childrenUtils.isNil(children) ? content : children);
+ });
+ Sidebar.displayName = "Sidebar";
+ Sidebar.propTypes = process.env.NODE_ENV !== 'production' ? {
+diff --git a/dist/commonjs/modules/Tab/Tab.js b/dist/commonjs/modules/Tab/Tab.js
+index c92b4b2..608db1f 100644
+--- a/dist/commonjs/modules/Tab/Tab.js
++++ b/dist/commonjs/modules/Tab/Tab.js
+@@ -100,17 +100,18 @@ const Tab = React__namespace.forwardRef(function(props, ref) {
+     );
+   };
+   const renderMenu = () => {
+-    if (menu.tabular === true && menuPosition === "right") {
+-      menu.tabular = "right";
+-    }
+-    return Menu.default.create(menu, {
+-      autoGenerateKey: false,
+-      overrideProps: {
+-        items: _.map(panes, "menuItem"),
+-        onItemClick: handleItemClick,
+-        activeIndex
++    const tabular = menu.tabular === true && menuPosition === "right" ? "right" : menu.tabular;
++    return Menu.default.create(
++      __spreadProps(__spreadValues({}, menu), { tabular }),
++      {
++        autoGenerateKey: false,
++        overrideProps: {
++          items: _.map(panes, "menuItem"),
++          onItemClick: handleItemClick,
++          activeIndex
++        }
+       }
+-    });
++    );
+   };
+   const renderVertical = (menuElement2) => {
+     const _a = grid, { paneWidth, tabWidth } = _a, gridProps = __objRest(_a, ["paneWidth", "tabWidth"]);
+diff --git a/dist/es/addons/Portal/usePortalElement.js b/dist/es/addons/Portal/usePortalElement.js
+index 3bfffb6..6a79731 100644
+--- a/dist/es/addons/Portal/usePortalElement.js
++++ b/dist/es/addons/Portal/usePortalElement.js
+@@ -1,13 +1,15 @@
+ 'use client';
+ import * as React from 'react';
+-import ReactIs__default from 'react-is';
++import * as ReactIs from 'react-is';
+ import '../../lib/index.js';
+ import useMergedRefs from '../../lib/hooks/useMergedRefs.js';
++import getElementRef from '../../lib/getElementRef.js';
+ 
+ function usePortalElement(node, userRef) {
+-  const ref = useMergedRefs(node.ref, userRef);
++  var _a;
++  const ref = useMergedRefs(getElementRef(node), userRef);
+   if (React.isValidElement(node)) {
+-    if (ReactIs__default.isForwardRef(node)) {
++    if (((_a = node.type) == null ? void 0 : _a.$$typeof) === ReactIs.ForwardRef) {
+       return React.cloneElement(node, { ref });
+     }
+     if (typeof node.type === "string") {
+diff --git a/dist/es/addons/Portal/utils/useTrigger.js b/dist/es/addons/Portal/utils/useTrigger.js
+index 8149c26..ab172c4 100644
+--- a/dist/es/addons/Portal/utils/useTrigger.js
++++ b/dist/es/addons/Portal/utils/useTrigger.js
+@@ -3,9 +3,10 @@ import * as React from 'react';
+ import '../../../lib/index.js';
+ import validateTrigger from './validateTrigger.js';
+ import useMergedRefs from '../../../lib/hooks/useMergedRefs.js';
++import getElementRef from '../../../lib/getElementRef.js';
+ 
+ function useTrigger(trigger, triggerRef) {
+-  const ref = useMergedRefs(trigger == null ? void 0 : trigger.ref, triggerRef);
++  const ref = useMergedRefs(getElementRef(trigger), triggerRef);
+   if (trigger) {
+     if (process.env.NODE_ENV !== "production") {
+       validateTrigger(trigger);
+diff --git a/dist/es/addons/Portal/utils/validateTrigger.js b/dist/es/addons/Portal/utils/validateTrigger.js
+index 3c21447..a4ebb6e 100644
+--- a/dist/es/addons/Portal/utils/validateTrigger.js
++++ b/dist/es/addons/Portal/utils/validateTrigger.js
+@@ -1,9 +1,8 @@
+ import * as React from 'react';
+-import * as ReactIs from 'react-is';
+ 
+ function validateTrigger(element) {
+   React.Children.only(element);
+-  if (ReactIs.isFragment(element)) {
++  if (element.type === React.Fragment) {
+     throw new Error('An "React.Fragment" cannot be used as a `trigger`.');
+   }
+ }
+diff --git a/dist/es/elements/Image/Image.js b/dist/es/elements/Image/Image.js
+index 31a5ead..66674ef 100644
+--- a/dist/es/elements/Image/Image.js
++++ b/dist/es/elements/Image/Image.js
+@@ -83,7 +83,7 @@ const Image = React.forwardRef(function(props, ref) {
+   const ElementType = getComponentType(props, {
+     defaultAs: "img",
+     getDefault: () => {
+-      if (!_.isNil(dimmer) || !_.isNil(label) || !_.isNil(wrapped) || !isNil(children)) {
++      if (!_.isNil(dimmer) || !_.isNil(label) || !_.isNil(wrapped) || !isNil(children) || !isNil(content)) {
+         return "div";
+       }
+     }
+diff --git a/dist/es/elements/Input/Input.js b/dist/es/elements/Input/Input.js
+index 1368c9a..ca64844 100644
+--- a/dist/es/elements/Input/Input.js
++++ b/dist/es/elements/Input/Input.js
+@@ -16,6 +16,7 @@ import { getKeyOnly, getValueAndKey } from '../../lib/classNameBuilders.js';
+ import getComponentType from '../../lib/getComponentType.js';
+ import { isNil } from '../../lib/childrenUtils.js';
+ import { setRef } from '../../lib/hooks/useMergedRefs.js';
++import getElementRef from '../../lib/getElementRef.js';
+ import Button from '../Button/Button.js';
+ import Label from '../Label/Label.js';
+ import { createHTMLInput, createShorthandFactory } from '../../lib/factories.js';
+@@ -121,7 +122,7 @@ const Input = React.forwardRef(function(props, ref) {
+       if (child.type === "input") {
+         return React.cloneElement(child, __spreadProps(__spreadValues(__spreadValues({}, htmlInputProps), child.props), {
+           ref: (c) => {
+-            setRef(child.ref, c);
++            setRef(getElementRef(child), c);
+             setRef(ref, c);
+           }
+         }));
+diff --git a/dist/es/generic.d.ts b/dist/es/generic.d.ts
+index 10a972e..65037dc 100644
+--- a/dist/es/generic.d.ts
++++ b/dist/es/generic.d.ts
+@@ -68,7 +68,7 @@ export interface StrictHtmlSpanProps {
+ export type SemanticShorthandItemFunc<TProps> = (
+   component: React.ElementType<TProps>,
+   props: TProps,
+-  children?: React.ReactNode | React.ReactNodeArray,
++  children?: React.ReactNode,
+ ) => React.ReactElement<any> | null
+ 
+ export type ShorthandRenderFunction<C extends React.ElementType, P> = (
+diff --git a/dist/es/lib/getElementRef.js b/dist/es/lib/getElementRef.js
+new file mode 100644
+index 0000000..1ae25d4
+--- /dev/null
++++ b/dist/es/lib/getElementRef.js
+@@ -0,0 +1,6 @@
++function getElementRef(element) {
++  var _a, _b;
++  return (_b = (_a = element == null ? void 0 : element.props) == null ? void 0 : _a.ref) != null ? _b : element == null ? void 0 : element.ref;
++}
++
++export { getElementRef as default };
+diff --git a/dist/es/lib/hooks/useEventListener.js b/dist/es/lib/hooks/useEventListener.js
+new file mode 100644
+index 0000000..b422785
+--- /dev/null
++++ b/dist/es/lib/hooks/useEventListener.js
+@@ -0,0 +1,58 @@
++'use client';
++import * as React from 'react';
++import isBrowser from '../isBrowser.js';
++
++const documentRef = { current: isBrowser() ? document : null };
++const getWindowEvent = () => typeof window === "undefined" ? void 0 : window.event;
++function useEventListener(options) {
++  const { capture = false, enabled = true, listener, target, targetRef, type } = options;
++  const latestListener = React.useRef(listener);
++  latestListener.current = listener;
++  const eventHandler = React.useCallback((event) => latestListener.current(event), []);
++  const timeoutId = React.useRef();
++  if (process.env.NODE_ENV !== "production") {
++    React.useEffect(() => {
++      if (typeof target !== "undefined" && typeof targetRef !== "undefined") {
++        throw new Error(
++          "useEventListener(): `target` and `targetRef` are mutually exclusive, use one of them."
++        );
++      }
++      if (typeof target === "undefined" && typeof targetRef === "undefined") {
++        throw new Error("useEventListener(): one of `target` or `targetRef` is required.");
++      }
++    }, [target, targetRef]);
++  }
++  React.useEffect(() => {
++    if (!enabled) {
++      return void 0;
++    }
++    const element = typeof targetRef === "undefined" ? target : targetRef.current;
++    if (!element || typeof element.addEventListener !== "function") {
++      if (process.env.NODE_ENV !== "production") {
++        throw new Error(
++          "useEventListener(): the passed element does not support addEventListener()."
++        );
++      }
++      return void 0;
++    }
++    let currentEvent = getWindowEvent();
++    const conditionalHandler = (event) => {
++      if (event === currentEvent) {
++        currentEvent = void 0;
++        return;
++      }
++      eventHandler(event);
++    };
++    element.addEventListener(type, conditionalHandler, capture);
++    timeoutId.current = setTimeout(() => {
++      currentEvent = void 0;
++    }, 1);
++    return () => {
++      clearTimeout(timeoutId.current);
++      currentEvent = void 0;
++      element.removeEventListener(type, conditionalHandler, capture);
++    };
++  }, [capture, enabled, eventHandler, target, targetRef, type]);
++}
++
++export { useEventListener as default, documentRef };
+diff --git a/dist/es/lib/index.js b/dist/es/lib/index.js
+index 305d3b0..dbb4503 100644
+--- a/dist/es/lib/index.js
++++ b/dist/es/lib/index.js
+@@ -19,9 +19,11 @@ export { numberToWord, numberToWordMap } from './numberToWord.js';
+ export { default as normalizeTransitionDuration } from './normalizeTransitionDuration.js';
+ export { default as objectDiff } from './objectDiff.js';
+ export { default as isRefObject } from './isRefObject.js';
++export { default as getElementRef } from './getElementRef.js';
+ export { default as useAutoControlledValue } from './hooks/useAutoControlledValue.js';
+ export { default as useClassNamesOnNode } from './hooks/useClassNamesOnNode.js';
+ export { default as useEventCallback } from './hooks/useEventCallback.js';
++export { documentRef, default as useEventListener } from './hooks/useEventListener.js';
+ export { default as useForceUpdate } from './hooks/useForceUpdate.js';
+ export { default as useIsomorphicLayoutEffect } from './hooks/useIsomorphicLayoutEffect.js';
+ export { setRef, default as useMergedRefs } from './hooks/useMergedRefs.js';
+diff --git a/dist/es/modules/Dropdown/Dropdown.js b/dist/es/modules/Dropdown/Dropdown.js
+index d1d8872..015ac45 100644
+--- a/dist/es/modules/Dropdown/Dropdown.js
++++ b/dist/es/modules/Dropdown/Dropdown.js
+@@ -648,11 +648,7 @@ class DropdownInner extends ModernAutoControlledComponent {
+       const { multiple, placeholder, search, text } = this.props;
+       const { searchQuery, selectedIndex, value, open } = this.state;
+       const hasValue = this.hasValue();
+-      const classes = cx(
+-        placeholder && !hasValue && "default",
+-        "text",
+-        search && searchQuery && "filtered"
+-      );
++      const classes = cx(placeholder && !hasValue && "default", search && searchQuery && "filtered");
+       let _text = placeholder;
+       let selectedItem;
+       if (text) {
+diff --git a/dist/es/modules/Dropdown/DropdownText.js b/dist/es/modules/Dropdown/DropdownText.js
+index c7e97ca..41caeaa 100644
+--- a/dist/es/modules/Dropdown/DropdownText.js
++++ b/dist/es/modules/Dropdown/DropdownText.js
+@@ -29,7 +29,7 @@ var __spreadValues = (a, b) => {
+ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+ const DropdownText = React.forwardRef(function(props, ref) {
+   const { children, className, content } = props;
+-  const classes = cx("divider", className);
++  const classes = cx("text", className);
+   const rest = getUnhandledProps(DropdownText, props);
+   const ElementType = getComponentType(props);
+   return /* @__PURE__ */ React.createElement(
+diff --git a/dist/es/modules/Embed/Embed.js b/dist/es/modules/Embed/Embed.js
+index 3667cde..21901a7 100644
+--- a/dist/es/modules/Embed/Embed.js
++++ b/dist/es/modules/Embed/Embed.js
+@@ -61,23 +61,23 @@ const Embed = React.forwardRef(function(props, ref) {
+       return [
+         `//www.youtube.com/embed/${id}`,
+         "?autohide=true",
+-        `&amp;autoplay=${autoplay}`,
+-        `&amp;color=${encodeURIComponent(color)}`,
+-        `&amp;hq=${hd}`,
+-        "&amp;jsapi=false",
+-        `&amp;modestbranding=${brandedUI}`,
+-        `&amp;rel=${brandedUI ? 0 : 1}`
++        `&autoplay=${autoplay}`,
++        `&color=${encodeURIComponent(color)}`,
++        `&hq=${hd}`,
++        "&jsapi=false",
++        `&modestbranding=${brandedUI}`,
++        `&rel=${brandedUI ? 0 : 1}`
+       ].join("");
+     }
+     if (source === "vimeo") {
+       return [
+         `//player.vimeo.com/video/${id}`,
+         "?api=false",
+-        `&amp;autoplay=${autoplay}`,
+-        "&amp;byline=false",
+-        `&amp;color=${encodeURIComponent(color)}`,
+-        "&amp;portrait=false",
+-        "&amp;title=false"
++        `&autoplay=${autoplay}`,
++        "&byline=false",
++        `&color=${encodeURIComponent(color)}`,
++        "&portrait=false",
++        "&title=false"
+       ].join("");
+     }
+     return url;
+diff --git a/dist/es/modules/Search/Search.js b/dist/es/modules/Search/Search.js
+index 31dbd02..d3ee1c9 100644
+--- a/dist/es/modules/Search/Search.js
++++ b/dist/es/modules/Search/Search.js
+@@ -240,9 +240,10 @@ class SearchInner extends ModernAutoControlledComponent {
+       let nextIndex = selectedIndex + offset;
+       if (nextIndex > lastIndex) nextIndex = 0;
+       else if (nextIndex < 0) nextIndex = lastIndex;
+-      this.setState({ selectedIndex: nextIndex });
+-      this.scrollSelectedItemIntoView();
+-      this.handleSelectionChange(e);
++      this.setState({ selectedIndex: nextIndex }, () => {
++        this.scrollSelectedItemIntoView();
++        this.handleSelectionChange(e);
++      });
+     });
+     // ----------------------------------------
+     // Behavior
+diff --git a/dist/es/modules/Sidebar/Sidebar.js b/dist/es/modules/Sidebar/Sidebar.js
+index 8b93b68..a4389cd 100644
+--- a/dist/es/modules/Sidebar/Sidebar.js
++++ b/dist/es/modules/Sidebar/Sidebar.js
+@@ -1,5 +1,4 @@
+ 'use client';
+-import { documentRef, EventListener } from '@fluentui/react-component-event-listener';
+ import cx from 'clsx';
+ import _lodash$invoke from 'lodash-es/invoke.js';
+ import PropTypes from 'prop-types';
+@@ -9,14 +8,15 @@ import SidebarPushable from './SidebarPushable.js';
+ import SidebarPusher from './SidebarPusher.js';
+ import usePrevious from '../../lib/hooks/usePrevious.js';
+ import useForceUpdate from '../../lib/hooks/useForceUpdate.js';
++import useEventListener, { documentRef } from '../../lib/hooks/useEventListener.js';
+ import useMergedRefs from '../../lib/hooks/useMergedRefs.js';
+ import useEventCallback from '../../lib/hooks/useEventCallback.js';
+ import doesNodeContainClick from '../../lib/doesNodeContainClick.js';
+ import useIsomorphicLayoutEffect from '../../lib/hooks/useIsomorphicLayoutEffect.js';
++import isRefObject from '../../lib/isRefObject.js';
+ import { getKeyOnly } from '../../lib/classNameBuilders.js';
+ import getUnhandledProps from '../../lib/getUnhandledProps.js';
+ import getComponentType from '../../lib/getComponentType.js';
+-import isRefObject from '../../lib/isRefObject.js';
+ import { isNil } from '../../lib/childrenUtils.js';
+ import { contentShorthand, domNode, refObject } from '../../lib/customPropTypes.js';
+ 
+@@ -94,6 +94,11 @@ const Sidebar = React.forwardRef((props, ref) => {
+   useIsomorphicLayoutEffect(() => {
+     handleAnimationStart();
+   }, [animationTick]);
++  useEventListener(__spreadValues({
++    enabled: visible,
++    listener: handleDocumentClick,
++    type: "click"
++  }, isRefObject(target) ? { targetRef: target } : { target }));
+   React.useEffect(() => {
+     return () => {
+       clearTimeout(animationTimer.current);
+@@ -111,8 +116,7 @@ const Sidebar = React.forwardRef((props, ref) => {
+   );
+   const rest = getUnhandledProps(Sidebar, props);
+   const ElementType = getComponentType(props);
+-  const targetProp = isRefObject(target) ? { targetRef: target } : { target };
+-  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(ElementType, __spreadProps(__spreadValues({}, rest), { className: classes, ref: elementRef }), isNil(children) ? content : children), visible && /* @__PURE__ */ React.createElement(EventListener, __spreadValues({ listener: handleDocumentClick, type: "click" }, targetProp)));
++  return /* @__PURE__ */ React.createElement(ElementType, __spreadProps(__spreadValues({}, rest), { className: classes, ref: elementRef }), isNil(children) ? content : children);
+ });
+ Sidebar.displayName = "Sidebar";
+ Sidebar.propTypes = process.env.NODE_ENV !== 'production' ? {
+diff --git a/dist/es/modules/Tab/Tab.js b/dist/es/modules/Tab/Tab.js
+index dbe1696..cf378d8 100644
+--- a/dist/es/modules/Tab/Tab.js
++++ b/dist/es/modules/Tab/Tab.js
+@@ -77,17 +77,18 @@ const Tab = React.forwardRef(function(props, ref) {
+     );
+   };
+   const renderMenu = () => {
+-    if (menu.tabular === true && menuPosition === "right") {
+-      menu.tabular = "right";
+-    }
+-    return Menu.create(menu, {
+-      autoGenerateKey: false,
+-      overrideProps: {
+-        items: _.map(panes, "menuItem"),
+-        onItemClick: handleItemClick,
+-        activeIndex
++    const tabular = menu.tabular === true && menuPosition === "right" ? "right" : menu.tabular;
++    return Menu.create(
++      __spreadProps(__spreadValues({}, menu), { tabular }),
++      {
++        autoGenerateKey: false,
++        overrideProps: {
++          items: _.map(panes, "menuItem"),
++          onItemClick: handleItemClick,
++          activeIndex
++        }
+       }
+-    });
++    );
+   };
+   const renderVertical = (menuElement2) => {
+     const _a = grid, { paneWidth, tabWidth } = _a, gridProps = __objRest(_a, ["paneWidth", "tabWidth"]);
+diff --git a/src/addons/Portal/usePortalElement.js b/src/addons/Portal/usePortalElement.js
+index 02c9502..5f708d1 100644
+--- a/src/addons/Portal/usePortalElement.js
++++ b/src/addons/Portal/usePortalElement.js
+@@ -1,7 +1,7 @@
+ import * as React from 'react'
+-import ReactIs from 'react-is'
++import * as ReactIs from 'react-is'
+ 
+-import { useMergedRefs } from '../../lib'
++import { getElementRef, useMergedRefs } from '../../lib'
+ 
+ /**
+  * Assigns merged ref to an existing element is possible or wraps it with an additional "div".
+@@ -10,10 +10,12 @@ import { useMergedRefs } from '../../lib'
+  * @param {React.Ref} userRef
+  */
+ export default function usePortalElement(node, userRef) {
+-  const ref = useMergedRefs(node.ref, userRef)
++  const ref = useMergedRefs(getElementRef(node), userRef)
+ 
+   if (React.isValidElement(node)) {
+-    if (ReactIs.isForwardRef(node)) {
++    // Compares the type rather than calling `ReactIs.isForwardRef(node)`, which
++    // only recognises elements created by the same major version of React.
++    if (node.type?.$$typeof === ReactIs.ForwardRef) {
+       return React.cloneElement(node, { ref })
+     }
+ 
+diff --git a/src/addons/Portal/utils/useTrigger.js b/src/addons/Portal/utils/useTrigger.js
+index 020e4ec..c803679 100644
+--- a/src/addons/Portal/utils/useTrigger.js
++++ b/src/addons/Portal/utils/useTrigger.js
+@@ -1,6 +1,6 @@
+ import * as React from 'react'
+ 
+-import { useMergedRefs } from '../../../lib'
++import { getElementRef, useMergedRefs } from '../../../lib'
+ import validateTrigger from './validateTrigger'
+ 
+ /**
+@@ -8,7 +8,7 @@ import validateTrigger from './validateTrigger'
+  * @param {React.Ref} triggerRef
+  */
+ function useTrigger(trigger, triggerRef) {
+-  const ref = useMergedRefs(trigger?.ref, triggerRef)
++  const ref = useMergedRefs(getElementRef(trigger), triggerRef)
+ 
+   if (trigger) {
+     /* istanbul ignore else */
+diff --git a/src/addons/Portal/utils/validateTrigger.js b/src/addons/Portal/utils/validateTrigger.js
+index 0b1cc33..2131295 100644
+--- a/src/addons/Portal/utils/validateTrigger.js
++++ b/src/addons/Portal/utils/validateTrigger.js
+@@ -1,5 +1,4 @@
+ import * as React from 'react'
+-import * as ReactIs from 'react-is'
+ 
+ /**
+  * Asserts that a passed element can be used cloned a props will be applied properly.
+@@ -7,7 +6,7 @@ import * as ReactIs from 'react-is'
+ export default function validateTrigger(element) {
+   React.Children.only(element)
+ 
+-  if (ReactIs.isFragment(element)) {
++  if (element.type === React.Fragment) {
+     throw new Error('An "React.Fragment" cannot be used as a `trigger`.')
+   }
+ }
+diff --git a/src/elements/Image/Image.js b/src/elements/Image/Image.js
+index a35e61a..6af74ac 100644
+--- a/src/elements/Image/Image.js
++++ b/src/elements/Image/Image.js
+@@ -79,7 +79,8 @@ const Image = React.forwardRef(function (props, ref) {
+         !_.isNil(dimmer) ||
+         !_.isNil(label) ||
+         !_.isNil(wrapped) ||
+-        !childrenUtils.isNil(children)
++        !childrenUtils.isNil(children) ||
++        !childrenUtils.isNil(content)
+       ) {
+         return 'div'
+       }
+diff --git a/src/elements/Input/Input.js b/src/elements/Input/Input.js
+index 1e6542a..00ea969 100644
+--- a/src/elements/Input/Input.js
++++ b/src/elements/Input/Input.js
+@@ -9,6 +9,7 @@ import {
+   createShorthandFactory,
+   customPropTypes,
+   getComponentType,
++  getElementRef,
+   getUnhandledProps,
+   partitionHTMLProps,
+   getKeyOnly,
+@@ -121,7 +122,7 @@ const Input = React.forwardRef(function (props, ref) {
+           ...htmlInputProps,
+           ...child.props,
+           ref: (c) => {
+-            setRef(child.ref, c)
++            setRef(getElementRef(child), c)
+             setRef(ref, c)
+           },
+         })
+diff --git a/src/generic.d.ts b/src/generic.d.ts
+index 10a972e..65037dc 100644
+--- a/src/generic.d.ts
++++ b/src/generic.d.ts
+@@ -68,7 +68,7 @@ export interface StrictHtmlSpanProps {
+ export type SemanticShorthandItemFunc<TProps> = (
+   component: React.ElementType<TProps>,
+   props: TProps,
+-  children?: React.ReactNode | React.ReactNodeArray,
++  children?: React.ReactNode,
+ ) => React.ReactElement<any> | null
+ 
+ export type ShorthandRenderFunction<C extends React.ElementType, P> = (
+diff --git a/src/lib/getElementRef.js b/src/lib/getElementRef.js
+new file mode 100644
+index 0000000..b225f77
+--- /dev/null
++++ b/src/lib/getElementRef.js
+@@ -0,0 +1,10 @@
++/**
++ * Returns the ref passed to a React element, on React 18 and 19.
++ *
++ * React 19 moved the ref into `props` and warns when `element.ref` is read, but
++ * only when a ref was passed — so `props.ref` is read first, and `element.ref`
++ * is only reached on React 18 or when there is no ref to warn about.
++ */
++export default function getElementRef(element) {
++  return element?.props?.ref ?? element?.ref
++}
+diff --git a/src/lib/hooks/useEventListener.js b/src/lib/hooks/useEventListener.js
+new file mode 100644
+index 0000000..f810475
+--- /dev/null
++++ b/src/lib/hooks/useEventListener.js
+@@ -0,0 +1,113 @@
++import * as React from 'react'
++
++import isBrowser from '../isBrowser'
++
++/**
++ * A ref object pointing at `document`, for use as a `targetRef`.
++ *
++ * Module-level and therefore referentially stable, which matters: it is the
++ * default `target` for subscriptions that want the document, and a fresh object
++ * each render would resubscribe the listener on every render.
++ */
++export const documentRef = { current: isBrowser() ? document : null }
++
++const getWindowEvent = () => (typeof window === 'undefined' ? undefined : window.event)
++
++/**
++ * Subscribes to a DOM event for the lifetime of the component.
++ *
++ * Replaces `@fluentui/react-component-event-listener`, which set `defaultProps`
++ * on a function component — React 18 warns about that and React 19 removes the
++ * feature outright, so the defaults would silently become `undefined`. See
++ * issue #35.
++ *
++ * @param {object} options
++ * @param {Function} options.listener Called with the event.
++ * @param {String} options.type An event name to subscribe to.
++ * @param {Boolean} [options.capture=false] Listen during the capture phase.
++ * @param {Boolean} [options.enabled=true] Subscribe only while true. A hook
++ *   cannot be called conditionally, so this stands in for rendering a listener
++ *   component conditionally.
++ * @param {Document|Window|HTMLElement} [options.target] The element to subscribe
++ *   on. Mutually exclusive with `targetRef`.
++ * @param {React.RefObject} [options.targetRef] A ref to that element. Mutually
++ *   exclusive with `target`.
++ */
++export default function useEventListener(options) {
++  const { capture = false, enabled = true, listener, target, targetRef, type } = options
++
++  // The listener is usually redefined every render and closes over current
++  // props. Keeping the latest in a ref means it can be read at dispatch time
++  // without the subscription being torn down and rebuilt each render.
++  const latestListener = React.useRef(listener)
++  latestListener.current = listener
++
++  const eventHandler = React.useCallback((event) => latestListener.current(event), [])
++  const timeoutId = React.useRef()
++
++  if (process.env.NODE_ENV !== 'production') {
++    // Environment variables do not change during a component's lifecycle, so
++    // the conditional hook is safe here.
++    // eslint-disable-next-line react-hooks/rules-of-hooks
++    React.useEffect(() => {
++      if (typeof target !== 'undefined' && typeof targetRef !== 'undefined') {
++        throw new Error(
++          'useEventListener(): `target` and `targetRef` are mutually exclusive, use one of them.',
++        )
++      }
++
++      if (typeof target === 'undefined' && typeof targetRef === 'undefined') {
++        throw new Error('useEventListener(): one of `target` or `targetRef` is required.')
++      }
++    }, [target, targetRef])
++  }
++
++  React.useEffect(() => {
++    if (!enabled) {
++      return undefined
++    }
++
++    const element = typeof targetRef === 'undefined' ? target : targetRef.current
++
++    if (!element || typeof element.addEventListener !== 'function') {
++      if (process.env.NODE_ENV !== 'production') {
++        throw new Error(
++          'useEventListener(): the passed element does not support addEventListener().',
++        )
++      }
++
++      return undefined
++    }
++
++    // Heads up!
++    // An effect can run while the event that caused it is still propagating, so
++    // a listener subscribed here can be called with that very event — which
++    // would, for instance, let the click that opens a Sidebar immediately close
++    // it again. Comparing against the in-flight event skips that one dispatch.
++    // This relies on a deprecated but very well supported quirk of the platform.
++    // https://github.com/facebook/react/issues/20074
++    let currentEvent = getWindowEvent()
++
++    const conditionalHandler = (event) => {
++      if (event === currentEvent) {
++        currentEvent = undefined
++        return
++      }
++
++      eventHandler(event)
++    }
++
++    element.addEventListener(type, conditionalHandler, capture)
++
++    // The in-flight event is only worth skipping for the tick it belongs to.
++    timeoutId.current = setTimeout(() => {
++      currentEvent = undefined
++    }, 1)
++
++    return () => {
++      clearTimeout(timeoutId.current)
++      currentEvent = undefined
++      element.removeEventListener(type, conditionalHandler, capture)
++    }
++  }, [capture, enabled, eventHandler, target, targetRef, type])
++}
+diff --git a/src/lib/index.js b/src/lib/index.js
+index 5d10c2b..03fcd00 100644
+--- a/src/lib/index.js
++++ b/src/lib/index.js
+@@ -36,6 +36,7 @@ export { numberToWordMap, numberToWord } from './numberToWord'
+ export { default as normalizeTransitionDuration } from './normalizeTransitionDuration'
+ export { default as objectDiff } from './objectDiff'
+ export { default as isRefObject } from './isRefObject'
++export { default as getElementRef } from './getElementRef'
+ // Heads up! We import/export this module so that stripDebug() in build/plugins.mjs
+ // can drop it, along with every debug() call, from the published build.
+ export { makeDebugger }
+@@ -47,6 +48,7 @@ export { makeDebugger }
+ export { default as useAutoControlledValue } from './hooks/useAutoControlledValue'
+ export { default as useClassNamesOnNode } from './hooks/useClassNamesOnNode'
+ export { default as useEventCallback } from './hooks/useEventCallback'
++export { default as useEventListener, documentRef } from './hooks/useEventListener'
+ export { default as useForceUpdate } from './hooks/useForceUpdate'
+ export { default as useIsomorphicLayoutEffect } from './hooks/useIsomorphicLayoutEffect'
+ export { default as useMergedRefs, setRef } from './hooks/useMergedRefs'
+diff --git a/src/modules/Dropdown/Dropdown.js b/src/modules/Dropdown/Dropdown.js
+index 3a1607e..a68cb61 100644
+--- a/src/modules/Dropdown/Dropdown.js
++++ b/src/modules/Dropdown/Dropdown.js
+@@ -920,11 +920,9 @@ class DropdownInner extends Component {
+     const { searchQuery, selectedIndex, value, open } = this.state
+     const hasValue = this.hasValue()
+ 
+-    const classes = cx(
+-      placeholder && !hasValue && 'default',
+-      'text',
+-      search && searchQuery && 'filtered',
+-    )
++    // `text` is supplied by DropdownText itself, so that a bare
++    // <Dropdown.Text /> — or one given its own className — still carries it.
++    const classes = cx(placeholder && !hasValue && 'default', search && searchQuery && 'filtered')
+     let _text = placeholder
+     let selectedItem
+ 
+diff --git a/src/modules/Dropdown/DropdownText.js b/src/modules/Dropdown/DropdownText.js
+index 27f6cf3..d93fbc1 100644
+--- a/src/modules/Dropdown/DropdownText.js
++++ b/src/modules/Dropdown/DropdownText.js
+@@ -15,7 +15,7 @@ import {
+  */
+ const DropdownText = React.forwardRef(function (props, ref) {
+   const { children, className, content } = props
+-  const classes = cx('divider', className)
++  const classes = cx('text', className)
+   const rest = getUnhandledProps(DropdownText, props)
+   const ElementType = getComponentType(props)
+ 
+diff --git a/src/modules/Embed/Embed.js b/src/modules/Embed/Embed.js
+index 1fcfe76..54e9352 100644
+--- a/src/modules/Embed/Embed.js
++++ b/src/modules/Embed/Embed.js
+@@ -45,12 +45,12 @@ const Embed = React.forwardRef(function (props, ref) {
+       return [
+         `//www.youtube.com/embed/${id}`,
+         '?autohide=true',
+-        `&amp;autoplay=${autoplay}`,
+-        `&amp;color=${encodeURIComponent(color)}`,
+-        `&amp;hq=${hd}`,
+-        '&amp;jsapi=false',
+-        `&amp;modestbranding=${brandedUI}`,
+-        `&amp;rel=${brandedUI ? 0 : 1}`,
++        `&autoplay=${autoplay}`,
++        `&color=${encodeURIComponent(color)}`,
++        `&hq=${hd}`,
++        '&jsapi=false',
++        `&modestbranding=${brandedUI}`,
++        `&rel=${brandedUI ? 0 : 1}`,
+       ].join('')
+     }
+ 
+@@ -58,11 +58,11 @@ const Embed = React.forwardRef(function (props, ref) {
+       return [
+         `//player.vimeo.com/video/${id}`,
+         '?api=false',
+-        `&amp;autoplay=${autoplay}`,
+-        '&amp;byline=false',
+-        `&amp;color=${encodeURIComponent(color)}`,
+-        '&amp;portrait=false',
+-        '&amp;title=false',
++        `&autoplay=${autoplay}`,
++        '&byline=false',
++        `&color=${encodeURIComponent(color)}`,
++        '&portrait=false',
++        '&title=false',
+       ].join('')
+     }
+ 
+diff --git a/src/modules/Search/Search.js b/src/modules/Search/Search.js
+index a7973a9..6fe47bc 100644
+--- a/src/modules/Search/Search.js
++++ b/src/modules/Search/Search.js
+@@ -338,9 +338,13 @@ class SearchInner extends Component {
+     if (nextIndex > lastIndex) nextIndex = 0
+     else if (nextIndex < 0) nextIndex = lastIndex
+ 
+-    this.setState({ selectedIndex: nextIndex })
+-    this.scrollSelectedItemIntoView()
+-    this.handleSelectionChange(e)
++    // Both read the committed selection — state and the `.result.active` node —
++    // so they wait for the update. The keydown comes from a native listener,
++    // which React 18 batches, so the update has not happened yet on return.
++    this.setState({ selectedIndex: nextIndex }, () => {
++      this.scrollSelectedItemIntoView()
++      this.handleSelectionChange(e)
++    })
+   }
+ 
+   // ----------------------------------------
+diff --git a/src/modules/Sidebar/Sidebar.js b/src/modules/Sidebar/Sidebar.js
+index a5ee895..64553a0 100644
+--- a/src/modules/Sidebar/Sidebar.js
++++ b/src/modules/Sidebar/Sidebar.js
+@@ -1,4 +1,3 @@
+-import { EventListener, documentRef } from '@fluentui/react-component-event-listener'
+ import cx from 'clsx'
+ import _ from 'lodash'
+ import PropTypes from 'prop-types'
+@@ -12,8 +11,10 @@ import {
+   getComponentType,
+   isRefObject,
+   getKeyOnly,
++  documentRef,
+   useIsomorphicLayoutEffect,
+   useEventCallback,
++  useEventListener,
+   useForceUpdate,
+   useMergedRefs,
+   usePrevious,
+@@ -99,6 +100,13 @@ const Sidebar = React.forwardRef((props, ref) => {
+     handleAnimationStart()
+   }, [animationTick])
+ 
++  useEventListener({
++    enabled: visible,
++    listener: handleDocumentClick,
++    type: 'click',
++    ...(isRefObject(target) ? { targetRef: target } : { target }),
++  })
++
+   React.useEffect(() => {
+     return () => {
+       clearTimeout(animationTimer.current)
+@@ -117,16 +125,11 @@ const Sidebar = React.forwardRef((props, ref) => {
+   )
+   const rest = getUnhandledProps(Sidebar, props)
+   const ElementType = getComponentType(props)
+-  const targetProp = isRefObject(target) ? { targetRef: target } : { target }
+ 
+   return (
+-    <>
+-      <ElementType {...rest} className={classes} ref={elementRef}>
+-        {childrenUtils.isNil(children) ? content : children}
+-      </ElementType>
+-
+-      {visible && <EventListener listener={handleDocumentClick} type='click' {...targetProp} />}
+-    </>
++    <ElementType {...rest} className={classes} ref={elementRef}>
++      {childrenUtils.isNil(children) ? content : children}
++    </ElementType>
+   )
+ })
+ 
+diff --git a/src/modules/Tab/Tab.js b/src/modules/Tab/Tab.js
+index 724cadd..1bc9c3f 100644
+--- a/src/modules/Tab/Tab.js
++++ b/src/modules/Tab/Tab.js
+@@ -53,18 +53,23 @@ const Tab = React.forwardRef(function (props, ref) {
+   }
+ 
+   const renderMenu = () => {
+-    if (menu.tabular === true && menuPosition === 'right') {
+-      menu.tabular = 'right'
+-    }
+-
+-    return Menu.create(menu, {
+-      autoGenerateKey: false,
+-      overrideProps: {
+-        items: _.map(panes, 'menuItem'),
+-        onItemClick: handleItemClick,
+-        activeIndex,
++    // `menu` is a prop object the consumer owns, and may be held across
++    // renders. Derive the inferred value rather than writing it back: once
++    // 'right' had been assigned, the `=== true` guard never matched again and
++    // the inference could not be undone by changing `menuPosition`.
++    const tabular = menu.tabular === true && menuPosition === 'right' ? 'right' : menu.tabular
++
++    return Menu.create(
++      { ...menu, tabular },
++      {
++        autoGenerateKey: false,
++        overrideProps: {
++          items: _.map(panes, 'menuItem'),
++          onItemClick: handleItemClick,
++          activeIndex,
++        },
+       },
+-    })
++    )
+   }
+ 
+   const renderVertical = (menuElement) => {

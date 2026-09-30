@@ -10,7 +10,6 @@ import {
   Input,
   List,
   Loader,
-  Ref,
   Segment,
 } from 'semantic-ui-react';
 
@@ -357,30 +356,28 @@ class ChatSession extends Component {
             ) : (
               <Segment.Group>
                 <Segment className="chat-history">
-                  <Ref innerRef={this.listRef}>
-                    <List>
-                      {messages.map((message) => (
-                        <List.Content
-                          className={`chat-message ${message.direction === 'Out' ? 'chat-message-self' : ''}`}
-                          key={`${message.timestamp}+${message.message}`}
-                        >
-                          <span className="chat-message-time">
-                            {this.formatTimestamp(message.timestamp)}
-                          </span>
-                          <span className="chat-message-name">
-                            {message.direction === 'Out'
-                              ? user?.username || 'You'
-                              : message.username}
-                            :{' '}
-                          </span>
-                          <span className="chat-message-message">
-                            {message.message}
-                          </span>
-                        </List.Content>
-                      ))}
-                      <List.Content id="chat-history-scroll-anchor" />
-                    </List>
-                  </Ref>
+                  <List ref={this.listRef}>
+                    {messages.map((message) => (
+                      <List.Content
+                        className={`chat-message ${message.direction === 'Out' ? 'chat-message-self' : ''}`}
+                        key={`${message.timestamp}+${message.message}`}
+                      >
+                        <span className="chat-message-time">
+                          {this.formatTimestamp(message.timestamp)}
+                        </span>
+                        <span className="chat-message-name">
+                          {message.direction === 'Out'
+                            ? user?.username || 'You'
+                            : message.username}
+                          :{' '}
+                        </span>
+                        <span className="chat-message-message">
+                          {message.message}
+                        </span>
+                      </List.Content>
+                    ))}
+                    <List.Content id="chat-history-scroll-anchor" />
+                  </List>
                 </Segment>
                 <Segment className="chat-input">
                   <Input

@@ -150,7 +150,9 @@ describe('LibraryHealth', () => {
     await vi.advanceTimersByTimeAsync(2_000);
     await screen.findByText('Fixture Track');
     fireEvent.click(screen.getAllByRole('checkbox')[1]);
-    fireEvent.click(screen.getByTestId('library-health-run-replacement-searches'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('library-health-run-replacement-searches'));
+    });
 
     await waitFor(() => {
       expect(searches.createBatch).toHaveBeenCalledWith({
@@ -177,7 +179,9 @@ describe('LibraryHealth', () => {
     await vi.advanceTimersByTimeAsync(2_000);
     await screen.findByText('Fixture Track');
     fireEvent.click(screen.getAllByRole('checkbox')[1]);
-    fireEvent.click(screen.getByText('Fix 1 Selected Issue'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Fix 1 Selected Issue'));
+    });
 
     await waitFor(() => {
       expect(libraryHealth.createRemediationJob).toHaveBeenCalledWith(['issue-1']);

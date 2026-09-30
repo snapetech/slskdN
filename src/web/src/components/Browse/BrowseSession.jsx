@@ -144,8 +144,8 @@ class BrowseSession extends Component {
 
       // Small delay to ensure ref is ready
       setTimeout(() => {
-        if (this.inputtext?.inputRef?.current) {
-          this.inputtext.inputRef.current.value = userToBrowse;
+        if (this.inputtext) {
+          this.inputtext.value = userToBrowse;
         }
 
         // Only fetch if we don't have cached data
@@ -210,7 +210,7 @@ class BrowseSession extends Component {
   };
 
   browse = () => {
-    const username = this.inputtext.inputRef.current.value;
+    const username = this.inputtext.value;
 
     if (!username) {
       return;
@@ -321,9 +321,9 @@ class BrowseSession extends Component {
   };
 
   saveState = () => {
-    if (this.inputtext?.inputRef?.current) {
-      this.inputtext.inputRef.current.value = this.state.username;
-      this.inputtext.inputRef.current.disabled =
+    if (this.inputtext) {
+      this.inputtext.value = this.state.username;
+      this.inputtext.disabled =
         this.state.browseState !== 'idle';
     }
 

@@ -25,7 +25,7 @@ const Users = () => {
   });
 
   const setInputText = (text) => {
-    inputRef.current.inputRef.current.value = text;
+    inputRef.current.value = text;
   };
 
   const setInputFocus = () => {

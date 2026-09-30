@@ -338,7 +338,7 @@ const Searches = ({ server } = {}) => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    inputRef?.current?.inputRef?.current?.focus();
+    inputRef?.current?.focus();
   }, []);
 
   useEffect(() => {
@@ -371,7 +371,7 @@ const Searches = ({ server } = {}) => {
   // create a new search, and optionally navigate to it to display the details
   // we do this if the user clicks the search icon, or repeats an existing search
   const create = async ({ navigate = false, search } = {}) => {
-    const ref = inputRef?.current?.inputRef?.current;
+    const ref = inputRef?.current;
     const searchText = search || ref?.value;
     const id = uuidv4();
 

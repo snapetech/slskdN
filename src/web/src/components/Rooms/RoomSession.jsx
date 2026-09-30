@@ -11,7 +11,6 @@ import {
   Loader,
   Portal,
   Popup,
-  Ref,
   Segment,
 } from 'semantic-ui-react';
 
@@ -491,36 +490,34 @@ class RoomSession extends Component {
                 <>
                   <Segment.Group>
                     <Segment className="room-history">
-                      <Ref innerRef={this.listRef}>
-                        <List>
-                          {room.messages.map((message) => (
-                            <div
-                              key={
-                                message.id ||
-                                `${message.timestamp}+${message.username}+${message.message}`
-                              }
-                              onContextMenu={(clickEvent) =>
-                                this.handleContextMenu(clickEvent, message)
-                              }
+                      <List ref={this.listRef}>
+                        {room.messages.map((message) => (
+                          <div
+                            key={
+                              message.id ||
+                              `${message.timestamp}+${message.username}+${message.message}`
+                            }
+                            onContextMenu={(clickEvent) =>
+                              this.handleContextMenu(clickEvent, message)
+                            }
+                          >
+                            <List.Content
+                              className={`room-message ${message.self ? 'room-message-self' : ''}`}
                             >
-                              <List.Content
-                                className={`room-message ${message.self ? 'room-message-self' : ''}`}
-                              >
-                                <span className="room-message-time">
-                                  {this.formatTimestamp(message.timestamp)}
-                                </span>
-                                <span className="room-message-name">
-                                  {message.username}:{' '}
-                                </span>
-                                <span className="room-message-message">
-                                  {message.message}
-                                </span>
-                              </List.Content>
-                            </div>
-                          ))}
-                          <List.Content id="room-history-scroll-anchor" />
-                        </List>
-                      </Ref>
+                              <span className="room-message-time">
+                                {this.formatTimestamp(message.timestamp)}
+                              </span>
+                              <span className="room-message-name">
+                                {message.username}:{' '}
+                              </span>
+                              <span className="room-message-message">
+                                {message.message}
+                              </span>
+                            </List.Content>
+                          </div>
+                        ))}
+                        <List.Content id="room-history-scroll-anchor" />
+                      </List>
                     </Segment>
                     <Segment className="room-input">
                       <Input
