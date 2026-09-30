@@ -116,6 +116,12 @@
     132/180 windows; it is incomplete diagnostic data, not evidence of a
     plateau.
 
+- [x] Advance Cloudron packaging to the current published stable `.329` image.
+  - Status: completed and packaging-validated (2026-09-30).
+  - Notes: Added immutable catalog version `2026.9.2900`, updated the manifest
+    and Dockerfile together, and verified the published image has Linux amd64
+    and arm64 manifests. Gotcha `0z1291` records the required post-release sync.
+
 - [x] Normalize saved equalizer gains and guard lyrics lookups against stale results.
   - Status: implemented (2026-09-27).
   - Notes: Saved EQ gains remain within the supported sliders; new track lookups clear old lyrics and reject aborted results, including filename-only track changes.

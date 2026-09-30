@@ -25,6 +25,24 @@ the long resource plateau, real assistive-technology speech, physical device
 behavior, representative WAN playback, and reciprocal Soulseek transfers
 remain unfinished.
 
+## Player `.330` release gate: Cloudron metadata correction — 2026-09-30 01:38 UTC
+
+The first guarded `.330` release attempt stopped before frontend/backend tests
+or tag creation. Packaging validation found Cloudron still pinned to `.328`
+while `.329` was the published stable image. The `.329` registry image is
+available for Linux amd64 and arm64. Cloudron manifest, immutable versions
+catalog and Dockerfile now point to `.329`; packaging metadata validation
+passes. Added a release fragment, versioned changelog line and a release
+checklist step to sync Cloudron after each new stable image. Gotcha `0z1291`
+was committed and pushed as `15df96b6a`.
+
+Next Steps: commit/push the Cloudron `.329` update, then rerun the guarded
+`.330` helper. The release tag still does not exist. If the release build
+publishes `.330`, advance Cloudron to that published image afterward. Continue
+the broader player audit; the resource plateau, actual screen-reader speech,
+physical-device behavior, representative WAN playback and reciprocal transfers
+remain open.
+
 ## Player listed-radio recovery and cross-engine media audit — 2026-09-29 15:07 UTC
 
 An active listed-radio stream now reports actionable retry/refresh guidance

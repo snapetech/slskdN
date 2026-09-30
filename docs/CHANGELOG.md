@@ -70,6 +70,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Explain that a server-decoding failure can be retried with Play.
 - Return a server error when FFmpeg cannot produce audio instead of reporting an empty successful stream.
 
+### Cloudron packaging
+
+- Align the Cloudron testing package with the published stable `.329` container image.
+
 ## [2026092900-slskdn.329] — 2026-09-29
 
 ### Radio fairness accounting

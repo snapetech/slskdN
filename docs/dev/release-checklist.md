@@ -73,6 +73,10 @@ The release gate now covers:
    - `scripts/create-release-tag.sh build-dev-MAJOR.MINOR.PATCH.dev.YYYYMMDD.HHMMSS`
 7. After GitHub publishes the release, verify the actual assets:
    - `scripts/verify-release-artifacts.sh <tag>`
+8. After a stable container image is published, advance the Cloudron community
+   package to that exact image. Add an immutable entry in
+   `CloudronVersions.json`, update `CloudronManifest.json` and the Dockerfile,
+   then rerun packaging metadata validation.
 
 Do not rely on a normal branch push to validate packaging or publish artifacts. This repo builds releases on tags.
 Do not create or push plain `slskdn.N` tags for releases; those do not run the release packaging workflow.
