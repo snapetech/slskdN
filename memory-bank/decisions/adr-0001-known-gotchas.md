@@ -33918,3 +33918,17 @@ component unmount. A pending hover timeout therefore survived teardown.
 **Prevention:** Return a cleanup callback from the Portal effect that clears
 both timers. Add a fake-timer regression that unmounts while an open delay is
 pending, and require the full Vitest run to finish without uncaught errors.
+
+### 0z1309. Keep Vite Chunk Rules Aligned With Package Aliases (2026-09-30)
+
+**What went wrong:** The React 19 release gate passed the Web tests and build,
+but its bundle budget failed because the generic `vendor` chunk grew to 772 KB
+against a 600 KB limit. The `.332` vendor chunk was 584 KB.
+
+**Why:** Vite's `manualChunks` rule classified paths containing `semantic-ui`
+as the Semantic UI chunk. The React 19 alias resolves to package paths named
+`react-fomantic-ui`, which missed that rule and fell through to `vendor`.
+
+**Prevention:** Update manual chunk classification when an import alias changes
+the resolved package path. Run the production build and bundle budget check;
+keep the existing budget rather than masking misplaced code with a larger cap.
