@@ -1,4 +1,4 @@
-## Current state — React 19 web compatibility and `.333` release — 2026-09-30 21:03 UTC
+## Current state — React 19 web compatibility and `.333` release — 2026-09-30 21:24 UTC
 
 React 19.3.0 is validated with the Fomantic UI React 3 beta.5 package patched
 from upstream PR #49. Repo PRs #343 and #344 are both present in the candidate
@@ -7,13 +7,15 @@ history. Full Web tests (1,114), .NET tests (5,704), Web lint/build and
 in ADR-0026, the known-gotchas ADR, and the React 19 release fragment.
 
 The migration is pushed to `main` at `c5809fcfa`; GitHub confirms PRs #343 and
-#344 merged at 21:02 UTC. The `.332` tag parser and core build passed, but all
-six platform publishers remain queued in run `36768526931`, and GitHub still
-has no `.332` release. User authorized cutting stable `.333`; wait for `.332`
-publication to finish first. Next: monitor `.332`; then finalize the `.333`
-changelog entry, preview the release range, run the release/privacy gates, use
-the guarded tag script, and verify the resulting artifacts before marking
-publication done.
+#344 merged at 21:02 UTC. The `.332` parser and core build passed. Its `win-x64`
+and `osx-x64` publishers also passed; `osx-arm64` and `linux-musl-x64` are
+running, and `linux-x64` plus `linux-arm64` remain queued in run
+`36768526931`. GitHub still has no `.332` release. The `.333` changelog section
+is prepared as `2026093021-slskdn.333`; its exact release-range preview shows
+only the React 19 change. Rerun release-note generation after `.332` publishes
+so its compare link uses `.332` as the baseline. Next: monitor `.332`, run the
+release/privacy gates, use the guarded tag script, and verify `.333` artifacts
+before marking publication done.
 
 ## Current state — Player reduced-motion and Orca speech validation — 2026-09-30 05:14 UTC
 

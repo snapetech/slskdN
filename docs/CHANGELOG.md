@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026093021-slskdn.333] — 2026-09-30
+
 ### Web React compatibility
 
 - Upgrade the Web UI to React 19 while preserving input and history behavior across Browse, Users, Search, Chat, and Rooms.

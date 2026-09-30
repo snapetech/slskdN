@@ -15623,3 +15623,15 @@ No tag, release or deployment was created.
 - The `.332` tag workflow still has all six platform publisher jobs queued;
   its parser and core build succeeded, but there is still no GitHub Release.
   Keep `.333` untagged until `.332` publication completes.
+
+## Update 2026-09-30 21:24 UTC
+
+- Prepared versioned changelog notes for `2026093021-slskdn.333`. The release
+  fragment preview from `build-main-2026093019-slskdn.332` contains only the
+  React 19 compatibility change, and the generated notes pass validation.
+- Before `.332` is published, the generated compare link still falls back to
+  `.331`; regenerate after `.332` creates its release so `.333` links to the
+  correct previous release.
+- In run `36768526931`, parser/core build, `win-x64`, and `osx-x64` passed;
+  `osx-arm64` and `linux-musl-x64` are running; `linux-x64` and `linux-arm64`
+  remain queued. There is still no `.332` GitHub Release.
