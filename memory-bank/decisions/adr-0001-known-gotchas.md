@@ -33845,3 +33845,16 @@ requested speech text when the real speech service connection has failed.
 `XDG_RUNTIME_DIR` and mount it for both the host and container. Check the Orca
 log for speech-server connection errors and require captured audio during
 Player announcements.
+
+### 0z1304. Capture Orca Speech Separately From Player Audio (2026-09-30)
+
+**What went wrong:** The screen-reader runner sent Chromium's generated test
+audio and Orca's speech to the same virtual PulseAudio sink. Its PCM energy
+check could therefore pass on the Player tone without proving that spoken
+announcements reached the output.
+
+**Why:** The browser's `PULSE_SINK` and Orca's `PULSE_SINK` both named the
+single sink whose monitor the runner recorded.
+
+**Prevention:** Route browser playback and Orca speech to separate private
+null sinks, then capture and analyze only the Orca sink monitor.
