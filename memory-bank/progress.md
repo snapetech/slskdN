@@ -15475,3 +15475,29 @@ No tag, release or deployment was created.
   the worktree is clean. No tag or release was created.
 - The release preview, GitHub target guard and local-identity scan passed.
   Runtime validation remains open because no tests were run after these edits.
+
+## 2026-09-30 03:17 UTC — Stable Docker release repair
+
+- `.330` published its six release archives but failed to build the Docker
+  image. Added the pnpm patch directory and referenced `slskd.BuildTasks`
+  project to the appropriate Docker stages. Documented both context omissions
+  as gotcha `0z1292`.
+- The `.330` release workflow advanced binary metadata despite the image
+  failure. Added a separate last-published-image marker, Cloudron sync script,
+  and matching packaging validation; gotcha `0z1293` records the distinction.
+- The full local Linux amd64 Docker build succeeded, including frontend
+  dependency installation and .NET publish. Running the built container's
+  binary printed `2026093002-slskdn.331`.
+- The guarded `.331` release gate passed locally: 1,106 Web, 5,346 backend unit,
+  74 backend smoke, and 40 integration tests. Its first hosted attempt hit a
+  TCP-listener bind timeout; rerunning the same immutable tag passed.
+- The `.331` GitHub release and six archives are published; asset hashes and
+  the Linux binary version passed verification. Docker Hub and GHCR both have
+  Linux amd64 and arm64 image manifests. Cloudron now points to `.331`, and
+  packaging metadata validation passes.
+- AUR, Chocolatey, Homebrew, Nix, COPR, and the release announcement passed.
+  Launchpad `.330` source is published while its amd64 binary is still
+  uploading; the `.331` PPA job is waiting. The Docker omnibus tester image is
+  also still building. Overall player work remains open: the three-hour
+  resource capture, actual screen-reader speech, physical-device behavior,
+  representative WAN playback, and reciprocal transfers remain.

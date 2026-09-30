@@ -28,11 +28,17 @@
 
 ### High Priority
 
-- [ ] Publish the stable Docker image after the `.330` image build failure.
-  - Status: `.330` release archives are published, but its Docker build failed
-    because the web stage omitted a pnpm patch file. The Dockerfile fix and
-    Cloudron image tracking are prepared; the `.331` release gate and image
-    publication are still pending.
+- [x] Publish the stable Docker image after the `.330` image build failure.
+  - Status: corrected and published with `2026093002-slskdn.331` (2026-09-30).
+  - Notes: The Dockerfile now includes the pnpm patch and referenced build-task
+    project. The Docker Hub and GHCR `.331` images contain Linux amd64 and arm64
+    manifests. Cloudron now points to that image and packaging validation passes.
+
+- [ ] Confirm the `.330` and `.331` Launchpad uploads finish.
+  - Status: `.330` source is published but its amd64 binary is still uploading;
+    `.331` PPA publication is waiting in the release workflow.
+  - Notes: Track build-on-tag runs `36657314411` and `36660736959` until both
+    PPA publication checks finish.
 
 - [x] Include actual Soulseek downloads in player fairness totals.
   - Status: implemented and fully validated after immutable `.328` release (2026-09-28).

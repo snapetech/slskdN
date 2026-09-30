@@ -1,4 +1,36 @@
-## Player pause-time rendering runtime validation — 2026-09-30 01:33 UTC
+## Current state — `.331` Docker release repair — 2026-09-30 03:17 UTC
+
+The `.330` GitHub release published its six platform archives, but its Docker
+image build failed because the web build stage omitted the pnpm patch file. The
+isolated publish stage also omitted the referenced `slskd.BuildTasks` project.
+Both inputs are now copied into the Docker build. Gotchas `0z1292` and `0z1293`
+record the build-context and Cloudron-version failures.
+
+The packaging validator now tracks the last successfully published Docker
+image independently from binary release metadata. The Cloudron sync script adds
+immutable versions and updates the manifest, Dockerfile, and stable-image marker.
+The `.331` Docker Hub and GHCR images are published for Linux amd64 and arm64;
+the six GitHub release archives passed published-checksum verification. The
+Cloudron `.331` sync has been applied locally and packaging metadata validation
+passes. Its changes and the memory-bank update still need to be committed and
+pushed.
+
+The first hosted `.331` release-gate attempt had one timeout waiting for a TCP
+listener. The same immutable tag passed on retry. The full local gate passed:
+1,106 web tests, 5,346 unit tests, 74 smoke tests, and 40 integration tests.
+The `.331` AUR, Chocolatey, Homebrew, Nix, COPR, and Discord steps passed. The
+`.330` Launchpad build is still uploading its amd64 binary, and the `.331` PPA
+job is pending. Track release workflow runs `36657314411` and `36660736959`.
+
+Keep the Player goal active. The three-hour resource capture remains incomplete;
+actual screen-reader speech, physical-device behavior, representative WAN
+playback, and reciprocal Soulseek transfers remain open.
+
+Next Steps: commit and push the Cloudron `.331` sync with these task/context
+updates. Monitor both Launchpad publication checks, then continue the remaining
+Player work without treating the partial resource capture as acceptance.
+
+## Historical state — Player pause-time rendering runtime validation (superseded 2026-09-30 03:17 UTC)
 
 The three-hour Chromium resource capture stopped after 132/180 windows (60
 idle, 60 playing, 12 paused); it remains incomplete diagnostic data, not
@@ -25,7 +57,7 @@ the long resource plateau, real assistive-technology speech, physical device
 behavior, representative WAN playback, and reciprocal Soulseek transfers
 remain unfinished.
 
-## Player `.330` release gate: Cloudron metadata correction — 2026-09-30 01:38 UTC
+## Historical state — Player `.330` release gate: Cloudron metadata correction (superseded 2026-09-30 03:17 UTC)
 
 The first guarded `.330` release attempt stopped before frontend/backend tests
 or tag creation. Packaging validation found Cloudron still pinned to `.328`
@@ -37,10 +69,9 @@ checklist step to sync Cloudron after each new stable image. Gotcha `0z1291`
 was committed and pushed as `15df96b6a`.
 
 The next helper run passed packaging and release-note checks, then found the
-generated API route index and two active candidate counts stale. Regenerated
-the route inventory, refreshed the backlog counts to 476 and 11,646, and the
-complete remediation baseline now passes. These generated documentation
-updates still need commit/push before another helper run. No release tag exists.
+generated API route index and two active candidate counts stale. The route
+inventory and backlog counts were refreshed and committed before the `.330`
+release gate. That release tag is now published.
 
 Next Steps: commit/push the refreshed validation documents and rerun the guarded
 `.330` helper. If the release build publishes `.330`, advance Cloudron to that
