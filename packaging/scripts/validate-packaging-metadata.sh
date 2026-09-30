@@ -105,6 +105,7 @@ expect_literal bin/watch 'pnpm --filter @slskdn/web start'
 reject_literal bin/build 'npm ci --legacy-peer-deps'
 reject_literal packaging/aur/PKGBUILD 'npm ci --legacy-peer-deps'
 expect_literal packaging/aur/PKGBUILD "'nodejs' 'pnpm'"
+PNPM_SETUP_ACTION='pnpm/action-setup@v6'
 for workflow in \
     .github/workflows/build-on-tag.yml \
     .github/workflows/ci-enhancements.yml \
@@ -114,7 +115,7 @@ for workflow in \
     .github/workflows/release-linux.yml \
     .github/workflows/release-ppa.yml \
     .github/workflows/windows-smoke.yml; do
-    expect_literal "$workflow" 'pnpm/action-setup@v4'
+    expect_literal "$workflow" "$PNPM_SETUP_ACTION"
 done
 expect_literal packaging/scripts/run-release-gate.sh 'timeout --kill-after=60s "$timeout_seconds" "$@"'
 reject_literal packaging/scripts/run-release-gate.sh 'timeout --preserve-status'
