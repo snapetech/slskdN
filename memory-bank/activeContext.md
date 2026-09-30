@@ -1,4 +1,4 @@
-## Current state — React 19 web compatibility and `.333` release — 2026-09-30 22:48 UTC
+## Current state — React 19 web compatibility and `.333` release — 2026-09-30 22:55 UTC
 
 React 19.3.0 is validated with the Fomantic UI React 3 beta.5 package patched
 from upstream PR #49. Repo PRs #343 and #344 are both present in the candidate
@@ -20,11 +20,10 @@ immutable tag; its first run had one non-reproducing socket-listener readiness
 timeout in the unrelated backend suite.
 
 The release range from `.332` includes React 19 compatibility and Portal timer
-cleanup. COPR, Nix, Chocolatey, AUR, and Homebrew jobs succeeded. `.333` Docker
-image build is in progress and its PPA job is pending in run `36783137317`;
-`.332` PPA publication is still waiting on Launchpad in run `36768526931`.
-Next: monitor the remaining Docker and PPA publication jobs and close their
-follow-up once complete.
+cleanup. COPR, Nix, Chocolatey, AUR, Homebrew, and the `.333` Docker image jobs
+succeeded. Its PPA job remains pending in run `36783137317`; `.332` PPA
+publication is still waiting on Launchpad in run `36768526931`. Next: monitor
+the `.333` PPA job and close the follow-up when it completes.
 
 ## Current state — Player reduced-motion and Orca speech validation — 2026-09-30 05:14 UTC
 

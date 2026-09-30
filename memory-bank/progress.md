@@ -15712,3 +15712,10 @@ No tag, release or deployment was created.
   the `.333` Docker job remains in progress and PPA is pending in run
   `36783137317`. The `.332` PPA job still waits on Launchpad in run
   `36768526931`.
+
+## Update 2026-09-30 22:55 UTC
+
+- The `.333` Docker image job completed successfully at 22:54 UTC. All
+  `.333` distribution jobs completed successfully except PPA, which remains
+  pending in run `36783137317`. The `.332` PPA job is still waiting for
+  Launchpad publication in run `36768526931`.
