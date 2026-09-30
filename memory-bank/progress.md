@@ -15664,3 +15664,17 @@ No tag, release or deployment was created.
   test, ADR-0026, release note and memory updates need a commit/push before
   rerunning the guarded release gate. No `.333` tag was created by the failed
   gate.
+
+## Update 2026-09-30 21:56 UTC
+
+- The second guarded `.333` gate passed the full 1,115-test Web suite and
+  production build, then failed the configured per-chunk bundle budget:
+  `vendor` was 772 KB against 600 KB. Inspection of the published `.332`
+  archive showed its corresponding vendor chunk was 584 KB.
+- The Vite rule grouped paths containing `semantic-ui` but missed the new
+  `react-fomantic-ui` alias. Gotcha 0z1309 is committed as `e098d0be9`; the
+  local fix groups both paths into the existing component chunk. The rebuilt
+  vendor chunk is 584.13 KB and `pnpm --filter @slskdn/web check:bundle` passes.
+- The `.333` release heading is updated to `2026093022-slskdn.333` because the
+  guarded release gate must be rerun after these last changes. The Vite fix
+  and release-status docs still need commit/push before tagging.

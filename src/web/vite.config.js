@@ -90,7 +90,10 @@ export default defineConfig({
 
           if (id.includes('butterchurn-presets')) return 'milkdrop-presets';
           if (id.includes('butterchurn')) return 'milkdrop';
-          if (id.includes('semantic-ui')) return 'semantic-ui';
+          // React 19 aliases semantic-ui-react to react-fomantic-ui (ADR-0026).
+          if (id.includes('semantic-ui') || id.includes('react-fomantic-ui')) {
+            return 'semantic-ui';
+          }
           if (
             id.includes('/react/') ||
             id.includes('/react-dom/') ||

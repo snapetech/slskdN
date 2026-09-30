@@ -401,10 +401,11 @@
 - [ ] Push the React 19 compatibility migration and publish stable `.333`.
   - Status: migration pushed to `main` at `c5809fcfa` on 2026-09-30;
     dependency PRs #343 and #344 are merged. `.332` is published and its
-    release assets are verified. The first guarded `.333` gate stopped on a
-    delayed Portal timer cleanup error; the fix and regression are implemented
-    locally and all 1,115 Web tests pass. Push that update, then rerun the
-    guarded tag helper.
+    release assets are verified. The Portal timer cleanup fix is pushed and
+    all 1,115 Web tests pass. A second guarded `.333` attempt found that the
+    Fomantic alias overflowed Vite's generic vendor chunk; the chunk mapping
+    fix is local, and build plus bundle-budget checks pass. Push that fix, then
+    rerun the guarded tag helper.
   - Priority: P1
   - Notes: The exact release fragment and changelog bullet are ready. The
     release range preview from `build-main-2026093019-slskdn.332` passes.

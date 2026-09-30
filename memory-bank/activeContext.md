@@ -1,14 +1,15 @@
-## Current state — React 19 web compatibility and `.333` release — 2026-09-30 21:46 UTC
+## Current state — React 19 web compatibility and `.333` release — 2026-09-30 21:56 UTC
 
 React 19.3.0 is validated with the Fomantic UI React 3 beta.5 package patched
 from upstream PR #49. Repo PRs #343 and #344 are both present in the candidate
-history. The first guarded `.333` release gate exposed an uncaught delayed
-Fomantic Portal hover timer after all 1,114 Web assertions passed. The Portal
-effect cleared timers during setup instead of returning unmount cleanup. The
-patch now returns cleanup; a fake-timer regression test was added, and all
-1,115 Web tests plus Web lint pass. Gotcha 0z1308 is committed locally as
-`0c52a9cdd` and must be pushed with the fix. The React refs, Portal cleanup,
-and test timing are documented in ADR-0026, ADR-0001, and release fragments.
+history. The first guarded `.333` gate exposed a delayed Fomantic Portal hover
+timer after 1,114 Web assertions. That cleanup bug is fixed, committed, and
+pushed; the fake-timer regression passes in the full 1,115-test Web suite.
+The second gate passed Web tests and build, but failed the bundle budget because
+the aliased package landed in the generic `vendor` chunk. Gotcha 0z1309 is
+committed locally as `e098d0be9`; Vite now places `react-fomantic-ui` with the
+Semantic UI chunk. The rebuilt vendor chunk is 584.13 KB (under the 600 KB
+limit), and the bundle budget passes. This Vite fix is still local.
 
 The migration is pushed to `main` at `c5809fcfa`; GitHub confirms PRs #343 and
 #344 merged at 21:02 UTC. `.332` published at 21:35 UTC. All six platform ZIPs
@@ -16,11 +17,11 @@ and supporting release assets passed `scripts/verify-release-artifacts.sh`;
 the Linux binary reports the expected version and includes the VPN helper and
 Web session-total marker. Its secondary distribution-channel jobs remain
 queued in run `36768526931`. The `.333` changelog section is prepared as
-`2026093021-slskdn.333`, with release-note fragments for React 19 and Portal
+`2026093022-slskdn.333`, with release-note fragments for React 19 and Portal
 cleanup; the exact range preview includes both changes. The guarded gate
 stopped before creating a tag, so `.333` does not exist yet. Next: commit and
-push the Portal fix, test and release docs; rerun the guarded gate/tag helper;
-then verify `.333` artifacts before marking publication complete.
+push the Vite chunk fix and docs; rerun the guarded gate/tag helper; then verify
+`.333` artifacts before marking publication complete.
 
 ## Current state — Player reduced-motion and Orca speech validation — 2026-09-30 05:14 UTC
 

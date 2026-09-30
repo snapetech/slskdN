@@ -29,6 +29,9 @@ Update application refs to use the fork's direct DOM refs, and replace the two
 upstream published release contains the same fixes and passes the Web suite.
 The local package patch also returns Fomantic Portal's timer cleanup from its
 effect, canceling delayed hover callbacks when a portal unmounts.
+Vite's manual chunk map recognizes the aliased package path so Fomantic UI stays
+with the component-library chunk instead of overflowing the generic vendor
+chunk.
 
 ## Consequences
 
