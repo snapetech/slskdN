@@ -33634,3 +33634,20 @@ change.
 **Prevention:** Keep mutable render-time settings in refs read by a stable render
 loop. Recreate the engine only when its actual construction inputs change, such
 as the selected engine, audio graph, or canvas.
+
+### 0z1290. Do Not Assert Physical PiP Size In Virtual Browser Runs (2026-09-30)
+
+**What went wrong:** The player browser test expected a Document Picture-in-Picture
+window to report exactly 360 by 220 pixels. Chromium opened the window and gave
+it focus, but both headless and Xvfb runs reported the virtual display size of
+1280 by 720.
+
+**Why:** The browser test conflated the size requested by the player with the
+actual geometry supplied by a virtual display. Those runs do not establish how
+a desktop window manager sizes the PiP window.
+
+**Prevention:** Verify the requested width and height through the
+`requestWindow` call in a component test. In virtual-browser tests, assert that
+the window opens, receives focus, renders, and closes correctly; only assert
+physical window dimensions in an environment that validates desktop window
+geometry.
