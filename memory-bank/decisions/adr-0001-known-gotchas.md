@@ -33743,3 +33743,17 @@ even though `pactl` can report the same socket as a bare absolute path.
 **Prevention:** Normalize an absolute socket path to the `unix:` form before
 the local-only transport check. Keep rejecting TCP and other non-local audio
 transport forms so speech remains on the isolated virtual sink.
+
+### 0z1297. Isolate Orca's Cache Without Hiding Playwright Browsers (2026-09-30)
+
+**What went wrong:** The screen-reader runner set `XDG_CACHE_HOME` to a fresh
+per-run directory for both the Orca container and the host Playwright process.
+Playwright then failed to launch because it looked for Chromium in that empty
+directory instead of its installed browser cache.
+
+**Why:** The browser is launched by host Playwright inside Xvfb; only Orca runs
+inside the container. A container cache setting was applied to both layers.
+
+**Prevention:** Keep the isolated cache on the Orca container and leave the host
+Playwright process pointed at its installed browser binaries. Continue using
+separate per-run profile, runtime and evidence directories for the speech test.
