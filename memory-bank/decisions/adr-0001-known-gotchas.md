@@ -33802,3 +33802,16 @@ during playback.
 **Prevention:** Verify the browser's Orca speech events while the test page is
 open, or take the application-list snapshot before Playwright closes it.
 Do not use a post-shutdown list as a runtime registration gate.
+
+### 0z1301. Quote Messages Inside The Orca Runner's Nested Shell (2026-09-30)
+
+**What went wrong:** The revised screen-reader runner failed to parse before
+launching Orca because a single-quoted diagnostic message ended the outer
+single-quoted `bash -c` script early.
+
+**Why:** The runner passes a multiline shell program as one single-quoted
+argument, so message quoting inside that program must respect the outer shell's
+quote boundary as well as the nested shell's syntax.
+
+**Prevention:** Use double-quoted messages inside the nested script, and run
+`bash -n` plus an isolated wrapper launch after editing its embedded commands.
