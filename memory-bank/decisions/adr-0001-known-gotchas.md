@@ -33872,3 +33872,17 @@ action rather than only the secret scan.
 **Prevention:** Gate the secret-scanning work separately, while still reading
 the pushed refs and running the YunoHost package sync for an eligible `main`
 push. A bypass flag for one hook check must not bypass independent checks.
+
+### 0z1306. Update Packaging Validation With Workflow Action Versions (2026-09-30)
+
+**What went wrong:** The release packaging validator required
+`pnpm/action-setup@v4` in every workflow after the workflows had been upgraded
+to `pnpm/action-setup@v6`. The packaging metadata gate therefore rejected the
+newer, consistently-updated workflow set.
+
+**Why:** The validator encoded the old action major as a fixed literal, so the
+workflow update and its release-gate assertion drifted apart.
+
+**Prevention:** When changing a shared workflow action version, update the
+packaging validator's expected version in the same change and run packaging
+metadata validation before merging or tagging.
