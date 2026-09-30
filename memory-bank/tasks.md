@@ -413,8 +413,9 @@
 
 - [ ] Finish the optional `.333` distribution-channel jobs.
   - Status: published GitHub Release artifacts are verified. COPR, Nix,
-    Chocolatey, AUR, Homebrew and Docker completed successfully; the PPA job
-    remains pending in run `36783137317`.
+    Chocolatey, AUR, Homebrew and the main Docker image completed successfully;
+    the optional Omnibus Testers image is in progress and the PPA job is pending
+    in run `36783137317`.
   - Priority: P2
   - Notes: The older `.332` PPA job is still waiting for Launchpad publication
     in run `36768526931`.

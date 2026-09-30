@@ -15716,6 +15716,13 @@ No tag, release or deployment was created.
 ## Update 2026-09-30 22:55 UTC
 
 - The `.333` Docker image job completed successfully at 22:54 UTC. All
-  `.333` distribution jobs completed successfully except PPA, which remains
-  pending in run `36783137317`. The `.332` PPA job is still waiting for
-  Launchpad publication in run `36768526931`.
+  regular `.333` distribution jobs completed successfully except PPA, which
+  remains pending in run `36783137317`. The optional Omnibus Testers image job
+  is also running. The `.332` PPA job is still waiting for Launchpad publication
+  in run `36768526931`.
+
+## Update 2026-09-30 23:01 UTC
+
+- `.333` core release artifacts and the main Docker image are published and
+  verified. The PPA job remains pending; the optional Omnibus Testers image is
+  still building. The older `.332` PPA job is still waiting on Launchpad.
