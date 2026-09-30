@@ -33601,3 +33601,21 @@ module name, not the shorter name of the external speech-dispatcher service.
 
 **Prevention:** Check the installed Orca `speechFactoryModules` list and use
 the exact registered module name when selecting a speech backend.
+
+### 0z1288. Stop Player Visualizer Frames While Paused (2026-09-30)
+
+**What went wrong:** The lightweight analyzer stopped sampling audio on Pause
+but continued scheduling canvas redraws. The full MilkDrop visualizer continued
+calling its renderer every frame, and returning to a visible tab could restart
+those loops while playback was still paused.
+
+**Why:** The animation loops were tied to component mount and document
+visibility rather than the media element's playback lifecycle. Suspending the
+Web Audio context stops audio processing but does not stop JavaScript or GPU
+render work.
+
+**Prevention:** Start animation only while the media element is actively
+playing and the document is visible. Cancel pending frames on Pause, buffering,
+Stop, or Ended, and do not resume a graph merely because a visual component
+mounts while playback is paused. Test both that frame scheduling stops and
+that it resumes on the next Playing event.
