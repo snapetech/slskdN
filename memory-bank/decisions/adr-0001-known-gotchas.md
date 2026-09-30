@@ -33665,3 +33665,19 @@ stable image, so the mismatch remained until the next release gate.
 `CloudronVersions.json` and update `CloudronManifest.json` and the Dockerfile to
 the same image. Run packaging metadata validation as part of closing each
 stable release instead of waiting for the next tag to find the drift.
+
+### 0z1292. Copy pnpm Patch Files Into the Docker Build Context (2026-09-30)
+
+**What went wrong:** The `.330` Docker build failed during `pnpm install`
+because the root package manifest referenced
+`patches/@semantic-ui-react__event-stack@3.1.3.patch`, but the Dockerfile did
+not copy the `patches/` directory into its web build stage.
+
+**Why:** The Dockerfile copied the package manifests, build scripts, and web
+source before installing dependencies, but omitted files that pnpm reads from
+the repository root when applying patched dependencies.
+
+**Prevention:** Copy the root `patches/` directory into the web build stage
+before running `pnpm install`. When the root package manifest adds or changes
+a pnpm patch, make sure each isolated build context contains that patch and
+validate the container build before publishing the image.
