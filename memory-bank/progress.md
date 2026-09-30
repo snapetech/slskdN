@@ -15635,3 +15635,16 @@ No tag, release or deployment was created.
 - In run `36768526931`, parser/core build, `win-x64`, and `osx-x64` passed;
   `osx-arm64` and `linux-musl-x64` are running; `linux-x64` and `linux-arm64`
   remain queued. There is still no `.332` GitHub Release.
+
+## Update 2026-09-30 21:36 UTC
+
+- Stable release `2026093019-slskdn.332` was published at 21:35 UTC after all
+  six platform publishers succeeded. `scripts/verify-release-artifacts.sh`
+  passed: all six ZIP checksums, supporting assets, Linux binary version, VPN
+  helper payload, and bundled Web marker matched expectations.
+- The `.333` release notes now compare against `.332`; the exact release-range
+  preview contains only the React 19 compatibility change. Secondary `.332`
+  distribution-channel jobs remain queued, but the release assets required by
+  the guarded stable tag flow are published and verified.
+- Next: run the guarded `.333` release helper on the synced `main` branch, then
+  monitor and verify the resulting release artifacts.

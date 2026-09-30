@@ -400,8 +400,9 @@
 
 - [ ] Push the React 19 compatibility migration and publish stable `.333`.
   - Status: migration pushed to `main` at `c5809fcfa` on 2026-09-30;
-    dependency PRs #343 and #344 are merged. The versioned `.333` changelog
-    section is prepared; wait for the `.332` release before tagging `.333`.
+    dependency PRs #343 and #344 are merged. `.332` is published and its
+    release assets are verified; the `.333` notes are ready for the guarded
+    tag helper.
   - Priority: P1
   - Notes: The exact release fragment and changelog bullet are ready. The
     release range preview from `build-main-2026093019-slskdn.332` passes.
@@ -6012,12 +6013,15 @@ resource completion.
   - Status: tag `build-main-2026093019-slskdn.332` exists; its tag parser and
     core build passed, but all six platform publisher jobs remained queued at
     2026-09-30 21:02 UTC and no GitHub Release was visible yet.
-- [ ] Verify `.332` platform publication and release assets before starting
+- [x] Verify `.332` platform publication and release assets before starting
   another stable tag.
+  - Status: completed (2026-09-30)
   - Priority: P1
-  - Notes: Run `36768526931` has passed the parser, core build, and the `win-x64`
-    and `osx-x64` publishers. Other platform jobs are still running or queued;
-    no GitHub Release exists yet. Wait for the exact assets before tagging.
+  - Notes: Run `36768526931` published release `2026093019-slskdn.332` after
+    all six platform publishers succeeded. `scripts/verify-release-artifacts.sh`
+    verified every published checksum, all six ZIPs, required support files,
+    VPN helper payload, Web marker, and Linux binary version. Secondary package
+    channel jobs remain queued in the same run.
 - [x] Resolve React 19 PRs #343 and #344 after the prior Semantic UI React
   stack failed on removed `ReactDOM.findDOMNode` calls.
   - Status: merged into `main` at 2026-09-30 21:02 UTC; stable publication is
