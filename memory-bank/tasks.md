@@ -400,17 +400,24 @@
     The upstream PR is still open; refresh the patch only after a published
     replacement passes the Web suite.
 
-- [ ] Push the React 19 compatibility migration and publish stable `.333`.
-  - Status: migration and validated source are pushed at `6f13371c0` on
-    2026-09-30; dependency PRs #343 and #344 are merged. `.332` is published
-    and verified. Guarded `.333` tag `build-main-2026093022-slskdn.333` was
-    pushed at 22:01 UTC, but Build on Tag run `36783137317` remains queued at
-    Parse Tag and no release assets exist yet.
+- [x] Push the React 19 compatibility migration and publish stable `.333`.
+  - Status: stable release `2026093022-slskdn.333` published and verified
+    (2026-09-30). Source tag `build-main-2026093022-slskdn.333` points at
+    `6f13371c0`; `main` includes release metadata commit `38ccd3c5b`.
   - Priority: P1
-  - Notes: Exact release fragments and changelog entries cover React 19
-    compatibility and Fomantic Portal timer cleanup. Release-range preview and
-    the guarded local release gate passed. Finish when the published `.333`
-    assets pass `scripts/verify-release-artifacts.sh`.
+  - Notes: PRs #343 and #344 are merged. The release-range preview contains
+    React 19 compatibility and Fomantic Portal timer cleanup. The same-tag
+    retry passed the guarded release gate; all six ZIP checksums, supporting
+    assets, Linux version, VPN helper and Web marker passed
+    `scripts/verify-release-artifacts.sh`.
+
+- [ ] Finish the optional `.333` distribution-channel jobs.
+  - Status: published GitHub Release artifacts are verified. COPR, Nix,
+    Chocolatey, AUR and Homebrew completed successfully; the Docker image job
+    is still running and the PPA job is pending in run `36783137317`.
+  - Priority: P2
+  - Notes: The older `.332` PPA job is still waiting for Launchpad publication
+    in run `36768526931`.
 
 
 - [x] Fix Wishlist matching, blocked-user policy, and transfer/navigation regressions.

@@ -1,4 +1,4 @@
-## Current state — React 19 web compatibility and `.333` release — 2026-09-30 22:09 UTC
+## Current state — React 19 web compatibility and `.333` release — 2026-09-30 22:48 UTC
 
 React 19.3.0 is validated with the Fomantic UI React 3 beta.5 package patched
 from upstream PR #49. Repo PRs #343 and #344 are both present in the candidate
@@ -9,18 +9,22 @@ chunk is 584.13 KB and the 600 KB bundle budget passes. The guarded release
 gate also passed packaging/remediation checks, output/subpath smoke, 5,346 .NET
 unit tests, 74 smoke tests, and 40 integration smoke tests.
 
-The migration is pushed to `main` at `6f13371c0`; GitHub confirms PRs #343 and
-#344 merged at 21:02 UTC. `.332` published at 21:35 UTC. All six platform ZIPs
-and supporting release assets passed `scripts/verify-release-artifacts.sh`;
-the Linux binary reports the expected version and includes the VPN helper and
-Web session-total marker. Secondary `.332` distribution jobs for Docker and
-PPA remain active in run `36768526931`. Stable `.333` tag
-`build-main-2026093022-slskdn.333` is pushed at `6f13371c0`; Actions run
-`36783137317` remains queued at Parse Tag with no runner assigned, and no
-`.333` release/assets exist yet.
-Its release notes compare against `.332` and include React19 compatibility and
-Portal cleanup. The fork has no open issues or PRs. Next: monitor the tag run,
-verify `.333` release artifacts, then finish the publication records.
+The migration source is tagged at `6f13371c0`; `main` is synced through
+`38ccd3c5b`, including the release automation's stable metadata commit. GitHub
+confirms PRs #343 and #344 merged at 21:02 UTC, and the fork has no open issues
+or PRs. Stable release `2026093022-slskdn.333` was published at 22:41 UTC.
+`scripts/verify-release-artifacts.sh build-main-2026093022-slskdn.333` passed
+all six platform ZIP checksums, supporting assets, Linux version, VPN helper,
+and bundled Web marker. The guarded gate passed on the second run of the same
+immutable tag; its first run had one non-reproducing socket-listener readiness
+timeout in the unrelated backend suite.
+
+The release range from `.332` includes React 19 compatibility and Portal timer
+cleanup. COPR, Nix, Chocolatey, AUR, and Homebrew jobs succeeded. `.333` Docker
+image build is in progress and its PPA job is pending in run `36783137317`;
+`.332` PPA publication is still waiting on Launchpad in run `36768526931`.
+Next: monitor the remaining Docker and PPA publication jobs and close their
+follow-up once complete.
 
 ## Current state — Player reduced-motion and Orca speech validation — 2026-09-30 05:14 UTC
 

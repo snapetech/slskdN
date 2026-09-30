@@ -15693,3 +15693,22 @@ No tag, release or deployment was created.
   published assets with `scripts/verify-release-artifacts.sh` when the run
   completes. The earlier `.332` PPA and Omnibus Testers Docker jobs remain in
   progress; its six core platform archives were already verified.
+
+## Update 2026-09-30 22:48 UTC
+
+- The first `.333` hosted release-gate attempt failed one unrelated unit test:
+  `SharedMeshTcpListenerRealMeshOverlayTests` timed out waiting for the
+  ephemeral TCP listener to publish its bound endpoint; 5,345 of 5,346 tests
+  passed. The same immutable tag was rerun without code changes, and the
+  complete release gate passed on attempt 2.
+- Stable release `2026093022-slskdn.333` was published at 22:41 UTC from source
+  tag `build-main-2026093022-slskdn.333` at `6f13371c0`. Artifact verification
+  passed for all six ZIP checksums and supporting assets; the Linux binary
+  reports the expected version and contains the VPN helper and bundled Web
+  session-total marker.
+- The release automation pushed metadata commit `38ccd3c5b` to `main`; it was
+  fast-forwarded locally. Dependency PRs #343 and #344 are merged and the fork
+  has no open issues or PRs. COPR, Nix, Chocolatey, AUR and Homebrew completed;
+  the `.333` Docker job remains in progress and PPA is pending in run
+  `36783137317`. The `.332` PPA job still waits on Launchpad in run
+  `36768526931`.
