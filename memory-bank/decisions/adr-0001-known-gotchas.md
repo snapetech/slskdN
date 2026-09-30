@@ -33651,3 +33651,17 @@ a desktop window manager sizes the PiP window.
 the window opens, receives focus, renders, and closes correctly; only assert
 physical window dimensions in an environment that validates desktop window
 geometry.
+
+### 0z1291. Advance Cloudron Metadata After Each Stable Release (2026-09-30)
+
+**What went wrong:** The `.330` release gate found the Cloudron Dockerfile and
+latest catalog entry pinned to `.328` while the published stable image was
+`.329`.
+
+**Why:** The Cloudron package was not advanced when `.329` became the current
+stable image, so the mismatch remained until the next release gate.
+
+**Prevention:** After a stable image is published, add its immutable entry to
+`CloudronVersions.json` and update `CloudronManifest.json` and the Dockerfile to
+the same image. Run packaging metadata validation as part of closing each
+stable release instead of waiting for the next tag to find the drift.
