@@ -15468,3 +15468,10 @@ No tag, release or deployment was created.
   fragment. Web ESLint, the production build, and repository C# formatting pass.
   No tests were run after these source edits; browser regression validation is
   still open.
+
+## 2026-09-30 00:54 UTC — Player batch published
+
+- Commit `3920f5d08` pushed to `snapetech/slskdN/main`; post-push SHA matches and
+  the worktree is clean. No tag or release was created.
+- The release preview, GitHub target guard and local-identity scan passed.
+  Runtime validation remains open because no tests were run after these edits.

@@ -9,12 +9,15 @@ document; paused visualizer setup keeps the shared audio graph suspended.
 Changing the native FPS cap or debug overlay no longer rebuilds the renderer.
 Gotchas `0z1288` and `0z1289` were committed separately. Runtime browser
 validation for these source changes has not been run. The audit, measurement
-notes, task state, and user release fragment are updated; prepublication
-checks and pushing remain pending.
+notes, task state and changelog are updated. Web ESLint, the production build,
+and repository formatting lint pass. Commit `3920f5d08` is pushed to
+`snapetech/slskdN/main`; post-push fetch confirms matching SHAs and a clean
+worktree. No tag was created.
 
-Next Steps: finish the lightweight frontend/repository lint and build checks,
-publish the batch without creating a tag, then continue the active Player goal.
-Keep physical device, WAN, real speech-output and target-hardware evidence open.
+Next Steps: continue the active Player goal. Runtime validation for the new
+pause and renderer-lifecycle behavior remains open. Keep physical device, WAN,
+real speech-output and target-hardware evidence open; the interrupted long
+capture is not acceptance evidence.
 
 ## Player listed-radio recovery and cross-engine media audit — 2026-09-29 15:07 UTC
 
