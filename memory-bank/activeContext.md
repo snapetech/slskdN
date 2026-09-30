@@ -1,3 +1,21 @@
+## Player pause-time rendering and long-run capture — 2026-09-30 00:49 UTC
+
+The three-hour Chromium resource capture was stopped after 132/180 windows
+(60 idle, 60 playing, 12 paused). It is incomplete diagnostic data and not
+acceptance evidence; the attempt should not have blocked implementation.
+
+The analyzer and MilkDrop loops now require active playback in a visible
+document; paused visualizer setup keeps the shared audio graph suspended.
+Changing the native FPS cap or debug overlay no longer rebuilds the renderer.
+Gotchas `0z1288` and `0z1289` were committed separately. Runtime browser
+validation for these source changes has not been run. The audit, measurement
+notes, task state, and user release fragment are updated; prepublication
+checks and pushing remain pending.
+
+Next Steps: finish the lightweight frontend/repository lint and build checks,
+publish the batch without creating a tag, then continue the active Player goal.
+Keep physical device, WAN, real speech-output and target-hardware evidence open.
+
 ## Player listed-radio recovery and cross-engine media audit — 2026-09-29 15:07 UTC
 
 An active listed-radio stream now reports actionable retry/refresh guidance

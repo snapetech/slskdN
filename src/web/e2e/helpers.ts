@@ -1,6 +1,12 @@
 import { type NodeCfg } from './env';
 import { T } from './selectors';
-import { type APIRequestContext, expect, type Page } from '@playwright/test';
+import {
+  type APIRequestContext,
+  type ConsoleMessage,
+  expect,
+  type Page,
+  type Response,
+} from '@playwright/test';
 
 function logWithTimestamp(message: string): void {
   const timestamp = new Date().toISOString();
@@ -43,33 +49,38 @@ export async function login(page: Page, node: NodeCfg) {
     type: string;
     url: string;
   }> = [];
-  page.on('response', (response) => {
+  const baseUrlPrefix = node.baseUrl.endsWith('/') ? node.baseUrl : `${node.baseUrl}/`;
+  const handleResponse = (response: Response) => {
     const url = response.url();
-    if (url.includes(node.baseUrl) && !url.includes('/api/')) {
+    if (url.startsWith(baseUrlPrefix) && !url.includes('/api/')) {
+      const status = response.status();
       networkLog.push({
-        status: response.status(),
+        status,
         time: Date.now() - loginStartTime,
         type: response.request().resourceType(),
         url,
       });
-      if (response.status() !== 200) {
+      if (!(status >= 200 && status < 400)) {
         logWithTimestamp(
-          `[Login] Non-200 response: ${response.status()} ${url}`,
+          `[Login] Failed response: ${status} ${url}`,
         );
       }
     }
-  });
+  };
+  page.on('response', handleResponse);
 
   // Capture console errors
   const consoleErrors: string[] = [];
-  page.on('console', (message) => {
+  const handleConsole = (message: ConsoleMessage) => {
     if (message.type() === 'error') {
       const text = message.text();
       consoleErrors.push(text);
       logWithTimestamp(`[Login] Console error: ${text}`);
     }
-  });
+  };
+  page.on('console', handleConsole);
 
+  try {
   await page.goto(node.baseUrl, { timeout: 10_000, waitUntil: 'domcontentloaded' });
   const navElapsed = Date.now() - loginStartTime;
   logWithTimestamp(`[Login] Navigation completed in ${navElapsed}ms`);
@@ -114,7 +125,7 @@ export async function login(page: Page, node: NodeCfg) {
 
   // Check network log
   logWithTimestamp(`[Login] Network requests: ${networkLog.length} total`);
-  const failedRequests = networkLog.filter((r) => r.status !== 200);
+  const failedRequests = networkLog.filter((r) => !(r.status >= 200 && r.status < 400));
   if (failedRequests.length > 0) {
     logWithTimestamp(
       `[Login] Failed requests: ${JSON.stringify(failedRequests, null, 2)}`,
@@ -465,6 +476,10 @@ export async function login(page: Page, node: NodeCfg) {
     throw new Error(
       `Login may have succeeded but nav elements not found. URL: ${currentUrl}, Nav testid count: ${navByTestId}, Menu items in DOM: ${menuItemsInDom.length}, Token: ${token ? 'present' : 'missing'}`,
     );
+  }
+  } finally {
+    page.off('response', handleResponse);
+    page.off('console', handleConsole);
   }
 }
 

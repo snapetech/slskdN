@@ -32,6 +32,17 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 ## Current evidence
 
+### Pause-time rendering and renderer tuning — 2026-09-29
+
+The analyzer and MilkDrop render loops now start only while media is playing in
+a visible document, and stop on Pause, buffering, Stalled, Ended, or Error. A
+visualizer mounted while paused creates or reuses its graph without resuming
+it. Native FPS-cap and debug-overlay values are read from refs by a stable
+render loop, so changing those settings no longer rebuilds the engine. These
+source changes have not received runtime regression validation in this batch.
+The three-hour resource attempt was stopped after 132/180 windows and is not
+acceptance evidence; no additional long capture was started.
+
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
 peer connections. All 32 workflows pass in Linux Chromium and host Firefox; in
@@ -62,7 +73,7 @@ simulated device APIs.
 | Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in Chromium and host Firefox / high; WebKit does not support Document PiP; physical window sizing and focus unverified |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium, host Firefox and WebKit viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
-| Native playback resources | Fifteen one-minute samples across idle, local PCM playing, and paused states | Linux headless Chromium; measured browser process CPU/PSS and renderer/heap counters / moderate; multi-hour plateau, other engines/devices and portable budgets remain open |
+| Native playback resources | Fifteen-minute baseline plus a two-hour diagnostic capture | Linux headless Chromium; the diagnostic run retained login response/console listeners throughout playback, so its CPU/PSS trends are not clean acceptance evidence; the later three-hour attempt stopped after 132/180 windows and is incomplete diagnostic data; other engines/devices and portable budgets remain open |
 | Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket, 15-minute live renewal soak, active-stream replacement and withdrawal verified / high; loopback mesh-link delay plus URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; WAN behavior and sustained throughput remain open |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks, live-event precedence and authenticated cross-node updates | Actual Chromium PlayerBar catches the latest state after automatic transport recovery; two authenticated SignalR clients verify leave/rejoin/snapshot/live-ban behavior, and the two-backend browser workflow verifies initial snapshot, playback, Pause/Seek/Stop updates and banned-member denial over loopback / high; WAN behavior remains unverified |
 
@@ -281,6 +292,50 @@ how much belongs to retained source/decoder buffers. The values establish a
 memory/CPU limit or a multi-hour plateau. Confidence is high for the recorded
 measurements and moderate for comparing these three states.
 
+## Prior two-hour resource capture — diagnostic only — 2026-09-29
+
+Do not treat these values as a clean native playback baseline. The shared login
+helper left response and console listeners attached for the full two-hour page
+session. Those callbacks retained diagnostic state while the browser continued
+to run, and its URL matching also misclassified a successful blob media response
+as a failed network response. Gotcha `0z1282` records the listener-lifetime and
+URL-classification failure. The helper now removes both listeners in `finally`
+and limits URL matching to the app origin. A later clean three-hour attempt was
+intentionally stopped after 60 idle, 60 playing and 12 paused windows (132/180
+total). It ended during the paused phase and is incomplete diagnostic data, not
+acceptance evidence; do not merge it with this diagnostic run.
+
+The diagnostic session recorded forty consecutive 60-second windows in each
+of idle, local PCM playback, and paused-with-source-retained states, for 120
+windows over 2h01m. It used a test-only four-hour JWT, crossed the one-hour
+point without a 401, app reload, or playback reset, and played a 2,475-second,
+22.05 kHz mono WAV (109,147,544 bytes). No analyzer or visualizer was active;
+no AudioContext was created in any sample. The workload and observations are
+retained here for troubleshooting only.
+
+| State | CPU (% of one core, median) | CDP PSS (MiB, median; min–max) | Owned-tree PSS (MiB, median; min–max) | Renderer task (%) | JS heap (MiB, median) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Idle | 0.48 | 269.79; 261.47–274.82 | 289.66; 281.38–294.75 | 0.18 | 10.12 |
+| Playing | 2.08 | 310.47; 304.01–321.06 | 328.39; 321.97–339.01 | 0.58 | 9.84 |
+| Paused | 0.52 | 315.26; 310.14–325.76 | 333.22; 328.09–343.71 | 0.21 | 11.53 |
+
+CDP PSS reads succeeded for every reported process: four browser processes in
+idle and five in playing and paused. The Linux owned-tree probe measured all six
+idle and seven active descendants without per-process PSS failures or PID
+churn. The host-wide `/proc` scan recorded 108 failed stat reads with unknown
+ancestry; this weakens confidence that the scan saw every descendant. Owned-tree
+PSS medians for the first ten and last ten windows rose 286.3 to 293.1 MiB
+idle, 325.3 to 332.9 MiB playing, and 329.8 to 338.7 MiB paused. JS heap and
+DOM counts stayed broadly flat; paused position drift was zero, and each
+playing window advanced 60.06–60.12 seconds.
+
+The measurements above describe the contaminated capture and must not be used
+to estimate PlayerBar lifetime resource use. Preserve them only to explain why
+the login diagnostic lifetime was fixed and why the clean capture uses fresh
+instrumentation. Queue, graph, visualizer, and radio workloads also need
+separate sustained measurements. Raw reports remain in ignored local evidence
+storage.
+
 ## Live host renewal soak — 2026-09-28
 
 An opt-in Playwright run (`pnpm test:player:radio-soak`) kept the actual PlayerBar
@@ -316,13 +371,11 @@ are happening; that reciprocal-transfer workflow remains open.
 - Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The loopback radio scenario now delays each mesh TCP stream chunk by 60 ms per direction and separately constrains the browser-to-listener HTTP leg; this does not model WAN packet loss, jitter, route changes or real sustained congestion. Active snapshot replacement and withdrawal now pass against two real backends. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
 - Verify physical mobile interactions, physical output routing/media buttons,
   and Picture-in-Picture window sizing/focus.
-- Measure sustained queue, visualizer, output-switch and floating-window cycles
-  for retained memory, stray timers and active contexts. The repeated two-window
-  idle/play/pause baseline is complete; it does not establish a long-session
-  memory plateau.
+- Attribute the sustained owned-tree PSS rise seen in the two-hour native run,
+  establish a plateau, and measure retained memory through queue, analyzer,
+  visualizer, output-switch, floating-window and radio workloads.
 - Define CPU and memory acceptance budgets on representative minimum and target
-  hardware; the current browser-process measurements are a host-specific
-  baseline rather than portable thresholds.
+  hardware; current Chromium figures are host-specific measurements.
 - Complete assistive-technology speech workflows. All eight
   player dialogs now expose their title, receive focus on entry, wrap Tab in
   both directions, and restore the opener on Escape. The queue dialog workflow
@@ -1439,10 +1492,9 @@ The earlier 21/22 run is retained as the negative reproduction; its only failure
 was login navigation before player assertions. The held-request negative and
 corrected one-case browser test establish the cause and repair.
 
-The separate three-state, ten-second native resource run is in progress with
-129 frozen source/build hashes; its result and OS/CDP coverage are pending.
-Do not infer sustained resource budgets from the longer earlier runs after those
-measure different source versions.
+The separate three-state, ten-second native resource run was followed by the
+completed repeated current-source disk-file sample below. Do not infer sustained
+resource budgets from longer earlier runs that measured different source versions.
 
 
 ## Repeated current-source disk-file resource check — 2026-09-28

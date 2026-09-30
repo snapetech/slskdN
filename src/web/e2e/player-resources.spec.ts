@@ -8,24 +8,26 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { expect, test } from '@playwright/test';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
-import { collectBrowserProcessSnapshot, compareBrowserProcessSnapshots } from './harness/browser-process-resources';
+import { collectBrowserProcessSnapshot, compareBrowserProcessSnapshots, summarizePssByType } from './harness/browser-process-resources';
 import { makeTone } from './fixtures/player-tone';
 import { login } from './helpers';
 
 // Video and trace are worker options; isolate measurement from functional QA.
 test.use({ serviceWorkers: 'block', video: 'off', trace: 'off' });
 const harness = new MultiPeerHarness();
+const resourceSessionJwtTtlMilliseconds = 14_400_000;
+const hiddenPlayerControl = process.env.SLSKDN_PLAYER_RESOURCE_PROFILE === 'hidden-app';
 let fixtureDirectory: string;
 test.beforeAll(async () => {
   fixtureDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'player-resource-'));
-  await harness.startNode('A', [], { noConnect: true });
+  await harness.startNode('A', [], { noConnect: true, jwtTtlMilliseconds: resourceSessionJwtTtlMilliseconds });
 });
 test.afterAll(async () => {
   try { await harness.stopAll(); }
   finally { if (fixtureDirectory) await fs.rm(fixtureDirectory, { recursive: true, force: true }); }
 });
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
+  await page.addInitScript((hidePlayer) => {
     const audioWindow = window as Window & {
       __playerAudioContextRefs?: WeakRef<AudioContext>[];
       __playerAudioContexts?: number;
@@ -123,23 +125,35 @@ test.beforeEach(async ({ page }) => {
       },
     });
     localStorage.setItem('slskdn.player.collapsed', 'false');
-  });
+    if (hidePlayer) localStorage.setItem('slskdn:experience-preferences:v1', JSON.stringify({ playerVisible: false }));
+  }, hiddenPlayerControl);
   await login(page, harness.getNode('A').nodeCfg);
 });
 
-test('records idle, native playback and paused browser resource use', async ({ page }, testInfo) => {
+test('records player and application browser resource use', async ({ page, request }, testInfo) => {
   expect(page.video()).toBeNull();
   const windowSeconds = Number(process.env.SLSKDN_PLAYER_RESOURCE_WINDOW_SECONDS || 10);
   const windows = Number(process.env.SLSKDN_PLAYER_RESOURCE_WINDOWS || 1);
   expect(Number.isInteger(windowSeconds) && windowSeconds >= 10 && windowSeconds <= 60).toBe(true);
-  expect(Number.isInteger(windows) && windows >= 1 && windows <= 10).toBe(true);
+  expect(Number.isInteger(windows) && windows >= 1 && windows <= 60).toBe(true);
   const sustained = windowSeconds * windows > 10;
   const warmupSeconds = sustained ? 15 : 0;
-  test.setTimeout(90_000 + 3 * (warmupSeconds + windows * windowSeconds) * 1_000);
-  const inputSeconds = sustained ? warmupSeconds + windows * windowSeconds + 60 : 40;
+  const states = hiddenPlayerControl ? ['idle'] as const : ['idle', 'playing', 'paused'] as const;
+  const samplingDurationSeconds = states.length * (warmupSeconds + windows * windowSeconds);
+  test.setTimeout(90_000 + states.length * (warmupSeconds + windows * windowSeconds) * 1_000);
+  if (hiddenPlayerControl) await expect(page.locator('.player-bar-hidden')).toBeVisible();
+  const node = harness.getNode('A');
+  const authenticationSessionResponse = await request.post(`${node.apiUrl}/api/v0/session`, {
+    data: { username: node.nodeCfg.username, password: node.nodeCfg.password },
+  });
+  const authenticationSessionBody = await authenticationSessionResponse.text();
+  expect(authenticationSessionResponse.ok(), authenticationSessionBody).toBe(true);
+  const authenticationSession = JSON.parse(authenticationSessionBody) as { expires: number; issued: number };
+  expect(authenticationSession.expires - authenticationSession.issued).toBeGreaterThan(samplingDurationSeconds + 1_800);
+  const inputSeconds = hiddenPlayerControl ? null : sustained ? warmupSeconds + windows * windowSeconds + 60 : 40;
   const inputPath = path.join(fixtureDirectory, 'Native playback.wav');
-  await fs.writeFile(inputPath, makeTone(inputSeconds));
-  const inputBytes = (await fs.stat(inputPath)).size;
+  if (inputSeconds !== null) await fs.writeFile(inputPath, makeTone(inputSeconds));
+  const inputBytes = hiddenPlayerControl ? 0 : (await fs.stat(inputPath)).size;
   const session = await page.context().newCDPSession(page);
   await session.send('Performance.enable');
   const browserSession = await page.context().browser()!.newBrowserCDPSession();
@@ -160,7 +174,7 @@ test('records idle, native playback and paused browser resource use', async ({ p
     .map((audio) => ({ paused: audio.paused, ended: audio.ended, seconds: audio.currentTime })));
   const samples = [];
   try {
-    for (const state of ['idle', 'playing', 'paused']) {
+    for (const state of states) {
       if (state === 'playing') {
         await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(inputPath);
         await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
@@ -191,16 +205,31 @@ test('records idle, native playback and paused browser resource use', async ({ p
           }),
         ) : [];
         const measuredMemory = memoryReadings.filter((entry): entry is PromiseFulfilledResult<number> => entry.status === 'fulfilled');
+        const processTypeByPid = new Map(processesAfter.processInfo.map((entry) => [Number(entry.id), entry.type]));
+        const browserPssByType = summarizePssByType(processesAfter.processInfo.map((entry, index) => {
+          const reading = memoryReadings[index];
+          return {
+            type: entry.type,
+            pssMiB: reading?.status === 'fulfilled' ? reading.value : null,
+          };
+        }));
+        const ownedTreePssByType = osAfter ? summarizePssByType(osAfter.processes.map((entry) => ({
+          type: processTypeByPid.get(entry.pid) || 'not-reported-by-cdp',
+          pssMiB: entry.pssMiB,
+        }))) : null;
         samples.push({
           state, window: sampleIndex + 1, warmupSeconds,
+          profile: hiddenPlayerControl ? 'hidden-app-control' : 'player-visible',
           browserVersion: browserVersion.product, platform: process.platform,
-          inputKind: 'disk-file', inputBytes, inputSeconds,
+          inputKind: hiddenPlayerControl ? 'none' : 'disk-file', inputBytes, inputSeconds,
           browserProcessScope: 'cdp-reported',
           osProcessTree: osBefore && osAfter && clockTicksPerSecond !== null
             ? { scope: 'linux-owned-process-tree', clockTicksPerSecond,
-              ...compareBrowserProcessSnapshots(osBefore, osAfter, clockTicksPerSecond) } : null,
+              ...compareBrowserProcessSnapshots(osBefore, osAfter, clockTicksPerSecond),
+              pssByType: ownedTreePssByType } : null,
           playbackBefore, playbackAfter,
           browserPssMiB: measuredMemory.length > 0 ? measuredMemory.reduce((total, entry) => total + entry.value, 0) : null,
+          browserPssByType,
           memoryProcessesMeasured: measuredMemory.length,
           memoryProcessesUnavailable: memoryReadings.length - measuredMemory.length,
           memoryMeasurementSupported: process.platform === 'linux',
@@ -561,14 +590,9 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
     const detachedDom = phase === 'forced-gc' ? await inspectDetachedElements() : undefined;
     const measured = processTree?.processes.filter((entry) => entry.pssMiB !== null) || [];
     const processTypeByPid = new Map(processInfo.processInfo.map((entry) => [Number(entry.id), entry.type]));
-    const pssByType = new Map<string, { processCount: number; pssMiB: number }>();
-    for (const entry of measured) {
-      const type = processTypeByPid.get(entry.pid) || 'not-reported-by-cdp';
-      const aggregate = pssByType.get(type) || { processCount: 0, pssMiB: 0 };
-      aggregate.processCount += 1;
-      aggregate.pssMiB += entry.pssMiB!;
-      pssByType.set(type, aggregate);
-    }
+    const pssByType = summarizePssByType(measured.map((entry) => ({
+      type: processTypeByPid.get(entry.pid) || 'not-reported-by-cdp', pssMiB: entry.pssMiB,
+    })));
     samples.push({
       phase,
       profile,
@@ -580,7 +604,7 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
       processTree: processTree ? {
         processCount: processTree.processes.length,
         pssMiB: measured.length ? measured.reduce((total, entry) => total + entry.pssMiB!, 0) : null,
-        pssByType: Object.fromEntries(pssByType),
+        pssByType,
         memoryProcessesMeasured: measured.length,
         memoryProcessesUnavailable: processTree.processes.length - measured.length,
         enumerationReadsUnavailable: processTree.enumerationReadsUnavailable,

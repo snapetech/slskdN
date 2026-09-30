@@ -35,22 +35,29 @@ function trafficTotals(appDir: string): number[] {
 }
 
 // A long generated WAV keeps the real paced mesh response active during seeks.
-function radioTone(seconds = 180, rate = 22050): Buffer {
+function radioTone(seconds = 180, rate = 22050, channels = 1): Buffer {
   const samples = rate * seconds;
-  const wave = Buffer.alloc(44 + samples * 2);
+  const blockAlign = channels * 2;
+  const dataBytes = samples * blockAlign;
+  const wave = Buffer.alloc(44 + dataBytes);
   wave.write('RIFF', 0);
   wave.writeUInt32LE(wave.length - 8, 4);
   wave.write('WAVEfmt ', 8);
   wave.writeUInt32LE(16, 16);
   wave.writeUInt16LE(1, 20);
-  wave.writeUInt16LE(1, 22);
+  wave.writeUInt16LE(channels, 22);
   wave.writeUInt32LE(rate, 24);
-  wave.writeUInt32LE(rate * 2, 28);
-  wave.writeUInt16LE(2, 32);
+  wave.writeUInt32LE(rate * blockAlign, 28);
+  wave.writeUInt16LE(blockAlign, 32);
   wave.writeUInt16LE(16, 34);
   wave.write('data', 36);
-  wave.writeUInt32LE(samples * 2, 40);
-  for (let index = 0; index < samples; index++) wave.writeInt16LE(Math.round(Math.sin(index * 2 * Math.PI * 440 / rate) * 1600), 44 + index * 2);
+  wave.writeUInt32LE(dataBytes, 40);
+  for (let index = 0; index < samples; index++) {
+    const value = Math.round(Math.sin(index * 2 * Math.PI * 440 / rate) * 1600);
+    for (let channel = 0; channel < channels; channel++) {
+      wave.writeInt16LE(value, 44 + (index * channels + channel) * 2);
+    }
+  }
   return wave;
 }
 
@@ -242,6 +249,128 @@ test.describe('listed radio between isolated nodes', () => {
 
   });
 
+  test('sustains 96 kHz stereo listed-radio playback and seeks beyond read-ahead on the loopback mesh @player-radio-high-rate', async ({ page, request }) => {
+    test.setTimeout(360_000);
+    const host = await harness.startNode('J', [], { noConnect: true, radioMesh: true });
+    transientRadioNodeNames.push('J');
+    const listener = await harness.startNode('K', [], { noConnect: true, radioMesh: true });
+    transientRadioNodeNames.push('K');
+    const title = 'High-rate radio tone';
+    await fs.writeFile(path.join(host.getAppDir(), 'downloads', `${title}.wav`), radioTone(390, 96_000, 2));
+
+    const [hostSession, listenerSession] = await Promise.all([
+      request.post(`${host.apiUrl}/api/v0/session`, { data: { username: host.nodeCfg.username, password: host.nodeCfg.password } }),
+      request.post(`${listener.apiUrl}/api/v0/session`, { data: { username: listener.nodeCfg.username, password: listener.nodeCfg.password } }),
+    ]);
+    expect(hostSession.ok()).toBe(true);
+    expect(listenerSession.ok()).toBe(true);
+    const hostHeaders = { Authorization: `Bearer ${(await hostSession.json()).token}` };
+    const listenerHeaders = { Authorization: `Bearer ${(await listenerSession.json()).token}` };
+    const connection = await request.post(`${listener.apiUrl}/api/v0/overlay/connect`, {
+      headers: listenerHeaders,
+      data: { address: '127.0.0.1', port: host.getOverlayPort() },
+    });
+    expect(connection.ok(), await connection.text()).toBe(true);
+
+    const findHighRateItem = async () => {
+      const response = await request.get(
+        `${host.apiUrl}/api/v0/library/items/browser?query=${encodeURIComponent(title)}&kinds=Audio`,
+        { headers: hostHeaders },
+      );
+      if (!response.ok()) return null;
+      return ((await response.json()).files as Array<{ contentId: string; fileName: string }>)
+        .find((file) => file.fileName === `${title}.wav`) ?? null;
+    };
+    await expect.poll(async () => (await findHighRateItem())?.contentId).toBeTruthy();
+    const radioItem = await findHighRateItem();
+    expect(radioItem?.contentId).toBeTruthy();
+
+    const radioPod = await createRadioRoom(request, host.apiUrl, hostHeaders, 'High-rate radio room');
+    const partyId = `high-rate-${randomUUID()}`;
+    const publish = await request.post(`${host.apiUrl}/api/v0/listening-party/${radioPod}/music`, {
+      headers: hostHeaders,
+      data: {
+        partyId, action: 'play', contentId: radioItem!.contentId, title,
+        listed: true, allowMeshStreaming: true, positionSeconds: 0,
+      },
+    });
+    expect(publish.ok(), await publish.text()).toBe(true);
+    await expect.poll(async () => {
+      const directory = await request.get(`${listener.apiUrl}/api/v0/listening-party?refresh=true`, { headers: listenerHeaders });
+      if (!directory.ok()) return null;
+      return (await directory.json()).find((party: { partyId: string }) => party.partyId === partyId) ?? null;
+    }, { timeout: 30_000 }).toMatchObject({ contentId: radioItem!.contentId, title });
+
+    await page.addInitScript(() => localStorage.setItem('slskdn.player.collapsed', 'false'));
+    const browserDebug = await page.context().newCDPSession(page);
+    await browserDebug.send('Network.enable');
+    await browserDebug.send('Network.emulateNetworkConditionsByRule', {
+      matchedNetworkConditions: [{
+        urlPattern: new URL('/api/v0/mesh-streams/*', listener.nodeCfg.baseUrl).href,
+        latency: 80,
+        downloadThroughput: 512 * 1024,
+        uploadThroughput: 128 * 1024,
+      }],
+    });
+    const meshStatuses: number[] = [];
+    page.on('response', (response) => {
+      if (response.url().includes('/api/v0/mesh-streams/')) meshStatuses.push(response.status());
+    });
+    await login(page, listener.nodeCfg);
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByTestId('player-open-listed-radio').click();
+    const playRadio = page.getByRole('button', { name: `Play ${title} from listed radio`, exact: true });
+    await expect(playRadio).toBeVisible();
+    await playRadio.click();
+    const audio = audioElements(page).first();
+    await expect.poll(() => audio.evaluate((element) =>
+      element instanceof HTMLAudioElement && !element.paused && element.currentTime > 1),
+    { timeout: 30_000 }).toBe(true);
+
+    const currentTime = () => audio.evaluate((element) => {
+      if (!(element instanceof HTMLAudioElement)) throw new Error('The listed-radio audio element is unavailable.');
+      return { paused: element.paused, ended: element.ended, currentTime: element.currentTime };
+    });
+    const initialTime = (await currentTime()).currentTime;
+    // 96 kHz stereo 16-bit PCM consumes 384,000 bytes/s. The browser link is
+    // capped at 512 KiB/s so the real listed-radio stream has to keep pace.
+    await expect.poll(async () => (await currentTime()).currentTime, { timeout: 220_000, intervals: [1_000, 2_000] })
+      .toBeGreaterThan(initialTime + 175);
+    const sustainedState = await currentTime();
+    expect(sustainedState.paused).toBe(false);
+    expect(sustainedState.ended).toBe(false);
+
+    const seek = page.getByLabel('Seek playback', { exact: true });
+    const seekBounds = await seek.boundingBox();
+    expect(seekBounds).not.toBeNull();
+    const highRateSeekResponse = page.waitForResponse((response) =>
+      response.url().includes('/api/v0/mesh-streams/') &&
+      response.request().headers().range !== undefined && response.status() === 206);
+    await seek.click({ position: { x: seekBounds!.width * 0.94, y: seekBounds!.height / 2 } });
+    expect((await highRateSeekResponse).status()).toBe(206);
+    await expect.poll(async () => {
+      const state = await currentTime();
+      return !state.paused && !state.ended && state.currentTime > 355;
+    }, { timeout: 20_000 }).toBe(true);
+    const afterSeekTime = (await currentTime()).currentTime;
+    await expect.poll(async () => (await currentTime()).currentTime, { timeout: 10_000 }).toBeGreaterThan(afterSeekTime + 4);
+    expect(meshStatuses).toContain(206);
+    expect(meshStatuses).not.toContain(429);
+    expect(meshStatuses).not.toContain(500);
+
+    const [hostTraffic, listenerTraffic] = [trafficTotals(host.getAppDir()), trafficTotals(listener.getAppDir())];
+    expect(hostTraffic[0]).toBeGreaterThan(0);
+    expect(listenerTraffic[1]).toBeGreaterThan(0);
+    console.log(JSON.stringify({
+      sampleRateHz: 96_000,
+      channels: 2,
+      sustainedPlaybackSeconds: sustainedState.currentTime - initialTime,
+      postSeekPositionSeconds: (await currentTime()).currentTime,
+      meshStatuses,
+    }));
+    await browserDebug.detach();
+  });
+
   test('stops active radio when its host replaces or withdraws the snapshot', async ({ page, request }) => {
     test.setTimeout(180_000);
     const host = harness.getNode('A');
@@ -375,9 +504,9 @@ test.describe('listed radio between isolated nodes', () => {
     const meshStatusResponse = await request.get(`${listener.apiUrl}/api/v0/dht/status`, { headers: listenerHeaders });
     expect(meshStatusResponse.ok()).toBe(true);
     expect((await meshStatusResponse.json()).activeMeshConnections).toBe(0);
-    // Delay each forwarded TCP chunk by 60 ms in either direction to add
-    // data-path latency on the real mesh connection. This is not a WAN model.
-    const meshProxy = new LatencyTcpProxy(host.getOverlayPort(), 60);
+    // Apply deterministic 45–75 ms per-chunk delays in both directions to add
+    // latency variation on the real mesh connection. This is not a WAN model.
+    const meshProxy = new LatencyTcpProxy(host.getOverlayPort(), 60, 15);
     await meshProxy.start();
     activeTcpProxies.push(meshProxy);
     const connection = await request.post(`${listener.apiUrl}/api/v0/overlay/connect`, {
@@ -483,6 +612,12 @@ test.describe('listed radio between isolated nodes', () => {
 
       expect(meshProxy.traffic.hostToListener).toBeGreaterThan(0);
       expect(meshProxy.traffic.listenerToHost).toBeGreaterThan(0);
+      for (const direction of Object.values(meshProxy.observedDelays)) {
+        expect(direction.chunks).toBeGreaterThan(2);
+        expect(direction.minScheduledMs).toBe(45);
+        expect(direction.maxScheduledMs).toBe(75);
+        expect(direction.maxObservedMs! - direction.minObservedMs!).toBeGreaterThanOrEqual(20);
+      }
       await expect(page.locator('.player-now-playing .player-title')).toHaveText(title);
       await meshProxy.close();
       await harness.stopNode('C');

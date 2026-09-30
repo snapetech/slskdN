@@ -6,6 +6,12 @@ isolated backend with remote connections disabled,
 and one browser. It creates no native audio processing graph. Video and tracing
 are disabled at file scope; `page.video()` must be null.
 
+The isolated backend for this probe uses a four-hour JWT lifetime so the
+two-hour run does not expire its browser session midway through playback. The
+normal authentication lifetime remains one hour; this override applies only to
+the resource-test node and the test asserts that its token outlasts the full
+measurement with margin.
+
 ## Prepare the inputs
 
 Build the frontend and Release backend before measuring. Finish tests, lint and
@@ -36,21 +42,82 @@ pnpm --filter @slskdn/web test:player:resources \
 ```
 
 Window seconds must be an integer from 10 through 60; window count must be an
-integer from 1 through 10. Every run covers idle, playing and paused states in
+integer from 1 through 60. Every run covers idle, playing and paused states in
 that order. Extended playback uses a tone longer than the entire playing phase;
 it must remain playing and advance throughout each window. Paused playback must
 retain its source and position. Idle must have no loaded audio source.
 
 For a longer natural garbage-collection observation, set the window count to
 10 with 60-second windows. This measures ten minutes per state after each
-warmup and takes about 31 minutes overall. The generated file covers the entire
-playing phase plus a margin; it is created before measurements and removed
-after browser teardown.
+warmup and takes about 31 minutes overall. For a two-hour native playback
+capture, set the window count to 40 with 60-second windows. This keeps one
+browser session alive through forty minutes each of idle, playing and paused
+sampling, plus the warmups. The run takes about two hours and two minutes. For
+a three-hour trend capture, set the window count to 60; this samples an hour each in
+idle, playing and paused states and takes about three hours and two minutes.
+The generated file covers the entire playing phase plus a margin; it is
+created before measurements and removed after browser teardown.
+
+The 2026-09-29 three-hour attempt was intentionally stopped after 132 of 180
+windows: 60 idle, 60 playing and 12 paused. That partial output is retained for
+diagnosis only and is not a completed run or acceptance evidence. The pause
+render-loop and renderer-tuning source changes recorded in the player quality
+audit were made after this capture and are not represented in its samples.
+
+If the app capture shows sustained process-tree growth, compare Chromium's own
+idle drift with a blank-page control by running
+`pnpm --filter @slskdn/web run test:player:resource-control`. It uses the same
+browser configuration, takes a 15-second warmup, and records forty 60-second
+windows without loading the app or starting an audio graph. Summarize its
+`native-resources.json` with the same report command. This separates a browser
+baseline from app-page retention; it is not a target-hardware budget.
+
+To separate the visible player from the rest of the logged-in app, run
+`pnpm --filter @slskdn/web run test:player:resource-app-control`. This records
+one hour of idle windows with the PlayerBar hidden while the same backend,
+account, app shell, browser configuration and background polling remain active.
+It helps attribute visible-player overhead; it does not unmount the PlayerBar
+or isolate every app subsystem.
 
 The result is `native-resources.json` under the test output directory. Each
 window is saved before validation, preserving diagnostics if a later check fails.
+Summarize the complete report after the run with
+`python3 scripts/summarize-player-resources.py <path-to-native-resources.json>`.
+The Markdown output includes per-state medians/ranges, early-versus-late
+windows, estimated per-hour trends, PSS by Chromium process type, and
+process/memory-read coverage. It is descriptive evidence only; use
+representative target hardware to define acceptance budgets.
+
+To verify that Chromium delivers decoded samples to an audio output, run
+`pnpm --filter @slskdn/web run test:player:audio-output` on a Linux host with
+PulseAudio or PipeWire-Pulse. The runner creates two temporary null sinks,
+directs only its Playwright browser to one, selects the other through the
+PlayerBar's real audio-output control, configures ALSA fallback to discard
+samples, records the selected sink's monitor stream and checks for non-silent
+PCM. It unloads both sinks afterward and never changes the default physical
+output. This verifies browser device selection and the virtual audio path;
+physical device routing and listening remain separate checks.
 The test also attaches the completed report. A terminal passing result is
 required before treating a report as verified evidence.
+
+To verify the PlayerBar's spoken status with Orca and Chromium, run
+`pnpm --filter @slskdn/web run test:player:screen-reader`. The runner starts a
+headed browser and Orca in a disposable Linux container, shares one X11 and
+D-Bus session, and routes speech to a temporary PulseAudio null sink. It checks
+that Orca registers Chromium, speaks the PlayerBar's play, pause and Stop
+announcements, and produces non-silent speech PCM. The helper image is built
+from `scripts/player-a11y/Dockerfile` when it is not already available. Logs and
+PCM stay under ignored `.local/player-a11y-evidence/`. This verifies the Linux
+Orca/Chromium path; physical screen-reader hardware and other assistive
+technology/browser pairs remain separate coverage.
+
+To test high-rate listed radio without using public peers, run
+`pnpm --filter @slskdn/web run test:player:radio-high-rate`. It serves a
+generated 96 kHz stereo 16-bit WAV between two LAN-only backends, caps the
+browser stream at 512 KiB/s (the source consumes 384,000 bytes/s), checks more
+than 175 seconds of playback advancement, and seeks beyond buffered read-ahead
+to verify a new 206 range response and continued playback. This covers a
+repeatable loopback throughput profile; it is not a WAN result.
 
 ## Read the evidence
 

@@ -15453,3 +15453,18 @@ are pending. Continue the Player goal after this batch: validate actual
 screen-reader speech, sustained resource plateau, local Soulfind reciprocal
 transfer plus radio overlap, and physical/WAN/target-hardware requirements.
 No tag, release or deployment was created.
+## 2026-09-30 00:52 UTC — Player pause rendering and engine lifetime
+
+- Stopped the three-hour browser resource capture at 132/180 samples
+  (60 idle, 60 playing, 12 paused). The partial file is diagnostic only and
+  is documented as incomplete, not acceptance evidence.
+- Gated analyzer and MilkDrop animation frames on playback and document
+  visibility; paused visualizer initialization now keeps the shared Web Audio
+  graph suspended.
+- Stabilized the MilkDrop render callback so FPS-cap/debug changes do not tear
+  down and recreate the engine. Added immediate ADR-0001 gotchas `0z1288` and
+  `0z1289` in commits `bde9c98bf` and `e8870e4c8`.
+- Updated the player audit, resource instructions, task note and a user release
+  fragment. Web ESLint, the production build, and repository C# formatting pass.
+  No tests were run after these source edits; browser regression validation is
+  still open.

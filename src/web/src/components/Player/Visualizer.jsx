@@ -5,7 +5,7 @@ import {
   removeLocalStorageItem,
   setLocalStorageItem,
 } from '../../lib/storage';
-import { resumeAudioGraph } from './audioGraph';
+import { getOrCreateAudioGraph, resumeAudioGraph, suspendAudioGraph } from './audioGraph';
 import SpectrumAnalyzer from './SpectrumAnalyzer';
 import { createButterchurnEngine } from './visualizers/butterchurnEngine';
 import { createNativeMilkdropEngine } from './visualizers/nativeMilkdropEngine';
@@ -541,6 +541,7 @@ const Visualizer = ({
   const lastNativeMouseRef = useRef({ x: 0.5, y: 0.5 });
   const lastNativeRenderAtRef = useRef(0);
   const rafRef = useRef(null);
+  const playbackActiveRef = useRef(false);
   const engineAudioNodeRef = useRef(null);
   const nativeAutomationSettingsRef = useRef(readStoredNativeAutomationSettings());
   const [fallbackMode, setFallbackMode] = useState(false);
@@ -586,6 +587,12 @@ const Visualizer = ({
   const [presetName, setPresetName] = useState('');
   const [error, setError] = useState(null);
   const activeEngineType = engineOverride || engineType;
+  const renderEngineTypeRef = useRef(activeEngineType);
+  const renderFpsCapRef = useRef(nativeFpsCap);
+  const renderDebugEnabledRef = useRef(showNativeDebug);
+  renderEngineTypeRef.current = activeEngineType;
+  renderFpsCapRef.current = nativeFpsCap;
+  renderDebugEnabledRef.current = showNativeDebug;
 
   const activeNativePlaylist = nativePresetPlaylists.find(
     (playlist) => playlist.id === activeNativePlaylistId,
@@ -645,10 +652,13 @@ const Visualizer = ({
 
   const renderLoop = useCallback((timestamp = performance.now()) => {
     rafRef.current = null;
-    if (document.hidden) return;
+    if (document.hidden || !playbackActiveRef.current) return;
     if (!engineRef.current) return;
+    const engineType = renderEngineTypeRef.current;
+    const fpsCap = renderFpsCapRef.current;
+    const debugEnabled = renderDebugEnabledRef.current;
     try {
-      const fpsCapMs = isNativeEngine(activeEngineType) ? getNativeFpsCapMs(nativeFpsCap) : 0;
+      const fpsCapMs = isNativeEngine(engineType) ? getNativeFpsCapMs(fpsCap) : 0;
       if (
         fpsCapMs > 0
         && lastNativeRenderAtRef.current
@@ -659,9 +669,9 @@ const Visualizer = ({
       }
       const startedAt = performance.now();
       const renderResult = engineRef.current.render();
-      if (isNativeEngine(activeEngineType)) {
+      if (isNativeEngine(engineType)) {
         lastNativeRenderAtRef.current = timestamp;
-        if (showNativeDebug) {
+        if (debugEnabled) {
           setNativeFrameMs(Number((performance.now() - startedAt).toFixed(1)));
         }
       }
@@ -671,25 +681,62 @@ const Visualizer = ({
     } catch (renderError) {
       // eslint-disable-next-line no-console
       console.error('Failed to render MilkDrop visualizer', renderError);
-      if (isNativeEngine(activeEngineType)) {
+      if (isNativeEngine(engineType)) {
         removeLocalStorageItem(nativePresetStorageKey);
       }
-      setError(getVisualizerErrorMessage(activeEngineType, renderError));
+      setError(getVisualizerErrorMessage(engineType, renderError));
       return;
     }
     rafRef.current = window.requestAnimationFrame(renderLoop);
-  }, [activeEngineType, nativeFpsCap, showNativeDebug]);
+  }, []);
+
+  const stopRendering = useCallback(() => {
+    if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+  }, []);
+
+  const startRendering = useCallback(() => {
+    if (
+      document.hidden || !playbackActiveRef.current || !engineRef.current || rafRef.current !== null
+    ) return;
+    rafRef.current = window.requestAnimationFrame(renderLoop);
+  }, [renderLoop]);
 
   useEffect(() => {
     if (mode === 'off' || !audioElement) return undefined;
-    const resumeVisibleRendering = () => {
-      if (!document.hidden && engineRef.current && !rafRef.current) {
-        rafRef.current = window.requestAnimationFrame(renderLoop);
-      }
+    playbackActiveRef.current = !audioElement.paused && !audioElement.ended &&
+      audioElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+    const handlePlaying = () => {
+      playbackActiveRef.current = true;
+      startRendering();
     };
-    document.addEventListener('visibilitychange', resumeVisibleRendering);
-    return () => document.removeEventListener('visibilitychange', resumeVisibleRendering);
-  }, [audioElement, mode, renderLoop]);
+    const handleStopped = () => {
+      playbackActiveRef.current = false;
+      stopRendering();
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) stopRendering();
+      else startRendering();
+    };
+    audioElement.addEventListener('playing', handlePlaying);
+    audioElement.addEventListener('pause', handleStopped);
+    audioElement.addEventListener('waiting', handleStopped);
+    audioElement.addEventListener('stalled', handleStopped);
+    audioElement.addEventListener('ended', handleStopped);
+    audioElement.addEventListener('error', handleStopped);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      audioElement.removeEventListener('playing', handlePlaying);
+      audioElement.removeEventListener('pause', handleStopped);
+      audioElement.removeEventListener('waiting', handleStopped);
+      audioElement.removeEventListener('stalled', handleStopped);
+      audioElement.removeEventListener('ended', handleStopped);
+      audioElement.removeEventListener('error', handleStopped);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      playbackActiveRef.current = false;
+      stopRendering();
+    };
+  }, [audioElement, mode, startRendering, stopRendering]);
 
   const cycleNativeAutomationMode = useCallback(() => {
     setNativeAutomationSettings((current) =>
@@ -977,7 +1024,13 @@ const Visualizer = ({
       try {
         setError(null);
         setFallbackMode(false);
-        const graph = await resumeAudioGraph(audioElement);
+        let graph;
+        if (audioElement.paused) {
+          graph = getOrCreateAudioGraph(audioElement);
+          await suspendAudioGraph(audioElement);
+        } else {
+          graph = await resumeAudioGraph(audioElement);
+        }
         if (!graph) {
           setError('Web Audio is not available in this browser.');
           setFallbackMode(true);
@@ -1037,7 +1090,7 @@ const Visualizer = ({
           resizeObserver.observe(containerRef.current);
         }
 
-        if (!document.hidden) rafRef.current = window.requestAnimationFrame(renderLoop);
+        startRendering();
       } catch (importError) {
         if (createdEngine) {
           try {
@@ -1059,7 +1112,7 @@ const Visualizer = ({
 
     return () => {
       cancelled = true;
-      if (rafRef.current) {
+      if (rafRef.current !== null) {
         window.cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
@@ -1077,7 +1130,7 @@ const Visualizer = ({
       engineAudioNodeRef.current = null;
       setEngineName('');
     };
-  }, [mode, audioElement, activeEngineType, refreshNativeFragmentSummary, renderLoop, sizeCanvas]);
+  }, [mode, audioElement, activeEngineType, refreshNativeFragmentSummary, renderLoop, sizeCanvas, startRendering]);
 
   useEffect(() => {
     if (engineOverride) return;

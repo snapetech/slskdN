@@ -1,4 +1,4 @@
-import { resumeAudioGraph } from './audioGraph';
+import { getOrCreateAudioGraph, resumeAudioGraph, suspendAudioGraph } from './audioGraph';
 import React, { useCallback, useEffect, useRef } from 'react';
 
 const minScopeGainPeak = 0.02;
@@ -131,6 +131,7 @@ const drawScopeLine = (ctx, points, width, height, options = {}) => {
 const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
+  const playbackActiveRef = useRef(false);
   const sampleRef = useRef(null);
   const lastDrawRef = useRef(0);
   const scopeLastReadRef = useRef(0);
@@ -139,7 +140,7 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
   const draw = useCallback(
     (analyser, timestamp = 0) => {
       rafRef.current = null;
-      if (document.hidden) return;
+      if (document.hidden || !playbackActiveRef.current) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
       if (timestamp && timestamp - lastDrawRef.current < drawIntervalMs) {
@@ -189,34 +190,78 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
       rafRef.current = window.requestAnimationFrame((nextTimestamp) =>
         draw(analyser, nextTimestamp));
     },
-    [mode],
+    [audioElement, mode],
   );
 
   useEffect(() => {
     if (!audioElement || mode === 'off') return undefined;
     let cancelled = false;
     let analyser = null;
+    let graphInitialization = null;
+    playbackActiveRef.current = !audioElement.paused && !audioElement.ended &&
+      audioElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
 
-    const resumeVisibleRendering = () => {
-      if (!document.hidden && analyser && !rafRef.current) {
-        rafRef.current = window.requestAnimationFrame((timestamp) => draw(analyser, timestamp));
-      }
+    const stopRendering = () => {
+      if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     };
-    document.addEventListener('visibilitychange', resumeVisibleRendering);
 
-    resumeAudioGraph(audioElement).then((graph) => {
-      if (cancelled || !graph) return;
-      analyser = graph.analyser;
-      if (!document.hidden) draw(analyser);
-    });
+    const startRendering = () => {
+      if (
+        cancelled || document.hidden || !playbackActiveRef.current || !analyser || rafRef.current !== null
+      ) return;
+      rafRef.current = window.requestAnimationFrame((timestamp) => draw(analyser, timestamp));
+    };
+
+    const initializeGraph = () => {
+      if (cancelled || graphInitialization) return;
+      graphInitialization = Promise.resolve().then(async () => {
+        if (!audioElement.paused) return resumeAudioGraph(audioElement);
+        const graph = getOrCreateAudioGraph(audioElement);
+        await suspendAudioGraph(audioElement);
+        return graph;
+      });
+      graphInitialization.then((graph) => {
+        if (cancelled || !graph) return;
+        analyser = graph.analyser;
+        startRendering();
+      });
+    };
+
+    const handlePlaying = () => {
+      playbackActiveRef.current = true;
+      if (analyser) startRendering();
+      else initializeGraph();
+    };
+    const handleStopped = () => {
+      playbackActiveRef.current = false;
+      stopRendering();
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) stopRendering();
+      else startRendering();
+    };
+
+    audioElement.addEventListener('playing', handlePlaying);
+    audioElement.addEventListener('pause', handleStopped);
+    audioElement.addEventListener('waiting', handleStopped);
+    audioElement.addEventListener('stalled', handleStopped);
+    audioElement.addEventListener('ended', handleStopped);
+    audioElement.addEventListener('error', handleStopped);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    initializeGraph();
 
     return () => {
       cancelled = true;
-      document.removeEventListener('visibilitychange', resumeVisibleRendering);
-      if (rafRef.current) {
-        window.cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
+      audioElement.removeEventListener('playing', handlePlaying);
+      audioElement.removeEventListener('pause', handleStopped);
+      audioElement.removeEventListener('waiting', handleStopped);
+      audioElement.removeEventListener('stalled', handleStopped);
+      audioElement.removeEventListener('ended', handleStopped);
+      audioElement.removeEventListener('error', handleStopped);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      playbackActiveRef.current = false;
+      stopRendering();
       scopeLastReadRef.current = 0;
       scopePointsRef.current = null;
       lastDrawRef.current = 0;

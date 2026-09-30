@@ -108,7 +108,12 @@
     remain open. Per-format retry passes in Chromium; cross-engine retries and
     server-generated decoder failures remain open. The separate
     keyboard Tab-order task now verifies expanded, tools-open and compact modes
-    in all three browser engines.
+    in all three browser engines. The analyzer and MilkDrop loops have now been
+    gated on active playback and document visibility, paused mounts leave the
+    graph suspended, and FPS/debug tuning no longer participates in renderer
+    setup dependencies. These latest source changes still need focused runtime
+    regression validation. A three-hour resource attempt stopped at 132/180
+    windows; it is incomplete diagnostic data, not evidence of a plateau.
 
 - [x] Normalize saved equalizer gains and guard lyrics lookups against stale results.
   - Status: implemented (2026-09-27).

@@ -16,6 +16,9 @@ export type NodeConfig = {
     listenAlongMembers?: boolean;
     listenAlongPeers?: string[];
     ffmpegPath?: string;
+    jwtTtlMilliseconds?: number;
+    soulseekEndpointOverrides?: Record<string, number>;
+    soulseekListenPort?: number;
   };
   nodeName: string;
   shareDir: string | string[]; // Single dir or array for multiple shares
@@ -380,7 +383,7 @@ export class SlskdnNode {
     }
 
     // Allocate a unique Soulseek listen port per node (multi-instance needs this)
-    this.soulseekListenPort = await findFreePort();
+    this.soulseekListenPort = this.config.flags?.soulseekListenPort ?? await findFreePort();
     // Token signing key for share-grants / streams (base64, 32 bytes decoded)
     this.shareTokenKey = crypto.randomBytes(32).toString('base64');
 
@@ -461,6 +464,9 @@ ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
     const ffmpegYaml = this.config.flags?.ffmpegPath === undefined
       ? ''
       : `integration:\n  chromaprint:\n    ffmpegPath: ${JSON.stringify(this.config.flags.ffmpegPath)}\n`;
+    const jwtYaml = this.config.flags?.jwtTtlMilliseconds === undefined
+      ? ''
+      : `    jwt:\n      ttl: ${this.config.flags.jwtTtlMilliseconds}\n`;
     const configYaml = `web:
   port: ${this.apiPort}
   host: 127.0.0.1
@@ -470,7 +476,7 @@ ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
   authentication:
     username: ${nodeCreds.username}
     password: ${nodeCreds.password}
-${listenAlongApiKeysYaml}  rateLimiting:
+${jwtYaml}${listenAlongApiKeysYaml}  rateLimiting:
     enabled: false
   cors:
     enabled: true
@@ -577,6 +583,9 @@ flags:
     const stderrPath = path.join(artifactsDir, 'stderr.log');
     const startupAbort = new AbortController();
     this.outputError = null;
+    const soulseekEndpointOverrides = Object.entries(this.config.flags?.soulseekEndpointOverrides ?? {})
+      .map(([username, port]) => `${username}=127.0.0.1:${port}`)
+      .join(';');
 
     // Force binding to harness port via ASPNETCORE_URLS (bypasses config binding issues)
     this.process = spawn('dotnet', args, {
@@ -589,6 +598,7 @@ flags:
         SLSKDN_E2E_SERVER_PROBE: '1',
         SLSKDN_E2E_SHARE_ANNOUNCE: '1',
         SLSKDN_E2E_SKIP_BRIDGE_PROXY: '1',
+        ...(soulseekEndpointOverrides ? { SLSKDN_TEST_USER_ENDPOINT_OVERRIDES: soulseekEndpointOverrides } : {}),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

@@ -12,6 +12,19 @@ export type BrowserProcessSnapshot = {
   enumerationReadsUnavailable: number;
   processes: (ProcessStat & { pssMiB: number | null })[];
 };
+export type ProcessPssSample = { type: string; pssMiB: number | null };
+
+export function summarizePssByType(processes: ProcessPssSample[]) {
+  const pssByType = new Map<string, { processCount: number; pssMiB: number }>();
+  for (const process of processes) {
+    if (process.pssMiB === null) continue;
+    const aggregate = pssByType.get(process.type) || { processCount: 0, pssMiB: 0 };
+    aggregate.processCount += 1;
+    aggregate.pssMiB += process.pssMiB;
+    pssByType.set(process.type, aggregate);
+  }
+  return Object.fromEntries(pssByType);
+}
 
 // /proc stat names can contain spaces and closing parentheses. Numeric fields
 // follow the final closing parenthesis; start time distinguishes reused PIDs.

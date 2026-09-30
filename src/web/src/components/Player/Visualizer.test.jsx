@@ -78,11 +78,13 @@ const nativeEngine = {
 };
 
 vi.mock('./audioGraph', () => ({
+  getOrCreateAudioGraph: vi.fn(() => ({ ctx: { state: 'suspended' }, visualizerInput: {} })),
   resumeAudioGraph: vi.fn(() =>
     Promise.resolve({
       ctx: {},
       visualizerInput: {},
     })),
+  suspendAudioGraph: vi.fn(() => Promise.resolve({ ctx: { state: 'suspended' }, visualizerInput: {} })),
 }));
 
 vi.mock('./visualizers/butterchurnEngine', () => ({
@@ -97,6 +99,16 @@ const createFileList = (fileOrFiles) => {
   const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
   files.item = (index) => files[index];
   return files;
+};
+
+const createAudioElement = (paused = false) => {
+  const audioElement = document.createElement('audio');
+  Object.defineProperty(audioElement, 'paused', { configurable: true, value: paused });
+  Object.defineProperty(audioElement, 'readyState', {
+    configurable: true,
+    value: paused ? HTMLMediaElement.HAVE_NOTHING : HTMLMediaElement.HAVE_ENOUGH_DATA,
+  });
+  return audioElement;
 };
 
 describe('Visualizer', () => {
@@ -129,10 +141,47 @@ describe('Visualizer', () => {
     nativeEngine.updatePresetBaseValue.mockClear();
   });
 
+  it('keeps the renderer stopped while paused, buffering, or hidden', async () => {
+    const audioElement = createAudioElement(true);
+    render(<Visualizer audioElement={audioElement} mode="inline" onModeChange={vi.fn()} />);
+
+    await waitFor(() => expect(createButterchurnEngine).toHaveBeenCalled());
+    expect(window.requestAnimationFrame).not.toHaveBeenCalled();
+
+    Object.defineProperty(audioElement, 'paused', { configurable: true, value: false });
+    Object.defineProperty(audioElement, 'readyState', {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA,
+    });
+    fireEvent(audioElement, new Event('playing'));
+    expect(window.requestAnimationFrame).toHaveBeenCalledTimes(1);
+    const playingFrame = window.requestAnimationFrame.mock.results[0].value;
+
+    Object.defineProperty(audioElement, 'paused', { configurable: true, value: true });
+    fireEvent(audioElement, new Event('pause'));
+    expect(window.cancelAnimationFrame).toHaveBeenCalledWith(playingFrame);
+    expect(window.requestAnimationFrame).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    fireEvent(document, new Event('visibilitychange'));
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    fireEvent(document, new Event('visibilitychange'));
+    expect(window.requestAnimationFrame).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(audioElement, 'paused', { configurable: true, value: false });
+    fireEvent(audioElement, new Event('playing'));
+    expect(window.requestAnimationFrame).toHaveBeenCalledTimes(2);
+    const resumedFrame = window.requestAnimationFrame.mock.results[1].value;
+
+    fireEvent(audioElement, new Event('waiting'));
+    expect(window.cancelAnimationFrame).toHaveBeenCalledWith(resumedFrame);
+    expect(window.requestAnimationFrame).toHaveBeenCalledTimes(2);
+  });
+
   it('switches to the native engine and imports a local preset', async () => {
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -198,7 +247,7 @@ describe('Visualizer', () => {
   it('cycles visualizer engines through Butterchurn, MilkDrop3 WebGL2, and MilkDrop3 WebGPU', async () => {
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="fullwindow"
         onModeChange={vi.fn()}
       />,
@@ -242,7 +291,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -301,7 +350,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -368,7 +417,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -405,7 +454,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -452,7 +501,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -497,7 +546,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -539,7 +588,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -577,7 +626,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -622,7 +671,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -700,7 +749,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="fullwindow"
         onModeChange={vi.fn()}
       />,
@@ -720,7 +769,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -780,7 +829,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -860,7 +909,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -924,7 +973,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -990,7 +1039,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -1054,7 +1103,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -1138,7 +1187,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -1218,7 +1267,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,
@@ -1304,7 +1353,7 @@ describe('Visualizer', () => {
 
     render(
       <Visualizer
-        audioElement={{}}
+        audioElement={createAudioElement()}
         mode="inline"
         onModeChange={vi.fn()}
       />,

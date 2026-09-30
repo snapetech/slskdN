@@ -22,6 +22,9 @@ export class MultiPeerHarness {
       listenAlongMembers?: boolean;
       listenAlongPeers?: string[];
       ffmpegPath?: string;
+      jwtTtlMilliseconds?: number;
+      soulseekEndpointOverrides?: Record<string, number>;
+      soulseekListenPort?: number;
     },
   ): Promise<SlskdnNode> {
     if (this.nodes.has(name)) {

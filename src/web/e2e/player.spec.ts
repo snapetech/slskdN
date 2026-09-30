@@ -9,7 +9,7 @@ import * as path from 'node:path';
 import { MultiPeerHarness } from './harness/MultiPeerHarness';
 import { makeTone } from './fixtures/player-tone';
 import { getAuthToken, login } from './helpers';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 // Generated PCM exercises the browser decoder without downloaded media,
 // personal files, or remote peer requests.
@@ -700,6 +700,10 @@ test.describe('player browser playback', () => {
     await expect.poll(pipExists).toBe(true);
     await expect.poll(() => page.evaluate(() => {
       const pip = (window as Window & { documentPictureInPicture?: { window: Window | null } }).documentPictureInPicture?.window;
+      return pip ? { width: pip.innerWidth, height: pip.innerHeight, focused: pip.document.hasFocus() } : null;
+    })).toEqual({ width: 360, height: 220, focused: true });
+    await expect.poll(() => page.evaluate(() => {
+      const pip = (window as Window & { documentPictureInPicture?: { window: Window | null } }).documentPictureInPicture?.window;
       const canvas = pip?.document.querySelector('canvas');
       if (!canvas) return false;
       const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -801,7 +805,7 @@ test.describe('player browser playback', () => {
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).filter((element) => !element.paused).length)).toBe(1);
   });
 
-  test('controls playback and seeking with the keyboard in expanded and compact modes', async ({ page }) => {
+  test('controls playback and seeking with the keyboard in expanded and compact modes @player-screen-reader', async ({ page }) => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     const audioState = () => page.evaluate(() => {
       const element = document.querySelector<HTMLAudioElement>('audio');
@@ -1221,6 +1225,69 @@ test.describe('player browser playback', () => {
       await expect(page.getByTestId('player-toggle-playback')).toBeInViewport();
       await page.mouse.move(0, 0);
       await page.screenshot({ path: testInfo.outputPath('touchscreen-tablet.png') });
+    });
+
+    test('plays, seeks and changes volume through touch pointer input on a phone viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+      await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+      const audio = page.locator('audio').first();
+      const readAudioState = () => audio.evaluate((element) => {
+        if (!(element instanceof HTMLAudioElement)) throw new Error('The player did not render an audio element.');
+        return { paused: element.paused, currentTime: element.currentTime, volume: element.volume };
+      });
+      await expect.poll(async () => {
+        const state = await readAudioState();
+        return !state.paused && state.currentTime > 0.2;
+      }).toBe(true);
+
+      await page.evaluate(() => {
+        const windowState = window as Window & { __playerTouchPointerDowns?: string[] };
+        windowState.__playerTouchPointerDowns = [];
+        document.addEventListener('pointerdown', (event) => {
+          if (event.pointerType !== 'touch' || !(event.target instanceof Element)) return;
+          const target = event.target.closest<HTMLElement>('[data-testid], [aria-label]');
+          if (target) windowState.__playerTouchPointerDowns!.push(target.dataset.testid || target.getAttribute('aria-label') || '');
+        }, true);
+      });
+      const tap = async (control: Locator, horizontalPosition = 0.5) => {
+        const bounds = await control.boundingBox();
+        expect(bounds).not.toBeNull();
+        await page.touchscreen.tap(bounds!.x + bounds!.width * horizontalPosition, bounds!.y + bounds!.height / 2);
+      };
+
+      const playbackToggle = page.getByTestId('player-toggle-playback');
+      await expect(playbackToggle).toBeVisible();
+      await tap(playbackToggle);
+      await expect.poll(async () => (await readAudioState()).paused).toBe(true);
+      await tap(playbackToggle);
+      await expect.poll(async () => !(await readAudioState()).paused).toBe(true);
+      await tap(playbackToggle);
+      await expect.poll(async () => (await readAudioState()).paused).toBe(true);
+
+      const seek = page.getByLabel('Seek playback', { exact: true });
+      await expect(seek).toBeVisible();
+      await tap(seek, 0.7);
+      await expect.poll(async () => (await readAudioState()).currentTime).toBeGreaterThan(20);
+
+      const volume = page.getByLabel('Playback volume', { exact: true });
+      await expect(volume).toBeVisible();
+      await volume.scrollIntoViewIfNeeded();
+      const volumeBounds = await volume.boundingBox();
+      const playerBounds = await page.locator('.player-bar').boundingBox();
+      expect(volumeBounds).not.toBeNull();
+      expect(playerBounds).not.toBeNull();
+      expect(volumeBounds!.y).toBeGreaterThanOrEqual(playerBounds!.y);
+      expect(volumeBounds!.y + volumeBounds!.height).toBeLessThanOrEqual(playerBounds!.y + playerBounds!.height);
+      await tap(volume, 0.3);
+      await expect.poll(async () => Number(await volume.inputValue())).toBeLessThan(0.6);
+      await expect.poll(async () => (await readAudioState()).volume).toBeLessThan(0.6);
+
+      const touchPointerDowns = await page.evaluate(() =>
+        (window as Window & { __playerTouchPointerDowns?: string[] }).__playerTouchPointerDowns || []);
+      expect(touchPointerDowns).toContain('player-toggle-playback');
+      expect(touchPointerDowns).toContain('Seek playback');
+      expect(touchPointerDowns).toContain('Playback volume');
     });
   });
 

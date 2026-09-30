@@ -57,6 +57,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ### Player visualizer resources
 
 - Release Butterchurn's WebGL context and audio connection when the visualizer closes, including when initial preset setup fails.
+- Stop analyzer and MilkDrop redraws while playback is paused or buffering, and keep the current renderer when FPS or debug settings change.
 
 ### Player dialog resources
 
