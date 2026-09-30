@@ -7,7 +7,8 @@ import DownloadDestinationSelector, {
   DOWNLOAD_DESTINATION_STORAGE_KEY,
   chooseDownloadDestination,
 } from './DownloadDestinationSelector';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Portal } from 'semantic-ui-react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -65,5 +66,32 @@ describe('DownloadDestinationSelector', () => {
   it('falls back predictably when destination data is malformed', () => {
     expect(chooseDownloadDestination(undefined, '/missing')).toBeUndefined();
     expect(chooseDownloadDestination(configured, '/missing')).toBe('/music');
+  });
+
+  it('cancels a delayed portal open when unmounted', () => {
+    const onOpen = vi.fn();
+    vi.useFakeTimers();
+
+    try {
+      const { unmount } = render(
+        <Portal
+          trigger={<button type="button">Open portal</button>}
+          openOnTriggerMouseEnter
+          mouseEnterDelay={100}
+          onOpen={onOpen}
+        >
+          Portal content
+        </Portal>,
+      );
+
+      fireEvent.mouseEnter(screen.getByRole('button', { name: 'Open portal' }));
+      unmount();
+
+      act(() => vi.advanceTimersByTime(100));
+
+      expect(onOpen).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

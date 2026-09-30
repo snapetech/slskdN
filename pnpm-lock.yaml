@@ -173,7 +173,7 @@ overrides:
 
 patchedDependencies:
   '@semantic-ui-react/event-stack@3.1.3': 1710e21bb8caa7c39a530b0c473e13cb61ccd3a9d563ce664d58723add9a291c
-  react-fomantic-ui@3.0.0-beta.5: 010e391c106d5755fb4ec3d7a6aade42c41d08182507eff3749d5e84cafe1686
+  react-fomantic-ui@3.0.0-beta.5: a4625e96596f5b3b4f04392cfbcc77e29074a41072fe9b6ea9fd0c9f0fb680e5
 
 importers:
 
@@ -231,7 +231,7 @@ importers:
         version: 2.5.0
       semantic-ui-react:
         specifier: npm:react-fomantic-ui@3.0.0-beta.5
-        version: react-fomantic-ui@3.0.0-beta.5(patch_hash=010e391c106d5755fb4ec3d7a6aade42c41d08182507eff3749d5e84cafe1686)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: react-fomantic-ui@3.0.0-beta.5(patch_hash=a4625e96596f5b3b4f04392cfbcc77e29074a41072fe9b6ea9fd0c9f0fb680e5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       uuid:
         specifier: ^14.0.2
         version: 14.0.2
@@ -5231,7 +5231,7 @@ snapshots:
 
   react-fast-compare@3.2.2: {}
 
-  react-fomantic-ui@3.0.0-beta.5(patch_hash=010e391c106d5755fb4ec3d7a6aade42c41d08182507eff3749d5e84cafe1686)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  react-fomantic-ui@3.0.0-beta.5(patch_hash=a4625e96596f5b3b4f04392cfbcc77e29074a41072fe9b6ea9fd0c9f0fb680e5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       '@popperjs/core': 2.11.8
       '@semantic-ui-react/event-stack': 3.1.3(patch_hash=1710e21bb8caa7c39a530b0c473e13cb61ccd3a9d563ce664d58723add9a291c)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

@@ -15648,3 +15648,19 @@ No tag, release or deployment was created.
   the guarded stable tag flow are published and verified.
 - Next: run the guarded `.333` release helper on the synced `main` branch, then
   monitor and verify the resulting release artifacts.
+
+## Update 2026-09-30 21:46 UTC
+
+- The first guarded `.333` release gate stopped before tag creation: all 1,114
+  Web assertions passed, then Vitest reported an uncaught React 19 `window is
+  not defined` error from a delayed Fomantic Portal hover callback after jsdom
+  teardown.
+- The Portal effect cleared its mouse timers during setup and returned no
+  unmount cleanup. Gotcha 0z1308 was added to ADR-0001 and committed
+  immediately as `0c52a9cdd`. The local package patch now returns cleanup for
+  both timers, and a fake-timer regression test covers unmount during a pending
+  Portal open. The full Web suite passes 1,115 tests and Web lint passes.
+- The `.333` release notes now also include Portal timer cleanup. The patch,
+  test, ADR-0026, release note and memory updates need a commit/push before
+  rerunning the guarded release gate. No `.333` tag was created by the failed
+  gate.

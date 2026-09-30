@@ -22,11 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Web React compatibility
+
+- Upgrade the Web UI to React 19 while preserving input and history behavior across Browse, Users, Search, Chat, and Rooms.
+- Cancel delayed portal hover callbacks when UI controls unmount, preventing late React state updates.
+
 ## [2026093021-slskdn.333] — 2026-09-30
 
 ### Web React compatibility
 
 - Upgrade the Web UI to React 19 while preserving input and history behavior across Browse, Users, Search, Chat, and Rooms.
+- Cancel delayed portal hover callbacks when UI controls unmount, preventing late React state updates.
 
 ## [2026093019-slskdn.332] — 2026-09-30
 

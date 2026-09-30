@@ -401,8 +401,10 @@
 - [ ] Push the React 19 compatibility migration and publish stable `.333`.
   - Status: migration pushed to `main` at `c5809fcfa` on 2026-09-30;
     dependency PRs #343 and #344 are merged. `.332` is published and its
-    release assets are verified; the `.333` notes are ready for the guarded
-    tag helper.
+    release assets are verified. The first guarded `.333` gate stopped on a
+    delayed Portal timer cleanup error; the fix and regression are implemented
+    locally and all 1,115 Web tests pass. Push that update, then rerun the
+    guarded tag helper.
   - Priority: P1
   - Notes: The exact release fragment and changelog bullet are ready. The
     release range preview from `build-main-2026093019-slskdn.332` passes.
@@ -6007,12 +6009,12 @@ resource completion.
 - [x] Merge compatible dependency and workflow PRs #341, #342, #345, #346,
   and #347.
 - [x] Regenerate the pnpm lockfile and validate the combined Web dependency
-  tree: 1,114 tests, lint, and production build pass.
+  tree: 1,115 tests, lint, and production build pass.
 - [x] Run the release gate, publish the `.332` release notes and lockfile, and
   create the authorized stable tag.
   - Status: tag `build-main-2026093019-slskdn.332` exists; its tag parser and
-    core build passed, but all six platform publisher jobs remained queued at
-    2026-09-30 21:02 UTC and no GitHub Release was visible yet.
+    core build and all six platform publishers passed; release
+    `2026093019-slskdn.332` was published at 2026-09-30 21:35 UTC.
 - [x] Verify `.332` platform publication and release assets before starting
   another stable tag.
   - Status: completed (2026-09-30)

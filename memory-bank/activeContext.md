@@ -1,10 +1,14 @@
-## Current state — React 19 web compatibility and `.333` release — 2026-09-30 21:36 UTC
+## Current state — React 19 web compatibility and `.333` release — 2026-09-30 21:46 UTC
 
 React 19.3.0 is validated with the Fomantic UI React 3 beta.5 package patched
 from upstream PR #49. Repo PRs #343 and #344 are both present in the candidate
-history. Full Web tests (1,114), .NET tests (5,704), Web lint/build and
-`./bin/lint` pass. The React ref migration and async test updates are recorded
-in ADR-0026, the known-gotchas ADR, and the React 19 release fragment.
+history. The first guarded `.333` release gate exposed an uncaught delayed
+Fomantic Portal hover timer after all 1,114 Web assertions passed. The Portal
+effect cleared timers during setup instead of returning unmount cleanup. The
+patch now returns cleanup; a fake-timer regression test was added, and all
+1,115 Web tests plus Web lint pass. Gotcha 0z1308 is committed locally as
+`0c52a9cdd` and must be pushed with the fix. The React refs, Portal cleanup,
+and test timing are documented in ADR-0026, ADR-0001, and release fragments.
 
 The migration is pushed to `main` at `c5809fcfa`; GitHub confirms PRs #343 and
 #344 merged at 21:02 UTC. `.332` published at 21:35 UTC. All six platform ZIPs
@@ -12,11 +16,11 @@ and supporting release assets passed `scripts/verify-release-artifacts.sh`;
 the Linux binary reports the expected version and includes the VPN helper and
 Web session-total marker. Its secondary distribution-channel jobs remain
 queued in run `36768526931`. The `.333` changelog section is prepared as
-`2026093021-slskdn.333`; release notes now compare against `.332`, and the
-exact release-range preview shows only the React 19 change. Next: run the
-guarded release gate/tag helper, then verify `.333` artifacts and update the
-publication status. Do not report `.333` complete until its release assets
-pass verification.
+`2026093021-slskdn.333`, with release-note fragments for React 19 and Portal
+cleanup; the exact range preview includes both changes. The guarded gate
+stopped before creating a tag, so `.333` does not exist yet. Next: commit and
+push the Portal fix, test and release docs; rerun the guarded gate/tag helper;
+then verify `.333` artifacts before marking publication complete.
 
 ## Current state — Player reduced-motion and Orca speech validation — 2026-09-30 05:14 UTC
 

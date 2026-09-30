@@ -1,5 +1,18 @@
+diff --git a/dist/commonjs/addons/Portal/Portal.js b/dist/commonjs/addons/Portal/Portal.js
+index e3157c609f83c6f7afb0c396c65ef0af6cff7b3d..d411b8b379370416d8f0fd393f11a1cc81a4c852 100644
+--- a/dist/commonjs/addons/Portal/Portal.js
++++ b/dist/commonjs/addons/Portal/Portal.js
+@@ -105,7 +105,7 @@ function Portal(props) {
+     const eventClone = __spreadValues({}, e);
+     return setTimeout(() => closePortal(eventClone), delay || 0);
+   };
+-  React__namespace.useEffect(() => {
++  React__namespace.useEffect(() => () => {
+     clearTimeout(mouseEnterTimer.current);
+     clearTimeout(mouseLeaveTimer.current);
+   }, []);
 diff --git a/dist/commonjs/addons/Portal/usePortalElement.js b/dist/commonjs/addons/Portal/usePortalElement.js
-index 0a22b86..aacbdab 100644
+index 0a22b86e9892f3da77b140b4c8cf456c28b620c7..aacbdabba386df7cbc01b6dd5089a08e36a66030 100644
 --- a/dist/commonjs/addons/Portal/usePortalElement.js
 +++ b/dist/commonjs/addons/Portal/usePortalElement.js
 @@ -7,6 +7,7 @@ var React = require('react');
@@ -27,7 +40,7 @@ index 0a22b86..aacbdab 100644
      }
      if (typeof node.type === "string") {
 diff --git a/dist/commonjs/addons/Portal/utils/useTrigger.js b/dist/commonjs/addons/Portal/utils/useTrigger.js
-index 05840c8..8aa83ff 100644
+index 05840c8cc461c3ba4847a27da769a13155588d13..8aa83ff12de657421f3a32d762024e7ed36c941a 100644
 --- a/dist/commonjs/addons/Portal/utils/useTrigger.js
 +++ b/dist/commonjs/addons/Portal/utils/useTrigger.js
 @@ -7,6 +7,7 @@ var React = require('react');
@@ -48,7 +61,7 @@ index 05840c8..8aa83ff 100644
      if (process.env.NODE_ENV !== "production") {
        validateTrigger.default(trigger);
 diff --git a/dist/commonjs/addons/Portal/utils/validateTrigger.js b/dist/commonjs/addons/Portal/utils/validateTrigger.js
-index 0e54969..f31e317 100644
+index 0e54969755e60af4c7ab47023f91385440db00e4..f31e3177f983e6ae5284ee1b2def34248971aa48 100644
 --- a/dist/commonjs/addons/Portal/utils/validateTrigger.js
 +++ b/dist/commonjs/addons/Portal/utils/validateTrigger.js
 @@ -3,7 +3,6 @@
@@ -73,7 +86,7 @@ index 0e54969..f31e317 100644
    }
  }
 diff --git a/dist/commonjs/elements/Image/Image.js b/dist/commonjs/elements/Image/Image.js
-index 3e83ddd..9ef0392 100644
+index 3e83ddda540b628ce075339ddf1485e316460103..9ef0392e0e19206e4f70a69cc84c1860f6f322ff 100644
 --- a/dist/commonjs/elements/Image/Image.js
 +++ b/dist/commonjs/elements/Image/Image.js
 @@ -106,7 +106,7 @@ const Image = React__namespace.forwardRef(function(props, ref) {
@@ -86,7 +99,7 @@ index 3e83ddd..9ef0392 100644
        }
      }
 diff --git a/dist/commonjs/elements/Input/Input.js b/dist/commonjs/elements/Input/Input.js
-index 3e22599..acce476 100644
+index 3e2259911d506edce8b4d8ae1c587804d10524c5..acce476dad6a8be6c3a00435baeabe6da4e072e2 100644
 --- a/dist/commonjs/elements/Input/Input.js
 +++ b/dist/commonjs/elements/Input/Input.js
 @@ -20,6 +20,7 @@ var classNameBuilders = require('../../lib/classNameBuilders.js');
@@ -107,7 +120,7 @@ index 3e22599..acce476 100644
            }
          }));
 diff --git a/dist/commonjs/generic.d.ts b/dist/commonjs/generic.d.ts
-index 10a972e..65037dc 100644
+index 10a972e2fb06cf32e7636f7247d0a1e11329893f..65037dc56833fe8430daefe1532f9dcc7e29e944 100644
 --- a/dist/commonjs/generic.d.ts
 +++ b/dist/commonjs/generic.d.ts
 @@ -68,7 +68,7 @@ export interface StrictHtmlSpanProps {
@@ -121,7 +134,7 @@ index 10a972e..65037dc 100644
  export type ShorthandRenderFunction<C extends React.ElementType, P> = (
 diff --git a/dist/commonjs/lib/getElementRef.js b/dist/commonjs/lib/getElementRef.js
 new file mode 100644
-index 0000000..1d00f43
+index 0000000000000000000000000000000000000000..1d00f43d7ef4e571a6af6578ab017a1e4c14c341
 --- /dev/null
 +++ b/dist/commonjs/lib/getElementRef.js
 @@ -0,0 +1,10 @@
@@ -137,7 +150,7 @@ index 0000000..1d00f43
 +exports.default = getElementRef;
 diff --git a/dist/commonjs/lib/hooks/useEventListener.js b/dist/commonjs/lib/hooks/useEventListener.js
 new file mode 100644
-index 0000000..c80d6ef
+index 0000000000000000000000000000000000000000..c80d6ef97cf1393b4c4efe4742d71d1b9c62a316
 --- /dev/null
 +++ b/dist/commonjs/lib/hooks/useEventListener.js
 @@ -0,0 +1,82 @@
@@ -224,7 +237,7 @@ index 0000000..c80d6ef
 +exports.default = useEventListener;
 +exports.documentRef = documentRef;
 diff --git a/dist/commonjs/lib/index.js b/dist/commonjs/lib/index.js
-index 06e4251..457b2b1 100644
+index 06e425127e1ee7c40b4372ce8989759ee54b67db..457b2b1cd73018a3835be9547791309f2fc31dab 100644
 --- a/dist/commonjs/lib/index.js
 +++ b/dist/commonjs/lib/index.js
 @@ -18,9 +18,11 @@ var numberToWord = require('./numberToWord.js');
@@ -253,7 +266,7 @@ index 06e4251..457b2b1 100644
  exports.useIsomorphicLayoutEffect = useIsomorphicLayoutEffect.default;
  exports.setRef = useMergedRefs.setRef;
 diff --git a/dist/commonjs/modules/Dropdown/Dropdown.js b/dist/commonjs/modules/Dropdown/Dropdown.js
-index d8b82a3..19a5ea3 100644
+index d8b82a3dde491a5b2237ecd18b5beddafbdea2c3..19a5ea39ceb492e8ff0223c5367a66c9f4c8e67a 100644
 --- a/dist/commonjs/modules/Dropdown/Dropdown.js
 +++ b/dist/commonjs/modules/Dropdown/Dropdown.js
 @@ -652,11 +652,7 @@ class DropdownInner extends ModernAutoControlledComponent.default {
@@ -270,7 +283,7 @@ index d8b82a3..19a5ea3 100644
        let selectedItem;
        if (text) {
 diff --git a/dist/commonjs/modules/Dropdown/DropdownText.js b/dist/commonjs/modules/Dropdown/DropdownText.js
-index 52c0a10..9b96166 100644
+index 52c0a10aa7f44978c6f4b003f2f8bbfe847bb5ef..9b96166d1077bfa5ddffac609e0a418685638d10 100644
 --- a/dist/commonjs/modules/Dropdown/DropdownText.js
 +++ b/dist/commonjs/modules/Dropdown/DropdownText.js
 @@ -52,7 +52,7 @@ var __spreadValues = (a, b) => {
@@ -283,7 +296,7 @@ index 52c0a10..9b96166 100644
    const ElementType = getComponentType.default(props);
    return /* @__PURE__ */ React__namespace.createElement(
 diff --git a/dist/commonjs/modules/Embed/Embed.js b/dist/commonjs/modules/Embed/Embed.js
-index 499a8e5..af0d671 100644
+index 499a8e5243ce600e9e5fb85e68e746ff0e0855d2..af0d671dfe14954e5e082e108166e93137b0250c 100644
 --- a/dist/commonjs/modules/Embed/Embed.js
 +++ b/dist/commonjs/modules/Embed/Embed.js
 @@ -84,23 +84,23 @@ const Embed = React__namespace.forwardRef(function(props, ref) {
@@ -322,7 +335,7 @@ index 499a8e5..af0d671 100644
      }
      return url;
 diff --git a/dist/commonjs/modules/Search/Search.js b/dist/commonjs/modules/Search/Search.js
-index 47f2050..1c5fbf5 100644
+index 47f2050d1aa8cdeb85ca3dd46ecba340309b3261..1c5fbf57b9ac12bb42ee5d2e637aeb4008dbcc47 100644
 --- a/dist/commonjs/modules/Search/Search.js
 +++ b/dist/commonjs/modules/Search/Search.js
 @@ -263,9 +263,10 @@ class SearchInner extends ModernAutoControlledComponent.default {
@@ -340,7 +353,7 @@ index 47f2050..1c5fbf5 100644
      // ----------------------------------------
      // Behavior
 diff --git a/dist/commonjs/modules/Sidebar/Sidebar.js b/dist/commonjs/modules/Sidebar/Sidebar.js
-index b9205b9..b2d668b 100644
+index b9205b9f46aa8aa0564720b425a21c10cf7e5f15..b2d668ba7b1260ed800e28ffc6419bf9b7b5b019 100644
 --- a/dist/commonjs/modules/Sidebar/Sidebar.js
 +++ b/dist/commonjs/modules/Sidebar/Sidebar.js
 @@ -3,7 +3,6 @@
@@ -400,7 +413,7 @@ index b9205b9..b2d668b 100644
  Sidebar.displayName = "Sidebar";
  Sidebar.propTypes = process.env.NODE_ENV !== 'production' ? {
 diff --git a/dist/commonjs/modules/Tab/Tab.js b/dist/commonjs/modules/Tab/Tab.js
-index c92b4b2..608db1f 100644
+index c92b4b21b522b1b9b6fd42c45686505a7c1bf30e..608db1f1d6c69ccd552d6bb096bc609349fcbe7d 100644
 --- a/dist/commonjs/modules/Tab/Tab.js
 +++ b/dist/commonjs/modules/Tab/Tab.js
 @@ -100,17 +100,18 @@ const Tab = React__namespace.forwardRef(function(props, ref) {
@@ -432,8 +445,21 @@ index c92b4b2..608db1f 100644
    };
    const renderVertical = (menuElement2) => {
      const _a = grid, { paneWidth, tabWidth } = _a, gridProps = __objRest(_a, ["paneWidth", "tabWidth"]);
+diff --git a/dist/es/addons/Portal/Portal.js b/dist/es/addons/Portal/Portal.js
+index 2981af404604fad465e2ed8fd6a73b638904f401..0db5f658f709a8fe3c10ca14920eaa457a662823 100644
+--- a/dist/es/addons/Portal/Portal.js
++++ b/dist/es/addons/Portal/Portal.js
+@@ -82,7 +82,7 @@ function Portal(props) {
+     const eventClone = __spreadValues({}, e);
+     return setTimeout(() => closePortal(eventClone), delay || 0);
+   };
+-  React.useEffect(() => {
++  React.useEffect(() => () => {
+     clearTimeout(mouseEnterTimer.current);
+     clearTimeout(mouseLeaveTimer.current);
+   }, []);
 diff --git a/dist/es/addons/Portal/usePortalElement.js b/dist/es/addons/Portal/usePortalElement.js
-index 3bfffb6..6a79731 100644
+index 3bfffb612b5c636e796093120abb3f9303ab5c48..6a7973191eb5a6043115a4979b4f02d240607fca 100644
 --- a/dist/es/addons/Portal/usePortalElement.js
 +++ b/dist/es/addons/Portal/usePortalElement.js
 @@ -1,13 +1,15 @@
@@ -456,7 +482,7 @@ index 3bfffb6..6a79731 100644
      }
      if (typeof node.type === "string") {
 diff --git a/dist/es/addons/Portal/utils/useTrigger.js b/dist/es/addons/Portal/utils/useTrigger.js
-index 8149c26..ab172c4 100644
+index 8149c26287981091ef0a99e319dbeb2b3014b48f..ab172c4de2bbb712794e4b9abdd7f880928f5ef0 100644
 --- a/dist/es/addons/Portal/utils/useTrigger.js
 +++ b/dist/es/addons/Portal/utils/useTrigger.js
 @@ -3,9 +3,10 @@ import * as React from 'react';
@@ -472,7 +498,7 @@ index 8149c26..ab172c4 100644
      if (process.env.NODE_ENV !== "production") {
        validateTrigger(trigger);
 diff --git a/dist/es/addons/Portal/utils/validateTrigger.js b/dist/es/addons/Portal/utils/validateTrigger.js
-index 3c21447..a4ebb6e 100644
+index 3c214477d1b8faded38cd48b5f9ecb6dad894f55..a4ebb6e66f29d709224625a113f0a57e7496147d 100644
 --- a/dist/es/addons/Portal/utils/validateTrigger.js
 +++ b/dist/es/addons/Portal/utils/validateTrigger.js
 @@ -1,9 +1,8 @@
@@ -487,7 +513,7 @@ index 3c21447..a4ebb6e 100644
    }
  }
 diff --git a/dist/es/elements/Image/Image.js b/dist/es/elements/Image/Image.js
-index 31a5ead..66674ef 100644
+index 31a5eadc0b2c7489311a41518769c1206d78d3db..66674efcd3721c4d4ce777b88fe74cbbd22a0b1e 100644
 --- a/dist/es/elements/Image/Image.js
 +++ b/dist/es/elements/Image/Image.js
 @@ -83,7 +83,7 @@ const Image = React.forwardRef(function(props, ref) {
@@ -500,7 +526,7 @@ index 31a5ead..66674ef 100644
        }
      }
 diff --git a/dist/es/elements/Input/Input.js b/dist/es/elements/Input/Input.js
-index 1368c9a..ca64844 100644
+index 1368c9a05692f71c77b168d0d313414b5c2439a0..ca64844146522e86df4b4f9502b02577ea9f2045 100644
 --- a/dist/es/elements/Input/Input.js
 +++ b/dist/es/elements/Input/Input.js
 @@ -16,6 +16,7 @@ import { getKeyOnly, getValueAndKey } from '../../lib/classNameBuilders.js';
@@ -521,7 +547,7 @@ index 1368c9a..ca64844 100644
            }
          }));
 diff --git a/dist/es/generic.d.ts b/dist/es/generic.d.ts
-index 10a972e..65037dc 100644
+index 10a972e2fb06cf32e7636f7247d0a1e11329893f..65037dc56833fe8430daefe1532f9dcc7e29e944 100644
 --- a/dist/es/generic.d.ts
 +++ b/dist/es/generic.d.ts
 @@ -68,7 +68,7 @@ export interface StrictHtmlSpanProps {
@@ -535,7 +561,7 @@ index 10a972e..65037dc 100644
  export type ShorthandRenderFunction<C extends React.ElementType, P> = (
 diff --git a/dist/es/lib/getElementRef.js b/dist/es/lib/getElementRef.js
 new file mode 100644
-index 0000000..1ae25d4
+index 0000000000000000000000000000000000000000..1ae25d4e73d725488af3916e37e8a684cb9fcb7d
 --- /dev/null
 +++ b/dist/es/lib/getElementRef.js
 @@ -0,0 +1,6 @@
@@ -547,7 +573,7 @@ index 0000000..1ae25d4
 +export { getElementRef as default };
 diff --git a/dist/es/lib/hooks/useEventListener.js b/dist/es/lib/hooks/useEventListener.js
 new file mode 100644
-index 0000000..b422785
+index 0000000000000000000000000000000000000000..b42278573a2549cdf23b508bc1b04d79410d380a
 --- /dev/null
 +++ b/dist/es/lib/hooks/useEventListener.js
 @@ -0,0 +1,58 @@
@@ -610,7 +636,7 @@ index 0000000..b422785
 +
 +export { useEventListener as default, documentRef };
 diff --git a/dist/es/lib/index.js b/dist/es/lib/index.js
-index 305d3b0..dbb4503 100644
+index 305d3b09271d61c2eb0ff806207e6927987bc466..dbb4503f5b81ec26750bcf0dc76dd72eed2419fa 100644
 --- a/dist/es/lib/index.js
 +++ b/dist/es/lib/index.js
 @@ -19,9 +19,11 @@ export { numberToWord, numberToWordMap } from './numberToWord.js';
@@ -626,7 +652,7 @@ index 305d3b0..dbb4503 100644
  export { default as useIsomorphicLayoutEffect } from './hooks/useIsomorphicLayoutEffect.js';
  export { setRef, default as useMergedRefs } from './hooks/useMergedRefs.js';
 diff --git a/dist/es/modules/Dropdown/Dropdown.js b/dist/es/modules/Dropdown/Dropdown.js
-index d1d8872..015ac45 100644
+index d1d8872bea39084be3904dc74e071ecde6b2eaaf..015ac45d5f103b259800df355351d910baf02c0f 100644
 --- a/dist/es/modules/Dropdown/Dropdown.js
 +++ b/dist/es/modules/Dropdown/Dropdown.js
 @@ -648,11 +648,7 @@ class DropdownInner extends ModernAutoControlledComponent {
@@ -643,7 +669,7 @@ index d1d8872..015ac45 100644
        let selectedItem;
        if (text) {
 diff --git a/dist/es/modules/Dropdown/DropdownText.js b/dist/es/modules/Dropdown/DropdownText.js
-index c7e97ca..41caeaa 100644
+index c7e97caf30d45dae7742cc8803d960cfdf66d496..41caeaa82837524c96f51086a123963bdc3bcf8f 100644
 --- a/dist/es/modules/Dropdown/DropdownText.js
 +++ b/dist/es/modules/Dropdown/DropdownText.js
 @@ -29,7 +29,7 @@ var __spreadValues = (a, b) => {
@@ -656,7 +682,7 @@ index c7e97ca..41caeaa 100644
    const ElementType = getComponentType(props);
    return /* @__PURE__ */ React.createElement(
 diff --git a/dist/es/modules/Embed/Embed.js b/dist/es/modules/Embed/Embed.js
-index 3667cde..21901a7 100644
+index 3667cdefd6d07c6f8be8bafe0a8c2242cbe6e0b4..21901a7766271f7eda69929c4c4238bcfbd9dbd8 100644
 --- a/dist/es/modules/Embed/Embed.js
 +++ b/dist/es/modules/Embed/Embed.js
 @@ -61,23 +61,23 @@ const Embed = React.forwardRef(function(props, ref) {
@@ -695,7 +721,7 @@ index 3667cde..21901a7 100644
      }
      return url;
 diff --git a/dist/es/modules/Search/Search.js b/dist/es/modules/Search/Search.js
-index 31dbd02..d3ee1c9 100644
+index 31dbd02a6d0dd33ff576054dd7ffcfa42bb7c657..d3ee1c94e2557205e286690defb5da826be31583 100644
 --- a/dist/es/modules/Search/Search.js
 +++ b/dist/es/modules/Search/Search.js
 @@ -240,9 +240,10 @@ class SearchInner extends ModernAutoControlledComponent {
@@ -713,7 +739,7 @@ index 31dbd02..d3ee1c9 100644
      // ----------------------------------------
      // Behavior
 diff --git a/dist/es/modules/Sidebar/Sidebar.js b/dist/es/modules/Sidebar/Sidebar.js
-index 8b93b68..a4389cd 100644
+index 8b93b6814c38e3529fa2bc590674ca802c46ce44..a4389cd5d0726704a79ff8a231eec27faf7787de 100644
 --- a/dist/es/modules/Sidebar/Sidebar.js
 +++ b/dist/es/modules/Sidebar/Sidebar.js
 @@ -1,5 +1,4 @@
@@ -762,7 +788,7 @@ index 8b93b68..a4389cd 100644
  Sidebar.displayName = "Sidebar";
  Sidebar.propTypes = process.env.NODE_ENV !== 'production' ? {
 diff --git a/dist/es/modules/Tab/Tab.js b/dist/es/modules/Tab/Tab.js
-index dbe1696..cf378d8 100644
+index dbe1696d00066df1795760501cf137b8e6f335a5..cf378d8519cba00c92f7c1856a021a3729aa0832 100644
 --- a/dist/es/modules/Tab/Tab.js
 +++ b/dist/es/modules/Tab/Tab.js
 @@ -77,17 +77,18 @@ const Tab = React.forwardRef(function(props, ref) {
@@ -794,8 +820,23 @@ index dbe1696..cf378d8 100644
    };
    const renderVertical = (menuElement2) => {
      const _a = grid, { paneWidth, tabWidth } = _a, gridProps = __objRest(_a, ["paneWidth", "tabWidth"]);
+diff --git a/src/addons/Portal/Portal.js b/src/addons/Portal/Portal.js
+index 2267baaa4ed66c93c52e86584e5d1d863c2bc4eb..668da317db394cecefa8fef2d73a2ae98e1b735e 100644
+--- a/src/addons/Portal/Portal.js
++++ b/src/addons/Portal/Portal.js
+@@ -98,5 +98,7 @@ function Portal(props) {
+   React.useEffect(() => {
+-    // Clean up timers
+-    clearTimeout(mouseEnterTimer.current)
+-    clearTimeout(mouseLeaveTimer.current)
++    // Clean up timers on unmount.
++    return () => {
++      clearTimeout(mouseEnterTimer.current)
++      clearTimeout(mouseLeaveTimer.current)
++    }
+   }, [])
 diff --git a/src/addons/Portal/usePortalElement.js b/src/addons/Portal/usePortalElement.js
-index 02c9502..5f708d1 100644
+index 02c95027b3d7536260d9f58814b3a7369110f693..5f708d14152a24abf7d484ce49ee65aef13b9cbb 100644
 --- a/src/addons/Portal/usePortalElement.js
 +++ b/src/addons/Portal/usePortalElement.js
 @@ -1,7 +1,7 @@
@@ -824,7 +865,7 @@ index 02c9502..5f708d1 100644
      }
  
 diff --git a/src/addons/Portal/utils/useTrigger.js b/src/addons/Portal/utils/useTrigger.js
-index 020e4ec..c803679 100644
+index 020e4ecddb4d0e7395b7b789cb716ca30366cdda..c8036793d6f034988bb8a5c7698fc45df4fbf045 100644
 --- a/src/addons/Portal/utils/useTrigger.js
 +++ b/src/addons/Portal/utils/useTrigger.js
 @@ -1,6 +1,6 @@
@@ -845,7 +886,7 @@ index 020e4ec..c803679 100644
    if (trigger) {
      /* istanbul ignore else */
 diff --git a/src/addons/Portal/utils/validateTrigger.js b/src/addons/Portal/utils/validateTrigger.js
-index 0b1cc33..2131295 100644
+index 0b1cc33b5ab6d326329aa58aa1aa5326351fe55e..213129562684cb20a7d6867e9422298d637441de 100644
 --- a/src/addons/Portal/utils/validateTrigger.js
 +++ b/src/addons/Portal/utils/validateTrigger.js
 @@ -1,5 +1,4 @@
@@ -864,7 +905,7 @@ index 0b1cc33..2131295 100644
    }
  }
 diff --git a/src/elements/Image/Image.js b/src/elements/Image/Image.js
-index a35e61a..6af74ac 100644
+index a35e61a0a056a0234906cb9a0b90a1309c241f46..6af74ac69ef2050db5ed363858d9bcfc3c3f7e4a 100644
 --- a/src/elements/Image/Image.js
 +++ b/src/elements/Image/Image.js
 @@ -79,7 +79,8 @@ const Image = React.forwardRef(function (props, ref) {
@@ -878,7 +919,7 @@ index a35e61a..6af74ac 100644
          return 'div'
        }
 diff --git a/src/elements/Input/Input.js b/src/elements/Input/Input.js
-index 1e6542a..00ea969 100644
+index 1e6542ae32cd0206857118a5c8fbcfd05867744d..00ea9696ec0fecc952655860ac64da4cfec31fdc 100644
 --- a/src/elements/Input/Input.js
 +++ b/src/elements/Input/Input.js
 @@ -9,6 +9,7 @@ import {
@@ -899,7 +940,7 @@ index 1e6542a..00ea969 100644
            },
          })
 diff --git a/src/generic.d.ts b/src/generic.d.ts
-index 10a972e..65037dc 100644
+index 10a972e2fb06cf32e7636f7247d0a1e11329893f..65037dc56833fe8430daefe1532f9dcc7e29e944 100644
 --- a/src/generic.d.ts
 +++ b/src/generic.d.ts
 @@ -68,7 +68,7 @@ export interface StrictHtmlSpanProps {
@@ -913,7 +954,7 @@ index 10a972e..65037dc 100644
  export type ShorthandRenderFunction<C extends React.ElementType, P> = (
 diff --git a/src/lib/getElementRef.js b/src/lib/getElementRef.js
 new file mode 100644
-index 0000000..b225f77
+index 0000000000000000000000000000000000000000..b225f773655a7abe241fbefe5503f2b289211d07
 --- /dev/null
 +++ b/src/lib/getElementRef.js
 @@ -0,0 +1,10 @@
@@ -929,7 +970,7 @@ index 0000000..b225f77
 +}
 diff --git a/src/lib/hooks/useEventListener.js b/src/lib/hooks/useEventListener.js
 new file mode 100644
-index 0000000..f810475
+index 0000000000000000000000000000000000000000..f810475a6b44949f8bb4072ad3e68c862873dc47
 --- /dev/null
 +++ b/src/lib/hooks/useEventListener.js
 @@ -0,0 +1,113 @@
@@ -1047,7 +1088,7 @@ index 0000000..f810475
 +  }, [capture, enabled, eventHandler, target, targetRef, type])
 +}
 diff --git a/src/lib/index.js b/src/lib/index.js
-index 5d10c2b..03fcd00 100644
+index 5d10c2b587fb84f94182495026a66aa7dc9b214d..03fcd0032c4916f3449696c31957a3cd4a91fe47 100644
 --- a/src/lib/index.js
 +++ b/src/lib/index.js
 @@ -36,6 +36,7 @@ export { numberToWordMap, numberToWord } from './numberToWord'
@@ -1067,7 +1108,7 @@ index 5d10c2b..03fcd00 100644
  export { default as useIsomorphicLayoutEffect } from './hooks/useIsomorphicLayoutEffect'
  export { default as useMergedRefs, setRef } from './hooks/useMergedRefs'
 diff --git a/src/modules/Dropdown/Dropdown.js b/src/modules/Dropdown/Dropdown.js
-index 3a1607e..a68cb61 100644
+index 3a1607ec8c256485a2da6109c9c118ad97d99486..a68cb611b70cece3660ed1418261551999978a0c 100644
 --- a/src/modules/Dropdown/Dropdown.js
 +++ b/src/modules/Dropdown/Dropdown.js
 @@ -920,11 +920,9 @@ class DropdownInner extends Component {
@@ -1086,7 +1127,7 @@ index 3a1607e..a68cb61 100644
      let selectedItem
  
 diff --git a/src/modules/Dropdown/DropdownText.js b/src/modules/Dropdown/DropdownText.js
-index 27f6cf3..d93fbc1 100644
+index 27f6cf3adfdee03443c0eb1e8cad35625fd123b9..d93fbc12401aab0d26eda6f42c0481310f793cf8 100644
 --- a/src/modules/Dropdown/DropdownText.js
 +++ b/src/modules/Dropdown/DropdownText.js
 @@ -15,7 +15,7 @@ import {
@@ -1099,7 +1140,7 @@ index 27f6cf3..d93fbc1 100644
    const ElementType = getComponentType(props)
  
 diff --git a/src/modules/Embed/Embed.js b/src/modules/Embed/Embed.js
-index 1fcfe76..54e9352 100644
+index 1fcfe7623b5744842f955e6fd0c514f8dad35e2b..54e9352282141d17a433786d864990e294fa8f07 100644
 --- a/src/modules/Embed/Embed.js
 +++ b/src/modules/Embed/Embed.js
 @@ -45,12 +45,12 @@ const Embed = React.forwardRef(function (props, ref) {
@@ -1139,7 +1180,7 @@ index 1fcfe76..54e9352 100644
      }
  
 diff --git a/src/modules/Search/Search.js b/src/modules/Search/Search.js
-index a7973a9..6fe47bc 100644
+index a7973a961748d2a66d29705345e30665a57b2e0c..6fe47bc19b733eef7bfa3d7f0d77e28df1516fa3 100644
 --- a/src/modules/Search/Search.js
 +++ b/src/modules/Search/Search.js
 @@ -338,9 +338,13 @@ class SearchInner extends Component {
@@ -1160,7 +1201,7 @@ index a7973a9..6fe47bc 100644
  
    // ----------------------------------------
 diff --git a/src/modules/Sidebar/Sidebar.js b/src/modules/Sidebar/Sidebar.js
-index a5ee895..64553a0 100644
+index a5ee895a5b6ed529cf98ef8c73fc5d7347510a76..64553a0230c4a64398a72f2ffb7f05da5719a7c3 100644
 --- a/src/modules/Sidebar/Sidebar.js
 +++ b/src/modules/Sidebar/Sidebar.js
 @@ -1,4 +1,3 @@
@@ -1214,7 +1255,7 @@ index a5ee895..64553a0 100644
  })
  
 diff --git a/src/modules/Tab/Tab.js b/src/modules/Tab/Tab.js
-index 724cadd..1bc9c3f 100644
+index 724cadd98a20908b08559e3751ba4f803c1675ca..1bc9c3fc94504d212be8e4b9f09f8d6443504b83 100644
 --- a/src/modules/Tab/Tab.js
 +++ b/src/modules/Tab/Tab.js
 @@ -53,18 +53,23 @@ const Tab = React.forwardRef(function (props, ref) {

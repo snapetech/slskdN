@@ -27,6 +27,8 @@ overrides for the React peer ranges of Fomantic UI React, its event stack, and
 Update application refs to use the fork's direct DOM refs, and replace the two
 `<Ref innerRef>` wrappers with native refs. Keep the React 19 patch until an
 upstream published release contains the same fixes and passes the Web suite.
+The local package patch also returns Fomantic Portal's timer cleanup from its
+effect, canceling delayed hover callbacks when a portal unmounts.
 
 ## Consequences
 
@@ -38,3 +40,5 @@ upstream published release contains the same fixes and passes the Web suite.
   commit and be removed only after a published replacement is validated.
 - Fomantic UI React 3 changes component ref shapes, so new app code and future
   upgrades must use direct DOM refs.
+- Portal hover timers are canceled on unmount; a regression test covers teardown
+  while an open delay is pending.
