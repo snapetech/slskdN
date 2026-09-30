@@ -36,12 +36,17 @@ passes. Added a release fragment, versioned changelog line and a release
 checklist step to sync Cloudron after each new stable image. Gotcha `0z1291`
 was committed and pushed as `15df96b6a`.
 
-Next Steps: commit/push the Cloudron `.329` update, then rerun the guarded
-`.330` helper. The release tag still does not exist. If the release build
-publishes `.330`, advance Cloudron to that published image afterward. Continue
-the broader player audit; the resource plateau, actual screen-reader speech,
-physical-device behavior, representative WAN playback and reciprocal transfers
-remain open.
+The next helper run passed packaging and release-note checks, then found the
+generated API route index and two active candidate counts stale. Regenerated
+the route inventory, refreshed the backlog counts to 476 and 11,646, and the
+complete remediation baseline now passes. These generated documentation
+updates still need commit/push before another helper run. No release tag exists.
+
+Next Steps: commit/push the refreshed validation documents and rerun the guarded
+`.330` helper. If the release build publishes `.330`, advance Cloudron to that
+published image afterward. Continue the broader player audit; the resource
+plateau, actual screen-reader speech, physical-device behavior, representative
+WAN playback and reciprocal transfers remain open.
 
 ## Player listed-radio recovery and cross-engine media audit — 2026-09-29 15:07 UTC
 
