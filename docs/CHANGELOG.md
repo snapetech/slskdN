@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Player reduced-motion behavior
+
+- Pause analyzer and visualizer animation when the browser requests reduced motion, keep audio playing, and offer a session-only option to animate anyway.
+
 ## [2026093002-slskdn.331] — 2026-09-30
 
 ### Docker image build

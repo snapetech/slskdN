@@ -41,6 +41,7 @@ import {
 } from '../../lib/playerAutoQueue';
 import { getPlayerShortcutAction } from '../../lib/playerShortcuts';
 import { getLocalStorageItem, setLocalStorageItem } from '../../lib/storage';
+import usePrefersReducedMotion from '../../lib/usePrefersReducedMotion';
 import * as searches from '../../lib/searches';
 import * as streaming from '../../lib/streaming';
 import * as wishlistAPI from '../../lib/wishlist';
@@ -2143,6 +2144,8 @@ const PlayerVisualTile = ({
   };
   const tileRef = useRef(null);
   const [visualizerRevision, setVisualizerRevision] = useState(0);
+  const [allowReducedMotionAnalyzer, setAllowReducedMotionAnalyzer] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
   const title = current?.title || current?.fileName || 'slskdN';
   const artist = current?.artist || '';
   const initials = (artist || title)
@@ -2159,6 +2162,9 @@ const PlayerVisualTile = ({
     : normalizedTileMode;
   const showingVisualizer = visualizerTileModes.includes(effectiveTileMode);
   const showingAnalyzer = ['spectrum', 'scope'].includes(effectiveTileMode);
+  const analyzerMotionSuppressed = showingAnalyzer
+    && prefersReducedMotion
+    && !allowReducedMotionAnalyzer;
   const nextTileMode = tileModes[
     (tileModes.indexOf(effectiveTileMode) + 1) % tileModes.length
   ];
@@ -2166,6 +2172,9 @@ const PlayerVisualTile = ({
   const preferredVisualizerMode = visualizerTileModes.includes(normalizedTileMode)
     ? normalizedTileMode
     : readStoredVisualizerEngineTileMode();
+  useEffect(() => {
+    if (!showingAnalyzer) setAllowReducedMotionAnalyzer(false);
+  }, [showingAnalyzer]);
   const setTileMode = (nextMode) => {
     onTileModeChange(nextMode);
     if (visualizerTileModes.includes(nextMode) && mode === 'off') {
@@ -2211,7 +2220,9 @@ const PlayerVisualTile = ({
         trigger={
           <div
             aria-label={
-              `Show ${tileModeLabels[nextTileMode]} in player visual tile`
+              `Show ${tileModeLabels[nextTileMode]} in player visual tile${analyzerMotionSuppressed
+                ? '. Analyzer animation is paused because reduced motion is enabled'
+                : ''}`
             }
             role="button"
             className="player-visual-stage"
@@ -2241,11 +2252,19 @@ const PlayerVisualTile = ({
                 />
               </React.Suspense>
             ) : showingAnalyzer ? (
-              <SpectrumAnalyzer
-                audioElement={audioElement}
-                className="player-visualizer-fallback"
-                mode={normalizedTileMode}
-              />
+              <>
+                <SpectrumAnalyzer
+                  allowReducedMotionAnimation={allowReducedMotionAnalyzer}
+                  audioElement={audioElement}
+                  className="player-visualizer-fallback"
+                  mode={normalizedTileMode}
+                />
+                {analyzerMotionSuppressed ? (
+                  <span aria-hidden="true" className="player-visual-tile-motion-status">
+                    Analyzer paused for reduced motion
+                  </span>
+                ) : null}
+              </>
             ) : (
               <span className="player-album-art" data-testid="player-album-art">
                 {artworkUrl ? (
@@ -2265,6 +2284,23 @@ const PlayerVisualTile = ({
         }
       />
       <div className="player-visual-tile-controls" onClick={(event) => event.stopPropagation()}>
+        {analyzerMotionSuppressed ? (
+          <Popup
+            content="Animate the analyzer until it is hidden, even though reduced motion is enabled."
+            trigger={
+              <Button
+                aria-label="Animate analyzer anyway"
+                data-testid="player-visual-tile-motion-override"
+                icon
+                onClick={() => setAllowReducedMotionAnalyzer(true)}
+                size="mini"
+                type="button"
+              >
+                <Icon name="play" />
+              </Button>
+            }
+          />
+        ) : null}
         {['spectrum', 'scope', 'butterchurn', 'native-webgl2', 'native-webgpu'].map((option) => (
           <Popup
             content={`Show ${tileModeLabels[option]}.`}
@@ -2318,6 +2354,11 @@ const PlayerVisualTile = ({
 };
 
 const PlayerAnalyzerTile = ({ audioElement, mode, onModeChange }) => {
+  const [allowReducedMotionAnimation, setAllowReducedMotionAnimation] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const motionSuppressed = mode !== 'off'
+    && prefersReducedMotion
+    && !allowReducedMotionAnimation;
   const nextMode = { off: 'spectrum', spectrum: 'scope', scope: 'off' }[mode];
   const label = {
     off: 'Analyzer off',
@@ -2330,38 +2371,72 @@ const PlayerAnalyzerTile = ({ audioElement, mode, onModeChange }) => {
     scope: 'show signal scope',
   }[nextMode];
 
+  useEffect(() => {
+    if (mode === 'off') setAllowReducedMotionAnimation(false);
+  }, [mode]);
+
   return (
-    <Popup
-      content={`Click to ${nextLabel}.`}
-      trigger={
-        <div
-          aria-label={`Click to ${nextLabel}`}
-          className="player-analyzer-tile"
-          data-testid="player-analyzer-tile"
-          onClick={() => onModeChange(nextMode)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              onModeChange(nextMode);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="player-analyzer-label">{label}</div>
-          {mode !== 'off' ? (
-            <SpectrumAnalyzer
-              audioElement={audioElement}
-              className="player-spectrum-switchable"
-              mode={mode}
-            />
-          ) : null}
-          <span className="player-analyzer-affordance">
-            <Icon name={{ off: 'power off', spectrum: 'signal', scope: 'chart bar' }[mode]} />
-          </span>
-        </div>
-      }
-    />
+    <div className="player-analyzer-tile-shell">
+      <Popup
+        content={`Click to ${nextLabel}.`}
+        trigger={
+          <div
+            aria-label={`Click to ${nextLabel}${motionSuppressed
+              ? '. Animation is paused because reduced motion is enabled'
+              : ''}`}
+            className="player-analyzer-tile"
+            data-testid="player-analyzer-tile"
+            onClick={() => onModeChange(nextMode)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onModeChange(nextMode);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="player-analyzer-label">{label}</div>
+            {mode !== 'off' ? (
+              <SpectrumAnalyzer
+                allowReducedMotionAnimation={allowReducedMotionAnimation}
+                audioElement={audioElement}
+                className="player-spectrum-switchable"
+                mode={mode}
+              />
+            ) : null}
+            {motionSuppressed ? (
+              <span aria-hidden="true" className="player-analyzer-motion-status">
+                Paused for reduced motion
+              </span>
+            ) : null}
+            {!motionSuppressed ? (
+              <span className="player-analyzer-affordance">
+                <Icon name={{ off: 'power off', spectrum: 'signal', scope: 'chart bar' }[mode]} />
+              </span>
+            ) : null}
+          </div>
+        }
+      />
+      {motionSuppressed ? (
+        <Popup
+          content="Animate the analyzer until it is turned off, even though reduced motion is enabled."
+          trigger={
+            <Button
+              aria-label="Animate analyzer anyway"
+              className="player-analyzer-motion-override"
+              data-testid="player-analyzer-motion-override"
+              icon
+              onClick={() => setAllowReducedMotionAnimation(true)}
+              size="mini"
+              type="button"
+            >
+              <Icon name="play" />
+            </Button>
+          }
+        />
+      ) : null}
+    </div>
   );
 };
 

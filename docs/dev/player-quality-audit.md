@@ -32,6 +32,23 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 ## Current evidence
 
+### Reduced-motion visualizer behavior — 2026-09-30
+
+The analyzer and MilkDrop visualizer now follow the browser's reduced-motion
+setting. When it is enabled, audio keeps playing while analyzer sampling and
+visualizer rendering stay stopped. A clearly labeled, session-only control can
+resume animation for the visible selection. Switching away from the analyzer
+or turning the visualizer off clears that override. Changing inline/full-window
+presentation no longer rebuilds the renderer.
+
+Focused component checks pass 105/105 across the motion hook, analyzer,
+visualizer and PlayerBar. A real Linux Chromium workflow emulates reduced
+motion, plays generated PCM, records zero analyzer reads for 500 ms, opts into
+animation, then verifies analyzer reads and audio playback continue. This
+proves that opt-in works in this browser build; it does not measure GPU cost on
+physical devices or replace the open assistive-technology and long-session
+resource checks. Confidence: high for the exercised Chromium behavior.
+
 ### Pause-time rendering and renderer tuning — 2026-09-30
 
 The analyzer and MilkDrop render loops now start only while media is playing in
@@ -71,10 +88,11 @@ simulated device APIs.
 | Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before and after first output | Setup cancellation: component/API tests / high; six codec-retry/server-failure workflows pass in Chromium, Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
 | Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; screen-reader output remains open |
-| Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 104 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
+| Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 107 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
 | Analyzer | Reads stop on Pause/Stop, resume on Play; existing contexts suspend | Verified in Chromium, host Firefox and WebKit / high |
+| Reduced motion | Analyzer and visualizer rendering pause while audio continues; session-only override resumes animation | Component tests and generated-PCM Chromium workflow / high for tested behavior |
 | Crossfade | Both streams play; Pause suspends both; Resume plays one; natural completion suspends outgoing context | Verified in Chromium, host Firefox and WebKit / high |
 | Picture-in-Picture | Actual spectrum rendering, focus, positive window area and Stop/hide closure; pending request cancellation covered by regression tests; component test confirms the requested 360x220 size | Verified in Chromium and host Firefox / high; WebKit does not support Document PiP; physical window geometry remains unverified because virtual Chromium reports display bounds (gotcha 0z1290) |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium, host Firefox and WebKit viewport checks / high; physical mobile unverified |

@@ -682,6 +682,34 @@ test.describe('player browser playback', () => {
     await expect.poll(() => page.evaluate(() => (window as Window & { __playerAudioContextInstances?: AudioContext[] }).__playerAudioContextInstances!.every((context) => context.state === 'suspended'))).toBe(true);
   });
 
+  test('keeps audio playing while reduced motion pauses analyzer work until opted in', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('slskdn.player.visualTileMode', 'spectrum');
+      const analyzerWindow = window as Window & { __playerAnalyzerReads?: number };
+      analyzerWindow.__playerAnalyzerReads = 0;
+      const read = AnalyserNode.prototype.getByteFrequencyData;
+      AnalyserNode.prototype.getByteFrequencyData = function (array) {
+        analyzerWindow.__playerAnalyzerReads! += 1;
+        return read.call(this, array);
+      };
+    });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.reload();
+    await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
+    const reads = () => page.evaluate(() => (window as Window & { __playerAnalyzerReads?: number }).__playerAnalyzerReads!);
+    const audio = page.locator('audio');
+    await expect.poll(() => audio.evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
+    await expect(page.getByText('Analyzer paused for reduced motion', { exact: true })).toBeVisible();
+    await page.waitForTimeout(500);
+    expect(await reads()).toBe(0);
+
+    await page.getByTestId('player-visual-tile-motion-override').click();
+    await expect.poll(reads).toBeGreaterThan(5);
+    await expect.poll(() => audio.evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 1))).toBe(true);
+  });
+
   test('opens a real Picture-in-Picture analyzer and closes it on Stop or hide', async ({ page }, testInfo) => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);

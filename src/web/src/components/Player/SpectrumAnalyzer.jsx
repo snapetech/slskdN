@@ -1,5 +1,6 @@
 import { getOrCreateAudioGraph, resumeAudioGraph, suspendAudioGraph } from './audioGraph';
 import React, { useCallback, useEffect, useRef } from 'react';
+import usePrefersReducedMotion from '../../lib/usePrefersReducedMotion';
 
 const minScopeGainPeak = 0.02;
 const scopeTargetPeak = 0.78;
@@ -128,7 +129,14 @@ const drawScopeLine = (ctx, points, width, height, options = {}) => {
   ctx.shadowBlur = 0;
 };
 
-const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
+const SpectrumAnalyzer = ({
+  allowReducedMotionAnimation = false,
+  audioElement,
+  className = '',
+  mode,
+}) => {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const motionSuppressed = prefersReducedMotion && !allowReducedMotionAnimation;
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
   const playbackActiveRef = useRef(false);
@@ -136,11 +144,13 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
   const lastDrawRef = useRef(0);
   const scopeLastReadRef = useRef(0);
   const scopePointsRef = useRef(null);
+  const motionSuppressedRef = useRef(motionSuppressed);
+  motionSuppressedRef.current = motionSuppressed;
 
   const draw = useCallback(
     (analyser, timestamp = 0) => {
       rafRef.current = null;
-      if (document.hidden || !playbackActiveRef.current) return;
+      if (document.hidden || !playbackActiveRef.current || motionSuppressedRef.current) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
       if (timestamp && timestamp - lastDrawRef.current < drawIntervalMs) {
@@ -194,7 +204,7 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
   );
 
   useEffect(() => {
-    if (!audioElement || mode === 'off') return undefined;
+    if (!audioElement || mode === 'off' || motionSuppressed) return undefined;
     let cancelled = false;
     let analyser = null;
     let graphInitialization = null;
@@ -267,7 +277,7 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
       lastDrawRef.current = 0;
       sampleRef.current = null;
     };
-  }, [audioElement, draw, mode]);
+  }, [audioElement, draw, mode, motionSuppressed]);
 
   if (mode === 'off') return null;
 
@@ -276,6 +286,7 @@ const SpectrumAnalyzer = ({ audioElement, className = '', mode }) => {
       aria-label={mode === 'scope' ? 'Oscilloscope' : 'Spectrum analyzer'}
       className={['player-spectrum', className].filter(Boolean).join(' ')}
       data-testid="player-spectrum"
+      data-motion-suppressed={motionSuppressed ? 'true' : undefined}
       ref={canvasRef}
     />
   );

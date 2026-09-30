@@ -188,6 +188,20 @@
   outline-offset: 2px;
 }
 
+.player-visual-tile-motion-status {
+  background: rgba(5, 7, 10, 0.9);
+  border: 1px solid rgba(156, 124, 240, 0.32);
+  border-radius: 4px;
+  bottom: 0.32rem;
+  color: var(--slskdn-color, #edeaf2);
+  font-size: 0.58rem;
+  left: 0.32rem;
+  line-height: 1.25;
+  max-width: calc(100% - 0.64rem);
+  padding: 0.24rem 0.3rem;
+  position: absolute;
+}
+
 .player-visual-tile-controls {
   align-items: center;
   display: grid;
@@ -439,6 +453,10 @@
   width: 100%;
 }
 
+.player-analyzer-tile-shell {
+  position: relative;
+}
+
 .player-analyzer-tile:hover,
 .player-analyzer-tile:focus {
   border-color: rgba(156, 124, 240, 0.42);
@@ -493,6 +511,30 @@
   justify-content: center;
   right: 0.32rem;
   width: 22px;
+}
+
+.player-analyzer-motion-status {
+  bottom: 0.32rem;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.56rem;
+  left: 0.42rem;
+  pointer-events: none;
+  position: absolute;
+}
+
+.player-analyzer-motion-override.ui.button {
+  align-items: center;
+  bottom: 0.3rem;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  min-height: 24px;
+  min-width: 24px;
+  padding: 0;
+  position: absolute;
+  right: 0.3rem;
+  width: 24px;
+  z-index: 2;
 }
 
 .player-analyzer-tile:hover .player-analyzer-affordance,
@@ -1762,6 +1804,30 @@
   justify-content: center;
   opacity: 0.7;
   width: 100%;
+}
+
+.player-visualizer-motion-status {
+  align-items: center;
+  background: rgba(5, 7, 10, 0.9);
+  border: 1px solid rgba(156, 124, 240, 0.35);
+  border-radius: 5px;
+  color: var(--slskdn-color, #edeaf2);
+  display: flex;
+  flex-direction: column;
+  font-size: 0.68rem;
+  gap: 0.4rem;
+  left: 50%;
+  max-width: calc(100% - 0.8rem);
+  padding: 0.5rem;
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.player-visualizer-motion-status [role="status"] {
+  line-height: 1.35;
 }
 
 .player-visualizer-inline {

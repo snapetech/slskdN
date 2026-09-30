@@ -15516,3 +15516,20 @@ No tag, release or deployment was created.
   `.331` sync are pushed; player work remains active with the resource capture,
   actual screen-reader output, physical-device behavior, WAN playback, and
   reciprocal transfers still open.
+
+## 2026-09-30 04:20 UTC — Player reduced-motion rendering
+
+- Analyzer and MilkDrop animation now stop under the browser's reduced-motion
+  setting while audio playback continues. A session-only button lets the user
+  resume animation for the current visible selection. Presentation-mode
+  changes reuse the renderer.
+- The focused Player component suite passed 105/105. A real Chromium browser
+  played generated PCM, recorded zero analyzer reads for 500 ms with reduced
+  motion enabled, then recorded resumed reads and continued audio after opt-in.
+- The production Web build, bundle-size check (94 assets; 3.70 MB), targeted Web
+  ESLint and `./bin/lint` passed. The lazy MilkDrop preset chunk remains within
+  its documented bundle exception.
+- Added the player release fragment, Unreleased changelog entry, updated quality
+  audit and task record. Broader Player work remains open: device behavior,
+  actual screen-reader speech, a sustained resource plateau, WAN playback and
+  reciprocal Soulseek transfers.

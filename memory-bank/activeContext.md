@@ -1,36 +1,28 @@
-## Current state — `.331` release and Launchpad publication — 2026-09-30 03:50 UTC
+## Current state — Player reduced-motion behavior and `.331` publication — 2026-09-30 04:20 UTC
 
-The `.330` GitHub release published its six platform archives, but its Docker
-image build failed because the web build stage omitted the pnpm patch file. The
-isolated publish stage also omitted the referenced `slskd.BuildTasks` project.
-Both inputs are now copied into the Docker build. Gotchas `0z1292` and `0z1293`
-record the build-context and Cloudron-version failures.
+The Player now pauses analyzer sampling and MilkDrop rendering when the browser
+requests reduced motion, while audio continues. Visible analyzer and visualizer
+controls offer a session-only “Animate anyway” override. Switching between
+inline and full-window presentation reuses the renderer. The focused Player
+component run passed 105/105; a real Chromium generated-PCM workflow recorded
+zero analyzer reads for 500 ms under reduced motion, then resumed reads and
+continued playback after opt-in. Production build, bundle-size check, targeted
+Web ESLint and repository formatting lint pass. The quality audit, changelog,
+release fragment, tasks and progress records are updated. The Player overhaul
+remains active: long-session resource use, physical devices, actual
+screen-reader speech, WAN playback and reciprocal Soulseek transfers remain.
 
-The packaging validator now tracks the last successfully published Docker
-image independently from binary release metadata. The Cloudron sync script adds
-immutable versions and updates the manifest, Dockerfile, and stable-image marker.
-The `.331` Docker Hub and GHCR images are published for Linux amd64 and arm64;
-the six GitHub release archives passed published-checksum verification. The
-Cloudron `.331` sync and packaging metadata update are committed and pushed as
-`83ef619eb`. The working tree is clean.
+Stable `.331` binaries and Linux amd64/arm64 Docker images are published; the
+Cloudron sync and packaging metadata update are pushed as `83ef619eb`. The
+release gate passed locally with 1,106 Web tests, 5,346 unit tests, 74 smoke
+tests and 40 integration tests. The `.331` PPA workflow `36660736959` uploaded
+its source and is waiting for Launchpad publication confirmation. Do not call
+that binary published until Launchpad reports the exact package version.
 
-The first hosted `.331` release-gate attempt had one timeout waiting for a TCP
-listener. The same immutable tag passed on retry. The full local gate passed:
-1,106 web tests, 5,346 unit tests, 74 smoke tests, and 40 integration tests.
-The `.331` AUR, Chocolatey, Homebrew, Nix, COPR, and Discord steps passed. The
-`.330` Launchpad source is published, but its amd64 build remains in
-"Uploading build". Workflow `36657314411` timed out after its 90-minute wait.
-The `.331` PPA job in workflow `36660736959` has started building its source
-package. Neither exact binary is confirmed published yet. The `.331` omnibus
-tester image finished successfully.
-
-Keep the Player goal active. The three-hour resource capture remains incomplete;
-actual screen-reader speech, physical-device behavior, representative WAN
-playback, and reciprocal Soulseek transfers remain open.
-
-Next Steps: monitor both Launchpad package publications and update the task when
-the exact binaries are published or the `.331` wait times out. Continue the
-remaining Player work without treating the partial resource capture as acceptance.
+Next Steps: continue the remaining Player audit and monitor the `.331` PPA job.
+Keep the incomplete three-hour resource capture, screen-reader speech,
+physical-device behavior, WAN playback and reciprocal transfers explicitly
+open.
 
 ## Historical state — Player pause-time rendering runtime validation (superseded 2026-09-30 03:17 UTC)
 

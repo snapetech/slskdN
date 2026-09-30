@@ -263,6 +263,7 @@ const renderPlayer = (overrides = {}) => {
 describe('PlayerBar', () => {
   const originalMediaSession = Object.getOwnPropertyDescriptor(navigator, 'mediaSession');
   const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
@@ -284,6 +285,8 @@ describe('PlayerBar', () => {
     else delete navigator.mediaSession;
     if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
     else delete navigator.mediaDevices;
+    if (originalMatchMedia) Object.defineProperty(window, 'matchMedia', originalMatchMedia);
+    else delete window.matchMedia;
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -1259,6 +1262,52 @@ describe('PlayerBar', () => {
       expect(window.localStorage.getItem('slskdn.player.visualTileMode')).toBe('native-webgl2');
     });
     expect(document.querySelector('.player-visualizer-fullwindow')).toBeInTheDocument();
+  });
+
+  it('pauses analyzer motion until the user opts in under reduced motion', () => {
+    window.matchMedia = vi.fn(() => ({
+      addEventListener: vi.fn(),
+      matches: true,
+      media: '(prefers-reduced-motion: reduce)',
+      removeEventListener: vi.fn(),
+    }));
+    window.localStorage.setItem('slskdn.player.analyzerMode.v2', 'spectrum');
+    renderPlayer();
+
+    const analyzerTile = screen.getByTestId('player-analyzer-tile');
+    expect(analyzerTile).toHaveAttribute('aria-label', expect.stringContaining('reduced motion'));
+    expect(screen.getByText('Paused for reduced motion')).toBeInTheDocument();
+    expect(within(analyzerTile).getByTestId('player-spectrum'))
+      .toHaveAttribute('data-motion-suppressed', 'true');
+
+    fireEvent.click(screen.getByTestId('player-analyzer-motion-override'));
+
+    expect(screen.queryByText('Paused for reduced motion')).not.toBeInTheDocument();
+    expect(within(analyzerTile).getByTestId('player-spectrum'))
+      .not.toHaveAttribute('data-motion-suppressed');
+  });
+
+  it('lets the visual tile opt into analyzer animation for the current selection', () => {
+    window.matchMedia = vi.fn(() => ({
+      addEventListener: vi.fn(),
+      matches: true,
+      media: '(prefers-reduced-motion: reduce)',
+      removeEventListener: vi.fn(),
+    }));
+    renderPlayer();
+
+    fireEvent.click(screen.getByTestId('player-visual-tile-mode-spectrum'));
+
+    const tile = screen.getByTestId('player-visual-tile');
+    expect(screen.getByText('Analyzer paused for reduced motion')).toBeInTheDocument();
+    expect(within(tile).getByTestId('player-spectrum'))
+      .toHaveAttribute('data-motion-suppressed', 'true');
+
+    fireEvent.click(screen.getByTestId('player-visual-tile-motion-override'));
+
+    expect(screen.queryByText('Analyzer paused for reduced motion')).not.toBeInTheDocument();
+    expect(within(tile).getByTestId('player-spectrum'))
+      .not.toHaveAttribute('data-motion-suppressed');
   });
 
   it('does not repeat the currently playing track in the queue preview', () => {

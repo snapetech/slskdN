@@ -1,6 +1,6 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import Visualizer from './Visualizer';
 import { createButterchurnEngine } from './visualizers/butterchurnEngine';
 import { createNativeMilkdropEngine } from './visualizers/nativeMilkdropEngine';
@@ -111,9 +111,29 @@ const createAudioElement = (paused = false) => {
   return audioElement;
 };
 
+const originalMatchMediaDescriptor = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+
+const stubMotionPreference = (initialMatches) => {
+  let matches = initialMatches;
+  const listeners = new Set();
+  const mediaQuery = {
+    addEventListener: (_type, listener) => listeners.add(listener),
+    get matches() { return matches; },
+    media: '(prefers-reduced-motion: reduce)',
+    removeEventListener: (_type, listener) => listeners.delete(listener),
+  };
+  window.matchMedia = vi.fn(() => mediaQuery);
+
+  return (nextMatches) => {
+    matches = nextMatches;
+    listeners.forEach((listener) => listener({ matches, media: mediaQuery.media }));
+  };
+};
+
 describe('Visualizer', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
+    stubMotionPreference(false);
     window.localStorage.clear();
     HTMLCanvasElement.prototype.getContext = vi.fn(() => ({}));
     window.requestAnimationFrame = vi.fn(() => 1);
@@ -139,6 +159,76 @@ describe('Visualizer', () => {
     nativeEngine.setMouseState.mockClear();
     nativeEngine.setPresetAutomation.mockClear();
     nativeEngine.updatePresetBaseValue.mockClear();
+  });
+
+  afterEach(() => {
+    if (originalMatchMediaDescriptor) {
+      Object.defineProperty(window, 'matchMedia', originalMatchMediaDescriptor);
+    } else {
+      delete window.matchMedia;
+    }
+  });
+
+  it('honors reduced motion and keeps the renderer across presentation changes', async () => {
+    stubMotionPreference(true);
+    const audioElement = createAudioElement(false);
+    const { rerender } = render(
+      <Visualizer audioElement={audioElement} mode="inline" onModeChange={vi.fn()} />,
+    );
+
+    expect(await screen.findByText(
+      'Animation is paused because reduced motion is enabled.',
+    )).toBeInTheDocument();
+    expect(createButterchurnEngine).not.toHaveBeenCalled();
+    expect(window.requestAnimationFrame).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Animate anyway' }));
+    await waitFor(() => {
+      expect(createButterchurnEngine).toHaveBeenCalledTimes(1);
+      expect(window.requestAnimationFrame).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <Visualizer audioElement={audioElement} mode="fullwindow" onModeChange={vi.fn()} />,
+    );
+
+    expect(createButterchurnEngine).toHaveBeenCalledTimes(1);
+    expect(butterchurnEngine.dispose).not.toHaveBeenCalled();
+    expect(window.cancelAnimationFrame).not.toHaveBeenCalled();
+
+    rerender(<Visualizer audioElement={audioElement} mode="off" onModeChange={vi.fn()} />);
+    expect(butterchurnEngine.dispose).toHaveBeenCalledTimes(1);
+    rerender(<Visualizer audioElement={audioElement} mode="inline" onModeChange={vi.fn()} />);
+    expect(await screen.findByText(
+      'Animation is paused because reduced motion is enabled.',
+    )).toBeInTheDocument();
+    expect(createButterchurnEngine).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops an active renderer when the system preference changes to reduced motion', async () => {
+    const setMotionPreference = stubMotionPreference(false);
+    const audioElement = createAudioElement(false);
+    render(<Visualizer audioElement={audioElement} mode="inline" onModeChange={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(createButterchurnEngine).toHaveBeenCalledTimes(1);
+      expect(window.requestAnimationFrame).toHaveBeenCalledTimes(1);
+    });
+    const frame = window.requestAnimationFrame.mock.results[0].value;
+
+    act(() => setMotionPreference(true));
+
+    expect(await screen.findByText(
+      'Animation is paused because reduced motion is enabled.',
+    )).toBeInTheDocument();
+    expect(window.cancelAnimationFrame).toHaveBeenCalledWith(frame);
+    expect(butterchurnEngine.dispose).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Animate anyway' }));
+    await waitFor(() => {
+      expect(createButterchurnEngine).toHaveBeenCalledTimes(2);
+      expect(window.requestAnimationFrame).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('keeps the renderer stopped while paused, buffering, or hidden', async () => {

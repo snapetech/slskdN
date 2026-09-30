@@ -5,6 +5,7 @@ import {
   removeLocalStorageItem,
   setLocalStorageItem,
 } from '../../lib/storage';
+import usePrefersReducedMotion from '../../lib/usePrefersReducedMotion';
 import { getOrCreateAudioGraph, resumeAudioGraph, suspendAudioGraph } from './audioGraph';
 import SpectrumAnalyzer from './SpectrumAnalyzer';
 import { createButterchurnEngine } from './visualizers/butterchurnEngine';
@@ -533,6 +534,10 @@ const Visualizer = ({
   onEngineChange,
   onModeChange,
 }) => {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [allowReducedMotionAnimation, setAllowReducedMotionAnimation] = useState(false);
+  const motionSuppressed = prefersReducedMotion && !allowReducedMotionAnimation;
+  const rendererEnabled = mode !== 'off' && !motionSuppressed;
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const directoryInputRef = useRef(null);
@@ -635,6 +640,10 @@ const Visualizer = ({
     ?? nativeParameter.defaultValue,
   );
 
+  useEffect(() => {
+    if (mode === 'off') setAllowReducedMotionAnimation(false);
+  }, [mode]);
+
   const refreshNativeFragmentSummary = useCallback(() => {
     const summary = engineRef.current?.getPresetFragmentSummary?.() || {
       shapes: [],
@@ -703,7 +712,7 @@ const Visualizer = ({
   }, [renderLoop]);
 
   useEffect(() => {
-    if (mode === 'off' || !audioElement) return undefined;
+    if (!rendererEnabled || !audioElement) return undefined;
     playbackActiveRef.current = !audioElement.paused && !audioElement.ended &&
       audioElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
     const handlePlaying = () => {
@@ -736,7 +745,7 @@ const Visualizer = ({
       playbackActiveRef.current = false;
       stopRendering();
     };
-  }, [audioElement, mode, startRendering, stopRendering]);
+  }, [audioElement, rendererEnabled, startRendering, stopRendering]);
 
   const cycleNativeAutomationMode = useCallback(() => {
     setNativeAutomationSettings((current) =>
@@ -1014,7 +1023,7 @@ const Visualizer = ({
   }, [activeNativePlaylistId]);
 
   useEffect(() => {
-    if (mode === 'off' || !audioElement || !canvasRef.current) return undefined;
+    if (!rendererEnabled || !audioElement || !canvasRef.current) return undefined;
 
     let cancelled = false;
     let resizeObserver = null;
@@ -1130,7 +1139,7 @@ const Visualizer = ({
       engineAudioNodeRef.current = null;
       setEngineName('');
     };
-  }, [mode, audioElement, activeEngineType, refreshNativeFragmentSummary, renderLoop, sizeCanvas, startRendering]);
+  }, [rendererEnabled, audioElement, activeEngineType, refreshNativeFragmentSummary, renderLoop, sizeCanvas, startRendering]);
 
   useEffect(() => {
     if (engineOverride) return;
@@ -1622,6 +1631,7 @@ const Visualizer = ({
       />
       {fallbackMode ? (
         <SpectrumAnalyzer
+          allowReducedMotionAnimation={allowReducedMotionAnimation}
           audioElement={audioElement}
           className="player-visualizer-fallback"
           mode="spectrum"
@@ -1629,6 +1639,25 @@ const Visualizer = ({
       ) : null}
       {displayedError ? <div className="player-visualizer-error">{displayedError}</div> : null}
       <div className="player-visualizer-overlay">
+        {motionSuppressed ? (
+          <div className="player-visualizer-motion-status" data-testid="visualizer-motion-status">
+            <span role="status">Animation is paused because reduced motion is enabled.</span>
+            <Popup
+              content="Run the visualizer until it is hidden, even though reduced motion is enabled."
+              trigger={
+                <Button
+                  aria-label="Animate anyway"
+                  data-testid="visualizer-motion-override"
+                  onClick={() => setAllowReducedMotionAnimation(true)}
+                  size="mini"
+                  type="button"
+                >
+                  Animate anyway
+                </Button>
+              }
+            />
+          </div>
+        ) : null}
         {mode !== 'inline' && (engineName || presetName) ? (
           <div className="player-visualizer-preset" title={presetName}>
             {[engineName, presetName].filter(Boolean).join(' · ')}

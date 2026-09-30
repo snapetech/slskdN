@@ -5949,3 +5949,22 @@ resource completion.
 - [ ] Validate over a representative WAN and reciprocal Soulseek file transfer;
   the local delay injection does not cover packet loss, jitter or sustained
   deployment congestion.
+
+
+### Player reduced-motion visualizer behavior — 2026-09-30
+
+- [x] Pause analyzer reads and visualizer rendering when the system requests
+  reduced motion while leaving audio playback active; provide session-only
+  “Animate anyway” controls in the visualizer and analyzer tiles.
+- [x] Keep the renderer alive when only its inline/full-window presentation
+  changes; clear a session override when its visual selection is turned off.
+- [x] Pass 105 focused Player component tests and a real Chromium generated-PCM
+  workflow: zero analyzer reads for 500 ms under reduced motion, then resumed
+  reads and continued playback after opting in.
+- [x] Pass a strict TypeScript check for `player.spec.ts` and its harness.
+- [x] Pass production Web build, bundle-size check, Player Web lint and
+  repository formatting lint; update the user-facing release fragment, changelog
+  and audit.
+- [ ] Continue the broader Player audit; physical devices, assistive-technology
+  speech, long-session resource plateau, WAN radio and reciprocal Soulseek
+  transfers remain open.
