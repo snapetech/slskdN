@@ -15583,3 +15583,19 @@ No tag, release or deployment was created.
   coverage.
 - Stable `.331` PPA workflow `36660736959` remains in progress. This test-only
   batch does not warrant a release tag; do not start `.332`.
+
+## Update 2026-09-30 16:53 UTC
+
+- YunoHost/apps PR #3627 merged as `0b1cfc1a606543b7d1d0b5a35560fb2a73f02a9a`.
+  The catalog now points to `YunoHost-Apps/slskdn_ynh` on `testing` and keeps
+  state `inprogress`. The maintainer's latest review assigns level 6, which is
+  the YunoHost-Apps hosting level.
+- The org maintainer's CI-gauge PR #1 remains an intentionally phony draft and
+  must not be merged. Its level-0 status contexts are expected for an unmerged
+  test PR; case-level results remain unverified, so the catalog state stays
+  `inprogress`/`testing`.
+- Local YunoHost package subtree matches the transferred repository's
+  `main`/`testing` content, so no package sync was needed. Added a source-repo
+  pre-push hook and manual script to sync only that subtree to `testing` after
+  an eligible `main` push. The hook continues syncing when the secret scan is
+  skipped; gotcha 0z1305 records that boundary.

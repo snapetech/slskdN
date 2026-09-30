@@ -27,6 +27,16 @@ Next Steps: continue the remaining Player audit. Keep other assistive-
 technology combinations, physical devices, long-session resources, WAN playback
 and reciprocal transfers open until directly verified.
 
+## YunoHost catalog follow-up — 2026-09-30 16:53 UTC
+
+YunoHost/apps PR #3627 was merged by a maintainer as `0b1cfc1a6`. Its catalog
+entry points to `YunoHost-Apps/slskdn_ynh` on `testing` and remains
+`inprogress`. The reviewer assigned level 6 after the repository transfer.
+The separate CI-gauge PR #1 is intentionally phony and must remain unmerged;
+its level-0 status is expected while unmerged, so do not infer lifecycle test
+results or promote the catalog state from that status. Check case-level CI
+results before changing `inprogress` or the `testing` branch.
+
 ## Historical state — Player pause-time rendering runtime validation (superseded 2026-09-30 03:17 UTC)
 
 The three-hour Chromium resource capture stopped after 132/180 windows (60

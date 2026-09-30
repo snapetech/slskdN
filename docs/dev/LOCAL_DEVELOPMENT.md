@@ -12,7 +12,7 @@ Run this once after cloning the repo:
 ./scripts/setup-git-hooks.sh
 ```
 
-That installs the checked-in local git hooks by setting `core.hooksPath` to `.githooks`, so the pre-commit changelog/packaging checks and the pre-push secret scan actually run on your clone.
+That installs the checked-in local git hooks by setting `core.hooksPath` to `.githooks`, so the pre-commit changelog/packaging checks and pre-push secret scan run on your clone. A push of `main` also syncs only `packaging/yunohost/slskdn_ynh` to the YunoHost package repository's `testing` branch when that subtree changed.
 
 You can verify it later with:
 

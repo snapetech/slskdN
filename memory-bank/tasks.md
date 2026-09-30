@@ -208,17 +208,17 @@
     matching runner. No release tag was created.
 
 - [x] Prepare and submit the slskdN YunoHost package and catalog entry.
-  - Status: package published; catalog PR #3627 remains open for maintainer
-    review (2026-09-25).
+  - Status: package repository transferred to YunoHost-Apps; catalog PR #3627
+    merged on 2026-09-30.
   - Priority: P1
   - Notes: Added the YunoHost v2 package under `packaging/yunohost/`, pinned
     stable release `2026092517-slskdn.325` for amd64 and arm64, and published
-    the standalone repository `snapetech/slskdn_ynh` with `main` and `testing`
-    branches. The catalog PR targets `YunoHost/apps`, sets the app to
+    the package repository `YunoHost-Apps/slskdn_ynh` with matching `main` and
+    `testing` branches. The catalog PR targets `YunoHost/apps`, sets the app to
     `inprogress` on `testing`, adds the `non-free-network` antifeature and
     logo, and removes the fulfilled `slskd` wishlist entry. The package linter
-    passes manifest, script, and general package checks; catalog status remains
-    pending PR merge. Fixed Debian apt package selection with YunoHost v2's
+    passes manifest, script, and general package checks. Fixed Debian apt
+    package selection with YunoHost v2's
     `packages_from_raw_bash`, documented the alternatives gotcha, and pushed
     root commit `729bb171e` plus package-repo commit `4a2c89d` to both package
     branches. `package_check.sh` on YunoHost 12.1.41.2 (Bookworm) passed all
@@ -227,18 +227,26 @@
     0 while the unmerged app lacks catalog metadata; the lifecycle cases all
     pass. `catalog_linter.py`, `logos_check.py`, `./bin/lint`, and `dotnet test`
     pass (74 application, 5,161 unit, 284 integration). Updated PR #3627 with
-    the full test results; keep the app `inprogress` on `testing` until
-    maintainers complete review.
+    the full test results. The merged catalog entry still uses `testing` and
+    `inprogress`; YunoHost assigned level 6 after the repository transfer.
+    The checked-in pre-push hook now syncs only this package subtree to the
+    YunoHost repository's `testing` branch when a `main` push changes it.
 
-- [ ] Respond to YunoHost catalog PR #3627 review and update the catalog state
-  only after YunoHost package CI validates the package.
-  - Status: awaiting maintainer review; the complete local package-check suite
-    passed on 2026-09-26.
+- [x] Respond to YunoHost catalog PR #3627 review.
+  - Status: merged by a YunoHost maintainer on 2026-09-30; the latest review
+    reports level 6.
   - Priority: P2
-  - Notes: Keep the catalog on the `testing` branch and `inprogress` state
-    until maintainers verify the package lifecycle. Do not transfer repository
-    ownership or mark the app working without maintainer direction and passing
-    package checks.
+  - Notes: The test-gauge PR #1 in `YunoHost-Apps/slskdn_ynh` is explicitly
+    phony and must remain unmerged. Its level-0 statuses are expected for that
+    unmerged test PR and do not establish lifecycle test failures or success.
+
+- [ ] Review YunoHost package CI case results before promoting the catalog app
+  from `inprogress` or changing its branch.
+  - Status: catalog remains `testing`/`inprogress`; CI case details from the
+    unmerged gauge PR are not yet available for review.
+  - Priority: P2
+  - Notes: Do not merge the gauge PR or infer a package lifecycle result from
+    its expected level-0 status.
 
 - [x] Make the released VPN agent understandable and runnable across platforms.
   - Status: completed, validated, and merged to `main` (2026-09-25).

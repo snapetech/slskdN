@@ -33858,3 +33858,17 @@ single sink whose monitor the runner recorded.
 
 **Prevention:** Route browser playback and Orca speech to separate private
 null sinks, then capture and analyze only the Orca sink monitor.
+
+### 0z1305. Keep The YunoHost Sync Hook Active When Skipping Secret Scans (2026-09-30)
+
+**What went wrong:** The pre-push hook exited immediately when
+`SKIP_SECRET_SCAN=1` was set or `rg` was unavailable. Since the YunoHost package
+sync ran later in the same hook, those secret-scan conditions also skipped a
+requested package sync.
+
+**Why:** The hook treated a scanner skip as a request to bypass every pre-push
+action rather than only the secret scan.
+
+**Prevention:** Gate the secret-scanning work separately, while still reading
+the pushed refs and running the YunoHost package sync for an eligible `main`
+push. A bypass flag for one hook check must not bypass independent checks.
