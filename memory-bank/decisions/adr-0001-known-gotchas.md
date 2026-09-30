@@ -33730,3 +33730,16 @@ visual.
 stage, outside its click-to-cycle target and outside the optional control row.
 Verify it remains visible and inside the tile at the 320 px layout, and verify
 the status text does not overlap the touch target.
+
+### 0z1296. Normalize Local PulseAudio Socket Paths In The Orca Runner (2026-09-30)
+
+**What went wrong:** The screen-reader runner stopped before launching Orca
+because `pactl info` returned the local PulseAudio socket as an absolute path
+without a `unix:` prefix, which the runner rejected.
+
+**Why:** The runner required one string representation for a local Unix socket
+even though `pactl` can report the same socket as a bare absolute path.
+
+**Prevention:** Normalize an absolute socket path to the `unix:` form before
+the local-only transport check. Keep rejecting TCP and other non-local audio
+transport forms so speech remains on the isolated virtual sink.
