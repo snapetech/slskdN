@@ -33833,14 +33833,15 @@ the speech recording.
 ### 0z1303. Keep The Orca Speech Socket Path Short (2026-09-30)
 
 **What went wrong:** Orca logged Player status text but did not send it through
-Speech Dispatcher. Its client reported `AF_UNIX path too long` because the
-per-run XDG cache was nested under the repository's screen-reader evidence
+Speech Dispatcher. Its client reported `AF_UNIX path too long` because
+`XDG_RUNTIME_DIR` pointed into the repository's screen-reader evidence
 directory.
 
-**Why:** Speech Dispatcher places its Unix-domain socket under its cache
-folder, and Linux limits the length of that socket path. Orca can still log
+**Why:** Speech Dispatcher places its Unix-domain socket under
+`XDG_RUNTIME_DIR` before falling back to `XDG_CACHE_HOME`. Orca can still log
 requested speech text when the real speech service connection has failed.
 
 **Prevention:** Give the disposable Orca container a short, private
-`XDG_CACHE_HOME` path, check the Orca log for speech-server connection errors,
-and require captured audio during Player announcements.
+`XDG_RUNTIME_DIR` and mount it for both the host and container. Check the Orca
+log for speech-server connection errors and require captured audio during
+Player announcements.
