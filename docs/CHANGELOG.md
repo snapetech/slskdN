@@ -22,10 +22,20 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026093019-slskdn.332] — 2026-09-30
+
 ### Player reduced-motion behavior
 
 - Pause analyzer and visualizer animation when the browser requests reduced motion, keep audio playing, and offer a session-only option to animate anyway.
 - Keep the reduced-motion animation control visible and keyboard-operable in narrow Player layouts.
+
+### Security dependency update
+
+- Update MessagePack to 3.1.10 to address excessive backtracking in assembly-name matching.
+
+### Dependency and build updates
+
+- Refresh the S3 SDK, Dapper, and Web workspace dependencies, and update the pnpm and Node setup actions used by CI and release workflows.
 
 ## [2026093002-slskdn.331] — 2026-09-30
 

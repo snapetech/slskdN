@@ -5986,3 +5986,20 @@ resource completion.
 - [ ] Continue the broader Player audit; physical devices, assistive-technology
   speech, long-session resource plateau, WAN radio and reciprocal Soulseek
   transfers remain open.
+
+
+### Stable release `.332` — 2026-09-30
+
+- [x] Confirm MusicBrainz issue #340 was fixed by `09b7ebaa8`, included in
+  stable `.331`, and close the issue with that evidence.
+- [x] Merge compatible dependency and workflow PRs #341, #342, #345, #346,
+  and #347.
+- [x] Regenerate the pnpm lockfile and validate the combined Web dependency
+  tree: 1,114 tests, lint, and production build pass.
+- [ ] Run the release gate and repository lint, commit/push the release notes
+  and lockfile, validate the exact release range, then create the authorized
+  `.332` stable tag.
+- [ ] Revisit React 19 PRs #343 and #344 after Semantic UI React and its
+  `@fluentui/react-component-ref` dependency support React 19 without
+  `ReactDOM.findDOMNode`; the combined candidate currently fails Web component
+  tests.
