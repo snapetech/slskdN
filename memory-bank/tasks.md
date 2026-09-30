@@ -35,10 +35,11 @@
     manifests. Cloudron now points to that image and packaging validation passes.
 
 - [ ] Confirm the `.330` and `.331` Launchpad uploads finish.
-  - Status: `.330` source is published but its amd64 binary is still uploading;
-    `.331` PPA publication is waiting in the release workflow.
+  - Status: `.330`'s 90-minute publication check timed out while Launchpad still
+    reported its amd64 build as `Uploading build`; `.331`'s PPA job has started
+    building its source package.
   - Notes: Track build-on-tag runs `36657314411` and `36660736959` until both
-    PPA publication checks finish.
+    exact Jammy binaries are published. The `.331` omnibus tester image succeeded.
 
 - [x] Include actual Soulseek downloads in player fairness totals.
   - Status: implemented and fully validated after immutable `.328` release (2026-09-28).

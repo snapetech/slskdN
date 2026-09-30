@@ -15501,3 +15501,18 @@ No tag, release or deployment was created.
   also still building. Overall player work remains open: the three-hour
   resource capture, actual screen-reader speech, physical-device behavior,
   representative WAN playback, and reciprocal transfers remain.
+
+## 2026-09-30 03:50 UTC — Launchpad release follow-up
+
+- `.330`'s Launchpad source is published, but its amd64 build remains in
+  `Uploading build`. The workflow's 90-minute publication check timed out;
+  Launchpad has not marked the exact binary published.
+- The `.331` PPA workflow moved from queued to building its source package after
+  `.330` released the PPA concurrency slot. Continue tracking workflows
+  `36657314411` and `36660736959` until the exact Jammy binaries publish or the
+  `.331` wait times out.
+- The `.331` Docker Hub and GHCR images are published for amd64 and arm64. Its
+  optional omnibus tester image succeeded. The release record and Cloudron
+  `.331` sync are pushed; player work remains active with the resource capture,
+  actual screen-reader output, physical-device behavior, WAN playback, and
+  reciprocal transfers still open.

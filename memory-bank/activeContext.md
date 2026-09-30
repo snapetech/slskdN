@@ -1,4 +1,4 @@
-## Current state — `.331` Docker release repair — 2026-09-30 03:17 UTC
+## Current state — `.331` release and Launchpad publication — 2026-09-30 03:50 UTC
 
 The `.330` GitHub release published its six platform archives, but its Docker
 image build failed because the web build stage omitted the pnpm patch file. The
@@ -11,24 +11,26 @@ image independently from binary release metadata. The Cloudron sync script adds
 immutable versions and updates the manifest, Dockerfile, and stable-image marker.
 The `.331` Docker Hub and GHCR images are published for Linux amd64 and arm64;
 the six GitHub release archives passed published-checksum verification. The
-Cloudron `.331` sync has been applied locally and packaging metadata validation
-passes. Its changes and the memory-bank update still need to be committed and
-pushed.
+Cloudron `.331` sync and packaging metadata update are committed and pushed as
+`83ef619eb`. The working tree is clean.
 
 The first hosted `.331` release-gate attempt had one timeout waiting for a TCP
 listener. The same immutable tag passed on retry. The full local gate passed:
 1,106 web tests, 5,346 unit tests, 74 smoke tests, and 40 integration tests.
 The `.331` AUR, Chocolatey, Homebrew, Nix, COPR, and Discord steps passed. The
-`.330` Launchpad build is still uploading its amd64 binary, and the `.331` PPA
-job is pending. Track release workflow runs `36657314411` and `36660736959`.
+`.330` Launchpad source is published, but its amd64 build remains in
+"Uploading build". Workflow `36657314411` timed out after its 90-minute wait.
+The `.331` PPA job in workflow `36660736959` has started building its source
+package. Neither exact binary is confirmed published yet. The `.331` omnibus
+tester image finished successfully.
 
 Keep the Player goal active. The three-hour resource capture remains incomplete;
 actual screen-reader speech, physical-device behavior, representative WAN
 playback, and reciprocal Soulseek transfers remain open.
 
-Next Steps: commit and push the Cloudron `.331` sync with these task/context
-updates. Monitor both Launchpad publication checks, then continue the remaining
-Player work without treating the partial resource capture as acceptance.
+Next Steps: monitor both Launchpad package publications and update the task when
+the exact binaries are published or the `.331` wait times out. Continue the
+remaining Player work without treating the partial resource capture as acceptance.
 
 ## Historical state — Player pause-time rendering runtime validation (superseded 2026-09-30 03:17 UTC)
 
