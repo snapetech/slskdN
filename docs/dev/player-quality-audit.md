@@ -91,7 +91,7 @@ simulated device APIs.
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
 | Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before and after first output | Setup cancellation: component/API tests / high; six codec-retry/server-failure workflows pass in Chromium, Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
-| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; screen-reader output remains open |
+| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; one Linux Orca/Chromium playback-status workflow passes with isolated audio capture / high for tested messages; other reader/browser pairs and physical assistive technology remain open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 107 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
@@ -107,6 +107,26 @@ simulated device APIs.
 
 See the dated validation sections below for latest gate counts; earlier counts
 record the source version validated at that time.
+
+### Actual Orca screen-reader speech — 2026-09-30
+
+The isolated runtime test launches Chromium and Orca with Speech Dispatcher and
+eSpeak NG. Chromium's generated player tone and Orca's synthesized speech use
+separate private PulseAudio null sinks; only the Orca sink is captured. The test
+uses a short shared runtime directory so Speech Dispatcher can open its Unix
+socket, and rejects backend connection errors in Orca's log.
+
+While the browser remains open, the Playwright workflow waits for Orca to emit
+the Player's exact “Now playing,” “Paused,” and “Playback stopped” updates after
+the corresponding keyboard actions. The passing run completed 1/1 workflow,
+recorded 167 active 100 ms audio windows over 23.6 seconds after the speech
+engine preflight, and logged no Speech Dispatcher connection failure. The
+strict Player E2E TypeScript check and production Web build also passed.
+
+This verifies one Linux Orca/Chromium pairing for playback-status messages. It
+does not verify other screen readers, browser pairings, spoken volume/equalizer
+values, or physical assistive-technology hardware. Confidence is high for the
+tested runtime path.
 
 ### Listed-radio active stream recovery — 2026-09-29
 
@@ -137,8 +157,9 @@ player's volume, speed and seek controls receive an opaque three-pixel ring.
 The browser regression measures at least 3:1 against the modal and player
 control surfaces in Chromium, Firefox and WebKit. The main controls previously
 used a one-pixel black native outline. Confidence is high for the tested
-controls; full player control order and assistive-technology output remain
-open.
+controls; full player control order and assistive-technology output were still
+open during this 2026-09-29 contrast run. Later audit sections record the
+completed tab-order regression and the Orca playback-status workflow.
 
 ### Volume slider announcements — 2026-09-29
 
@@ -146,8 +167,9 @@ The compact and expanded volume sliders now expose `aria-valuetext` as a
 rounded percentage. Unit coverage checks initial, changed and compact values;
 the cross-browser keyboard regression verifies that ArrowLeft and ArrowRight
 update the announced value in Chromium, Firefox and WebKit. Confidence is high
-for the rendered accessible value and keyboard update. Speech output from
-specific screen reader/browser combinations remains unverified.
+for the rendered accessible value and keyboard update. Actual spoken volume
+values and additional screen-reader/browser combinations remain unverified;
+the Orca runtime workflow above covers playback status only.
 
 ### Equalizer gain announcements — 2026-09-29
 
@@ -156,8 +178,8 @@ The ten equalizer sliders now expose their gain in decibels through
 the disabled default, enabled state and a direct -3 dB adjustment. A browser
 workflow adjusts the first vertical band by keyboard and verifies the spoken
 value attribute in Chromium, Firefox and WebKit. Confidence is high for the
-accessible value and update. Actual assistive-technology speech remains
-unverified.
+accessible value and update. Actual spoken equalizer gains remain
+unverified; the Orca runtime workflow above covers playback status only.
 
 ### Expanded and compact keyboard focus order — 2026-09-29
 
@@ -218,15 +240,16 @@ Component coverage and the real Chromium keyboard workflow verify its role,
 text and play/pause/Stop changes. The `status` role is a
 polite live region that does not require focus under the
 [W3C ARIA22 technique](https://www.w3.org/WAI/WCAG21/Techniques/aria/ARIA22).
-This browser evidence does not establish spoken output for any screen-reader
-and browser pairing; that remains open. Confidence is high for the DOM status
-contract and unknown for actual assistive-technology speech.
+This 2026-09-29 browser run established the DOM contract but not spoken output.
+The later Orca runtime workflow above verifies one Linux screen-reader/browser
+pairing for playback statuses. Other pairings remain open. Confidence is high
+for the tested DOM contract and the captured Orca playback-status path.
 
 Validation on this change: all 1,103 Web tests, all 29 Chromium player browser
 tests, production Web build, strict browser TypeScript, Web lint, repository
-lint, and the .NET unit/smoke/integration suites (5,346/74/284) passed. This is
-automated DOM and interaction evidence only; screen-reader speech has not been
-listened to or certified.
+lint, and the .NET unit/smoke/integration suites (5,346/74/284) passed. This
+was automated DOM and interaction evidence only; captured Orca speech for one
+playback-status workflow is documented above.
 
 ### Decoded setup request cancellation — 2026-09-29
 
@@ -404,13 +427,16 @@ are happening; that reciprocal-transfer workflow remains open.
   visualizer, output-switch, floating-window and radio workloads.
 - Define CPU and memory acceptance budgets on representative minimum and target
   hardware; current Chromium figures are host-specific measurements.
-- Complete assistive-technology speech workflows. All eight
+- Extend assistive-technology speech coverage beyond the verified Orca/
+  Chromium playback-status workflow. All eight
   player dialogs now expose their title, receive focus on entry, wrap Tab in
   both directions, and restore the opener on Escape. The queue dialog workflow
   verifies those behaviors in three browser engines; the visible expanded,
-  advanced and compact player Tab order now passes in all three too. Actual
-  screen-reader output remains open. Core playback, paused seeking and compact
-  mode keyboard activation also pass in all three engines.
+  advanced and compact player Tab order now passes in all three too. Captured
+  Orca speech now verifies “Now playing,” “Paused,” and Stop in one isolated
+  Chromium workflow. Other reader/browser combinations, spoken slider values,
+  and physical assistive technology remain open. Core playback, paused seeking
+  and compact-mode keyboard activation also pass in all three engines.
 - Resolve newly discovered defects and update this audit with direct evidence.
 
 ## Cross-engine media suite — 2026-09-28

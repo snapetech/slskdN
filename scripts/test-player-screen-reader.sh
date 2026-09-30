@@ -19,24 +19,27 @@ fi
 evidence_directory="$repo_root/.local/player-a11y-evidence"
 mkdir -p "$evidence_directory"
 run_id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
-runtime_directory="$evidence_directory/runtime-$run_id"
+runtime_directory=''
 home_directory="$evidence_directory/home-$run_id"
-cache_directory="$evidence_directory/cache-$run_id"
 debug_log="$evidence_directory/orca-$run_id.log"
-applications_log="$evidence_directory/orca-applications-$run_id.txt"
 pcm_capture="$evidence_directory/orca-speech-$run_id.s16le"
+pcm_offset_file="$evidence_directory/orca-speech-offset-$run_id.txt"
 sink_name="slskdn_player_a11y_$$"
 container_name="slskdn-player-a11y-$$-${RANDOM}"
 container_user="$(id -u):$(id -g)"
 capture_pid=''
+playwright_tmp_directory=''
 module_id=''
 
-mkdir -p "$runtime_directory" "$home_directory" "$cache_directory"
-chmod 700 "$runtime_directory"
+container_cache_directory='/tmp/slskdn-player-a11y-cache'
+mkdir -p "$home_directory"
 
 pulse_server="${PULSE_SERVER:-}"
 if [[ -z "$pulse_server" ]]; then
   pulse_server="$(pactl info | sed -n 's/^Server String: //p' | head -n 1)"
+fi
+if [[ "$pulse_server" == /* ]]; then
+  pulse_server="unix:$pulse_server"
 fi
 if [[ "$pulse_server" != unix:* ]]; then
   echo 'The screen-reader test requires a local Unix PulseAudio socket so speech stays on the isolated virtual sink.' >&2
@@ -46,13 +49,20 @@ pulse_socket_path="${pulse_server#unix:}"
 pulse_socket_path="${pulse_socket_path%%,*}"
 pulse_socket_path="${pulse_socket_path%%\?*}"
 pulse_socket_directory="$(dirname "$pulse_socket_path")"
-pulse_cookie="${PULSE_COOKIE:-${XDG_CONFIG_HOME:-$HOME/.config}/pulse/cookie}"
 
 module_id="$(pactl load-module module-null-sink "sink_name=$sink_name" rate=48000 channels=2 sink_properties=device.description=PlayerScreenReaderAudit)"
 if [[ ! "$module_id" =~ ^[0-9]+$ ]]; then
   echo 'Could not create the isolated screen-reader speech sink.' >&2
   exit 1
 fi
+browser_sink_name="slskdn_player_audio_$$"
+browser_module_id="$(pactl load-module module-null-sink "sink_name=$browser_sink_name" rate=48000 channels=2 sink_properties=device.description=PlayerBrowserAudit)"
+if [[ ! "$browser_module_id" =~ ^[0-9]+$ ]]; then
+  pactl unload-module "$module_id" >/dev/null 2>&1 || true
+  echo 'Could not create the isolated browser playback sink.' >&2
+  exit 1
+fi
+pulse_cookie="${PULSE_COOKIE:-${XDG_CONFIG_HOME:-$HOME/.config}/pulse/cookie}"
 
 cleanup() {
   docker stop --time 3 "$container_name" >/dev/null 2>&1 || true
@@ -63,11 +73,19 @@ cleanup() {
   if [[ "$module_id" =~ ^[0-9]+$ ]]; then
     pactl unload-module "$module_id" >/dev/null 2>&1 || true
   fi
+  if [[ "$browser_module_id" =~ ^[0-9]+$ ]]; then
+    pactl unload-module "$browser_module_id" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "$playwright_tmp_directory" ]]; then
+    rm -rf -- "$playwright_tmp_directory"
+  fi
 }
 
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+playwright_tmp_directory="$(mktemp -d /tmp/slskdn-player-a11y.XXXXXX)"
+runtime_directory="$playwright_tmp_directory"
 
 parec --raw --format=s16le --rate=48000 --channels=2 --device="$sink_name.monitor" \
   >"$pcm_capture" &
@@ -82,9 +100,10 @@ pnpm --filter @slskdn/web run build
 
 export SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY="$evidence_directory"
 export SLSKDN_PLAYER_A11Y_HOME_DIRECTORY="$home_directory"
-export SLSKDN_PLAYER_A11Y_CACHE_DIRECTORY="$cache_directory"
+export SLSKDN_PLAYER_A11Y_CACHE_DIRECTORY="$container_cache_directory"
 export SLSKDN_PLAYER_A11Y_DEBUG_LOG="$debug_log"
-export SLSKDN_PLAYER_A11Y_APPLICATIONS_LOG="$applications_log"
+export SLSKDN_PLAYER_A11Y_PCM_CAPTURE="$pcm_capture"
+export SLSKDN_PLAYER_A11Y_PCM_OFFSET_FILE="$pcm_offset_file"
 export SLSKDN_PLAYER_A11Y_CONTAINER="$container_name"
 export SLSKDN_PLAYER_A11Y_CONTAINER_USER="$container_user"
 export SLSKDN_PLAYER_A11Y_IMAGE="$image"
@@ -95,11 +114,9 @@ export SLSKDN_PLAYER_A11Y_SINK="$sink_name"
 export SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY="$runtime_directory"
 export SLSKDN_PLAYER_SCREEN_READER=1
 export HEADLESS=false
-export PULSE_SINK="$sink_name"
-export XDG_CACHE_HOME="$cache_directory"
+export PULSE_SINK="$browser_sink_name"
 export XDG_RUNTIME_DIR="$runtime_directory"
-export TMPDIR="$evidence_directory/tmp-$run_id"
-mkdir -p "$TMPDIR"
+export TMPDIR="$playwright_tmp_directory"
 
 # The session command must expand these variables after Xvfb and D-Bus are ready.
 # shellcheck disable=SC2016
@@ -115,6 +132,7 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
     dbus_socket_directory="$(dirname "$dbus_socket_path")"
     container_mounts=(
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY,dst=$SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY"
+      --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY,dst=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY"
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_PULSE_DIRECTORY,dst=$SLSKDN_PLAYER_A11Y_PULSE_DIRECTORY"
       --mount "type=bind,src=$dbus_socket_directory,dst=$dbus_socket_directory"
       --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix
@@ -129,25 +147,49 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
       --user "$SLSKDN_PLAYER_A11Y_CONTAINER_USER" \
       "${container_mounts[@]}" \
       --env DISPLAY --env DBUS_SESSION_BUS_ADDRESS \
-      --env XDG_CACHE_HOME --env XDG_RUNTIME_DIR \
+      --env XDG_CACHE_HOME="$SLSKDN_PLAYER_A11Y_CACHE_DIRECTORY" --env XDG_RUNTIME_DIR \
       --env HOME="$SLSKDN_PLAYER_A11Y_HOME_DIRECTORY" \
       --env PULSE_SERVER="$SLSKDN_PLAYER_A11Y_PULSE_SERVER" \
       --env PULSE_SINK="$SLSKDN_PLAYER_A11Y_SINK" \
       --env PULSE_COOKIE \
       --entrypoint /bin/sleep "$SLSKDN_PLAYER_A11Y_IMAGE" infinity >/dev/null
 
-    docker exec --detach --user "$SLSKDN_PLAYER_A11Y_CONTAINER_USER" \
-      --env DISPLAY --env DBUS_SESSION_BUS_ADDRESS --env XDG_CACHE_HOME \
-      --env XDG_RUNTIME_DIR --env HOME="$SLSKDN_PLAYER_A11Y_HOME_DIRECTORY" \
-      --env PULSE_SERVER="$SLSKDN_PLAYER_A11Y_PULSE_SERVER" \
-      --env PULSE_SINK="$SLSKDN_PLAYER_A11Y_SINK" --env PULSE_COOKIE \
-      "$SLSKDN_PLAYER_A11Y_CONTAINER" /usr/libexec/at-spi-bus-launcher --launch-immediately --screen-reader=1
-    docker exec --detach --user "$SLSKDN_PLAYER_A11Y_CONTAINER_USER" \
-      --env DISPLAY --env DBUS_SESSION_BUS_ADDRESS --env XDG_CACHE_HOME \
-      --env XDG_RUNTIME_DIR --env HOME="$SLSKDN_PLAYER_A11Y_HOME_DIRECTORY" \
-      --env PULSE_SERVER="$SLSKDN_PLAYER_A11Y_PULSE_SERVER" \
-      --env PULSE_SINK="$SLSKDN_PLAYER_A11Y_SINK" --env PULSE_COOKIE \
-      "$SLSKDN_PLAYER_A11Y_CONTAINER" /usr/bin/orca --replace \
+    container_exec_options=(
+      --user "$SLSKDN_PLAYER_A11Y_CONTAINER_USER"
+      --env DISPLAY
+      --env DBUS_SESSION_BUS_ADDRESS
+      --env XDG_CACHE_HOME="$SLSKDN_PLAYER_A11Y_CACHE_DIRECTORY"
+      --env XDG_RUNTIME_DIR
+      --env HOME="$SLSKDN_PLAYER_A11Y_HOME_DIRECTORY"
+      --env PULSE_SERVER="$SLSKDN_PLAYER_A11Y_PULSE_SERVER"
+      --env PULSE_SINK="$SLSKDN_PLAYER_A11Y_SINK"
+      --env PULSE_COOKIE
+    )
+
+    docker exec --detach "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+      /usr/bin/speech-dispatcher --run-daemon --timeout 0
+    speech_dispatcher_ready=false
+    for attempt in $(seq 1 30); do
+      if docker exec "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+        /usr/bin/spd-say --wait --application-name=PlayerScreenReaderAudit \
+        "Speech engine audio check" >/dev/null 2>&1; then
+        speech_dispatcher_ready=true
+        break
+      fi
+      sleep 0.5
+    done
+    if [[ "$speech_dispatcher_ready" != true ]]; then
+      echo "Speech Dispatcher did not produce its isolated audio check." >&2
+      exit 1
+    fi
+    sleep 0.5
+    capture_offset="$(wc -c < "$SLSKDN_PLAYER_A11Y_PCM_CAPTURE")"
+    printf "%s\n" "$capture_offset" >"$SLSKDN_PLAYER_A11Y_PCM_OFFSET_FILE"
+
+    docker exec --detach "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+      /usr/libexec/at-spi-bus-launcher --launch-immediately --screen-reader=1
+    docker exec --detach "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+      /usr/bin/orca --replace \
         --speech-system speechdispatcherfactory --debug-file="$SLSKDN_PLAYER_A11Y_DEBUG_LOG" --debug
 
     for attempt in $(seq 1 30); do
@@ -163,13 +205,6 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
       --grep @player-screen-reader --workers=1 --retries=0 --trace=off --reporter=line
 
     sleep 2
-    docker exec --user "$SLSKDN_PLAYER_A11Y_CONTAINER_USER" \
-      --env DISPLAY --env DBUS_SESSION_BUS_ADDRESS --env XDG_CACHE_HOME \
-      --env XDG_RUNTIME_DIR --env HOME="$SLSKDN_PLAYER_A11Y_HOME_DIRECTORY" \
-      --env PULSE_SERVER="$SLSKDN_PLAYER_A11Y_PULSE_SERVER" \
-      --env PULSE_SINK="$SLSKDN_PLAYER_A11Y_SINK" --env PULSE_COOKIE \
-      "$SLSKDN_PLAYER_A11Y_CONTAINER" /usr/bin/orca --list-apps \
-      >"$SLSKDN_PLAYER_A11Y_APPLICATIONS_LOG"
   '
 
 kill -INT "$capture_pid" >/dev/null 2>&1 || true
@@ -181,25 +216,30 @@ if [[ "$capture_status" -ne 0 && "$capture_status" -ne 130 ]]; then
 fi
 capture_pid=''
 
-if ! grep -Eiq 'Chromium|Chrome' "$applications_log"; then
-  echo 'Orca did not register the Playwright Chromium browser as an accessible application.' >&2
-  cat "$applications_log" >&2
+if ! grep -Fq "SPEECH OUTPUT: 'Google Chrome for Testing frame." "$debug_log"; then
+  echo 'Orca did not process the Playwright Chromium application while it was running.' >&2
   exit 1
 fi
-for spoken_text in "Now playing:" "Paused:" "Playback stopped."; do
-  if ! grep -Fq "SPEECH OUTPUT: '$spoken_text" "$debug_log"; then
+if grep -Eiq 'Speech Dispatcher service failed to connect|No speech server for factory' "$debug_log"; then
+  echo 'Orca logged a Speech Dispatcher connection failure.' >&2
+  exit 1
+fi
+for spoken_text in "Now playing: Player runtime first." "Paused: Player runtime first." "Playback stopped."; do
+  if ! grep -Fq "SPEECH OUTPUT: '$spoken_text'" "$debug_log"; then
     echo "Orca did not send the expected player status to speech: $spoken_text" >&2
     exit 1
   fi
 done
 
-python3 - "$pcm_capture" <<'PY'
+python3 - "$pcm_capture" "$pcm_offset_file" <<'PY'
 from array import array
 import math
 import os
 import sys
 
 with open(sys.argv[1], "rb") as capture_file:
+    with open(sys.argv[2], encoding="utf8") as offset_file:
+        capture_file.seek(int(offset_file.read().strip()))
     samples = array("h")
     samples.frombytes(capture_file.read())
 if sys.byteorder != "little":
@@ -207,22 +247,20 @@ if sys.byteorder != "little":
 if len(samples) % 2:
     raise SystemExit("Captured Orca speech has a partial stereo frame.")
 
-sample_rate = 48_000
-samples_per_second = sample_rate * 2
+samples_per_tenth = 48_000 * 2 // 10
 active_windows = 0
-for offset in range(0, len(samples) - samples_per_second + 1, samples_per_second):
-    window = samples[offset:offset + samples_per_second]
+for offset in range(0, len(samples) - samples_per_tenth + 1, samples_per_tenth):
+    window = samples[offset:offset + samples_per_tenth]
     rms = math.sqrt(sum(sample * sample for sample in window) / len(window))
     if rms >= 150:
         active_windows += 1
 
-seconds = len(samples) / samples_per_second
+seconds = len(samples) / (48_000 * 2)
 peak = max((abs(sample) for sample in samples), default=0)
-print(f"Orca spoke for {seconds:.1f} captured seconds; {active_windows} one-second windows contain speech; peak {peak}.")
-if seconds < 2 or active_windows < 3 or peak < 300:
+print(f"Orca speech capture contains {active_windows} active 100 ms windows over {seconds:.1f} seconds; peak {peak}.")
+if seconds < 2 or active_windows < 15 or peak < 300:
     raise SystemExit("The isolated screen-reader sink did not capture enough synthesized speech.")
 PY
 
 echo "Orca log: $debug_log"
-echo "Orca application list: $applications_log"
 echo "Isolated speech PCM: $pcm_capture"

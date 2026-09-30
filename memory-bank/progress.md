@@ -15559,3 +15559,27 @@ No tag, release or deployment was created.
   `./bin/lint` pass.
 - The `.331` Launchpad job remains at “Wait for PPA Publication.” The matching
   stable build is not complete, so no `.332` tag was started.
+
+
+## 2026-09-30 05:14 UTC — Actual Orca playback-status speech
+
+- Repaired the Player screen-reader regression runner and kept its browser test
+  focused on generated local PCM. While Chromium remained open, the test waited
+  for Orca to speak “Now playing,” “Paused,” and “Playback stopped.” The real
+  Linux Orca/Chromium workflow passed 1/1.
+- Isolated browser audio and Orca audio onto separate private PulseAudio null
+  sinks. Orca's sink capture contained 167 active 100 ms windows over 23.6
+  seconds after its speech-engine preflight; the Orca log recorded no Speech
+  Dispatcher connection errors. This proves one tested Orca/Chromium path, not
+  other readers, browser combinations, spoken slider values or physical devices.
+- The runtime work caught three invalid test assumptions: Orca's text log is
+  not audio evidence, its app list was checked after Chromium closed, and a
+  shared sink could capture the Player tone instead of speech. Speech
+  Dispatcher also used an overlong `XDG_RUNTIME_DIR` socket path. Gotchas
+  0z1299–0z1304 document these and the embedded-shell quoting failures.
+- `bash -n`, strict Player E2E TypeScript and the production Web build pass. The
+  build still prints its existing Vite config-loader and large-chunk warnings.
+  The audit and task list now record the verified speech path and remaining
+  coverage.
+- Stable `.331` PPA workflow `36660736959` remains in progress. This test-only
+  batch does not warrant a release tag; do not start `.332`.

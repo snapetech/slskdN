@@ -108,7 +108,7 @@
   - Notes: Check local/server streams, decoded seeking, crossfade interruption,
     duplicate local files, output switching, Media Session controls, room follow
     and reconnect, listed radio tune-in, Picture-in-Picture, analyzer idle work,
-    and collapsed/expanded layout. The current 33-workflow player browser suite
+    and collapsed/expanded layout. The current 34-workflow player browser suite
     passes in Chromium; the earlier 32-workflow cross-engine suite passes in
     host Firefox and passes 30 in WebKit with two capability skips. Generated
     local PCM, server AIFF seeking while paused/playing, and FLAC/MP3/Ogg
@@ -123,11 +123,12 @@
     a component assertion checks the requested 360x220 size. Actual desktop PiP
     geometry remains unverified because virtual Chromium reports the full
     display bounds. Physical mobile/output routing, headset controls,
-    WAN/listen-along, resource duration and actual assistive-technology speech
-    remain open. Per-format retry and server-generated decoder failures still
-    need a fresh cross-engine run. A three-hour resource attempt stopped at
-    132/180 windows; it is incomplete diagnostic data, not evidence of a
-    plateau.
+    WAN/listen-along, resource duration, and additional screen-reader/browser
+    pairs remain open. One isolated Linux Orca/Chromium playback-status workflow
+    now passes with captured speech. Per-format retry and server-generated
+    decoder failures still need a fresh cross-engine run. A three-hour resource
+    attempt stopped at 132/180 windows; it is incomplete diagnostic data, not
+    evidence of a plateau.
 
 - [x] Advance Cloudron packaging to the current published stable `.329` image.
   - Status: completed and packaging-validated (2026-09-30).
@@ -5876,7 +5877,11 @@ resource completion.
   announcements so short stalls do not chatter.
 - [x] Cover state changes in PlayerBar tests and the real Chromium keyboard
   workflow; rebuild the frontend.
-- [ ] Verify actual spoken output with supported screen-reader/browser pairs.
+- [x] Verify actual Player playback-status speech in one isolated Linux
+  Orca/Chromium workflow with the browser audio routed away from the captured
+  speech sink (completed 2026-09-30).
+- [ ] Verify other supported screen-reader/browser pairs and physical
+  assistive-technology workflows.
 
 
 ### Player server transcode error boundary — 2026-09-29

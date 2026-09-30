@@ -1,38 +1,31 @@
-## Current state — Player reduced-motion behavior and `.331` publication — 2026-09-30 04:37 UTC
+## Current state — Player reduced-motion and Orca speech validation — 2026-09-30 05:14 UTC
 
-The Player now pauses analyzer sampling and MilkDrop rendering when the browser
-requests reduced motion, while audio continues. Visible analyzer and visualizer
-controls offer a session-only “Animate anyway” override. Switching between
-inline and full-window presentation reuses the renderer. The focused Player
-component run passed 105/105; a real Chromium generated-PCM workflow recorded
-zero analyzer reads for 500 ms under reduced motion, then resumed reads and
-continued playback after opt-in. At 320 px the animation button stays visible,
-inside the tile, and keyboard-operable even though the normal mode-control row
-is hidden. The full Web suite passed 1,114/1,114 and the full Chromium Player
-suite passed 34/34. Production build, bundle-size check, Web ESLint, strict
-Player E2E TypeScript and repository formatting lint pass. The quality audit,
-changelog, release fragments, tasks and progress records are updated. The Player
-overhaul remains active: long-session resource use, physical devices, actual
-screen-reader speech, WAN playback and reciprocal Soulseek transfers remain.
+The Player pauses analyzer sampling and MilkDrop rendering under the browser's
+reduced-motion setting while audio continues. A session-only “Animate anyway”
+control is visible at 320 px and works with the keyboard. The full Web suite
+passed 1,114 tests across 173 files; all 34 Chromium Player workflows passed.
+The generated-PCM reduced-motion workflow verified that analyzer reads stop,
+then resume, without pausing audio.
 
-Stable `.331` binaries and Linux amd64/arm64 Docker images are published; the
-Cloudron sync and packaging metadata update are pushed as `83ef619eb`. The
-release gate passed locally with 1,106 Web tests, 5,346 unit tests, 74 smoke
-tests and 40 integration tests. The `.331` PPA workflow `36660736959` uploaded
-its source and is waiting for Launchpad publication confirmation. Do not call
-that binary published until Launchpad reports the exact package version.
+Actual spoken playback status is now verified in one Linux Orca/Chromium
+workflow. Playwright keeps the page open while Orca speaks “Now playing,”
+“Paused,” and “Playback stopped.” The browser's generated player tone uses a
+separate private PulseAudio null sink; only Orca's speech sink is captured. The
+1/1 runtime workflow captured 167 active 100 ms windows over 23.6 seconds after
+speech-engine preflight, with no Speech Dispatcher connection errors. Runner
+shell syntax, strict Player E2E TypeScript and the production Web build pass.
+Other screen-reader/browser pairs, spoken volume/equalizer values, physical
+assistive technology, the long-session resource plateau, WAN playback and
+reciprocal transfers remain open.
 
-Motion-test fixture gotcha `0z1294` is committed and pushed as `c4c5d031f`;
-the first reduced-motion feature batch is pushed as `a515435d1`. The mobile
-control gotcha is committed and pushed as `bbc2a15e4`; the follow-up keeps the
-override visible outside the hidden mobile mode row and passes the full player
-and Web suites. `.331` workflow `36660736959` remains in its Launchpad
-publication wait, so no `.332` build tag was started.
+Gotchas 0z1299–0z1304 cover Orca service startup, app-list timing, nested shell
+quoting, speech socket length and audio-sink isolation. The `.331` PPA workflow
+`36660736959` remains in progress; no `.332` tag was created for this internal
+test and documentation batch.
 
-Next Steps: continue the remaining Player audit and monitor the `.331` PPA job.
-Keep the incomplete three-hour resource capture, screen-reader speech,
-physical-device behavior, WAN playback and reciprocal transfers explicitly
-open.
+Next Steps: continue the remaining Player audit. Keep other assistive-
+technology combinations, physical devices, long-session resources, WAN playback
+and reciprocal transfers open until directly verified.
 
 ## Historical state — Player pause-time rendering runtime validation (superseded 2026-09-30 03:17 UTC)
 

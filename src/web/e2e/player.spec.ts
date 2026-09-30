@@ -41,6 +41,22 @@ const seekPlayerTo = async (page: Page, targetSeconds: number) => {
   await expect(seek).toHaveValue(String(targetSeconds));
 };
 
+const readOrcaSpeechCount = async (text: string) => {
+  if (process.env.SLSKDN_PLAYER_SCREEN_READER !== '1') return 0;
+  const debugLog = process.env.SLSKDN_PLAYER_A11Y_DEBUG_LOG;
+  if (!debugLog) throw new Error('The screen-reader run did not provide its Orca debug log.');
+  const contents = await fs.readFile(debugLog, 'utf8');
+  return contents.split(`SPEECH OUTPUT: '${text}'`).length - 1;
+};
+
+const expectOrcaSpeech = async (text: string, previousCount: number) => {
+  if (process.env.SLSKDN_PLAYER_SCREEN_READER !== '1') return;
+  await expect.poll(() => readOrcaSpeechCount(text), {
+    message: `Orca did not speak the player status: ${text}`,
+    timeout: 10_000,
+  }).toBeGreaterThan(previousCount);
+};
+
 const readPlayerTabOrder = async (page: Page) => page.locator('.player-bar').evaluate((player) => {
   const candidates = Array.from(player.querySelectorAll<HTMLElement>([
     'a[href]',
@@ -860,6 +876,7 @@ test.describe('player browser playback', () => {
   });
 
   test('controls playback and seeking with the keyboard in expanded and compact modes @player-screen-reader', async ({ page }) => {
+    const firstPlayCount = await readOrcaSpeechCount('Now playing: Player runtime first.');
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     const audioState = () => page.evaluate(() => {
       const element = document.querySelector<HTMLAudioElement>('audio');
@@ -871,14 +888,17 @@ test.describe('player browser playback', () => {
     }).toBe(true);
     const playbackAnnouncement = page.getByTestId('player-playback-announcement');
     await expect(playbackAnnouncement).toHaveText(/Now playing: .+/u);
+    await expectOrcaSpeech('Now playing: Player runtime first.', firstPlayCount);
 
     const play = page.getByTestId('player-toggle-playback');
     await expect(play).toHaveAccessibleName('Pause local playback');
+    const firstPauseCount = await readOrcaSpeechCount('Paused: Player runtime first.');
     await play.focus();
     await page.keyboard.press('Space');
     await expect(play).toHaveAccessibleName('Resume local playback');
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
     await expect(playbackAnnouncement).toHaveText(/Paused: .+/u);
+    await expectOrcaSpeech('Paused: Player runtime first.', firstPauseCount);
 
     const seek = page.getByLabel('Seek playback', { exact: true });
     await expect(seek).toBeEnabled();
@@ -889,6 +909,7 @@ test.describe('player browser playback', () => {
     await expect.poll(async () => (await audioState())?.currentTime).toBe(1);
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
 
+    const resumedSpeechCount = await readOrcaSpeechCount('Now playing: Player runtime first.');
     await play.focus();
     await page.keyboard.press('Enter');
     await expect.poll(async () => {
@@ -896,19 +917,24 @@ test.describe('player browser playback', () => {
       return state !== null && !state.paused && state.currentTime > 1.2;
     }).toBe(true);
     await expect(playbackAnnouncement).toHaveText(/Now playing: .+/u);
+    await expectOrcaSpeech('Now playing: Player runtime first.', resumedSpeechCount);
 
     const collapse = page.getByTestId('player-collapse');
     await collapse.focus();
     await page.keyboard.press('Enter');
     const compactPlay = page.getByTestId('player-collapsed-toggle-playback');
     await expect(compactPlay).toBeVisible();
+    const compactPauseCount = await readOrcaSpeechCount('Paused: Player runtime first.');
     await compactPlay.focus();
     await page.keyboard.press('Space');
     await expect(compactPlay).toHaveAccessibleName('Resume local playback');
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
+    await expectOrcaSpeech('Paused: Player runtime first.', compactPauseCount);
     await page.getByTestId('player-expand').click();
+    const stopSpeechCount = await readOrcaSpeechCount('Playback stopped.');
     await page.getByTestId('player-stop').click();
     await expect(playbackAnnouncement).toHaveText('Playback stopped.');
+    await expectOrcaSpeech('Playback stopped.', stopSpeechCount);
   });
 
   test('keeps the visible player controls in keyboard Tab order across modes', async ({ page }) => {
