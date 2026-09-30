@@ -15615,3 +15615,11 @@ No tag, release or deployment was created.
 - Next: push the validated commits to `main`, confirm both PRs merged, monitor
   `.332`, then cut the authorized `.333` tag with its validated release notes
   and verify published artifacts.
+
+## Update 2026-09-30 21:03 UTC
+
+- Fast-forward pushed the validated React 19 migration to `main` at
+  `c5809fcfa`. GitHub confirmed PRs #343 and #344 merged at 21:02 UTC.
+- The `.332` tag workflow still has all six platform publisher jobs queued;
+  its parser and core build succeeded, but there is still no GitHub Release.
+  Keep `.333` untagged until `.332` publication completes.

@@ -399,9 +399,9 @@
     refresh the patch only after a published replacement passes the Web suite.
 
 - [ ] Push the React 19 compatibility migration and publish stable `.333`.
-  - Status: implementation is committed and includes dependency PRs #343 and
-    #344; awaiting main push. Do not start `.333` while the `.332` platform
-    publication jobs remain queued.
+  - Status: migration pushed to `main` at `c5809fcfa` on 2026-09-30;
+    dependency PRs #343 and #344 are merged. Do not start `.333` while the
+    `.332` platform publication jobs remain queued.
   - Priority: P1
   - Notes: The exact release fragment and changelog bullet are ready. The
     release range preview from `build-main-2026093019-slskdn.332` passes.
@@ -6010,8 +6010,8 @@ resource completion.
 - [x] Run the release gate, publish the `.332` release notes and lockfile, and
   create the authorized stable tag.
   - Status: tag `build-main-2026093019-slskdn.332` exists; its tag parser and
-    core build passed, but all six platform publisher jobs were queued at
-    2026-09-30 20:53 UTC and no GitHub Release was visible yet.
+    core build passed, but all six platform publisher jobs remained queued at
+    2026-09-30 21:02 UTC and no GitHub Release was visible yet.
 - [ ] Verify `.332` platform publication and release assets before starting
   another stable tag.
   - Priority: P1
@@ -6019,8 +6019,8 @@ resource completion.
     run rather than starting a second stable publication concurrently.
 - [x] Resolve React 19 PRs #343 and #344 after the prior Semantic UI React
   stack failed on removed `ReactDOM.findDOMNode` calls.
-  - Status: validated locally on 2026-09-30; main push and stable publication
-    are tracked in the React 19 migration task above.
+  - Status: merged into `main` at 2026-09-30 21:02 UTC; stable publication is
+    tracked in the React 19 migration task above.
   - Notes: merged both dependency PR heads into the validated candidate and
     switched the package alias to the patched Fomantic UI React 3 beta.5
     implementation. Full Web tests, lint, build, and .NET tests pass.
