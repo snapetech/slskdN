@@ -2213,83 +2213,86 @@ const PlayerVisualTile = ({
 
   return (
     <div className="player-visual-tile" data-controls-open={controlsOpen}>
-      <Popup
-        content={
-          `Show ${tileModeLabels[nextTileMode]} in this square.`
-        }
-        trigger={
-          <div
-            aria-label={
-              `Show ${tileModeLabels[nextTileMode]} in player visual tile${analyzerMotionSuppressed
-                ? '. Analyzer animation is paused because reduced motion is enabled'
-                : ''}`
-            }
-            role="button"
-            className="player-visual-stage"
-            data-testid="player-visual-tile"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                handleTileActivate();
+      <div className="player-visual-stage-shell">
+        <Popup
+          content={
+            `Show ${tileModeLabels[nextTileMode]} in this square.`
+          }
+          trigger={
+            <div
+              aria-label={
+                `Show ${tileModeLabels[nextTileMode]} in player visual tile${analyzerMotionSuppressed
+                  ? '. Analyzer animation is paused because reduced motion is enabled'
+                  : ''}`
               }
-            }}
-            onClick={handleTileActivate}
-            ref={tileRef}
-            tabIndex={0}
-          >
-            {showingVisualizer ? (
-              <React.Suspense fallback={
-                <span className="player-visualizer-loading" role="status">Loading visualizer</span>
-              }>
-                <Visualizer
-                  audioElement={audioElement}
-                  compactControls
-                  engineOverride={normalizedTileMode}
-                  key={`${normalizedTileMode}-${visualizerRevision}`}
-                  mode={visualizerDisplayMode}
-                  onEngineChange={onTileModeChange}
-                  onModeChange={onModeChange}
-                />
-              </React.Suspense>
-            ) : showingAnalyzer ? (
-              <>
-                <SpectrumAnalyzer
-                  allowReducedMotionAnimation={allowReducedMotionAnalyzer}
-                  audioElement={audioElement}
-                  className="player-visualizer-fallback"
-                  mode={normalizedTileMode}
-                />
-                {analyzerMotionSuppressed ? (
-                  <span aria-hidden="true" className="player-visual-tile-motion-status">
-                    Analyzer paused for reduced motion
-                  </span>
-                ) : null}
-              </>
-            ) : (
-              <span className="player-album-art" data-testid="player-album-art">
-                {artworkUrl ? (
-                  <img alt="" src={artworkUrl} />
-                ) : (
-                  <>
-                    <span className="player-album-art-glow" />
-                    <span className="player-album-art-mark">{initials}</span>
-                  </>
-                )}
-              </span>
-            )}
-            <span className="player-visual-affordance">
-              <Icon name={showingVisualizer ? 'magic' : (showingAnalyzer ? 'chart bar' : 'image outline')} />
-            </span>
-          </div>
-        }
-      />
-      <div className="player-visual-tile-controls" onClick={(event) => event.stopPropagation()}>
+              role="button"
+              className="player-visual-stage"
+              data-testid="player-visual-tile"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  handleTileActivate();
+                }
+              }}
+              onClick={handleTileActivate}
+              ref={tileRef}
+              tabIndex={0}
+            >
+              {showingVisualizer ? (
+                <React.Suspense fallback={
+                  <span className="player-visualizer-loading" role="status">Loading visualizer</span>
+                }>
+                  <Visualizer
+                    audioElement={audioElement}
+                    compactControls
+                    engineOverride={normalizedTileMode}
+                    key={`${normalizedTileMode}-${visualizerRevision}`}
+                    mode={visualizerDisplayMode}
+                    onEngineChange={onTileModeChange}
+                    onModeChange={onModeChange}
+                  />
+                </React.Suspense>
+              ) : showingAnalyzer ? (
+                <>
+                  <SpectrumAnalyzer
+                    allowReducedMotionAnimation={allowReducedMotionAnalyzer}
+                    audioElement={audioElement}
+                    className="player-visualizer-fallback"
+                    mode={normalizedTileMode}
+                  />
+                  {analyzerMotionSuppressed ? (
+                    <span aria-hidden="true" className="player-visual-tile-motion-status">
+                      Paused
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="player-album-art" data-testid="player-album-art">
+                  {artworkUrl ? (
+                    <img alt="" src={artworkUrl} />
+                  ) : (
+                    <>
+                      <span className="player-album-art-glow" />
+                      <span className="player-album-art-mark">{initials}</span>
+                    </>
+                  )}
+                </span>
+              )}
+              {!analyzerMotionSuppressed ? (
+                <span className="player-visual-affordance">
+                  <Icon name={showingVisualizer ? 'magic' : (showingAnalyzer ? 'chart bar' : 'image outline')} />
+                </span>
+              ) : null}
+            </div>
+          }
+        />
         {analyzerMotionSuppressed ? (
           <Popup
             content="Animate the analyzer until it is hidden, even though reduced motion is enabled."
             trigger={
               <Button
                 aria-label="Animate analyzer anyway"
+                className="player-visual-tile-motion-override"
                 data-testid="player-visual-tile-motion-override"
                 icon
                 onClick={() => setAllowReducedMotionAnalyzer(true)}
@@ -2301,6 +2304,8 @@ const PlayerVisualTile = ({
             }
           />
         ) : null}
+      </div>
+      <div className="player-visual-tile-controls" onClick={(event) => event.stopPropagation()}>
         {['spectrum', 'scope', 'butterchurn', 'native-webgl2', 'native-webgpu'].map((option) => (
           <Popup
             content={`Show ${tileModeLabels[option]}.`}
@@ -2407,7 +2412,7 @@ const PlayerAnalyzerTile = ({ audioElement, mode, onModeChange }) => {
             ) : null}
             {motionSuppressed ? (
               <span aria-hidden="true" className="player-analyzer-motion-status">
-                Paused for reduced motion
+                Reduced motion
               </span>
             ) : null}
             {!motionSuppressed ? (

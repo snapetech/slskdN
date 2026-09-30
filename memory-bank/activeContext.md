@@ -1,4 +1,4 @@
-## Current state — Player reduced-motion behavior and `.331` publication — 2026-09-30 04:20 UTC
+## Current state — Player reduced-motion behavior and `.331` publication — 2026-09-30 04:37 UTC
 
 The Player now pauses analyzer sampling and MilkDrop rendering when the browser
 requests reduced motion, while audio continues. Visible analyzer and visualizer
@@ -6,10 +6,13 @@ controls offer a session-only “Animate anyway” override. Switching between
 inline and full-window presentation reuses the renderer. The focused Player
 component run passed 105/105; a real Chromium generated-PCM workflow recorded
 zero analyzer reads for 500 ms under reduced motion, then resumed reads and
-continued playback after opt-in. Production build, bundle-size check, targeted
-Web ESLint and repository formatting lint pass. The quality audit, changelog,
-release fragment, tasks and progress records are updated. The Player overhaul
-remains active: long-session resource use, physical devices, actual
+continued playback after opt-in. At 320 px the animation button stays visible,
+inside the tile, and keyboard-operable even though the normal mode-control row
+is hidden. The full Web suite passed 1,114/1,114 and the full Chromium Player
+suite passed 34/34. Production build, bundle-size check, Web ESLint, strict
+Player E2E TypeScript and repository formatting lint pass. The quality audit,
+changelog, release fragments, tasks and progress records are updated. The Player
+overhaul remains active: long-session resource use, physical devices, actual
 screen-reader speech, WAN playback and reciprocal Soulseek transfers remain.
 
 Stable `.331` binaries and Linux amd64/arm64 Docker images are published; the
@@ -18,6 +21,13 @@ release gate passed locally with 1,106 Web tests, 5,346 unit tests, 74 smoke
 tests and 40 integration tests. The `.331` PPA workflow `36660736959` uploaded
 its source and is waiting for Launchpad publication confirmation. Do not call
 that binary published until Launchpad reports the exact package version.
+
+Motion-test fixture gotcha `0z1294` is committed and pushed as `c4c5d031f`;
+the first reduced-motion feature batch is pushed as `a515435d1`. The mobile
+control gotcha is committed and pushed as `bbc2a15e4`; the follow-up keeps the
+override visible outside the hidden mobile mode row and passes the full player
+and Web suites. `.331` workflow `36660736959` remains in its Launchpad
+publication wait, so no `.332` build tag was started.
 
 Next Steps: continue the remaining Player audit and monitor the `.331` PPA job.
 Keep the incomplete three-hour resource capture, screen-reader speech,

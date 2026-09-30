@@ -1276,13 +1276,13 @@ describe('PlayerBar', () => {
 
     const analyzerTile = screen.getByTestId('player-analyzer-tile');
     expect(analyzerTile).toHaveAttribute('aria-label', expect.stringContaining('reduced motion'));
-    expect(screen.getByText('Paused for reduced motion')).toBeInTheDocument();
+    expect(screen.getByText('Reduced motion')).toBeInTheDocument();
     expect(within(analyzerTile).getByTestId('player-spectrum'))
       .toHaveAttribute('data-motion-suppressed', 'true');
 
     fireEvent.click(screen.getByTestId('player-analyzer-motion-override'));
 
-    expect(screen.queryByText('Paused for reduced motion')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reduced motion')).not.toBeInTheDocument();
     expect(within(analyzerTile).getByTestId('player-spectrum'))
       .not.toHaveAttribute('data-motion-suppressed');
   });
@@ -1299,13 +1299,13 @@ describe('PlayerBar', () => {
     fireEvent.click(screen.getByTestId('player-visual-tile-mode-spectrum'));
 
     const tile = screen.getByTestId('player-visual-tile');
-    expect(screen.getByText('Analyzer paused for reduced motion')).toBeInTheDocument();
+    expect(screen.getByText('Paused', { exact: true })).toBeInTheDocument();
     expect(within(tile).getByTestId('player-spectrum'))
       .toHaveAttribute('data-motion-suppressed', 'true');
 
     fireEvent.click(screen.getByTestId('player-visual-tile-motion-override'));
 
-    expect(screen.queryByText('Analyzer paused for reduced motion')).not.toBeInTheDocument();
+    expect(screen.queryByText('Paused', { exact: true })).not.toBeInTheDocument();
     expect(within(tile).getByTestId('player-spectrum'))
       .not.toHaveAttribute('data-motion-suppressed');
   });

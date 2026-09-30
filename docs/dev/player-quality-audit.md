@@ -43,11 +43,15 @@ presentation no longer rebuilds the renderer.
 
 Focused component checks pass 105/105 across the motion hook, analyzer,
 visualizer and PlayerBar. A real Linux Chromium workflow emulates reduced
-motion, plays generated PCM, records zero analyzer reads for 500 ms, opts into
-animation, then verifies analyzer reads and audio playback continue. This
-proves that opt-in works in this browser build; it does not measure GPU cost on
-physical devices or replace the open assistive-technology and long-session
-resource checks. Confidence: high for the exercised Chromium behavior.
+motion at a 320 px viewport, plays generated PCM, records zero analyzer reads
+for 500 ms, verifies the override stays inside the tile without overlapping
+status, checks its tooltip and keyboard activation, then verifies analyzer
+reads and audio playback continue. This proves the tested narrow-screen
+Chromium path; it does not measure GPU cost on physical devices or replace the
+open assistive-technology and long-session resource checks. Confidence: high
+for the exercised Chromium behavior.
+The complete Web suite passes 1,114 tests across 173 files, and all 34 Player
+browser workflows pass in Chromium after the responsive-control change.
 
 ### Pause-time rendering and renderer tuning — 2026-09-30
 
@@ -56,17 +60,17 @@ a visible document, and stop on Pause, buffering, Stalled, Ended, or Error. A
 visualizer mounted while paused creates or reuses its graph without resuming
 it. Native FPS-cap and debug-overlay values are read from refs by a stable
 render loop, so changing those settings no longer rebuilds the engine. Runtime
-validation now passes: all 22 Visualizer component tests, all 73 PlayerBar
-component tests, and all 33 workflows in the Chromium player browser suite. The
-real generated-PCM workflow confirms analyzer reads stop during Pause and
-Stop, AudioContexts suspend, and readings resume on Play. Component coverage
-confirms FPS-cap and debug changes preserve the same native engine. The
-three-hour resource attempt was stopped after 132/180 windows and is not
-acceptance evidence; no additional long capture was started.
+validation now passes: 105 focused motion tests across four files, all 1,114
+Web tests across 173 files, and all 34 workflows in the Chromium player
+browser suite. The real generated-PCM workflow confirms analyzer reads stop
+during Pause and Stop, AudioContexts suspend, and readings resume on Play.
+Component coverage confirms FPS-cap and debug changes preserve the same native
+engine. The three-hour resource attempt was stopped after 132/180 windows and
+is not acceptance evidence; no additional long capture was started.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. All 33 current workflows pass in Linux Chromium. The earlier
+peer connections. All 34 current workflows pass in Linux Chromium. The earlier
 32-workflow cross-engine suite passes in host Firefox; in the matching
 Playwright WebKit container, 30 pass and two capability checks skip unsupported
 Media Session transport handlers and Document PiP. The current touch-pointer

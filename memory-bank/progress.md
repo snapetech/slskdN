@@ -15533,3 +15533,29 @@ No tag, release or deployment was created.
   audit and task record. Broader Player work remains open: device behavior,
   actual screen-reader speech, a sustained resource plateau, WAN playback and
   reciprocal Soulseek transfers.
+
+## 2026-09-30 04:33 UTC — Mobile reduced-motion override
+
+- Browser review found that the optional mobile visual-mode row was hiding the
+  new “Animate anyway” control. Moved the control beside the stage in a separate
+  button and kept it visible at 320 px, outside the stage's click-to-cycle area.
+- The 320 px Chromium generated-PCM workflow now checks status/button bounds,
+  verifies the tooltip and Enter-key activation, observes zero analyzer reads
+  for 500 ms before opt-in, and confirms resumed reads while audio advances.
+- Component tests remain 105/105. Production build, targeted Web ESLint, strict
+  Player E2E TypeScript and repository formatting lint pass. Gotcha `0z1295`
+  was committed and pushed as `bbc2a15e4`; the layout/test follow-up is ready
+  for its feature commit.
+
+## 2026-09-30 04:37 UTC — Full Player and Web regression
+
+- The full Chromium Player browser suite passed 34/34 in 1.2 minutes. This
+  includes generated-PCM playback, the 320 px reduced-motion override,
+  keyboard activation, the tooltip, output, queue, decoder recovery and layout
+  workflows.
+- The full Web suite passed 1,114 tests across 173 files. Production build,
+  bundle budget (94 assets, 3.70 MB; lazy MilkDrop presets remain a documented
+  exception), focused ESLint, strict Player browser TypeScript and
+  `./bin/lint` pass.
+- The `.331` Launchpad job remains at “Wait for PPA Publication.” The matching
+  stable build is not complete, so no `.332` tag was started.

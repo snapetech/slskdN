@@ -694,17 +694,41 @@ test.describe('player browser playback', () => {
       };
     });
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 320, height: 900 });
     await page.reload();
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     const reads = () => page.evaluate(() => (window as Window & { __playerAnalyzerReads?: number }).__playerAnalyzerReads!);
     const audio = page.locator('audio');
     await expect.poll(() => audio.evaluateAll((elements) =>
       (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2))).toBe(true);
-    await expect(page.getByText('Analyzer paused for reduced motion', { exact: true })).toBeVisible();
+    const visualStage = page.getByTestId('player-visual-tile');
+    const motionStatus = page.getByText('Paused', { exact: true });
+    const animateAnyway = page.getByTestId('player-visual-tile-motion-override');
+    await expect(motionStatus).toBeVisible();
+    await expect(animateAnyway).toBeVisible();
+    const stageBounds = await visualStage.boundingBox();
+    const statusBounds = await motionStatus.boundingBox();
+    const buttonBounds = await animateAnyway.boundingBox();
+    expect(stageBounds).not.toBeNull();
+    expect(statusBounds).not.toBeNull();
+    expect(buttonBounds).not.toBeNull();
+    expect(statusBounds!.y + statusBounds!.height).toBeLessThan(buttonBounds!.y);
+    expect(buttonBounds!.x).toBeGreaterThanOrEqual(stageBounds!.x);
+    expect(buttonBounds!.x + buttonBounds!.width)
+      .toBeLessThanOrEqual(stageBounds!.x + stageBounds!.width);
+    expect(buttonBounds!.y + buttonBounds!.height)
+      .toBeLessThanOrEqual(stageBounds!.y + stageBounds!.height);
     await page.waitForTimeout(500);
     expect(await reads()).toBe(0);
 
-    await page.getByTestId('player-visual-tile-motion-override').click();
+    await animateAnyway.hover();
+    await expect(page.getByText(
+      'Animate the analyzer until it is hidden, even though reduced motion is enabled.',
+      { exact: true },
+    )).toBeVisible();
+    await animateAnyway.focus();
+    await expect(animateAnyway).toBeFocused();
+    await page.keyboard.press('Enter');
     await expect.poll(reads).toBeGreaterThan(5);
     await expect.poll(() => audio.evaluateAll((elements) =>
       (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 1))).toBe(true);

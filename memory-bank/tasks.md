@@ -5960,11 +5960,16 @@ resource completion.
   changes; clear a session override when its visual selection is turned off.
 - [x] Pass 105 focused Player component tests and a real Chromium generated-PCM
   workflow: zero analyzer reads for 500 ms under reduced motion, then resumed
-  reads and continued playback after opting in.
+  reads and continued playback after opting in. At 320 px the override remains
+  inside the tile, does not cover its status, exposes its tooltip, and activates
+  from the keyboard.
 - [x] Pass a strict TypeScript check for `player.spec.ts` and its harness.
+- [x] Pass the full Web suite (1,114 tests across 173 files) and all 34
+  Chromium Player browser workflows.
 - [x] Pass production Web build, bundle-size check, Player Web lint and
-  repository formatting lint; update the user-facing release fragment, changelog
-  and audit.
+  repository formatting lint; update the user-facing release fragments, changelog
+  and audit. Gotchas `0z1294` and `0z1295` cover deterministic motion fixtures
+  and keeping the opt-in visible on mobile.
 - [ ] Continue the broader Player audit; physical devices, assistive-technology
   speech, long-session resource plateau, WAN radio and reciprocal Soulseek
   transfers remain open.

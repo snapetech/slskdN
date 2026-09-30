@@ -154,8 +154,15 @@
   min-width: 0;
 }
 
-.player-visual-stage {
+.player-visual-stage-shell {
   aspect-ratio: 1;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+.player-visual-stage {
   background:
     radial-gradient(circle at 30% 18%, rgba(156, 124, 240, 0.18), transparent 34%),
     #050608;
@@ -167,6 +174,7 @@
   color: inherit;
   cursor: pointer;
   display: block;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   padding: 0;
@@ -192,14 +200,33 @@
   background: rgba(5, 7, 10, 0.9);
   border: 1px solid rgba(156, 124, 240, 0.32);
   border-radius: 4px;
-  bottom: 0.32rem;
+  left: 0.2rem;
   color: var(--slskdn-color, #edeaf2);
-  font-size: 0.58rem;
-  left: 0.32rem;
-  line-height: 1.25;
+  font-size: 0.52rem;
+  line-height: 1;
   max-width: calc(100% - 0.64rem);
-  padding: 0.24rem 0.3rem;
+  padding: 0.08rem 0.24rem;
   position: absolute;
+  text-align: center;
+  top: 0.2rem;
+  z-index: 2;
+}
+
+.player-visual-tile-motion-override.ui.button {
+  align-items: center;
+  background: rgba(5, 7, 10, 0.92) !important;
+  border: 1px solid rgba(156, 124, 240, 0.52) !important;
+  bottom: 0.32rem;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0;
+  position: absolute;
+  right: 0.32rem;
+  width: 28px;
+  z-index: 3;
 }
 
 .player-visual-tile-controls {
@@ -515,11 +542,17 @@
 
 .player-analyzer-motion-status {
   bottom: 0.32rem;
-  color: rgba(255, 255, 255, 0.76);
+  background: rgba(5, 7, 10, 0.88);
+  border: 1px solid rgba(156, 124, 240, 0.3);
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.92);
   font-size: 0.56rem;
   left: 0.42rem;
+  line-height: 1.2;
+  padding: 0.1rem 0.24rem;
   pointer-events: none;
   position: absolute;
+  right: 2.5rem;
 }
 
 .player-analyzer-motion-override.ui.button {
@@ -1612,7 +1645,7 @@
     display: contents;
   }
 
-  .player-visual-stage {
+  .player-visual-stage-shell {
     align-self: start;
     grid-area: visual;
   }
@@ -1685,6 +1718,15 @@
     min-height: 44px;
     min-width: 44px;
     font-size: 1rem;
+  }
+
+  .player-visual-tile-motion-override.ui.button {
+    bottom: 0.2rem;
+    height: 44px;
+    min-height: 44px;
+    min-width: 44px;
+    right: 0.2rem;
+    width: 44px;
   }
 
   .player-bar .player-tool-button.ui.button,
