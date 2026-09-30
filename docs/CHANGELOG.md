@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026093001-slskdn.330] — 2026-09-29
+
 ### Player listed-radio recovery
 
 - Explain when a listed radio stream stops or changes and offer retry or directory refresh guidance.

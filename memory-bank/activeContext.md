@@ -1,23 +1,29 @@
-## Player pause-time rendering and long-run capture — 2026-09-30 00:49 UTC
+## Player pause-time rendering runtime validation — 2026-09-30 01:33 UTC
 
-The three-hour Chromium resource capture was stopped after 132/180 windows
-(60 idle, 60 playing, 12 paused). It is incomplete diagnostic data and not
-acceptance evidence; the attempt should not have blocked implementation.
+The three-hour Chromium resource capture stopped after 132/180 windows (60
+idle, 60 playing, 12 paused); it remains incomplete diagnostic data, not
+acceptance evidence. The new analyzer/MilkDrop playback gating and stable
+renderer tuning now have runtime coverage: all 22 Visualizer component tests,
+all 73 PlayerBar component tests, and all 33 Chromium player browser workflows
+pass. The generated-PCM browser check observes analyzer reads stop on Pause and
+Stop, AudioContexts suspend, and reads resume on Play. FPS/debug changes keep
+the same native renderer instance.
 
-The analyzer and MilkDrop loops now require active playback in a visible
-document; paused visualizer setup keeps the shared audio graph suspended.
-Changing the native FPS cap or debug overlay no longer rebuilds the renderer.
-Gotchas `0z1288` and `0z1289` were committed separately. Runtime browser
-validation for these source changes has not been run. The audit, measurement
-notes, task state and changelog are updated. Web ESLint, the production build,
-and repository formatting lint pass. Commit `3920f5d08` is pushed to
-`snapetech/slskdN/main`; post-push fetch confirms matching SHAs and a clean
-worktree. No tag was created.
+The PiP browser workflow opens a real window, checks focus and rendering, and
+verifies Stop/hide cleanup. Chromium headless and Xvfb report the virtual
+display's 1280x720 dimensions instead of the requested 360x220; a component
+assertion now verifies the requested dimensions. Gotcha `0z1290` records why
+the browser test must not treat virtual display bounds as physical sizing.
+Commit `b643d60ec` is pushed to `snapetech/slskdN/main`; `3cc732d0a` is
+committed locally and awaits the release-preparation docs commit. The versioned
+`.330` changelog and audit/task records are prepared; the guarded
+release helper still needs to run its full release gate before creating a tag.
 
-Next Steps: continue the active Player goal. Runtime validation for the new
-pause and renderer-lifecycle behavior remains open. Keep physical device, WAN,
-real speech-output and target-hardware evidence open; the interrupted long
-capture is not acceptance evidence.
+Next Steps: run the guarded `build-main-2026093001-slskdn.330` release path and
+verify the published artifacts if the gate passes. Keep the Player goal active:
+the long resource plateau, real assistive-technology speech, physical device
+behavior, representative WAN playback, and reciprocal Soulseek transfers
+remain unfinished.
 
 ## Player listed-radio recovery and cross-engine media audit — 2026-09-29 15:07 UTC
 

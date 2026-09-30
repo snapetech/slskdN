@@ -95,25 +95,26 @@
   - Notes: Check local/server streams, decoded seeking, crossfade interruption,
     duplicate local files, output switching, Media Session controls, room follow
     and reconnect, listed radio tune-in, Picture-in-Picture, analyzer idle work,
-    and collapsed/expanded layout. Source review, lint, and production builds
-    are complete. The current 29-case browser suite passes in Chromium. The
-    previous 26-case cross-engine suite passed in host Firefox and passed 24
-    with two capability skips in WebKit; the three codec-retry workflows still
-    need working Firefox/WebKit runs. Generated local PCM, server AIFF seeking while
-    paused/playing, and FLAC/MP3/Ogg playback through native or on-demand decode
-    paths are verified. Crossfade, analyzer pause/resume, keyboard transport and
-    seeking, queue/files, responsive viewports and queue-dialog focus entry/exit
-    pass in all three. Physical mobile/output routing, headset controls,
+    and collapsed/expanded layout. The current 33-workflow player browser suite
+    passes in Chromium; the earlier 32-workflow cross-engine suite passes in
+    host Firefox and passes 30 in WebKit with two capability skips. Generated
+    local PCM, server AIFF seeking while paused/playing, and FLAC/MP3/Ogg
+    playback through native or on-demand decode paths are verified. Crossfade,
+    analyzer pause/resume, keyboard transport and seeking, queue/files,
+    responsive viewports and queue-dialog focus entry/exit pass across the
+    existing browser matrix. The latest touch-pointer workflow has Chromium-only
+    validation. The analyzer and MilkDrop loops stop on pause/buffering/hidden
+    states; real PCM browser coverage verifies analyzer sampling stops and
+    resumes, and component coverage verifies FPS/debug tuning does not recreate
+    the renderer. The PiP workflow verifies focus, drawing and Stop/hide cleanup;
+    a component assertion checks the requested 360x220 size. Actual desktop PiP
+    geometry remains unverified because virtual Chromium reports the full
+    display bounds. Physical mobile/output routing, headset controls,
     WAN/listen-along, resource duration and actual assistive-technology speech
-    remain open. Per-format retry passes in Chromium; cross-engine retries and
-    server-generated decoder failures remain open. The separate
-    keyboard Tab-order task now verifies expanded, tools-open and compact modes
-    in all three browser engines. The analyzer and MilkDrop loops have now been
-    gated on active playback and document visibility, paused mounts leave the
-    graph suspended, and FPS/debug tuning no longer participates in renderer
-    setup dependencies. These latest source changes still need focused runtime
-    regression validation. A three-hour resource attempt stopped at 132/180
-    windows; it is incomplete diagnostic data, not evidence of a plateau.
+    remain open. Per-format retry and server-generated decoder failures still
+    need a fresh cross-engine run. A three-hour resource attempt stopped at
+    132/180 windows; it is incomplete diagnostic data, not evidence of a
+    plateau.
 
 - [x] Normalize saved equalizer gains and guard lyrics lookups against stale results.
   - Status: implemented (2026-09-27).

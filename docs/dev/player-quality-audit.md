@@ -1,6 +1,6 @@
 # Player quality audit
 
-Updated: 2026-09-29. The player overhaul remains active.
+Updated: 2026-09-30. The player overhaul remains active.
 
 ### Resource coverage correction — 2026-09-28
 
@@ -32,22 +32,28 @@ remains unfinished. Green regression suites alone do not prove completion.
 
 ## Current evidence
 
-### Pause-time rendering and renderer tuning — 2026-09-29
+### Pause-time rendering and renderer tuning — 2026-09-30
 
 The analyzer and MilkDrop render loops now start only while media is playing in
 a visible document, and stop on Pause, buffering, Stalled, Ended, or Error. A
 visualizer mounted while paused creates or reuses its graph without resuming
 it. Native FPS-cap and debug-overlay values are read from refs by a stable
-render loop, so changing those settings no longer rebuilds the engine. These
-source changes have not received runtime regression validation in this batch.
-The three-hour resource attempt was stopped after 132/180 windows and is not
+render loop, so changing those settings no longer rebuilds the engine. Runtime
+validation now passes: all 22 Visualizer component tests, all 73 PlayerBar
+component tests, and all 33 workflows in the Chromium player browser suite. The
+real generated-PCM workflow confirms analyzer reads stop during Pause and
+Stop, AudioContexts suspend, and readings resume on Play. Component coverage
+confirms FPS-cap and debug changes preserve the same native engine. The
+three-hour resource attempt was stopped after 132/180 windows and is not
 acceptance evidence; no additional long capture was started.
 
 The isolated browser suite in `src/web/e2e/player.spec.ts` uses generated PCM,
 AIFF, FLAC, MP3 and Ogg Vorbis fixtures and a backend configured without remote
-peer connections. All 32 workflows pass in Linux Chromium and host Firefox; in
-the matching Playwright WebKit container, 30 pass and two capability checks
-skip unsupported Media Session transport handlers and Document PiP. The
+peer connections. All 33 current workflows pass in Linux Chromium. The earlier
+32-workflow cross-engine suite passes in host Firefox; in the matching
+Playwright WebKit container, 30 pass and two capability checks skip unsupported
+Media Session transport handlers and Document PiP. The current touch-pointer
+workflow has Chromium-only validation. The
 partial-output failure uses a POSIX decoder shim and skips outside Linux. Host
 Firefox cannot launch with Playwright's Juggler pipe; the WebKit container
 supplies ABI libraries missing from the Arch host. WebKit reports status zero
@@ -70,7 +76,7 @@ simulated device APIs.
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
 | Analyzer | Reads stop on Pause/Stop, resume on Play; existing contexts suspend | Verified in Chromium, host Firefox and WebKit / high |
 | Crossfade | Both streams play; Pause suspends both; Resume plays one; natural completion suspends outgoing context | Verified in Chromium, host Firefox and WebKit / high |
-| Picture-in-Picture | Actual spectrum rendering and Stop/hide closure; pending request cancellation covered by regression tests | Verified in Chromium and host Firefox / high; WebKit does not support Document PiP; physical window sizing and focus unverified |
+| Picture-in-Picture | Actual spectrum rendering, focus, positive window area and Stop/hide closure; pending request cancellation covered by regression tests; component test confirms the requested 360x220 size | Verified in Chromium and host Firefox / high; WebKit does not support Document PiP; physical window geometry remains unverified because virtual Chromium reports display bounds (gotcha 0z1290) |
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium, host Firefox and WebKit viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
 | Native playback resources | Fifteen-minute baseline plus a two-hour diagnostic capture | Linux headless Chromium; the diagnostic run retained login response/console listeners throughout playback, so its CPU/PSS trends are not clean acceptance evidence; the later three-hour attempt stopped after 132/180 windows and is incomplete diagnostic data; other engines/devices and portable budgets remain open |
