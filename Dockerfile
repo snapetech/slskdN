@@ -7,6 +7,7 @@ WORKDIR /slskd
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tests/e2e/package.json tests/e2e/package.json
+COPY patches patches/.
 
 RUN apk add --no-cache bash \
   && npm install --global "$(node -p 'require("./package.json").packageManager')"
@@ -28,6 +29,7 @@ WORKDIR /slskd
 COPY LICENSE .
 COPY bin bin/.
 COPY config config/.
+COPY tools/slskd.BuildTasks tools/slskd.BuildTasks/.
 COPY src/slskd src/slskd/.
 COPY src/slskdN.VpnAgent src/slskdN.VpnAgent/.
 COPY tests tests/.

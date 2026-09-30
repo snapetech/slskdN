@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026093002-slskdn.331] — 2026-09-30
+
+### Docker image build
+
+- Include the pnpm patch file needed to install web dependencies when building the stable Docker image.
+
+### Stable Docker image tracking
+
+- Track the last successfully published stable container image separately from binary release versions, so Cloudron does not point to an image that failed to build.
+- Add a guarded updater for the immutable Cloudron version catalog after the stable image is available for Linux amd64 and arm64.
+
 ## [2026093001-slskdn.330] — 2026-09-29
 
 ### Player listed-radio recovery

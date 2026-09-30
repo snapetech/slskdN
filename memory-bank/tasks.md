@@ -28,6 +28,12 @@
 
 ### High Priority
 
+- [ ] Publish the stable Docker image after the `.330` image build failure.
+  - Status: `.330` release archives are published, but its Docker build failed
+    because the web stage omitted a pnpm patch file. The Dockerfile fix and
+    Cloudron image tracking are prepared; the `.331` release gate and image
+    publication are still pending.
+
 - [x] Include actual Soulseek downloads in player fairness totals.
   - Status: implemented and fully validated after immutable `.328` release (2026-09-28).
   - Notes: Shared transfer events count cumulative payload above `StartOffset`,
