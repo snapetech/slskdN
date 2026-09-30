@@ -33886,3 +33886,20 @@ workflow update and its release-gate assertion drifted apart.
 **Prevention:** When changing a shared workflow action version, update the
 packaging validator's expected version in the same change and run packaging
 metadata validation before merging or tagging.
+
+### 0z1307. Use DOM Refs With Fomantic UI React 3 (2026-09-30)
+
+**What went wrong:** The React 19 migration prototype failed in Browse and Users
+when code dereferenced the old Semantic UI input instance shape
+(`inputRef.current`). Search creation also stopped reading its input, and the
+old `<Ref innerRef>` wrapper is not part of Fomantic UI React 3.
+
+**Why:** Semantic UI React 2 exposes component instances whose native inputs
+are nested under `inputRef`; Fomantic UI React 3 forwards refs to DOM elements.
+Keeping the old assumptions causes runtime errors or leaves actions without
+the input value.
+
+**Prevention:** When migrating from Semantic UI React 2 to Fomantic UI React 3,
+use direct DOM refs, replace `<Ref innerRef>` with native refs, and audit all
+`.inputRef.current` accesses. Run the full web suite, including browse polling
+and search creation, before accepting the migration.
