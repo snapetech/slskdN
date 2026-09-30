@@ -33714,3 +33714,19 @@ value instead of declaring the motion preference required by each case.
 to `false`, then enable reduced motion only in cases that exercise that
 behavior. This keeps renderer lifecycle tests independent of host and test
 environment settings.
+
+### 0z1295. Keep The Reduced-Motion Override Visible On Mobile (2026-09-30)
+
+**What went wrong:** The first reduced-motion opt-in was placed in the visual
+tile's optional mode-control row. The mobile layout hides that row by default,
+so the analyzer stopped as requested but its visible animation override was
+also unavailable.
+
+**Why:** The new control inherited the responsive visibility of neighboring
+mode-selection buttons even though it is the recovery action for a paused
+visual.
+
+**Prevention:** Keep the motion override as a separate button beside the visual
+stage, outside its click-to-cycle target and outside the optional control row.
+Verify it remains visible and inside the tile at the 320 px layout, and verify
+the status text does not overlap the touch target.
