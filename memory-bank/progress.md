@@ -15599,3 +15599,19 @@ No tag, release or deployment was created.
   pre-push hook and manual script to sync only that subtree to `testing` after
   an eligible `main` push. The hook continues syncing when the secret scan is
   skipped; gotcha 0z1305 records that boundary.
+
+## Update 2026-09-30 21:01 UTC
+
+- Prototyped and validated React 19.3.0 with Fomantic UI React 3 beta.5 patched
+  from the upstream React 19 compatibility PR. Direct DOM refs now cover the
+  affected Browse, Users, Search, Chat, and Room controls; asynchronous test
+  actions flush through `act`.
+- The full Web suite passes 1,114 tests, all 5,704 .NET tests pass, and the Web
+  build, Web lint, repository lint, local identity check, and release-note
+  preview pass. The candidate history includes dependency PRs #343 and #344.
+- `build-main-2026093019-slskdn.332` parser and core build passed, while all six
+  platform publishers remain queued in run `36768526931` and no GitHub Release
+  is visible. Hold `.333` until that publication completes.
+- Next: push the validated commits to `main`, confirm both PRs merged, monitor
+  `.332`, then cut the authorized `.333` tag with its validated release notes
+  and verify published artifacts.

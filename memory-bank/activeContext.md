@@ -1,3 +1,21 @@
+## Current state — React 19 web compatibility and `.333` release — 2026-09-30 21:01 UTC
+
+React 19.3.0 is validated with the Fomantic UI React 3 beta.5 package patched
+from upstream PR #49. Repo PRs #343 and #344 are both present in the candidate
+history. Full Web tests (1,114), .NET tests (5,704), Web lint/build and
+`./bin/lint` pass. The React ref migration and async test updates are recorded
+in ADR-0026, the known-gotchas ADR, and the React 19 release fragment.
+
+The migration is committed locally on `fix/react19-fomantic-ui` and is ready
+to fast-forward to `main`; it has not been pushed yet. The `.332` tag parser
+and core build passed, but all six platform publishers are still queued in run
+`36768526931`, and GitHub still has no `.332` release. User authorized pushing
+and cutting stable `.333`, but do not create `.333` while `.332` publishers
+remain queued. Next: push the validated migration and verify PR #343/#344
+merge; monitor `.332`; once it finishes, finalize the `.333` changelog entry,
+preview the release range, run the release/privacy gates, and use the guarded
+tag script. Verify the resulting artifacts before marking publication done.
+
 ## Current state — Player reduced-motion and Orca speech validation — 2026-09-30 05:14 UTC
 
 The Player pauses analyzer sampling and MilkDrop rendering under the browser's

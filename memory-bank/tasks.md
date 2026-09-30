@@ -385,15 +385,26 @@
     metric. Measure connection creation, reuse, and expiry around searches
     before changing connection lifecycle behavior.
 
-- [ ] Reassess React 19 compatibility and plan a fresh migration when the Web
+- [x] Reassess React 19 compatibility and plan a fresh migration when the Web
   dependency stack has a supported path.
-  - Status: follow-up; PRs #326 and #327 closed unmerged (2026-09-25)
+  - Status: migration validated on the Fomantic UI React 3 branch (2026-09-30);
+    merge/push and stable publication are tracked below.
   - Priority: P1
-  - Notes: The current Semantic UI React stack still uses the removed
-    `findDOMNode` path, and the previous React 19 migration failed frontend
-    checks. Keep the runtime on React 18 until a supported migration is
-    validated; the old pull requests are closed and their branches are not
-    candidates for merging.
+  - Notes: React and React DOM 19.3.0 now run with the npm Fomantic UI React
+    beta.5 package patched from upstream PR #49. The patch carries its
+    React 19 source and CommonJS/ESM outputs; pnpm overrides cover React peers
+    and remove the unused Fluent event listener. Browse, Users, Search, Chat,
+    and Rooms use direct DOM refs. Full Web tests (1,114), .NET tests (5,704),
+    Web build/lint, and repository lint pass. The upstream PR is still open;
+    refresh the patch only after a published replacement passes the Web suite.
+
+- [ ] Push the React 19 compatibility migration and publish stable `.333`.
+  - Status: implementation is committed and includes dependency PRs #343 and
+    #344; awaiting main push. Do not start `.333` while the `.332` platform
+    publication jobs remain queued.
+  - Priority: P1
+  - Notes: The exact release fragment and changelog bullet are ready. The
+    release range preview from `build-main-2026093019-slskdn.332` passes.
 
 
 - [x] Fix Wishlist matching, blocked-user policy, and transfer/navigation regressions.
@@ -5996,10 +6007,20 @@ resource completion.
   and #347.
 - [x] Regenerate the pnpm lockfile and validate the combined Web dependency
   tree: 1,114 tests, lint, and production build pass.
-- [ ] Run the release gate and repository lint, commit/push the release notes
-  and lockfile, validate the exact release range, then create the authorized
-  `.332` stable tag.
-- [ ] Revisit React 19 PRs #343 and #344 after Semantic UI React and its
-  `@fluentui/react-component-ref` dependency support React 19 without
-  `ReactDOM.findDOMNode`; the combined candidate currently fails Web component
-  tests.
+- [x] Run the release gate, publish the `.332` release notes and lockfile, and
+  create the authorized stable tag.
+  - Status: tag `build-main-2026093019-slskdn.332` exists; its tag parser and
+    core build passed, but all six platform publisher jobs were queued at
+    2026-09-30 20:53 UTC and no GitHub Release was visible yet.
+- [ ] Verify `.332` platform publication and release assets before starting
+  another stable tag.
+  - Priority: P1
+  - Notes: The main tag build has succeeded; monitor the existing publisher
+    run rather than starting a second stable publication concurrently.
+- [x] Resolve React 19 PRs #343 and #344 after the prior Semantic UI React
+  stack failed on removed `ReactDOM.findDOMNode` calls.
+  - Status: validated locally on 2026-09-30; main push and stable publication
+    are tracked in the React 19 migration task above.
+  - Notes: merged both dependency PR heads into the validated candidate and
+    switched the package alias to the patched Fomantic UI React 3 beta.5
+    implementation. Full Web tests, lint, build, and .NET tests pass.
