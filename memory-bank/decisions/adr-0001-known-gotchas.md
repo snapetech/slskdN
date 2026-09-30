@@ -33681,3 +33681,19 @@ the repository root when applying patched dependencies.
 before running `pnpm install`. When the root package manifest adds or changes
 a pnpm patch, make sure each isolated build context contains that patch and
 validate the container build before publishing the image.
+
+### 0z1293. Track the Last Published Stable Container Image (2026-09-30)
+
+**What went wrong:** The `.330` release published its platform archives, but
+the Docker build failed. The separate stable-metadata job still advanced the
+binary release Formula to `.330`, and packaging validation then treated that
+Formula version as a published Docker image and rejected Cloudron's working
+`.329` image.
+
+**Why:** Stable binary metadata and Docker images publish in independent jobs,
+but the Cloudron check assumed they always advance together.
+
+**Prevention:** Record the last successfully published stable container image
+separately from the latest binary release. Validate Cloudron against that
+image record, and advance both the record and Cloudron catalog only after the
+Docker publish job succeeds.
