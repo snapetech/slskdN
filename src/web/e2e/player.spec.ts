@@ -700,8 +700,10 @@ test.describe('player browser playback', () => {
     await expect.poll(pipExists).toBe(true);
     await expect.poll(() => page.evaluate(() => {
       const pip = (window as Window & { documentPictureInPicture?: { window: Window | null } }).documentPictureInPicture?.window;
-      return pip ? { width: pip.innerWidth, height: pip.innerHeight, focused: pip.document.hasFocus() } : null;
-    })).toEqual({ width: 360, height: 220, focused: true });
+      return pip
+        ? { hasVisibleArea: pip.innerWidth > 0 && pip.innerHeight > 0, focused: pip.document.hasFocus() }
+        : null;
+    })).toEqual({ hasVisibleArea: true, focused: true });
     await expect.poll(() => page.evaluate(() => {
       const pip = (window as Window & { documentPictureInPicture?: { window: Window | null } }).documentPictureInPicture?.window;
       const canvas = pip?.document.querySelector('canvas');

@@ -974,8 +974,9 @@ describe('PlayerBar', () => {
 
   it('reports a rejected Picture-in-Picture request without stopping playback', async () => {
     vi.spyOn(audioGraph, 'resumeAudioGraph').mockResolvedValue({});
+    const requestWindow = vi.fn(() => Promise.reject(new Error('denied')));
     vi.stubGlobal('documentPictureInPicture', {
-      requestWindow: vi.fn(() => Promise.reject(new Error('denied'))),
+      requestWindow,
     });
     renderPlayer();
     fireEvent.click(screen.getByText('Play fixture'));
@@ -984,6 +985,7 @@ describe('PlayerBar', () => {
     fireEvent.play(audio);
     fireEvent.click(screen.getByTestId('player-document-pip'));
     await screen.findByText(/Picture-in-Picture could not open/u);
+    expect(requestWindow).toHaveBeenCalledWith({ height: 220, width: 360 });
     expect(screen.getByTestId('player-toggle-playback')).toHaveAccessibleName('Pause local playback');
     window.documentPictureInPicture.requestWindow.mockImplementationOnce(() => new Promise(() => {}));
     fireEvent.click(screen.getByTestId('player-document-pip'));

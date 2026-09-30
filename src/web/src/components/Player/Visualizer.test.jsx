@@ -595,6 +595,7 @@ describe('Visualizer', () => {
     );
 
     await screen.findByTestId('visualizer-randomize-native-parameters');
+    await waitFor(() => expect(createNativeMilkdropEngine).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByTestId('visualizer-randomize-native-parameters'));
     expect(nativeEngine.randomizePresetParameters).toHaveBeenCalledWith({
       textureAssets: undefined,
@@ -619,6 +620,8 @@ describe('Visualizer', () => {
     });
     expect(window.localStorage.getItem('slskdn.player.nativeMilkdropQuality')).toBe('efficient');
     expect(window.localStorage.getItem('slskdn.player.nativeMilkdropFpsCap')).toBe('30');
+    expect(createNativeMilkdropEngine).toHaveBeenCalledTimes(1);
+    expect(nativeEngine.dispose).not.toHaveBeenCalled();
   });
 
   it('feeds normalized pointer state into the native engine', async () => {
