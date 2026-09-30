@@ -33619,3 +33619,18 @@ playing and the document is visible. Cancel pending frames on Pause, buffering,
 Stop, or Ended, and do not resume a graph merely because a visual component
 mounts while playback is paused. Test both that frame scheduling stops and
 that it resumes on the next Playing event.
+
+### 0z1289. Keep Visualizer Tuning Out of Engine Lifecycle Dependencies (2026-09-30)
+
+**What went wrong:** The renderer setup effect depended on its animation
+callback. That callback changed when the native FPS cap or debug overlay
+changed, so adjusting either setting disposed and recreated the full visualizer
+engine and its graphics resources.
+
+**Why:** The render callback captured frequently changed presentation settings,
+and the setup effect treated that callback identity as an engine configuration
+change.
+
+**Prevention:** Keep mutable render-time settings in refs read by a stable render
+loop. Recreate the engine only when its actual construction inputs change, such
+as the selected engine, audio graph, or canvas.
