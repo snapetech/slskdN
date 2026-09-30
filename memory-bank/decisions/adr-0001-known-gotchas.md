@@ -33671,16 +33671,19 @@ stable release instead of waiting for the next tag to find the drift.
 **What went wrong:** The `.330` Docker build failed during `pnpm install`
 because the root package manifest referenced
 `patches/@semantic-ui-react__event-stack@3.1.3.patch`, but the Dockerfile did
-not copy the `patches/` directory into its web build stage.
+not copy the `patches/` directory into its web build stage. A local Linux x64
+image build also showed the publish stage omits the referenced
+`tools/slskd.BuildTasks` project, producing MSB9008 warnings and skipping that
+build-task project.
 
-**Why:** The Dockerfile copied the package manifests, build scripts, and web
-source before installing dependencies, but omitted files that pnpm reads from
-the repository root when applying patched dependencies.
+**Why:** The Dockerfile copied application sources but omitted root-level build
+inputs used by dependency installation and project references.
 
 **Prevention:** Copy the root `patches/` directory into the web build stage
-before running `pnpm install`. When the root package manifest adds or changes
-a pnpm patch, make sure each isolated build context contains that patch and
-validate the container build before publishing the image.
+before running `pnpm install`, and copy `tools/slskd.BuildTasks/` into the
+publish stage before building `src/slskd`. Keep root-level dependency and
+project-reference inputs in isolated build contexts, then validate the full
+container build before publishing the image.
 
 ### 0z1293. Track the Last Published Stable Container Image (2026-09-30)
 
