@@ -33771,3 +33771,19 @@ its process-singleton socket.
 **Prevention:** Put only the per-run browser temp profile in a private, short
 temporary directory. Keep durable logs and speech captures in the evidence
 directory, and remove the temporary profile in the runner's cleanup trap.
+
+### 0z1299. Start Speech Dispatcher Before Accepting Orca Speech Capture (2026-09-30)
+
+**What went wrong:** Orca wrote `SPEECH OUTPUT` lines for the Player, but its
+debug log also reported `No speech server for factory`. The runner treated the
+text log as evidence of speech even though the isolated PulseAudio recording
+contained only silence.
+
+**Why:** The test image installed Speech Dispatcher but the runner launched
+only Orca. Orca's debug announcements show requested text; they do not prove a
+speech engine synthesized audio.
+
+**Prevention:** Start Speech Dispatcher in the same isolated container session
+before launching Orca, verify the speech service is responding, and require
+non-silent captured PCM before reporting actual screen-reader speech as
+validated.
