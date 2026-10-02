@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1311. Set E2E Feature Flags For The Behavior Under Test
+
+**What went wrong:** A core search journey inherited the shared E2E harness's
+ScenePodBridge: true setting. Its UI search therefore exercised bridged
+providers and returned no local peer results instead of testing Soulseek search.
+
+**Why:** The harness enables experimental features for other suites, while the
+product default keeps Scene ↔ Pod Bridging disabled.
+
+**Prevention:** Set feature flags explicitly when an E2E test targets a specific
+behavior. When expected results are absent, inspect the backend mode recorded in
+the node logs before concluding that peer discovery is broken.
+
 ### 0z1310. Use Public Harness Contracts In E2E Specs
 
 **What went wrong:** A browser spec read `SlskdnNode.appDir` to inspect a
