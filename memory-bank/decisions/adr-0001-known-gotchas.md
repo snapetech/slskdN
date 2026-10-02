@@ -4,19 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
-### 0z1330. Do Not Gate System Actions On Diagnostic Serialization
+### 0z1332. Check Resolved Error Results From Mesh Sync
 
-**What went wrong:** System Info disabled update, privilege, restart, and
-shutdown actions until the application-state YAML snapshot finished its delayed
-serialization, even though those actions do not depend on the snapshot.
+**What went wrong:** The Network dashboard treated every resolved
+`triggerMeshSync()` call as success, although the API helper catches HTTP
+failures and resolves with an `{ error, success: false }` object.
 
-**Why:** A readiness flag for the advanced diagnostics viewer was reused as a
-page-wide action gate, making controls temporarily unavailable and coupling
-normal operations to the size and serialization time of diagnostic state.
+**Why:** The UI relied on promise rejection to detect failure, but the shared
+API helper deliberately normalizes request failures into a result value.
+Failed or unsupported peer syncs therefore produced a false success toast.
 
-**Prevention:** Gate only the diagnostic viewer on its serialized contents.
-Keep independent System Info actions enabled according to their own state and
-validate them before and after the diagnostic snapshot becomes available.
+**Prevention:** Inspect the helper result before showing success, preserve its
+error message when available, and add a component regression for a resolved
+error object as well as successful results.
 
 ### 0z1331. Do Not Use Hash Links For Share-Contents Actions
 
@@ -31,6 +31,20 @@ did not clearly communicate that it opened share contents.
 **Prevention:** Use a button for the modal action, name it with the shared path,
 and keep the action independent from browser navigation. Verify both keyboard
 activation and that the URL remains unchanged.
+
+### 0z1330. Do Not Gate System Actions On Diagnostic Serialization
+
+**What went wrong:** System Info disabled update, privilege, restart, and
+shutdown actions until the application-state YAML snapshot finished its delayed
+serialization, even though those actions do not depend on the snapshot.
+
+**Why:** A readiness flag for the advanced diagnostics viewer was reused as a
+page-wide action gate, making controls temporarily unavailable and coupling
+normal operations to the size and serialization time of diagnostic state.
+
+**Prevention:** Gate only the diagnostic viewer on its serialized contents.
+Keep independent System Info actions enabled according to their own state and
+validate them before and after the diagnostic snapshot becomes available.
 
 ### 0z1329. Keep Runtime Route Fallback Free Of Test Diagnostics
 
