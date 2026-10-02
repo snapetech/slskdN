@@ -4,6 +4,17 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1317. Match The DM Composer's Accessible Username Label
+
+**What went wrong:** The messaging journey looked for a textbox named
+`Message nodeB`, but the UI exposes it as `Message @nodeB`.
+
+**Why:** The direct-message composer includes the `@` prefix in its accessible
+name and placeholder, while the test used the raw username.
+
+**Prevention:** Derive browser locators from the rendered accessible name or
+inspect Playwright's accessibility snapshot when a selector does not match.
+
 ### 0z1316. Keep Loopback Peer Endpoint Overrides Alive For The Whole E2E Journey
 
 **What went wrong:** The browser journey seeded loopback peer endpoints into
