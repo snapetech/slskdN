@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1318. Preserve Existing Stream Errors When Adding A Source Route
+
+**What went wrong:** Mesh stream routing replaced the existing Scene-result
+400 problem type with a generic unsupported-stream type, breaking an established
+API response contract.
+
+**Why:** The new source case combined invalid-source handling instead of
+preserving the response already used by Scene results.
+
+**Prevention:** Extend action routing with source-specific branches and keep
+the established status, problem type, title, and detail for existing sources.
+
 ### 0z1317. Match The DM Composer's Accessible Username Label
 
 **What went wrong:** The messaging journey looked for a textbox named
