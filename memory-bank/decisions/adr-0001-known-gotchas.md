@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1327. Keep Narrow Transfer Tables Horizontally Scrollable
+
+**What went wrong:** The transfer grid has a 920-pixel minimum width, but its
+wrapper used `overflow: hidden`, clipping columns on a phone-width viewport.
+The wrapper also could not receive keyboard focus for horizontal navigation.
+
+**Why:** The minimum grid width preserved desktop columns without giving the
+overflowing table a scrollable, focusable container.
+
+**Prevention:** Keep transfer table overflow inside a labeled, keyboard-focusable
+horizontal scroll region. Test with a populated transfer row at narrow width;
+an empty-state page does not exercise the grid.
+
 ### 0z1326. Give Clickable System Section Items Keyboard Semantics
 
 **What went wrong:** The System section menu changed routes on pointer click, but
