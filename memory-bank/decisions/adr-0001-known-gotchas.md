@@ -34216,18 +34216,18 @@ as the Semantic UI chunk. The React 19 alias resolves to package paths named
 the resolved package path. Run the production build and bundle budget check;
 keep the existing budget rather than masking misplaced code with a larger cap.
 
-### 0z1310. Verify Accessible Names On Popup Trigger DOM (2026-10-02)
+### 0z1310. Rebuild Web Assets Before Browser Verification (2026-10-02)
 
-**What went wrong:** The theme trigger supplied an `aria-label` in JSX, but
-the rendered Fomantic menu anchor had no accessible label after it passed
-through a `Popup` trigger. The browser test caught this even though the title
-tooltip and visible “Theme” text remained.
+**What went wrong:** A theme accessibility browser check reported that its
+trigger lacked an `aria-label`, but the E2E server was serving the previous
+frontend bundle. The source had changed after that bundle was built, so this
+run did not exercise the current component.
 
-**Why:** Props on a Semantic UI component nested as a Popup trigger do not
-prove that the final native trigger element exposes the same accessibility
-attributes.
+**Why:** Playwright can launch a prebuilt backend whose static Web assets are
+independent of the current React source tree. A successful earlier build does
+not make later source edits visible to that server.
 
-**Prevention:** Assert accessible names on the rendered trigger in a real
-browser. When the Semantic UI/Popup composition drops a label, place the
-accessible name on the concrete DOM trigger or choose a composition that
-forwards it, then verify the DOM again.
+**Prevention:** Rebuild the Web assets after frontend edits and verify that the
+E2E server serves that output before interpreting browser results. Keep the
+source-level test and built-asset browser test paired for UI accessibility
+changes.
