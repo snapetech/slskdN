@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1325. Measure Navigation Item Bounds, Not Only Scroll Width
+
+**What went wrong:** The mobile utility menu's child items extended about 41
+pixels past the left edge, even though the menu's `scrollWidth` equaled its
+`clientWidth`.
+
+**Why:** Flex items kept their intrinsic text widths and overflowed the menu;
+the clipped ancestor prevented the excess from appearing in the scroll-width
+measurement.
+
+**Prevention:** At narrow breakpoints, constrain child item widths and verify
+each rendered item's viewport bounds in addition to checking page overflow.
+
 ### 0z1324. Focus The Navigation Link Rather Than Its Test-Id Wrapper
 
 **What went wrong:** The mobile keyboard test focused a `data-testid` on the
