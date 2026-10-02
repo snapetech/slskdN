@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1336. Isolate Short-Budget Routing Tests From Browser Load
+
+**What went wrong:** A full .NET test run executed alongside the Web suite,
+Playwright, lint, and production build. One `PodMessageRouterTests` case that
+expects fast listen-along fan-out to finish within its two-second budget
+failed; the same case passed alone and the full .NET suite passed when rerun
+without those concurrent workloads.
+
+**Why:** CPU and thread-pool contention from concurrent browser/build work can
+consume a short routing-test budget even when the mocked peer call succeeds.
+
+**Prevention:** When a time-budgeted routing unit test fails during concurrent
+browser or build validation, rerun it alone and rerun the .NET suite without
+those workloads before treating it as a product regression.
+
 ### 0z1335. Check Metric Geometry At Narrow Viewports
 
 **What went wrong:** The populated System Security dashboard's four-statistic
