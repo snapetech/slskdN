@@ -34215,3 +34215,19 @@ as the Semantic UI chunk. The React 19 alias resolves to package paths named
 **Prevention:** Update manual chunk classification when an import alias changes
 the resolved package path. Run the production build and bundle budget check;
 keep the existing budget rather than masking misplaced code with a larger cap.
+
+### 0z1310. Verify Accessible Names On Popup Trigger DOM (2026-10-02)
+
+**What went wrong:** The theme trigger supplied an `aria-label` in JSX, but
+the rendered Fomantic menu anchor had no accessible label after it passed
+through a `Popup` trigger. The browser test caught this even though the title
+tooltip and visible “Theme” text remained.
+
+**Why:** Props on a Semantic UI component nested as a Popup trigger do not
+prove that the final native trigger element exposes the same accessibility
+attributes.
+
+**Prevention:** Assert accessible names on the rendered trigger in a real
+browser. When the Semantic UI/Popup composition drops a label, place the
+accessible name on the concrete DOM trigger or choose a composition that
+forwards it, then verify the DOM again.
