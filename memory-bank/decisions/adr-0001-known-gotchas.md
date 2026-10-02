@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1312. Resolve E2E Fixtures From The Repository Root
+
+**What went wrong:** An E2E spec resolved a fixture path from the repository
+root, but Playwright runs with src/web as its working directory. The copy failed
+with ENOENT before the test could start.
+
+**Why:** Relative paths inside E2E specs are based on the Playwright process
+working directory, not the repository root.
+
+**Prevention:** Resolve repository fixtures with
+path.resolve(process.cwd(), '..', '..', 'test-data', ...), following the
+existing local network journey specs.
+
 ### 0z1311. Set E2E Feature Flags For The Behavior Under Test
 
 **What went wrong:** A core search journey inherited the shared E2E harness's
