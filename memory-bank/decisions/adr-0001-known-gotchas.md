@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1314. Verify Downloads At Their Resolved Destination
+
+**What went wrong:** A completed E2E download was read from the downloads root,
+but search results can retain peer directory segments and the file was saved
+under a nested destination.
+
+**Why:** The selected result's remote path and the configured download
+destination determine the local output path.
+
+**Prevention:** Read the completed transfer's local path or resolve the file
+recursively from the node's downloads directory; do not assume all downloads
+land directly under that directory.
+
 ### 0z1313. Keep MultiPeerHarness Shares Under The Fixture Root
 
 **What went wrong:** A journey passed a temporary share directory to
