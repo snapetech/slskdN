@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1310. Use Public Harness Contracts In E2E Specs
+
+**What went wrong:** A browser spec read `SlskdnNode.appDir` to inspect a
+downloaded file, but the property is private in the test harness type. The
+standalone strict TypeScript check caught the invalid access.
+
+**Why:** Runtime JavaScript can expose a class field that the TypeScript
+contract intentionally keeps private. Playwright transpiles specs without
+enforcing that contract.
+
+**Prevention:** Assert behavior through public API responses or add an explicit
+typed harness accessor when filesystem access is part of the contract. Run the
+strict standalone TypeScript check for each new E2E spec.
+
 ### 0z1309. Preserve Link Semantics When Styling React Router Navigation
 
 **What went wrong:** Rendering a React Router `Link` through Semantic UI
