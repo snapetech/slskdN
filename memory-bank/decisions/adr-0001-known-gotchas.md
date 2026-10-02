@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1315. Route Every Search Source Through Its Download Path
+
+**What went wrong:** A MeshParallelSearch result rendered in the Search UI, but
+selecting Download returned HTTP 400 with invalid_source. SearchActionsController
+only dispatches Pod and Scene content references.
+
+**Why:** Search result aggregation can expose a source that the action endpoint
+does not recognize, leaving a visible result with no working download route.
+
+**Prevention:** Keep result source metadata and action routing aligned across
+Soulseek, mesh, and bridged providers. Verify the download endpoint from the UI
+for every source that can produce a result.
+
 ### 0z1314. Verify Downloads At Their Resolved Destination
 
 **What went wrong:** A completed E2E download was read from the downloads root,
