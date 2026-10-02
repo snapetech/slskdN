@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1335. Check Metric Geometry At Narrow Viewports
+
+**What went wrong:** The populated System Security dashboard's four-statistic
+group fit inside a 320 px page, but its metric labels overlapped because each
+statistic kept a quarter-width column. Checking only document scroll width and
+label visibility missed the unreadable data.
+
+**Why:** Semantic UI's `Statistic.Group widths={4}` does not guarantee a
+readable mobile arrangement. The page can have no horizontal overflow while
+fixed-width statistic columns still collide internally.
+
+**Prevention:** Give populated metric groups an explicit narrow-screen layout,
+and make browser regressions check the rendered label bounds for overlap as
+well as page overflow.
+
 ### 0z1334. Redefine Clipboard After userEvent Keyboard Tests
 
 **What went wrong:** A Network keyboard test used `userEvent.setup()`, after
