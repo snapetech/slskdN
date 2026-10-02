@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1333. Use A Button For Dismissible Message Actions
+
+**What went wrong:** Fomantic UI React's `Message onDismiss` renders a clickable
+close `Icon`, not a keyboard-operable button. The public DHT exposure notice
+therefore had no named, focusable dismiss action or useful tooltip.
+
+**Why:** The Message component's convenience dismiss handler wires a pointer
+callback directly to an icon. That behavior does not provide native button
+semantics or the repository's required action guidance.
+
+**Prevention:** Render an explicit Semantic UI `Button` for user dismissal,
+give it an accessible name and explanatory `Popup`, and verify keyboard
+activation and the resulting persisted state.
+
 ### 0z1332. Check Resolved Error Results From Mesh Sync
 
 **What went wrong:** The Network dashboard treated every resolved
