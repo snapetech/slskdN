@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1319. Use A Slug For Release-Note Areas
+
+**What went wrong:** Release-note preview rejected an otherwise complete
+fragment because its `area` value used spaces instead of the required lowercase
+slug.
+
+**Why:** Release-note metadata is schema-validated, and the `area` field accepts
+only a 2–32 character lowercase slug.
+
+**Prevention:** Use values such as `search` or `search-downloads` in `area`,
+then run `scripts/release_notes.py preview` against the exact change range.
+
 ### 0z1318. Preserve Existing Stream Errors When Adding A Source Route
 
 **What went wrong:** Mesh stream routing replaced the existing Scene-result
