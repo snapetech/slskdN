@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1324. Focus The Navigation Link Rather Than Its Test-Id Wrapper
+
+**What went wrong:** The mobile keyboard test focused a `data-testid` on the
+Semantic menu item container. The actual interactive element was the parent
+React Router link, so pressing Enter did not navigate.
+
+**Why:** The test id identifies the styled menu item, not the enclosing anchor
+that owns link semantics and keyboard activation.
+
+**Prevention:** Use the role-based link locator for keyboard navigation checks;
+reserve the wrapper test id for visual or structural assertions.
+
 ### 0z1323. Wait For The New Route Content Before Measuring Responsive Layout
 
 **What went wrong:** The Browse handoff test checked document width as soon as
