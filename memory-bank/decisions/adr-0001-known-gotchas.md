@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1337. Preserve Visible Button Names When Adding Accessibility Guidance
+
+**What went wrong:** Adding a detailed `aria-label` to a button replaced its
+existing accessible name from visible text. Component regressions that targeted
+the established action names then failed, and the visible label no longer
+matched what assistive technology announced.
+
+**Why:** `aria-label` overrides, rather than supplements, the button's text
+content in the accessible name calculation.
+
+**Prevention:** Keep concise visible action text as the accessible name when it
+already identifies the action. Use an explanatory `Popup` for additional
+purpose and effect, and add `aria-label` only when the visible control has no
+adequate name. Verify both existing accessible-name contracts and tooltip
+content after changing controls.
+
 ### 0z1336. Isolate Short-Budget Routing Tests From Browser Load
 
 **What went wrong:** A full .NET test run executed alongside the Web suite,
