@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1320. Give Shared File Selection Checkboxes Explicit Names
+
+**What went wrong:** Search and Browse file rows rendered selectable checkboxes
+without accessible names; the filename in the neighboring table cell was not
+associated with each checkbox.
+
+**Why:** The shared `FileList` used Semantic UI `Checkbox` without a label or
+`aria-label`, so keyboard users could toggle an item without knowing which file
+the control selected.
+
+**Prevention:** Name each row checkbox with its file path and name the
+directory-level select-all checkbox with its scope. Verify selection by role
+and accessible name in a browser journey.
+
 ### 0z1319. Use A Slug For Release-Note Areas
 
 **What went wrong:** Release-note preview rejected an otherwise complete
