@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1322. Match The Share-Relative File Selection Name In Browser Tests
+
+**What went wrong:** The browser journey searched for an accessible checkbox
+named with the displayed filename, but `FileList` exposes the full
+share-relative path to distinguish files with duplicate basenames.
+
+**Why:** The table shows a basename in its File column while the control name
+intentionally uses `f.filename`, which can include the shared directory.
+
+**Prevention:** Match a distinctive suffix or the full shared path in browser
+locators; do not infer the accessible name from truncated display text.
+
 ### 0z1321. Make Enter Use The Primary Search Action
 
 **What went wrong:** Pressing Enter in the connected Search input created a
