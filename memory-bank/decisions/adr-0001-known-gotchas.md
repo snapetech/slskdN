@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1321. Make Enter Use The Primary Search Action
+
+**What went wrong:** Pressing Enter in the connected Search input created a
+queued search but left the user on the search list, while the primary Search
+button opens the result detail.
+
+**Why:** The key handler called `create()` with its queue-only default instead
+of using the same navigation option as the primary button.
+
+**Prevention:** Keep keyboard submission aligned with the primary search
+action's result navigation and exercise it in the connected browser journey.
+
 ### 0z1320. Give Shared File Selection Checkboxes Explicit Names
 
 **What went wrong:** Search and Browse file rows rendered selectable checkboxes
