@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1313. Keep MultiPeerHarness Shares Under The Fixture Root
+
+**What went wrong:** A journey passed a temporary share directory to
+MultiPeerHarness. SlskdnNode derives the fixture root from the first share
+directory, so it treated /tmp as the fixture root and failed to find the
+required manifest.
+
+**Why:** The harness expects shared directories to live under
+test-data/slskdn-test-fixtures and validates their parent before starting a node.
+
+**Prevention:** Put generated share files inside an existing fixture share
+directory and remove them in afterAll, or make the fixture root an explicit
+harness option before using external temporary shares.
+
 ### 0z1312. Resolve E2E Fixtures From The Repository Root
 
 **What went wrong:** An E2E spec resolved a fixture path from the repository
