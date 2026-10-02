@@ -4,6 +4,17 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1328. Keep Release-Note Bodies Within The Validated Limit
+
+**What went wrong:** The release preview rejected the navigation-accessibility
+fragment after its impact summary grew beyond the schema's 400-character limit.
+
+**Why:** The fragment was extended as more user-visible behavior joined the
+same remediation batch, but preview validation checks the body length.
+
+**Prevention:** Keep each fragment's user-impact summary between 30 and 400
+characters, then rerun the exact-range preview after editing it.
+
 ### 0z1327. Keep Narrow Transfer Tables Horizontally Scrollable
 
 **What went wrong:** The transfer grid has a 920-pixel minimum width, but its
