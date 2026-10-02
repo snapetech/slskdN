@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1308. Import Test Selectors In Standalone Playwright Specs
+
+**What went wrong:** A new browser regression referenced `T.searchInput` without
+importing the selector map. Playwright transpiled the spec successfully, then
+the test failed at runtime with `ReferenceError`; the standalone strict
+TypeScript check also caught the missing name.
+
+**Why:** The Web ESLint and Vitest file sets do not include standalone E2E
+specs, and Playwright test execution does not type-check them.
+
+**Prevention:** Use the literal existing test ID or import the shared selector
+map explicitly. Run the strict standalone TypeScript check for changed browser
+specs as well as the focused Playwright case.
+
 ### 0z1221. Set React-Controlled Range Values Deterministically In E2E
 
 **What went wrong:** WebKit crossfade browser tests advanced the seek slider
