@@ -4,6 +4,17 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1323. Wait For The New Route Content Before Measuring Responsive Layout
+
+**What went wrong:** The Browse handoff test checked document width as soon as
+the URL changed, while the previous Downloads view was still rendered.
+
+**Why:** Client-side navigation updates the address bar before the destination
+route finishes rendering its page content.
+
+**Prevention:** Wait for a stable destination marker before measuring layout or
+interacting with route-specific controls.
+
 ### 0z1322. Match The Share-Relative File Selection Name In Browser Tests
 
 **What went wrong:** The browser journey searched for an accessible checkbox
