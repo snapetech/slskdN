@@ -20,6 +20,20 @@ purpose and effect, and add `aria-label` only when the visible control has no
 adequate name. Verify both existing accessible-name contracts and tooltip
 content after changing controls.
 
+### 0z1338. Rebuild Web Assets Before Running The Prebuilt Browser Harness
+
+**What went wrong:** A direct `playwright test` run against the prebuilt test
+node exercised the last bundled Web assets instead of the current frontend
+source, so newly added Popup guidance and responsive rules appeared absent.
+
+**Why:** The browser harness launches a prebuilt `slskd.dll`, while the
+`pretest:e2e` package hook is what rebuilds the frontend assets before normal
+E2E runs. Calling Playwright with `pnpm exec` bypasses that hook.
+
+**Prevention:** Use `pnpm --filter @slskdn/web test:e2e` for browser validation,
+or explicitly run the Web production build before direct `playwright test`
+invocations against the prebuilt node.
+
 ### 0z1336. Isolate Short-Budget Routing Tests From Browser Load
 
 **What went wrong:** A full .NET test run executed alongside the Web suite,
