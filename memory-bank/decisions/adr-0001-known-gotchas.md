@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1334. Redefine Clipboard After userEvent Keyboard Tests
+
+**What went wrong:** A Network keyboard test used `userEvent.setup()`, after
+which later tests failed in `beforeEach` while assigning a clipboard mock to
+`navigator` with `Object.assign`.
+
+**Why:** `userEvent.setup()` installs a getter-backed clipboard stub. The
+existing direct assignment assumes the property remains writable, so following
+tests fail before their assertions run.
+
+**Prevention:** Define the clipboard mock with `Object.defineProperty` and
+`configurable: true` in shared test setup that runs alongside user-event
+keyboard coverage.
+
 ### 0z1333. Use A Button For Dismissible Message Actions
 
 **What went wrong:** Fomantic UI React's `Message onDismiss` renders a clickable
