@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1326. Give Clickable System Section Items Keyboard Semantics
+
+**What went wrong:** The System section menu changed routes on pointer click, but
+its `Menu.Item` elements were not keyboard-focusable and Enter could not select
+a section.
+
+**Why:** Semantic UI rendered the clickable item as a non-interactive menu
+element; an `onClick` handler alone does not provide link or button keyboard
+behavior.
+
+**Prevention:** Use an interactive link or button for route-changing section
+controls, preserve the visible menu styling, and verify activation with the
+keyboard in a browser test.
+
 ### 0z1325. Measure Navigation Item Bounds, Not Only Scroll Width
 
 **What went wrong:** The mobile utility menu's child items extended about 41
