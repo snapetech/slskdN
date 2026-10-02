@@ -18,6 +18,20 @@ normal operations to the size and serialization time of diagnostic state.
 Keep independent System Info actions enabled according to their own state and
 validate them before and after the diagnostic snapshot becomes available.
 
+### 0z1331. Do Not Use Hash Links For Share-Contents Actions
+
+**What went wrong:** The System Shares path looked like a link but opened a
+contents modal through its parent cell click handler; activating the placeholder
+`#` link also changed the browser fragment.
+
+**Why:** Navigation semantics were used to style and activate a dialog action,
+so pointer clicks both opened the modal and navigated while keyboard activation
+did not clearly communicate that it opened share contents.
+
+**Prevention:** Use a button for the modal action, name it with the shared path,
+and keep the action independent from browser navigation. Verify both keyboard
+activation and that the URL remains unchanged.
+
 ### 0z1329. Keep Runtime Route Fallback Free Of Test Diagnostics
 
 **What went wrong:** The unknown-route fallback wrote debug flags to `window`,
