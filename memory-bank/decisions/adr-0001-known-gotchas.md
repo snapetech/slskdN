@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1309. Preserve Link Semantics When Styling React Router Navigation
+
+**What went wrong:** Rendering a React Router `Link` through Semantic UI
+`Button as={Link}` made the navigation target expose `role="button"` even
+though it retained an `href`.
+
+**Why:** Semantic UI applies button interaction semantics to its Button
+component, including when the rendered element is supplied through `as`.
+
+**Prevention:** Use `Link` directly for navigation and apply the existing
+Semantic UI button classes when button styling is needed. Keep `Button` for
+actions that perform work in place.
+
 ### 0z1308. Import Test Selectors In Standalone Playwright Specs
 
 **What went wrong:** A new browser regression referenced `T.searchInput` without
