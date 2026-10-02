@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1329. Keep Runtime Route Fallback Free Of Test Diagnostics
+
+**What went wrong:** The unknown-route fallback wrote debug flags to `window`,
+scheduled a delayed DOM probe, logged an error, and briefly rendered a red
+debug banner in the production app.
+
+**Why:** Browser-test diagnostics were added to a production route component
+instead of keeping route assertions in the E2E suite.
+
+**Prevention:** Keep the fallback declarative and test route handling through
+the final URL and visible destination content. Do not expose test-only globals,
+timers, console errors, or debug UI from runtime route code.
+
 ### 0z1328. Keep Release-Note Bodies Within The Validated Limit
 
 **What went wrong:** The release preview rejected the navigation-accessibility
