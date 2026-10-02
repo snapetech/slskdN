@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1330. Do Not Gate System Actions On Diagnostic Serialization
+
+**What went wrong:** System Info disabled update, privilege, restart, and
+shutdown actions until the application-state YAML snapshot finished its delayed
+serialization, even though those actions do not depend on the snapshot.
+
+**Why:** A readiness flag for the advanced diagnostics viewer was reused as a
+page-wide action gate, making controls temporarily unavailable and coupling
+normal operations to the size and serialization time of diagnostic state.
+
+**Prevention:** Gate only the diagnostic viewer on its serialized contents.
+Keep independent System Info actions enabled according to their own state and
+validate them before and after the diagnostic snapshot becomes available.
+
 ### 0z1329. Keep Runtime Route Fallback Free Of Test Diagnostics
 
 **What went wrong:** The unknown-route fallback wrote debug flags to `window`,
