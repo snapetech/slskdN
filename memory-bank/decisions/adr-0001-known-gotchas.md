@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1316. Keep Loopback Peer Endpoint Overrides Alive For The Whole E2E Journey
+
+**What went wrong:** The browser journey seeded loopback peer endpoints into
+`UserEndPointCache` at node startup. Its 60-second lifetime elapsed before the
+download began, so Soulseek fell back to the public address advertised by the
+test server and the loopback transfer failed.
+
+**Why:** A startup-only endpoint cache entry is transient state, but the
+browser flow includes login, search, and user interaction before it attempts a
+transfer.
+
+**Prevention:** Keep explicit `SLSKDN_TEST_USER_ENDPOINT_OVERRIDES` as
+long-lived test overrides, separate from transient server-discovered endpoint
+cache entries. Do not assume the initial cache lifetime covers a full browser
+journey.
+
 ### 0z1315. Route Every Search Source Through Its Download Path
 
 **What went wrong:** A MeshParallelSearch result rendered in the Search UI, but
