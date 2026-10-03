@@ -35508,3 +35508,18 @@ state.
 **Prevention:** Treat persisted terminal state as authoritative when servicing
 cancellation requests, and test cancellation during the completion/cleanup
 window as well as after isolated transfer completion.
+
+### 0z1417. Preserve Quoting Across Nested Shell Commands (2026-10-03)
+
+**What went wrong:** A diagnostic command nested inside a single-quoted
+`bash -c` block introduced another single-quoted command. The outer shell then
+expanded the inner `$1` under `set -u` and exited before the screen-reader
+process could start.
+
+**Why:** The outer and inner shells parse different command strings, but quote
+boundaries are handled by the outer shell before the inner command is passed
+to `bash -c`. A syntax-only check did not exercise that runtime expansion.
+
+**Prevention:** Pass nested command text with an explicit shell-safe quote
+splice or use positional arguments without reopening the outer quote. Run the
+actual script entry point after `bash -n` when editing nested shell invocations.
