@@ -35960,3 +35960,21 @@ disposable directory lease.
 
 **Prevention:** Store the returned path and remove the directory explicitly in
 a `finally` block after restoring any process-global state and closing files.
+
+### 0z1444. Measure Palette Focus Colors Against Real Surfaces (2026-10-03)
+
+**What went wrong:** The Player used the dark palette's `primaryScale[4]` as
+its shared focus-outline color. That color fell below 3:1 against at least one
+of the four generated Player surfaces in 20 of 21 built-in palettes; Ember's
+minimum was 1.67:1.
+
+**Why:** The palette mapping treated a readable accent/hover shade as a focus
+indicator without checking how it contrasts with every dark surface used by
+the fixed dark Player, which remains dark even when the web theme is light.
+Existing focus-presence checks did not exercise each generated palette and
+surface combination.
+
+**Prevention:** Verify the computed focus color against each adjacent Player
+surface for every shipped palette. Keep one opaque focus indicator shared by
+the Player controls and prefer a lighter derived accent shade when a palette's
+normal hover color does not meet the contrast target.
