@@ -36052,7 +36052,7 @@ project's compile items before exposing its public types globally.
 **What went wrong:** The application project referenced `Microsoft.CodeAnalysis.CSharp`
 and compiled build-analysis source files into its default compile set even
 though the analysis task runs from the separate build-tools project. This
-caused compiler assemblies totaling about 9.7 MB to ship beside the runtime
+caused compiler assemblies totaling about 10 MB to ship beside the runtime
 application.
 
 **Why:** Build-time source files were shared by globbing the whole
