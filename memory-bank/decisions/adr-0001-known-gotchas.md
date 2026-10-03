@@ -36028,3 +36028,23 @@ retry and recovery counts. Keep `ENOENT`, permission errors, malformed data,
 and identity changes visible as unavailable; a vanished PID must not be
 re-read as if it were the same process. Preserve explicit endpoint and churn
 limits in any resource conclusion.
+
+### 0z1448. Keep Build-Time Roslyn Out Of The Runtime Package (2026-10-03)
+
+**What went wrong:** The application project referenced `Microsoft.CodeAnalysis.CSharp`
+and compiled build-analysis source files into its default compile set even
+though the analysis task runs from the separate build-tools project. This
+caused compiler assemblies totaling about 9.7 MB to ship beside the runtime
+application.
+
+**Why:** Build-time source files were shared by globbing the whole
+`Common/CodeQuality` directory into both projects, while the application
+project also carried direct Roslyn package references. The unit tests resolved
+the analyzer types through the application project, masking the ownership
+boundary.
+
+**Prevention:** Keep build tasks and Roslyn-based analysis in the dedicated
+build-tools project, reference that project directly from tests that exercise
+the task, and assert both that the task's assembly is the build-tools assembly
+and that the application has no Roslyn runtime references. Inspect publish
+output when moving build-only dependencies.
