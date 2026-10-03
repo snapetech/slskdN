@@ -35423,3 +35423,17 @@ element and throw when none exists; they cannot be used to assert absence.
 
 **Prevention:** Use `queryBy*` when asserting that an element is not rendered,
 and reserve `getBy*` for required elements.
+
+### 0z1411. Map Moved Feature Gates To Gone Responses (2026-10-03)
+
+**What went wrong:** The feature-gate filter returned 404 for every unavailable
+status, including `MovedToSlskr`, so a retired gated route could not tell
+clients that it had permanently moved or where to find its replacement.
+
+**Why:** The filter hardcoded `Status404NotFound` instead of mapping the gate's
+status to an HTTP response, despite the runtime status model distinguishing a
+feature disabled by configuration from one moved out of this application.
+
+**Prevention:** Map `MovedToSlskr` to 410 Gone and include the canonical slskr
+project link in that response. Keep a focused filter test for the status,
+message, and link.
