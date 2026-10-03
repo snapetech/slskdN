@@ -34891,3 +34891,20 @@ invariant enforced by both incoming-message and acknowledgement APIs.
 **Prevention:** Do not weaken message-ID validation or invent acknowledgements
 for invalid IDs. Keep the outgoing-message journey separate and use a
 protocol-valid Soulseek server fixture for inbound private-message coverage.
+
+### 0z1377. Expose A Preference Only When A Product Flow Consumes It (2026-10-03)
+
+**What went wrong:** System Experience Preferences rendered and saved many
+choices whose keys had no application consumer. The controls appeared to be
+functional settings even though changing most of them only changed browser
+storage and the copied report.
+
+**Why:** The preference form and normalization schema grew ahead of the Search,
+Messages, Discovery, and Player flows, while tests verified persistence rather
+than a visible behavior change.
+
+**Prevention:** Keep the visible settings list aligned with preferences that
+have real consumers. For each setting, verify the changed behavior in its
+owning flow; keep unimplemented choices out of product controls until that
+behavior and regression coverage exist. Preserve legacy stored keys when
+updating the active preference subset.
