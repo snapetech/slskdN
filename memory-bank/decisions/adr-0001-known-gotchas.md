@@ -35927,3 +35927,23 @@ one step. Prevent the browser's native key action before updating the
 controlled value, clamp to the input bounds, and expose `aria-orientation` as
 `vertical`. Keep native key handling for horizontal player controls such as
 volume and seek.
+
+### 0z1442. Assert Single-Owner Services After Bootstrap Splits (2026-10-03)
+
+**What went wrong:** The experimental Mesh and MediaCore registration modules
+each added the same single-owner descriptors more than once, including
+`TransportPolicyManager`, `INatTraversalService`, `IIpldMapper`, and
+`IFuzzyMatcher`. Resolving those services through `IEnumerable<T>` created
+multiple singleton instances, while the duplicate descriptors obscured their
+registration owner.
+
+**Why:** Extracting registrations into bounded modules left copies of some
+descriptors in their original registration blocks. Existing focused module
+tests did not check the combined service graph for duplicate single-owner
+registrations.
+
+**Prevention:** Add descriptor-count assertions for stateful and otherwise
+single-owner services against the composed runtime graph after registration
+ownership changes. Keep repeated descriptors only when the service is
+deliberately multi-bound and consumed as a collection, such as the search,
+content-backend, and transport-dialer registries.
