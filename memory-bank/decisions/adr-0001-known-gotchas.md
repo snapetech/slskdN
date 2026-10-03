@@ -35638,6 +35638,20 @@ line rather than anchoring it to the start. Keep Player status and control
 speech assertions in the live Playwright workflow so the log also proves the
 browser was accessible while its page remained open.
 
+### 0z1425. Avoid grep -q On A Pipe With pipefail (2026-10-03)
+
+**What went wrong:** The Orca runner found the expected speech line in a second
+`grep -Fq`, but its first `grep` received SIGPIPE when the consumer exited
+early. With `pipefail` enabled, the successful match was reported as failure.
+
+**Why:** `grep -q` stops reading as soon as it finds a match. In a pipeline,
+that can close the upstream reader before it finishes, so the pipeline status
+is nonzero even though the final grep matched.
+
+**Prevention:** Avoid early-exiting consumers in pipelines protected by
+`pipefail`. Let the final grep read the full stream or use one non-pipeline
+matcher that checks both the marker and the expected text.
+
 ### 0z1425. Preserve the Stable Installer URL in README Changes (2026-10-03)
 
 **What went wrong:** A README cleanup removed the literal latest-release
