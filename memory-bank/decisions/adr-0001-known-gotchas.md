@@ -35564,6 +35564,20 @@ for the later `bash -c` invocation.
 nested command payloads. Run the actual script entry point after changing the
 inner command text.
 
+### 0z1422. Avoid Raw Single Quotes In bash -c Payload Text (2026-10-03)
+
+**What went wrong:** A single-quoted error message was added inside the
+screen-reader runner's already single-quoted `bash -c` payload. ShellCheck
+detected the quote boundary before the next runtime attempt.
+
+**Why:** The outer shell parses quote characters in the payload before the
+inner Bash receives it; a raw single quote can split or truncate the command
+argument even when the intended inner message is harmless.
+
+**Prevention:** Avoid raw single quotes throughout single-quoted `bash -c`
+payloads. Use double-quoted messages or an explicit quote splice, then run
+ShellCheck and the actual script entry point.
+
 ### 0z1420. Do Not Treat Passthrough 401s As Expired Sessions (2026-10-03)
 
 **What went wrong:** The shared Web API interceptor cleared the stored token and
