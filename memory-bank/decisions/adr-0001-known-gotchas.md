@@ -35903,3 +35903,20 @@ it as a live event stream. Let the browser workflow assert the accessible
 status and control values, then stop Orca so the file closes and flushes before
 checking the actual speech output. Any live log transport must be validated
 against Orca itself, not only an isolated buffering probe.
+
+### 0z1441. Use Vertical Arrow Keys For Vertical Native Sliders (2026-10-03)
+
+**What went wrong:** The Player equalizer's cross-browser accessibility
+workflow pressed `ArrowRight` to raise a vertical gain slider. Playwright
+WebKit changed the gain from `0 dB` to `-1 dB`, so the test reported a broken
+increase even though it was using the horizontal direction key.
+
+**Why:** The equalizer uses a native range input with `writing-mode:
+vertical-lr`. Browser keyboard handling for a vertical native range follows
+the slider axis and can reverse the horizontal key's effect. The HTML Standard
+places the lowest value at the top for a left-to-right vertical range control.
+
+**Prevention:** Use `ArrowUp` to increase and `ArrowDown` to decrease the
+equalizer gain, and assert the expected value from its `0 dB` baseline. Keep
+`ArrowLeft` and `ArrowRight` for horizontal player controls such as volume and
+seek.
