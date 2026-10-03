@@ -34497,3 +34497,18 @@ account for the space remaining after the component library anchors the popup.
 **Prevention:** Give positioned popups a viewport-aware width as well as a
 maximum width. Verify the rendered portal bounds and document width at the
 narrowest supported viewport after rebuilding the Web assets.
+
+### 0z1348. Await Fomantic Button Interactions In Component Tests (2026-10-03)
+
+**What went wrong:** The full Web suite passed all assertions but then failed
+with an unhandled Fomantic event-handler guard in the Soulseek Discovery test
+that loads similar users and their interests. The test used synchronous
+`fireEvent.click` on Fomantic buttons.
+
+**Why:** Fomantic UI React stores current button callbacks through an effect;
+synchronous synthetic events can race that callback registration under full
+suite scheduling.
+
+**Prevention:** Use awaited `userEvent` clicks for Fomantic controls, then
+assert the resulting UI or API call. Treat unhandled errors after the last
+assertion as test failures even when Vitest reports every assertion passed.
