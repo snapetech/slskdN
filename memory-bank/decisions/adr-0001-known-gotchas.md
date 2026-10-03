@@ -34422,3 +34422,19 @@ not make later source edits visible to that server.
 E2E server serves that output before interpreting browser results. Keep the
 source-level test and built-asset browser test paired for UI accessibility
 changes.
+
+### 0z1343. Do Not Reset Initialized Path State On Mount (2026-10-03)
+
+**What went wrong:** The Files explorer reset its already-empty `subdirectory`
+state to a new empty array in a mount effect. That state update restarted the
+directory-listing effect, canceled the first request, and could hide its
+failure behind the second request's success.
+
+**Why:** React compares arrays by reference. Setting `[]` is a state change even
+when the path is semantically unchanged, so mount-time initialization can
+silently duplicate and cancel asynchronous work.
+
+**Prevention:** Initialize path state in `useState` and reset it only when a
+real root change requires it. For request effects, test that the first request
+is the one whose failure reaches the user; do not let an initialization update
+consume one-shot failure paths or mask a rejected request.
