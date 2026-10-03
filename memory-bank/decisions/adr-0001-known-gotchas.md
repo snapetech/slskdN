@@ -35996,3 +35996,18 @@ PPA workflows.
 listing, prove that it can sign a temporary payload, and pass that exact
 fingerprint to `debuild`. Do not duplicate the signing fingerprint as a
 workflow literal.
+
+### 0z1446. Keep Directly Invoked Workflow Scripts Executable (2026-10-03)
+
+**What went wrong:** A workflow called the new PPA signing helper by its path,
+but the file was added without its executable bit. The local smoke test failed
+with `Permission denied` before it could exercise signing.
+
+**Why:** The script contents had a Bash shebang and valid syntax, but patching
+the file did not set the executable mode required by a direct workflow
+invocation.
+
+**Prevention:** For scripts invoked as `scripts/name.sh` in workflows or shell
+tests, commit executable mode (`100755`) and run at least one direct-invocation
+smoke check. Use `bash scripts/name.sh` only when the workflow is intentionally
+responsible for selecting the interpreter.
