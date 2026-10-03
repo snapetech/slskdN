@@ -35550,6 +35550,20 @@ utilities package that supplies its modifier-map helper.
 **Prevention:** Install `x11-xkb-utils` in the dedicated Orca test image and
 keep a startup-level regression that reaches actual speech output.
 
+### 0z1421. Do Not Nest Single-Quoted Sed Programs In bash -c Payloads (2026-10-03)
+
+**What went wrong:** An AT-SPI readiness parser added a single-quoted `sed`
+program inside the screen-reader runner's single-quoted `bash -c` payload. The
+inner quote terminated the outer payload and the script failed with an
+unexpected EOF before starting Orca.
+
+**Why:** `bash -n` checked the outer script syntax, not the shell text assembled
+for the later `bash -c` invocation.
+
+**Prevention:** Use shell parameter expansion or an explicit quote splice in
+nested command payloads. Run the actual script entry point after changing the
+inner command text.
+
 ### 0z1420. Do Not Treat Passthrough 401s As Expired Sessions (2026-10-03)
 
 **What went wrong:** The shared Web API interceptor cleared the stored token and
