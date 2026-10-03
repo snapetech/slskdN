@@ -16732,3 +16732,12 @@ to respect that production limit. Updated the Player audit, E2E README, tasks
 and active context. Strict E2E types, all 1,215 Web tests, Web lint,
 `./bin/lint`, release-note tests and `git diff --check` passed. WAN behavior,
 physical-device interaction and sustained resource evidence remain open.
+
+## Update 2026-10-03 16:00 UTC — Stable release workflow completed
+
+The `.335` workflow completed successfully overall. Main and Omnibus Testers
+Docker images, all six platform archives, and AUR, COPR, Chocolatey, Nix and
+Homebrew publication succeeded. The PPA source-package job failed during
+signing: the import step passed, but `debuild` could not find the configured
+secret key. No PPA upload occurred. The `.335` GitHub release and live Docker
+deployment remain verified; the PPA signing issue is tracked for follow-up.

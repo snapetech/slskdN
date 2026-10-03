@@ -18,16 +18,17 @@ test and audit work is committed as `97ae02f75`; it changes test coverage and
 internal documentation only, so no release or deployment action was part of
 this batch.
 
-## Current state — Issue #348 fixed, released and deployed — 2026-10-03 15:53 UTC
+## Current state — Issue #348 fixed, released and deployed — 2026-10-03 16:00 UTC
 
 Stable release `2026100314-slskdn.335` is published at
 https://github.com/snapetech/slskdN/releases/tag/2026100314-slskdn.335. The
 hosted release gate passed on the same-tag retry after one non-repeating
 allocation assertion; the full local release gate passed. All six platform
 archives and checksums, support assets, VPN helper, Web marker and Linux
-version passed `scripts/verify-release-artifacts.sh`. Main Docker publishing
-completed successfully. AUR, COPR, Chocolatey, Nix and Homebrew succeeded; PPA
-source-package build failed, and the Omnibus Testers image job is still running.
+version passed `scripts/verify-release-artifacts.sh`. Main and Omnibus Testers
+Docker publishing succeeded. AUR, COPR, Chocolatey, Nix and Homebrew succeeded.
+PPA source-package signing failed: `debuild` could not find the configured
+secret key after the import step reported success.
 
 The issue #348 fix is deployed in the live service on `.335`; its container is
 running and healthy, and the public app shell returns HTTP 200 with the updated

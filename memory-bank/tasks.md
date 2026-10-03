@@ -45,16 +45,18 @@
   `scripts/verify-release-artifacts.sh` verified all six archives, checksums,
   support assets, VPN helper, Web marker, and Linux version. The main Docker
   publisher succeeded; AUR, COPR, Chocolatey, Nix, and Homebrew publication
-  succeeded. PPA source-package build failed and the Omnibus Testers image job
-  remains in progress. Deployed `.335` to the live service; its container is
+  succeeded. PPA source-package signing failed because `debuild` could not
+  find the signing secret key after import; the Omnibus Testers image succeeded.
+  Deployed `.335` to the live service; its container is
   running and healthy, and the public app shell returns HTTP 200 with the new
   Web bundle. The issue #348 401 reload-loop regression is covered by the
   passing Web tests. Track the PPA failure separately.
 
 ### Stable release `.335` PPA follow-up — 2026-10-03
 
-- [ ] Diagnose the `.335` PPA source-package build failure and restore
-  successful Launchpad source publication before the next stable release.
+- [ ] Diagnose the `.335` Launchpad signing failure (`debuild` reported no
+  secret key after the import step) and restore successful source publication
+  before the next stable release.
 
 ### High Priority
 
