@@ -35978,3 +35978,21 @@ surface combination.
 surface for every shipped palette. Keep one opaque focus indicator shared by
 the Player controls and prefer a lighter derived accent shade when a palette's
 normal hover color does not meet the contrast target.
+
+### 0z1445. Derive The PPA Signing Fingerprint From The Imported Secret (2026-10-03)
+
+**What went wrong:** The PPA workflow imported the configured secret signing
+key successfully, but `debuild` still requested the old hard-coded fingerprint.
+The `.335` action log shows the imported key ID as `75F64BBBED90A914`, while
+`debuild` tried the unrelated fingerprint beginning `07E253` and failed with
+“No secret key.”
+
+**Why:** Key import and source signing used separate key identifiers. The
+import step reported success without connecting the imported secret key to the
+fingerprint passed to `debuild`, so key rotation left a stale signer in both
+PPA workflows.
+
+**Prevention:** Read the primary fingerprint from GnuPG's imported secret-key
+listing, prove that it can sign a temporary payload, and pass that exact
+fingerprint to `debuild`. Do not duplicate the signing fingerprint as a
+workflow literal.
