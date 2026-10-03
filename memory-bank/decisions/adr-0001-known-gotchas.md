@@ -35384,3 +35384,16 @@ staged flow no longer did that before promotion.
 **Prevention:** Before moving an accepted staged file, create its normalized
 destination parent beneath the trusted root. Keep a full receive-path test with
 a nested destination that does not exist before the transfer.
+
+### 0z1408. Update Existing Bug Ledger Rows Instead Of Duplicating IDs (2026-10-03)
+
+**What went wrong:** The bug burndown ledger contained two rows for
+`BUG-20261003-178`, one marked Fixed and another Verified. The duplicate made
+the issue's current status ambiguous.
+
+**Why:** A later validation update appended a replacement row without first
+checking whether that issue ID already existed.
+
+**Prevention:** Before adding a ledger row, search the full ledger for its ID.
+Update the existing row when the evidence or status changes, and confirm the ID
+appears exactly once after editing.
