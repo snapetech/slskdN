@@ -35341,3 +35341,17 @@ successful disposition path had already removed it.
 idempotent when quarantine or publication already moved the file and removed
 its private staging directories. Keep a receiver regression through the
 outermost cleanup path.
+
+### 0z1405. Check Unit Fixtures For Claimed Media Signatures (2026-10-03)
+
+**What went wrong:** After fixing integration fixtures that used random bytes
+under `.mp3` names, a unit-level pod receiver test still expected those random
+bytes to succeed. The new policy correctly quarantined the result, so the full
+suite exposed one remaining invalid success fixture.
+
+**Why:** The fixture audit covered integration tests first and did not search
+all unit receive tests that claim a concrete media extension.
+
+**Prevention:** Search both unit and integration receiver fixtures for random
+payloads paired with typed extensions. Successful media fixtures must contain
+a matching signature; mismatches belong in rejection tests.
