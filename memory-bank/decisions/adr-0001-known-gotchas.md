@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1339. Use Fomantic Button Toggle Mode For Pressed State
+
+**What went wrong:** The Logs severity filters supplied `aria-pressed` directly
+to a Fomantic UI React `Button`, but the rendered button omitted the attribute.
+The component test caught that assistive technology would not receive the
+selected filter state.
+
+**Why:** Fomantic UI React constructs `aria-pressed` only for Buttons rendered
+with its `toggle` prop and does not forward a manually supplied attribute in
+the default button mode.
+
+**Prevention:** Give selectable Fomantic Buttons both `toggle` and their
+controlled `active` state. Assert the rendered `aria-pressed` attribute in the
+test instead of inferring it from JSX props.
+
 ### 0z1337. Preserve Visible Button Names When Adding Accessibility Guidance
 
 **What went wrong:** Adding a detailed `aria-label` to a button replaced its
