@@ -35652,6 +35652,22 @@ is nonzero even though the final grep matched.
 `pipefail`. Let the final grep read the full stream or use one non-pipeline
 matcher that checks both the marker and the expected text.
 
+### 0z1426. Preserve The Host Pulse Server When Overriding XDG_RUNTIME_DIR (2026-10-03)
+
+**What went wrong:** Firefox decoded the generated WAV but stopped playback
+with `OnMediaSinkAudioError` in the isolated Orca runner. The runner redirected
+`XDG_RUNTIME_DIR` for its private D-Bus sockets, and the host browser could no
+longer discover the normal PulseAudio socket.
+
+**Why:** The runner passed an explicit PulseAudio server to the Orca container
+but left the host Playwright process to discover its server from runtime
+directories. Overriding `XDG_RUNTIME_DIR` changed that discovery path only for
+the host browser.
+
+**Prevention:** When a test overrides `XDG_RUNTIME_DIR`, pass the resolved
+PulseAudio server address explicitly to every host process that uses it, as
+well as to containers. Keep browser and screen-reader sinks separate.
+
 ### 0z1425. Preserve the Stable Installer URL in README Changes (2026-10-03)
 
 **What went wrong:** A README cleanup removed the literal latest-release
