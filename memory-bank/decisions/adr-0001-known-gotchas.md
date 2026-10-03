@@ -35042,3 +35042,16 @@ interface contract.
 **Prevention:** Any options class that supplies object-level `Validate`
 results must implement `IValidatableObject`. Add a DataAnnotations test that
 proves both accepted and rejected values reach that method.
+
+### 0z1386. Validate Release Fragment Metadata And Body Length (2026-10-03)
+
+**What went wrong:** A collection-sharing release fragment used the
+unsupported category `fix` and a body longer than the validator's 400-character
+limit, so the release preview rejected the range.
+
+**Why:** The fragment was written from memory of the release-note schema, and
+the exact range preview was deferred until the end of implementation.
+
+**Prevention:** Use an exact supported category and keep the user-impact body
+within 30–400 characters. Preview the complete uncommitted release range before
+considering its release documentation validated.
