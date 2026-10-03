@@ -1,22 +1,44 @@
-## Current state — `.335` released; reconcile post-tag work — 2026-10-03 15:34 UTC
+## Current state — reciprocal Player radio transfer workload verified — 2026-10-03 15:57 UTC
+
+The isolated Player radio E2E passes against two loopback nodes and the pinned
+Soulfind fixture. Both peers upload and download 16 MiB under 128 KiB/s caps;
+the browser's listed-radio playback remains active through transfer completion.
+The test checks a fairness denial during transfer, then releases playback
+before validating a new 206 ranged response under the one-active-stream limit.
+The first run attempted that second stream while playback still held the slot;
+gotcha `0z1433` was committed separately as `c2f35dc01` before correcting the
+test order.
+
+Updated the Player audit, E2E runner documentation and task notes. Validation
+passed: the radio E2E (1/1), strict E2E type checking, all 1,215 Web tests, Web
+lint, `./bin/lint`, release-note tests and whitespace checks. This closes the
+capped local reciprocal-transfer gap only. Representative WAN behavior,
+physical-device checks and long-session resource evidence remain open. The
+test and audit work is committed as `97ae02f75`; it changes test coverage and
+internal documentation only, so no release or deployment action was part of
+this batch.
+
+## Current state — Issue #348 fixed, released and deployed — 2026-10-03 15:53 UTC
 
 Stable release `2026100314-slskdn.335` is published at
-https://github.com/snapetech/slskdN/releases/tag/2026100314-slskdn.335. Its
-hosted release gate passed on the same-tag retry after one allocation assertion
-reported a non-repeating 87 KB current-thread sample; the full local release
-gate passed. All six platform archives and their checksums, required support
-assets, VPN helper, Web marker, and embedded Linux version passed
-`scripts/verify-release-artifacts.sh`. AUR, COPR, Chocolatey, Nix, and Homebrew
-jobs succeeded; PPA source-package build failed. The Docker publisher is still
-running.
+https://github.com/snapetech/slskdN/releases/tag/2026100314-slskdn.335. The
+hosted release gate passed on the same-tag retry after one non-repeating
+allocation assertion; the full local release gate passed. All six platform
+archives and checksums, support assets, VPN helper, Web marker and Linux
+version passed `scripts/verify-release-artifacts.sh`. Main Docker publishing
+completed successfully. AUR, COPR, Chocolatey, Nix and Homebrew succeeded; PPA
+source-package build failed, and the Omnibus Testers image job is still running.
 
-The live login page is https://slskd.home/; the service is healthy but still
-runs `.320`. Release `.335` has not been deployed there. The new Player
-Firefox/Orca announcement changes arrived after the `.335` tag, so they are
-tracked for a later release in
-`release-notes/20261003-player-accessible-playback-status.md`. The full Web
-suite passes 1,215/1,215 and targeted Player ESLint passes. Preserve these
-post-tag edits and the concurrent release-metadata commit when pushing `main`.
+The issue #348 fix is deployed in the live service on `.335`; its container is
+running and healthy, and the public app shell returns HTTP 200 with the updated
+hashed Web bundle. An unauthenticated API probe still returns 401 as designed;
+the client regression coverage verifies passthrough mode preserves its state
+instead of entering a reload loop, while JWT expiry still clears and reloads.
+The login URL was supplied directly in the task response.
+
+Post-tag Player radio audit and E2E test edits were committed with the user's
+explicit request to publish all dirty work. Continue the broader Player audit
+and track the failed PPA source-package build separately.
 
 ## Current state — Firefox/Orca Player announcements verified — 2026-10-03 15:21 UTC
 

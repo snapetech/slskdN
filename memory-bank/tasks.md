@@ -43,10 +43,18 @@
   non-repeating allocation measurement failure; the same immutable tag passed
   its retry. Release `2026100314-slskdn.335` was published and
   `scripts/verify-release-artifacts.sh` verified all six archives, checksums,
-  support assets, VPN helper, Web marker, and Linux version. AUR, COPR,
-  Chocolatey, Nix, and Homebrew publication succeeded; PPA source-package
-  build failed. The `.335` Docker image job is still in progress. The live
-  instance remains on `.320`; it has not been deployed from this release.
+  support assets, VPN helper, Web marker, and Linux version. The main Docker
+  publisher succeeded; AUR, COPR, Chocolatey, Nix, and Homebrew publication
+  succeeded. PPA source-package build failed and the Omnibus Testers image job
+  remains in progress. Deployed `.335` to the live service; its container is
+  running and healthy, and the public app shell returns HTTP 200 with the new
+  Web bundle. The issue #348 401 reload-loop regression is covered by the
+  passing Web tests. Track the PPA failure separately.
+
+### Stable release `.335` PPA follow-up — 2026-10-03
+
+- [ ] Diagnose the `.335` PPA source-package build failure and restore
+  successful Launchpad source publication before the next stable release.
 
 ### High Priority
 
@@ -240,8 +248,17 @@
     pairings, and physical assistive technology remain open. Release-note
     fragment `20261003-player-accessible-playback-status.md` records the
     user-facing change. The broad initiative remains active.
+    The isolated Player radio runner now verifies a listed stream stays active
+    during reciprocal 16 MiB Soulseek transfers, with both upload/download
+    counters reaching 16 MiB on each node under 128 KiB/s caps. A repeated
+    ticket is fairness-limited during transfer, and a fresh ticket returns a
+    206 range after the active stream is released. The local workflow passes
+    1/1; its first run exposed a test-ordering mistake against the deliberate
+    one-stream cap, recorded as gotcha `0z1433` in docs-only commit
+    `c2f35dc01`. WAN behavior remains unverified.
   - Next: continue populated multi-step journeys and the broader remediation.
-    Keep WAN radio/reciprocal-transfer and physical-device accessibility open.
+    Keep representative WAN radio behavior, physical-device accessibility,
+    and sustained resource measurements open.
     Route inventory and maturity claims are reconciled; retain the current 51
     experimental classifications until evidence justifies a change. Keep the
     broad initiative active.

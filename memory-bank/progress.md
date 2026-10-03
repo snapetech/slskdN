@@ -16699,3 +16699,36 @@ Next: continue the whole-product remediation. Resolve or bound the Firefox /
 Orca playback interaction, test WebKit in its supported container, and keep
 physical accessibility, device, WAN, reciprocal-transfer, and long-session
 resource validation open.
+
+## Update 2026-10-03 15:53 UTC — Deploy stable release `.335`
+
+Deployed the published issue #348 fix by updating the live systemd image pin to
+`ghcr.io/snapetech/slskdn:2026100314-slskdn.335` and restarting the service.
+The persistent configuration and data mounts were preserved. The resulting
+container reports `running` and `healthy`; the public app shell returns HTTP
+200 and serves the updated hashed Web bundle. An unauthenticated API probe
+still returns 401, which is expected; the client regression tests verify that
+passthrough 401s no longer clear the mode sentinel or reload the page, while
+expired JWT behavior remains intact.
+
+Release artifact checks passed, and the main Docker publisher succeeded. AUR,
+COPR, Chocolatey, Nix and Homebrew succeeded; PPA source-package build failed
+and the optional Omnibus Testers image job remained in progress at this check.
+The repository changes were pushed, including the unrelated dirty Player
+radio test/audit edits requested by the user.
+
+## Update 2026-10-03 15:57 UTC — Verify radio playback during reciprocal transfers
+
+Ran the pinned loopback Player radio workflow with two nodes capped at
+128 KiB/s. Both nodes uploaded and downloaded 16 MiB, the listed-radio player
+continued advancing through transfer completion, a repeat ticket was denied
+under active transfer load, and a fresh 65,536-byte range succeeded after the
+active Player stream was stopped. The final workflow passed 1/1 in 2.4 minutes.
+
+The initial run returned 429 because the E2E requested another ranged stream
+while the browser still held its one allowed stream open. Recorded gotcha
+`0z1433` in the immediate docs-only commit `c2f35dc01`, then reordered the test
+to respect that production limit. Updated the Player audit, E2E README, tasks
+and active context. Strict E2E types, all 1,215 Web tests, Web lint,
+`./bin/lint`, release-note tests and `git diff --check` passed. WAN behavior,
+physical-device interaction and sustained resource evidence remain open.
