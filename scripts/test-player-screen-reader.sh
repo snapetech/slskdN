@@ -13,6 +13,15 @@ case "$screen_reader_browser" in
     exit 1
     ;;
 esac
+screen_reader_suite="${SLSKDN_PLAYER_A11Y_SUITE:-all}"
+case "$screen_reader_suite" in
+  all) playwright_test_grep='@player-screen-reader' ;;
+  controls) playwright_test_grep='speaks changed volume and equalizer values' ;;
+  *)
+    echo "Unsupported screen-reader suite: $screen_reader_suite" >&2
+    exit 1
+    ;;
+esac
 
 for executable in dbus-run-session docker pactl parec pnpm python3 xvfb-run; do
   if ! command -v "$executable" >/dev/null 2>&1; then
@@ -133,6 +142,7 @@ export SLSKDN_PLAYER_A11Y_PCM_OFFSET_FILE="$pcm_offset_file"
 export SLSKDN_PLAYER_A11Y_CONTAINER="$container_name"
 export SLSKDN_PLAYER_A11Y_CONTAINER_USER="$container_user"
 export SLSKDN_PLAYER_A11Y_BROWSER="$screen_reader_browser"
+export SLSKDN_PLAYER_A11Y_PLAYWRIGHT_GREP="$playwright_test_grep"
 export SLSKDN_PLAYER_A11Y_IMAGE="$image"
 export SLSKDN_PLAYER_A11Y_PULSE_DIRECTORY="$pulse_socket_directory"
 export SLSKDN_PLAYER_A11Y_PULSE_SERVER="$pulse_server"
@@ -261,7 +271,8 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
     fi
 
     pnpm --filter @slskdn/web exec playwright test e2e/player.spec.ts \
-      --grep @player-screen-reader --browser="$SLSKDN_PLAYER_A11Y_BROWSER" \
+      --grep="$SLSKDN_PLAYER_A11Y_PLAYWRIGHT_GREP" \
+      --browser="$SLSKDN_PLAYER_A11Y_BROWSER" \
       --workers=1 --retries=0 --trace=off --reporter=line
 
     sleep 2
@@ -276,16 +287,19 @@ if [[ "$capture_status" -ne 0 && "$capture_status" -ne 130 ]]; then
 fi
 capture_pid=''
 
-if ! grep -Fq "SPEECH OUTPUT: 'Now playing: Player runtime first.'" "$debug_log"; then
-  echo 'Orca did not process Player content in the selected browser while the page was open.' >&2
-  exit 1
-fi
 if grep -Eiq 'Speech Dispatcher service failed to connect|No speech server for factory' "$debug_log"; then
   echo 'Orca logged a Speech Dispatcher connection failure.' >&2
   exit 1
 fi
-for spoken_text in "Now playing: Player runtime first." "Paused: Player runtime first." "Playback stopped."; do
-  if ! grep -Fq "SPEECH OUTPUT: '$spoken_text'" "$debug_log"; then
+if [[ "$screen_reader_suite" == 'all' ]]; then
+  required_speech=("Now playing: Player runtime first." "Paused: Player runtime first." "Playback stopped.")
+else
+  required_speech=("Playback volume" "99 percent" "31 equalizer gain" "1 dB")
+fi
+for spoken_text in "${required_speech[@]}"; do
+  if ! awk -v spoken_text="$spoken_text" \
+    'index($0, "SPEECH OUTPUT:") && index($0, spoken_text) { found = 1 } END { exit !found }' \
+    "$debug_log"; then
     echo "Orca did not send the expected player status to speech: $spoken_text" >&2
     exit 1
   fi
