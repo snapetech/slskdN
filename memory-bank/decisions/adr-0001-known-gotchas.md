@@ -34539,3 +34539,19 @@ the external Save button bypasses browser form validation.
 **Prevention:** Validate required numeric form values before YAML generation;
 keep optional values explicitly separate. Verify that clearing a value blocks
 save and that restoring it persists the entered value.
+
+### 0z1351. Shared-With-Me Stream Buttons Must Use Short-Lived Tickets (2026-10-03)
+
+**What went wrong:** SharedWithMe rendered the manifest's `streamUrl` directly
+in `window.open`. For remote grants that URL contains the reusable share token
+in its query string, even though the component already had an unused ticket
+exchange handler.
+
+**Why:** The visible Stream action bypassed the header-based share-token
+exchange path and treated a server-generated manifest URL as safe for browser
+navigation.
+
+**Prevention:** Never open a manifest `streamUrl` that may contain a reusable
+share token. Exchange the grant token in a request header with the owning server
+for a short-lived, content-bound ticket, then open only the ticket URL. Verify
+the browser-visible URL and `window.open` argument contain no reusable token.
