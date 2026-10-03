@@ -34685,3 +34685,16 @@ write does not mean the browser accepted it.
 **Prevention:** Await clipboard writes, keep positive feedback behind the
 successful resolution, and surface denied/unavailable failures as errors.
 Cover a rejected clipboard promise in the component tests.
+
+### 0z1362. Surface Messaging Workspace Mutation Failures (2026-10-03)
+
+**What went wrong:** MessagingV2 caught conversation, room, and pod mutation
+failures only to log them. The relevant workspace action had no visible result,
+even when an add panel still held the user's input.
+
+**Why:** The asynchronous handlers treated console diagnostics as sufficient
+feedback and did not connect request failures to rendered workspace state.
+
+**Prevention:** Render a polite, accessible workspace error for failed user
+actions, include the server detail when available, and preserve the user's
+draft so they can retry. Verify one failure path through the rendered route.
