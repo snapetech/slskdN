@@ -19,6 +19,22 @@ the default button mode.
 controlled `active` state. Assert the rendered `aria-pressed` attribute in the
 test instead of inferring it from JSX props.
 
+### 0z1340. Stop Route-Scoped SignalR Connections On Unmount
+
+**What went wrong:** The System Logs route created a live SignalR connection
+and registered streaming callbacks but did not retain or stop the connection
+when its component unmounted. Route changes could leave old log subscriptions
+active and allow late events to update an inactive page.
+
+**Why:** A live connection outlives the React component that created it unless
+the route explicitly owns teardown. Automatic reconnect also makes a forgotten
+connection continue consuming network and server resources after navigation.
+
+**Prevention:** Keep the connection and callbacks inside the component effect,
+mark that effect inactive before cleanup, and stop the hub on unmount. Guard
+event, lifecycle, and startup-promise callbacks against the inactive effect;
+test both stop-on-unmount and late-event behavior.
+
 ### 0z1337. Preserve Visible Button Names When Adding Accessibility Guidance
 
 **What went wrong:** Adding a detailed `aria-label` to a button replaced its
