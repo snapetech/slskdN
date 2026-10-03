@@ -35172,3 +35172,19 @@ the directory operation follow the link.
 before creating any directory or requesting peer data. Open it through
 `SecureFileWriter`, and revalidate the same root before cleaning up partial
 downloads.
+
+### 0z1394. Skip Symlink Targets During Library Browsing (2026-10-03)
+
+**What went wrong:** Recursive Library Items fallback browsing followed a
+directory symlink from the configured download root into a sibling directory
+and returned the outside file's name and size. A focused browser regression
+reproduced the metadata exposure.
+
+**Why:** `Directory.EnumerateFiles` used `SearchOption.AllDirectories`, which
+does not skip reparse points by default. The fallback checked file existence
+before validating that the resolved file remained under an allowed local root.
+
+**Prevention:** Enumerate with `ReparsePoint` in `AttributesToSkip` and
+normalize each candidate with `PathGuard.NormalizeAbsolutePathWithinRoots`
+before checking existence, size, hash, or registering its content ID. Keep a
+regression with an outside symlink under a configured local root.
