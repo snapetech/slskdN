@@ -35850,3 +35850,19 @@ while still missing the manifest's original content root.
 absolute path used for the Release build. Set the Playwright working directory
 under that mount, and confirm the node reaches its readiness endpoint before
 debugging browser navigation.
+
+### 0z1438. Pass The Private AT-SPI Bus Address To WebKitGTK Processes (2026-10-03)
+
+**What went wrong:** The WebKit Player speech E2E launched and Orca spoke its
+startup phrase, but Orca never received the page's live-region announcements.
+The runner passed the desktop D-Bus session address to Playwright without
+passing the separately discovered AT-SPI bus address.
+
+**Why:** WebKitGTK exposes page accessibility through AT-SPI D-Bus. Its
+MiniBrowser and web processes need the private accessibility-bus address in
+their environment; the desktop session bus address does not identify that bus.
+
+**Prevention:** Pass the address returned by `org.a11y.Bus.GetAddress` as
+`AT_SPI_BUS_ADDRESS` to the Playwright process so the browser and its child
+processes inherit it. Verify actual Orca output for page content, not only the
+screen reader's startup speech or the browser's DOM assertions.
