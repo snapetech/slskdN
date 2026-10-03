@@ -35775,3 +35775,20 @@ the playback-only profile intentionally captures fewer short utterances.
 **Prevention:** Keep the speech-log assertions exact and choose a minimum PCM
 window count that matches the selected suite. Retain minimum duration and peak
 checks so a short profile still must capture real speech audio.
+
+### 0z1433. Release The Active Radio Stream Before Testing Another Admission (2026-10-03)
+
+**What went wrong:** The reciprocal-transfer radio E2E requested a second
+listed-radio stream while the Player still held the first one open. Ticket
+creation returned 200, but the following ranged stream request returned 429
+because the host's one-active-stream limit was already occupied.
+
+**Why:** A successful ticket only authorizes a later stream request; it does
+not reserve a concurrent-stream slot. The test checked another stream while
+its browser was still playing the existing one, so it hit the deliberate
+resource limit instead of exercising a free slot.
+
+**Prevention:** Before validating a replacement or second ranged stream,
+explicitly stop playback and wait for the existing HTTP stream to release its
+slot. Keep the one-active-stream limit and separately assert its 429 behavior
+when testing concurrency limits.
