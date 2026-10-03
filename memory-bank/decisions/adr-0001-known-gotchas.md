@@ -35411,3 +35411,15 @@ node, so the test query did not match the rendered DOM structure.
 **Prevention:** Assert the surrounding status region and the inline code text
 separately, or use a matcher based on the parent element's `textContent` when
 the sentence itself is the contract.
+
+### 0z1410. Use Non-Throwing Queries For Absence Assertions (2026-10-03)
+
+**What went wrong:** A component test called `getByRole` and then asserted that
+the result was absent. When the feature gate correctly removed the Mesh button,
+the query threw before the absence assertion could run.
+
+**Why:** Testing Library's `getBy*` queries require exactly one matching
+element and throw when none exists; they cannot be used to assert absence.
+
+**Prevention:** Use `queryBy*` when asserting that an element is not rendered,
+and reserve `getBy*` for required elements.
