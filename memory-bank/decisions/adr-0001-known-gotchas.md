@@ -35028,3 +35028,17 @@ hosts. If an operator needs a private/LAN owner, allow only its exact private
 or loopback IP origin in local sharing configuration; do not make the shared
 guard accept arbitrary private URLs, DNS hostnames, redirects, or link-local
 and reserved destinations.
+
+### 0z1385. Options Validation Methods Must Implement IValidatableObject (2026-10-03)
+
+**What went wrong:** A new nested options type declared a `Validate` method, but
+invalid endpoint values passed all unit cases because the type did not
+implement `IValidatableObject`.
+
+**Why:** The method name and its `ValidationResult` return type look like the
+DataAnnotations validation hook, but the validator only invokes it through the
+interface contract.
+
+**Prevention:** Any options class that supplies object-level `Validate`
+results must implement `IValidatableObject`. Add a DataAnnotations test that
+proves both accepted and rejected values reach that method.
