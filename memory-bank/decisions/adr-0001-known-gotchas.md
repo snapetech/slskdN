@@ -35608,3 +35608,17 @@ without preserving the storage dependencies used by the code under test.
 **Prevention:** When stubbing `window` in browser tests, retain the existing
 storage objects, or stub only the location behavior. Assert the mode sentinel
 before attributing a failure to the response interceptor.
+
+### 0z1423. Use dbus-send's Bus Mode For AT-SPI Readiness (2026-10-03)
+
+**What went wrong:** The screen-reader runner queried the private AT-SPI bus
+with `dbus-send --address=...`. The socket was available, but the request was
+rejected before the runner could confirm the bus was ready.
+
+**Why:** `dbus-send` distinguishes daemon connections (`--bus=ADDRESS`) from
+peer connections (`--peer=ADDRESS`). Treating the AT-SPI daemon address as a
+generic address selected the wrong connection mode for a bus method call.
+
+**Prevention:** Use `dbus-send --bus="$a11y_bus_address"` when checking a
+daemon bus address. Keep the readiness check aligned with the tool's explicit
+connection mode and exercise it against the real containerized AT-SPI bus.
