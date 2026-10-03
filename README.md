@@ -29,6 +29,18 @@ For first use, follow the setup guide to install the daemon, open its Web UI,
 set credentials, configure a download directory and Soulseek account, then
 search, browse, and manage transfers.
 
+### Install the latest stable release on Linux
+
+Download the current stable installer and run it with administrator privileges:
+
+```bash
+curl -fsSLO https://github.com/snapetech/slskdn/releases/latest/download/install-linux-release.sh
+sudo bash install-linux-release.sh
+```
+
+The installer configures the system service. See the [setup guide](docs/getting-started.md)
+for configuration and first-login steps.
+
 ## Use the main workflows
 
 - [Search and discovery](docs/soulseek-native-discovery.md) — search peers and

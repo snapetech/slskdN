@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
+const enableChromiumScreenReaderAccessibility = process.env.SLSKDN_PLAYER_SCREEN_READER === '1' &&
+  (process.env.SLSKDN_PLAYER_A11Y_BROWSER ?? 'chromium') === 'chromium';
+
 export default defineConfig({
   // Increased for node startup and login flows
   expect: { timeout: 20_000 },
@@ -15,7 +18,7 @@ export default defineConfig({
       ...(process.env.SLSKDN_PLAYER_AUDIO_OUTPUT === '1'
         ? { ignoreDefaultArgs: ['--mute-audio'] }
         : {}),
-      ...(process.env.SLSKDN_PLAYER_SCREEN_READER === '1'
+      ...(enableChromiumScreenReaderAccessibility
         ? { args: ['--force-renderer-accessibility'] }
         : {}),
     },

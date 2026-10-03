@@ -24,6 +24,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [2026100314-slskdn.334] — 2026-10-03
 
+### Linux installation
+
+- Keep the latest stable Linux installer URL and run command available from
+  the README's getting-started section.
+
 ### Authentication-disabled browser sessions
 
 - Preserve the no-auth passthrough mode when a protected API request returns

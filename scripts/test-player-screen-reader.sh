@@ -5,6 +5,15 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 image='slskdn-player-a11y:orca-clean'
+screen_reader_browser="${SLSKDN_PLAYER_A11Y_BROWSER:-chromium}"
+case "$screen_reader_browser" in
+  chromium|firefox|webkit) ;;
+  *)
+    echo "Unsupported screen-reader browser: $screen_reader_browser" >&2
+    exit 1
+    ;;
+esac
+
 for executable in dbus-run-session docker pactl parec pnpm python3 xvfb-run; do
   if ! command -v "$executable" >/dev/null 2>&1; then
     echo "Required executable is unavailable: $executable" >&2
@@ -123,6 +132,7 @@ export SLSKDN_PLAYER_A11Y_PCM_CAPTURE="$pcm_capture"
 export SLSKDN_PLAYER_A11Y_PCM_OFFSET_FILE="$pcm_offset_file"
 export SLSKDN_PLAYER_A11Y_CONTAINER="$container_name"
 export SLSKDN_PLAYER_A11Y_CONTAINER_USER="$container_user"
+export SLSKDN_PLAYER_A11Y_BROWSER="$screen_reader_browser"
 export SLSKDN_PLAYER_A11Y_IMAGE="$image"
 export SLSKDN_PLAYER_A11Y_PULSE_DIRECTORY="$pulse_socket_directory"
 export SLSKDN_PLAYER_A11Y_PULSE_SERVER="$pulse_server"
@@ -251,7 +261,8 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
     fi
 
     pnpm --filter @slskdn/web exec playwright test e2e/player.spec.ts \
-      --grep @player-screen-reader --workers=1 --retries=0 --trace=off --reporter=line
+      --grep @player-screen-reader --browser="$SLSKDN_PLAYER_A11Y_BROWSER" \
+      --workers=1 --retries=0 --trace=off --reporter=line
 
     sleep 2
   '
@@ -265,8 +276,8 @@ if [[ "$capture_status" -ne 0 && "$capture_status" -ne 130 ]]; then
 fi
 capture_pid=''
 
-if ! grep -Fq "Google Chrome for Testing frame'" "$debug_log"; then
-  echo 'Orca did not process the Playwright Chromium application while it was running.' >&2
+if ! grep -Fq "SPEECH OUTPUT: 'Now playing: Player runtime first.'" "$debug_log"; then
+  echo 'Orca did not process Player content in the selected browser while the page was open.' >&2
   exit 1
 fi
 if grep -Eiq 'Speech Dispatcher service failed to connect|No speech server for factory' "$debug_log"; then
