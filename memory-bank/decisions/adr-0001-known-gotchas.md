@@ -35086,3 +35086,17 @@ created the index row.
 `PathGuard.NormalizeAbsolutePathWithinRoots` immediately before returning it to
 streaming or tag-edit callers. Keep the regression where the repository returns
 an existing file outside all configured share and download roots.
+
+### 0z1389. Path.GetFullPath Does Not Enforce A Filesystem Root (2026-10-03)
+
+**What went wrong:** Files API listing and deletion decoded a caller-provided
+relative path, combined it with a configured root, and called `Path.GetFullPath`
+without verifying containment. A `..` path can therefore resolve outside the
+downloads or incomplete directory.
+
+**Why:** Canonicalizing a path was treated as equivalent to constraining it;
+trimming leading separators does not reject parent-directory components.
+
+**Prevention:** Pass decoded caller paths through `PathGuard.NormalizeAndValidate`
+before any list or delete operation. Keep tests that verify traversal receives a
+client error and never reaches the filesystem service.
