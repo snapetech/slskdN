@@ -35100,3 +35100,11 @@ trimming leading separators does not reject parent-directory components.
 **Prevention:** Pass decoded caller paths through `PathGuard.NormalizeAndValidate`
 before any list or delete operation. Keep tests that verify traversal receives a
 client error and never reaches the filesystem service.
+
+**Correction after service-boundary review (2026-10-03):** `FileService` does
+apply a lexical allowed-root prefix check, so `..` paths normalized outside a
+root are rejected before filesystem access. The confirmed gap is that this
+check uses `Path.GetFullPath` without resolving existing symlink components; a
+link inside an allowed root can still make list/delete access escape. Test and
+fix the actual `FileService` boundary with a symlink rooted outside the allowed
+directories.
