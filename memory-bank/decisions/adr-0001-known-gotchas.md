@@ -35239,3 +35239,19 @@ filename and request failure before exposing the transfer's terminal error.
 Keep a service regression that writes executable and mismatched signatures
 through the real download output factory and checks terminal transfer and
 request records.
+
+### 0z1398. Apply Content Safety To Every Receive Path (2026-10-03)
+
+**What went wrong:** Content safety was enforced by the standard Soulseek
+download service, but pod downloads, HTTP collection backfills, relay imports,
+and multi-source downloads wrote directly to user-visible destinations without
+the same inspection and rejection policy.
+
+**Why:** The safety check was added at one receiver implementation instead of
+being treated as a contract for every code path that materializes received
+content.
+
+**Prevention:** Use the shared content-safety policy after a receive stream is
+closed and before reporting success or indexing the file. Keep focused real-file
+regressions for each receiver, including rejection, quarantine, and the
+configured allow-on-warning behavior.
