@@ -34606,3 +34606,16 @@ failure, as equivalent to a successful scan with zero peers.
 **Prevention:** Model discovery errors separately from empty results. Show the
 request detail and a retry action, and test a failed scan followed by a
 successful retry.
+
+### 0z1356. Normalize Browse Download Errors Before Rendering (2026-10-03)
+
+**What went wrong:** Browse/Directory stored `error.response` and rendered its
+HTTP fields unconditionally. A fetch/network failure has no response object,
+so the error view could throw while trying to show the original failure.
+
+**Why:** The failure path assumed every rejected request came from an HTTP
+response, although network failures reject before a response exists.
+
+**Prevention:** Convert request failures to a renderable message at the catch
+boundary. Cover both structured HTTP errors and response-less network errors,
+and verify the latter does not create a second rendering failure.
