@@ -34512,3 +34512,17 @@ suite scheduling.
 **Prevention:** Use awaited `userEvent` clicks for Fomantic controls, then
 assert the resulting UI or API call. Treat unhandled errors after the last
 assertion as test failures even when Vitest reports every assertion passed.
+
+### 0z1349. Validate New API Key Policy Drafts Before Saving (2026-10-03)
+
+**What went wrong:** Admin Policies allowed API key role, CIDR, scope, and name
+fields to be edited without an API key value. YAML serialization skipped the
+new key entry but still reported that all settings were saved.
+
+**Why:** The save path only writes policy metadata when a key already exists
+under that name or a replacement key is supplied; form validation did not
+enforce that persistence precondition.
+
+**Prevention:** Require a name and key value for a new API key policy, and
+require a replacement value before targeting a different name. Test both the
+blocked draft and the serialized YAML after completing it.
