@@ -35450,3 +35450,16 @@ checking which component owned the navigation into that child.
 **Prevention:** Gate parent-owned navigation and the child surface together.
 Test that disabled features leave neither callable controls nor links to
 missing content.
+
+### 0z1413. Avoid TypeScript Parameter Properties In Node Strip-Types Tests (2026-10-03)
+
+**What went wrong:** A Node 22 test imported a TypeScript E2E helper using
+`--experimental-strip-types`, but the helper's constructor parameter property
+failed with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` before the tests could run.
+
+**Why:** Node's strip-only TypeScript support removes erasable type syntax but
+does not transform parameter properties into class fields and assignments.
+
+**Prevention:** For TypeScript modules executed directly by Node's strip-types
+mode, declare the field on the class and assign it in the constructor body.
+Keep a direct Node test for the helper so syntax-support regressions fail early.
