@@ -35866,3 +35866,18 @@ their environment; the desktop session bus address does not identify that bus.
 `AT_SPI_BUS_ADDRESS` to the Playwright process so the browser and its child
 processes inherit it. Verify actual Orca output for page content, not only the
 screen reader's startup speech or the browser's DOM assertions.
+
+### 0z1439. Point The Screen Reader At The Same Private AT-SPI Bus (2026-10-03)
+
+**What went wrong:** Passing the private bus address to WebKit alone still left
+Orca unable to resolve WebKit's page objects; playback and slider speech
+assertions received no page announcement.
+
+**Why:** The container runs WebKit and the AT-SPI client in separate processes.
+The isolated screen-reader setup needs both sides to address the same private
+accessibility bus rather than relying on session-bus discovery for one side.
+
+**Prevention:** Pass the same address returned by `org.a11y.Bus.GetAddress` to
+WebKitGTK as `AT_SPI_BUS_ADDRESS` and to libatspi clients as
+`ATSPI_BUS_ADDRESS`. Check that Orca can resolve page objects before treating
+missing speech as an application live-region defect.
