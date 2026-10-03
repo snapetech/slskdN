@@ -34907,4 +34907,6 @@ than a visible behavior change.
 have real consumers. For each setting, verify the changed behavior in its
 owning flow; keep unimplemented choices out of product controls until that
 behavior and regression coverage exist. Preserve legacy stored keys when
-updating the active preference subset.
+updating the active preference subset. In Playwright, activate a Semantic UI
+checkbox through its visible label when the hidden, read-only input intercepts
+pointer clicks.
