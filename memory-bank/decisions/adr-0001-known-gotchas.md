@@ -35255,3 +35255,18 @@ content.
 closed and before reporting success or indexing the file. Keep focused real-file
 regressions for each receiver, including rejection, quarantine, and the
 configured allow-on-warning behavior.
+
+### 0z1399. Preserve Quarantine Cleanup When Sharing Disposition Logic (2026-10-03)
+
+**What went wrong:** During the content-safety refactor, the download removal
+path still needed the old quarantine-directory resolver, and backfill filename
+collision handling still referenced a removed extension variable. The first
+focused compile caught both before tests ran.
+
+**Why:** The edit moved inspection and quarantine behavior but did not search
+all existing cleanup and filename-allocation call sites that shared those
+local values.
+
+**Prevention:** Before extracting disposition logic, search every reference to
+the moved resolver and every variable used by follow-on collision handling.
+Run a focused build immediately after the extraction.
