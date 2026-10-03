@@ -34777,3 +34777,17 @@ even though the user was waiting inside a modal for that result.
 **Prevention:** Render the normalized failure in the active modal and provide a
 retry control there. Ignore responses from requests that outlive the modal or
 are superseded by a later retry.
+
+### 0z1369. Keep Solid Status Failures Recoverable (2026-10-03)
+
+**What went wrong:** Solid Settings silently left its status panel empty after
+the status request failed, and offered no retry. The WebID field also relied
+on a generated Semantic UI label association that was not guaranteed.
+
+**Why:** The status request had no separate loading/error state, and a visible
+Form.Input label does not by itself prove the nested input has an accessible
+name.
+
+**Prevention:** Keep loading, request failure, disabled status, and successful
+status distinct. Provide an in-place retry and test WebID by its rendered
+accessible name after explicitly associating the label and input.
