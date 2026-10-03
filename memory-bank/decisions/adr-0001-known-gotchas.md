@@ -35947,3 +35947,16 @@ single-owner services against the composed runtime graph after registration
 ownership changes. Keep repeated descriptors only when the service is
 deliberately multi-bound and consumed as a collection, such as the search,
 content-backend, and transport-dialer registries.
+
+### 0z1443. Clean Up Temporary Directories Explicitly (2026-10-03)
+
+**What went wrong:** A bootstrap registration test used
+`using var` with `Directory.CreateTempSubdirectory()`, which returns a
+`DirectoryInfo` and caused a compile error because `DirectoryInfo` does not
+implement `IDisposable`.
+
+**Why:** The temporary-directory factory creates a filesystem path, not a
+disposable directory lease.
+
+**Prevention:** Store the returned path and remove the directory explicitly in
+a `finally` block after restoring any process-global state and closing files.
