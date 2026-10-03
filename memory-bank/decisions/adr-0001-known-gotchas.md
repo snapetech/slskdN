@@ -35683,3 +35683,17 @@ literal.
 install-linux-release.sh` command in README installation guidance. Run
 `packaging/scripts/validate-packaging-metadata.sh` after changing top-level
 installation documentation.
+
+### 0z1427. Bound Orca Speech Dispatcher Readiness Probes (2026-10-03)
+
+**What went wrong:** The screen-reader runner called `spd-say --wait` while
+polling for Speech Dispatcher readiness. A hung speech request blocked the
+shell before the retry count or any later startup timeout could take effect.
+
+**Why:** The retry loop bounded only how many times a command could return; it
+did not bound the duration of an individual blocking command.
+
+**Prevention:** Put a timeout around the complete readiness probe, including
+the remote `docker exec` request, and keep the timeout shorter than the runner's
+overall startup budget. Verify a stalled probe exits through the normal cleanup
+path rather than leaving the container or audio capture running.
