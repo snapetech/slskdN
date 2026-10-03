@@ -35580,3 +35580,17 @@ handling to the caller when passthrough mode is active. Keep the existing
 clear-and-reload behavior for authenticated sessions. Remote no-auth access
 still requires both `AllowRemoteNoAuth` and a matching explicit `AllowedCidrs`
 entry; do not weaken that boundary to hide an authorization failure.
+
+### 0z1421. Preserve Browser Storage When Stubbing Window In API Tests (2026-10-03)
+
+**What went wrong:** A Web API interceptor test replaced the global `window`
+with a minimal object to spy on page reloads. The token storage helper reads
+`sessionStorage` and `localStorage` from `window`, so the test hid the
+passthrough sentinel and exercised the wrong 401 path.
+
+**Why:** A test double for one browser method replaced the whole browser global
+without preserving the storage dependencies used by the code under test.
+
+**Prevention:** When stubbing `window` in browser tests, retain the existing
+storage objects, or stub only the location behavior. Assert the mode sentinel
+before attributing a failure to the response interceptor.
