@@ -34484,3 +34484,16 @@ component even when the returned markup is unchanged.
 **Prevention:** Declare pane components at module scope, or use render helpers
 that return a stable root element type directly. Add a focus-retention test for
 controlled inputs and selection controls that update the parent.
+
+### 0z1347. Constrain Popup Width For Its Actual Viewport Position (2026-10-03)
+
+**What went wrong:** Library Health tooltips had a viewport-based `max-width`,
+but Fomantic UI positioned a 306 px popup from x=89 on a 320 px screen. The
+popup still expanded to that maximum and widened the document to 395 px.
+
+**Why:** A maximum width only limits a popup's possible size; it does not
+account for the space remaining after the component library anchors the popup.
+
+**Prevention:** Give positioned popups a viewport-aware width as well as a
+maximum width. Verify the rendered portal bounds and document width at the
+narrowest supported viewport after rebuilding the Web assets.
