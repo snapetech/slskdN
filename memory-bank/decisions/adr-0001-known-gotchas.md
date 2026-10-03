@@ -35297,3 +35297,16 @@ the `await using` stream remained alive until the whole method returned.
 and before any final hash, content, or fingerprint verification. Keep a
 real-file failover regression that asserts rejected bytes leave the normal
 destination.
+
+### 0z1402. Match Fake Media Payloads To Their Filename Extensions (2026-10-03)
+
+**What went wrong:** A pod integration fixture generated random bytes but named
+the received file `.mp3`. Once the receive path enforced content-safety policy,
+the test's ordinary success case was correctly quarantined as a mismatch.
+
+**Why:** The fixture modeled transport bytes but not the file-type contract
+implied by its filename.
+
+**Prevention:** For successful receive fixtures under active content-safety
+policy, seed a valid signature for the declared extension. Use mismatched or
+executable signatures only in tests that assert rejection or quarantine.
