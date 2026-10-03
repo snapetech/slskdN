@@ -232,6 +232,79 @@ test.describe('browse transfer handoff', () => {
     });
 
     await login(page, nodeA);
+    await page.setViewportSize({ height: 800, width: 320 });
+    const navigationWidths = await page.evaluate(() => {
+      const navigation = document.querySelector('.navigation');
+      const primary = navigation?.querySelector('.navigation-primary');
+      const utilities = navigation?.querySelector('.right.ui.inverted.menu');
+      return {
+        navigation: navigation?.clientWidth ?? 0,
+        primary: primary?.clientWidth ?? 0,
+        utilities: utilities?.clientWidth ?? 0,
+        utilitiesContent: utilities?.scrollWidth ?? 0,
+      };
+    });
+    expect(navigationWidths.primary).toBe(navigationWidths.navigation);
+    expect(navigationWidths.utilities).toBe(navigationWidths.navigation);
+    expect(navigationWidths.utilitiesContent).toBeLessThanOrEqual(
+      navigationWidths.utilities,
+    );
+    const utilityItemBounds = await page.evaluate(() => {
+      const utilities = document.querySelector('.navigation .right.ui.inverted.menu');
+      return Array.from(utilities?.children ?? []).map((item) => {
+        const rect = item.getBoundingClientRect();
+        return { left: rect.left, right: rect.right };
+      });
+    });
+    expect(utilityItemBounds.every(({ left, right }) =>
+      left >= 0 && right <= 320)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))
+      .toBe(false);
+    for (const testId of ['nav-search', 'nav-downloads', 'nav-uploads', 'nav-messages', 'nav-system']) {
+      await expect(page.getByTestId(testId)).toBeInViewport();
+    }
+    await page.locator('.navigation-primary').evaluate((navigation) => {
+      navigation.scrollLeft = navigation.scrollWidth;
+    });
+    for (const testId of ['nav-group-network', 'nav-group-sharing']) {
+      await expect(page.getByTestId(testId)).toBeInViewport();
+    }
+    for (const [index, group] of [
+      {
+        links: ['Users', 'Contacts', 'Solid'],
+        testId: 'nav-group-network',
+      },
+      {
+        links: ['Collections', 'Share Groups', 'Shared with Me', 'Browse'],
+        testId: 'nav-group-sharing',
+      },
+    ].entries()) {
+      await page.getByTestId(group.testId).click();
+      const groupPopup = page.locator('.navigation-dropdown-popup');
+      await expect(groupPopup).toBeVisible();
+      const popupBounds = await groupPopup.boundingBox();
+      expect(popupBounds).not.toBeNull();
+      expect(popupBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+      expect((popupBounds?.x ?? 0) + (popupBounds?.width ?? 0)).toBeLessThanOrEqual(320);
+      for (const linkName of group.links) {
+        await expect(
+          groupPopup.getByRole('link', { exact: true, name: linkName }),
+        ).toBeVisible();
+      }
+      if (index === 0) {
+        await page.locator('.navigation-primary').evaluate((navigation) => {
+          navigation.scrollLeft = 0;
+        });
+        await page.getByTestId('nav-search').click();
+        await expect(page).toHaveURL(/\/searches$/);
+        await page.locator('.navigation-primary').evaluate((navigation) => {
+          navigation.scrollLeft = navigation.scrollWidth;
+        });
+      }
+    }
+    await page.getByRole('link', { exact: true, name: 'System' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/system$/);
 
     await page.evaluate(() => {
       window.localStorage.removeItem('slskd-browse-tabs');
@@ -250,6 +323,8 @@ test.describe('browse transfer handoff', () => {
       browseButton,
       `expected mocked Downloads transfer row; transfer requests mocked: ${transferRequestCount}`,
     ).toBeVisible({ timeout: 15_000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))
+      .toBe(false);
     await browseButton.click();
 
     await expect(page).toHaveURL(/\/browse\?user=fixturePeer/);
@@ -257,6 +332,8 @@ test.describe('browse transfer handoff', () => {
       timeout: 15_000,
     });
     await expect(page.getByTestId(T.browseContent)).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))
+      .toBe(false);
     await expect(page.getByText('1 directories, 1 files')).toBeVisible({
       timeout: 15_000,
     });
@@ -277,7 +354,14 @@ test.describe('browse transfer handoff', () => {
     await page.getByRole('button', { name: 'fixture-root' }).click();
     const selectedDirectory = page.locator('.browse-selected-directory-card');
     await expect(selectedDirectory.getByText('proof-track.flac')).toBeVisible();
-    await selectedDirectory.locator('.ui.checkbox').last().click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))
+      .toBe(false);
+    const fileSelection = selectedDirectory.getByRole('checkbox', {
+      name: 'proof-track.flac',
+    });
+    await fileSelection.focus();
+    await page.keyboard.press('Space');
+    await expect(fileSelection).toBeChecked();
     await selectedDirectory.getByRole('button', { name: /Download/ }).click();
     await expect.poll(() => queuedDestination).toBe('/downloads');
   });

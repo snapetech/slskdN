@@ -6,6 +6,7 @@ This directory contains end-to-end tests for slskdn using Playwright.
 
 - `smoke-auth.spec.ts` - Authentication and basic health checks
 - `core-pages.spec.ts` - Core UI pages (system, downloads, uploads, rooms, chat, users)
+- `ui-regressions.spec.ts` - Responsive layouts, keyboard actions, and control guidance across populated UI surfaces
 - `library.spec.ts` - Library indexing and browsing
 - `search.spec.ts` - Search functionality
 - `multippeer-sharing.spec.ts` - Multi-peer sharing workflows (invites, groups, collections, shares)
@@ -64,6 +65,29 @@ Tests run with `SLSKDN_TEST_NO_CONNECT=true` to disable Soulseek connections for
 
 ```bash
 pnpm --filter @slskdn/web test:e2e:ci
+```
+
+### Loopback Soulseek Journeys
+
+The core journey suite validates Soulseek search, a completed peer download, and
+private-message delivery through the UI against two isolated slskdN nodes and
+the pinned Soulfind test server. It binds Soulfind to loopback, disables public
+DHT bootstrap, and does not contact public Soulseek peers. The pinned Docker
+image must already be available locally; the runner never pulls it. A loopback
+TCP proxy normalizes negative private-message IDs from this fixture for the
+protocol client and maps acknowledgements back to the fixture IDs; production
+protocol validation is unchanged.
+
+The proxy's frame-splitting and acknowledgement mapping can be checked without
+starting Soulfind:
+
+```bash
+node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types \
+  --test src/web/e2e/harness/soulseekPrivateMessageIdMapper.node-test.mjs
+```
+
+```bash
+pnpm --filter @slskdn/web test:core:soulseek-journeys
 ```
 
 ## Test Harness

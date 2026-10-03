@@ -9,9 +9,10 @@ failures=0
 implemented="docs/security/implemented-security.md"
 roadmap="docs/security/security-roadmap.md"
 non_goals="docs/security/security-non-goals.md"
+readme="README.md"
 readme_draft="README.maturity.md"
 
-for file in "$implemented" "$roadmap" "$non_goals" "$readme_draft"; do
+for file in "$implemented" "$roadmap" "$non_goals" "$readme" "$readme_draft"; do
   if [[ ! -f "$file" ]]; then
     echo "missing required file: $file" >&2
     failures=$((failures + 1))
@@ -56,16 +57,21 @@ if [[ -f "$implemented" ]]; then
   fi
 fi
 
-if [[ -f "$readme_draft" ]]; then
-  if ! grep -q "Roadmap-only security claims" "$readme_draft"; then
-    echo "$readme_draft missing roadmap-only security section" >&2
+if [[ -f "$readme" ]]; then
+  if ! grep -q "Roadmap-only security claims" "$readme"; then
+    echo "$readme missing roadmap-only security section" >&2
     failures=$((failures + 1))
   fi
 
-  if ! grep -q "A feature is not stable merely because" "$readme_draft"; then
-    echo "$readme_draft missing stability rule" >&2
+  if ! grep -q "Experimental features are not guaranteed stable" "$readme"; then
+    echo "$readme missing feature maturity rule" >&2
     failures=$((failures + 1))
   fi
+fi
+
+if [[ -f "$readme" && -f "$readme_draft" ]] && ! cmp -s "$readme" "$readme_draft"; then
+  echo "README.md and README.maturity.md have drifted" >&2
+  failures=$((failures + 1))
 fi
 
 if [[ "$failures" -ne 0 ]]; then

@@ -1,5 +1,6 @@
 import './MessageStream.css';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Button, Popup } from 'semantic-ui-react';
 
 const NICK_PALETTE = [
   '#e07b91',
@@ -102,6 +103,15 @@ const messageListSignature = (messages) =>
   messages
     .map((message, index) => messageRenderKey(message, index))
     .join('\u0002');
+
+const getErrorText = (error) => {
+  const data = error?.response?.data;
+  if (typeof data === 'string') return data;
+  if (data && typeof data === 'object') {
+    return data.detail || data.message || data.error || data.title || JSON.stringify(data);
+  }
+  return error?.message || 'The message history could not be loaded.';
+};
 
 const autolink = (text) => {
   if (typeof text !== 'string' || text.length === 0) return [text];
@@ -207,26 +217,36 @@ const MessageActions = ({ message, onCopy, onQuote }) => {
       role="toolbar"
     >
       {onQuote && (
-        <button
-          aria-label="Quote message"
-          className="msg-stream-action"
-          onClick={() => onQuote(message)}
-          title="Quote in composer"
-          type="button"
-        >
-          ❝
-        </button>
+        <Popup
+          content="Insert this message into the composer so you can reply in context."
+          trigger={(
+            <button
+              aria-label="Quote message"
+              className="msg-stream-action"
+              onClick={() => onQuote(message)}
+              title="Quote in composer"
+              type="button"
+            >
+              ❝
+            </button>
+          )}
+        />
       )}
       {onCopy && (
-        <button
-          aria-label="Copy message"
-          className="msg-stream-action"
-          onClick={() => onCopy(message)}
-          title="Copy text"
-          type="button"
-        >
-          ⎘
-        </button>
+        <Popup
+          content="Copy this message's text to the clipboard."
+          trigger={(
+            <button
+              aria-label="Copy message"
+              className="msg-stream-action"
+              onClick={() => onCopy(message)}
+              title="Copy text"
+              type="button"
+            >
+              ⎘
+            </button>
+          )}
+        />
       )}
     </div>
   );
@@ -286,14 +306,19 @@ const MessageRow = ({
       >
         <span className="msg-stream-time">{formatTime(message.ts)}</span>
         <span className="msg-stream-me-glyph">*</span>
-        <button
-          className="msg-stream-me-sender"
-          onClick={(event) => onSenderClick?.(message.sender, event)}
-          style={{ color }}
-          type="button"
-        >
-          {message.sender}
-        </button>
+        <Popup
+          content={`Open the available actions for ${message.sender}.`}
+          trigger={(
+            <button
+              className="msg-stream-me-sender"
+              onClick={(event) => onSenderClick?.(message.sender, event)}
+              style={{ color }}
+              type="button"
+            >
+              {message.sender}
+            </button>
+          )}
+        />
         <span className="msg-stream-me-body">{renderBody(message.body, searchQuery)}</span>
         <MessageActions message={message} onCopy={onCopy} onQuote={onQuote} />
       </div>
@@ -313,15 +338,20 @@ const MessageRow = ({
         {showSender ? formatTime(message.ts) : ''}
       </span>
       {showSender ? (
-        <button
-          className="msg-stream-sender"
-          onClick={(event) => onSenderClick?.(message.sender, event)}
-          style={{ color }}
-          title={message.sender}
-          type="button"
-        >
-          {message.sender}
-        </button>
+        <Popup
+          content={`Open the available actions for ${message.sender}.`}
+          trigger={(
+            <button
+              className="msg-stream-sender"
+              onClick={(event) => onSenderClick?.(message.sender, event)}
+              style={{ color }}
+              title={message.sender}
+              type="button"
+            >
+              {message.sender}
+            </button>
+          )}
+        />
       ) : (
         <span className="msg-stream-sender-spacer" aria-hidden="true" />
       )}
@@ -379,7 +409,7 @@ const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) =
       } catch (caught) {
         console.error('MessageStream refresh failed:', caught);
         if (mountedRef.current && activeAdapterRef.current === requestedAdapter) {
-          setError(caught);
+          setError(getErrorText(caught));
         }
       } finally {
         if (mountedRef.current && activeAdapterRef.current === requestedAdapter) {
@@ -557,27 +587,59 @@ const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) =
             ? `${matchingIndexes.length ? searchCursor + 1 : 0}/${matchingIndexes.length}`
             : ''}
         </span>
-        <button
-          aria-label="Previous search match"
-          className="msg-stream-search-button"
-          disabled={matchingIndexes.length === 0}
-          onClick={() => moveSearch(-1)}
-          title="Previous search match"
-          type="button"
-        >
-          ↑
-        </button>
-        <button
-          aria-label="Next search match"
-          className="msg-stream-search-button"
-          disabled={matchingIndexes.length === 0}
-          onClick={() => moveSearch(1)}
-          title="Next search match"
-          type="button"
-        >
-          ↓
-        </button>
+        <Popup
+          content="Move to the previous matching message."
+          trigger={(
+            <span className="msg-stream-search-control">
+              <button
+                aria-label="Previous search match"
+                className="msg-stream-search-button"
+                disabled={matchingIndexes.length === 0}
+                onClick={() => moveSearch(-1)}
+                title="Previous search match"
+                type="button"
+              >
+                ↑
+              </button>
+            </span>
+          )}
+        />
+        <Popup
+          content="Move to the next matching message."
+          trigger={(
+            <span className="msg-stream-search-control">
+              <button
+                aria-label="Next search match"
+                className="msg-stream-search-button"
+                disabled={matchingIndexes.length === 0}
+                onClick={() => moveSearch(1)}
+                title="Next search match"
+                type="button"
+              >
+                ↓
+              </button>
+            </span>
+          )}
+        />
       </div>
+      {error && (
+        <div className="msg-stream-error" role="alert">
+          <span>{error}</span>
+          <Popup
+            content="Retry loading this conversation's messages."
+            trigger={(
+              <Button
+                basic
+                className="msg-stream-retry"
+                onClick={refresh}
+                size="mini"
+              >
+                Retry
+              </Button>
+            )}
+          />
+        </div>
+      )}
       <div
         className="msg-stream"
         onScroll={handleScroll}
@@ -585,9 +647,9 @@ const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) =
       >
         {isInitialLoad ? (
           <div className="msg-stream-loading">Loading…</div>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && error ? null : items.length === 0 ? (
           <div className="msg-stream-empty">
-            {error ? 'Could not load messages.' : emptyHint || 'No messages yet.'}
+            {emptyHint || 'No messages yet.'}
           </div>
         ) : (
           <>
@@ -620,16 +682,21 @@ const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) =
         )}
       </div>
       {!stuck && (
-        <button
-          aria-label="Jump to latest"
-          className="msg-stream-jump"
-          onClick={jumpToLatest}
-          type="button"
-        >
-          {newCount > 0
-            ? `↓ ${newCount} new ${newCount === 1 ? 'message' : 'messages'}`
-            : '↓ Jump to latest'}
-        </button>
+        <Popup
+          content="Scroll to the newest messages in this conversation."
+          trigger={(
+            <button
+              aria-label="Jump to latest"
+              className="msg-stream-jump"
+              onClick={jumpToLatest}
+              type="button"
+            >
+              {newCount > 0
+                ? `↓ ${newCount} new ${newCount === 1 ? 'message' : 'messages'}`
+                : '↓ Jump to latest'}
+            </button>
+          )}
+        />
       )}
     </div>
   );

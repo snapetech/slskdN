@@ -18,6 +18,10 @@ describe('streaming', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('exchanges a share token for a ticket via the X-Share-Token header, not the URL', async () => {
     api.post.mockResolvedValue({ data: { ticket: 'opaque-ticket' } });
 
@@ -39,6 +43,56 @@ describe('streaming', () => {
     const ticket = await streaming.createShareStreamTicket('c1', 't');
 
     expect(ticket).toBe('');
+  });
+
+  it('exchanges a remote share token in a header and returns only a ticket URL', async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({ ticket: 'short-lived-ticket' }),
+      ok: true,
+    });
+    vi.stubGlobal('fetch', fetch);
+
+    const streamUrl = await streaming.createRemoteShareStreamUrl(
+      'https://owner.example/slskd/api/v0/streams/sha256%3Atrack?token=long-lived-secret',
+      'sha256:track',
+      'long-lived-secret',
+    );
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://owner.example/slskd/api/v0/streams/sha256%3Atrack/share-ticket',
+      {
+        cache: 'no-store',
+        credentials: 'omit',
+        headers: { 'X-Share-Token': 'long-lived-secret' },
+        method: 'POST',
+        mode: 'cors',
+        redirect: 'error',
+      },
+    );
+    expect(streamUrl).toBe(
+      'https://owner.example/slskd/api/v0/streams/sha256%3Atrack?ticket=short-lived-ticket',
+    );
+    expect(streamUrl).not.toContain('long-lived-secret');
+    expect(fetch.mock.calls[0][0]).not.toContain('long-lived-secret');
+  });
+
+  it('rejects malformed manifest URLs and unsuccessful ticket exchanges', async () => {
+    await expect(
+      streaming.createRemoteShareStreamUrl(
+        'https://owner.example/other/path?token=secret',
+        'sha256:track',
+        'secret',
+      ),
+    ).rejects.toThrow('unsupported stream address');
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+    await expect(
+      streaming.createRemoteShareStreamUrl(
+        'https://owner.example/api/v0/streams/sha256%3Atrack?token=secret',
+        'sha256:track',
+        'secret',
+      ),
+    ).rejects.toThrow('HTTP 403');
   });
 
   it('passes cancellation to stream-ticket and playback-info requests', async () => {

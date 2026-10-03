@@ -23,6 +23,7 @@ const DebugButton = ({
       icon="bug"
       mediaQuery="(max-width: 516px)"
       onClick={() => setDebugModal(true)}
+      tooltip="Inspect resolved options to troubleshoot configuration."
       {...props}
     >
       Debug View
@@ -37,6 +38,7 @@ const EditButton = ({ remoteConfiguration, setEditModal, ...props }) => {
         disabled
         icon="lock"
         mediaQuery="(max-width: 516px)"
+        tooltip="Remote YAML editing is disabled in server configuration."
       >
         Remote Configuration Disabled
       </ShrinkableButton>
@@ -49,6 +51,7 @@ const EditButton = ({ remoteConfiguration, setEditModal, ...props }) => {
       mediaQuery="(max-width: 516px)"
       onClick={() => setEditModal(true)}
       primary
+      tooltip="Edit and validate the remote YAML options before saving."
       {...props}
     >
       Edit

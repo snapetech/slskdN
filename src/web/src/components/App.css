@@ -879,6 +879,41 @@ body {
     min-width: 74px !important;
 }
 
+@media only screen and (max-width: 480px) {
+    .navigation {
+        flex-wrap: wrap;
+    }
+
+    .navigation-primary {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+
+    .navigation .right.ui.inverted.menu {
+        border-left: 0 !important;
+        border-top: 1px solid var(--slskdn-nav-border, rgba(255,255,255,0.08)) !important;
+        flex: 1 1 100%;
+        justify-content: flex-end;
+        margin-left: 0 !important;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .navigation .right.ui.inverted.menu > .item,
+    .navigation .right.ui.inverted.menu > a > .item {
+        flex: 0 0 60px;
+        font-size: 10px !important;
+        min-width: 0 !important;
+        padding: 0.45rem 0.2rem !important;
+        width: 60px;
+    }
+
+    .navigation .right.ui.inverted.menu > .item:first-child {
+        flex-basis: 80px;
+        width: 80px;
+    }
+}
+
 .theme-menu-label {
     line-height: 1.15;
     white-space: nowrap;

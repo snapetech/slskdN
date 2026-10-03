@@ -1,0 +1,30 @@
+.admin-policies {
+  min-width: 0;
+}
+
+.admin-policy-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.admin-policy-table-scroll:focus-visible {
+  outline: 2px solid var(--slskdn-accent-primary, #a277ff);
+  outline-offset: 2px;
+}
+
+.admin-policy-retention-table.ui.table {
+  min-width: 36rem;
+}
+
+.admin-policy-actions .ui.button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.admin-policy-popup.ui.popup {
+  box-sizing: border-box;
+  max-width: min(22rem, calc(100vw - 1rem));
+  overflow-wrap: anywhere;
+  width: min(22rem, calc(100vw - 8rem));
+}

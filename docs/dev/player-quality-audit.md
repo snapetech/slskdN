@@ -1,6 +1,6 @@
 # Player quality audit
 
-Updated: 2026-09-30. The player overhaul remains active.
+Updated: 2026-10-03. The player overhaul remains active.
 
 ### Resource coverage correction — 2026-09-28
 
@@ -91,7 +91,7 @@ simulated device APIs.
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
 | Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before and after first output | Setup cancellation: component/API tests / high; six codec-retry/server-failure workflows pass in Chromium, Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
-| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; one Linux Orca/Chromium playback-status workflow passes with isolated audio capture / high for tested messages; other reader/browser pairs and physical assistive technology remain open |
+| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; isolated Linux Orca/Chromium capture verifies playback status, 99% volume and 1 dB equalizer speech / high for tested controls; other reader/browser pairs and physical assistive technology remain open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 107 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
@@ -127,6 +127,23 @@ This verifies one Linux Orca/Chromium pairing for playback-status messages. It
 does not verify other screen readers, browser pairings, spoken volume/equalizer
 values, or physical assistive-technology hardware. Confidence is high for the
 tested runtime path.
+
+### Captured Orca volume and equalizer speech — 2026-10-03
+
+The isolated Linux runner now completes its AT-SPI readiness check, launches
+Chromium and Orca together, and records Orca speech on its own virtual audio
+sink. Two tagged Playwright workflows passed. While the controls were focused,
+Orca spoke the volume slider's `99%` value as “99 percent” and the 31 Hz
+equalizer slider's `1 dB` value; the rendered `aria-valuetext` matched both
+spoken values. The run also retained the earlier keyboard playback, pause,
+seek, compact-mode and stop announcements. The speech capture contained 27
+active 100 ms windows over 24.6 seconds, and the log showed no
+Speech Dispatcher connection failure.
+
+This is direct speech evidence for one Linux Orca/Chromium pairing and these
+Player controls. Other screen reader/browser combinations and physical
+assistive-technology hardware remain unverified. Confidence is high for the
+captured pairing and controls.
 
 ### Listed-radio active stream recovery — 2026-09-29
 
@@ -427,14 +444,15 @@ are happening; that reciprocal-transfer workflow remains open.
   visualizer, output-switch, floating-window and radio workloads.
 - Define CPU and memory acceptance budgets on representative minimum and target
   hardware; current Chromium figures are host-specific measurements.
-- Extend assistive-technology speech coverage beyond the verified Orca/
-  Chromium playback-status workflow. All eight
+- Extend assistive-technology speech coverage beyond the verified Linux
+  Orca/Chromium workflow. Captured speech now verifies “Now playing,” “Paused,”
+  Stop, 99% volume and 1 dB equalizer updates. All eight
   player dialogs now expose their title, receive focus on entry, wrap Tab in
   both directions, and restore the opener on Escape. The queue dialog workflow
   verifies those behaviors in three browser engines; the visible expanded,
   advanced and compact player Tab order now passes in all three too. Captured
-  Orca speech now verifies “Now playing,” “Paused,” and Stop in one isolated
-  Chromium workflow. Other reader/browser combinations, spoken slider values,
+  Orca speech now verifies “Now playing,” “Paused,” Stop and two slider values
+  across the isolated Chromium workflows. Other reader/browser combinations
   and physical assistive technology remain open. Core playback, paused seeking
   and compact-mode keyboard activation also pass in all three engines.
 - Resolve newly discovered defects and update this audit with direct evidence.
@@ -509,6 +527,17 @@ Reads are paced at five per second, fit the 64 KiB framed JSON limit and retain
 the global 500-call RPC limit. One listener-node stream per host bounds aggregate
 read pressure. Sustained throughput, full browser HTTP seek behavior across mesh
 and high bitrate audio remain unverified.
+
+### High-rate radio and seek ticket lifetime — 2026-10-03
+
+Remote radio reads now use 47 KiB payloads paced at 122 ms start-to-start,
+within the 64 KiB framed reply and the existing per-peer RPC budget. Remote
+listener tickets expire before the published host capability; seeks reuse the
+already admitted URL. A loopback two-backend Chromium workflow caps browser
+download to 512 KiB/s and verifies 96 kHz stereo playback advances for more
+than 175 seconds, seeks beyond read-ahead, receives HTTP 206, and requests only
+one local radio ticket. The fixture includes 80 ms browser link latency but is
+not representative of WAN paths or physical devices.
 
 ## Final radio implementation gates — 2026-09-28 02:07 UTC
 

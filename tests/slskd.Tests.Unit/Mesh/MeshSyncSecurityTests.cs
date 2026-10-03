@@ -175,6 +175,63 @@ namespace slskd.Tests.Unit.Mesh
         }
 
         [Fact]
+        public async Task HandleReqChunkAsync_RejectsCachedFilePathThroughOutsideSymlink()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return;
+            }
+
+            var tempRoot = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "mesh-chunk-path-" + Guid.NewGuid().ToString("N"));
+            var shareRoot = System.IO.Path.Combine(tempRoot, "share");
+            var outsideRoot = System.IO.Path.Combine(tempRoot, "outside");
+            var linkedDirectory = System.IO.Path.Combine(shareRoot, "Album");
+            var outsideFilename = System.IO.Path.Combine(outsideRoot, "track.flac");
+            System.IO.Directory.CreateDirectory(shareRoot);
+            System.IO.Directory.CreateDirectory(outsideRoot);
+            await System.IO.File.WriteAllBytesAsync(outsideFilename, new byte[] { 1, 2, 3, 4 });
+            System.IO.Directory.CreateSymbolicLink(linkedDirectory, outsideRoot);
+
+            var flacKey = "0123456789abcdef";
+            var pathResolver = new Mock<IFlacKeyToPathResolver>();
+            pathResolver.Setup(resolver => resolver.TryGetFilePathAsync(flacKey, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(System.IO.Path.Combine(linkedDirectory, "track.flac"));
+            var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+            optionsMonitor.SetupGet(options => options.CurrentValue).Returns(new slskd.Options
+            {
+                Shares = new slskd.Options.SharesOptions { Directories = new[] { shareRoot } },
+            });
+            var service = new MeshSyncService(
+                mockHashDb.Object,
+                mockCapabilities.Object,
+                mockSoulseekClient.Object,
+                mockMessageSigner.Object,
+                pathResolver: pathResolver.Object,
+                optionsMonitor: optionsMonitor.Object);
+            mockMessageSigner.Setup(signer => signer.VerifyMessage(It.IsAny<MeshMessage>())).Returns(true);
+
+            try
+            {
+                var response = await service.HandleMessageAsync("mesh-peer", new MeshReqChunkMessage
+                {
+                    FlacKey = flacKey,
+                    Offset = 0,
+                    Length = 4,
+                });
+
+                var chunk = Assert.IsType<MeshRespChunkMessage>(response);
+                Assert.False(chunk.Success);
+                Assert.Empty(chunk.DataBase64);
+            }
+            finally
+            {
+                service.Dispose();
+                System.IO.Directory.Delete(linkedDirectory);
+                System.IO.Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+
+        [Fact]
         public async Task HandleMessageAsync_RejectsUnsignedMessage()
         {
             // Arrange

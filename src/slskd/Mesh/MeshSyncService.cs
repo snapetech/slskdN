@@ -75,6 +75,7 @@ namespace slskd.Mesh
         private const string MeshMessagePrefix = "MESH:";
         private readonly IFlacKeyToPathResolver? _pathResolver;
         private readonly IProofOfPossessionService? _proofOfPossession;
+        private readonly IOptionsMonitor<slskd.Options>? _optionsMonitor;
 
         // HARDENING-2026-04-20 H7: signing/verification for mesh hash entries. Optional: unit tests
         // and agents running without overlay identity can still participate, they just emit/accept
@@ -99,7 +100,8 @@ namespace slskd.Mesh
             IFlacKeyToPathResolver? pathResolver = null,
             IProofOfPossessionService? proofOfPossession = null,
             IKeyStore? keyStore = null,
-            Ed25519Signer? entrySigner = null)
+            Ed25519Signer? entrySigner = null,
+            IOptionsMonitor<slskd.Options>? optionsMonitor = null)
         {
             this.hashDb = hashDb;
             this.capabilities = capabilities;
@@ -112,6 +114,7 @@ namespace slskd.Mesh
             _proofOfPossession = proofOfPossession;
             _keyStore = keyStore;
             _entrySigner = entrySigner;
+            _optionsMonitor = optionsMonitor;
             var o = syncSecurityOptions?.Value;
             _maxInvalidEntriesPerWindow = o?.MaxInvalidEntriesPerWindow ?? DefaultMaxInvalidEntriesPerWindow;
             _maxInvalidMessagesPerWindow = o?.MaxInvalidMessagesPerWindow ?? DefaultMaxInvalidMessagesPerWindow;
@@ -1242,7 +1245,11 @@ namespace slskd.Mesh
         {
             log.Debug("[MESH] {Peer} requested chunk {Key} @ {Offset} len={Length}", fromUser, req.FlacKey, req.Offset, req.Length);
 
-            string? path = _pathResolver != null ? await _pathResolver.TryGetFilePathAsync(req.FlacKey, cancellationToken) : null;
+            var indexedPath = _pathResolver != null ? await _pathResolver.TryGetFilePathAsync(req.FlacKey, cancellationToken) : null;
+            var allowedRoots = _optionsMonitor?.CurrentValue.Shares.Directories ?? Array.Empty<string>();
+            var path = indexedPath == null
+                ? null
+                : slskd.Common.Security.PathGuard.NormalizeAbsolutePathWithinRoots(indexedPath, allowedRoots);
             if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
             {
                 return new MeshRespChunkMessage { FlacKey = req.FlacKey, Offset = req.Offset, DataBase64 = string.Empty, Success = false };

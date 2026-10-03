@@ -4,6 +4,7 @@
 
 import * as swarmAnalyticsLibrary from '../../../lib/swarmAnalytics';
 import SwarmAnalytics from '.';
+import useFeatureGates from '../../Shared/useFeatureGates';
 import {
   act,
   fireEvent,
@@ -17,6 +18,11 @@ import { toast } from 'react-toastify';
 
 // Mock dependencies
 vi.mock('../../../lib/swarmAnalytics');
+vi.mock('../../Shared/useFeatureGates', () => ({
+  default: vi.fn(),
+  isFeatureEnabled: (featureGates, featureId) =>
+    featureGates?.[featureId]?.enabled !== false,
+}));
 vi.mock('react-toastify', () => ({
   toast: {
     error: vi.fn(),
@@ -89,6 +95,7 @@ describe('SwarmAnalytics', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    useFeatureGates.mockReturnValue({ featureGates: {}, ready: true });
     Object.defineProperty(document, 'hidden', {
       configurable: true,
       value: false,
@@ -112,6 +119,24 @@ describe('SwarmAnalytics', () => {
   it('renders the component header', () => {
     render(<SwarmAnalytics />);
     expect(screen.getByText('Swarm Analytics')).toBeInTheDocument();
+  });
+
+  it('shows the multi-source gate and skips analytics requests when disabled', () => {
+    useFeatureGates.mockReturnValue({
+      featureGates: {
+        multiSourceDownloads: {
+          enabled: false,
+          message: 'Experimental feature is disabled.',
+        },
+      },
+      ready: true,
+    });
+
+    render(<SwarmAnalytics />);
+
+    expect(screen.getByText('Multi-source downloads is disabled')).toBeInTheDocument();
+    expect(screen.queryByText('Time Window')).not.toBeInTheDocument();
+    expect(swarmAnalyticsLibrary.getDashboard).not.toHaveBeenCalled();
   });
 
   it('displays loading state initially', () => {

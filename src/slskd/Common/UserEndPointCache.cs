@@ -21,6 +21,7 @@
 namespace slskd
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using Microsoft.Extensions.Caching.Memory;
     using Soulseek;
@@ -30,12 +31,25 @@ namespace slskd
     /// </summary>
     public class UserEndPointCache : IUserEndPointCache
     {
+        private readonly IReadOnlyDictionary<string, IPEndPoint> _overrides;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="UserEndPointCache"/> class.
         /// </summary>
-        public UserEndPointCache()
+        /// <param name="overrides">Optional fixed endpoints that take precedence over expiring cached endpoints.</param>
+        public UserEndPointCache(IEnumerable<KeyValuePair<string, IPEndPoint>>? overrides = null)
         {
             Cache = new MemoryCache(new MemoryCacheOptions());
+            var fixedEndpoints = new Dictionary<string, IPEndPoint>(StringComparer.OrdinalIgnoreCase);
+            if (overrides != null)
+            {
+                foreach (var (username, endpoint) in overrides)
+                {
+                    fixedEndpoints[username] = endpoint;
+                }
+            }
+
+            _overrides = fixedEndpoints;
         }
 
         private IMemoryCache Cache { get; }
@@ -57,6 +71,13 @@ namespace slskd
         /// <param name="endPoint">The cached endpoint, if it exists.</param>
         /// <returns>A value indicating whether the endpoint was found in the cache.</returns>
         public bool TryGet(string username, out IPEndPoint endPoint)
-            => Cache.TryGetValue(username, out endPoint!);
+        {
+            if (_overrides.TryGetValue(username, out endPoint!))
+            {
+                return true;
+            }
+
+            return Cache.TryGetValue(username, out endPoint!);
+        }
     }
 }

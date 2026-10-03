@@ -1,21 +1,24 @@
 import * as collectionsAPI from '../../lib/collections';
 import * as identityAPI from '../../lib/identity';
-import * as streaming from '../../lib/streaming';
+import { createRemoteShareStreamUrl } from '../../lib/streaming';
 import ErrorSegment from '../Shared/ErrorSegment';
 import LoaderSegment from '../Shared/LoaderSegment';
+import TooltipButton from '../Shared/TooltipButton';
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
 import {
-  Button,
   Container,
   Header,
   Icon,
   Label,
   Modal,
+  Message,
   Popup,
   Segment,
   Table,
 } from 'semantic-ui-react';
+
+const Button = TooltipButton;
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
@@ -54,16 +57,24 @@ export default class SharedWithMe extends Component {
     error: null,
     loading: true,
     manifest: null,
+    manifestError: null,
     manifestItemPage: 1,
     manifestLoading: false,
     manifestModalOpen: false,
     sharePage: 1,
     selectedShare: null,
     shares: [],
+    streamError: null,
   };
+
+  manifestRequestId = 0;
 
   componentDidMount() {
     this.loadData();
+  }
+
+  componentWillUnmount() {
+    this.manifestRequestId += 1;
   }
 
   loadData = async () => {
@@ -172,39 +183,69 @@ export default class SharedWithMe extends Component {
   };
 
   handleViewManifest = async (share) => {
+    const requestId = ++this.manifestRequestId;
     try {
       this.setState({
+        error: null,
         manifestLoading: true,
+        manifestError: null,
         manifestModalOpen: true,
         manifestItemPage: 1,
         selectedShare: share,
+        streamError: null,
       });
       const manifestRes = await collectionsAPI.getShareManifest(share.id);
+      if (requestId !== this.manifestRequestId) return;
       this.setState({ manifest: manifestRes.data, manifestLoading: false });
     } catch (error) {
+      if (requestId !== this.manifestRequestId) return;
       this.setState({
-        error: getErrorMessage(error, 'Failed to load manifest'),
+        manifest: null,
         manifestLoading: false,
+        manifestError: getErrorMessage(error, 'Failed to load manifest'),
       });
     }
   };
 
-  handleStreamItem = async (contentId, token) => {
-    try {
-      // Never put the long-lived share token in the URL. Exchange it (via header) for a short-lived,
-      // content-bound stream ticket, then stream with that opaque ticket so no secret leaks into
-      // browser history, proxy logs, or the server's access logs.
-      if (token) {
-        const ticket = await streaming.createShareStreamTicket(contentId, token);
-        if (ticket) {
-          window.open(streaming.buildTicketedStreamUrl(contentId, ticket), '_blank');
-          return;
-        }
-      }
+  closeManifest = () => {
+    this.manifestRequestId += 1;
+    this.setState({
+      backfillResult: null,
+      manifest: null,
+      manifestError: null,
+      manifestModalOpen: false,
+      selectedShare: null,
+      streamError: null,
+    });
+  };
 
-      window.open(streaming.buildDirectStreamUrl(contentId), '_blank');
+  handleStreamItem = async (item) => {
+    const popup = window.open('about:blank', '_blank');
+    if (!popup) {
+      this.setState({
+        streamError: 'Allow pop-ups for this site to open the secure stream.',
+      });
+      return;
+    }
+
+    popup.opener = null;
+    try {
+      this.setState({ streamError: null });
+      const streamUrl = await createRemoteShareStreamUrl(
+        item.streamUrl,
+        item.contentId,
+        this.state.selectedShare?.shareToken,
+      );
+      if (!popup.closed) {
+        popup.location.replace(streamUrl);
+      }
     } catch (error) {
-      this.setState({ error: getErrorMessage(error, 'Failed to start stream') });
+      if (!popup.closed) popup.close();
+      this.setState({
+        streamError: error instanceof TypeError
+          ? 'Could not reach the share owner to prepare a secure stream. The owner may be offline or its CORS settings may not allow this app.'
+          : getErrorMessage(error, 'Could not prepare a secure stream.'),
+      });
     }
   };
 
@@ -244,6 +285,7 @@ export default class SharedWithMe extends Component {
       error,
       loading,
       manifest,
+      manifestError,
       manifestItemPage,
       manifestLoading,
       manifestModalOpen,
@@ -258,6 +300,11 @@ export default class SharedWithMe extends Component {
     const sharePageStart = shares.length === 0 ? 0 : shareStart + 1;
     const sharePageEnd = Math.min(shareStart + SHARE_PAGE_SIZE, shares.length);
     const manifestItems = asArray(manifest?.items);
+    const incomingStreamUnavailable = Boolean(
+      selectedShare?.allowStream &&
+      manifestItems.length > 0 &&
+      manifestItems.every((item) => !item?.streamUrl),
+    );
     const manifestItemPages = Math.max(
       1,
       Math.ceil(manifestItems.length / MANIFEST_ITEM_PAGE_SIZE),
@@ -284,16 +331,27 @@ export default class SharedWithMe extends Component {
           </Header.Content>
         </Header>
 
-        {error && <ErrorSegment caption={error} />}
+        {error && !manifestModalOpen && <ErrorSegment caption={error} />}
+        {error && !manifestModalOpen && (
+          <Button
+            onClick={this.loadData}
+            primary
+            tooltip="Retry loading the incoming collection list."
+          >
+            Retry
+          </Button>
+        )}
 
         {shares.length === 0 ? (
-          <Segment placeholder>
-            <Header icon>
-              <Icon name="inbox" />
-              {loading ? 'Loading shares' : 'No shares yet'}
-            </Header>
-            {!loading && <p>Collections shared with you will appear here.</p>}
-          </Segment>
+          error ? null : (
+            <Segment placeholder>
+              <Header icon>
+                <Icon name="inbox" />
+                {loading ? 'Loading shares' : 'No shares yet'}
+              </Header>
+              {!loading && <p>Collections shared with you will appear here.</p>}
+            </Segment>
+          )
         ) : (
           <Table>
             <Table.Header>
@@ -357,6 +415,7 @@ export default class SharedWithMe extends Component {
                         onClick={() => this.handleViewManifest(share)}
                         primary
                         size="small"
+                        tooltip="Open this shared collection to review its contents and available actions."
                       >
                         View Contents
                       </Button>
@@ -376,6 +435,7 @@ export default class SharedWithMe extends Component {
               content="Show the previous page of incoming shares."
               trigger={
                 <Button
+                  aria-label="Previous incoming shares page"
                   disabled={currentSharePage <= 1}
                   icon="chevron left"
                   onClick={() => this.setState({ sharePage: currentSharePage - 1 })}
@@ -387,6 +447,7 @@ export default class SharedWithMe extends Component {
               content="Show the next page of incoming shares without rendering the whole list at once."
               trigger={
                 <Button
+                  aria-label="Next incoming shares page"
                   disabled={currentSharePage >= sharePages}
                   icon="chevron right"
                   onClick={() => this.setState({ sharePage: currentSharePage + 1 })}
@@ -399,13 +460,8 @@ export default class SharedWithMe extends Component {
 
         {/* Manifest Modal */}
         <Modal
-          onClose={() =>
-            this.setState({
-              manifest: null,
-              manifestModalOpen: false,
-              selectedShare: null,
-            })
-          }
+          closeIcon={false}
+          onClose={this.closeManifest}
           open={manifestModalOpen}
           size="large"
         >
@@ -426,10 +482,38 @@ export default class SharedWithMe extends Component {
             )}
           </Modal.Header>
           <Modal.Content>
-            {manifestLoading ? (
+            {error && <ErrorSegment caption={error} />}
+            {manifestError ? (
+              <Message negative data-testid="incoming-manifest-error">
+                <Message.Content>{manifestError}</Message.Content>
+                <Button
+                  onClick={() => this.handleViewManifest(selectedShare)}
+                  primary
+                  tooltip="Retry loading this collection's contents without closing this dialog."
+                >
+                  Retry Contents
+                </Button>
+              </Message>
+            ) : manifestLoading ? (
               <LoaderSegment />
             ) : manifest ? (
               <div data-testid="shared-manifest">
+                {this.state.streamError && (
+                  <Message
+                    data-testid="incoming-stream-error"
+                    negative
+                    role="alert"
+                  >
+                    {this.state.streamError}
+                  </Message>
+                )}
+                {incomingStreamUnavailable && (
+                  <Message info data-testid="incoming-stream-unavailable">
+                    The share owner has not published a peer-reachable endpoint.
+                    Ask the owner to configure sharing.externalEndpoint before
+                    streaming items.
+                  </Message>
+                )}
                 {manifest.description && (
                   <p style={{ marginBottom: '1em' }}>{manifest.description}</p>
                 )}
@@ -470,16 +554,10 @@ export default class SharedWithMe extends Component {
                               {item.streamUrl && (
                                 <Button
                                   data-testid={`incoming-stream-${sha256Prefix}`}
-                                  onClick={() => {
-                                    const url = item.streamUrl.startsWith(
-                                      'http',
-                                    )
-                                      ? item.streamUrl
-                                      : `${window.location.origin}${item.streamUrl}`;
-                                    window.open(url, '_blank');
-                                  }}
+                                  onClick={() => this.handleStreamItem(item)}
                                   primary
                                   size="small"
+                                  tooltip="Exchange the share credential for a short-lived ticket, then open this item without exposing the reusable share token in the URL."
                                 >
                                   <Icon name="play" />
                                   Stream
@@ -508,6 +586,7 @@ export default class SharedWithMe extends Component {
                       content="Show the previous page of manifest items."
                       trigger={
                         <Button
+                          aria-label="Previous manifest page"
                           disabled={currentManifestItemPage <= 1}
                           icon="chevron left"
                           onClick={() => this.setState({ manifestItemPage: currentManifestItemPage - 1 })}
@@ -519,6 +598,7 @@ export default class SharedWithMe extends Component {
                       content="Show the next page of manifest items without rendering the whole manifest at once."
                       trigger={
                         <Button
+                          aria-label="Next manifest page"
                           disabled={currentManifestItemPage >= manifestItemPages}
                           icon="chevron right"
                           onClick={() => this.setState({ manifestItemPage: currentManifestItemPage + 1 })}
@@ -541,6 +621,7 @@ export default class SharedWithMe extends Component {
                 loading={this.state.backfilling}
                 onClick={this.handleBackfill}
                 primary
+                tooltip="Download every item in this shared collection when its grant permits downloads."
               >
                 <Icon name="download" />
                 Backfill All
@@ -555,14 +636,8 @@ export default class SharedWithMe extends Component {
               </span>
             )}
             <Button
-              onClick={() =>
-                this.setState({
-                  backfillResult: null,
-                  manifest: null,
-                  manifestModalOpen: false,
-                  selectedShare: null,
-                })
-              }
+              onClick={this.closeManifest}
+              tooltip="Close the collection contents and return to incoming shares."
             >
               Close
             </Button>

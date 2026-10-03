@@ -9,6 +9,7 @@ RUN apt-get update \
     pulseaudio-utils \
     speech-dispatcher \
     speech-dispatcher-espeak-ng \
-  && rm -rf /var/lib/apt/lists/*
+    x11-xkb-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 CMD ["sleep", "infinity"]

@@ -14,7 +14,8 @@ using slskd.Streaming;
 /// <summary>Party-scoped host reads. See ADR-0014 for transport and permission boundaries.</summary>
 public sealed class ListedRadioMeshService : IMeshService
 {
-    public const int MaxChunkBytes = 44 * 1024;
+    // Reply bytes are Base64-encoded in the bounded 64 KiB overlay JSON frame.
+    public const int MaxChunkBytes = 47 * 1024;
     private readonly IListeningPartyService _parties;
     private readonly IStreamTicketService _tickets;
     private readonly IContentLocator _locator;

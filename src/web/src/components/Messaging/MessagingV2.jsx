@@ -17,6 +17,7 @@ import {
 } from '../../lib/messagingStorage';
 import * as pods from '../../lib/pods';
 import * as rooms from '../../lib/rooms';
+import * as slskdn from '../../lib/slskdn';
 import Composer from './Composer';
 import {
   asArray,
@@ -44,6 +45,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { Popup } from 'semantic-ui-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const NETWORKS = ['all', 'soulseek', 'mesh'];
@@ -129,6 +131,41 @@ const conversationListSignature = (conversations) =>
 
 const roomListSignature = (rooms) => rooms.join('\u0001');
 
+const getActionErrorDetail = (error) => {
+  const data = error?.response?.data;
+  if (typeof data === 'string') return data;
+  if (data && typeof data === 'object') {
+    return data.detail || data.message || data.title || JSON.stringify(data);
+  }
+
+  return error?.message || 'Please try again.';
+};
+
+const InlineLoadError = ({ message, onRetry, retryLabel, testId }) => (
+  <div
+    className="msgv2-tree-load-error"
+    data-testid={testId}
+    role="alert"
+  >
+    <span>{message}</span>
+    <Popup
+      content={retryLabel}
+      position="top center"
+      trigger={(
+        <button
+          aria-label={retryLabel}
+          className="msgv2-tree-add-go"
+          onClick={onRetry}
+          title={retryLabel}
+          type="button"
+        >
+          Retry
+        </button>
+      )}
+    />
+  </div>
+);
+
 const podChannelListSignature = (channels) =>
   channels
     .map((channel) =>
@@ -196,6 +233,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [conversations, setConversations] = useState([]);
   const [joinedRooms, setJoinedRooms] = useState([]);
   const [availableRooms, setAvailableRooms] = useState([]);
+  const [featureGates, setFeatureGates] = useState(null);
+  const [messagingLoadError, setMessagingLoadError] = useState('');
+  const [podLoadError, setPodLoadError] = useState('');
+  const [podDiscoveryError, setPodDiscoveryError] = useState('');
   const [podChannels, setPodChannels] = useState([]);
   const [discoveredPods, setDiscoveredPods] = useState([]);
   const [networkFilter, setNetworkFilter] = useState('all');
@@ -210,6 +251,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [dmAddOpen, setDmAddOpen] = useState(false);
   const [roomAddOpen, setRoomAddOpen] = useState(false);
   const [roomJoinError, setRoomJoinError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [roomDirectoryLoading, setRoomDirectoryLoading] = useState(false);
   const [roomDirectoryRequested, setRoomDirectoryRequested] = useState(false);
   const [podAddOpen, setPodAddOpen] = useState(false);
@@ -232,6 +274,11 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const podHydrationInFlight = useRef(null);
   const podHydrationInterval = useRef(null);
   const currentUser = state?.user?.username;
+  const podsFeatureEnabled = featureGates?.pods?.enabled !== false;
+
+  const reportActionFailure = useCallback((action, error) => {
+    setActionError(`${action}: ${getActionErrorDetail(error)}`);
+  }, []);
 
   const hydrateMessaging = useCallback(() => {
     if (messagingHydrationInFlight.current) {
@@ -245,6 +292,8 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
           rooms.getJoined(),
         ]);
         if (!mountedRef.current) return;
+
+        setMessagingLoadError('');
 
         const nextConversations = asArray(serverConversations)
           .filter((c) => c && typeof c === 'object' && !Array.isArray(c) && c.username)
@@ -265,7 +314,11 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             ? previous
             : nextJoinedRooms);
       } catch (error) {
-        console.error('Failed to hydrate messaging workspace:', error);
+        if (mountedRef.current) {
+          setMessagingLoadError(
+            `Could not load saved conversations and joined rooms: ${getActionErrorDetail(error)}`,
+          );
+        }
       }
     })();
     const trackedRequest = request.finally(() => {
@@ -284,19 +337,36 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
     const request = (async () => {
       try {
-        const [serverPods, serverDiscoveredPods] = await Promise.all([
-          pods.list().catch((error) => {
-            console.error('Failed to list saved pods:', error);
-            return [];
-          }),
-          Promise.resolve(
-            typeof pods.discoverAll === 'function' ? pods.discoverAll(50) : [],
-          ).catch((error) => {
-            console.debug('Failed to refresh discovered pods:', error);
-            return [];
-          }),
-        ]);
+        let serverPods;
+        try {
+          serverPods = await pods.list();
+        } catch (error) {
+          if (mountedRef.current) {
+            setPodLoadError(
+              `Could not load saved pod channels: ${getActionErrorDetail(error)}`,
+            );
+          }
+          return;
+        }
+
+        let serverDiscoveredPods;
+        try {
+          serverDiscoveredPods = asArray(await (
+            typeof pods.discoverAll === 'function'
+              ? pods.discoverAll(50)
+              : []
+          ));
+        } catch (error) {
+          if (mountedRef.current) {
+            setPodDiscoveryError(
+              `Could not refresh discovered pods: ${getActionErrorDetail(error)}`,
+            );
+          }
+        }
         if (!mountedRef.current) return;
+
+        setPodLoadError('');
+        if (serverDiscoveredPods !== undefined) setPodDiscoveryError('');
 
         const nextDiscoveredPods = asArray(serverDiscoveredPods)
           .filter((pod) => pod && typeof pod === 'object' && !Array.isArray(pod))
@@ -321,16 +391,22 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
           )
           .sort((a, b) => channelLabel(a).localeCompare(channelLabel(b)));
 
-        setDiscoveredPods((previous) =>
-          discoveredPodListSignature(previous) === discoveredPodListSignature(nextDiscoveredPods)
-            ? previous
-            : nextDiscoveredPods);
+        if (serverDiscoveredPods !== undefined) {
+          setDiscoveredPods((previous) =>
+            discoveredPodListSignature(previous) === discoveredPodListSignature(nextDiscoveredPods)
+              ? previous
+              : nextDiscoveredPods);
+        }
         setPodChannels((previous) =>
           podChannelListSignature(previous) === podChannelListSignature(nextPodChannels)
             ? previous
             : nextPodChannels);
       } catch (error) {
-        console.error('Failed to hydrate pod workspace:', error);
+        if (mountedRef.current) {
+          setPodLoadError(
+            `Could not load pod channels: ${getActionErrorDetail(error)}`,
+          );
+        }
       }
     })();
     const trackedRequest = request.finally(() => {
@@ -356,10 +432,18 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     return hydratePods();
   }, [hydratePods]);
 
-  const hydrate = useCallback(
-    () => Promise.all([hydrateMessaging(), hydratePods()]),
-    [hydrateMessaging, hydratePods],
-  );
+  const refreshFeatureGates = useCallback(async () => {
+    const capabilities = await slskdn.getCapabilities();
+    const nextFeatureGates = capabilities?.featureGates || {};
+    if (mountedRef.current) setFeatureGates(nextFeatureGates);
+    return nextFeatureGates;
+  }, []);
+
+  const hydrate = useCallback(async () => {
+    const gates = await refreshFeatureGates();
+    await hydrateMessaging();
+    if (gates.pods?.enabled !== false) await hydratePods();
+  }, [hydrateMessaging, hydratePods, refreshFeatureGates]);
 
   const loadAvailableRooms = useCallback(async () => {
     setRoomDirectoryRequested(true);
@@ -421,11 +505,17 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         );
       }
       if (!podHydrationInterval.current) {
-        podHydrationInterval.current = window.setInterval(
-          hydratePods,
-          POD_HYDRATION_INTERVAL_MS,
-        );
+        podHydrationInterval.current = window.setInterval(async () => {
+          const gates = await refreshFeatureGates();
+          if (!mountedRef.current) return;
+          if (gates.pods?.enabled !== false) await hydratePods();
+        }, POD_HYDRATION_INTERVAL_MS);
       }
+    };
+    const refreshAndHydrate = async () => {
+      await hydrate();
+      if (!mountedRef.current) return;
+      startPolling();
     };
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -433,13 +523,11 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         return;
       }
 
-      hydrate();
-      startPolling();
+      void refreshAndHydrate();
     };
 
     if (!document.hidden) {
-      hydrate();
-      startPolling();
+      void refreshAndHydrate();
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
@@ -448,7 +536,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [hydrate, hydrateMessaging, hydratePods]);
+  }, [hydrate, hydratePods, refreshFeatureGates]);
 
   useEffect(() => {
     if (!roomAddOpen) return;
@@ -472,6 +560,9 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     () => podChannels.filter((channel) => !isPodDirectChannel(channel)),
     [podChannels],
   );
+  const visibleWorkspaceTabs = podsFeatureEnabled
+    ? workspace.tabs
+    : workspace.tabs.filter((tab) => tab.type !== 'pod');
 
   const openTab = useCallback(
     (type, target, label) => {
@@ -628,6 +719,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       if (!window.confirm(`Permanently delete the saved message thread with "${username}"?`)) {
         return;
       }
+      setActionError('');
       try {
         await chat.remove({ username });
         await refreshMessagingAfterMutation();
@@ -646,16 +738,17 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               };
         });
       } catch (error) {
-        console.error('Failed to delete conversation:', error);
+        reportActionFailure('Could not delete the saved message thread', error);
       }
     },
-    [refreshMessagingAfterMutation, updateWorkspace],
+    [refreshMessagingAfterMutation, reportActionFailure, updateWorkspace],
   );
 
   const leaveRoom = useCallback(
     async (roomName) => {
       if (!roomName) return;
       if (!window.confirm(`Leave room "${roomName}"?`)) return;
+      setActionError('');
       try {
         await rooms.leave({ roomName });
         await refreshMessagingAfterMutation();
@@ -674,10 +767,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               };
         });
       } catch (error) {
-        console.error('Failed to leave room:', error);
+        reportActionFailure(`Could not leave room ${roomName}`, error);
       }
     },
-    [refreshMessagingAfterMutation, updateWorkspace],
+    [refreshMessagingAfterMutation, reportActionFailure, updateWorkspace],
   );
 
   const leavePod = useCallback(
@@ -690,6 +783,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
           ? `Permanently leave ${podName}? Gold Star Club membership is irrevocable.`
           : `Leave pod "${podName}"? This exits the pod and removes its channels.`;
       if (!window.confirm(prompt)) return;
+      setActionError('');
       try {
         await pods.leave(channel.podId, peerId);
         await refreshPodsAfterMutation();
@@ -710,10 +804,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               };
         });
       } catch (error) {
-        console.error('Failed to leave pod:', error);
+        reportActionFailure(`Could not leave pod ${podName}`, error);
       }
     },
-    [refreshPodsAfterMutation, state?.user?.username, updateWorkspace],
+    [refreshPodsAfterMutation, reportActionFailure, state?.user?.username, updateWorkspace],
   );
 
   const startDirectMessage = useCallback(() => {
@@ -727,6 +821,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const joinRoomByName = useCallback(async (roomName) => {
     const trimmed = roomName.trim();
     if (!trimmed) return false;
+    setActionError('');
     setRoomJoinError('');
     try {
       await rooms.join({ roomName: trimmed });
@@ -734,7 +829,6 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       openTab('room', trimmed);
       return true;
     } catch (error) {
-      console.error('Failed to join room:', error);
       const detail = error?.response?.data;
       const message = typeof detail === 'string'
         ? detail
@@ -754,6 +848,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const createPodFromInput = useCallback(async () => {
     const name = podDraft.trim();
     if (!name) return;
+    setActionError('');
     try {
       const created = await pods.create({
         channels: [
@@ -781,14 +876,15 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       setPodDraft('');
       setPodAddOpen(false);
     } catch (error) {
-      console.error('Failed to create pod room:', error);
+      reportActionFailure('Could not create the pod room', error);
     }
-  }, [currentUser, openTab, podDraft, refreshPodsAfterMutation]);
+  }, [currentUser, openTab, podDraft, refreshPodsAfterMutation, reportActionFailure]);
 
   const saveDiscoveredPod = useCallback(async (pod) => {
     const podId = pod.podId || pod.PodId;
     const name = pod.name || pod.Name || podId;
     if (!podId) return;
+    setActionError('');
     try {
       const saved = await pods.create({
         channels: [
@@ -816,9 +912,9 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       await refreshPodsAfterMutation();
       openTab('pod', channel.target, channelLabel(channel));
     } catch (error) {
-      console.error('Failed to save discovered pod:', error);
+      reportActionFailure(`Could not join discovered pod ${name}`, error);
     }
-  }, [currentUser, openTab, refreshPodsAfterMutation]);
+  }, [currentUser, openTab, refreshPodsAfterMutation, reportActionFailure]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -873,21 +969,21 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     return items;
   }, [conversations, joinedRooms, visiblePodChannels]);
 
-  const activeTab = workspace.tabs.find((tab) => tab.id === workspace.activeTabId) ?? null;
+  const activeTab = visibleWorkspaceTabs.find((tab) => tab.id === workspace.activeTabId) ?? null;
 
   useEffect(() => {
-    if (workspace.tabs.length > 0) return;
+    if (visibleWorkspaceTabs.length > 0) return;
     if (initialKind === 'chat' && conversations[0]?.username) {
       openTab('chat', conversations[0].username);
     } else if (initialKind === 'room' && joinedRooms[0]) {
       openTab('room', joinedRooms[0]);
-    } else if (initialKind === 'pod' && visiblePodChannels[0]) {
+    } else if (initialKind === 'pod' && podsFeatureEnabled && visiblePodChannels[0]) {
       openTab('pod', visiblePodChannels[0].target, channelLabel(visiblePodChannels[0]));
     }
-  }, [conversations, initialKind, joinedRooms, openTab, visiblePodChannels, workspace.tabs.length]);
+  }, [conversations, initialKind, joinedRooms, openTab, podsFeatureEnabled, visiblePodChannels, visibleWorkspaceTabs.length]);
 
   useEffect(() => {
-    if (initialKind !== 'pod' || !params?.podId || visiblePodChannels.length === 0) {
+    if (!podsFeatureEnabled || initialKind !== 'pod' || !params?.podId || visiblePodChannels.length === 0) {
       return;
     }
     const target =
@@ -899,10 +995,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     if (target) {
       openTab('pod', target.target, channelLabel(target));
     }
-  }, [initialKind, openTab, params?.channelId, params?.podId, visiblePodChannels]);
+  }, [initialKind, openTab, params?.channelId, params?.podId, podsFeatureEnabled, visiblePodChannels]);
 
-  const showSoulseek = networkFilter !== 'mesh';
-  const showMesh = networkFilter !== 'soulseek';
+  const showSoulseek = !podsFeatureEnabled || networkFilter !== 'mesh';
+  const showMesh = podsFeatureEnabled && networkFilter !== 'soulseek';
 
   const activePodChannel = useMemo(
     () =>
@@ -1031,12 +1127,13 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
   const handleCopyMessage = useCallback(async (message) => {
     if (!message?.body) return;
+    setActionError('');
     try {
       await navigator.clipboard.writeText(message.body);
     } catch (error) {
-      console.error('Copy to clipboard failed:', error);
+      reportActionFailure('Could not copy the message', error);
     }
-  }, []);
+  }, [reportActionFailure]);
 
   const handleQuoteMessage = useCallback((message) => {
     if (!message) return;
@@ -1173,22 +1270,24 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
           S
           {totalUnread > 0 && <span className="msgv2-rail-badge">{formatUnread(totalUnread)}</span>}
         </button>
-        <button
-          aria-label="Mesh only"
-          className={`msgv2-rail-pill msgv2-rail-mesh ${networkFilter === 'mesh' ? 'is-active' : ''}`}
-          data-accent="mesh"
-          onClick={() => setNetworkFilter('mesh')}
-          title="Mesh only"
-          type="button"
-        >
-          M
-        </button>
+        {podsFeatureEnabled && (
+          <button
+            aria-label="Mesh only"
+            className={`msgv2-rail-pill msgv2-rail-mesh ${networkFilter === 'mesh' ? 'is-active' : ''}`}
+            data-accent="mesh"
+            onClick={() => setNetworkFilter('mesh')}
+            title="Mesh only"
+            type="button"
+          >
+            M
+          </button>
+        )}
         <div className="msgv2-rail-spacer" />
         <button
           aria-label="Refresh"
           className="msgv2-rail-pill msgv2-rail-icon"
           onClick={() => {
-            hydrate();
+            void hydrate();
             if (roomAddOpen) loadAvailableRooms();
           }}
           title="Refresh"
@@ -1206,6 +1305,12 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
           <span className="msgv2-tree-title">Channels</span>
           <span className="msgv2-tree-meta">{NETWORKS.includes(networkFilter) && networkFilter !== 'all' ? networkFilter : ''}</span>
         </div>
+
+        {!podsFeatureEnabled && (
+          <div className="msgv2-feature-notice" role="status">
+            Mesh Pods are disabled by server configuration.
+          </div>
+        )}
 
         {showSoulseek && (
           <TreeSection
@@ -1231,8 +1336,18 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             showAdd={dmAddOpen}
             title="Soulseek · DMs"
           >
+            {messagingLoadError && (
+              <InlineLoadError
+                message={messagingLoadError}
+                onRetry={() => hydrateMessaging()}
+                retryLabel="Retry loading saved conversations"
+                testId="messaging-list-error"
+              />
+            )}
             {conversations.length === 0 ? (
-              <EmptyHint>No saved direct messages.</EmptyHint>
+              messagingLoadError
+                ? null
+                : <EmptyHint>No saved direct messages.</EmptyHint>
             ) : (
               conversations.map((c) => {
                 const unread = c.hasUnAcknowledgedMessages
@@ -1289,8 +1404,17 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             showAdd={roomAddOpen}
             title="Soulseek · Rooms"
           >
+            {messagingLoadError && (
+              <InlineLoadError
+                message={messagingLoadError}
+                onRetry={() => hydrateMessaging()}
+                retryLabel="Retry loading joined rooms"
+              />
+            )}
             {joinedRooms.length === 0 && joinableRooms.length === 0 ? (
-              <EmptyHint>No rooms reported by the Soulseek server.</EmptyHint>
+              messagingLoadError
+                ? null
+                : <EmptyHint>No rooms reported by the Soulseek server.</EmptyHint>
             ) : (
               <>
               {joinedRooms.length === 0 ? (
@@ -1340,8 +1464,26 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             showAdd={podAddOpen}
             title="Mesh · Pod channels"
           >
+            {podLoadError && (
+              <InlineLoadError
+                message={podLoadError}
+                onRetry={() => hydratePods()}
+                retryLabel="Retry loading saved pod channels"
+                testId="pod-list-error"
+              />
+            )}
+            {podDiscoveryError && (
+              <InlineLoadError
+                message={podDiscoveryError}
+                onRetry={() => hydratePods()}
+                retryLabel="Retry refreshing discovered pods"
+                testId="pod-discovery-error"
+              />
+            )}
             {visiblePodChannels.length === 0 && joinableDiscoveredPods.length === 0 ? (
-              <EmptyHint>No pod rooms or discovered pods yet.</EmptyHint>
+              podLoadError || podDiscoveryError
+                ? null
+                : <EmptyHint>No pod rooms or discovered pods yet.</EmptyHint>
             ) : (
               <>
               {visiblePodChannels.length === 0 ? (
@@ -1395,13 +1537,23 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         tabIndex={0}
       />
 
-      <main className={`msgv2-view${showRoomPlayback ? ' msgv2-view-with-playback' : ''}`}>
+      <main className={`msgv2-view${showRoomPlayback ? ' msgv2-view-with-playback' : ''}${actionError ? ' msgv2-view-has-action-error' : ''}`}>
+        {actionError && (
+          <div
+            aria-live="assertive"
+            className="msgv2-action-error"
+            data-testid="messaging-action-error"
+            role="alert"
+          >
+            {actionError}
+          </div>
+        )}
         <header className="msgv2-tabs">
           <div className="msgv2-tabs-strip">
-            {workspace.tabs.length === 0 ? (
+            {visibleWorkspaceTabs.length === 0 ? (
               <span className="msgv2-tabs-empty">No tabs open</span>
             ) : (
-              workspace.tabs.map((tab) => {
+              visibleWorkspaceTabs.map((tab) => {
                 const isActive = tab.id === workspace.activeTabId;
                 return (
                   <button
@@ -1487,7 +1639,15 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         )}
 
         <section className="msgv2-stage">
-          {activeTab ? (
+          {initialKind === 'pod' && !podsFeatureEnabled ? (
+            <div className="msgv2-empty" role="status">
+              <div className="msgv2-empty-glyph">⌬</div>
+              <div className="msgv2-empty-title">Mesh Pods are disabled</div>
+              <div className="msgv2-empty-hint">
+                Enable <code>feature.Pods</code> in the server configuration to use pod rooms and discovery.
+              </div>
+            </div>
+          ) : activeTab ? (
             <MessageStream
               adapter={adapter}
               emptyHint={`No messages yet in ${tabLabel(activeTab)}.`}

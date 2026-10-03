@@ -50,7 +50,7 @@ These must not be marketed as implemented unless real runtime call sites, tests,
 
 ## Moved or likely moving to slskr
 
-The README currently points testers toward `snapetech/slskr` as the forward-looking Rust daemon/API/Web UI stack. Any feature whose active implementation target is slskr should be clearly marked as moved instead of presented as slskdN-stable.
+The README identifies `snapetech/slskr` as a separate Rust implementation. Any feature whose active implementation target has moved there should be clearly marked as moved instead of presented as slskdN-stable.
 
 Candidates requiring classification:
 

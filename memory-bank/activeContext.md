@@ -1,3 +1,330 @@
+## Current state — Orca Player control speech evidence — 2026-10-03 14:01 UTC
+
+The isolated Linux screen-reader runner now reaches its AT-SPI bus, starts
+Orca with a resolvable container identity and the required XKB helper, and
+captures screen-reader audio separately from browser playback. Two tagged
+Player workflows pass. Captured Orca output verifies the existing playback,
+pause, seek, compact-mode and stop updates plus the volume slider's 99% value
+(spoken as “99 percent”) and the 31 Hz equalizer's 1 dB value. The PCM capture
+has 27 active 100 ms windows over 24.6 seconds.
+
+The runner's AT-SPI daemon probe now uses `dbus-send --bus`; its Chromium
+window-title check matches the stable frame name within Orca's page-title
+speech. Gotchas `0z1423` and `0z1424` are committed separately as `81c278342`
+and `4cdaba6c8`.
+
+Validation passed: `pnpm --filter @slskdn/web run test:player:screen-reader`
+(2/2 workflows, including the production build), strict E2E types, full Web
+lint, ShellCheck, `./bin/lint`, and `git diff --check`. Updated the internal
+Player audit and task record; no user-facing behavior changed and no release
+fragment, tag, release, or deployment was needed.
+
+Next: continue the whole-product remediation and Player audit. Other
+screen-reader/browser pairings, physical assistive technology, physical media
+controls/routing, representative WAN radio, reciprocal transfers, and the
+long-session resource plateau remain open.
+
+## Current state — Discovery/Mesh registration ownership and transfer cancellation — 2026-10-03 13:26 UTC
+
+Discovery and Mesh registration ownership is now reconciled to the existing
+domain modules, with no new umbrella wrapper. Added descriptor-count coverage
+for transfer discovery and SongID, plus assertions for the documented Mesh/DHT
+defaults and the multi-source rescue-worker gate. The plan now records
+`AddExperimentalDiscovery`, `AddExperimentalMesh`, and `AddSlskdSongId` as
+implemented through those owners.
+
+The previous download cancellation fix closes the retained-token race after
+terminal state; `BUG-20261003-182` is Verified and the user-facing change has a
+validated release-note fragment and changelog entry. ADR-0001 `0z1416` was
+committed separately before the code fix.
+
+Validation passed: focused registration tests (8/8), full `dotnet test` (74
+application, 5,404 unit, 285 integration), `./bin/lint`, release-note tests
+and preview, and `git diff --check`. Product changes remain uncommitted; no
+tag, release, or deployment was created.
+
+Next: continue populated multi-step journeys and the broad whole-product plan.
+Keep physical-device accessibility, additional assistive-technology speech,
+long-session resource evidence, WAN radio, and reciprocal Soulseek transfers
+open in the Player audit.
+
+## Current state — integration service ownership — 2026-10-03 12:45 UTC
+
+Lidarr, scripts, VPN, webhooks, now-playing, and listening-party services now
+register through `Bootstrap/IntegrationsServiceCollectionExtensions.cs`. The
+core graph calls it at the original location, keeping both Lidarr hosted
+workers in their existing order. The feature-coherence plan now marks this
+target implemented.
+
+Final validation passed: full `dotnet test` (74 application, 5,398 unit, 285
+integration), focused transfer/telemetry/integration registration tests (4/4),
+`./bin/lint`, and `git diff --check`. The namespace collision in the new test
+was fixed and documented as ADR-0001 `0z1415`, committed as `b0c23d8f9`. The
+duplicate transfer descriptor gotcha remains documented in commit
+`fa18b089c`. Product changes remain uncommitted; no tag, release, or deployment
+was created.
+
+The configurable application-security graph already belongs to
+`Common.Security.SecurityStartup.AddSlskdnSecurity(...)`, with unit coverage
+for options binding and integration coverage for middleware. ASP.NET
+authentication and authorization remain part of Web registration.
+
+Next: continue experimental Discovery/Mesh registration ownership and populated
+multi-step journeys. Keep WAN radio/reciprocal-transfer, physical-device
+accessibility, assistive-technology speech, and long-session resource evidence
+open in the Player audit. The whole-product initiative remains active.
+
+## Current state — bootstrap service registration modules — 2026-10-03 12:36 UTC
+
+Transfer and telemetry registrations now each have dedicated bootstrap
+extensions. Core delegates transfer, Prometheus, reports, and telemetry
+aggregation registrations to their owning modules. Hosted transfer workers
+remain at their previous integration-graph position. Duplicate
+`IAutoReplaceService` registration is removed and covered by descriptor-count
+tests (`BUG-20261003-181`).
+
+Final backend validation passed: 74 application, 5,397 unit, and 285
+integration tests; focused registration tests passed 3/3, `./bin/lint` passed,
+and `git diff --check` is clean. The bootstrap plan, task list, progress log,
+and bug ledger are updated. Product changes remain uncommitted; the gotcha is
+in docs-only commit `fa18b089c`. No tag, release, or deployment was created.
+
+Next: continue reviewing the remaining security/integration bootstrap targets
+and populated multi-step journeys. Keep WAN radio/reciprocal-transfer,
+physical-device accessibility, assistive-technology speech, and long-session
+resource evidence open in the Player audit. The whole-product initiative
+remains active.
+
+## Current state — transfer registration ownership — 2026-10-03 12:28 UTC
+
+Transfer registrations now have a dedicated
+`Bootstrap/TransfersServiceCollectionExtensions.cs` owner. Core transfer
+services delegate to it; the integration graph adds hosted workers at their
+previous registration point, preserving startup order. Duplicate
+`IAutoReplaceService` registration is removed and descriptor-count coverage
+verifies the combined registrations (`BUG-20261003-181`).
+
+Validation passed: full `dotnet test` (74 application, 5,396 unit, 285
+integration), focused registration tests (2/2), `./bin/lint`, and
+`git diff --check`. The bootstrap ownership plan and bug ledger are updated.
+Product changes remain uncommitted; the required gotcha is in docs-only commit
+`fa18b089c`. No tag, release, or deployment was created.
+
+Next: continue the remaining bootstrap-module ownership review and populated
+multi-step journeys. Keep WAN radio/reciprocal-transfer, physical-device
+accessibility, assistive-technology speech, and long-session resource evidence
+open in the Player audit. The whole-product initiative remains active.
+
+## Current state — whole-product remediation validation — 2026-10-03 12:08 UTC
+
+The effective feature-gate UI batch now has full validation. Web passed
+1,211/1,211 tests across 186 files, Web lint, strict E2E type checking, the
+production build, bundle-size check (97 assets, 3.87 MB), and build-output
+verification. Backend passed 74 application, 5,394 unit, and 285 integration
+tests; `./bin/lint` passed. Feature-coherence, README-maturity, roadmap-claim,
+path-containment, local-identity, API route-inventory, route-segment-encoding,
+MediaCore route, and whitespace checks passed.
+
+The loopback core Soulseek suite passed both journeys. Inbound private-message
+delivery now appears in the recipient's Messages UI. A loopback-only E2E proxy
+translates the pinned fixture's negative ID for the protocol client and maps
+the acknowledgement back; production ID validation remains intact.
+`BUG-20261003-168` is Verified. Three direct frame-mapper tests cover
+fragmented frames, valid IDs, acknowledgement mapping, malformed frames, and
+incomplete shutdown.
+
+The updated runner executes those mapper tests before starting the fixture and
+passed both browser journeys again. Release-note preview and final whitespace
+validation passed. Vite continues to report its existing native-config-loader
+and large lazy visualizer-chunk warnings; the bundle-size policy recognizes
+the preset chunk as a lazy visualizer exception.
+
+The route inventory and maturity claims are reconciled; retain the current 51
+experimental classifications until evidence justifies a change. WAN radio and
+reciprocal-transfer evidence, physical-device accessibility,
+assistive-technology speech, and long-session resource evidence remain open in
+the separate Player audit. Keep the broad initiative active. No product commit,
+tag, release, or deployment was created.
+
+## Current state — close DownloadService lifecycle test gaps — 2026-10-03 11:14 UTC
+
+The DownloadService plan item now has terminal-state cleanup assertions after
+cancel, failure, and successful completion. Existing shutdown coverage confirms
+active transfers are cancelled and `ShutdownAsync` waits for drain completion;
+the 10,000-record duplicate-history test and explicit query comment preserve
+the `AsNoTracking()` requirement. Focused DownloadService tests passed 46/46.
+
+The plan's CI test requirement is already met: `.github/workflows/ci.yml`
+invokes `packaging/scripts/run-release-gate.sh`, which runs the scoped unit
+test project on PRs, version tags, and manual dispatch. No redundant workflow
+job or trigger change was added. The prior full Web/.NET suites and repo audits
+remain green; rerun the full gate after the next implementation batch.
+
+Next: continue whole-product remediation with the remaining gated UI consumers
+and moved/design-only behavior, then resume populated multi-step journeys and
+architecture/product-maturity work. Keep WAN and physical-device evidence open.
+The broader initiative remains active.
+
+## Current state — expose feature-gate status to Messaging — 2026-10-03 11:08 UTC
+
+`GET /api/slskdn/capabilities` and its versioned alias now report the
+effective status for every `FeatureId` through `featureGates`. The response
+uses the same runtime `IFeatureGate` as controller enforcement. Messaging
+consumes the Pods status, hides disabled pod controls and persisted pod tabs,
+skips Pods API hydration, and explains the disabled state on the existing
+`/pods` routes. Feature-gate status refreshes on foreground and every minute.
+
+Validation passed: full Web suite (1,199 tests), full .NET solution (74 app,
+5,392 unit, 285 integration), Web lint, `./bin/lint`, route inventory,
+feature-coherence, README-maturity, roadmap-claim, path-containment,
+local-identity, release-note preview, and whitespace checks. ADR-0001 gotchas
+`0z1409`–`0z1410` are committed separately. Product code/docs remain
+uncommitted; no tag, release, or deployment was created.
+
+Next: continue whole-product remediation. Audit UI consumers of the remaining
+feature gates and moved/design-only behaviors; continue the Program.cs
+responsibility split and populated multi-step journeys. Keep WAN and physical
+device evidence open. The broader initiative is not complete.
+
+## Current state — atomic content-safety receive disposition — 2026-10-03 10:10 UTC
+
+Alternate pod/mesh, HTTP backfill, relay, multi-source, and VirtualSoulfind
+receivers now write to unique private staging paths that preserve the target
+extension. After closing the stream, each path applies the shared
+`ContentSafety` policy; accepted files are published and rejected files are
+quarantined or removed. Quarantine failures remove the rejected staging file
+before surfacing an error. Ordinary Soulseek downloads keep their existing
+incomplete-to-completed flow and now use the same policy decision.
+
+Focused validation passed: 77 unit tests across ContentSafety, sharing, relay,
+multi-source, and mesh receiver classes; all 13 Search integration tests pass.
+Full `dotnet test`, `./bin/lint`, release preview, path-containment and
+coherence checks remain. ADR-0001 gotchas `0z1398`–`0z1404` are committed
+separately. No product code, tag, release, or deployment has been committed or
+created.
+
+Next: run the full validation gate, then continue the active whole-product
+remediation with populated browser journeys and architecture/product-maturity
+work. Keep WAN and physical-device evidence open; the initiative is not done.
+
+## Current state — content safety across receive paths — 2026-10-03 09:57 UTC
+
+The shared content-safety disposition now covers ordinary Soulseek downloads,
+pod/mesh search downloads, HTTP collection backfills, relay imports,
+multi-source output, and VirtualSoulfind transfers. It inspects only after the
+receiver closes its write stream, rejects dangerous signatures, quarantines
+mismatch warnings by default, and removes rejected output when quarantine is
+disabled. Backfills preserve a supplied manifest filename and use `.bin` when
+no true extension is known. Multi-source sequential output is closed before
+final checks.
+
+Focused validation passed: 76 unit tests across ContentSafety, sharing, relay,
+multi-source, and mesh receiver classes; all 13 Search integration tests pass.
+Full `dotnet test`, `./bin/lint`, release-note preview, path-containment and
+coherence checks remain. ADR-0001 gotchas `0z1398`–`0z1402` are committed
+separately. No product code, tag, release, or deployment has been committed or
+created.
+
+Next: finish the full validation and update this context, then continue the
+whole-product remediation with the remaining populated browser journeys and
+architecture/product-maturity work. Keep WAN and physical-device evidence
+open. The broader initiative is not complete.
+
+## Current state — wire content safety into completed downloads — 2026-10-03 09:29 UTC
+
+Standard Soulseek downloads now inspect the completed file after the output
+stream closes and before moving it into the normal download destination.
+Dangerous executable signatures are rejected even with ordinary magic-byte
+matching disabled; mismatches are quarantined by default. Rejected transfers
+and requests are marked failed, and quarantine paths remain deletable through
+transfer cleanup. ADR-0001 gotcha `0z1397` is committed separately.
+
+Validation passed: `./bin/lint`; full `dotnet test` (74 application, 5,383
+unit, 284 integration); release-note preview; filesystem containment, local
+identity, feature-coherence, README-maturity, and roadmap-claim audits; and
+`git diff --check`. The new release fragment is present. Product code and
+release notes remain uncommitted; no tag, release, or deployment was created.
+
+Known scope: the new signature policy covers the standard Soulseek
+`DownloadService` path. Mesh/pod downloads, collection backfills, relay imports,
+and multi-source output are tracked in `memory-bank/tasks.md`. Continue those
+receiver paths, then resume the broader UX/engineering remediation and Player
+audit. Keep WAN/physical-device evidence and populated Discovery/Messaging/
+Settings journeys open.
+
+## Current state — cross-node collection sharing recovery — 2026-10-03 07:24 UTC
+
+The multi-node **Shared with Me** backfill failure came from share announcements
+advertising `127.0.0.1` as the owner URL. Owners now advertise a configured
+`sharing.externalEndpoint`; public backfills retain the guarded outbound
+connection path, and private backfills require a recipient's exact private or
+loopback IP origin. Incoming manifests omit unusable stream URLs when no owner
+endpoint is published, and the UI explains the setup. No generic SSRF guard was
+weakened.
+
+The latest three-node suite passed 6/6, including two verified downloads. A
+contacts diagnostic timeout exposed a late Playwright response subscription;
+the listener now starts before route navigation, and the focused invite journey
+passes. Build/test/lint gates passed: Web 1,196/1,196, .NET 74 smoke / 5,368
+unit / 284 integration, Web lint, `./bin/lint`, strict E2E types, Release
+backend build, production Web build, release-note preview, identity scan,
+route inventory, and `git diff --check`. Vite reports config-loader and
+large-chunk warnings. The remediation baseline passed its policy checks but
+stopped at the final branch-sync guard because local `main` is 80 commits ahead
+of `origin/main`; no push or release was requested.
+
+Next Steps: continue the active whole-product and Player audits. Remaining work
+includes broader populated Discovery/Messaging/Settings journeys, the inbound
+PM fixture blocked by its negative message ID, concurrent room publication and
+repeat-fairness coverage, and WAN/physical-device evidence. No release,
+deployment, or tag was created; product changes remain uncommitted. Two
+standalone ADR gotcha commits record newly found validation and response-timing
+pitfalls.
+
+## Current state — Player radio and cross-node browser regressions — 2026-10-03 06:33 UTC
+
+The remote radio throughput/seek failure and the cross-node follow failure
+from the earlier broad browser run have now both passed focused end-to-end
+checks. The 96 kHz two-backend workflow advanced 176 seconds, sought to 373
+seconds, observed one ticket and only HTTP 206 responses. The full Player
+follow spec passed 2/2, including routed reconnect catch-up and authenticated
+cross-node Play/Pause/Seek/Stop updates plus membership revocation.
+
+The final controller also caps a remote ticket below the shared 15-minute host
+announcement TTL and before the directory expiry; local direct tickets remain
+two minutes. Twenty focused radio backend tests, 77 PlayerBar tests, strict
+E2E types, production Web/Release build, and the isolated workflows pass.
+User-facing docs, changelog, release note, tasks and progress are updated. No
+tag, release or deployment was created.
+
+Next Steps: finish validation against the full current worktree, then continue
+the open whole-product/Player inventory. Pending items include concurrent room
+publication ordering, repeated radio fairness behavior, WAN/physical-device
+evidence and remaining route/maturity work. The broad remediation is active;
+do not treat these focused passes as a full end-to-end or release gate.
+
+## Current state — whole-product UX and engineering remediation — 2026-10-03 06:24 UTC
+
+The active remediation batch now includes a verified fix for sustained remote
+listed-radio playback and seeking. Remote tickets expire before the host's
+published capability, seeks reuse the existing fairness admission, and local
+direct ticket expiry remains two minutes. The isolated two-backend 96 kHz
+browser workflow advanced 176 seconds, sought beyond read-ahead to 373 seconds,
+and observed one ticket plus only HTTP 206 mesh responses.
+
+Focused backend and PlayerBar tests, strict browser-spec TypeScript, and the
+production Web/Release build pass. User-facing documentation, changelog,
+release fragment, task record and progress log are updated. No tag, release or
+deployment was created. Product changes remain uncommitted; the immediate
+gotchas are recorded in ADR-0001 commits.
+
+Next Steps: continue the whole-product remediation from its open inventory.
+Prioritize the remaining cross-node room-state/browser failure, then close the
+remaining Player evidence gaps and validate accumulated frontend/backend
+changes with the full repo gates. Keep repeated fairness admissions, WAN radio,
+physical devices and other assistive-technology combinations open until
+directly verified.
+
 ## Current state — React 19 web compatibility and `.333` release — 2026-09-30 23:01 UTC
 
 React 19.3.0 is validated with the Fomantic UI React 3 beta.5 package patched
@@ -16421,3 +16748,520 @@ actual assistive-technology speech, supported cross-engine codec retry,
 physical media controls/output routing, portable CPU/memory budgets, a
 multi-hour resource plateau, WAN testing and reciprocal transfer admission.
 The Player initiative remains active. Do not create a tag or deployment.
+## Current task — Whole-product UX and engineering remediation — 2026-10-02
+
+The user approved a whole-product, staged remediation: preserve supported
+features, routes and API behavior; retain Iris; redesign core journeys; keep
+changes reviewable. Initiative recorded in Hindsight as
+`kp-476b076044154fcabbdd1590d0286de7`.
+
+Phase 0 / first batch: the root README had regrown into a large feature
+catalogue after an earlier maturity-first cleanup. Reconciled README and
+Getting Started around the core Soulseek workflow, experimental feature
+maturity, and canonical inventory/status docs. Fixed stale bind-exposure wording
+in the README source draft, updated the feature maturity recount, and adjusted
+coherence audits/backlog to catch future drift. Release note added. Search now
+groups eight optional music discovery panels under one collapsed section while
+respecting their existing saved-open state. Collections no longer runs stale
+debug side effects during route rendering.
+
+Search now explains the disconnected state and links to System -> Options;
+connection progress gets separate copy. Its 375 px layout has no horizontal
+overflow and its settings link works by keyboard. A 15-case isolated E2E
+walkthrough covers Search state, Search page grouping, Downloads -> Browse
+destination/queue handoff, Messages v2 surface, System pages, Library and player
+readiness. A second, local-only Soulseek journey now proves a live mesh search
+result appears in Search, a selected file completes through the peer transfer
+path, and messages send and arrive between two loopback nodes. It uses a pinned
+local Soulfind simulator; no public peers are contacted.
+
+Mesh results now identify their source and route per-file downloads according
+to available content IDs. The E2E harness can pin peer endpoints for the life
+of the test, avoiding expiry of the ordinary 60-second address cache during a
+long browser transfer. The core journey exercises the connected Search flow at
+320 px, submits with Enter, selects the share-relative file checkbox with
+Space, completes the transfer, and verifies both Messaging views fit without
+horizontal scrolling. Shared Search/Browse file checkboxes expose accessible
+names for the file path and directory-wide selection scope. The top navigation
+uses a full-width primary row and a full-width utility row at 480 px and below;
+the four core route links and System action fit at 320 px, and the other grouped
+destinations remain horizontally reachable.
+
+Gotchas `0z1316`–`0z1325` were committed separately, including the address
+override lifetime, preserved stream error contract, release-note slug,
+accessible file-selection names, browser locator path matching, and waiting
+for settled route content before layout measurements, navigation link targeting,
+and utility item bounds. Gotcha `0z1326` records that route-changing System
+section items must expose keyboard link semantics. Gotcha `0z1327` records that
+populated transfer grids need a scrollable, focusable mobile container. Both
+entries were committed separately. Gotcha `0z1328` records the validated
+30–400-character release-note body limit; it was committed separately.
+
+System section navigation now renders as router links with the existing active
+menu treatment. Enter moves from System Info to Network & Mesh. Focused E2E also
+confirms System overview/options and the Downloads-to-Browse handoff fit a
+320 px viewport without page-level horizontal overflow. The Downloads and
+Uploads transfer roots also fit at 320 px and their route links work by
+keyboard.
+
+The populated Transfers grid previously clipped its 920 px minimum-width
+columns on mobile. Its table wrapper now provides labeled horizontal scrolling
+with focus and Left/Right Arrow support; the Playwright regression covers a real
+transfer row and verifies that the page itself remains within 320 px.
+The 320 px Browse check also opens the Network and Sharing grouped popups and
+checks that all destination links remain within the viewport.
+
+The primary core routes and grouped Discover/Network/Sharing navigation now
+live in `src/web/src/components/PrimaryNavigation.jsx`; App retains the
+connection, theme and utility-menu state. The grouped-navigation browser check
+and App component tests pass after extraction. This is internal-only work.
+
+The 320 px route sweep now checks visible content markers for 13 additional
+primary routes; every empty/disconnected state rendered without page-level
+overflow. The unknown-route fallback no longer writes browser globals, schedules
+a DOM probe, logs an error, or briefly renders a red debug banner. Its E2E now
+waits for the actual Collections root rather than reading window flags. Gotcha
+`0z1329` records why runtime route components must stay free of test diagnostics
+and was committed separately as `dcf9f8db4`.
+
+Current validation: Web suite 1,120/1,120; App tests 39/39; responsive UI E2E
+6/6; strict E2E TypeScript; full Web lint; production build and bundle check;
+`./bin/lint`; local identity check; whitespace check; and exact release-note
+preview for all four user-facing fragments. The initial combined .NET test run
+had 14 transient DNS/socket failures in its unit stage; a full unit rerun passed
+5,349/5,349, while the same run's smoke and integration suites passed 74/74 and
+284/284. The targeted rerun also passed all 17 matching cases. Vite's existing
+config-loader and large-chunk warnings remain. Product edits remain in the
+worktree; only the gotcha documentation has been committed.
+
+Next: test populated table/card states at narrow widths on Collections, Share
+Groups, Shared with Me, and Wishlist, then extract the next frontend boundary
+in a behavior-preserving batch. Player gaps remain in
+`docs/dev/player-quality-audit.md`. Do not create tags/releases/deployments.
+The whole-product initiative remains active.
+
+## Current state — Product UX remediation — 2026-10-02 21:58 UTC
+
+Populated Collections, Share Groups, Shared with Me, and Wishlist states fit at
+320 px; any table wider than the viewport stays in a labeled, keyboard-
+focusable horizontal scroll area. Connection actions have explanatory tooltips
+and accessible names. Pending Action now links over its full row to System Info.
+
+App's primary navigation, endpoint migration notice, connection status item,
+and route definitions now live in separate components. Removed the no-op
+`withTokenCheck`; session gating still happens in App. Release preview includes
+the five current fragments. Validation passed: 1,125 Web tests, App tests
+40/40, responsive UI E2E 8/8, strict E2E TypeScript, Web lint, production
+build, repository lint, identity audit, and diff checks. No product commit,
+tag, release, or deployment was created.
+
+Next: check remaining top-row utility actions (theme/palette, update notice,
+logout) and populated System states for keyboard access, useful labels and
+narrow-screen behavior. Continue the broader product maturity and accessibility
+audit; the goal is still active.
+
+## Current state — System Info and utility actions — 2026-10-02 22:32 UTC
+
+Theme/palette controls are extracted and described. Update notices now announce
+the available version and expose readable release details; logout has an
+explained trigger and cancelable confirmation. System Info opens with a
+responsive overview of Soulseek connection, version, and pending actions, with
+the raw state snapshot tucked into an advanced disclosure. The diagnostic YAML
+wait no longer disables unrelated actions. Recorded gotcha `0z1330` in a
+standalone docs-only commit.
+
+Validation passed: all 1,135 Web tests, all 10 UI regression E2E tests, strict
+E2E TypeScript, full Web lint/build, `./bin/lint`, and `dotnet test` (74
+application, 5,349 unit, 284 integration). The seven-fragment release preview,
+local-identity scan, and whitespace check passed. The optional live UI audit
+could not log in to the already-running local instance (HTTP 400); no further
+credentials were guessed. Product edits remain uncommitted. No release, tag, or
+deployment was created.
+
+Next: audit populated System panels beyond Info and continue the shared
+control/keyboard review across core discovery, messaging, sharing, and settings
+routes. Keep the whole-product initiative active.
+## Current state — System Shares keyboard and mobile behavior — 2026-10-02 22:43 UTC
+
+Configured share contents now open from a named button, without placeholder
+fragment navigation. The six-column table is in a labeled, keyboard-focusable
+horizontal scroll region. At 320 px, the new populated-route browser check
+confirms that the region contains overflow, the page does not overflow, and
+Enter opens the contents modal while leaving the route unchanged. Gotcha
+`0z1331` is recorded in a standalone docs-only commit; `BUG-20261002-105` is
+Verified.
+
+Validation passed: 1,136 Web tests, 11 UI regression browser tests, strict E2E
+TypeScript, Web lint, local-identity scan, whitespace check, and an exact
+eight-fragment release preview. The whole-product goal remains active.
+
+Next: audit populated System Network and other operational panels, then continue
+the shared keyboard/control review across discovery, messaging, sharing, and
+settings routes. Product edits remain uncommitted; no release, tag, or
+deployment was created.
+## Current state — System Network dashboard actions — 2026-10-02 23:01 UTC
+
+Mesh sync now distinguishes success from the helper's resolved error result and
+preserves the server reason. Compact Sync controls expose a descriptive name
+and tooltip. The first-run public DHT exposure notice uses a real dismiss
+button; Enter activation persists the user's existing consent choice. A
+populated route check confirms these actions and data remain usable at 320 px
+without page-level overflow. Gotchas `0z1332` and `0z1333` are committed alone;
+`0z1334` records the user-event clipboard test setup. Network bugs 106–108 are
+Verified.
+
+Validation passed: 1,139 Web tests, 12 responsive UI E2E tests, strict E2E
+TypeScript, Web lint/build, `./bin/lint`, and .NET tests (74 application,
+5,349 unit, 284 integration). Exact nine-fragment release preview, identity
+scan, and diff checks passed. Product changes remain uncommitted. No release,
+tag, or deployment was created.
+
+Next: continue the populated System-panel audit, with Jobs/Security and other
+operational routes, then continue keyboard/control coverage across remaining
+discovery, messaging, sharing, and settings flows. The whole-product goal stays
+active.
+
+## Current state — System Jobs keyboard and mobile behavior — 2026-10-02 23:19 UTC
+
+System Jobs actions now have descriptive names and tooltip guidance. The swarm
+visualization has an explicit keyboard close button. Analytics and swarm cards
+stack on narrow screens, filters wrap, and the job list is a focusable,
+horizontal scroll region. Populated 320 px browser coverage verifies no page
+overflow, tooltips, keyboard dialog dismissal, and table scrolling. Jobs bugs
+109 and 110 are Verified.
+
+Validation passed: all 1,139 Web tests, all 13 UI regression browser tests,
+strict E2E TypeScript, Web lint/build, `./bin/lint`, and .NET tests (74
+application, 5,349 unit, 284 integration). Exact preview for ten post-`.333`
+fragments, local identity scan, diff check, and index-clean check passed.
+Continue with the populated System Security and operational panels, then
+remaining discovery, messaging, sharing, and settings controls. Product edits
+remain uncommitted; no tag, release, or deployment was created.
+
+## Current state — System Security responsive status and controls — 2026-10-02 23:44 UTC
+
+System Security now lays out four populated metrics in a readable 2×2 grid at
+320 px. Status refresh, adversarial settings refresh, transport/Tor tests,
+settings save, and padding/bridge list controls have descriptive names and
+tooltips; browser coverage activates refresh and list actions with Enter and
+checks button bounds, label geometry, and page overflow. Existing opt-in
+defaults remain intact. Bugs 111 and 112 are Verified; gotchas 1335 and 1336
+are in the known-gotchas record.
+
+Validation passed: 1,139 Web tests; 14 UI regression browser tests; strict E2E
+TypeScript; Web lint/build; `./bin/lint`; and serial .NET suites (74
+application, 5,349 unit, 284 integration). The parallel .NET run had one
+load-sensitive router test failure; isolated and serial reruns passed. Exact
+11-fragment release preview, identity scan, and whitespace check passed, and
+the index is clean. Continue the populated operational-panel audit and
+remaining discovery, messaging, sharing, and settings controls. Product edits
+remain uncommitted; no release, tag, or deployment was created.
+
+## Current state — System Mesh and Bridge narrow-screen controls — 2026-10-03 00:05 UTC
+
+System Mesh's manually activated rendezvous actions now explain their public
+and network effects and expand to full-width touch targets on narrow screens.
+The existing server opt-in gate remains unchanged, and visible button text
+continues to supply accessible names. Populated 320 px browser coverage checks
+all three Popups, keyboard candidate lookup through mocked APIs, and action
+bounds. The populated Bridge route also has a no-overflow guard for its six
+metrics and a long connected-client row; inspection confirmed its existing
+actions already had helpful Popups. Bug 113 is Verified; gotchas 1337 and 1338
+are recorded.
+
+Validation passed: 1,139 Web tests; 16/16 responsive UI browser tests; strict
+E2E TypeScript; Web lint/build; `./bin/lint`; and `dotnet test` (74 application,
+5,349 unit, 284 integration). The 12-fragment release preview, identity scan,
+whitespace check, and clean-index check passed. Existing Vite chunk/config
+warnings and .NET tooling framework-support warnings remain. Product changes
+remain uncommitted; no tag, release, or deployment was created.
+
+Next: continue with remaining populated System operational and diagnostic
+panels, then continue keyboard/control review across discovery, messaging,
+sharing, and settings. The whole-product goal remains active.
+
+## Current state — System Logs recovery and mobile controls — 2026-10-03 00:54 UTC
+
+System Logs now owns its SignalR connection and stops it on route unmount.
+Startup and terminal failures have a retry action; reconnecting retains buffered
+records. Severity controls have Popup guidance, descriptive names, Fomantic
+toggle semantics, and a wrapping mobile grid. Long records use a labeled,
+keyboard-scrollable table with preserved whitespace. System Info's delayed YAML
+serialization timer now clears on unmount. Bugs 118–122 are Verified; gotchas
+`0z1339`–`0z1341` are recorded.
+
+Validation passed: 1,149 Web tests; 19/19 responsive UI browser tests; strict
+E2E TypeScript; Web lint/build; `./bin/lint`; and `dotnet test` (74 application,
+5,349 unit, 284 integration). The exact 15-fragment preview, identity scan, and
+whitespace check passed. Existing Vite config/chunk and .NET tooling warnings
+remain. Gotchas `0z1339`, `0z1340`, and `0z1341` were committed in separate
+docs-only commits `718bb1470`, `5aea74de0`, and `ff8f999ad`. Product changes
+remain uncommitted; no release, tag, or deployment was created.
+
+Next: audit populated System Data, Files, Library Health, and Admin Policies,
+then continue shared action, state, and keyboard review across discovery,
+messaging, sharing, and settings. The whole-product goal remains active.
+
+## Prior state — System Events diagnostics and responsive table — 2026-10-03 00:31 UTC
+
+System Events now keeps wide records in a labeled keyboard-scrollable region,
+preserves formatted JSON payloads, and exposes event IDs as focusable controls
+with Popup guidance. Failed pages have an in-view Retry action, and stale page
+requests cannot replace the selected page. Bugs 115–117 are Verified.
+
+Validation passed: 1,143 Web tests; 18/18 responsive UI browser tests; strict
+E2E TypeScript; Web lint/build; `./bin/lint`; and `dotnet test` (74 application,
+5,349 unit, 284 integration). The 14-fragment release preview, local-identity
+scan, and whitespace check passed. Existing Vite config/chunk and .NET tooling
+warnings remain. No product files are committed; no tag, release, or deployment
+was created.
+
+Next: audit populated System Logs and remaining operational/diagnostic pages,
+then continue keyboard/control review across discovery, messaging, sharing, and
+settings. The whole-product goal remains active.
+
+## Prior state — System Metrics recovery and responsive table — 2026-10-03 00:15 UTC
+
+System Metrics refresh is now a guided button, and a failed request keeps an
+in-page guided Retry action. KPI metrics use a wrapping grid, and the Prometheus
+details table lives in a labeled keyboard-scrollable region instead of expanding
+the page. Bug 114 is Verified. The populated 320 px E2E recovers from a mocked
+503 with Enter, checks metric label geometry, scrolls the details table with
+ArrowRight, and uses refresh with keyboard activation.
+
+Validation passed: 1,141 Web tests; 17/17 UI regression browser tests; strict
+E2E TypeScript; Web lint/build; `./bin/lint`; and `dotnet test` (74 application,
+5,349 unit, 284 integration). The exact 13-fragment release preview, identity
+scan, whitespace check, and index-clean check passed. Existing Vite and .NET
+tooling warnings remain. Product changes remain uncommitted; no release, tag,
+or deployment was created.
+
+Next: continue with populated System operational/diagnostic pages, then shared
+keyboard/control review across discovery, messaging, sharing, and settings.
+The whole-product goal remains active.
+
+## Current state — System Data and System Files recovery — 2026-10-03 01:27 UTC
+
+System Data now explains completed-transfer cleanup scope, restores its action
+after API errors, and keeps cleanup available for retry. System Files now has
+keyboard-operated directory navigation, Popup guidance for delete and
+navigation actions, retryable listing and delete errors, refresh after a
+successful delete, guarded async listing results, and a labeled mobile table
+scroll region. The mount-time root reset no longer cancels the first listing;
+gotcha `0z1343` is recorded in ADR-0001 and committed as `75b53c2ed`.
+
+The MediaCore workflow-focus test now uses awaited `userEvent`, and the Player
+rejection test waits for the asynchronous audio-graph suspension. Bugs
+`BUG-20261003-123` through `BUG-20261003-130` are Verified; gotchas `0z1343` to
+`0z1345` were committed as `75b53c2ed`, `f230899dc`, and `cdf52826a`.
+
+Validation passed: 1,156 Web tests; 21/21 responsive UI browser tests; strict
+E2E TypeScript; Web lint/build; `./bin/lint`; and `dotnet test` (74 application,
+5,349 unit, 284 integration). The exact 17-fragment release preview from
+`2026093022-slskdn.333`, local-identity scan, whitespace check, and clean-index
+check passed. Existing Vite config/chunk and .NET tooling warnings remain.
+Product changes remain uncommitted; no tag, release, or deployment was created.
+
+Next: audit populated System Library Health and Admin Policies, then continue
+shared keyboard/control review across discovery, messaging, sharing, and
+settings. The whole-product goal remains active.
+
+## Current state — System Library Health and Admin Policies — 2026-10-03 02:48 UTC
+
+Library Health now separates loading saved results from starting a recursive
+scan, invalidates report state when the path changes, retains the active scan
+after polling errors/timeouts, and surfaces terminal failure details. Bounded
+remediation reports its 25-issue cap, preserves later selections, and keeps
+action feedback visible in the active pane. Admin Policies now uses a named
+keyboard-scroll region for transfer-retention fields and blocks incomplete new
+API-key or required-number drafts before serialization. Both pages explain
+actions with Popup guidance and have populated 320 px browser coverage.
+
+Bugs `BUG-20261003-131` through `BUG-20261003-141` are Verified. Gotchas
+`0z1346` through `0z1350` were added to ADR-0001 and committed in ADR-only
+commits `9b1a60b0f`, `b10ba6f53`, `a79e71d51`, `ded34e8d8`, and `c130b51fd`.
+Full Web tests passed (1,166); responsive UI browser coverage passed (23/23);
+strict E2E TypeScript, Web lint/build, bundle check, build-output check,
+`./bin/lint`, and `dotnet test` passed (74 application, 5,349 unit, 284
+integration). The 19-fragment release-note preview, local-identity scan, and
+whitespace check passed. Existing Vite configuration/chunk and .NET tooling
+framework-support warnings remain. Product changes are uncommitted; no tag,
+release, or deployment was created.
+
+Next: review shared action feedback, state recovery, and keyboard behavior in
+Discovery, Messaging, Sharing, and Settings against populated user journeys.
+The whole-product goal remains active.
+
+## Current state — Discovery, Messaging, Sharing, and Settings recovery — 2026-10-03 04:29 UTC
+
+This workflow batch is implemented. It adds visible request and action errors,
+in-place retry, preserved drafts and prior data, correct empty/error/loading
+states, accessible in-app forms, stale-request cancellation, guided controls,
+and tooltip access for disabled buttons. Strict TypeScript validation now runs
+before Playwright; the fixture path fix restores the real three-node share
+stream case. BUG-143–164 are Verified; BUG-142 and BUG-165 are also Verified.
+
+Validation passed: 1,193 Web tests (183 files), 23/23 responsive UI browser
+regressions, the targeted three-node share-stream browser test, strict E2E
+types, Web lint/build, bundle and build-output checks, repository lint, and all
+.NET tests (74 application, 5,349 unit, 284 integration). Release-note preview,
+identity scan, and whitespace check passed. A broad Playwright invocation was
+stopped after unrelated Player host synchronization and 96 kHz radio stress
+failures; one more radio scenario was interrupted. These are not counted as a
+passing full E2E suite and remain with the separate Player audit. Existing Vite
+and .NET tooling warnings remain. Product changes are uncommitted; only the
+required ADR-0001 gotcha records were committed. No tag, release, or deployment
+was created.
+
+Next: execute populated multi-step Discovery, Messaging, Sharing, and Settings
+journeys and reconcile the remaining route inventory/product-maturity work.
+Keep the whole-product initiative and Player audit active.
+
+## Current state — Loopback core journeys and Messaging fixture boundary — 2026-10-03 04:51 UTC
+
+Core E2E now fails closed to a local Soulfind server: the test validates
+`127.0.0.1` and the dynamic port, and the harness writes that endpoint directly
+into each node's config. This prevents the old environment-variable mismatch
+from falling back to the public Soulseek server. The 320 px Search-to-download
+flow verifies the downloaded bytes; the Messages flow verifies an outbound
+send and its local history. Strict E2E types and both loopback tests pass
+(2/2, 29.4 seconds). The separate three-node share-stream test also passes.
+
+Inbound private-message delivery is not verified by the pinned Soulfind
+fixture: it sends a negative message ID that the protocol library rejects
+before app persistence. `BUG-20261003-168` is Deferred until a valid fixture is
+available; protocol validation remains intact. Bugs 166 and 167 are Verified.
+The 1,193 Web tests, responsive browser cases, build/lint, and .NET suites from
+the previous batch remain green. A broad Player E2E attempt still has separate
+host-sync and 96 kHz radio failures; the Player audit remains open. Product
+changes are uncommitted; only ADR-0001 gotchas were committed. No tag, release,
+or deployment was created.
+
+Next: exercise populated multi-step Discovery, Messaging, Sharing, and Settings
+journeys; reconcile remaining routes and maturity work; source a protocol-valid
+fixture for inbound PM validation. Keep the whole-product and Player audits
+active.
+
+## Current state — Experience settings behavior contract — 2026-10-03 05:12 UTC
+
+The System Experience route previously showed 20+ saved preference choices,
+but source usage found only `playerVisible` and
+`searchAlbumCandidatesVisible` had runtime consumers. The UI and copied report
+now expose only those two. Saving merges them into the existing browser object
+so older keys survive; reset still clears browser-local experience preferences.
+The explanatory copy and `docs/advanced-features.md` now state that hiding the
+player stops current playback and clears its local queue. `BUG-20261003-169` is
+Verified; ADR-0001 `0z1377` was committed separately in `286da456d` and updated
+for the Semantic UI label interaction in `96e5867d6`.
+
+Evidence: targeted Experience Settings and Search Detail suites pass (18 tests),
+and the full Web suite passes (1,193 tests). The 320 px local no-connect browser
+workflow passes (1/1): it saves the Player preference, reloads with the Player
+hidden, restores it, and confirms the preference is checked in Settings. The
+final strict E2E typecheck, Web lint/build/bundle/build-output checks, `./bin/lint`,
+and all .NET tests (74 application, 5,349 unit, 284 integration) pass. Release
+preview includes 21 fragments; local-identity, whitespace, and clean-index
+checks pass. Existing Vite config/chunk and .NET tooling compatibility warnings
+remain. Product changes remain uncommitted; ADR-only gotcha commits are
+`286da456d` and `96e5867d6`. No release, tag, or deployment was created.
+
+Next: run populated workflows for remaining Settings actions and the broader
+Discovery, Messaging, and Sharing paths; reconcile route inventory and feature
+maturity; then continue the separate Player quality audit. Inbound PM delivery
+still needs a protocol-valid local server fixture.
+
+## Route and maturity reconciliation — 2026-10-03 05:23 UTC
+
+The generated API route inventory is current. Feature-coherence, README
+maturity, roadmap-claim, and README-copy checks pass. These are consistency
+checks; the canonical inventory still labels 51 features experimental, so they
+do not prove those capabilities are release-ready.
+
+Next: continue populated Discovery, Messaging, Sharing, and remaining Settings
+journeys; continue the separate Player quality audit; find a protocol-valid
+loopback fixture for inbound private-message delivery.
+
+## Current state — Filesystem path-containment audit — 2026-10-03 08:46 UTC
+
+The PathGuard call-site audit is complete for the current scope. Browsing and
+file management, streaming and tag edits, local share resolution, mesh/relay
+reads, regular and pod downloads, backfill writes, and transfer removal now
+validate current paths against configured roots. Symlink regressions confirmed
+and closed seven issues (`BUG-20261003-171`–`177`).
+
+Validation passed: `dotnet test` (74 application, 5,380 unit, 284 integration),
+`./bin/lint`, `scripts/check-path-containment.sh`, the release-note preview,
+local-identity scan, and whitespace check. ADR-0001 gotchas `0z1393`–`0z1395`
+are committed in docs-only commits. Product code and release notes remain
+uncommitted; no tag, release, or deployment was created.
+
+Next: continue the active whole-product plan with populated Discovery,
+Messaging, Sharing, and Settings journeys, reconcile remaining route and
+feature-maturity work, and continue the Player quality audit. Inbound PM
+delivery still needs a protocol-valid local fixture.
+
+## Current state — Mesh chunk path guard — 2026-10-03 09:00 UTC
+
+The final path audit found that a peer mesh chunk request could read through a
+stale cached FLAC-key path after its parent share directory was replaced by a
+symlink. `MeshSyncService` now validates the current target against configured
+share roots before opening it. The regression proved the prior read and now
+verifies a rejected response. `BUG-20261003-178` is Verified.
+
+Validation passed: full `dotnet test` (74 application, 5,381 unit, 284
+integration), `./bin/lint`, `scripts/check-path-containment.sh`, and
+`git diff --check`. ADR-0001 gotcha `0z1396` is committed separately.
+
+Next: continue the active whole-product plan across populated Discovery,
+Messaging, Sharing, and Settings journeys; reconcile remaining route and
+feature-maturity work; continue the Player quality audit. Inbound PM delivery
+still needs a protocol-valid local fixture. Product changes remain uncommitted;
+no tag, release, or deployment was created.
+
+## Current state — Content safety across receive paths — 2026-10-03 10:32 UTC
+
+The shared content-safety policy now covers completed Soulseek downloads and
+the pod/mesh search, HTTP collection backfill, relay, multi-source, and
+VirtualSoulfind receive paths. Alternate receives stay in a private `.partial`
+directory until verification accepts them; rejected data is quarantined or
+removed. Full-instance testing caught a missing nested final directory during
+publication; `PublishStagedFile` now creates and revalidates that destination,
+with unit and two-node mesh regressions.
+
+Validation passed: `dotnet test` (74 application, 5,391 unit, 285 integration),
+`./bin/lint`, path containment, release-note preview, local-identity,
+feature-coherence, README-maturity, roadmap-claim, `git diff --check`, and
+README copy parity. The path-containment audit was updated for secure staging
+and guarded publication. Gotchas `0z1398`–`0z1408` were committed in separate
+docs-only commits. Product changes remain in the worktree; no product commit,
+tag, release, or deployment was created.
+
+Next: continue the active whole-product plan with populated Discovery,
+Messaging, Sharing, and Settings journeys; reconcile remaining route and
+feature-maturity work; continue the separate Player audit. Inbound private
+message delivery still needs a protocol-valid local fixture.
+
+## Current state — Populated journey browser regressions — 2026-10-03 10:40 UTC
+
+The local-only core Soulseek browser script passed Search-to-download and
+outbound private-message workflows across two nodes. Five focused browser
+regressions also passed for Search discovery grouping, the Messaging v2 route,
+populated Security and Admin Policies views, and populated Sharing/Wishlist
+views at 320 px. All peer traffic used the pinned loopback Soulfind fixture.
+
+The content-safety receive-path batch and its .NET validation remain verified.
+Continue the whole-product plan through the remaining populated workflow and
+feature-maturity review. Inbound private-message delivery remains deferred
+until the local fixture uses a protocol-valid non-negative message ID.
+## Current state — Issue #348 no-auth reload loop — 2026-10-03 14:00 UTC
+
+The passthrough response interceptor no longer treats a 401 as an expired
+session. Reproduced the original behavior against all three reported endpoint
+families before the patch; the regression suite now passes 9/9 and still checks
+that an expired JWT clears and reloads. Remote passthrough continues to require
+an explicitly matching client CIDR; configuration docs now explain this.
+
+Release candidate: `2026100314-slskdn.334`. The full release gate, tag build,
+and published artifact verification remain pending. Continue the whole-product
+UX and engineering remediation and Player quality audit after release; retain
+the inbound private-message fixture follow-up.

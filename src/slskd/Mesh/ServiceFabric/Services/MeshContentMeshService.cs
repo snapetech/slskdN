@@ -127,8 +127,24 @@ public sealed class MeshContentMeshService : IMeshService
             };
         }
 
-        var finfo = repo.FindFileInfo(ci.Value.MaskedFilename);
-        if (finfo.Filename == null || finfo.Size <= 0)
+        (string Host, string Filename, long Size) finfo;
+        try
+        {
+            finfo = await _shareService.ResolveFileAsync(ci.Value.MaskedFilename).ConfigureAwait(false);
+        }
+        catch (slskd.NotFoundException)
+        {
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = 404,
+                ErrorMessage = "File not found",
+                Payload = Array.Empty<byte>(),
+            };
+        }
+
+        if (!string.Equals(finfo.Host, slskd.Program.LocalHostName, StringComparison.Ordinal) ||
+            string.IsNullOrWhiteSpace(finfo.Filename) || finfo.Size <= 0)
         {
             return new ServiceReply
             {

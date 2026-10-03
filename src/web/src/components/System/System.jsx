@@ -1,7 +1,7 @@
 import './System.css';
 import { Switch } from '../Shared';
 import React, { Suspense, lazy, useEffect, useRef } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Icon, Label, Menu, Message, Segment, Tab } from 'semantic-ui-react';
 
 const AdminPolicies = lazy(() => import('./AdminPolicies'));
@@ -372,13 +372,6 @@ const System = ({ options = {}, state = {}, theme }) => {
     navigate(`/system/${sectionPanes[newIndex].route}`);
   };
 
-  const onSectionSelect = (sectionKey) => {
-    const firstRoute = panes.find((pane) => pane.section === sectionKey)?.route;
-    if (firstRoute) {
-      navigate(`/system/${firstRoute}`);
-    }
-  };
-
   return (
     <div className="system" ref={systemRef}>
       <Menu
@@ -386,16 +379,23 @@ const System = ({ options = {}, state = {}, theme }) => {
         pointing
         secondary
       >
-        {SECTIONS.map((section) => (
-          <Menu.Item
-            active={activePane.section === section.key}
-            key={section.key}
-            onClick={() => onSectionSelect(section.key)}
-          >
-            <Icon name={section.icon} />
-            {section.title}
-          </Menu.Item>
-        ))}
+        {SECTIONS.map((section) => {
+          const firstRoute = panes.find(
+            (pane) => pane.section === section.key,
+          ).route;
+
+          return (
+            <Menu.Item
+              active={activePane.section === section.key}
+              as={Link}
+              key={section.key}
+              to={`/system/${firstRoute}`}
+            >
+              <Icon name={section.icon} />
+              {section.title}
+            </Menu.Item>
+          );
+        })}
       </Menu>
       <Segment raised>
         <Tab

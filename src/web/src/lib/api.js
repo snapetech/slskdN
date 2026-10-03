@@ -118,6 +118,8 @@ api.interceptors.response.use(
       // Handle 401 (authentication)
       if (
         status === 401 &&
+        // A no-auth 401 is a rejected request, not an expired user session.
+        !isPassthroughEnabled() &&
         !['/session', '/server', '/application'].includes(url)
       ) {
         console.debug('received 401 from api route, logging out');

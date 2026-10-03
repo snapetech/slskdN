@@ -123,6 +123,131 @@ public class SearchActionsControllerTests
     }
 
     [Fact]
+    public async Task DownloadItem_WhenMeshFileHasNoContentId_EnqueuesSelectedFileThroughSoulseek()
+    {
+        var searchId = Guid.NewGuid();
+        var searchService = new Mock<ISearchService>();
+        searchService
+            .Setup(service => service.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<slskd.Search.Search, bool>>>(), true))
+            .ReturnsAsync(new slskd.Search.Search
+            {
+                Id = searchId,
+                Responses = new[]
+                {
+                    new slskd.Search.Response
+                    {
+                        Username = "mesh-peer",
+                        PrimarySource = "mesh",
+                        SourceProviders = new List<string> { "mesh" },
+                        Files = new[]
+                        {
+                            new slskd.Search.File { Filename = "Music/first.flac", Size = 123 },
+                            new slskd.Search.File { Filename = "Music/selected.flac", Size = 456 },
+                        },
+                    },
+                },
+            });
+
+        DownloadEnqueueRequest[] captured = Array.Empty<DownloadEnqueueRequest>();
+        var downloadService = new Mock<IDownloadService>();
+        downloadService
+            .Setup(service => service.EnqueueAsync(
+                "mesh-peer",
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback((string _, IEnumerable<DownloadEnqueueRequest> files, CancellationToken _) => captured = files.ToArray())
+            .ReturnsAsync((
+                new List<slskd.Transfers.Transfer> { new() { Id = Guid.NewGuid() } },
+                new List<string>()));
+
+        var controller = CreateController(searchService: searchService, downloadService: downloadService);
+        var result = await controller.DownloadItem(searchId, "0:1", CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        var request = Assert.Single(captured);
+        Assert.Equal("Music/selected.flac", request.Filename);
+        Assert.Equal(456, request.Size);
+    }
+
+    [Fact]
+    public async Task DownloadItem_WhenMeshFileHasContentId_FetchesItFromTheMeshPeer()
+    {
+        var searchId = Guid.NewGuid();
+        var contentId = "content:test:mesh-download";
+        var filename = $"slskdn-mesh-download-{Guid.NewGuid():N}.bin";
+        var bytes = new byte[] { 7, 8, 9, 10 };
+        var searchService = new Mock<ISearchService>();
+        searchService
+            .Setup(service => service.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<slskd.Search.Search, bool>>>(), true))
+            .ReturnsAsync(new slskd.Search.Search
+            {
+                Id = searchId,
+                Responses = new[]
+                {
+                    new slskd.Search.Response
+                    {
+                        Username = "mesh-peer",
+                        PrimarySource = "mesh",
+                        SourceProviders = new List<string> { "mesh" },
+                        Files = new[]
+                        {
+                            new slskd.Search.File
+                            {
+                                ContentId = contentId,
+                                Filename = filename,
+                                Size = bytes.Length,
+                            },
+                        },
+                    },
+                },
+            });
+
+        var meshFetcher = new Mock<IMeshContentFetcher>();
+        meshFetcher
+            .Setup(fetcher => fetcher.FetchAsync(
+                "mesh-peer",
+                contentId,
+                bytes.Length,
+                null,
+                0,
+                bytes.Length,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MeshContentFetchResult
+            {
+                Data = new MemoryStream(bytes),
+                Size = bytes.Length,
+            });
+
+        var controller = CreateController(searchService: searchService, meshFetcher: meshFetcher);
+        var result = await controller.DownloadItem(searchId, "0:0", CancellationToken.None);
+
+        try
+        {
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var pathProperty = ok.Value!.GetType().GetProperty("path");
+            Assert.NotNull(pathProperty);
+            var localPath = Assert.IsType<string>(pathProperty!.GetValue(ok.Value));
+            Assert.Equal(bytes, await System.IO.File.ReadAllBytesAsync(localPath));
+            meshFetcher.Verify(fetcher => fetcher.FetchAsync(
+                "mesh-peer",
+                contentId,
+                bytes.Length,
+                null,
+                0,
+                bytes.Length,
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+        finally
+        {
+            var localPath = Path.Combine("/tmp", filename);
+            if (System.IO.File.Exists(localPath))
+            {
+                System.IO.File.Delete(localPath);
+            }
+        }
+    }
+
+    [Fact]
     public async Task DownloadItem_WhenDestinationIsNotConfigured_ReturnsBadRequest()
     {
         var controller = CreateController();
@@ -291,9 +416,18 @@ public class SearchActionsControllerTests
             .ReturnsAsync((string peerId, string contentId, long? expectedSize, string? expectedHash, long offset, int length, CancellationToken ct) =>
             {
                 calls.Add((offset, length));
+                var content = new byte[length];
+                if (offset == 0)
+                {
+                    content[0] = 0x66;
+                    content[1] = 0x4C;
+                    content[2] = 0x61;
+                    content[3] = 0x43;
+                }
+
                 return new MeshContentFetchResult
                 {
-                    Data = new MemoryStream(new byte[length]),
+                    Data = new MemoryStream(content),
                     Size = length,
                     SizeValid = true,
                     HashValid = true,
@@ -326,6 +460,76 @@ public class SearchActionsControllerTests
         finally
         {
             Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task HandlePodDownloadAsync_RejectsDestinationSymlinkBeforeFetching()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var tempRoot = Path.Combine(Path.GetTempPath(), "slskdn-pod-path-" + Guid.NewGuid().ToString("N"));
+        var downloadRoot = Path.Combine(tempRoot, "downloads");
+        var outsideRoot = Path.Combine(tempRoot, "outside");
+        var linkedDirectory = Path.Combine(downloadRoot, "Music");
+        var outsideFile = Path.Combine(outsideRoot, "outside-track.flac");
+        Directory.CreateDirectory(downloadRoot);
+        Directory.CreateDirectory(outsideRoot);
+        Directory.CreateSymbolicLink(linkedDirectory, outsideRoot);
+
+        var meshFetcher = new Mock<IMeshContentFetcher>();
+        meshFetcher
+            .Setup(fetcher => fetcher.FetchAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<long?>(),
+                It.IsAny<string?>(),
+                It.IsAny<long>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeshContentFetchResult
+            {
+                Data = new MemoryStream(new byte[] { 1 }),
+                Size = 1,
+            });
+
+        try
+        {
+            var controller = CreateController(meshFetcher: meshFetcher, incompleteDir: downloadRoot);
+            var method = typeof(SearchActionsController).GetMethod("HandlePodDownloadAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(method);
+
+            var task = (Task<IActionResult>)method!.Invoke(
+                controller,
+                new object[]
+                {
+                    "sha256:test",
+                    new slskd.Search.File { Filename = "Music/outside-track.flac", Size = 1 },
+                    "peer-1",
+                    null!,
+                    CancellationToken.None
+                })!;
+
+            var result = await task;
+
+            Assert.False(System.IO.File.Exists(outsideFile));
+            meshFetcher.Verify(fetcher => fetcher.FetchAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<long?>(),
+                It.IsAny<string?>(),
+                It.IsAny<long>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+        finally
+        {
+            Directory.Delete(linkedDirectory);
+            Directory.Delete(tempRoot, recursive: true);
         }
     }
 

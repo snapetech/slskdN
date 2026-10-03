@@ -37,13 +37,13 @@ namespace slskd.Search
         public string Username { get; init; } = string.Empty;
 
         /// <summary>
-        ///     Gets or sets the source providers (e.g., ["pod"], ["scene"], or ["pod", "scene"]).
+        ///     Gets or sets the source providers (e.g., ["pod"], ["mesh"], ["scene"], or combinations).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public List<string> SourceProviders { get; set; } = new();
 
         /// <summary>
-        ///     Gets or sets the primary source for action routing ("pod" or "scene").
+        ///     Gets or sets the primary source for action routing ("pod", "mesh", or "scene").
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public string PrimarySource { get; set; } = string.Empty;

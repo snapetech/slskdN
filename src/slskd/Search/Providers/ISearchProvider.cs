@@ -89,12 +89,12 @@ public class SearchResult
     public string Provider { get; set; } = string.Empty;
 
     /// <summary>
-    ///     Gets or sets the source providers (can be multiple if result appears in both).
+    ///     Gets or sets the source providers (can be multiple if a result appears through more than one provider).
     /// </summary>
     public List<string> SourceProviders { get; set; } = new();
 
     /// <summary>
-    ///     Gets or sets the primary source for action routing ("pod" or "scene").
+    ///     Gets or sets the primary source for action routing ("pod", "mesh", or "scene").
     /// </summary>
     public string PrimarySource { get; set; } = string.Empty;
 

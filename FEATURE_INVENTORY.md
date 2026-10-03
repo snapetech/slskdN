@@ -11,7 +11,7 @@ The `stable` status below and the `chore(release): update stable metadata ...` v
 
 Practical rule: until a feature is marked `stable` in the **Status** column, do not describe it as stable/production-ready/done in any user-facing text.
 
-Current state (recount 2026-07-14): the **Status** column is fully classified — `stable` 4, `experimental` 51, `design-only` 6, `broken` 1, `moved-to-slskr` 1, `unknown` 0. So the release gate on `unknown` *status* is satisfied. The pervasive `unknown` values elsewhere in the table live in the **Tests** column (~49) and **Live smoke test** column (~10); those track *test/verification coverage*, not maturity, and are a separate quality-visibility backlog rather than a release blocker. (An earlier audit miscounted those Tests/Live-smoke `unknown`s as ~60 unclassified *statuses* — they are not.) The real standing caveat is simply that 51 features are `experimental`: user-facing docs should present those as experimental, not stable.
+Current state (recount 2026-10-02): the **Status** column is fully classified — `stable` 5, `experimental` 51, `design-only` 6, `broken` 1, `moved-to-slskr` 1, `unknown` 0. The 49 `unknown` values in the **Tests** column and 10 in **Live smoke test** track verification coverage, not feature maturity. The standing caveat is that 51 features are `experimental`: user-facing docs should present those as experimental, not stable.
 
 ## Status values
 

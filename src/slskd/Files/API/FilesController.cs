@@ -30,6 +30,7 @@ namespace slskd.Files.API
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Serilog;
+    using slskd.Common.Security;
     using slskd.Core.Security;
 
     /// <summary>
@@ -184,11 +185,13 @@ namespace slskd.Files.API
                 return BadRequest("Invalid directory path");
             }
 
-            var requestedDir = relativeDirectory
-                .Replace('\\', Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar);
-
-            requestedDir = Path.GetFullPath(Path.Combine(rootDirectory, requestedDir));
+            var requestedDir = PathGuard.NormalizeAndValidate(
+                string.IsNullOrWhiteSpace(relativeDirectory) ? "." : relativeDirectory,
+                rootDirectory);
+            if (requestedDir == null)
+            {
+                return BadRequest("Invalid directory path");
+            }
 
             Log.Debug("Listing directory '{Directory}'", requestedDir);
 
@@ -228,12 +231,11 @@ namespace slskd.Files.API
                 return BadRequest("Invalid directory path");
             }
 
-            var requestedDir = decodedDirectory
-                .Replace('\\', Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar)
-                .TrimStart(Path.DirectorySeparatorChar);
-
-            requestedDir = Path.GetFullPath(Path.Combine(rootDirectory, requestedDir));
+            var requestedDir = PathGuard.NormalizeAndValidate(decodedDirectory, rootDirectory);
+            if (requestedDir == null)
+            {
+                return BadRequest("Invalid directory path");
+            }
 
             Log.Information("Deleting directory '{Directory}'", requestedDir);
 
@@ -269,12 +271,11 @@ namespace slskd.Files.API
                 return BadRequest("Invalid file path");
             }
 
-            var requestedFilename = decodedFilename
-                .Replace('\\', Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar)
-                .TrimStart(Path.DirectorySeparatorChar);
-
-            requestedFilename = Path.GetFullPath(Path.Combine(rootDirectory, requestedFilename));
+            var requestedFilename = PathGuard.NormalizeAndValidate(decodedFilename, rootDirectory);
+            if (requestedFilename == null)
+            {
+                return BadRequest("Invalid file path");
+            }
 
             Log.Information("Deleting file '{File}'", requestedFilename);
 

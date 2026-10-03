@@ -3,74 +3,42 @@ import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import * as chat from '../lib/chat';
 import { createApplicationHubConnection } from '../lib/hubFactory';
-import * as relayAPI from '../lib/relay';
 import * as rooms from '../lib/rooms';
-import { connect, disconnect } from '../lib/server';
 import * as session from '../lib/session';
 import { getLocalStorageItem, setLocalStorageItem } from '../lib/storage';
 import { isPassthroughEnabled } from '../lib/token';
 import AppContext from './AppContext';
+import AppRoutes from './AppRoutes';
+import ApplicationActions from './ApplicationActions';
+import ConnectionStatusMenuItem from './ConnectionStatusMenuItem';
 import LoginForm from './LoginForm';
+import NetworkEndpointNotice, {
+  getStoredNetworkEndpointSnapshot,
+  getVpnPortForwards,
+  getVpnPortSignature,
+  hasDismissedVpnPortNotice,
+  storeDismissedVpnPortNotice,
+} from './NetworkEndpointNotice';
 import PlayerBar from './Player/PlayerBar';
 import { PlayerProvider } from './Player/PlayerContext';
+import PrimaryNavigation from './PrimaryNavigation';
 import ErrorSegment from './Shared/ErrorSegment';
 import Footer from './Shared/Footer';
-import React, { Component, lazy, Suspense } from 'react';
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import ThemeMenu from './ThemeMenu';
+import React, { Component, Suspense } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import {
-  Button,
-  Header,
   Icon,
   Loader,
   Menu,
-  Modal,
   Popup,
   Segment,
   Sidebar,
 } from 'semantic-ui-react';
 
-const SLSKDN_RELEASES_URL = 'https://github.com/snapetech/slskdn/releases';
-const NETWORK_ENDPOINT_NOTICE_DISMISSED_FOREVER_STORAGE_KEY =
-  'slskdn.networkEndpoints.dismissedForever';
-const NETWORK_ENDPOINT_NOTICE_STORAGE_KEY =
-  'slskdn.networkEndpoints.v2.dismissedSignature';
-const NETWORK_ENDPOINT_SNAPSHOT_STORAGE_KEY =
-  'slskdn.networkEndpoints.v2.lastDismissedSnapshot';
-const LEGACY_NETWORK_ENDPOINT_SNAPSHOT_STORAGE_KEY =
-  'slskdn.networkEndpoints.lastDismissedSnapshot';
-const LEGACY_VPN_PORT_NOTICE_STORAGE_KEY =
-  'slskdn.vpnForwardedPorts.dismissedSignature';
 const ROOM_ACTIVITY_SEEN_STORAGE_KEY = 'slskdn.rooms.lastSeenActivity';
 const NAV_ACTIVITY_POLL_INTERVAL_MS = 10_000;
-
-const Browse = lazy(() => import('./Browse/Browse'));
-const Collections = lazy(() => import('./Collections/Collections'));
-const Contacts = lazy(() => import('./Contacts/Contacts'));
-const DiscoveryGraphAtlasPage = lazy(() =>
-  import('./Search/DiscoveryGraphAtlasPage'));
-const Messaging = lazy(() => import('./Messaging/Messaging'));
-const PlaylistIntake = lazy(() => import('./PlaylistIntake/PlaylistIntake'));
-const Searches = lazy(() => import('./Search/Searches'));
-const ShareGroups = lazy(() => import('./ShareGroups/ShareGroups'));
-const SharedWithMe = lazy(() => import('./Shares/SharedWithMe'));
-const SolidSettings = lazy(() => import('./Solid/SolidSettings'));
-const System = lazy(() => import('./System/System'));
-const TransferManager = lazy(() => import('./Transfers/TransferManager'));
-const Users = lazy(() => import('./Users/Users'));
-const Wishlist = lazy(() => import('./Wishlist/Wishlist'));
-const LidarrPage = lazy(() => import('./Lidarr/Lidarr'));
-
-const THEME_OPTIONS = [
-  { key: 'slskdn', text: 'slskdN', value: 'slskdn' },
-  { key: 'classic-dark', text: 'Classic Dark', value: 'classic-dark' },
-  { key: 'light', text: 'Light', value: 'light' },
-];
-
-const THEME_LABELS = THEME_OPTIONS.reduce(
-  (labels, option) => ({ ...labels, [option.value]: option.text }),
-  {},
-);
 
 const normalizeTheme = (theme) => {
   if (theme === 'light' || theme === 'classic-dark') {
@@ -86,154 +54,6 @@ const getSavedPalette = () => {
   const saved = getLocalStorageItem('slskdn-palette');
   if (!saved) return null;
   return THEME_PALETTES.some((p) => p.id === saved) ? saved : null;
-};
-const normalizePortForwardProtocol = (proto) =>
-  `${proto || ''}`.trim().toUpperCase();
-
-const getOption = (source, ...keys) => {
-  for (const key of keys) {
-    if (source && Object.prototype.hasOwnProperty.call(source, key)) {
-      return source[key];
-    }
-  }
-
-  return undefined;
-};
-
-const toConfiguredPort = (value, fallback) => {
-  const port = Number(value);
-  return Number.isInteger(port) && port > 0 ? port : fallback;
-};
-
-const getVpnPortForwards = (vpn = {}) => {
-  if (Array.isArray(vpn.portForwards) && vpn.portForwards.length > 0) {
-    return vpn.portForwards
-      .filter((forward) => forward?.publicPort > 0)
-      .map((forward) => ({
-        localPort: forward.localPort,
-        namespace: forward.namespace,
-        proto: normalizePortForwardProtocol(forward.proto),
-        publicIp: forward.publicIPAddress || forward.publicIp,
-        publicPort: forward.publicPort,
-        slot: forward.slot,
-        targetPort: forward.targetPort,
-      }))
-      .sort((left, right) => (left.slot ?? 0) - (right.slot ?? 0));
-  }
-
-  if (vpn.forwardedPort > 0) {
-    return [
-      {
-        proto: 'TCP',
-        publicIp: vpn.publicIPAddress,
-        publicPort: vpn.forwardedPort,
-        slot: 0,
-      },
-    ];
-  }
-
-  return [];
-};
-
-const getVpnPortSignature = (forwards) =>
-  forwards
-    .map((forward) =>
-      [
-        forward.slot ?? '',
-        forward.proto ?? '',
-        forward.publicIp ?? '',
-        forward.publicPort ?? '',
-        forward.localPort ?? '',
-        forward.targetPort ?? '',
-      ].join(':'),
-    )
-    .join('|');
-
-const parseLegacyVpnPortSignature = (signature) => {
-  if (!signature) return null;
-
-  const portForwards = signature
-    .split('|')
-    .map((entry) => {
-      const [slot, proto, publicIp, publicPort, localPort, targetPort] =
-        entry.split(':');
-      const slotNumber = Number.parseInt(slot, 10);
-      const normalizedProto = normalizePortForwardProtocol(proto);
-
-      return {
-        label:
-          slotNumber === 0
-            ? 'Soulseek'
-            : normalizedProto || 'Forward',
-        localPort: Number.parseInt(localPort, 10) || undefined,
-        proto: normalizedProto,
-        publicIp: publicIp || undefined,
-        publicPort: Number.parseInt(publicPort, 10) || undefined,
-        slot: Number.isFinite(slotNumber) ? slotNumber : undefined,
-        targetPort: Number.parseInt(targetPort, 10) || undefined,
-      };
-    })
-    .filter((forward) => forward.publicPort > 0);
-
-  return portForwards.length ? { portForwards, signature } : null;
-};
-
-const hasDismissedVpnPortNotice = (signature) => {
-  if (
-    getLocalStorageItem(
-      NETWORK_ENDPOINT_NOTICE_DISMISSED_FOREVER_STORAGE_KEY,
-    ) === 'true'
-  ) {
-    return true;
-  }
-
-  return Boolean(signature) && (
-    getLocalStorageItem(NETWORK_ENDPOINT_NOTICE_STORAGE_KEY, '') !== '' ||
-    getLocalStorageItem(LEGACY_VPN_PORT_NOTICE_STORAGE_KEY, '') !== ''
-  );
-};
-
-const getStoredNetworkEndpointSnapshot = () => {
-  try {
-    const snapshot = JSON.parse(
-      getLocalStorageItem(NETWORK_ENDPOINT_SNAPSHOT_STORAGE_KEY, 'null'),
-    );
-    if (snapshot?.signature) {
-      return snapshot;
-    }
-  } catch {
-    // Fall through to the legacy key used by the earlier VPN-only banner.
-  }
-
-  try {
-    const snapshot = JSON.parse(
-      getLocalStorageItem(LEGACY_NETWORK_ENDPOINT_SNAPSHOT_STORAGE_KEY, 'null'),
-    );
-    if (snapshot?.signature) {
-      return snapshot;
-    }
-  } catch {
-    // Fall through to the original single-signature key.
-  }
-
-  return parseLegacyVpnPortSignature(
-    getLocalStorageItem(LEGACY_VPN_PORT_NOTICE_STORAGE_KEY, ''),
-  );
-};
-
-const storeDismissedVpnPortNotice = (signature, portForwards) => {
-  setLocalStorageItem(
-    NETWORK_ENDPOINT_NOTICE_DISMISSED_FOREVER_STORAGE_KEY,
-    'true',
-  );
-  setLocalStorageItem(NETWORK_ENDPOINT_NOTICE_STORAGE_KEY, signature);
-  setLocalStorageItem(
-    NETWORK_ENDPOINT_SNAPSHOT_STORAGE_KEY,
-    JSON.stringify({
-      portForwards,
-      signature,
-    }),
-  );
 };
 
 const normalizeRoomActivity = (value) => {
@@ -277,192 +97,6 @@ const setNavigationHeightVariable = (element) => {
   }
 };
 
-const NavigationIcon = ({ alert, alertTestId, name }) => (
-  <span className="navigation-alert-icon">
-    <Icon name={name} />
-    {alert && (
-      <span
-        aria-label="New activity"
-        className="navigation-alert-dot"
-        data-testid={alertTestId}
-        role="status"
-      />
-    )}
-  </span>
-);
-
-const NAVIGATION_GROUPS = [
-  {
-    icon: 'compass outline',
-    key: 'discover',
-    label: 'Discover',
-    items: [
-      { icon: 'crosshairs', label: 'Discovery Graph', testId: 'nav-discovery-graph', to: '/discovery-graph' },
-      { icon: 'list alternate outline', label: 'Playlist Intake', testId: 'nav-playlist-intake', to: '/playlist-intake' },
-      { icon: 'star', label: 'Wishlist', testId: 'nav-wishlist', to: '/wishlist' },
-      { icon: 'music', label: 'Lidarr', testId: 'nav-lidarr', to: '/lidarr' },
-    ],
-  },
-  {
-    icon: 'user circle outline',
-    key: 'network',
-    label: 'Network',
-    items: [
-      { icon: 'users', label: 'Users', testId: 'nav-users', to: '/users' },
-      { icon: 'address book', label: 'Contacts', testId: 'nav-contacts', to: '/contacts' },
-      { icon: 'key', label: 'Solid', testId: 'nav-solid', to: '/solid' },
-    ],
-  },
-  {
-    icon: 'share alternate',
-    key: 'sharing',
-    label: 'Sharing',
-    items: [
-      { icon: 'list', label: 'Collections', testId: 'nav-collections', to: '/collections' },
-      { icon: 'users', label: 'Share Groups', testId: 'nav-groups', to: '/sharegroups' },
-      { icon: 'share', label: 'Shared with Me', testId: 'nav-shared-with-me', to: '/shared' },
-      { icon: 'folder open', label: 'Browse', testId: 'nav-browse', to: '/browse' },
-    ],
-  },
-];
-
-const NavigationDropdown = ({ group }) => {
-  const [open, setOpen] = React.useState(false);
-
-  return (
-    <Popup
-      className="navigation-dropdown-popup"
-      on="click"
-      onClose={() => setOpen(false)}
-      onOpen={() => setOpen(true)}
-      open={open}
-      position="bottom left"
-      trigger={(
-        <Menu.Item
-          aria-expanded={open}
-          aria-haspopup="menu"
-          className="navigation-dropdown-trigger"
-          data-navigation-targets={group.items.map((item) => item.testId).join(' ')}
-          data-testid={`nav-group-${group.key}`}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setOpen((current) => !current);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          <Icon name={group.icon} />
-          {group.label}
-          <Icon name="dropdown" />
-        </Menu.Item>
-      )}
-    >
-      <Menu className="navigation-dropdown-menu" vertical>
-        {group.items.map((item) => (
-          <NavLink key={item.to} onClick={() => setOpen(false)} to={item.to}>
-            <Menu.Item data-testid={item.testId}>
-              <Icon name={item.icon} />
-              {item.label}
-            </Menu.Item>
-          </NavLink>
-        ))}
-      </Menu>
-    </Popup>
-  );
-};
-
-const buildCurrentIngressPorts = (options = {}) => {
-  const soulseek = getOption(options, 'soulseek', 'Soulseek') || {};
-  const dht = getOption(options, 'dht', 'dhtRendezvous', 'DhtRendezvous') || {};
-  const soulseekListenPort = toConfiguredPort(
-    getOption(soulseek, 'listenPort', 'listen_port', 'ListenPort'),
-    50300,
-  );
-  const dhtOverlayPort = toConfiguredPort(
-    getOption(dht, 'overlayPort', 'overlay_port', 'OverlayPort'),
-    50305,
-  );
-  const dhtPort = toConfiguredPort(
-    getOption(dht, 'dhtPort', 'dht_port', 'DhtPort'),
-    50305,
-  );
-  const ports = [{
-    config: 'soulseek.listen_port',
-    label: 'Soulseek',
-    port: soulseekListenPort,
-    proto: 'TCP',
-  }];
-
-  if (dhtOverlayPort === dhtPort) {
-    ports.push({
-      config: 'dht.overlay_port + dht.dht_port',
-      label: 'mesh/DHT/QUIC',
-      port: dhtOverlayPort,
-      proto: 'TCP/UDP',
-    });
-  } else {
-    ports.push(
-      {
-        config: 'dht.overlay_port',
-        label: 'mesh/QUIC',
-        port: dhtOverlayPort,
-        proto: 'TCP',
-      },
-      {
-        config: 'dht.dht_port',
-        label: 'DHT',
-        port: dhtPort,
-        proto: 'UDP',
-      },
-    );
-  }
-
-  return ports;
-};
-
-const formatIngressPort = (expected) =>
-  `${expected.label} ${expected.proto} ${expected.port}`;
-
-const formatCurrentIngressPorts = (options) =>
-  buildCurrentIngressPorts(options).map(formatIngressPort).join(', ');
-
-const VpnPortChangeNotice = ({ onDismiss, options, portForwards }) => {
-  if (!portForwards.length) {
-    return null;
-  }
-
-  return (
-    <Segment
-      className="network-endpoint-change-notice"
-      data-testid="vpn-port-change-notice"
-    >
-      <div className="network-endpoint-change-notice-body">
-        <Icon name="exchange" />
-        <div className="network-endpoint-change-notice-copy">
-          <span>
-            <strong>Ingress ports changed:</strong> older builds needed 5 public
-            forwards; now keep {formatCurrentIngressPorts(options)} reachable.
-          </span>
-        </div>
-      </div>
-      <Popup
-        content="Dismiss this port migration reminder permanently in this browser."
-        trigger={
-          <Button
-            basic
-            compact
-            icon="close"
-            onClick={onDismiss}
-            title="Dismiss port migration reminder permanently"
-          />
-        }
-      />
-    </Segment>
-  );
-};
-
 const initialState = {
   applicationOptions: {},
   applicationState: {},
@@ -479,147 +113,6 @@ const initialState = {
   retriesExhausted: false,
   palette: getSavedPalette(),
   themeMenuOpen: false,
-};
-
-const ModeSpecificConnectButton = ({
-  connectionWatchdog,
-  controller = {},
-  mode,
-  pendingReconnect,
-  server,
-  user,
-}) => {
-  if (mode === 'Agent') {
-    const isConnected = controller?.state === 'Connected';
-    const isTransitioning = ['Connecting', 'Reconnecting'].includes(
-      controller?.state,
-    );
-
-    return (
-      <Menu.Item
-        onClick={() =>
-          isConnected ? relayAPI.disconnect() : relayAPI.connect()
-        }
-      >
-        <Icon.Group className="menu-icon-group">
-          <Icon
-            color={
-              controller?.state === 'Connected'
-                ? 'green'
-                : isTransitioning
-                  ? 'yellow'
-                  : 'grey'
-            }
-            name="plug"
-          />
-          {!isConnected && (
-            <Icon
-              className="menu-icon-no-shadow"
-              color="red"
-              corner="bottom right"
-              name="close"
-            />
-          )}
-        </Icon.Group>
-        Controller {controller?.state}
-      </Menu.Item>
-    );
-  } else {
-    if (server?.isConnected) {
-      return (
-        <Menu.Item onClick={() => disconnect()}>
-          <Icon.Group className="menu-icon-group">
-            <Icon
-              color={pendingReconnect ? 'yellow' : 'green'}
-              name="plug"
-            />
-            {user?.privileges?.isPrivileged && (
-              <Icon
-                className="menu-icon-no-shadow"
-                color="yellow"
-                corner
-                name="star"
-              />
-            )}
-          </Icon.Group>
-          Connected
-        </Menu.Item>
-      );
-    }
-
-    // the server is disconnected, and we need to give the user some information about what the client is doing
-    // options are:
-    // - nothing. the client was manually disconnected, kicked off by another login, etc., and we're not trying to connect
-    // - actively trying to make a connection to the server
-    // - still trying to connect, but waiting for the next connection attempt
-    let icon = 'close';
-    let color = 'red';
-
-    if (connectionWatchdog?.isAttemptingConnection) {
-      icon = 'clock';
-      color = 'yellow';
-    }
-
-    if (server?.isConnecting || server?.IsLoggingIn) {
-      icon = 'sync alternate loading';
-      color = 'green';
-    }
-
-    return (
-      <Menu.Item onClick={() => connect()}>
-        <Icon.Group className="menu-icon-group">
-          <Icon
-            color="grey"
-            name="plug"
-          />
-          <Icon
-            className="menu-icon-no-shadow"
-            color={color}
-            corner="bottom right"
-            name={icon}
-          />
-        </Icon.Group>
-        Disconnected
-      </Menu.Item>
-    );
-  }
-};
-
-const RouteMissRedirect = () => {
-  const location = useLocation();
-
-  if (typeof window !== 'undefined') {
-    window.routeMissPath = location.pathname;
-
-    setTimeout(() => {
-      const element = document.querySelector('[data-testid="route-miss"]');
-      if (element) {
-        window.routeMissElement = element.textContent;
-      }
-    }, 100);
-  }
-
-  console.error('[Router] Route miss for:', location.pathname);
-
-  return (
-    <>
-      <div
-        data-testid="route-miss"
-        style={{
-          background: 'red',
-          color: 'white',
-          left: 0,
-          padding: '20px',
-          position: 'fixed',
-          top: 0,
-          zIndex: 9_999,
-        }}
-      >
-        Route miss: {location.pathname}
-      </div>
-      <Navigate replace to="/searches" />
-    </>
-  );
 };
 
 class App extends Component {
@@ -992,10 +485,6 @@ class App extends Component {
     this.setState({ login: { ...initialState.login } });
   };
 
-  withTokenCheck = (component) => {
-    return component;
-  };
-
   // eslint-disable-next-line complexity
   render() {
     const {
@@ -1126,65 +615,16 @@ class App extends Component {
               visible
               width="thin"
             >
-              <div className="navigation-primary">
-                {version.isCanary && (
-                  <Menu.Item>
-                    <Icon
-                      color="yellow"
-                      name="flask"
-                    />
-                    Canary
-                  </Menu.Item>
-                )}
-              {isAgent ? (
-                <Menu.Item>
-                  <Icon name="detective" />
-                  Agent Mode
-                </Menu.Item>
-              ) : (
-                <>
-                  <NavLink to="/searches">
-                    <Menu.Item data-testid="nav-search">
-                      <Icon name="search" />
-                      Search
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/downloads">
-                    <Menu.Item data-testid="nav-downloads">
-                      <Icon name="download" />
-                      Downloads
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/uploads">
-                    <Menu.Item data-testid="nav-uploads">
-                      <Icon name="upload" />
-                      Uploads
-                    </Menu.Item>
-                  </NavLink>
-                  <NavLink to="/messages">
-                    <Menu.Item data-testid="nav-messages">
-                      <NavigationIcon
-                        alert={navActivity.rooms || navActivity.chat}
-                        alertTestId={
-                          navActivity.chat ? 'nav-chat-alert' : 'nav-rooms-alert'
-                        }
-                        name="comments"
-                      />
-                      Messages
-                    </Menu.Item>
-                  </NavLink>
-
-                  {NAVIGATION_GROUPS.map((group) => (
-                    <NavigationDropdown group={group} key={group.key} />
-                  ))}
-                </>
-              )}
-            </div>
+              <PrimaryNavigation
+                isAgent={isAgent}
+                navActivity={navActivity}
+                version={version}
+              />
             <Menu
               className="right"
               inverted
             >
-              <ModeSpecificConnectButton
+              <ConnectionStatusMenuItem
                 connectionWatchdog={connectionWatchdog}
                 controller={controller}
                 mode={mode}
@@ -1192,183 +632,58 @@ class App extends Component {
                 server={server}
                 user={user}
               />
-              <Popup
-                basic
-                className="theme-picker-popup"
-                on="click"
-                onClose={this.closeThemeMenu}
-                onOpen={this.openThemeMenu}
+              <ThemeMenu
+                closeThemeMenu={this.closeThemeMenu}
+                onSetPalette={this.setPalette}
+                onSetTheme={this.setTheme}
+                openThemeMenu={this.openThemeMenu}
                 open={themeMenuOpen}
-                pinned
-                position="bottom right"
-                trigger={(
-                  <Menu.Item
-                    className={`theme-menu ${themeMenuOpen ? 'visible' : ''}`}
-                    data-testid="theme-menu"
-                    title="Choose the web UI color theme"
-                  >
-                    <Icon name="paint brush" />
-                    <span className="theme-menu-label">Theme</span>
-                  </Menu.Item>
-                )}
-              >
-                <Menu
-                  className="theme-picker-menu"
-                  vertical
-                >
-                  {THEME_OPTIONS.map((option) => (
-                    <Menu.Item
-                      active={theme === option.value}
-                      data-testid={`theme-option-${option.value}`}
-                      key={option.value}
-                      onClick={() => this.setTheme(option.value)}
-                    >
-                      <Icon name="theme" />
-                      {option.text}
-                    </Menu.Item>
-                  ))}
-                  {semanticTheme !== 'light' && (
-                    <>
-                      <Menu.Item
-                        style={{
-                          cursor: 'default',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.04em',
-                          opacity: 0.55,
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        Palette
-                      </Menu.Item>
-                      <div className="theme-palette-grid">
-                        {THEME_PALETTES.map((p) => (
-                          <button
-                            className={`theme-palette-swatch ${
-                              palette === p.id ? 'active' : ''
-                            }`}
-                            key={p.id}
-                            onClick={() => this.setPalette(p.id)}
-                            title={p.name}
-                            type="button"
-                          >
-                            <span className="theme-palette-swatch-dots">
-                              {p.swatches.map((swatch) => (
-                                <span
-                                  className="theme-palette-dot"
-                                  key={`${p.id}-${swatch}`}
-                                  style={{ backgroundColor: swatch }}
-                                />
-                              ))}
-                            </span>
-                            <span className="theme-palette-swatch-name">
-                              {p.name}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                      {palette && (
-                        <Menu.Item
-                          onClick={() => this.setPalette(null)}
-                          style={{ fontSize: '0.8rem', opacity: 0.65 }}
-                        >
-                          <Icon name="undo" />
-                          Reset palette
-                        </Menu.Item>
-                      )}
-                    </>
-                  )}
-                </Menu>
-              </Popup>
+                palette={palette}
+                semanticTheme={semanticTheme}
+                theme={theme}
+              />
               {(pendingReconnect || pendingRestart || pendingShareRescan) && (
-                <Menu.Item position="right">
-                  <Icon.Group className="menu-icon-group">
+                <Popup
+                  content="Open System Info to review pending actions."
+                  trigger={(
                     <NavLink to="/system/info">
-                      <Icon
-                        color="yellow"
-                        name="exclamation circle"
-                      />
+                      <Menu.Item
+                        aria-label="Open System Info to review pending actions."
+                        data-testid="nav-pending-action"
+                        position="right"
+                        title="Open System Info to review pending actions."
+                      >
+                        <Icon.Group className="menu-icon-group">
+                          <Icon
+                            color="yellow"
+                            name="exclamation circle"
+                          />
+                        </Icon.Group>
+                        Pending Action
+                      </Menu.Item>
                     </NavLink>
-                  </Icon.Group>
-                  Pending Action
-                </Menu.Item>
-              )}
-              {isUpdateAvailable && (
-                <Modal
-                  centered
-                  closeIcon
-                  size="mini"
-                  trigger={
-                    <Menu.Item position="right">
-                      <Icon.Group className="menu-icon-group">
-                        <Icon
-                          color="yellow"
-                          name="bullhorn"
-                        />
-                      </Icon.Group>
-                      New Version!
-                    </Menu.Item>
-                  }
-                >
-                  <Modal.Header>New Version!</Modal.Header>
-                  <Modal.Content>
-                    <p>
-                      You are currently running version{' '}
-                      <strong>{current}</strong>
-                      while version <strong>{latest}</strong> is available.
-                    </p>
-                  </Modal.Content>
-                  <Modal.Actions>
-                    <Button
-                      fluid
-                      href={SLSKDN_RELEASES_URL}
-                      primary
-                      style={{ marginLeft: 0 }}
-                    >
-                      See Release Notes
-                    </Button>
-                  </Modal.Actions>
-                </Modal>
-              )}
-              <NavLink to="/system">
-                <Menu.Item data-testid="nav-system">
-                  <Icon name="cogs" />
-                  System
-                </Menu.Item>
-              </NavLink>
-              {session.isLoggedIn() && (
-                <Modal
-                  actions={[
-                    'Cancel',
-                    {
-                      content: 'Log Out',
-                      key: 'done',
-                      negative: true,
-                      onClick: this.logout,
-                    },
-                  ]}
-                  centered
-                  content="Are you sure you want to log out?"
-                  header={
-                    <Header
-                      content="Confirm Log Out"
-                      icon="sign-out"
-                    />
-                  }
-                  size="mini"
-                  trigger={
-                    <Menu.Item data-testid="logout">
-                      <Icon name="sign-out" />
-                      Log Out
-                    </Menu.Item>
-                  }
+                  )}
                 />
               )}
+              <ApplicationActions
+                current={current}
+                isLoggedIn={session.isLoggedIn()}
+                isUpdateAvailable={isUpdateAvailable}
+                latest={latest}
+                onLogout={this.logout}
+              >
+                <NavLink to="/system">
+                  <Menu.Item data-testid="nav-system">
+                    <Icon name="cogs" />
+                    System
+                  </Menu.Item>
+                </NavLink>
+              </ApplicationActions>
             </Menu>
             </Sidebar>
             <Sidebar.Pusher className="app-content">
               {showVpnPortNotice && (
-                <VpnPortChangeNotice
+                <NetworkEndpointNotice
                   onDismiss={() =>
                     this.dismissVpnPortNotice(vpnPortSignature, vpnPortForwards)
                   }
@@ -1393,303 +708,12 @@ class App extends Component {
                     </Segment>
                   }
                 >
-                  {isAgent ? (
-                  <Routes>
-                  <Route
-                    path="/system"
-                    element={
-                      this.withTokenCheck(
-                        <System
-                          options={applicationOptions}
-                          state={applicationState}
-                        />,
-                      )
-                    }
+                  <AppRoutes
+                    applicationOptions={applicationOptions}
+                    applicationState={applicationState}
+                    isAgent={isAgent}
+                    theme={semanticTheme}
                   />
-                  <Route
-                    path="/system/:tab"
-                    element={
-                      this.withTokenCheck(
-                        <System
-                          options={applicationOptions}
-                          state={applicationState}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="*"
-                    element={<Navigate replace to="/system" />}
-                  />
-                  </Routes>
-                  ) : (
-                  <Routes>
-                  <Route
-                    path="/"
-                    element={<Navigate replace to="/searches" />}
-                  />
-                  <Route
-                    path="/collections"
-                    element={(() => {
-                      // This should log if route matches
-                      if (typeof window !== 'undefined') {
-                        window.routeMatchedCollections = true;
-                        console.log(
-                          '[Router] /collections route matched!',
-                          '/collections',
-                        );
-                      }
-
-                      try {
-                        const result = this.withTokenCheck(
-                          <div className="view">
-                            <Collections />
-                          </div>,
-                        );
-                        console.log(
-                          '[Router] Collections rendered successfully',
-                        );
-                        return result;
-                      } catch (renderError) {
-                        console.error(
-                          '[Router] Error rendering Collections:',
-                          renderError,
-                        );
-                        // Return error UI instead of crashing
-                        return (
-                          <div className="view">
-                            <ErrorSegment
-                              caption={`Error loading Collections: ${renderError.message}`}
-                            />
-                          </div>
-                        );
-                      }
-                    })()}
-                  />
-                  <Route
-                    path="/solid"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view">
-                          <SolidSettings />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/discovery-graph"
-                    element={
-                      this.withTokenCheck(
-                        <DiscoveryGraphAtlasPage
-                          server={applicationState.server}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/playlist-intake"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view">
-                          <PlaylistIntake />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/searches"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view">
-                          <Searches server={applicationState.server} />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/searches/:id"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view">
-                          <Searches server={applicationState.server} />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/wishlist"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view">
-                          <Wishlist />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/lidarr"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view">
-                          <LidarrPage />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/browse"
-                    element={this.withTokenCheck(<Browse />)}
-                  />
-                  <Route
-                    path="/users"
-                    element={this.withTokenCheck(<Users />)}
-                  />
-                  <Route
-                    path="/contacts"
-                    element={this.withTokenCheck(<Contacts />)}
-                  />
-                  <Route
-                    path="/sharegroups"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view">
-                          <ShareGroups />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/shared"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view">
-                          <SharedWithMe />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/chat"
-                    element={
-                      this.withTokenCheck(
-                        <Messaging
-                          initialKind="chat"
-                          state={applicationState}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/pods"
-                    element={
-                      this.withTokenCheck(
-                        <Messaging
-                          initialKind="pod"
-                          state={applicationState}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/pods/:podId"
-                    element={
-                      this.withTokenCheck(
-                        <Messaging
-                          initialKind="pod"
-                          state={applicationState}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/pods/:podId/channels/:channelId"
-                    element={
-                      this.withTokenCheck(
-                        <Messaging
-                          initialKind="pod"
-                          state={applicationState}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/rooms"
-                    element={
-                      this.withTokenCheck(
-                        <Messaging
-                          initialKind="room"
-                          state={applicationState}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/messages"
-                    element={
-                      this.withTokenCheck(
-                        <Messaging
-                          initialKind="mixed"
-                          state={applicationState}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/uploads"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view view-transfer">
-                          <TransferManager
-                            direction="upload"
-                            server={applicationState.server}
-                          />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/downloads"
-                    element={
-                      this.withTokenCheck(
-                        <div className="view view-transfer">
-                          <TransferManager
-                            direction="download"
-                            server={applicationState.server}
-                          />
-                        </div>,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/system"
-                    element={
-                      this.withTokenCheck(
-                        <System
-                          options={applicationOptions}
-                          state={applicationState}
-                          theme={semanticTheme}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="/system/:tab"
-                    element={
-                      this.withTokenCheck(
-                        <System
-                          options={applicationOptions}
-                          state={applicationState}
-                          theme={semanticTheme}
-                        />,
-                      )
-                    }
-                  />
-                  <Route
-                    path="*"
-                    element={<RouteMissRedirect />}
-                  />
-                  </Routes>
-                  )}
                 </Suspense>
               </AppContext.Provider>
             </Sidebar.Pusher>

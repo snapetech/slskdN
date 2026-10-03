@@ -172,5 +172,45 @@ namespace slskd.Tests.Unit.Files
             await Assert.ThrowsAsync<slskd.UnauthorizedException>(() =>
                 fileService.DeleteFilesAsync(absoluteTraversal));
         }
+
+        [Fact]
+        public async Task FileOperations_ShouldRejectSymlinkEscapesFromAllowedRoot()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return;
+            }
+
+            var outsideRoot = Path.Combine(Path.GetTempPath(), "FileServiceOutside_" + Guid.NewGuid().ToString("N"));
+            var outsideFile = Path.Combine(outsideRoot, "protected.txt");
+            var linkedDirectory = Path.Combine(testDownloadDir, "external");
+            Directory.CreateDirectory(outsideRoot);
+            File.WriteAllText(outsideFile, "preserve this file");
+            try
+            {
+                Directory.CreateSymbolicLink(linkedDirectory, outsideRoot);
+
+                await Assert.ThrowsAsync<slskd.UnauthorizedException>(
+                    () => fileService.ListContentsAsync(linkedDirectory));
+                await Assert.ThrowsAsync<slskd.UnauthorizedException>(
+                    () => fileService.DeleteFilesAsync(Path.Combine(linkedDirectory, "protected.txt")));
+                await Assert.ThrowsAsync<slskd.UnauthorizedException>(
+                    () => fileService.DeleteDirectoriesAsync(linkedDirectory));
+
+                Assert.True(File.Exists(outsideFile));
+            }
+            finally
+            {
+                if (Directory.Exists(linkedDirectory))
+                {
+                    Directory.Delete(linkedDirectory);
+                }
+
+                if (Directory.Exists(outsideRoot))
+                {
+                    Directory.Delete(outsideRoot, recursive: true);
+                }
+            }
+        }
     }
 }

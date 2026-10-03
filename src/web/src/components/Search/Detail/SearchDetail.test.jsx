@@ -7,7 +7,8 @@ import SearchDetail, {
 import { buildAlbumCandidates } from '../../../lib/albumCandidatePicker';
 import { getResponses } from '../../../lib/searches';
 import { getGroups } from '../../../lib/users';
-import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../../../lib/albumCandidatePicker', () => ({
@@ -66,6 +67,10 @@ describe('SearchDetail', () => {
     vi.clearAllMocks();
     buildAlbumCandidates.mockReturnValue([]);
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('maps valid user notes and ignores malformed note entries', () => {
@@ -150,6 +155,45 @@ describe('SearchDetail', () => {
       'hide that peer and folder from future runs of this wishlist item',
     );
     await waitFor(() => expect(getResponses).toHaveBeenCalledTimes(1));
+  });
+
+  it('saves a named result filter through an in-app dialog', async () => {
+    const user = userEvent.setup();
+    getResponses.mockResolvedValue([]);
+    render(<SearchDetail {...createProps()} />);
+    await waitFor(() => expect(getResponses).toHaveBeenCalledTimes(1));
+
+    const filterInput = screen.getByPlaceholderText(/lackluster/);
+    await user.type(filterInput, 'minfilesize:10mb');
+    await user.click(await screen.findByTitle('Save named filter'));
+
+    const dialog = await screen.findByTestId('save-search-filter-dialog');
+    const nameInput = within(dialog).getByRole('textbox', { name: 'Filter name' });
+    expect(nameInput).toHaveValue('test');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Large files');
+    await user.click(within(dialog).getByRole('button', { name: 'Save Filter' }));
+
+    expect(JSON.parse(localStorage.getItem('slskd-saved-search-filters')))
+      .toEqual([{ name: 'Large files', value: 'minfilesize:10mb' }]);
+    expect(screen.queryByTestId('save-search-filter-dialog')).not.toBeInTheDocument();
+  });
+
+  it('does not start completed-result hydration after unmount during the delay', async () => {
+    vi.useFakeTimers();
+    getResponses.mockResolvedValue([]);
+    const { unmount } = render(<SearchDetail {...createProps()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(getResponses).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('skips the album-candidate panel when the browser preference is disabled', async () => {

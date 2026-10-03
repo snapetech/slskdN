@@ -3,6 +3,8 @@
 // </copyright>
 
 import * as swarmAnalyticsLibrary from '../../../lib/swarmAnalytics';
+import FeatureGateNotice from '../../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../../Shared/useFeatureGates';
 import { formatBytes } from '../../../lib/util';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -39,6 +41,9 @@ const normalizeDashboard = (value) => {
 };
 
 const SwarmAnalytics = () => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const multiSourceEnabled =
+    featureGatesReady && isFeatureEnabled(featureGates, 'multiSourceDownloads');
   const analyticsSignatureRef = useRef(null);
   const fetchRequestRef = useRef(null);
   const mountedRef = useRef(false);
@@ -68,6 +73,7 @@ const SwarmAnalytics = () => {
   }, []);
 
   const fetchAnalytics = useCallback(async () => {
+    if (!multiSourceEnabled) return;
     const requestKey = `${timeWindow}:${rankingLimit}`;
     if (
       document.hidden ||
@@ -110,9 +116,15 @@ const SwarmAnalytics = () => {
         setLoading(false);
       }
     }
-  }, [rankingLimit, timeWindow]);
+  }, [multiSourceEnabled, rankingLimit, timeWindow]);
 
   useEffect(() => {
+    if (!featureGatesReady) return undefined;
+    if (!multiSourceEnabled) {
+      setLoading(false);
+      return undefined;
+    }
+
     const stopPolling = () => {
       if (!pollIntervalRef.current) return;
       window.clearInterval(pollIntervalRef.current);
@@ -140,7 +152,7 @@ const SwarmAnalytics = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopPolling();
     };
-  }, [fetchAnalytics]);
+  }, [fetchAnalytics, featureGatesReady, multiSourceEnabled]);
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -173,6 +185,25 @@ const SwarmAnalytics = () => {
         return 'info circle';
     }
   };
+
+  if (featureGatesReady && !multiSourceEnabled) {
+    return (
+      <div>
+        <Header
+          as="h2"
+          dividing
+        >
+          <Icon name="chart line" />
+          <Header.Content>Swarm Analytics</Header.Content>
+        </Header>
+        <FeatureGateNotice
+          configurationKeys={['feature.MultiSourceDownloads']}
+          featureGate={featureGates.multiSourceDownloads}
+          featureName="Multi-source downloads"
+        />
+      </div>
+    );
+  }
 
   return (
     <div>

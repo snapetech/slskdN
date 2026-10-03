@@ -1,11 +1,13 @@
 import { getKpiMetrics } from '../../../lib/telemetry';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Button,
   Divider,
   Grid,
   Header,
   Icon,
   Message,
+  Popup,
   Segment,
   Statistic,
   Table,
@@ -90,12 +92,15 @@ const MetricGroup = ({ group, metrics }) => {
   if (items.length === 0) return null;
 
   return (
-    <Segment>
+    <Segment className="system-metrics-kpi">
       <Header size="small">
         <Icon name={group.icon} />
         {group.title}
       </Header>
-      <Statistic.Group size="mini">
+      <Statistic.Group
+        className="system-metrics-statistics"
+        size="mini"
+      >
         {items.map(({ label, value, format }) => (
           <Statistic key={label}>
             <Statistic.Value>{format(value)}</Statistic.Value>
@@ -120,32 +125,39 @@ const SlskdMetricsTable = ({ metrics }) => {
         <Icon name="table" />
         All slskdN Metrics
       </Header>
-      <Table
-        compact
-        size="small"
-        striped
+      <div
+        aria-label="Prometheus metric details"
+        className="system-metrics-table-scroll"
+        role="region"
+        tabIndex={0}
       >
-        <Table.Header>
-          <Table.Row>
-            <Table.HeaderCell>Metric</Table.HeaderCell>
-            <Table.HeaderCell>Type</Table.HeaderCell>
-            <Table.HeaderCell>Value</Table.HeaderCell>
-            <Table.HeaderCell>Help</Table.HeaderCell>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {slskdMetrics.map(([key, metric]) => (
-            <Table.Row key={key}>
-              <Table.Cell>
-                <code style={{ fontSize: '0.85em' }}>{key}</code>
-              </Table.Cell>
-              <Table.Cell>{metric.type}</Table.Cell>
-              <Table.Cell>{formatNumber(sampleValue(metric))}</Table.Cell>
-              <Table.Cell style={{ color: 'grey', fontSize: '0.9em' }}>{metric.help}</Table.Cell>
+        <Table
+          compact
+          size="small"
+          striped
+        >
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell>Metric</Table.HeaderCell>
+              <Table.HeaderCell>Type</Table.HeaderCell>
+              <Table.HeaderCell>Value</Table.HeaderCell>
+              <Table.HeaderCell>Help</Table.HeaderCell>
             </Table.Row>
-          ))}
-        </Table.Body>
-      </Table>
+          </Table.Header>
+          <Table.Body>
+            {slskdMetrics.map(([key, metric]) => (
+              <Table.Row key={key}>
+                <Table.Cell>
+                  <code>{key}</code>
+                </Table.Cell>
+                <Table.Cell>{metric.type}</Table.Cell>
+                <Table.Cell>{formatNumber(sampleValue(metric))}</Table.Cell>
+                <Table.Cell>{metric.help}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table>
+      </div>
     </Segment>
   );
 };
@@ -176,11 +188,26 @@ const Metrics = () => {
 
   if (error) {
     return (
-      <Message
-        error
-        header="Failed to load metrics"
-        content={error}
-      />
+      <>
+        <Message
+          error
+          header="Failed to load metrics"
+          content={error}
+        />
+        <Popup
+          content="Try the Prometheus metrics request again after the current error."
+          position="top center"
+          trigger={(
+            <Button
+              onClick={fetchMetrics}
+              primary
+            >
+              <Icon name="refresh" />
+              Try Again
+            </Button>
+          )}
+        />
+      </>
     );
   }
 
@@ -188,18 +215,30 @@ const Metrics = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1em' }}>
+      <div className="system-metrics-header">
         <Header size="medium">
           <Icon name="chart bar" />
           Prometheus Metrics
         </Header>
-        <span style={{ color: 'grey', fontSize: '0.9em', cursor: 'pointer' }} onClick={fetchMetrics}>
-          <Icon
-            loading={loading}
-            name="refresh"
+        <div className="system-metrics-refresh">
+          {lastUpdated && (
+            <span>Updated {lastUpdated.toLocaleTimeString()}</span>
+          )}
+          <Popup
+            content="Fetch the latest Prometheus metrics now to review current application activity."
+            position="top center"
+            trigger={(
+              <Button
+                disabled={loading}
+                loading={loading}
+                onClick={fetchMetrics}
+              >
+                <Icon name="refresh" />
+                Refresh
+              </Button>
+            )}
           />
-          {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Refresh'}
-        </span>
+        </div>
       </div>
 
       {loading && !metrics && (

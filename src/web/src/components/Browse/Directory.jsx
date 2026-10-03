@@ -1,8 +1,22 @@
 import * as transfers from '../../lib/transfers';
 import { formatBytes } from '../../lib/util';
 import FileList from '../Shared/FileList';
+import TooltipButton from '../Shared/TooltipButton';
 import React, { Component } from 'react';
-import { Button, Card, Icon, Label } from 'semantic-ui-react';
+import { Card, Icon, Message } from 'semantic-ui-react';
+
+const Button = TooltipButton;
+
+const getDownloadErrorMessage = (error) => {
+  const data = error?.response?.data;
+
+  if (typeof data === 'string') return data;
+  if (data && typeof data === 'object') {
+    return data.detail || data.message || data.title || JSON.stringify(data);
+  }
+
+  return error?.message || 'The download request could not be completed.';
+};
 
 const initialState = {
   downloadError: '',
@@ -58,7 +72,7 @@ class Directory extends Component {
         this.setState({ downloadRequest: 'complete' });
       } catch (error) {
         this.setState({
-          downloadError: error.response,
+          downloadError: getDownloadErrorMessage(error),
           downloadRequest: 'error',
         });
       }
@@ -96,6 +110,7 @@ class Directory extends Component {
           <Card.Content extra>
             <span>
               <Button
+                aria-label={`Download ${selectedFiles.length} selected file${selectedFiles.length === 1 ? '' : 's'}`}
                 color="green"
                 content="Download"
                 disabled={downloadRequest === 'inProgress'}
@@ -107,6 +122,7 @@ class Directory extends Component {
                 }}
                 labelPosition="right"
                 onClick={() => this.download(username, selectedFiles)}
+                tooltip={`Queue ${selectedFiles.length} selected file${selectedFiles.length === 1 ? '' : 's'} from ${name} for download.`}
               />
               {downloadRequest === 'inProgress' && (
                 <Icon
@@ -123,17 +139,14 @@ class Directory extends Component {
                 />
               )}
               {downloadRequest === 'error' && (
-                <span>
-                  <Icon
-                    color="red"
-                    name="x"
-                    size="large"
-                  />
-                  <Label>
-                    {downloadError.data +
-                      ` (HTTP ${downloadError.status} ${downloadError.statusText})`}
-                  </Label>
-                </span>
+                <Message
+                  data-testid="browse-download-error"
+                  negative
+                  size="small"
+                >
+                  <Icon color="red" name="x" />
+                  {downloadError}
+                </Message>
               )}
             </span>
           </Card.Content>

@@ -4,7 +4,9 @@
 
 import * as mediacore from '../../../lib/mediacore';
 import MediaCore, { areContentIdStatsEqual } from './index';
+import useFeatureGates from '../../Shared/useFeatureGates';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,6 +15,11 @@ vi.mock('../../../lib/mediacore', () => ({
   getContentIdStats: vi.fn(),
   getChannels: vi.fn(),
   getSupportedHashAlgorithms: vi.fn(),
+}));
+vi.mock('../../Shared/useFeatureGates', () => ({
+  default: vi.fn(),
+  isFeatureEnabled: (featureGates, featureId) =>
+    featureGates?.[featureId]?.enabled !== false,
 }));
 
 vi.mock('react-toastify', () => ({
@@ -25,6 +32,7 @@ vi.mock('react-toastify', () => ({
 describe('MediaCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useFeatureGates.mockReturnValue({ featureGates: {}, ready: true });
     window.history.replaceState({}, '', '/system/mediacore');
     Object.defineProperty(document, 'hidden', {
       configurable: true,
@@ -110,6 +118,22 @@ describe('MediaCore', () => {
     expect(screen.getByText(/Candidate search can scan registry entries/)).toBeInTheDocument();
   });
 
+  it('shows disabled Pods status without mounting PodCore operations', async () => {
+    useFeatureGates.mockReturnValue({
+      featureGates: {
+        pods: { enabled: false, message: 'Experimental feature is disabled.' },
+      },
+      ready: true,
+    });
+
+    render(<MediaCore />);
+
+    expect(await screen.findByText('Pods is disabled')).toBeInTheDocument();
+    expect(screen.getByText('feature.Pods')).toBeInTheDocument();
+    expect(screen.getByText('MediaCore ContentID Registry')).toBeInTheDocument();
+    expect(screen.queryByText('Pod Workflow Index')).not.toBeInTheDocument();
+  });
+
   it('hydrates stats after Strict Mode replays the polling effect', async () => {
     render(
       <React.StrictMode>
@@ -140,17 +164,18 @@ describe('MediaCore', () => {
   });
 
   it('focuses a pod workflow from the index card', async () => {
+    const user = userEvent.setup();
     render(<MediaCore />);
 
-    fireEvent.click(await screen.findByRole('link', { name: /DHT Publishing/ }));
+    await user.click(await screen.findByRole('link', { name: /DHT Publishing/ }));
 
-    expect(
-      screen.getByText(/Showing DHT Publishing/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Showing DHT Publishing/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByText('Show all pod workflows').at(-1));
+    await user.click(screen.getByRole('button', { name: 'Show all pod workflows' }));
 
-    expect(screen.queryByText(/Showing DHT Publishing/)).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText(/Showing DHT Publishing/)).not.toBeInTheDocument(),
+    );
   });
 
   it('fills read-first ContentID fields from examples', async () => {

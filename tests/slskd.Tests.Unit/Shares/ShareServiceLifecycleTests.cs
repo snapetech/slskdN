@@ -98,6 +98,86 @@ public class ShareServiceLifecycleTests
         hints.Verify(hintService => hintService.Enqueue("content:two"), Times.Once);
     }
 
+    [Fact]
+    public async Task ResolveFileAsync_LocalIndexPathThroughOutsideSymlink_IsRejected()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var shareRoot = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-shared-root-{Guid.NewGuid():N}");
+        var outsideRoot = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-shared-outside-{Guid.NewGuid():N}");
+        var linkedDirectory = System.IO.Path.Combine(shareRoot, "Album");
+        var outsideFilename = System.IO.Path.Combine(outsideRoot, "track.flac");
+        System.IO.Directory.CreateDirectory(shareRoot);
+        System.IO.Directory.CreateDirectory(outsideRoot);
+        System.IO.File.WriteAllText(outsideFilename, "outside share content");
+        System.IO.Directory.CreateSymbolicLink(linkedDirectory, outsideRoot);
+
+        var factory = new TestShareRepositoryFactory();
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options
+        {
+            Shares = new Options.SharesOptions { Directories = new[] { shareRoot } },
+        });
+        var scanner = new TestShareScanner();
+        using var service = new ShareService(
+            new FileService(optionsMonitor),
+            factory,
+            optionsMonitor,
+            Mock.Of<IModerationProvider>(),
+            scanner);
+        factory.Repositories["local"].FileInfo = (System.IO.Path.Combine(linkedDirectory, "track.flac"), 21);
+
+        try
+        {
+            await Assert.ThrowsAsync<NotFoundException>(
+                () => service.ResolveFileAsync(@"Music\Album\track.flac"));
+        }
+        finally
+        {
+            System.IO.Directory.Delete(linkedDirectory);
+            System.IO.Directory.Delete(shareRoot);
+            System.IO.Directory.Delete(outsideRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveFileAsync_LocalIndexPathInsideConfiguredShare_IsReturned()
+    {
+        var shareRoot = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-valid-share-{Guid.NewGuid():N}");
+        var filename = System.IO.Path.Combine(shareRoot, "track.flac");
+        System.IO.Directory.CreateDirectory(shareRoot);
+        System.IO.File.WriteAllText(filename, "shared content");
+
+        var factory = new TestShareRepositoryFactory();
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options
+        {
+            Shares = new Options.SharesOptions { Directories = new[] { shareRoot } },
+        });
+        var service = new ShareService(
+            new FileService(optionsMonitor),
+            factory,
+            optionsMonitor,
+            Mock.Of<IModerationProvider>(),
+            new TestShareScanner());
+        factory.Repositories["local"].FileInfo = (filename, 14);
+
+        try
+        {
+            var (host, resolvedFilename, size) = await service.ResolveFileAsync(@"Music\track.flac");
+
+            Assert.Equal(Program.LocalHostName, host);
+            Assert.Equal(filename, resolvedFilename);
+            Assert.Equal(14, size);
+        }
+        finally
+        {
+            service.Dispose();
+            System.IO.Directory.Delete(shareRoot, recursive: true);
+        }
+    }
+
     private static ShareService CreateService(
         TestShareRepositoryFactory factory,
         out TestShareScanner scanner,
@@ -151,6 +231,7 @@ public class ShareServiceLifecycleTests
         public int ListAdvertisableContentIdsCalls { get; private set; }
         public int ListContentItemsForFileCalls { get; private set; }
         public int ListFilesCalls { get; private set; }
+        public (string Filename, long Size) FileInfo { get; set; }
 
         public void BackupTo(IShareRepository repository) { }
         public int CountAdvertisableItems() => 0;
@@ -160,7 +241,7 @@ public class ShareServiceLifecycleTests
         public void Dispose() => Disposed = true;
         public void DumpTo(string filename) { }
         public void EnableKeepalive(bool enable) { }
-        public (string Filename, long Size) FindFileInfo(string maskedFilename) => (string.Empty, 0);
+        public (string Filename, long Size) FindFileInfo(string maskedFilename) => FileInfo;
         public Scan? FindLatestScan() => null;
         public (string Domain, string WorkId, string MaskedFilename, bool IsAdvertisable, string ModerationReason, long CheckedAt)? FindContentItem(string contentId) => null;
         public void FlagLatestScanAsSuspect() { }

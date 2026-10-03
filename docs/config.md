@@ -208,6 +208,31 @@ Aliases:
 | -------------- | -------------------------- | --------------------------------- |
 | `-s\|--shared` | `SLSKD_SHARED_DIR`         | The list of paths to shared files |
 
+## Collection share endpoints
+
+Cross-node collection shares include an owner URL so recipients can stream
+items or use **Backfill All**. Set `sharing.externalEndpoint` to the base URL
+other peers can reach, including a reverse-proxy path when used. The default is
+empty; without it, newly announced shares do not advertise an HTTP endpoint.
+Use a public HTTPS URL where available.
+
+Public owner URLs continue to use the outbound public-address guard. For an
+owner reachable only on a private LAN or loopback network, a recipient operator
+can allow one exact IP origin with `sharing.trustedPrivateOwnerOrigins`. This
+setting accepts only private, unique-local, or loopback IP literals with an
+optional port; it does not accept hostnames, link-local or reserved addresses.
+Redirects remain disabled. Add the origin only when you trust that service.
+
+```yaml
+sharing:
+  externalEndpoint: "https://shares.example.net/slskd"
+  trustedPrivateOwnerOrigins:
+    - "http://192.168.1.40:5030"
+```
+
+Each recipient configures its own trusted private origins. Public Internet
+endpoints need no allowlist entry.
+
 ## Filters
 
 Share filters can be used to prevent certain types of files from being shared.  This option is an array that can take any number of filters.  Filters must be a valid regular expression; a few examples are included below and in the example configuration included with the application, but the list is empty by default.
@@ -1033,6 +1058,27 @@ web:
 ## Authentication
 
 Authentication for the web UI (and underlying API) is enabled by default, and the default username and password are both `slskd`. Changing both the username and password during the initial configuration is highly recommended.
+
+When authentication is disabled (`web.authentication.disabled: true` or
+`SLSKD_NO_AUTH=true`), unauthenticated access is limited to loopback by
+default. To allow remote clients, set `web.allow_remote_no_auth: true` and
+configure `web.authentication.passthrough.allowed_cidrs` with the specific
+client IP ranges that may connect. The flag alone does not allow every remote
+client. For example:
+
+```yaml
+web:
+  allow_remote_no_auth: true
+  authentication:
+    disabled: true
+    passthrough:
+      allowed_cidrs: 192.168.1.0/24
+```
+
+If requests pass through a reverse proxy, the application checks the address
+of that proxy connection; apply any client-range restriction at the ingress
+when appropriate. A 401 in passthrough mode is reported to the request caller
+without clearing passthrough state or reloading the whole Web UI.
 
 By default, a random JWT secret key is generated at each start. It is convenient and secure, but restarting the application will invalidate any issued JWTs, causing users to sign in again. To avoid this, supply a custom secret at least 16 characters in length. Note that the secret can be used to generate valid JWTs for the application, so keep this value secret.
 

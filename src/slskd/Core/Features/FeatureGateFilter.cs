@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 /// </summary>
 public sealed class FeatureGateFilter : IAsyncActionFilter
 {
+    private const string SlskrProjectUrl = "https://github.com/snapetech/slskr";
     private readonly IFeatureGate featureGate;
     private readonly FeatureId feature;
 
@@ -33,14 +34,27 @@ public sealed class FeatureGateFilter : IAsyncActionFilter
         var gate = featureGate.Get(feature);
         if (!gate.IsEnabled)
         {
-            context.Result = new ObjectResult(new
+            var isMovedToSlskr = gate.Status == FeatureStatus.MovedToSlskr;
+            object response = isMovedToSlskr
+                ? new
+                {
+                    feature = gate.Feature.ToString(),
+                    status = gate.Status.ToString(),
+                    error = gate.Message,
+                    link = SlskrProjectUrl,
+                }
+                : new
+                {
+                    feature = gate.Feature.ToString(),
+                    status = gate.Status.ToString(),
+                    error = gate.Message,
+                };
+
+            context.Result = new ObjectResult(response)
             {
-                feature = gate.Feature.ToString(),
-                status = gate.Status.ToString(),
-                error = gate.Message,
-            })
-            {
-                StatusCode = StatusCodes.Status404NotFound,
+                StatusCode = isMovedToSlskr
+                    ? StatusCodes.Status410Gone
+                    : StatusCodes.Status404NotFound,
             };
             return;
         }

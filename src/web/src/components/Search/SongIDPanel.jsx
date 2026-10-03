@@ -5,6 +5,8 @@ import * as searches from '../../lib/searches';
 import * as songId from '../../lib/songid';
 import DiscoveryGraphCanvas from './DiscoveryGraphCanvas';
 import DiscoveryGraphModal from './DiscoveryGraphModal';
+import FeatureGateNotice from '../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../Shared/useFeatureGates';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
@@ -15,6 +17,7 @@ import {
   Input,
   Label,
   List,
+  Message,
   Popup,
   Progress,
   Grid,
@@ -218,6 +221,8 @@ const detailSummaryStyle = {
 };
 
 const SongIDPanel = ({ disabled }) => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const songIdEnabled = featureGatesReady && isFeatureEnabled(featureGates, 'songId');
   const [source, setSource] = useState('');
   const [targetDirectory, setTargetDirectory] = useState('');
   const [loading, setLoading] = useState(false);
@@ -234,6 +239,8 @@ const SongIDPanel = ({ disabled }) => {
   }, [run]);
 
   useEffect(() => {
+    if (!songIdEnabled) return undefined;
+
     const connection = songId.createHub();
     let active = true;
 
@@ -280,7 +287,7 @@ const SongIDPanel = ({ disabled }) => {
       active = false;
       connection.stop().catch(() => {});
     };
-  }, []);
+  }, [songIdEnabled]);
 
   const handleAnalyze = async () => {
     const trimmed = source.trim();
@@ -401,6 +408,20 @@ const SongIDPanel = ({ disabled }) => {
       );
     }
   };
+
+  if (!featureGatesReady) {
+    return <Message info size="small">Checking SongID availability…</Message>;
+  }
+
+  if (!songIdEnabled) {
+    return (
+      <FeatureGateNotice
+        configurationKeys={['feature.SongId']}
+        featureGate={featureGates.songId}
+        featureName="SongID"
+      />
+    );
+  }
 
   const handleMbReleaseJob = async (candidate) => {
     try {

@@ -128,6 +128,10 @@ public class TwoNodeMeshFullInstanceTests
         var probeId = Guid.NewGuid().ToString("N")[..12];
         var probeFilename = $"meshprobe{probeId}.flac";
         var probeBytes = Enumerable.Range(0, 8192).Select(i => (byte)(i % 251)).ToArray();
+        probeBytes[0] = 0x66;
+        probeBytes[1] = 0x4C;
+        probeBytes[2] = 0x61;
+        probeBytes[3] = 0x43;
         var betaSharePath = Path.Combine(beta.SharesDirectory, probeFilename);
         await File.WriteAllBytesAsync(betaSharePath, probeBytes);
 

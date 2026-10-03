@@ -262,9 +262,16 @@ public sealed class MeshTransferService : IMeshTransferService
     private async Task ExecuteTransferAsync(string transferId, CancellationToken ct)
     {
         var status = activeTransfers[transferId];
+        string? stagingTargetPath = null;
+        string? targetRoot = null;
 
         try
         {
+            targetRoot = GetAllowedTargetRoots().FirstOrDefault(root =>
+                PathGuard.NormalizeAbsolutePathWithinRoots(status.TargetPath, new[] { root }) != null)
+                ?? throw new UnauthorizedException("Transfer target is outside allowed roots.");
+            stagingTargetPath = ContentSafety.CreateStagingPath(status.TargetPath, targetRoot);
+
             // Phase 1: Discover peers
             status.State = MeshTransferState.DiscoveringPeers;
             PublishProgress(transferId, status);
@@ -284,13 +291,30 @@ public sealed class MeshTransferService : IMeshTransferService
             status.State = MeshTransferState.Transferring;
             PublishProgress(transferId, status);
 
-            await PerformMultiSwarmTransferAsync(transferId, status, peers, ct);
+            await PerformMultiSwarmTransferAsync(transferId, status, peers, stagingTargetPath, targetRoot, ct);
 
             // Phase 3: Verify integrity
             status.State = MeshTransferState.Verifying;
             PublishProgress(transferId, status);
 
-            await VerifyFileIntegrityAsync(status, ct);
+            await VerifyFileIntegrityAsync(status, stagingTargetPath, ct);
+
+            var options = optionsMonitor.CurrentValue;
+            var contentSafetyDisposition = await ContentSafety.InspectAndApplyPolicyAsync(
+                stagingTargetPath,
+                targetRoot,
+                options.Directories.Downloads,
+                options.Security,
+                CancellationToken.None,
+                logger,
+                Path.GetFileName(status.TargetPath)).ConfigureAwait(false);
+            if (contentSafetyDisposition.Rejected)
+            {
+                throw new ContentSafetyRejectedException(
+                    contentSafetyDisposition.Verification?.Message ?? "Mesh transfer failed configured safety checks");
+            }
+
+            ContentSafety.PublishStagedFile(stagingTargetPath, status.TargetPath, targetRoot, overwrite: true);
 
             // Phase 4: Complete
             status.State = MeshTransferState.Completed;
@@ -321,6 +345,11 @@ public sealed class MeshTransferService : IMeshTransferService
         }
         finally
         {
+            if (stagingTargetPath != null && targetRoot != null)
+            {
+                ContentSafety.DeleteStagedFile(stagingTargetPath, targetRoot);
+            }
+
             ReleaseTransferCancellationSource(transferId);
             CompleteProgressSubject(transferId);
         }
@@ -421,6 +450,8 @@ public sealed class MeshTransferService : IMeshTransferService
         string transferId,
         MeshTransferStatus status,
         List<string> peers,
+        string stagingTargetPath,
+        string targetRoot,
         CancellationToken ct)
     {
         // Multi-swarm transfer: request chunks from multiple peers in parallel
@@ -464,26 +495,23 @@ public sealed class MeshTransferService : IMeshTransferService
 
         // Materialize the simulated transfer so integrity verification can succeed.
         await Task.Delay(200, ct);
-        var targetRoot = GetAllowedTargetRoots().FirstOrDefault(root =>
-            PathGuard.NormalizeAbsolutePathWithinRoots(status.TargetPath, new[] { root }) != null)
-            ?? throw new UnauthorizedAccessException("Transfer target is outside allowed roots.");
-        await using var output = SecureFileWriter.Open(status.TargetPath, targetRoot);
+        await using var output = SecureFileWriter.Open(stagingTargetPath, targetRoot);
         output.SetLength(status.FileSize);
         await output.FlushAsync(ct);
     }
 
-    private async Task VerifyFileIntegrityAsync(MeshTransferStatus status, CancellationToken ct)
+    private async Task VerifyFileIntegrityAsync(MeshTransferStatus status, string filePath, CancellationToken ct)
     {
         // Phase 6D: T-824 - Real hash verification
         logger.LogDebug("[VSF-MESH-TRANSFER] {TransferId}: Verifying file integrity",
             status.TransferId);
 
-        if (!System.IO.File.Exists(status.TargetPath))
+        if (!System.IO.File.Exists(filePath))
         {
-            throw new System.IO.FileNotFoundException($"File not found: {status.TargetPath}");
+            throw new System.IO.FileNotFoundException($"File not found: {filePath}");
         }
 
-        var fileInfo = new System.IO.FileInfo(status.TargetPath);
+        var fileInfo = new System.IO.FileInfo(filePath);
         if (fileInfo.Length != status.FileSize)
         {
             throw new InvalidOperationException($"File size mismatch: expected {status.FileSize}, got {fileInfo.Length}");
@@ -491,7 +519,7 @@ public sealed class MeshTransferService : IMeshTransferService
 
         // Compute SHA256 hash of downloaded file
         using var sha256 = System.Security.Cryptography.SHA256.Create();
-        await using var stream = System.IO.File.OpenRead(status.TargetPath);
+        await using var stream = System.IO.File.OpenRead(filePath);
         var computedHash = await sha256.ComputeHashAsync(stream, ct);
         var computedHashHex = BitConverter.ToString(computedHash).Replace("-", string.Empty).ToLowerInvariant();
 

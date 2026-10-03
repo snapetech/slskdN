@@ -54,8 +54,10 @@ test.describe('multi-peer sharing', () => {
         },
       );
       // Node C: recipient-only (no shares)
+      const nodeAEndpoint = harness.getNode('A').nodeCfg.baseUrl;
       await harness.startNode('C', [], {
         noConnect: process.env.SLSKDN_TEST_NO_CONNECT === 'true',
+        trustedPrivateOwnerOrigins: [nodeAEndpoint],
       });
     }
   });
@@ -94,8 +96,51 @@ test.describe('multi-peer sharing', () => {
     console.log('[Contacts Test] Navigating to contacts page...');
     const targetUrl = `${nodeA.baseUrl}/contacts`;
     console.log('[Contacts Test] Target URL:', targetUrl);
+    const contactsResponsePromise = pageA
+      .waitForResponse(
+        (response) =>
+          response.url().includes('/api/v0/contacts') &&
+          response.status() === 200,
+        { timeout: 10_000 },
+      )
+      .then(
+        (response) => ({ response, error: undefined }),
+        (error: unknown) => ({ response: undefined, error }),
+      );
     await pageA.goto(targetUrl, { timeout: 10_000, waitUntil: 'networkidle' });
     console.log('[Contacts Test] Navigation complete, URL:', pageA.url());
+
+    // Capture the contacts response that was subscribed to before navigation.
+    console.log('[Contacts Test] Waiting for /api/v0/contacts response...');
+    const contactsResponseResult = await contactsResponsePromise;
+    if (contactsResponseResult.response) {
+      const text = await contactsResponseResult.response.text();
+      const contentType =
+        contactsResponseResult.response.headers()['content-type'] || '';
+      console.log('[Contacts Test] API Response - Content-Type:', contentType);
+      console.log('[Contacts Test] API Response - Length:', text.length);
+      console.log(
+        '[Contacts Test] API Response - First 200 chars:',
+        text.slice(0, 200),
+      );
+
+      if (text.length === 0) {
+        console.error(
+          '[Contacts Test] ERROR: API returned 200 with empty body!',
+        );
+      }
+
+      if (text.startsWith('<html')) {
+        console.error(
+          '[Contacts Test] ERROR: API returned HTML instead of JSON!',
+        );
+      }
+    } else {
+      console.error(
+        '[Contacts Test] ERROR waiting for API response:',
+        contactsResponseResult.error,
+      );
+    }
 
     // Diagnostic: Compare browser location vs app location (memory history check)
     const loc = await pageA.evaluate(() => ({
@@ -212,7 +257,7 @@ test.describe('multi-peer sharing', () => {
         const elements = document.querySelectorAll('[data-testid]');
         return Array.from(elements).map((element) => ({
           tag: element.tagName,
-          testid: element.dataset.testid,
+          testid: (element as HTMLElement).dataset.testid,
           visible: (element as HTMLElement).offsetParent !== null,
         }));
       });
@@ -221,41 +266,6 @@ test.describe('multi-peer sharing', () => {
         JSON.stringify(allTestIds, null, 2),
       );
       throw error;
-    }
-
-    // Wait for contacts API call to complete and capture response body
-    console.log('[Contacts Test] Waiting for /api/v0/contacts response...');
-    let resp;
-    try {
-      resp = await pageA.waitForResponse(
-        (r) => r.url().includes('/api/v0/contacts') && r.status() === 200,
-        { timeout: 10_000 },
-      );
-
-      // Diagnostic: Verify response body
-      const text = await resp.text();
-      const contentType = resp.headers()['content-type'] || '';
-      console.log('[Contacts Test] API Response - Content-Type:', contentType);
-      console.log('[Contacts Test] API Response - Length:', text.length);
-      console.log(
-        '[Contacts Test] API Response - First 200 chars:',
-        text.slice(0, 200),
-      );
-
-      if (text.length === 0) {
-        console.error(
-          '[Contacts Test] ERROR: API returned 200 with empty body!',
-        );
-      }
-
-      if (text.startsWith('<html')) {
-        console.error(
-          '[Contacts Test] ERROR: API returned HTML instead of JSON!',
-        );
-      }
-    } catch (error) {
-      console.error('[Contacts Test] ERROR waiting for API response:', error);
-      // Continue with diagnostics even if API wait failed
     }
 
     // Diagnostic: Check current state
@@ -467,86 +477,10 @@ test.describe('multi-peer sharing', () => {
       waitUntil: 'networkidle',
     });
 
-    // Wait a moment for React Router to process
-    await pageA.waitForTimeout(500); // Reduced from 1000ms // Reduced from 2000ms
-
-    // Diagnostic: Check if route matched
-    const routeMatched = await pageA.evaluate(
-      () => (window as any).routeMatchedCollections || false,
-    );
-    console.log('[Collections Test] Route matched flag:', routeMatched);
-
-    // Diagnostic: Check router state
-    const loc = await pageA.evaluate(() => location.pathname);
-    console.log('[Collections Test] window.location.pathname =', loc);
-    const urlBase = await pageA.evaluate(
-      () => (window as any).urlBase || 'not set',
-    );
-    console.log('[Collections Test] window.urlBase =', urlBase);
-
-    const collectionsRootCount = await pageA
-      .locator('[data-testid="collections-root"]')
-      .count();
-    if (!collectionsRootCount && !routeMatched && loc === '/searches') {
-      const title = await pageA.title();
-      throw new Error(
-        `Stale WebUI bundle detected: /collections route missing (title=${title}, url=${pageA.url()}). ` +
-          'Run `pnpm --filter @slskdn/web build` and re-run e2e with harness-launched nodes.',
-      );
-    }
-
-    // Check for route miss (via window flag or DOM element) - check multiple times as redirect might clear it
-    const routeMissPath = await pageA.evaluate(() => {
-      // Check both flags
-      return (
-        (window as any).routeMissPath ||
-        (window as any).routeMissElement ||
-        null
-      );
-    });
-    const routeMissText = await pageA.evaluate(() => {
-      const element = document.querySelector('[data-testid="route-miss"]');
-      return element ? element.textContent : null;
-    });
-
-    console.log('[Collections Test] Route miss path:', routeMissPath);
-    console.log('[Collections Test] Route miss text:', routeMissText);
-
-    if (routeMissPath || routeMissText) {
-      console.error(
-        '[Collections Test] ROUTE MISS DETECTED:',
-        routeMissPath || routeMissText,
-      );
-      throw new Error(`Route miss detected: ${routeMissPath || routeMissText}`);
-    }
-
-    // If route didn't match, that's the problem
-    if (!routeMatched && loc === '/searches') {
-      console.error(
-        '[Collections Test] ERROR: Route did not match - redirected to /searches',
-      );
-      // Dump all route-related info
-      const routeInfo = await pageA.evaluate(() => ({
-        href: location.href,
-        pathname: location.pathname,
-        routeMatched: (window as any).routeMatchedCollections || false,
-        routeMiss: (window as any).routeMissPath || null,
-        routeMissElement: (window as any).routeMissElement || null,
-        urlBase: (window as any).urlBase || 'not set',
-      }));
-      console.error(
-        '[Collections Test] Route info:',
-        JSON.stringify(routeInfo, null, 2),
-      );
-      throw new Error(
-        `Route /collections did not match. Route miss: ${routeMissPath || routeMissText || 'unknown'}`,
-      );
-    }
-
-    // Wait for collections page to load
-    await pageA.waitForSelector('[data-testid="collections-root"]', {
-      timeout: 10_000,
-    });
+    await expect(
+      pageA.getByTestId('collections-root'),
+      'The Collections route must render its page content',
+    ).toBeVisible({ timeout: 10_000 });
 
     // Create collection
     const createButton = pageA.getByTestId(T.collectionsCreate);
@@ -909,6 +843,11 @@ test.describe('multi-peer sharing', () => {
       shareOverride = share;
     }
 
+    if (typeof shareGrantId !== 'string' || shareGrantId.length === 0) {
+      throw new Error('Share grant ID was not available after creation.');
+    }
+    const activeShareGrantId = shareGrantId;
+
     // Announce share to nodeC
     await announceShareGrant({
       owner: nodeA,
@@ -916,7 +855,7 @@ test.describe('multi-peer sharing', () => {
       recipient: nodeC,
       recipientToken,
       request,
-      shareGrantId,
+      shareGrantId: activeShareGrantId,
       shareOverride,
     });
 
@@ -925,7 +864,7 @@ test.describe('multi-peer sharing', () => {
     const shareAvailable = await waitForShareGrantById({
       baseUrl: nodeC.baseUrl,
       request,
-      shareGrantId,
+      shareGrantId: activeShareGrantId,
       timeoutMs: 30_000,
       token: recipientToken,
     });
@@ -959,7 +898,7 @@ test.describe('multi-peer sharing', () => {
     });
 
     // Resolve stream URL from manifest via API (more reliable than UI click)
-    const streamUrl = await pageC.evaluate(
+    const streamItem = await pageC.evaluate(
       async ({ expectedTitle, expectedOwnerBaseUrl }) => {
         const token =
           sessionStorage.getItem('slskd-token') ||
@@ -1023,8 +962,10 @@ test.describe('multi-peer sharing', () => {
           const url = item?.streamUrl || item?.stream_url;
           if (!url) continue;
 
-          if (url.startsWith(expectedOwnerBaseUrl)) return url;
-          if (url.startsWith('/')) return `${expectedOwnerBaseUrl}${url}`;
+          const contentId = item?.contentId || item?.content_id;
+          if (!contentId) continue;
+          if (url.startsWith(expectedOwnerBaseUrl)) return { contentId, streamUrl: url };
+          if (url.startsWith('/')) return { contentId, streamUrl: `${expectedOwnerBaseUrl}${url}` };
         }
 
         return null;
@@ -1035,18 +976,22 @@ test.describe('multi-peer sharing', () => {
       },
     );
 
-    if (!streamUrl) {
-      throw new Error('No streamUrl found in manifest for stream test.');
+    if (!streamItem) {
+      throw new Error('No streamable item found in manifest for stream test.');
     }
 
-    const normalized = streamUrl
-      .replace('http://localhost:', 'http://127.0.0.1:')
-      .replace('https://localhost:', 'https://127.0.0.1:');
-    const fullStreamUrl = normalized.startsWith('http')
-      ? normalized
-      : `${nodeC.baseUrl}${normalized}`;
+    const itemIdPrefix = streamItem.contentId.startsWith('sha256:')
+      ? streamItem.contentId.slice(7, 15)
+      : streamItem.contentId.slice(0, 8);
+    const popupPromise = pageC.waitForEvent('popup');
+    await pageC.getByTestId(`incoming-stream-${itemIdPrefix}`).click();
+    const streamPage = await popupPromise;
+    await expect(streamPage).toHaveURL(/ticket=/);
+    const ticketedStreamUrl = new URL(streamPage.url());
+    expect(ticketedStreamUrl.searchParams.has('ticket')).toBe(true);
+    expect(ticketedStreamUrl.searchParams.has('token')).toBe(false);
 
-    const streamResponse = await request.get(fullStreamUrl, {
+    const streamResponse = await request.get(ticketedStreamUrl.href, {
       failOnStatusCode: false,
       headers: { Range: 'bytes=0-1' },
     });
@@ -1059,6 +1004,8 @@ test.describe('multi-peer sharing', () => {
       // to local share-indexing heuristics for large media files.
       expect(contentType).toMatch(/video|audio|application|text|image/i);
     }
+
+    await streamPage.close();
 
     await contextA.close();
     await contextC.close();
@@ -1098,102 +1045,83 @@ test.describe('multi-peer sharing', () => {
       timeout: 15_000,
     });
 
-    // Click backfill button
     const backfillButton = pageC.getByTestId('incoming-backfill');
-    if ((await backfillButton.count()) > 0) {
-      await backfillButton.click();
+    await expect(backfillButton).toBeVisible();
+    const backfillResponsePromise = pageC.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v0/share-grants/') &&
+        response.url().includes('/backfill') &&
+        response.request().method() === 'POST',
+    );
+    await backfillButton.click();
+    const backfillResponse = await backfillResponsePromise;
+    expect(backfillResponse.status()).toBe(200);
+    const backfillResult = await backfillResponse.json() as {
+      enqueued: number;
+      errors?: string[];
+      failed: number;
+      message: string;
+      total: number;
+    };
+    expect(backfillResult.total).toBeGreaterThan(0);
+    expect(backfillResult.enqueued, JSON.stringify(backfillResult)).toBeGreaterThan(0);
+    expect(backfillResult.failed, JSON.stringify(backfillResult)).toBe(0);
+    console.log(`[Backfill Test] ${JSON.stringify(backfillResult)}`);
 
-      // Wait for backfill to start (button shows loading state)
-      await pageC.waitForTimeout(1_000); // Reduced from 2000ms
+    if (nodeCInstance) {
+      // Wait for the synchronous controller's file writes to become visible.
+      await pageC.waitForTimeout(2_000);
 
-      // Poll downloads directory for file existence
-      // Note: This requires the harness to expose the app directory or we need a test endpoint
-      // For now, we'll verify the backfill API call succeeded
-      const backfillResponsePromise = pageC.waitForResponse(
-        (response) =>
-          response.url().includes('/api/v0/share-grants/') &&
-          response.url().includes('/backfill') &&
-          response.request().method() === 'POST',
-        { timeout: 10_000 },
+      // Match the content-ID-style name, including the resulting hash portion.
+      const fullId =
+        'sha256_2e93caf3f954e8e8457d9846ad7756f74ccf192dab77b7247d48ba134a8e2c1b';
+      const hashPart = '2e93caf3f954e8e8457d9846ad7756f74ccf192dab77b7247d48ba134a8e2c1b';
+      let treasureFile = await nodeCInstance.waitForDownloadedFile(
+        fullId,
+        35_000,
       );
-
-      try {
-        const backfillResponse = await backfillResponsePromise;
-        expect([200, 201, 202]).toContain(backfillResponse.status());
-        console.log(
-          `[Backfill Test] Backfill started: ${backfillResponse.status()}`,
+      if (!treasureFile) {
+        treasureFile = await nodeCInstance.waitForDownloadedFile(
+          hashPart,
+          10_000,
         );
-      } catch (error) {
-        console.warn('[Backfill Test] Backfill response not captured:', error);
       }
 
-      if (nodeCInstance) {
-        // Allow time for HTTP backfill to finish writing (controller is sync but fs may lag)
-        await pageC.waitForTimeout(2_000);
-
-        // Wait for files to appear. Backend writes contentId with ":"→"_" + extension (e.g. .bin).
-        // Match by full contentId-style name or by hash substring.
-        const fullId =
-          'sha256_2e93caf3f954e8e8457d9846ad7756f74ccf192dab77b7247d48ba134a8e2c1b';
-        const hashPart = '2e93caf3f954e8e8457d9846ad7756f74ccf192dab77b7247d48ba134a8e2c1b';
-        let treasureFile = await nodeCInstance.waitForDownloadedFile(
-          fullId,
-          35_000,
-        );
-        if (!treasureFile) {
-          treasureFile = await nodeCInstance.waitForDownloadedFile(
-            hashPart,
-            10_000,
-          );
-        }
-
-        // Verify the file was downloaded
-        if (!treasureFile) {
-          // List all files for debugging
-          const allFiles = await nodeCInstance.getDownloadedFiles();
-          console.error(
-            `[Backfill Test] No expected files found. All downloaded files:`,
-            allFiles.map((f) => `${f.name} (${f.size} bytes)`),
-          );
-          throw new Error(
-            'Backfill failed: expected treasure file not found in downloads',
-          );
-        }
-
-        // Verify file sizes are correct (non-zero and reasonable)
-        if (treasureFile) {
-          expect(treasureFile.size).toBeGreaterThan(0);
-          // treasure_island_pg120.txt should be ~400KB
-          expect(treasureFile.size).toBeGreaterThan(100_000); // At least 100KB
-          console.log(
-            `[Backfill Test] ✓ Found treasure file: ${treasureFile.name} (${treasureFile.size} bytes)`,
-          );
-        }
-
-        // List all downloaded files for completeness
+      if (!treasureFile) {
         const allFiles = await nodeCInstance.getDownloadedFiles();
-        console.log(
-          `[Backfill Test] Total files in downloads: ${allFiles.length}`,
+        console.error(
+          `[Backfill Test] No expected files found. All downloaded files:`,
           allFiles.map((f) => `${f.name} (${f.size} bytes)`),
         );
-      } else {
-        const token = await getAuthToken(pageC);
-        const found = await waitForDownloadInList({
-          baseUrl: nodeC.baseUrl,
-          request,
-          searchTerms: [
-            'treasure',
-            '2e93caf3f954e8e8457d9846ad7756f74ccf192dab77b7247d48ba134a8e2c1b',
-          ],
-          timeoutMs: 60_000,
-          token,
-        });
-        expect(found).toBe(true);
+        throw new Error(
+          'Backfill failed: expected treasure file not found in downloads',
+        );
       }
-    } else {
-      console.warn(
-        '[Backfill Test] No backfill button found (download not allowed?)',
+
+      expect(treasureFile.size).toBeGreaterThan(0);
+      expect(treasureFile.size).toBeGreaterThan(100_000);
+      console.log(
+        `[Backfill Test] ✓ Found treasure file: ${treasureFile.name} (${treasureFile.size} bytes)`,
       );
+
+      const allFiles = await nodeCInstance.getDownloadedFiles();
+      console.log(
+        `[Backfill Test] Total files in downloads: ${allFiles.length}`,
+        allFiles.map((f) => `${f.name} (${f.size} bytes)`),
+      );
+    } else {
+      const token = await getAuthToken(pageC);
+      const found = await waitForDownloadInList({
+        baseUrl: nodeC.baseUrl,
+        request,
+        searchTerms: [
+          'treasure',
+          '2e93caf3f954e8e8457d9846ad7756f74ccf192dab77b7247d48ba134a8e2c1b',
+        ],
+        timeoutMs: 60_000,
+        token,
+      });
+      expect(found).toBe(true);
     }
 
     await contextC.close();

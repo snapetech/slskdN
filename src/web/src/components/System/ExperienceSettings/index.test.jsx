@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import ExperienceSettings from './index';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,33 +17,35 @@ describe('ExperienceSettings', () => {
     });
   });
 
-  it('surfaces Search, Player, and Messages preferences', () => {
+  it('surfaces only the Search and Player preferences currently used by the app', () => {
     render(<ExperienceSettings />);
 
     expect(screen.getByText('Search')).toBeInTheDocument();
-    expect(screen.queryByText('Discovery Inbox')).not.toBeInTheDocument();
     expect(screen.getByText('Player')).toBeInTheDocument();
-    expect(screen.getByText('Messages')).toBeInTheDocument();
     expect(screen.getByLabelText('Show browser player preference')).toBeChecked();
     expect(screen.getByLabelText('Show album candidates preference')).toBeChecked();
     expect(
-      screen.getByLabelText('Enable search duplicate folding preference'),
-    ).toBeChecked();
-    expect(screen.getByLabelText('Show unread message badges preference')).toBeChecked();
+      screen.queryByLabelText('Enable search duplicate folding preference'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Show unread message badges preference'),
+    ).not.toBeInTheDocument();
   });
 
-  it('saves local preferences without a backend call', () => {
+  it('saves supported preferences without changing legacy stored keys', () => {
+    localStorage.setItem(storageKey, JSON.stringify({
+      messagesDenseMode: true,
+      playerRadioSeedMode: 'queue',
+    }));
     render(<ExperienceSettings />);
 
-    fireEvent.click(screen.getByLabelText('Enable search duplicate folding preference'));
-    fireEvent.click(screen.getByLabelText('Enable player queue auto-fill preference'));
     fireEvent.click(screen.getByLabelText('Show browser player preference'));
     fireEvent.click(screen.getByLabelText('Show album candidates preference'));
     fireEvent.click(screen.getByRole('button', { name: 'Save Local Preferences' }));
 
     const saved = JSON.parse(localStorage.getItem(storageKey));
-    expect(saved.searchDuplicateFolding).toBe(false);
-    expect(saved.playerQueueAutoFill).toBe(true);
+    expect(saved.messagesDenseMode).toBe(true);
+    expect(saved.playerRadioSeedMode).toBe('queue');
     expect(saved.playerVisible).toBe(false);
     expect(saved.searchAlbumCandidatesVisible).toBe(false);
     expect(
@@ -55,50 +58,34 @@ describe('ExperienceSettings', () => {
 
     render(<ExperienceSettings />);
 
-    expect(
-      screen.getByLabelText('Enable search duplicate folding preference'),
-    ).toBeChecked();
     expect(screen.getByLabelText('Show browser player preference')).toBeChecked();
     expect(screen.getByLabelText('Show album candidates preference')).toBeChecked();
-    expect(screen.getByLabelText('Show unread message badges preference')).toBeChecked();
+    expect(
+      screen.queryByLabelText('Show unread message badges preference'),
+    ).not.toBeInTheDocument();
   });
 
-  it('normalizes malformed persisted preference values', () => {
+  it('ignores malformed active preference values in the report', () => {
     localStorage.setItem(
       storageKey,
       JSON.stringify({
-        discoveryApprovalFilter: 'ship-it',
-        discoveryConfidenceFloor: '2.50',
-        discoveryProviderFilter: 7,
-        discoveryStaleDays: '-5',
-        messagesUnreadBadges: 'false',
-        playerRadioSeedMode: 'everywhere',
-        searchDuplicateFolding: 'false',
-        searchRankingProfile: 'quality',
+        playerVisible: 'false',
+        searchAlbumCandidatesVisible: 'false',
       }),
     );
 
     render(<ExperienceSettings />);
 
-    expect(
-      screen.getByLabelText('Enable search duplicate folding preference'),
-    ).toBeChecked();
     expect(screen.getByLabelText('Show browser player preference')).toBeChecked();
     expect(screen.getByLabelText('Show album candidates preference')).toBeChecked();
-    expect(screen.getByLabelText('Show unread message badges preference')).toBeChecked();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy Report' }));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('Search: ranking=quality'),
+      expect.stringContaining('Search: album_candidates=true'),
     );
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Discovery: provider=all, approval=all, confidence>=0.70, stale_days=14',
-      ),
-    );
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('Player: visible=true, queue_auto_fill=false, radio_seed=current'),
+      expect.stringContaining('Player: visible=true'),
     );
   });
 
@@ -108,10 +95,25 @@ describe('ExperienceSettings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy Report' }));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('slskdN experience preferences'),
+      expect.stringContaining('slskdN browser experience preferences'),
     );
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('Messages:'),
+      expect.stringContaining('Search: album_candidates=true'),
     );
+  });
+
+  it('reports clipboard failures instead of claiming the report was copied', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(
+      new Error('Clipboard permission denied'),
+    );
+    render(<ExperienceSettings />);
+
+    await user.click(screen.getByRole('button', { name: 'Copy Report' }));
+
+    expect(await screen.findByText('Clipboard permission denied'))
+      .toBeInTheDocument();
+    expect(screen.queryByText('Experience preference report copied.'))
+      .not.toBeInTheDocument();
   });
 });

@@ -12,6 +12,7 @@ const {
   getRoomActivity,
   hasUnAcknowledgedMessages,
   isLoggedIn,
+  logout,
 } = vi.hoisted(() => ({
   check: vi.fn(),
   createApplicationHubConnection: vi.fn(),
@@ -19,6 +20,7 @@ const {
   getRoomActivity: vi.fn(),
   hasUnAcknowledgedMessages: vi.fn(),
   isLoggedIn: vi.fn(),
+  logout: vi.fn(),
 }));
 
 vi.mock('../lib/chat', () => ({
@@ -38,7 +40,7 @@ vi.mock('../lib/session', () => ({
   getSecurityEnabled,
   isLoggedIn,
   login: vi.fn(),
-  logout: vi.fn(),
+  logout,
 }));
 
 vi.mock('../lib/token', () => ({
@@ -147,6 +149,138 @@ describe('App', () => {
     expect(consoleError).not.toHaveBeenCalledWith('[Router] Route miss for:', '/');
   });
 
+  it('redirects unknown routes without exposing runtime debug diagnostics', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <MemoryRouter initialEntries={['/unknown-route']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Searches')).toBeInTheDocument();
+    expect(window).not.toHaveProperty('routeMissPath');
+    expect(window).not.toHaveProperty('routeMissElement');
+    expect(document.querySelector('[data-testid="route-miss"]')).toBeNull();
+    expect(consoleError).not.toHaveBeenCalledWith(
+      '[Router] Route miss for:',
+      '/unknown-route',
+    );
+  });
+
+  it('renders Collections without route-debug side effects', async () => {
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <MemoryRouter initialEntries={['/collections']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Collections')).toBeInTheDocument();
+    expect(window).not.toHaveProperty('routeMatchedCollections');
+    expect(consoleLog).not.toHaveBeenCalledWith(
+      '[Router] /collections route matched!',
+      '/collections',
+    );
+    expect(consoleLog).not.toHaveBeenCalledWith(
+      '[Router] Collections rendered successfully',
+    );
+    expect(consoleError).not.toHaveBeenCalledWith(
+      '[Router] Error rendering Collections:',
+      expect.anything(),
+    );
+  });
+
+  it('makes the pending-action alert a labeled link across its full target', async () => {
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Searches')).toBeInTheDocument();
+    }, { timeout: 15_000 });
+
+    act(() => {
+      hubHandlers.state({ pendingRestart: true });
+    });
+
+    const action = await screen.findByTestId('nav-pending-action');
+    expect(action.closest('a')).toHaveAttribute('href', '/system/info');
+    expect(action).toHaveAttribute(
+      'aria-label',
+      'Open System Info to review pending actions.',
+    );
+    expect(action).toHaveAttribute(
+      'title',
+      'Open System Info to review pending actions.',
+    );
+  });
+
+  it('explains an available version and opens its release details', async () => {
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Searches')).toBeInTheDocument();
+    }, { timeout: 15_000 });
+
+    act(() => {
+      hubHandlers.state({
+        version: {
+          current: '1.2.3',
+          isUpdateAvailable: true,
+          latest: '1.2.4',
+        },
+      });
+    });
+
+    const updateAction = await screen.findByTestId('nav-update-available');
+    expect(updateAction).toHaveAttribute('aria-label', expect.stringContaining('1.2.4'));
+    expect(updateAction).toHaveAttribute('title', expect.stringContaining('release notes'));
+    fireEvent.click(updateAction);
+
+    expect(await screen.findByText('1.2.3')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'See Release Notes' })).toHaveAttribute(
+      'href',
+      'https://github.com/snapetech/slskdn/releases',
+    );
+  });
+
+  it('explains logout, lets the user cancel, and confirms ending the session', async () => {
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    const logoutAction = await screen.findByTestId('logout');
+    expect(logoutAction).toHaveAttribute(
+      'aria-label',
+      'Log out of this web session.',
+    );
+    expect(logoutAction).toHaveAttribute(
+      'title',
+      'End this web session and return to the login screen.',
+    );
+
+    fireEvent.click(logoutAction);
+    expect(await screen.findByText('Are you sure you want to log out?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByText('Are you sure you want to log out?')).not.toBeInTheDocument();
+    expect(logout).not.toHaveBeenCalled();
+
+    fireEvent.click(logoutAction);
+    fireEvent.click(await screen.findByRole('button', { name: 'Log Out' }));
+    expect(logout).toHaveBeenCalledTimes(1);
+  });
+
   it('does not keep the initial loader visible while the app hub startup stalls', async () => {
     const { container } = render(
       <MemoryRouter>
@@ -173,11 +307,58 @@ describe('App', () => {
 
     const themeMenu = await screen.findByTestId('theme-menu');
     fireEvent.click(themeMenu);
-    fireEvent.click(await screen.findByText('Light'));
+    const lightTheme = await screen.findByTestId('theme-option-light');
+    expect(lightTheme).toHaveAttribute(
+      'aria-label',
+      'Use the Light theme for the web UI.',
+    );
+    expect(lightTheme).toHaveAttribute(
+      'title',
+      'Use the Light theme for the web UI.',
+    );
+    fireEvent.click(lightTheme);
 
     await waitFor(() => {
       expect(localStorage.getItem('slskd-theme')).toBe('light');
       expect(document.documentElement).toHaveClass('light');
+    });
+  });
+
+  it('explains palette choices and applies and resets dark-theme colors', async () => {
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>,
+    );
+
+    const themeMenu = await screen.findByTestId('theme-menu');
+    fireEvent.click(themeMenu);
+
+    const palette = await screen.findByRole('button', {
+      name: 'Apply the Aurora palette to the dark theme.',
+    });
+    expect(palette).toHaveAttribute(
+      'title',
+      'Apply the Aurora palette to the dark theme.',
+    );
+    fireEvent.click(palette);
+
+    await waitFor(() => {
+      expect(localStorage.getItem('slskdn-palette')).toBe('aurora');
+    });
+
+    fireEvent.click(themeMenu);
+    const resetPalette = await screen.findByTitle(
+      'Restore the default colors for the dark theme.',
+    );
+    expect(resetPalette).toHaveAttribute(
+      'aria-label',
+      'Restore the default colors for the dark theme.',
+    );
+    fireEvent.click(resetPalette);
+
+    await waitFor(() => {
+      expect(localStorage.getItem('slskdn-palette')).toBe('null');
     });
   });
 

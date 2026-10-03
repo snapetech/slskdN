@@ -62,24 +62,10 @@ namespace slskd.Tests.Unit.Files
         [InlineData("Li5cXC4uXFx3aW5kb3dzXFxzeXN0ZW0zMg==")] // "..\\..\\windows\\system32"
         public async Task DeleteDownloadFileAsync_ShouldRejectBase64TraversalPaths(string base64Traversal)
         {
-            // Note: This test verifies that Base64-encoded traversal paths are rejected
-            // The actual Base64 decoding happens in FilesController.FromBase64() extension method
-            // FileService.DeleteFilesAsync then validates the resolved path against allowed directories
-
-            // Arrange
-            // The controller should decode Base64 and then validate the path
-            // FileService.DeleteFilesAsync should reject paths outside allowed directories
-
-            mockFileService.Setup(s => s.DeleteFilesAsync(It.IsAny<string>()))
-                .ThrowsAsync(new UnauthorizedException("Only files in application-controlled directories can be deleted"));
-
-            // Act
             var result = await controller.DeleteDownloadFileAsync(base64Traversal);
 
-            // Assert
-            // Should return Forbid or BadRequest, not allow the traversal
-            Assert.NotNull(result);
-            var forbidResult = Assert.IsType<ForbidResult>(result);
+            Assert.Equal("Invalid file path", Assert.IsType<BadRequestObjectResult>(result).Value);
+            mockFileService.Verify(service => service.DeleteFilesAsync(It.IsAny<string>()), Times.Never);
         }
 
         [Fact]
@@ -158,20 +144,29 @@ namespace slskd.Tests.Unit.Files
         }
 
         [Theory]
+        [InlineData("Li4vc2VjcmV0")] // "../secret"
+        [InlineData("Li4vLi4vZXRj")] // "../../etc"
+        public async Task ListingAndDirectoryDeletion_ShouldRejectBase64Traversal(string base64Traversal)
+        {
+            var listing = await controller.GetDownloadSubdirectoryContentsAsync(base64Traversal);
+            var deletion = await controller.DeleteDownloadSubdirectoryAsync(base64Traversal);
+
+            Assert.Equal("Invalid directory path", Assert.IsType<BadRequestObjectResult>(listing).Value);
+            Assert.Equal("Invalid directory path", Assert.IsType<BadRequestObjectResult>(deletion).Value);
+            mockFileService.Verify(service => service.ListContentsAsync(
+                It.IsAny<string>(), It.IsAny<EnumerationOptions>()), Times.Never);
+            mockFileService.Verify(service => service.DeleteDirectoriesAsync(It.IsAny<string>()), Times.Never);
+        }
+
+        [Theory]
         [InlineData("Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vc2VjcmV0LnR4dA==")] // Deep traversal
         [InlineData("Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vc2VjcmV0LnR4dA==")] // Very deep traversal
         public async Task DeleteDownloadFileAsync_ShouldRejectDeepTraversalPaths(string deepTraversalBase64)
         {
-            // Arrange
-            mockFileService.Setup(s => s.DeleteFilesAsync(It.IsAny<string>()))
-                .ThrowsAsync(new UnauthorizedException("Only files in application-controlled directories can be deleted"));
-
-            // Act
             var result = await controller.DeleteDownloadFileAsync(deepTraversalBase64);
 
-            // Assert
-            Assert.NotNull(result);
-            var forbidResult = Assert.IsType<ForbidResult>(result);
+            Assert.Equal("Invalid file path", Assert.IsType<BadRequestObjectResult>(result).Value);
+            mockFileService.Verify(service => service.DeleteFilesAsync(It.IsAny<string>()), Times.Never);
         }
     }
 }

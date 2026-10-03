@@ -49,11 +49,14 @@ import {
   Checkbox,
   Confirm,
   Dropdown,
+  Form,
   Header,
   Icon,
   Input,
   Label,
   List,
+  Modal,
+  Message,
   Popup,
   Segment,
 } from 'semantic-ui-react';
@@ -186,6 +189,9 @@ const SearchDetail = ({
   );
   const [resultFilters, setResultFilters] = useState(getInitialResultFilters);
   const [savedFilters, setSavedFilters] = useState(getSavedSearchFilters());
+  const [saveFilterOpen, setSaveFilterOpen] = useState(false);
+  const [saveFilterName, setSaveFilterName] = useState('');
+  const [saveFilterError, setSaveFilterError] = useState('');
   const [pageSize, setPageSize] = useState(
     Number.parseInt(getLocalStorageItem('slskd-search-page-size', '25'), 10),
   );
@@ -382,6 +388,8 @@ const SearchDetail = ({
           // if it happens the search will complete with no results.
           await sleep(500);
         }
+
+        if (cancelled) return;
 
         const responses = await getResponses({ id });
         if (!cancelled) {
@@ -694,13 +702,32 @@ const SearchDetail = ({
     toast.info('Saved default filter cleared');
   };
 
-  const saveNamedFilter = () => {
-    const name = window.prompt('Filter name', search.searchText || 'Search filter');
-    const next = saveSearchFilter({ name, value: resultFilters });
-    setSavedFilters(next);
+  const openSaveFilter = () => {
+    setSaveFilterName(search.searchText || 'Search filter');
+    setSaveFilterError('');
+    setSaveFilterOpen(true);
+  };
 
-    if (name?.trim() && resultFilters.trim()) {
+  const saveNamedFilter = () => {
+    const name = saveFilterName.trim();
+    if (!name) {
+      setSaveFilterError('Enter a name for this saved filter.');
+      return;
+    }
+    if (!resultFilters.trim()) {
+      setSaveFilterError('Add at least one result condition before saving.');
+      return;
+    }
+
+    try {
+      const next = saveSearchFilter({ name, value: resultFilters });
+      setSavedFilters(next);
+      setSaveFilterOpen(false);
       toast.success('Search filter saved');
+    } catch (error_) {
+      setSaveFilterError(
+        error_?.message || 'Could not save this filter in browser storage.',
+      );
     }
   };
 
@@ -799,32 +826,44 @@ const SearchDetail = ({
             className="search-options"
             raised
           >
-            <Dropdown
-              button
-              className="search-options-sort icon"
-              floating
-              icon="sort"
-              labeled
-              onChange={(_event, { value }) => setResultSort(value)}
-              options={sortDropdownOptions}
-              text={
-                sortDropdownOptions.find((o) => o.value === resultSort).text
-              }
+            <Popup
+              content="Choose how search results are ordered. Smart Ranking balances quality and availability."
+              trigger={(
+                <Dropdown
+                  aria-label="Sort search results"
+                  button
+                  className="search-options-sort icon"
+                  floating
+                  icon="sort"
+                  labeled
+                  onChange={(_event, { value }) => setResultSort(value)}
+                  options={sortDropdownOptions}
+                  text={
+                    sortDropdownOptions.find((o) => o.value === resultSort).text
+                  }
+                />
+              )}
             />
-            <Dropdown
-              button
-              className="search-options-pagesize"
-              floating
-              onChange={(_event, { value }) => handlePageSizeChange(value)}
-              options={[
-                { key: '10', text: '10 per page', value: 10 },
-                { key: '25', text: '25 per page', value: 25 },
-                { key: '50', text: '50 per page', value: 50 },
-                { key: '100', text: '100 per page', value: 100 },
-                { key: 'all', text: 'Show All', value: 999_999 },
-              ]}
-              style={{ marginLeft: '0.5em' }}
-              text={pageSize >= 999_999 ? 'Show All' : `${pageSize} per page`}
+            <Popup
+              content="Choose how many matching results to render at once."
+              trigger={(
+                <Dropdown
+                  aria-label="Results per page"
+                  button
+                  className="search-options-pagesize"
+                  floating
+                  onChange={(_event, { value }) => handlePageSizeChange(value)}
+                  options={[
+                    { key: '10', text: '10 per page', value: 10 },
+                    { key: '25', text: '25 per page', value: 25 },
+                    { key: '50', text: '50 per page', value: 50 },
+                    { key: '100', text: '100 per page', value: 100 },
+                    { key: 'all', text: 'Show All', value: 999_999 },
+                  ]}
+                  style={{ marginLeft: '0.5em' }}
+                  text={pageSize >= 999_999 ? 'Show All' : `${pageSize} per page`}
+                />
+              )}
             />
             <DownloadDestinationSelector onChange={setDownloadDestination} />
             <div className="search-option-toggles">
@@ -887,68 +926,110 @@ const SearchDetail = ({
               action={
                 <Button.Group>
                   {savedFilters.length > 0 && (
-                    <Dropdown
-                      button
-                      className="icon"
-                      floating
-                      icon="bookmark"
-                      onChange={(_event, { value }) => loadNamedFilter(value)}
-                      options={savedFilters.map((filter) => ({
-                        key: filter.name,
-                        text: filter.name,
-                        value: filter.name,
-                      }))}
-                      title="Load saved filter"
+                    <Popup
+                      content="Load a saved browser-local filter into the current result list."
+                      trigger={(
+                        <Dropdown
+                          aria-label="Load saved filter"
+                          button
+                          className="icon"
+                          floating
+                          icon="bookmark"
+                          onChange={(_event, { value }) => loadNamedFilter(value)}
+                          options={savedFilters.map((filter) => ({
+                            key: filter.name,
+                            text: filter.name,
+                            value: filter.name,
+                          }))}
+                          title="Load saved filter"
+                        />
+                      )}
                     />
                   )}
                   {Boolean(resultFilters) && (
-                    <Button
-                      color="red"
-                      icon="x"
-                      onClick={() => setResultFilters('')}
-                      title="Clear current filter"
+                    <Popup
+                      content="Remove the current filter text and show results without these conditions."
+                      trigger={(
+                        <Button
+                          aria-label="Clear current filter"
+                          color="red"
+                          icon="x"
+                          onClick={() => setResultFilters('')}
+                          title="Clear current filter"
+                        />
+                      )}
                     />
                   )}
                   {Boolean(resultFilters) && (
-                    <Button
-                      color="teal"
-                      icon="bookmark"
-                      onClick={saveNamedFilter}
-                      title="Save named filter"
+                    <Popup
+                      content="Save the current result filter under a name for reuse later."
+                      trigger={(
+                        <Button
+                          aria-label="Save named filter"
+                          color="teal"
+                          icon="bookmark"
+                          onClick={openSaveFilter}
+                          title="Save named filter"
+                        />
+                      )}
                     />
                   )}
                   {savedFilters.some((filter) => filter.value === resultFilters) && (
-                    <Button
-                      color="orange"
-                      icon="minus circle"
-                      onClick={deleteNamedFilter}
-                      title="Delete matching saved filter"
+                    <Popup
+                      content="Remove the saved filter that exactly matches the current filter text."
+                      trigger={(
+                        <Button
+                          aria-label="Delete matching saved filter"
+                          color="orange"
+                          icon="minus circle"
+                          onClick={deleteNamedFilter}
+                          title="Delete matching saved filter"
+                        />
+                      )}
                     />
                   )}
-                  <Button
-                    color="blue"
-                    icon="save"
-                    onClick={saveAsDefault}
-                    title="Save as default filter"
+                  <Popup
+                    content="Use the current filter automatically for future search-result lists in this browser."
+                    trigger={(
+                      <Button
+                        aria-label="Save as default filter"
+                        color="blue"
+                        icon="save"
+                        onClick={saveAsDefault}
+                        title="Save as default filter"
+                      />
+                    )}
                   />
                   {hasSavedDefault && (
-                    <Button
-                      color="orange"
-                      icon="trash"
-                      onClick={clearSavedDefault}
-                      title="Clear saved default filter"
+                    <Popup
+                      content="Remove the saved default filter from this browser."
+                      trigger={(
+                        <Button
+                          aria-label="Clear saved default filter"
+                          color="orange"
+                          icon="trash"
+                          onClick={clearSavedDefault}
+                          title="Clear saved default filter"
+                        />
+                      )}
                     />
                   )}
                   <SearchFilterModal
                     filterString={resultFilters}
                     onChange={setResultFilters}
                     trigger={
-                      <Button
-                        icon
-                        title="Advanced Filters"
-                      >
-                        <Icon name="sliders horizontal" />
-                      </Button>
+                      <Popup
+                        content="Build result-filter conditions without memorizing the filter syntax."
+                        trigger={(
+                          <Button
+                            aria-label="Advanced Filters"
+                            icon
+                            title="Advanced Filters"
+                          >
+                            <Icon name="sliders horizontal" />
+                          </Button>
+                        )}
+                      />
                     }
                   />
                 </Button.Group>
@@ -1160,28 +1241,80 @@ const SearchDetail = ({
         />
         {loaded &&
           (remainingCount > 0 ? (
-            <Button
-              className="showmore-button"
-              fluid
-              onClick={() => setDisplayCount(displayCount + pageSize)}
-              primary
-              size="large"
+            <Popup
+              content="Add the next batch of matching results to the current list."
+              trigger={(
+                <Button
+                  className="showmore-button"
+                  fluid
+                  onClick={() => setDisplayCount(displayCount + pageSize)}
+                  primary
+                  size="large"
+                >
+                  Show {remainingCount > pageSize ? pageSize : remainingCount} More
+                  Results{' '}
+                  {`(${remainingCount} remaining, ${filteredCount} hidden by filter(s))`}
+                </Button>
+              )}
             >
-              Show {remainingCount > pageSize ? pageSize : remainingCount} More
-              Results{' '}
-              {`(${remainingCount} remaining, ${filteredCount} hidden by filter(s))`}
-            </Button>
+            </Popup>
           ) : filteredCount > 0 ? (
-            <Button
-              className="showmore-button"
-              disabled
-              fluid
-              size="large"
-            >{`All results shown. ${filteredCount} results hidden by filter(s)`}</Button>
+            <div className="showmore-button" role="status">
+              {`All results shown. ${filteredCount} results hidden by filter(s)`}
+            </div>
           ) : (
             ''
           ))}
       </Switch>
+      <Modal
+        closeIcon={false}
+        data-testid="save-search-filter-dialog"
+        onClose={() => setSaveFilterOpen(false)}
+        open={saveFilterOpen}
+        size="small"
+      >
+        <Modal.Header>Save Search Filter</Modal.Header>
+        <Modal.Content>
+          <p>Save the current result filter in this browser for later searches.</p>
+          <Form>
+            <Form.Field>
+              <label htmlFor="saved-search-filter-name">Filter name</label>
+              <input
+                autoFocus
+                id="saved-search-filter-name"
+                onChange={(event) => setSaveFilterName(event.target.value)}
+                placeholder="Filter name"
+                value={saveFilterName}
+              />
+            </Form.Field>
+          </Form>
+          {saveFilterError && (
+            <Message negative role="alert">{saveFilterError}</Message>
+          )}
+        </Modal.Content>
+        <Modal.Actions>
+          <Popup
+            content="Close this dialog without saving the current result filter."
+            trigger={(
+              <Button onClick={() => setSaveFilterOpen(false)}>
+                Cancel
+              </Button>
+            )}
+          />
+          <Popup
+            content="Save this filter under the name above in this browser."
+            trigger={(
+              <Button
+                disabled={!saveFilterName.trim() || !resultFilters.trim()}
+                onClick={saveNamedFilter}
+                primary
+              >
+                Save Filter
+              </Button>
+            )}
+          />
+        </Modal.Actions>
+      </Modal>
     </>
   );
 };

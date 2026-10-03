@@ -4,6 +4,7 @@
 namespace slskd.Streaming;
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -21,6 +22,9 @@ public sealed class MeshStreamService : IMeshStreamService
 {
     private const int MaxConcurrentMeshStreamsPerOwner = 1;
     private const int MeshStreamChunkBytes = 2048;
+
+    // Start-to-start spacing stays below the default 500 ListedRadio calls/minute budget.
+    private const int ListedRadioReadIntervalMilliseconds = 122;
     private const long PipePauseWriterThreshold = 512 * 1024;
     private const long PipeResumeWriterThreshold = 128 * 1024;
 
@@ -284,6 +288,8 @@ public sealed class MeshStreamService : IMeshStreamService
         var expectedSize = claims.ExpectedSize;
         long offset = startOffset;
         var chunkBytes = claims.Radio == null ? MeshStreamChunkBytes : slskd.Mesh.ServiceFabric.Services.ListedRadioMeshService.MaxChunkBytes;
+        var radioReadIntervalTicks = (long)(TimeSpan.FromMilliseconds(ListedRadioReadIntervalMilliseconds).TotalSeconds * Stopwatch.Frequency);
+        var nextRadioReadAt = 0L;
         var buffer = new byte[chunkBytes];
         while (!expectedSize.HasValue || offset < expectedSize.Value)
         {
@@ -293,6 +299,18 @@ public sealed class MeshStreamService : IMeshStreamService
             if (length <= 0)
             {
                 break;
+            }
+
+            long radioReadStartedAt = 0;
+            if (claims.Radio != null)
+            {
+                var delayTicks = nextRadioReadAt - Stopwatch.GetTimestamp();
+                if (delayTicks > 0)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds((double)delayTicks / Stopwatch.Frequency), cancellationToken).ConfigureAwait(false);
+                }
+
+                radioReadStartedAt = Stopwatch.GetTimestamp();
             }
 
             var result = claims.Radio != null
@@ -305,6 +323,11 @@ public sealed class MeshStreamService : IMeshStreamService
                 offset: offset,
                 length: length,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (claims.Radio != null)
+            {
+                nextRadioReadAt = radioReadStartedAt + radioReadIntervalTicks;
+            }
 
             if (result.Error != null || result.Data == null || !result.SizeValid)
             {
@@ -326,11 +349,6 @@ public sealed class MeshStreamService : IMeshStreamService
             if (_trafficAccounting != null && result.Size > 0)
             {
                 await _trafficAccounting.AddOverlayDownloadAsync(result.Size, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (claims.Radio != null && (!expectedSize.HasValue || offset < expectedSize.Value))
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
             }
 
             if (!expectedSize.HasValue && result.Size < chunkBytes)

@@ -1167,19 +1167,29 @@ namespace slskd.Transfers.Downloads
                 {
                     try
                     {
+                        var options = OptionsMonitor.CurrentValue;
                         var baseDirectory = transfer.State.HasFlag(TransferStates.Succeeded)
-                            ? OptionsMonitor.CurrentValue.Directories.Downloads
-                            : OptionsMonitor.CurrentValue.Directories.Incomplete;
+                            ? transfer.DestinationDirectory ?? Destinations.DownloadDestinationResolver.GetDefaultPath(options)
+                            : options.Directories.Incomplete;
+                        var localFilename = !string.IsNullOrWhiteSpace(transfer.LocalFilename)
+                            ? transfer.LocalFilename
+                            : GetLocalFilenameForRemoval(transfer, baseDirectory);
+                        var allowedRoots = transfer.State.HasFlag(TransferStates.Succeeded)
+                            ? Destinations.DownloadDestinationResolver.GetAllowedRoots(options)
+                            : new[] { options.Directories.Incomplete, ResolveQuarantineDirectory(options) };
+                        var normalizedFilename = PathGuard.NormalizeAbsolutePathWithinRoots(localFilename, allowedRoots);
 
-                        var localFilename = GetLocalFilenameForRemoval(transfer, baseDirectory);
-
-                        if (System.IO.File.Exists(localFilename))
+                        if (normalizedFilename is null)
                         {
-                            System.IO.File.Delete(localFilename);
-                            Log.Information("Deleted file {Filename} for removed download {Id}", localFilename, id);
+                            Log.Warning("Skipped deleting download file {Filename} because it resolves outside configured directories", localFilename);
+                        }
+                        else if (System.IO.File.Exists(normalizedFilename))
+                        {
+                            System.IO.File.Delete(normalizedFilename);
+                            Log.Information("Deleted file {Filename} for removed download {Id}", normalizedFilename, id);
 
                             // Recursively delete empty parent directories up to base directory
-                            var directory = System.IO.Path.GetDirectoryName(localFilename);
+                            var directory = System.IO.Path.GetDirectoryName(normalizedFilename);
                             var normalizedBase = System.IO.Path.GetFullPath(baseDirectory);
 
                             while (!string.IsNullOrEmpty(directory) &&
@@ -1243,6 +1253,12 @@ namespace slskd.Transfers.Downloads
             {
                 using (cts)
                 {
+                    var transfer = Find(t => t.Id == id);
+                    if (transfer?.State.HasFlag(TransferStates.Completed) == true)
+                    {
+                        return false;
+                    }
+
                     cts.Cancel();
                 }
 
@@ -1421,6 +1437,8 @@ namespace slskd.Transfers.Downloads
             cancellationToken = cts.Token;
 
             var updateSyncRoot = new object();
+            string? quarantinedFilename = null;
+            string? contentSafetyFailureMessage = null;
 
             var policyExclusion = DownloadFilter.GetMatchingExclusion(
                 transfer.Filename,
@@ -1468,8 +1486,14 @@ namespace slskd.Transfers.Downloads
                                 transfer.EnqueuedAt ??= DateTime.UtcNow;
                             }
 
-                            // todo: broadcast
-                            SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: cancellationToken);
+                            // Keep successful terminal state in memory until the file is verified and moved.
+                            // A local post-download failure must still be able to mark the transfer as failed.
+                            var completedSuccessfully = args.Transfer.State.HasFlag(TransferStates.Completed | TransferStates.Succeeded);
+                            if (!completedSuccessfully)
+                            {
+                                // todo: broadcast
+                                SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: cancellationToken);
+                            }
                         }
                         finally
                         {
@@ -1631,11 +1655,14 @@ namespace slskd.Transfers.Downloads
 
                 string GetIncompleteRetryFilename(Transfer pendingTransfer)
                 {
+                    var incompleteRoot = OptionsMonitor.CurrentValue.Directories.Incomplete;
                     var retryDirectory = pendingTransfer.BatchId is Guid batchId
-                        ? System.IO.Path.Combine(OptionsMonitor.CurrentValue.Directories.Incomplete, batchId.ToString())
-                        : OptionsMonitor.CurrentValue.Directories.Incomplete;
+                        ? System.IO.Path.Combine(incompleteRoot, batchId.ToString())
+                        : incompleteRoot;
 
-                    return pendingTransfer.Filename.ToLocalFilename(baseDirectory: retryDirectory);
+                    var localFilename = pendingTransfer.Filename.ToLocalFilename(baseDirectory: retryDirectory);
+                    return PathGuard.NormalizeAbsolutePathWithinRoots(localFilename, new[] { incompleteRoot })
+                        ?? throw new System.IO.IOException("Incomplete download path resolves outside its configured directory");
                 }
 
                 void EnsureDirectoryReady(
@@ -1754,13 +1781,39 @@ namespace slskd.Transfers.Downloads
                 rateLimiter.Dispose();
 
                 // copy the completed transfer that was returned from Soulseek.NET in a terminal, fully updated state
-                // over the top of the transfer record, then persist it
+                // over the top of the in-memory transfer record. Persist success after verification and final placement.
                 transfer = transfer.WithSoulseekTransfer(completedTransfer);
 
-                // todo: broadcast to signalr hub
-                SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
+                var options = OptionsMonitor.CurrentValue;
+                var safeIncompleteFilename = PathGuard.NormalizeAbsolutePathWithinRoots(
+                    incompleteFilename,
+                    new[] { options.Directories.Incomplete })
+                    ?? throw new System.IO.IOException("Completed download path resolves outside its configured directory");
+                var contentSafetyDisposition = await ContentSafety.InspectAndApplyPolicyAsync(
+                    safeIncompleteFilename,
+                    options.Directories.Incomplete,
+                    options.Directories.Downloads,
+                    options.Security,
+                    CancellationToken.None);
+                if (contentSafetyDisposition.Verification is { } contentVerification &&
+                    (contentVerification.IsWarning || !contentVerification.IsValid))
+                {
+                    Log.Warning(
+                        "Content verification for {Filename} from {Username} reported {ThreatLevel}: {Message}",
+                        transfer.Filename,
+                        transfer.Username,
+                        contentVerification.ThreatLevel,
+                        contentVerification.Message);
+                }
 
-                Log.Debug("Successfully updated Transfer for {Filename} from {Username} (state: {State}, progress: {Progress})", transfer.Filename, transfer.Username, transfer.State, transfer.PercentComplete);
+                if (contentSafetyDisposition.Rejected)
+                {
+                    contentSafetyFailureMessage = contentSafetyDisposition.Verification?.Message
+                        ?? "Content did not pass configured safety checks";
+                    quarantinedFilename = contentSafetyDisposition.QuarantinedPath;
+                    throw new System.IO.InvalidDataException(
+                        $"Content safety rejected '{transfer.Filename}': {contentSafetyFailureMessage}");
+                }
 
                 // move the file from incomplete to complete
                 DownloadRequest? request = null;
@@ -1893,6 +1946,7 @@ namespace slskd.Transfers.Downloads
                 }
 
                 TryFail(transfer.Id, exception: ex);
+                transfer = Find(t => t.Id == transfer.Id) ?? transfer;
 
                 // todo: broadcast
                 SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
@@ -1914,6 +1968,7 @@ namespace slskd.Transfers.Downloads
                 }
 
                 TryFail(transfer.Id, exception: ex);
+                transfer = Find(t => t.Id == transfer.Id) ?? transfer;
 
                 // todo: broadcast
                 SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
@@ -1935,10 +1990,30 @@ namespace slskd.Transfers.Downloads
                         $"Failed to record failed chunk completion for {transfer.Username}");
                 }
 
+                if (contentSafetyFailureMessage is not null && transfer.RequestId.HasValue)
+                {
+                    using var requestContext = ContextFactory.CreateDbContext();
+                    requestContext.DownloadRequests
+                        .Where(request => request.Id == transfer.RequestId.Value && request.State == DownloadRequestState.Active)
+                        .ExecuteUpdate(setter => setter
+                            .SetProperty(request => request.State, DownloadRequestState.Failed)
+                            .SetProperty(request => request.CompletedAt, DateTime.UtcNow));
+                }
+
+                if (quarantinedFilename is not null)
+                {
+                    using var transferContext = ContextFactory.CreateDbContext();
+                    transferContext.Transfers
+                        .Where(record => record.Id == transfer.Id)
+                        .ExecuteUpdate(setter => setter.SetProperty(record => record.LocalFilename, quarantinedFilename));
+                }
+
                 TryFail(transfer.Id, exception: ex);
+                transfer = Find(t => t.Id == transfer.Id) ?? transfer;
 
                 // todo: broadcast
                 SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
+                stateChanged?.Invoke(transfer);
 
                 throw;
             }
@@ -2336,27 +2411,41 @@ namespace slskd.Transfers.Downloads
             }
         }
 
+        private static string ResolveQuarantineDirectory(Options options)
+        {
+            var configuredDirectory = options.Security.ContentSafety.QuarantineDirectory;
+            var quarantineDirectory = string.IsNullOrWhiteSpace(configuredDirectory)
+                ? System.IO.Path.Combine(options.Directories.Downloads, ".quarantine")
+                : System.IO.Path.IsPathRooted(configuredDirectory)
+                    ? configuredDirectory
+                    : System.IO.Path.Combine(options.Directories.Downloads, configuredDirectory);
+
+            return System.IO.Path.GetFullPath(quarantineDirectory);
+        }
+
         private string ResolveCompletedDestinationDirectory(Transfer transfer, DownloadRequest? request = null)
         {
+            var options = OptionsMonitor.CurrentValue;
             var completedRoot = !string.IsNullOrWhiteSpace(transfer.DestinationDirectory)
                 ? transfer.DestinationDirectory
-                : Destinations.DownloadDestinationResolver.GetDefaultPath(OptionsMonitor.CurrentValue);
+                : Destinations.DownloadDestinationResolver.GetDefaultPath(options);
 
             // An explicit destination directory always wins.
             if (!string.IsNullOrWhiteSpace(transfer.DestinationDirectory))
             {
-                return System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot)) ?? completedRoot;
+                var explicitDestination = System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot)) ?? completedRoot;
+                return NormalizeCompletedDestination(explicitDestination, options);
             }
 
-            var template = OptionsMonitor.CurrentValue.Global.Download.CompletedPathTemplate;
+            var template = options.Global.Download.CompletedPathTemplate;
             if (!string.IsNullOrWhiteSpace(template))
             {
-                return RenderCompletedPathTemplate(transfer, completedRoot, template, request);
+                return NormalizeCompletedDestination(RenderCompletedPathTemplate(transfer, completedRoot, template, request), options);
             }
 
-            var layout = ParseCompletedDownloadLayout(OptionsMonitor.CurrentValue.Global.Download.CompletedLayout);
+            var layout = ParseCompletedDownloadLayout(options.Global.Download.CompletedLayout);
 
-            return layout switch
+            var destination = layout switch
             {
                 CompletedDownloadLayout.Flat => completedRoot,
                 CompletedDownloadLayout.UploaderFolder => System.IO.Path.Combine(
@@ -2368,6 +2457,16 @@ namespace slskd.Transfers.Downloads
                     ? System.IO.Path.Combine(completedRoot, transfer.BatchId.Value.ToString())
                     : System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot)) ?? completedRoot,
             };
+
+            return NormalizeCompletedDestination(destination, options);
+        }
+
+        private static string NormalizeCompletedDestination(string destination, Options options)
+        {
+            return PathGuard.NormalizeAbsolutePathWithinRoots(
+                destination,
+                Destinations.DownloadDestinationResolver.GetAllowedRoots(options))
+                ?? throw new System.IO.IOException("Completed download path resolves outside configured download directories");
         }
 
         private static string RenderCompletedPathTemplate(Transfer transfer, string completedRoot, string template, DownloadRequest? request = null)

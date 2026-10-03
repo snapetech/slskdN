@@ -163,7 +163,7 @@ test.describe('core pages', () => {
     const rootContent = await page
       .locator('#root')
       .textContent()
-      .catch(() => '');
+      .catch(() => '') ?? '';
 
     console.log(`[Test] #root count: ${rootCount}, visible: ${rootVisible}`);
     console.log(`[Test] #root content length: ${rootContent.length}`);

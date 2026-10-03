@@ -133,14 +133,35 @@ Prevents directory traversal attacks.
 
 ## Content Safety
 
-Detects malicious file content.
+Checks completed Soulseek, pod/mesh search, collection backfill, relay,
+multi-source, and VirtualSoulfind receives after their output streams close and
+before the receiver reports success. Alternate receive paths keep bytes in a
+staging directory and publish them only after policy accepts them. Dangerous
+executable signatures disguised as media are rejected. Known-type mismatches
+are quarantined by default. When the direct Soulseek pipeline rejects a file,
+its transfer and download request are marked failed; other receivers return or
+record their existing failure result.
+
+An empty `QuarantineDirectory` uses `<directories.downloads>/.quarantine`.
+Relative quarantine paths are resolved under the downloads root. Rejected
+outputs are moved there when `QuarantineSuspicious` is enabled and removed from
+their receive destination otherwise. Collection backfills preserve the
+manifest's filename when available; without a filename they use `.bin` rather
+than guessing an audio codec from `MediaKind`.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| `Enabled` | true | Enable post-download signature checks |
 | `VerifyMagicBytes` | true | Check file magic bytes match extension |
-| `QuarantineSuspicious` | true | Move suspicious files to quarantine |
-| `QuarantineDirectory` | "" | Path for quarantined files |
-| `BlockExecutables` | true | Block executable files |
+| `QuarantineSuspicious` | true | Quarantine mismatch warnings and rejected files |
+| `QuarantineDirectory` | "" | Absolute quarantine path or path relative to the downloads directory |
+| `BlockExecutables` | true | Reject executable signatures, including files with executable extensions |
+
+When `QuarantineSuspicious` is false, known-type mismatch warnings are logged
+and allowed into the normal destination. Files that fail verification or match
+a blocked executable signature are rejected and removed from incomplete
+storage. Dangerous executable signatures disguised as another file type remain
+rejected while signature scanning is active.
 
 ## Peer Reputation
 
@@ -209,5 +230,3 @@ Key systemd features:
 - `ProtectHome=yes`
 - `PrivateTmp=yes`
 - `ReadWritePaths` restricted to data directories
-
-

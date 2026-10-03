@@ -16,12 +16,6 @@ using Serilog;
 using slskd.Configuration;
 using slskd.Events;
 using slskd.Files;
-using slskd.Integrations.Lidarr;
-using slskd.Integrations.FTP;
-using slskd.Integrations.Scripts;
-using slskd.Integrations.VPN;
-using slskd.Integrations.Webhooks;
-using slskd.ListeningParty;
 using slskd.Mesh;
 using slskd.Messaging;
 using slskd.Relay;
@@ -30,11 +24,7 @@ using slskd.Search.API;
 using slskd.Shares;
 using slskd.Sharing;
 using slskd.SoulseekDiscovery;
-using slskd.Streaming;
-using slskd.Telemetry;
 using slskd.Transfers;
-using slskd.Transfers.Downloads;
-using slskd.Transfers.Uploads;
 using slskd.Users;
 using Soulseek;
 
@@ -82,22 +72,9 @@ public static class CoreApplicationServiceCollectionExtensions
         services.AddSingleton<EventService>();
         services.AddSingleton<EventBus>();
 
-        services.AddSingleton<PrometheusService>();
-        services.AddSingleton<ReportsService>();
-        services.AddSingleton<TelemetryService>();
+        services.AddSlskdTelemetry();
 
-        services.AddSingleton<VPNService>();
-        services.AddSingleton<ILidarrClient, LidarrClient>();
-        services.AddSingleton<LidarrSyncService>();
-        services.AddSingleton<ILidarrSyncService>(sp => sp.GetRequiredService<LidarrSyncService>());
-        services.AddHostedService(sp => sp.GetRequiredService<LidarrSyncService>());
-        services.AddSingleton<LidarrImportService>();
-        services.AddSingleton<ILidarrImportService>(sp => sp.GetRequiredService<LidarrImportService>());
-        services.AddHostedService(sp => sp.GetRequiredService<LidarrImportService>());
-        services.AddSingleton<ScriptService>();
-        services.AddSingleton<WebhookService>();
-        services.AddSingleton<NowPlaying.NowPlayingService>();
-        services.AddSingleton<IListeningPartyService, ListeningPartyService>();
+        services.AddSlskdIntegrations();
 
         services.AddSingleton<IBrowseTracker, BrowseTracker>();
         services.AddSingleton<IRoomTracker, RoomTracker>(_ => new RoomTracker(messageLimit: 250));
@@ -149,20 +126,7 @@ public static class CoreApplicationServiceCollectionExtensions
             sp.GetRequiredService<IShareService>().GetLocalRepository());
         services.AddTransient<IShareRepositoryFactory, SqliteShareRepositoryFactory>();
 
-        services.AddSingleton<IContentLocator, ContentLocator>();
-        services.AddSingleton<IStreamSessionLimiter, StreamSessionLimiter>();
-        services.AddSingleton<IStreamTicketService, StreamTicketService>();
-        services.AddSingleton<IPeerStreamTicketService, PeerStreamTicketService>();
-        services.AddSingleton<IPeerStreamService, PeerStreamService>();
-        services.AddSingleton<IMeshStreamTicketService, MeshStreamTicketService>();
-        services.AddSingleton<IMeshStreamService>(sp => new MeshStreamService(
-            sp.GetRequiredService<IMeshStreamTicketService>(),
-            sp.GetRequiredService<IStreamSessionLimiter>(),
-            sp.GetRequiredService<IMeshDirectory>(),
-            sp.GetRequiredService<IMeshContentFetcher>(),
-            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<MeshStreamService>>(),
-            sp.GetService<Transfers.MultiSource.Metrics.IFairnessGuard>(),
-            sp.GetService<Transfers.MultiSource.Metrics.ITrafficAccountingService>()));
+        services.AddSlskdMeshStreamingServices();
         services.AddSingleton<IShareTokenService, ShareTokenService>();
 
         // Register search providers for Scene ↔ Pod Bridging
@@ -209,64 +173,7 @@ public static class CoreApplicationServiceCollectionExtensions
 
         services.AddSingleton<IRoomService, RoomService>();
 
-        services.AddSingleton<IScheduledRateLimitService, ScheduledRateLimitService>();
-        services.AddSingleton<IDownloadService>(sp =>
-        {
-            Log.Debug("[DI] Constructing DownloadService...");
-            var service = new DownloadService(
-                sp.GetRequiredService<IOptionsMonitor<slskd.Options>>(),
-                sp.GetRequiredService<ISoulseekClient>(),
-                sp.GetRequiredService<IDbContextFactory<TransfersDbContext>>(),
-                sp.GetRequiredService<FileService>(),
-                sp.GetRequiredService<IRelayService>(),
-                sp.GetRequiredService<IFTPService>(),
-                sp.GetRequiredService<EventBus>(),
-                sp.GetService<Transfers.MultiSource.Metrics.IPeerMetricsService>());
-            Log.Debug("[DI] DownloadService constructed");
-            return service;
-        });
-        services.AddSingleton<IUploadService>(sp =>
-        {
-            Log.Debug("[DI] Constructing UploadService...");
-            Log.Debug("[DI] Resolving FileService for UploadService...");
-            var fileService = sp.GetRequiredService<FileService>();
-            Log.Debug("[DI] Resolving IUserService for UploadService...");
-            var userService = sp.GetRequiredService<IUserService>();
-            Log.Debug("[DI] Resolving ISoulseekClient for UploadService...");
-            var soulseekClient = sp.GetRequiredService<ISoulseekClient>();
-            Log.Debug("[DI] Resolving IOptionsMonitor<slskd.Options> for UploadService...");
-            var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<slskd.Options>>();
-            Log.Debug("[DI] Resolving IShareService for UploadService...");
-            var shareService = sp.GetRequiredService<IShareService>();
-            Log.Debug("[DI] Resolving IRelayService for UploadService...");
-            var relayService = sp.GetRequiredService<IRelayService>();
-            Log.Debug("[DI] Resolving IDbContextFactory<TransfersDbContext> for UploadService...");
-            var contextFactory = sp.GetRequiredService<IDbContextFactory<TransfersDbContext>>();
-            Log.Debug("[DI] Resolving EventBus for UploadService...");
-            var eventBus = sp.GetRequiredService<EventBus>();
-            Log.Debug("[DI] Resolving IScheduledRateLimitService for UploadService (optional)...");
-            var scheduledRateLimitService = sp.GetService<IScheduledRateLimitService>();
-            Log.Debug("[DI] All UploadService dependencies resolved, creating instance...");
-            var service = new UploadService(
-                fileService, userService, soulseekClient, optionsMonitor,
-                shareService, relayService, contextFactory, eventBus,
-                sp.GetRequiredService<Transfers.MultiSource.Metrics.ITrafficAccountingService>(),
-                scheduledRateLimitService);
-            Log.Debug("[DI] UploadService constructed");
-            return service;
-        });
-        services.AddSingleton<ITransferService>(sp =>
-        {
-            Log.Debug("[DI] Constructing TransferService...");
-            var service = new TransferService(
-                sp.GetRequiredService<IUploadService>(),
-                sp.GetRequiredService<IDownloadService>(),
-                sp.GetRequiredService<IDbContextFactory<TransfersDbContext>>());
-            Log.Debug("[DI] TransferService constructed");
-            return service;
-        });
-        services.AddSingleton<FileService>();
-        services.AddSingleton<Transfers.AutoReplace.IAutoReplaceService, Transfers.AutoReplace.AutoReplaceService>();
+        services.AddSlskdTransfers();
 
         // Source ranking services (smart scoring + download history)
         var rankingDbPath = Path.Combine(Program.AppDirectory, "ranking.db");

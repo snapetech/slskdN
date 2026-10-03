@@ -108,6 +108,60 @@ describe('MessageStream', () => {
     });
   });
 
+  it('shows a message-list failure and retries when the initial load fails', async () => {
+    const adapter = {
+      list: vi.fn()
+        .mockRejectedValueOnce(new Error('Message service unavailable'))
+        .mockResolvedValueOnce({ messages: [] }),
+      pollIntervalMs: 1_000_000,
+    };
+    render(<MessageStream adapter={adapter} emptyHint="No messages yet." />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Message service unavailable',
+    );
+    expect(screen.queryByText('No messages yet.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByText('No messages yet.')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps the last loaded messages visible after polling fails and retries in place', async () => {
+    const firstMessage = {
+      body: 'last known message',
+      id: 'known',
+      isSelf: false,
+      kind: 'text',
+      sender: 'alice',
+      ts: 1_700_000_000_000,
+    };
+    const adapter = {
+      list: vi.fn()
+        .mockResolvedValueOnce({ messages: [firstMessage] })
+        .mockRejectedValueOnce({ response: { data: { detail: 'Chat refresh failed' } } })
+        .mockResolvedValueOnce({ messages: [firstMessage] }),
+      pollIntervalMs: 1_000_000,
+    };
+    render(<MessageStream adapter={adapter} />);
+    expect(await screen.findByText('last known message')).toBeInTheDocument();
+
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chat refresh failed');
+    expect(screen.getByText('last known message')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByText('last known message')).toBeInTheDocument();
+    });
+  });
+
   it('does not poll until visible and suspends polling while hidden', async () => {
     vi.useFakeTimers();
     setDocumentHidden(true);

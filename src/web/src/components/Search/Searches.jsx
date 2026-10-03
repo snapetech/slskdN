@@ -21,6 +21,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  Link,
   useLocation,
   useNavigate,
   useParams,
@@ -33,6 +34,7 @@ import {
   Header,
   Icon,
   Input,
+  Message,
   Popup,
   Segment,
 } from 'semantic-ui-react';
@@ -53,6 +55,17 @@ const isObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
 const hasSearchId = (value) => isObject(value) && typeof value.id === 'string';
+
+const DISCOVERY_TOOL_SECTION_KEYS = [
+  'songid',
+  'musicbrainz',
+  'discographyCoverage',
+  'artistReleaseRadar',
+  'soulseekDiscovery',
+  'federatedTaste',
+  'discoveryGraphAtlas',
+  'albumCompletion',
+];
 
 const toSearchMap = (searchesEvent) =>
   (Array.isArray(searchesEvent) ? searchesEvent : [])
@@ -146,6 +159,8 @@ const CollapsibleSection = ({
 
 const Searches = ({ server } = {}) => {
   const normalizedServer = server ?? { isConnected: false };
+  const isServerConnecting =
+    normalizedServer.isConnecting || normalizedServer.IsLoggingIn;
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState(undefined);
   const [searches, setSearches] = useState({});
@@ -604,6 +619,12 @@ const Searches = ({ server } = {}) => {
     }
   }
 
+  const hasPreviouslyExpandedDiscoveryTool =
+    DISCOVERY_TOOL_SECTION_KEYS.some(
+      (key) =>
+        getLocalStorageItem(`slskdn.search.section.${key}`) === 'open',
+    );
+
   return (
     <>
       <CollapsibleSection
@@ -655,17 +676,53 @@ const Searches = ({ server } = {}) => {
                 placeholder={
                   normalizedServer.isConnected
                     ? 'Search phrase'
-                    : 'Connect to server to perform a search'
+                    : isServerConnecting
+                      ? 'Connecting to Soulseek…'
+                      : 'Connect to Soulseek to search'
                 }
                 type="search"
               />
             }
             loading={creating}
-            onKeyUp={(keyUpEvent) => (keyUpEvent.key === 'Enter' ? create() : '')}
+            onKeyUp={(keyUpEvent) =>
+              keyUpEvent.key === 'Enter' ? create({ navigate: true }) : undefined
+            }
             placeholder="Search phrase"
             ref={inputRef}
             size="big"
           />
+          {!normalizedServer.isConnected && (
+            <Message
+              className="search-connection-notice"
+              info
+              size="small"
+            >
+              <Message.Header>
+                {isServerConnecting
+                  ? 'Connecting to Soulseek'
+                  : 'Soulseek connection needed'}
+              </Message.Header>
+              <p>
+                {isServerConnecting
+                  ? 'Search and peer browsing will be available when the connection completes.'
+                  : 'Connect to search files, browse peer shares, and send Soulseek messages. Check your credentials in connection settings, then use Disconnected in the top bar to reconnect.'}
+              </p>
+              {!isServerConnecting && (
+                <Popup
+                  content="Open System → Options to review your Soulseek credentials, then use Disconnected in the top bar to reconnect."
+                  position="top center"
+                  trigger={
+                    <Link
+                      className="ui basic small button"
+                      to="/system/options"
+                    >
+                      Open connection settings
+                    </Link>
+                  }
+                />
+              )}
+            </Message>
+          )}
           {scenePodBridgeEnabled && (
             <div
               style={{
@@ -755,63 +812,69 @@ const Searches = ({ server } = {}) => {
         </Segment>
       </CollapsibleSection>
       <CollapsibleSection
-        defaultOpen={false}
-        storageKey="slskdn.search.section.songid"
-        title="SongID"
+        defaultOpen={hasPreviouslyExpandedDiscoveryTool}
+        storageKey="slskdn.search.section.discoveryTools"
+        title="Music discovery tools"
       >
-        <SongIDPanel disabled={!normalizedServer.isConnected} />
-      </CollapsibleSection>
-      <CollapsibleSection
-        defaultOpen={false}
-        storageKey="slskdn.search.section.musicbrainz"
-        title="MusicBrainz Lookup"
-      >
-        <MusicBrainzLookup disabled={!normalizedServer.isConnected} />
-      </CollapsibleSection>
-      <CollapsibleSection
-        defaultOpen={false}
-        storageKey="slskdn.search.section.discographyCoverage"
-        title="Discography Concierge"
-      >
-        <DiscographyCoveragePanel disabled={!normalizedServer.isConnected} />
-      </CollapsibleSection>
-      <CollapsibleSection
-        defaultOpen={false}
-        storageKey="slskdn.search.section.artistReleaseRadar"
-        title="Artist Release Radar"
-      >
-        <ArtistReleaseRadarPanel disabled={!normalizedServer.isConnected} />
-      </CollapsibleSection>
-      <CollapsibleSection
-        defaultOpen={false}
-        storageKey="slskdn.search.section.soulseekDiscovery"
-        title="Soulseek Discovery"
-      >
-        <SoulseekDiscoveryPanel
-          disabled={!normalizedServer.isConnected}
-          onSearch={(search) => create({ navigate: true, search })}
-        />
-      </CollapsibleSection>
-      <CollapsibleSection
-        defaultOpen={false}
-        storageKey="slskdn.search.section.federatedTaste"
-        title="Federated Taste"
-      >
-        <FederatedTasteRecommendationsPanel disabled={!normalizedServer.isConnected} />
-      </CollapsibleSection>
-      <CollapsibleSection
-        defaultOpen={false}
-        storageKey="slskdn.search.section.discoveryGraphAtlas"
-        title="Discovery Graph Atlas"
-      >
-        <DiscoveryGraphAtlasPanel disabled={!normalizedServer.isConnected} />
-      </CollapsibleSection>
-      <CollapsibleSection
-        defaultOpen={false}
-        storageKey="slskdn.search.section.albumCompletion"
-        title="Album Completion"
-      >
-        <AlbumCompletionPanel disabled={!normalizedServer.isConnected} />
+        <CollapsibleSection
+          defaultOpen={false}
+          storageKey="slskdn.search.section.songid"
+          title="SongID"
+        >
+          <SongIDPanel disabled={!normalizedServer.isConnected} />
+        </CollapsibleSection>
+        <CollapsibleSection
+          defaultOpen={false}
+          storageKey="slskdn.search.section.musicbrainz"
+          title="MusicBrainz Lookup"
+        >
+          <MusicBrainzLookup disabled={!normalizedServer.isConnected} />
+        </CollapsibleSection>
+        <CollapsibleSection
+          defaultOpen={false}
+          storageKey="slskdn.search.section.discographyCoverage"
+          title="Discography Concierge"
+        >
+          <DiscographyCoveragePanel disabled={!normalizedServer.isConnected} />
+        </CollapsibleSection>
+        <CollapsibleSection
+          defaultOpen={false}
+          storageKey="slskdn.search.section.artistReleaseRadar"
+          title="Artist Release Radar"
+        >
+          <ArtistReleaseRadarPanel disabled={!normalizedServer.isConnected} />
+        </CollapsibleSection>
+        <CollapsibleSection
+          defaultOpen={false}
+          storageKey="slskdn.search.section.soulseekDiscovery"
+          title="Soulseek Discovery"
+        >
+          <SoulseekDiscoveryPanel
+            disabled={!normalizedServer.isConnected}
+            onSearch={(search) => create({ navigate: true, search })}
+          />
+        </CollapsibleSection>
+        <CollapsibleSection
+          defaultOpen={false}
+          storageKey="slskdn.search.section.federatedTaste"
+          title="Federated Taste"
+        >
+          <FederatedTasteRecommendationsPanel disabled={!normalizedServer.isConnected} />
+        </CollapsibleSection>
+        <CollapsibleSection
+          defaultOpen={false}
+          storageKey="slskdn.search.section.discoveryGraphAtlas"
+          title="Discovery Graph Atlas"
+        >
+          <DiscoveryGraphAtlasPanel disabled={!normalizedServer.isConnected} />
+        </CollapsibleSection>
+        <CollapsibleSection
+          defaultOpen={false}
+          storageKey="slskdn.search.section.albumCompletion"
+          title="Album Completion"
+        >
+          <AlbumCompletionPanel disabled={!normalizedServer.isConnected} />
+        </CollapsibleSection>
       </CollapsibleSection>
       <CollapsibleSection
         defaultOpen

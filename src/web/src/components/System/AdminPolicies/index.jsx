@@ -1,3 +1,4 @@
+import './AdminPolicies.css';
 import * as optionsApi from '../../../lib/options';
 import {
   formatDownloadExclusions,
@@ -72,6 +73,57 @@ const toNumber = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const REQUIRED_INTEGER_FIELDS = [
+  ['autoReplaceInterval', 'Auto-replace interval'],
+  ['autoReplaceMaxRetries', 'Auto-replace max retries'],
+  ['dhtAnnounceIntervalSeconds', 'DHT announce interval'],
+  ['dhtOverlayPort', 'DHT overlay TCP port'],
+  ['dhtPort', 'DHT UDP port'],
+  ['downloadRetryAttempts', 'Download retry attempts'],
+  ['downloadRetryDelay', 'Download retry delay'],
+  ['downloadRetryMaxDelay', 'Download retry max delay'],
+  ['downloadSlots', 'Download slots'],
+  ['downloadSpeedLimit', 'Download speed limit'],
+  ['eventsRetention', 'Event retention'],
+  ['httpsPort', 'HTTPS port'],
+  ['jwtTtl', 'JWT time to live'],
+  ['logRetention', 'Log retention'],
+  ['rateLimitApi', 'API rate limit'],
+  ['rateLimitApiWindow', 'API rate-limit window'],
+  ['rateLimitFederation', 'Federation rate limit'],
+  ['rateLimitFederationWindow', 'Federation rate-limit window'],
+  ['rateLimitMesh', 'Mesh rate limit'],
+  ['rateLimitMeshWindow', 'Mesh rate-limit window'],
+  ['rescueModeMaxQueueSeconds', 'Rescue queue time'],
+  ['searchIncomingCircuitBreaker', 'Incoming search circuit breaker'],
+  ['searchIncomingConcurrency', 'Incoming search concurrency'],
+  ['searchIncomingResponseFileLimit', 'Incoming search response file limit'],
+  ['searchRetentionCleanupInterval', 'Search cleanup interval'],
+  ['searchRetentionMaxAgeDays', 'Search retention max age'],
+  ['searchRetentionMaxCount', 'Search retention max count'],
+  ['shareCacheWorkers', 'Share-cache workers'],
+  ['uploadSlots', 'Upload slots'],
+  ['uploadSpeedLimit', 'Upload speed limit'],
+  ['webhookRetryAttempts', 'Webhook retry attempts'],
+  ['webhookTimeout', 'Webhook timeout'],
+];
+
+const OPTIONAL_INTEGER_FIELDS = [
+  ['retentionSearch', 'Search retention'],
+  ['retentionUploadSucceeded', 'Upload succeeded retention'],
+  ['retentionUploadErrored', 'Upload errored retention'],
+  ['retentionUploadCancelled', 'Upload cancelled retention'],
+  ['retentionDownloadSucceeded', 'Download succeeded retention'],
+  ['retentionDownloadErrored', 'Download errored retention'],
+  ['retentionDownloadCancelled', 'Download cancelled retention'],
+  ['fileCompleteRetention', 'Complete-file retention'],
+  ['fileIncompleteRetention', 'Incomplete-file retention'],
+  ['shareCacheRetention', 'Share-cache retention'],
+];
+
+const isWholeNumber = (value) => /^\d+$/u.test(String(value ?? '').trim()) &&
+  Number.isSafeInteger(Number(value));
+
 const boolLabel = (value, trueText = 'Enabled', falseText = 'Disabled') => (
   <Label color={value ? 'green' : 'grey'}>
     <Icon name={value ? 'check circle' : 'minus circle'} />
@@ -119,8 +171,11 @@ const buildForm = (options = {}) => {
   const firstScriptName = Object.keys(scripts)[0] || '';
   const firstScript = scripts[firstScriptName] || {};
   const firstScriptRun = getOption(firstScript, 'run', 'Run') || {};
-  const firstApiKeyName = Object.keys(apiKeys)[0] || 'automation';
+  const firstApiKeyName = Object.keys(apiKeys)[0] || '';
   const firstApiKey = apiKeys[firstApiKeyName] || {};
+  const firstApiKeyConfiguredName = isConfigured(
+    getOption(firstApiKey, 'key', 'Key'),
+  ) ? firstApiKeyName : '';
   const retry = getOption(download, 'retry', 'Retry') || {};
   const uploadScheduledLimits =
     getOption(upload, 'scheduledLimits', 'scheduled_limits', 'ScheduledLimits') ||
@@ -137,6 +192,7 @@ const buildForm = (options = {}) => {
     allowRemoteNoAuth: Boolean(getOption(web, 'allowRemoteNoAuth', 'allow_remote_no_auth', 'AllowRemoteNoAuth')),
     apiKeyCidr: getOption(firstApiKey, 'cidr', 'Cidr') || '127.0.0.1/32,::1/128',
     apiKeyConfigured: isConfigured(getOption(firstApiKey, 'key', 'Key')),
+    apiKeyConfiguredName: firstApiKeyConfiguredName,
     apiKeyName: firstApiKeyName,
     apiKeyRole: getOption(firstApiKey, 'role', 'Role') || 'ReadOnly',
     apiKeyScopes: getOption(firstApiKey, 'scopes', 'Scopes') || '*',
@@ -274,6 +330,25 @@ const AdminPolicies = ({ options = {} }) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const apiKeyDraftStarted = !form.apiKeyConfiguredName && (
+    form.apiKeyName.trim() ||
+    form.apiKeyValue.trim() ||
+    form.apiKeyRole !== 'ReadOnly' ||
+    form.apiKeyCidr !== '127.0.0.1/32,::1/128' ||
+    form.apiKeyScopes !== '*'
+  );
+  const invalidRequiredNumbers = REQUIRED_INTEGER_FIELDS
+    .filter(([field]) => !isWholeNumber(form[field]))
+    .map(([, label]) => `${label} must be a whole number.`);
+  const invalidOptionalNumbers = OPTIONAL_INTEGER_FIELDS
+    .filter(([field]) => {
+      const value = String(form[field] ?? '').trim();
+      return value && !isWholeNumber(value);
+    })
+    .map(([, label]) => `${label} must be a whole number or blank.`);
+  const invalidAutoReplaceThreshold = String(form.autoReplaceThreshold).trim() === '' ||
+    !Number.isFinite(Number(form.autoReplaceThreshold));
+
   const missing = [
     form.webhookUrl.trim() &&
       !form.webhookName.trim() &&
@@ -301,6 +376,20 @@ const AdminPolicies = ({ options = {} }) => {
     form.blacklistEnabled &&
       !form.blacklistFile.trim() &&
       'Managed blacklist needs a file path.',
+    form.apiKeyConfiguredName &&
+      !form.apiKeyName.trim() &&
+      'Keep a name for the configured API key; this form does not remove keys.',
+    form.apiKeyConfiguredName &&
+      form.apiKeyName.trim() !== form.apiKeyConfiguredName &&
+      !form.apiKeyValue.trim() &&
+      'Enter a key value before adding API key settings under a different name.',
+    apiKeyDraftStarted &&
+      (!form.apiKeyName.trim() || !form.apiKeyValue.trim()) &&
+      'A new API key needs a name and value before its policy can be saved.',
+    ...invalidRequiredNumbers,
+    ...invalidOptionalNumbers,
+    invalidAutoReplaceThreshold &&
+      'Auto-replace size threshold must be a number.',
   ].filter(Boolean);
 
   const reset = () => {
@@ -512,6 +601,9 @@ const AdminPolicies = ({ options = {} }) => {
       setForm((current) => ({
         ...current,
         apiKeyConfigured: current.apiKeyConfigured || Boolean(current.apiKeyValue.trim()),
+        apiKeyConfiguredName: current.apiKeyValue.trim()
+          ? current.apiKeyName.trim()
+          : current.apiKeyConfiguredName,
         apiKeyValue: '',
         httpsCertificatePassword: '',
         httpsCertificatePasswordConfigured:
@@ -596,6 +688,7 @@ const AdminPolicies = ({ options = {} }) => {
             <Form>
               <Form.Group grouped>
                 <Popup
+                  className="admin-policy-popup"
                   content="Probe shared audio files for bitrate, duration, and sample metadata during share scans. Disable on slow or remote storage."
                   trigger={
                     <Checkbox
@@ -655,6 +748,7 @@ const AdminPolicies = ({ options = {} }) => {
                 value={form.webhookEvents}
               />
               <Popup
+                className="admin-policy-popup"
                 content="Allow this webhook to call a target with a self-signed or otherwise untrusted certificate."
                 trigger={
                   <Checkbox
@@ -854,6 +948,7 @@ const AdminPolicies = ({ options = {} }) => {
               </Form.Group>
               <Form.Group grouped>
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable automatic replacement of stuck downloads with alternative sources."
                   trigger={
                     <Checkbox
@@ -869,6 +964,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable the legacy top-level scheduled speed-limit policy in YAML."
                   trigger={
                     <Checkbox
@@ -884,6 +980,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable scheduled upload speed limits under global upload policy."
                   trigger={
                     <Checkbox
@@ -899,6 +996,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable scheduled download speed limits under global download policy."
                   trigger={
                     <Checkbox
@@ -941,6 +1039,7 @@ const AdminPolicies = ({ options = {} }) => {
             <Form>
               <Form.Group grouped>
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable strict startup and request hardening checks for exposed deployments."
                   trigger={
                     <Checkbox
@@ -956,6 +1055,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Disable Web UI authentication only for tightly controlled loopback deployments."
                   trigger={
                     <Checkbox
@@ -969,6 +1069,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Allow no-auth access from explicitly configured non-loopback CIDRs."
                   trigger={
                     <Checkbox
@@ -984,6 +1085,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable HTTP rate limiting for API, federation, and mesh gateway policies."
                   trigger={
                     <Checkbox
@@ -1078,6 +1180,7 @@ const AdminPolicies = ({ options = {} }) => {
               </Form.Group>
               <Form.Group grouped>
                 <Popup
+                  className="admin-policy-popup"
                   content="Disable HTTPS listener. Keep this off when exposing the Web UI beyond localhost."
                   trigger={
                     <Checkbox
@@ -1093,6 +1196,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Redirect HTTP requests to HTTPS after certificate settings are valid."
                   trigger={
                     <Checkbox
@@ -1256,6 +1360,7 @@ const AdminPolicies = ({ options = {} }) => {
               </Form.Group>
               <Form.Group widths="equal">
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable loading a managed CIDR/P2P/DAT blacklist file at startup."
                   trigger={
                     <Checkbox
@@ -1280,6 +1385,7 @@ const AdminPolicies = ({ options = {} }) => {
               </Form.Group>
               <Form.Group grouped>
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable DHT rendezvous. Disable this when you want no DHT peer discovery."
                   trigger={
                     <Checkbox
@@ -1295,6 +1401,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Keep DHT discovery away from public bootstrap routers and use only private or local discovery paths."
                   trigger={
                     <Checkbox
@@ -1310,6 +1417,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Opt in to experimental Scene and Pod bridge aggregation."
                   trigger={
                     <Checkbox
@@ -1325,6 +1433,7 @@ const AdminPolicies = ({ options = {} }) => {
                   }
                 />
                 <Popup
+                  className="admin-policy-popup"
                   content="Enable underperformance rescue policies for queued or stalled downloads."
                   trigger={
                     <Checkbox
@@ -1451,87 +1560,96 @@ const AdminPolicies = ({ options = {} }) => {
                   value={form.searchRetentionCleanupInterval}
                 />
               </Form.Group>
-              <Table
-                celled
-                compact
+              <div
+                aria-label="Transfer history retention settings"
+                className="admin-policy-table-scroll"
+                role="region"
+                tabIndex={0}
               >
-                <Table.Header>
-                  <Table.Row>
-                    <Table.HeaderCell>History</Table.HeaderCell>
-                    <Table.HeaderCell>Succeeded</Table.HeaderCell>
-                    <Table.HeaderCell>Errored</Table.HeaderCell>
-                    <Table.HeaderCell>Cancelled</Table.HeaderCell>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  <Table.Row>
-                    <Table.Cell>Uploads</Table.Cell>
-                    <Table.Cell>
-                      <Form.Input
-                        aria-label="Upload succeeded retention minutes"
-                        disabled={!remoteConfiguration || saving}
-                        onChange={(_, { value }) =>
-                          update('retentionUploadSucceeded', value)
-                        }
-                        value={form.retentionUploadSucceeded}
-                      />
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Form.Input
-                        aria-label="Upload errored retention minutes"
-                        disabled={!remoteConfiguration || saving}
-                        onChange={(_, { value }) =>
-                          update('retentionUploadErrored', value)
-                        }
-                        value={form.retentionUploadErrored}
-                      />
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Form.Input
-                        aria-label="Upload cancelled retention minutes"
-                        disabled={!remoteConfiguration || saving}
-                        onChange={(_, { value }) =>
-                          update('retentionUploadCancelled', value)
-                        }
-                        value={form.retentionUploadCancelled}
-                      />
-                    </Table.Cell>
-                  </Table.Row>
-                  <Table.Row>
-                    <Table.Cell>Downloads</Table.Cell>
-                    <Table.Cell>
-                      <Form.Input
-                        aria-label="Download succeeded retention minutes"
-                        disabled={!remoteConfiguration || saving}
-                        onChange={(_, { value }) =>
-                          update('retentionDownloadSucceeded', value)
-                        }
-                        value={form.retentionDownloadSucceeded}
-                      />
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Form.Input
-                        aria-label="Download errored retention minutes"
-                        disabled={!remoteConfiguration || saving}
-                        onChange={(_, { value }) =>
-                          update('retentionDownloadErrored', value)
-                        }
-                        value={form.retentionDownloadErrored}
-                      />
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Form.Input
-                        aria-label="Download cancelled retention minutes"
-                        disabled={!remoteConfiguration || saving}
-                        onChange={(_, { value }) =>
-                          update('retentionDownloadCancelled', value)
-                        }
-                        value={form.retentionDownloadCancelled}
-                      />
-                    </Table.Cell>
-                  </Table.Row>
-                </Table.Body>
-              </Table>
+                <Table
+                  aria-label="Transfer history retention settings by status"
+                  celled
+                  className="admin-policy-retention-table"
+                  compact
+                >
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.HeaderCell>History</Table.HeaderCell>
+                      <Table.HeaderCell>Succeeded</Table.HeaderCell>
+                      <Table.HeaderCell>Errored</Table.HeaderCell>
+                      <Table.HeaderCell>Cancelled</Table.HeaderCell>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    <Table.Row>
+                      <Table.Cell>Uploads</Table.Cell>
+                      <Table.Cell>
+                        <Form.Input
+                          aria-label="Upload succeeded retention minutes"
+                          disabled={!remoteConfiguration || saving}
+                          onChange={(_, { value }) =>
+                            update('retentionUploadSucceeded', value)
+                          }
+                          value={form.retentionUploadSucceeded}
+                        />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Form.Input
+                          aria-label="Upload errored retention minutes"
+                          disabled={!remoteConfiguration || saving}
+                          onChange={(_, { value }) =>
+                            update('retentionUploadErrored', value)
+                          }
+                          value={form.retentionUploadErrored}
+                        />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Form.Input
+                          aria-label="Upload cancelled retention minutes"
+                          disabled={!remoteConfiguration || saving}
+                          onChange={(_, { value }) =>
+                            update('retentionUploadCancelled', value)
+                          }
+                          value={form.retentionUploadCancelled}
+                        />
+                      </Table.Cell>
+                    </Table.Row>
+                    <Table.Row>
+                      <Table.Cell>Downloads</Table.Cell>
+                      <Table.Cell>
+                        <Form.Input
+                          aria-label="Download succeeded retention minutes"
+                          disabled={!remoteConfiguration || saving}
+                          onChange={(_, { value }) =>
+                            update('retentionDownloadSucceeded', value)
+                          }
+                          value={form.retentionDownloadSucceeded}
+                        />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Form.Input
+                          aria-label="Download errored retention minutes"
+                          disabled={!remoteConfiguration || saving}
+                          onChange={(_, { value }) =>
+                            update('retentionDownloadErrored', value)
+                          }
+                          value={form.retentionDownloadErrored}
+                        />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Form.Input
+                          aria-label="Download cancelled retention minutes"
+                          disabled={!remoteConfiguration || saving}
+                          onChange={(_, { value }) =>
+                            update('retentionDownloadCancelled', value)
+                          }
+                          value={form.retentionDownloadCancelled}
+                        />
+                      </Table.Cell>
+                    </Table.Row>
+                  </Table.Body>
+                </Table>
+              </div>
               <Form.Group widths="equal">
                 <Form.Input
                   aria-label="Complete file retention minutes"
@@ -1572,6 +1690,7 @@ const AdminPolicies = ({ options = {} }) => {
 
       <div className="integration-actions admin-policy-actions">
         <Popup
+          className="admin-policy-popup"
           content="Persist the policy settings above to YAML. This does not test webhooks, run scripts, contact peers, restart the daemon, or mutate downloads."
           trigger={
             <Button
@@ -1588,6 +1707,7 @@ const AdminPolicies = ({ options = {} }) => {
           }
         />
         <Popup
+          className="admin-policy-popup"
           content="Discard unsaved policy edits and restore values currently reported by the daemon."
           trigger={
             <Button

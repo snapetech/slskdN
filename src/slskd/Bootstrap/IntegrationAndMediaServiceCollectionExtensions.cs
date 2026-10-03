@@ -56,13 +56,7 @@ public static class IntegrationAndMediaServiceCollectionExtensions
         services.AddSingleton<SourceFeeds.ISpotifyConnectionService, SourceFeeds.SpotifyConnectionService>();
         services.AddSingleton<SourceFeeds.ISourceFeedImportService, SourceFeeds.SourceFeedImportService>();
 
-        // Auto-replace services
-        services.AddSingleton<Transfers.AutoReplace.IAutoReplaceService, Transfers.AutoReplace.AutoReplaceService>();
-        services.AddSingleton<Transfers.AutoReplace.AutoReplaceBackgroundService>();
-        services.AddHostedService(provider => provider.GetRequiredService<Transfers.AutoReplace.AutoReplaceBackgroundService>());
-
-        // Auto-retry: re-enqueue failed downloads automatically
-        services.AddHostedService<Transfers.Downloads.DownloadAutoRetryService>();
+        services.AddSlskdTransferHostedServices();
 
         services.AddSingleton<IRelayService, RelayService>();
 

@@ -129,16 +129,25 @@ public sealed class ListedRadioController : ControllerBase
             return StatusCode(429, new { code = "radio_fairness_limited", error = "Remote radio is limited by network fairness." });
         }
 
+        var remainingCapabilityMilliseconds = party.ExpiresAtUnixMs - DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var expiresInSeconds = (int)Math.Min(
+            ListeningPartyService.AnnouncementTtlSeconds - 1,
+            (remainingCapabilityMilliseconds / 1000) - 1);
+        if (expiresInSeconds <= 0)
+        {
+            return NotFound("This radio snapshot expired while its ticket was being created.");
+        }
+
         try
         {
             var ticket = _tickets.Create(new MeshStreamTicketRequest(party.ContentId, metadata.Filename, party.TransportUsername, metadata.Length, null)
             {
                 Radio = new MeshRadioScope(party.PartyId, party.StreamTicket),
-            }, "user:" + (User.FindFirstValue(ClaimTypes.Name) ?? string.Empty), TimeSpan.FromMinutes(2));
+            }, "user:" + (User.FindFirstValue(ClaimTypes.Name) ?? string.Empty), TimeSpan.FromSeconds(expiresInSeconds));
             return Ok(new
             {
                 streamUrl = $"/api/v0/mesh-streams/{Uri.EscapeDataString(ticket.Ticket)}",
-                expiresInSeconds = 120,
+                expiresInSeconds,
                 contentType = ticket.ContentType,
             });
         }

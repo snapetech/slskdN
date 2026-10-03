@@ -69,6 +69,27 @@ public class MeshTransferServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task StartTransferAsync_QuarantinesMismatchedCompletedOutput()
+    {
+        var targetPath = Path.Combine(_tempRoot, "simulated.mp3");
+
+        var transferId = await _service.StartTransferAsync(
+            peerId: "peer-a",
+            fileHash: string.Empty,
+            fileSize: 1024,
+            targetPath: targetPath,
+            ct: CancellationToken.None);
+
+        var status = await WaitForTerminalStatusAsync(transferId);
+
+        Assert.NotNull(status);
+        Assert.Equal(MeshTransferState.Failed, status!.State);
+        Assert.False(File.Exists(targetPath));
+        var quarantinedPath = Assert.Single(Directory.GetFiles(Path.Combine(_tempRoot, ".quarantine")));
+        Assert.Equal(1024, new FileInfo(quarantinedPath).Length);
+    }
+
+    [Fact]
     public async Task CancelTransferAsync_CancelsRunningTransferInsteadOfMarkingFailed()
     {
         var targetPath = Path.Combine(_tempRoot, "cancel.bin");

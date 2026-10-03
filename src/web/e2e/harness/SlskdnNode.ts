@@ -13,12 +13,17 @@ export type NodeConfig = {
   flags?: {
     noConnect?: boolean;
     radioMesh?: boolean;
+    scenePodBridge?: boolean;
     listenAlongMembers?: boolean;
     listenAlongPeers?: string[];
     ffmpegPath?: string;
     jwtTtlMilliseconds?: number;
+    remoteFileManagement?: boolean;
+    soulseekServerAddress?: string;
+    soulseekServerPort?: number;
     soulseekEndpointOverrides?: Record<string, number>;
     soulseekListenPort?: number;
+    trustedPrivateOwnerOrigins?: string[];
   };
   nodeName: string;
   shareDir: string | string[]; // Single dir or array for multiple shares
@@ -340,6 +345,31 @@ export class SlskdnNode {
   }
 
   private async startProcess(): Promise<void> {
+    const soulseekServerAddress = this.config.flags?.soulseekServerAddress;
+    const soulseekServerPort = this.config.flags?.soulseekServerPort;
+    const hasSoulseekServerAddress = soulseekServerAddress !== undefined;
+    const hasSoulseekServerPort = soulseekServerPort !== undefined;
+    if (hasSoulseekServerAddress !== hasSoulseekServerPort) {
+      throw new Error('A test Soulseek server address and port must be configured together.');
+    }
+    if (
+      hasSoulseekServerAddress &&
+      (soulseekServerAddress !== '127.0.0.1' ||
+        !Number.isInteger(soulseekServerPort) ||
+        soulseekServerPort! < 1024 ||
+        soulseekServerPort! > 65535)
+    ) {
+      throw new Error('The E2E Soulseek server must use a valid 127.0.0.1 endpoint.');
+    }
+    if (
+      process.env.RUN_CORE_SOULSEEK_JOURNEYS === '1' &&
+      !hasSoulseekServerAddress
+    ) {
+      throw new Error(
+        'Refusing to start core journey nodes without an explicit loopback Soulseek server endpoint.',
+      );
+    }
+
     const repoRoot = this.getRepoRoot();
 
     // Enforce test fixtures exist and validate checksums (fail fast if missing/corrupt)
@@ -451,6 +481,7 @@ ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
   directories: []`;
     const noConnect = this.config.flags?.noConnect ?? process.env.SLSKDN_TEST_NO_CONNECT === 'true';
     const radioMesh = this.config.flags?.radioMesh === true;
+    const remoteFileManagement = this.config.flags?.remoteFileManagement === true;
     const listenAlongApiKeys = [
       ...(this.config.flags?.listenAlongMembers ? [
         ['roomlistener', 'room-listener-fixture-key'],
@@ -464,10 +495,18 @@ ${shareDirectoriesAbsolute.map((dir) => `    - ${dir}`).join('\n')}`
     const ffmpegYaml = this.config.flags?.ffmpegPath === undefined
       ? ''
       : `integration:\n  chromaprint:\n    ffmpegPath: ${JSON.stringify(this.config.flags.ffmpegPath)}\n`;
+    const soulseekServerYaml = soulseekServerAddress === undefined
+      ? ''
+      : `  address: ${JSON.stringify(soulseekServerAddress)}\n  port: ${soulseekServerPort}\n`;
     const jwtYaml = this.config.flags?.jwtTtlMilliseconds === undefined
       ? ''
       : `    jwt:\n      ttl: ${this.config.flags.jwtTtlMilliseconds}\n`;
-    const configYaml = `web:
+    const trustedPrivateOwnerOrigins = this.config.flags?.trustedPrivateOwnerOrigins ?? [];
+    const trustedPrivateOwnerOriginsYaml = trustedPrivateOwnerOrigins.length > 0
+      ? `\n  trustedPrivateOwnerOrigins:\n${trustedPrivateOwnerOrigins.map((origin) => `    - ${JSON.stringify(origin)}`).join('\n')}`
+      : '';
+    const configYaml = `remoteFileManagement: ${remoteFileManagement}
+web:
   port: ${this.apiPort}
   host: 127.0.0.1
   contentPath: ${webContentPath}
@@ -492,10 +531,11 @@ ${jwtYaml}${listenAlongApiKeysYaml}  rateLimiting:
       - HEAD
       - PATCH
 soulseek:
-  username: ${nodeCreds.username}
+${soulseekServerYaml}  username: ${nodeCreds.username}
   password: ${nodeCreds.password}
   listenPort: ${this.soulseekListenPort}
 sharing:
+  externalEndpoint: "http://127.0.0.1:${this.apiPort}"${trustedPrivateOwnerOriginsYaml}
   tokenSigningKey: ${this.shareTokenKey}
 directories:
   downloads: ${path.join(this.appDir, 'downloads')}
@@ -508,7 +548,7 @@ ${ffmpegYaml}feature:
   StreamingRelayFallback: true
   MeshParallelSearch: true
   MeshPublishAvailability: true
-  ScenePodBridge: true
+  ScenePodBridge: ${this.config.flags?.scenePodBridge ?? true}
 ${radioMesh ? '  Mesh: true\n  Dht: true' : noConnect ? '  Dht: false' : ''}
   Swagger: true
 overlay:

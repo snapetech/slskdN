@@ -1,7 +1,7 @@
 import { browse } from '../../../lib/shares';
 import { CodeEditor, LoaderSegment, Switch } from '../../Shared';
 import React, { useEffect, useState } from 'react';
-import { Button, Icon, Modal } from 'semantic-ui-react';
+import { Button, Icon, Modal, Popup } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const asText = (value) => (typeof value === 'string' ? value : '');
@@ -83,7 +83,18 @@ const ContentsModal = ({ onClose, share, theme }) => {
         </Switch>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={onClose}>Close</Button>
+        <Popup
+          content="Close the share contents window."
+          trigger={(
+            <Button
+              aria-label="Close share contents"
+              onClick={onClose}
+              title="Close the share contents window."
+            >
+              Close
+            </Button>
+          )}
+        />
       </Modal.Actions>
     </Modal>
   );

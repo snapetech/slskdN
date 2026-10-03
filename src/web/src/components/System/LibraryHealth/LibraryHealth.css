@@ -1,0 +1,138 @@
+.library-health {
+  min-width: 0;
+}
+
+.library-health .ui.grid {
+  min-width: 0;
+}
+
+.library-health-scan-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.library-health-path-label {
+  font-weight: 600;
+}
+
+.library-health-actions {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+.library-health-action.ui.button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.library-health-actions .library-health-action.ui.button {
+  margin: 0;
+  width: 100%;
+}
+
+.library-health-scan-guidance.ui.message {
+  margin: 0;
+}
+
+.library-health-popup.ui.popup {
+  box-sizing: border-box;
+  max-width: min(22rem, calc(100vw - 1rem));
+  overflow-wrap: anywhere;
+  width: min(22rem, calc(100vw - 8rem));
+}
+
+.library-health-error.ui.message,
+.library-health-scan-message.ui.message {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  justify-content: space-between;
+}
+
+.library-health-error .content,
+.library-health-scan-message .content {
+  flex: 1 1 100%;
+  overflow-wrap: anywhere;
+}
+
+.library-health-progress,
+.library-health-loaded-path {
+  overflow-wrap: anywhere;
+}
+
+.library-health-feedback {
+  min-width: 0;
+}
+
+.library-health-copy-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.library-health-copy-fallback textarea {
+  box-sizing: border-box;
+  font-family: monospace;
+  max-width: 100%;
+  min-height: 10rem;
+  overflow-wrap: anywhere;
+  resize: vertical;
+  width: 100%;
+}
+
+.library-health-selection-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.library-health-selection-actions .library-health-action.ui.button {
+  margin: 0;
+}
+
+.library-health-selection-count {
+  flex: 1 1 100%;
+  font-weight: 600;
+}
+
+.library-health-issues-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.library-health-issues-scroll:focus-visible {
+  outline: 2px solid var(--slskdn-accent-primary, #a277ff);
+  outline-offset: 2px;
+}
+
+.library-health-issues-table.ui.table {
+  min-width: 960px;
+}
+
+.library-health-issue-checkbox {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.library-health-issue-checkbox input {
+  height: 20px;
+  width: 20px;
+}
+
+@media only screen and (max-width: 516px) {
+  .library-health-selection-actions .library-health-action.ui.button {
+    flex: 1 1 100%;
+  }
+}

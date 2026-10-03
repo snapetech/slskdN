@@ -3,6 +3,7 @@
 // </copyright>
 
 import FederatedTasteRecommendationsPanel from './FederatedTasteRecommendationsPanel';
+import useFeatureGates from '../Shared/useFeatureGates';
 import {
   fetchTasteRecommendations,
   previewTasteRecommendationGraph,
@@ -18,6 +19,11 @@ vi.mock('../../lib/tasteRecommendations', () => ({
   previewTasteRecommendationGraph: vi.fn(),
   promoteTasteRecommendationToWishlist: vi.fn(),
   subscribeTasteRecommendationReleaseRadar: vi.fn(),
+}));
+vi.mock('../Shared/useFeatureGates', () => ({
+  default: vi.fn(),
+  isFeatureEnabled: (featureGates, featureId) =>
+    featureGates?.[featureId]?.enabled !== false,
 }));
 
 const recommendation = {
@@ -36,6 +42,7 @@ describe('FederatedTasteRecommendationsPanel', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    useFeatureGates.mockReturnValue({ featureGates: {}, ready: true });
     fetchTasteRecommendations.mockResolvedValue({
       data: {
         candidateCount: 1,
@@ -60,6 +67,24 @@ describe('FederatedTasteRecommendationsPanel', () => {
         message: 'Subscribed to Release Radar.',
       },
     });
+  });
+
+  it('shows the social-federation gate without calling recommendation APIs', () => {
+    useFeatureGates.mockReturnValue({
+      featureGates: {
+        socialFederation: {
+          enabled: false,
+          message: 'Experimental feature is disabled.',
+        },
+      },
+      ready: true,
+    });
+
+    render(<FederatedTasteRecommendationsPanel />);
+
+    expect(screen.getByText('Social federation is disabled')).toBeInTheDocument();
+    expect(screen.getByText('feature.SocialFederation')).toBeInTheDocument();
+    expect(fetchTasteRecommendations).not.toHaveBeenCalled();
   });
 
   it('loads privacy-filtered recommendations and direct handoff actions', async () => {

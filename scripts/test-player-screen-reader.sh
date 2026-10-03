@@ -22,11 +22,14 @@ run_id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
 runtime_directory=''
 home_directory="$evidence_directory/home-$run_id"
 debug_log="$evidence_directory/orca-$run_id.log"
+startup_error_log="$evidence_directory/orca-startup-$run_id.log"
 pcm_capture="$evidence_directory/orca-speech-$run_id.s16le"
 pcm_offset_file="$evidence_directory/orca-speech-offset-$run_id.txt"
 sink_name="slskdn_player_a11y_$$"
 container_name="slskdn-player-a11y-$$-${RANDOM}"
-container_user="$(id -u):$(id -g)"
+container_uid="$(id -u)"
+container_gid="$(id -g)"
+container_user="$container_uid:$container_gid"
 capture_pid=''
 playwright_tmp_directory=''
 module_id=''
@@ -86,6 +89,19 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 playwright_tmp_directory="$(mktemp -d /tmp/slskdn-player-a11y.XXXXXX)"
 runtime_directory="$playwright_tmp_directory"
+{
+  printf '%s\n' 'root:x:0:0:root:/root:/bin/sh'
+  if [[ "$container_uid" != 0 ]]; then
+    printf 'player-a11y:x:%s:%s:Player Screen Reader:%s:/bin/sh\n' \
+      "$container_uid" "$container_gid" "$home_directory"
+  fi
+} >"$runtime_directory/passwd"
+{
+  printf '%s\n' 'root:x:0:'
+  if [[ "$container_gid" != 0 ]]; then
+    printf 'player-a11y:x:%s:\n' "$container_gid"
+  fi
+} >"$runtime_directory/group"
 
 parec --raw --format=s16le --rate=48000 --channels=2 --device="$sink_name.monitor" \
   >"$pcm_capture" &
@@ -102,6 +118,7 @@ export SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY="$evidence_directory"
 export SLSKDN_PLAYER_A11Y_HOME_DIRECTORY="$home_directory"
 export SLSKDN_PLAYER_A11Y_CACHE_DIRECTORY="$container_cache_directory"
 export SLSKDN_PLAYER_A11Y_DEBUG_LOG="$debug_log"
+export SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG="$startup_error_log"
 export SLSKDN_PLAYER_A11Y_PCM_CAPTURE="$pcm_capture"
 export SLSKDN_PLAYER_A11Y_PCM_OFFSET_FILE="$pcm_offset_file"
 export SLSKDN_PLAYER_A11Y_CONTAINER="$container_name"
@@ -133,6 +150,8 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
     container_mounts=(
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY,dst=$SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY"
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY,dst=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY"
+      --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY/passwd,dst=/etc/passwd,readonly"
+      --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY/group,dst=/etc/group,readonly"
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_PULSE_DIRECTORY,dst=$SLSKDN_PLAYER_A11Y_PULSE_DIRECTORY"
       --mount "type=bind,src=$dbus_socket_directory,dst=$dbus_socket_directory"
       --mount type=bind,src=/tmp/.X11-unix,dst=/tmp/.X11-unix
@@ -188,9 +207,34 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
 
     docker exec --detach "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
       /usr/libexec/at-spi-bus-launcher --launch-immediately --screen-reader=1
+
+    a11y_bus_address=''
+    a11y_bus_ready=false
+    for attempt in $(seq 1 30); do
+      a11y_bus_reply="$(docker exec "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+        /usr/bin/dbus-send --session --print-reply --dest=org.a11y.Bus \
+        /org/a11y/bus org.a11y.Bus.GetAddress 2>/dev/null || true)"
+      a11y_bus_address="${a11y_bus_reply#*string \"}"
+      a11y_bus_address="${a11y_bus_address%%\"*}"
+      if [[ -n "$a11y_bus_address" ]] && \
+        docker exec "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+          /usr/bin/dbus-send --bus="$a11y_bus_address" --print-reply \
+          --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+          org.freedesktop.DBus.ListNames >/dev/null 2>&1; then
+        a11y_bus_ready=true
+        break
+      fi
+      sleep 0.5
+    done
+    if [[ "$a11y_bus_ready" != true ]]; then
+      echo "The AT-SPI accessibility bus did not become ready." >&2
+      exit 1
+    fi
+
     docker exec --detach "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
-      /usr/bin/orca --replace \
-        --speech-system speechdispatcherfactory --debug-file="$SLSKDN_PLAYER_A11Y_DEBUG_LOG" --debug
+      /bin/sh -c \
+      "exec /usr/bin/orca --replace --speech-system speechdispatcherfactory --debug-file=\"\$1\" --debug >\"\$2\" 2>&1" \
+      player-orca "$SLSKDN_PLAYER_A11Y_DEBUG_LOG" "$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG"
 
     for attempt in $(seq 1 30); do
       if [[ -s "$SLSKDN_PLAYER_A11Y_DEBUG_LOG" ]]; then break; fi
@@ -198,6 +242,11 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
     done
     if [[ ! -s "$SLSKDN_PLAYER_A11Y_DEBUG_LOG" ]]; then
       echo "Orca did not start; inspect $SLSKDN_PLAYER_A11Y_DEBUG_LOG." >&2
+      if [[ -s "$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG" ]]; then
+        cat "$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG" >&2
+      fi
+      docker exec "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+        /usr/bin/pgrep --full /usr/bin/orca >&2 || true
       exit 1
     fi
 
@@ -216,7 +265,7 @@ if [[ "$capture_status" -ne 0 && "$capture_status" -ne 130 ]]; then
 fi
 capture_pid=''
 
-if ! grep -Fq "SPEECH OUTPUT: 'Google Chrome for Testing frame." "$debug_log"; then
+if ! grep -Fq "Google Chrome for Testing frame'" "$debug_log"; then
   echo 'Orca did not process the Playwright Chromium application while it was running.' >&2
   exit 1
 fi

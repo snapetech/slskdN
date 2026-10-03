@@ -1,4 +1,6 @@
 import * as slskdnAPI from '../../../lib/slskdn';
+import FeatureGateNotice from '../../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../../Shared/useFeatureGates';
 import {
   buildNetworkHealthScore,
   formatNetworkHealthReport,
@@ -84,6 +86,10 @@ const StatCard = ({ color, icon, inverted = false, label, subLabel, value }) => 
 
 // eslint-disable-next-line complexity
 const Network = ({ theme }) => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const meshEnabled = featureGatesReady && isFeatureEnabled(featureGates, 'mesh');
+  const multiSourceEnabled =
+    featureGatesReady && isFeatureEnabled(featureGates, 'multiSourceDownloads');
   const fetchInFlightRef = useRef(false);
   const mountedRef = useRef(false);
   const pollIntervalRef = useRef(null);
@@ -174,9 +180,16 @@ const Network = ({ theme }) => {
   }, [fetchData]);
 
   const handleSync = async (username) => {
+    if (!meshEnabled) return;
+
     setSyncing((previous) => ({ ...previous, [username]: true }));
     try {
-      await slskdnAPI.triggerMeshSync(username);
+      const result = await slskdnAPI.triggerMeshSync(username);
+      if (!result?.success) {
+        toast.error(result?.error || `Failed to sync with ${username}`);
+        return;
+      }
+
       toast.success(`Sync initiated with ${username}`);
     } catch {
       toast.error(`Failed to sync with ${username}`);
@@ -275,6 +288,21 @@ const Network = ({ theme }) => {
 
   return (
     <div className="network-dashboard">
+      <FeatureGateNotice
+        configurationKeys={['feature.Mesh', 'mesh.enable_overlay']}
+        featureGate={featureGates.mesh}
+        featureName="Mesh"
+      />
+      <FeatureGateNotice
+        configurationKeys={['feature.Dht', 'dht.enabled']}
+        featureGate={featureGates.dht}
+        featureName="DHT rendezvous"
+      />
+      <FeatureGateNotice
+        configurationKeys={['feature.MultiSourceDownloads']}
+        featureGate={featureGates.multiSourceDownloads}
+        featureName="Multi-source downloads"
+      />
       {loading && (
         <Message info>
           <Icon
@@ -327,9 +355,26 @@ const Network = ({ theme }) => {
         <Message
           className="network-diagnostic-message"
           info
-          onDismiss={dismissDhtExposureConsent}
         >
-          <Message.Header>Public DHT exposure notice</Message.Header>
+          <div className="network-dht-exposure-header">
+            <Message.Header>Public DHT exposure notice</Message.Header>
+            <Popup
+              content="Dismiss this public DHT exposure notice on this browser after reviewing it."
+              position="top right"
+              trigger={(
+                <Button
+                  aria-label="Dismiss public DHT exposure notice"
+                  basic
+                  className="network-dht-dismiss-button"
+                  icon
+                  onClick={dismissDhtExposureConsent}
+                  title="Dismiss public DHT exposure notice"
+                >
+                  <Icon name="close" />
+                </Button>
+              )}
+            />
+          </div>
           <p>
             DHT rendezvous is enabled and this node can publish its public
             endpoint into the public BitTorrent DHT. This is expected when public
@@ -383,7 +428,7 @@ const Network = ({ theme }) => {
           inverted={darkTheme}
           label="Active Swarms"
           subLabel="Multi-source downloads"
-          value={swarmJobs?.length ?? 0}
+          value={multiSourceEnabled ? swarmJobs?.length ?? 0 : 'Disabled'}
         />
       </Card.Group>
 
@@ -630,13 +675,14 @@ const Network = ({ theme }) => {
                       <Table.Cell>
                         <ShrinkableButton
                           compact
-                          disabled={syncing[peer.username]}
+                          disabled={!meshEnabled || syncing[peer.username]}
                           icon="sync"
                           loading={syncing[peer.username]}
                           mediaQuery="(max-width: 500px)"
                           onClick={() => handleSync(peer.username)}
                           primary
                           size="mini"
+                          tooltip={`Sync hash data with ${peer.username}. Use this when its sequence is behind yours.`}
                         >
                           Sync
                         </ShrinkableButton>
@@ -970,7 +1016,7 @@ const Network = ({ theme }) => {
       </Segment>
 
       {/* Active Swarm Downloads */}
-      {swarmJobs && swarmJobs.length > 0 && (
+      {multiSourceEnabled && swarmJobs && swarmJobs.length > 0 && (
         <Segment>
           <Header as="h4">
             <Icon name="bolt" />

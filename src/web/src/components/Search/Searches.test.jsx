@@ -76,6 +76,7 @@ const renderSearches = async ({
     callbacks.list?.([]);
   },
   initialEntries = ['/searches'],
+  server = { isConnected: true },
   waitForInput = true,
 } = {}) => {
   callbacks.list = undefined;
@@ -94,12 +95,16 @@ const renderSearches = async ({
     <MemoryRouter initialEntries={initialEntries}>
       <Routes>
         <Route
-          element={<Searches server={{ isConnected: true }} />}
+          element={<Searches server={server} />}
           path="/searches"
         />
         <Route
-          element={<Searches server={{ isConnected: true }} />}
+          element={<Searches server={server} />}
           path="/searches/:id"
+        />
+        <Route
+          element={<div data-testid="connection-settings">Connection settings</div>}
+          path="/system/options"
         />
       </Routes>
     </MemoryRouter>,
@@ -140,6 +145,41 @@ describe('Searches', () => {
     await renderSearches();
 
     expect(library.getAll).not.toHaveBeenCalled();
+  });
+
+  it('explains the disconnected search state and opens Soulseek settings', async () => {
+    const input = await renderSearches({ server: { isConnected: false } });
+
+    expect(input).toBeDisabled();
+    expect(input).toHaveAttribute(
+      'placeholder',
+      'Connect to Soulseek to search',
+    );
+    expect(screen.getByText('Soulseek connection needed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/use Disconnected in the top bar to reconnect/i),
+    ).toBeInTheDocument();
+
+    const settingsLink = screen.getByRole('link', {
+      name: 'Open connection settings',
+    });
+    expect(settingsLink).toHaveAttribute('href', '/system/options');
+    fireEvent.click(settingsLink);
+
+    expect(await screen.findByTestId('connection-settings')).toBeInTheDocument();
+  });
+
+  it('shows connection progress without directing users to change settings', async () => {
+    const input = await renderSearches({
+      server: { isConnected: false, isConnecting: true },
+    });
+
+    expect(input).toBeDisabled();
+    expect(input).toHaveAttribute('placeholder', 'Connecting to Soulseek…');
+    expect(screen.getByText('Connecting to Soulseek')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Open connection settings' }),
+    ).not.toBeInTheDocument();
   });
 
   it('loads the REST snapshot only when the hub connection fails', async () => {
@@ -209,13 +249,35 @@ describe('Searches', () => {
   it('defaults secondary search sections closed and remembers expanded state', async () => {
     await renderSearches();
 
-    expect(screen.getByRole('button', { name: 'Expand SongID' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand Music discovery tools' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Expand SongID' }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('songid-panel')).not.toBeInTheDocument();
 
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Expand Music discovery tools' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Expand SongID' }));
 
     expect(await screen.findByTestId('songid-panel')).toBeInTheDocument();
     expect(localStorage.getItem('slskdn.search.section.songid')).toBe('open');
+    expect(localStorage.getItem('slskdn.search.section.discoveryTools')).toBe(
+      'open',
+    );
+  });
+
+  it('preserves previously expanded discovery tools when the page is grouped', async () => {
+    localStorage.setItem('slskdn.search.section.songid', 'open');
+
+    await renderSearches();
+
+    expect(await screen.findByTestId('songid-panel')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Collapse Music discovery tools' }),
+    ).toBeInTheDocument();
   });
 
   it('loads a direct search detail URL when the initial list does not include it', async () => {

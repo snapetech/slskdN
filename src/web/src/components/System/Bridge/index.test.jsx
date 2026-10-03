@@ -4,6 +4,7 @@
 
 import * as bridge from '../../../lib/bridge';
 import Bridge from './index';
+import useFeatureGates from '../../Shared/useFeatureGates';
 import { act, render, screen } from '@testing-library/react';
 import React from 'react';
 
@@ -13,6 +14,11 @@ vi.mock('../../../lib/bridge', () => ({
   startBridge: vi.fn(),
   stopBridge: vi.fn(),
   updateConfig: vi.fn(),
+}));
+vi.mock('../../Shared/useFeatureGates', () => ({
+  default: vi.fn(),
+  isFeatureEnabled: (featureGates, featureId) =>
+    featureGates?.[featureId]?.enabled !== false,
 }));
 
 const config = {
@@ -54,6 +60,7 @@ describe('System Bridge polling', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.resetAllMocks();
+    useFeatureGates.mockReturnValue({ featureGates: {}, ready: true });
     Object.defineProperty(document, 'hidden', {
       configurable: true,
       value: false,
@@ -67,6 +74,24 @@ describe('System Bridge polling', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('shows the VirtualSoulfind gate without loading or polling bridge APIs', () => {
+    useFeatureGates.mockReturnValue({
+      featureGates: {
+        virtualSoulfind: {
+          enabled: false,
+          message: 'Experimental feature is disabled.',
+        },
+      },
+      ready: true,
+    });
+
+    render(<Bridge />);
+
+    expect(screen.getByText('VirtualSoulfind is disabled')).toBeInTheDocument();
+    expect(bridge.getConfig).not.toHaveBeenCalled();
+    expect(bridge.getDashboard).not.toHaveBeenCalled();
   });
 
   it('starts only when visible and suspends its ten-second cadence while hidden', async () => {

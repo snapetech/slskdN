@@ -4,9 +4,10 @@
 
 import * as jobsLibrary from '../../../lib/jobs';
 import Jobs from '.';
+import useFeatureGates from '../../Shared/useFeatureGates';
+import userEvent from '@testing-library/user-event';
 import {
   act,
-  fireEvent,
   render,
   screen,
   waitFor,
@@ -17,6 +18,11 @@ import { toast } from 'react-toastify';
 
 // Mock dependencies
 vi.mock('../../../lib/jobs');
+vi.mock('../../Shared/useFeatureGates', () => ({
+  default: vi.fn(),
+  isFeatureEnabled: (featureGates, featureId) =>
+    featureGates?.[featureId]?.enabled !== false,
+}));
 vi.mock('react-toastify', () => ({
   toast: {
     error: vi.fn(),
@@ -78,6 +84,7 @@ describe('Jobs', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    useFeatureGates.mockReturnValue({ featureGates: {}, ready: true });
     Object.defineProperty(document, 'hidden', {
       configurable: true,
       value: false,
@@ -118,6 +125,26 @@ describe('Jobs', () => {
     expect(screen.getByText('job-2')).toBeInTheDocument();
     expect(screen.getByText('discography')).toBeInTheDocument();
     expect(screen.getByText('label_crate')).toBeInTheDocument();
+  });
+
+  it('keeps standard jobs available and skips swarm requests when multi-source is disabled', async () => {
+    useFeatureGates.mockReturnValue({
+      featureGates: {
+        multiSourceDownloads: {
+          enabled: false,
+          message: 'Experimental feature is disabled.',
+        },
+      },
+      ready: true,
+    });
+
+    render(<Jobs />);
+
+    expect(await screen.findByText('job-1')).toBeInTheDocument();
+    expect(jobsLibrary.getJobs).toHaveBeenCalled();
+    expect(jobsLibrary.getActiveSwarmJobs).not.toHaveBeenCalled();
+    expect(screen.getByText('Multi-source downloads is disabled')).toBeInTheDocument();
+    expect(screen.getByText('feature.MultiSourceDownloads')).toBeInTheDocument();
   });
 
   it('fetches and displays swarm jobs', async () => {
@@ -183,18 +210,32 @@ describe('Jobs', () => {
     expect(screen.getByText('job-1')).toBeInTheDocument();
   });
 
-  it('opens swarm visualization modal when View Details is clicked', async () => {
+  it('opens and closes the swarm visualization from the keyboard', async () => {
+    const user = userEvent.setup();
     render(<Jobs />);
 
     await waitFor(() => {
       expect(screen.getByText('Active Swarm Downloads')).toBeInTheDocument();
     });
 
-    const viewDetailsButton = screen.getByText('View Details');
-    fireEvent.click(viewDetailsButton);
+    const viewDetailsButton = screen.getByRole('button', {
+      name: 'View swarm download details for file.mp3',
+    });
+    viewDetailsButton.focus();
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(screen.getByTestId('swarm-visualization')).toBeInTheDocument();
+    });
+
+    const closeButton = screen.getByRole('button', {
+      name: 'Close swarm download visualization',
+    });
+    closeButton.focus();
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('swarm-visualization')).not.toBeInTheDocument();
     });
   });
 

@@ -2,11 +2,32 @@
 // Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 
-import { getCsrfTokenFromCookieString } from './api';
+import api, { getCsrfTokenFromCookieString } from './api';
+import { tokenPassthroughValue } from '../config';
+import { getToken, setToken } from './token';
+
+const getResponseErrorHandler = () =>
+  api.interceptors.response.handlers.find(({ rejected }) => rejected)?.rejected;
+
+const unauthorizedError = (url) => ({
+  response: { status: 401, config: { url }, headers: {} },
+});
+
+const stubWindowReload = () => {
+  const { localStorage, sessionStorage } = window;
+  const reload = vi.fn();
+  vi.stubGlobal('window', {
+    localStorage,
+    sessionStorage,
+    location: { reload },
+  });
+  return reload;
+};
 
 describe('api csrf token selection', () => {
   afterEach(() => {
     delete window.port;
+    vi.unstubAllGlobals();
   });
 
   it('prefers the current port scoped csrf token', () => {
@@ -50,5 +71,34 @@ describe('api csrf token selection', () => {
     );
 
     expect(token).toBe('request-token');
+  });
+
+  it.each([
+    ['telemetry KPIs', '/telemetry/metrics/kpi'],
+    ['unacknowledged conversations', '/conversations/activity/unacknowledged'],
+    ['room activity', '/rooms/activity'],
+  ])(
+    'preserves passthrough state without reloading after a 401 from %s',
+    async (_, url) => {
+      const reload = stubWindowReload();
+      setToken(sessionStorage, tokenPassthroughValue);
+
+      const error = unauthorizedError(url);
+      await expect(getResponseErrorHandler()(error)).rejects.toBe(error);
+
+      expect(getToken()).toBe(tokenPassthroughValue);
+      expect(reload).not.toHaveBeenCalled();
+    },
+  );
+
+  it('clears an authenticated session and reloads after a 401', async () => {
+    const reload = stubWindowReload();
+    setToken(sessionStorage, 'jwt-token');
+
+    const error = unauthorizedError('/telemetry/metrics/kpi');
+    await expect(getResponseErrorHandler()(error)).rejects.toBe(error);
+
+    expect(getToken()).toBeNull();
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 });

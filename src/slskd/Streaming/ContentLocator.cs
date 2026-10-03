@@ -62,12 +62,14 @@ public sealed class ContentLocator : IContentLocator
 
         var finfo = repo.FindFileInfo(ci.Value.MaskedFilename);
         if (string.IsNullOrEmpty(finfo.Filename) &&
-            Path.IsPathFullyQualified(ci.Value.MaskedFilename) &&
-            IsAllowedLocalPath(ci.Value.MaskedFilename) &&
-            File.Exists(ci.Value.MaskedFilename))
+            Path.IsPathFullyQualified(ci.Value.MaskedFilename))
         {
-            var info = new FileInfo(ci.Value.MaskedFilename);
-            finfo = (ci.Value.MaskedFilename, info.Length);
+            var maskedLocalPath = NormalizeAllowedLocalPath(ci.Value.MaskedFilename);
+            if (maskedLocalPath != null && File.Exists(maskedLocalPath))
+            {
+                var info = new FileInfo(maskedLocalPath);
+                finfo = (maskedLocalPath, info.Length);
+            }
         }
 
         if (string.IsNullOrEmpty(finfo.Filename))
@@ -76,30 +78,38 @@ public sealed class ContentLocator : IContentLocator
             return null;
         }
 
-        if (!File.Exists(finfo.Filename))
+        var allowedPath = NormalizeAllowedLocalPath(finfo.Filename);
+        if (allowedPath == null)
+        {
+            _log.LogDebug("[ContentLocator] File is outside configured local roots: {Path}", finfo.Filename);
+            return null;
+        }
+
+        if (!File.Exists(allowedPath))
         {
             _log.LogDebug("[ContentLocator] File no longer on disk: {Path}", finfo.Filename);
             return null;
         }
 
-        var currentSize = new FileInfo(finfo.Filename).Length;
+        var currentSize = new FileInfo(allowedPath).Length;
         if (currentSize <= 0) return null;
-        var contentType = GetContentType(finfo.Filename);
-        return new ResolvedContent(finfo.Filename, currentSize, contentType);
+        var contentType = GetContentType(allowedPath);
+        return new ResolvedContent(allowedPath, currentSize, contentType);
     }
 
     /// <inheritdoc />
     public string? RegisterLocalFile(string absolutePath)
     {
         // ADR-0013: a picker page supplies known paths without weakening fallback scan limits.
-        if (_options == null || !IsAllowedLocalPath(absolutePath) || !File.Exists(absolutePath)) return null;
-        var info = new FileInfo(absolutePath);
+        var allowedPath = NormalizeAllowedLocalPath(absolutePath);
+        if (allowedPath == null || !File.Exists(allowedPath)) return null;
+        var info = new FileInfo(allowedPath);
         if (info.Length <= 0) return null;
-        var contentId = $"path:{slskd.Compute.Sha256Hash($"{absolutePath}|{info.Length}")}";
+        var contentId = $"path:{slskd.Compute.Sha256Hash($"{allowedPath}|{info.Length}")}";
         var item = _shareService.GetLocalRepository().FindContentItem(contentId);
         if (item.HasValue && !item.Value.IsAdvertisable) return null;
         if (_fallbackHits.Count >= MaxFallbackMissCacheEntries) _fallbackHits.Clear();
-        _fallbackHits[contentId] = new ResolvedContent(absolutePath, info.Length, GetContentType(absolutePath));
+        _fallbackHits[contentId] = new ResolvedContent(allowedPath, info.Length, GetContentType(allowedPath));
         FallbackMissCache.TryRemove(contentId, out _);
         return contentId;
     }
@@ -114,10 +124,12 @@ public sealed class ContentLocator : IContentLocator
         if (_fallbackHits.TryGetValue(contentId, out var cached))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (IsAllowedLocalPath(cached.AbsolutePath) && File.Exists(cached.AbsolutePath))
+            var allowedCachedPath = NormalizeAllowedLocalPath(cached.AbsolutePath);
+            if (allowedCachedPath != null && File.Exists(allowedCachedPath))
             {
-                var size = new FileInfo(cached.AbsolutePath).Length;
-                if (size > 0 && size == cached.Length) return cached;
+                var size = new FileInfo(allowedCachedPath).Length;
+                if (size > 0 && size == cached.Length)
+                    return new ResolvedContent(allowedCachedPath, size, cached.ContentType);
             }
 
             _fallbackHits.TryRemove(contentId, out _);
@@ -141,24 +153,25 @@ public sealed class ContentLocator : IContentLocator
         foreach (var path in EnumerateAllowedLocalFiles(roots, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!File.Exists(path))
+            var allowedPath = NormalizeAllowedLocalPath(path);
+            if (allowedPath == null || !File.Exists(allowedPath))
             {
                 continue;
             }
 
-            var info = new FileInfo(path);
+            var info = new FileInfo(allowedPath);
             if (info.Length <= 0)
             {
                 continue;
             }
 
-            var pathContentId = $"path:{slskd.Compute.Sha256Hash($"{path}|{info.Length}")}";
+            var pathContentId = $"path:{slskd.Compute.Sha256Hash($"{allowedPath}|{info.Length}")}";
             if (!string.Equals(contentId, pathContentId, StringComparison.Ordinal))
             {
                 continue;
             }
 
-            var resolved = new ResolvedContent(path, info.Length, GetContentType(path));
+            var resolved = new ResolvedContent(allowedPath, info.Length, GetContentType(allowedPath));
             if (_fallbackHits.Count >= MaxFallbackMissCacheEntries) _fallbackHits.Clear();
             _fallbackHits[contentId] = resolved;
             return resolved;
@@ -244,14 +257,14 @@ public sealed class ContentLocator : IContentLocator
         };
     }
 
-    private bool IsAllowedLocalPath(string path)
+    private string? NormalizeAllowedLocalPath(string? path)
     {
         if (_options == null)
         {
-            return false;
+            return null;
         }
 
-        return PathGuard.NormalizeAbsolutePathWithinRoots(path, GetAllowedLocalRoots()) is not null;
+        return PathGuard.NormalizeAbsolutePathWithinRoots(path, GetAllowedLocalRoots());
     }
 
     private static string GetContentType(string path)

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Threading;
@@ -502,6 +503,10 @@ public class SharesControllerTests
             _options = new TestOptionsMonitor(new slskd.Options
             {
                 Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true, Streaming = true },
+                Sharing = new slskd.Options.SharingOptions
+                {
+                    TrustedPrivateOwnerOrigins = new[] { "http://127.0.0.1:2" }
+                },
                 Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" },
                 Directories = new slskd.Options.DirectoriesOptions { Downloads = temp }
             });
@@ -550,6 +555,254 @@ public class SharesControllerTests
         finally
         {
             Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Backfill_WithExactTrustedPrivateOwnerOrigin_DownloadsWithoutDisablingPublicGuard()
+    {
+        var grantId = Guid.NewGuid();
+        var collectionId = Guid.NewGuid();
+        var temp = Path.Combine(Path.GetTempPath(), $"slskdn-backfill-{Guid.NewGuid():N}");
+        var content = new byte[] { 0x49, 0x44, 0x33, 0x04 };
+        Directory.CreateDirectory(temp);
+
+        try
+        {
+            _options = new TestOptionsMonitor(new slskd.Options
+            {
+                Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true, Streaming = true },
+                Sharing = new slskd.Options.SharingOptions
+                {
+                    TrustedPrivateOwnerOrigins = new[] { "http://127.0.0.1:5030" }
+                },
+                Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" },
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = temp }
+            });
+
+            _sharingMock
+                .Setup(x => x.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareGrant
+                {
+                    Id = grantId,
+                    CollectionId = collectionId,
+                    AllowDownload = true,
+                    ShareToken = "secret-token",
+                    OwnerEndpoint = "http://127.0.0.1:5030"
+                });
+            _sharingMock
+                .Setup(x => x.GetCollectionAsync(collectionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Collection { Id = collectionId, OwnerUserId = "remote" });
+            _sharingMock
+                .Setup(x => x.GetManifestAsync(grantId, "secret-token", "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareManifestDto
+                {
+                    Items = new List<ShareManifestItemDto>
+                    {
+                        new()
+                        {
+                            ContentId = "sha256:trusted",
+                            MediaKind = "audio",
+                            FileName = "sha256_trusted.mp3",
+                            StreamUrl = "http://127.0.0.1:5030/api/v0/streams/sha256:trusted?token=secret-token"
+                        }
+                    }
+                });
+            _httpClientFactoryMock
+                .Setup(x => x.CreateClient(slskd.Common.Security.OutboundUriGuard.LocalNoRedirectHttpClientName))
+                .Returns(() => new HttpClient(new BackfillResponseHandler(content)));
+
+            var result = await CreateController().Backfill(grantId, CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<BackfillResponse>(ok.Value);
+            Assert.Equal(1, response.Enqueued);
+            Assert.Equal(0, response.Failed);
+            var downloadedFile = Assert.Single(Directory.GetFiles(temp));
+            Assert.Equal(content, await File.ReadAllBytesAsync(downloadedFile));
+            _httpClientFactoryMock.Verify(
+                x => x.CreateClient(slskd.Common.Security.OutboundUriGuard.LocalNoRedirectHttpClientName),
+                Times.Once);
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Backfill_WithDanglingDestinationSymlink_UsesSafeUniqueFilename()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var grantId = Guid.NewGuid();
+        var collectionId = Guid.NewGuid();
+        var downloadsDirectory = Path.Combine(Path.GetTempPath(), $"slskdn-backfill-root-{Guid.NewGuid():N}");
+        var outsideDirectory = Path.Combine(Path.GetTempPath(), $"slskdn-backfill-outside-{Guid.NewGuid():N}");
+        var destinationLink = Path.Combine(downloadsDirectory, "sha256_trusted.mp3");
+        var outsideFilename = Path.Combine(outsideDirectory, "created.mp3");
+        Directory.CreateDirectory(downloadsDirectory);
+        Directory.CreateDirectory(outsideDirectory);
+        File.CreateSymbolicLink(destinationLink, outsideFilename);
+
+        try
+        {
+            _options = new TestOptionsMonitor(new slskd.Options
+            {
+                Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true, Streaming = true },
+                Sharing = new slskd.Options.SharingOptions
+                {
+                    TrustedPrivateOwnerOrigins = new[] { "http://127.0.0.1:5030" }
+                },
+                Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" },
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = downloadsDirectory }
+            });
+
+            _sharingMock
+                .Setup(service => service.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareGrant
+                {
+                    Id = grantId,
+                    CollectionId = collectionId,
+                    AllowDownload = true,
+                    ShareToken = "secret-token",
+                    OwnerEndpoint = "http://127.0.0.1:5030"
+                });
+            _sharingMock
+                .Setup(service => service.GetCollectionAsync(collectionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Collection { Id = collectionId, OwnerUserId = "remote" });
+            _sharingMock
+                .Setup(service => service.GetManifestAsync(grantId, "secret-token", "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareManifestDto
+                {
+                    Items = new List<ShareManifestItemDto>
+                    {
+                        new()
+                        {
+                            ContentId = "sha256:trusted",
+                            MediaKind = "audio",
+                            FileName = "sha256_trusted.mp3",
+                            StreamUrl = "http://127.0.0.1:5030/api/v0/streams/sha256:trusted?token=secret-token"
+                        }
+                    }
+                });
+            _httpClientFactoryMock
+                .Setup(factory => factory.CreateClient(slskd.Common.Security.OutboundUriGuard.LocalNoRedirectHttpClientName))
+                .Returns(() => new HttpClient(new BackfillResponseHandler(new byte[] { 0x49, 0x44, 0x33, 0x04 })));
+
+            var result = await CreateController().Backfill(grantId, CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<BackfillResponse>(ok.Value);
+            Assert.False(File.Exists(outsideFilename));
+            Assert.True(File.GetAttributes(destinationLink).HasFlag(FileAttributes.ReparsePoint));
+            Assert.Equal(1, response.Enqueued);
+            Assert.Equal(0, response.Failed);
+            var downloadedFile = Assert.Single(Directory.GetFiles(downloadsDirectory).Where(path => path != destinationLink));
+            Assert.Equal(new byte[] { 0x49, 0x44, 0x33, 0x04 }, await File.ReadAllBytesAsync(downloadedFile));
+        }
+        finally
+        {
+            File.Delete(destinationLink);
+            Directory.Delete(downloadsDirectory, recursive: true);
+            Directory.Delete(outsideDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Backfill_WithExecutableContent_QuarantinesFileAndReportsFailure()
+    {
+        var grantId = Guid.NewGuid();
+        var collectionId = Guid.NewGuid();
+        var downloadsDirectory = Path.Combine(Path.GetTempPath(), $"slskdn-backfill-safety-{Guid.NewGuid():N}");
+        var maliciousContent = new byte[] { 0x4D, 0x5A, 0x90, 0x00 };
+        Directory.CreateDirectory(downloadsDirectory);
+
+        try
+        {
+            _options = new TestOptionsMonitor(new slskd.Options
+            {
+                Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true, Streaming = true },
+                Sharing = new slskd.Options.SharingOptions
+                {
+                    TrustedPrivateOwnerOrigins = new[] { "http://127.0.0.1:5030" }
+                },
+                Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" },
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = downloadsDirectory }
+            });
+
+            _sharingMock
+                .Setup(service => service.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareGrant
+                {
+                    Id = grantId,
+                    CollectionId = collectionId,
+                    AllowDownload = true,
+                    ShareToken = "secret-token",
+                    OwnerEndpoint = "http://127.0.0.1:5030"
+                });
+            _sharingMock
+                .Setup(service => service.GetCollectionAsync(collectionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Collection { Id = collectionId, OwnerUserId = "remote" });
+            _sharingMock
+                .Setup(service => service.GetManifestAsync(grantId, "secret-token", "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareManifestDto
+                {
+                    Items = new List<ShareManifestItemDto>
+                    {
+                        new()
+                        {
+                            ContentId = "sha256:trusted",
+                            MediaKind = "audio",
+                            FileName = "blocked.mp3",
+                            StreamUrl = "http://127.0.0.1:5030/api/v0/streams/sha256:trusted?token=secret-token"
+                        }
+                    }
+                });
+            _httpClientFactoryMock
+                .Setup(factory => factory.CreateClient(slskd.Common.Security.OutboundUriGuard.LocalNoRedirectHttpClientName))
+                .Returns(() => new HttpClient(new BackfillResponseHandler(maliciousContent)));
+
+            var result = await CreateController().Backfill(grantId, CancellationToken.None);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<BackfillResponse>(ok.Value);
+            Assert.Equal(0, response.Enqueued);
+            Assert.Equal(1, response.Failed);
+            Assert.DoesNotContain(Directory.GetFiles(downloadsDirectory), path => Path.GetFileName(path) == "blocked.mp3");
+
+            var quarantineDirectory = Path.Combine(downloadsDirectory, ".quarantine");
+            var quarantinedPath = Assert.Single(Directory.GetFiles(quarantineDirectory));
+            Assert.Equal(maliciousContent, await File.ReadAllBytesAsync(quarantinedPath));
+        }
+        finally
+        {
+            Directory.Delete(downloadsDirectory, recursive: true);
+        }
+    }
+
+    private sealed class BackfillResponseHandler : HttpMessageHandler
+    {
+        private readonly byte[] _content;
+
+        public BackfillResponseHandler(byte[] content)
+        {
+            _content = content;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Assert.Equal("http://127.0.0.1:5030/api/v0/streams/sha256:trusted?token=secret-token", request.RequestUri?.ToString());
+            Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);
+            Assert.Equal("secret-token", request.Headers.Authorization?.Parameter);
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(_content),
+            });
         }
     }
 }

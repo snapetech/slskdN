@@ -2,8 +2,10 @@ import '@testing-library/jest-dom';
 import * as chat from '../../lib/chat';
 import * as pods from '../../lib/pods';
 import * as rooms from '../../lib/rooms';
+import * as slskdn from '../../lib/slskdn';
 import MessagingV2 from './MessagingV2';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,6 +29,10 @@ vi.mock('../../lib/rooms', () => ({
   getUsers: vi.fn(),
   join: vi.fn(),
   leave: vi.fn(),
+}));
+
+vi.mock('../../lib/slskdn', () => ({
+  getCapabilities: vi.fn(),
 }));
 
 vi.mock('../../lib/humanChallengeAutoResponse', () => ({
@@ -93,6 +99,9 @@ describe('MessagingV2 hydration', () => {
     rooms.getUsers.mockResolvedValue([]);
     pods.discoverAll.mockResolvedValue([]);
     pods.list.mockResolvedValue(savedPods);
+    slskdn.getCapabilities.mockResolvedValue({
+      featureGates: { pods: { enabled: true, status: 'Experimental' } },
+    });
   });
 
   afterEach(() => {
@@ -135,6 +144,24 @@ describe('MessagingV2 hydration', () => {
     expect(pods.list).toHaveBeenCalledTimes(1);
     expect(pods.discoverAll).toHaveBeenCalledTimes(1);
     expect(pods.get).not.toHaveBeenCalled();
+  });
+
+  it('keeps pod routes available with a clear state and skips pod APIs when the server gate is disabled', async () => {
+    slskdn.getCapabilities.mockResolvedValue({
+      featureGates: { pods: { enabled: false, status: 'Disabled' } },
+    });
+
+    renderMessaging({ initialKind: 'pod' });
+
+    expect(await screen.findByText('Mesh Pods are disabled by server configuration.'))
+      .toBeInTheDocument();
+    expect(screen.getByText('feature.Pods')).toBeInTheDocument();
+    expect(screen.getByText('Mesh Pods are disabled')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mesh only' }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByText('Mesh · Pod channels')).not.toBeInTheDocument();
+    expect(pods.list).not.toHaveBeenCalled();
+    expect(pods.discoverAll).not.toHaveBeenCalled();
   });
 
   it('polls messaging every ten seconds and pod metadata every sixty seconds', async () => {
@@ -303,5 +330,57 @@ describe('MessagingV2 hydration', () => {
     expect(rooms.getUsers).toHaveBeenCalledTimes(3);
     expect(screen.queryByText('alice')).not.toBeInTheDocument();
     expect(screen.getByText('No members reported yet.')).toBeInTheDocument();
+  });
+
+  it('shows a failed pod-create action while preserving the entered name', async () => {
+    const user = userEvent.setup();
+    pods.create.mockRejectedValueOnce({
+      response: { data: { detail: 'Pod service unavailable', status: 503 } },
+    });
+    renderMessaging();
+
+    await user.click(await screen.findByRole('button', { name: 'Create a pod room' }));
+    const nameInput = screen.getByPlaceholderText('pod room name');
+    await user.type(nameInput, 'Listening room');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+
+    expect(await screen.findByTestId('messaging-action-error'))
+      .toHaveTextContent('Pod service unavailable');
+    expect(nameInput).toHaveValue('Listening room');
+  });
+
+  it('distinguishes failed conversation loading from an empty history and retries', async () => {
+    const user = userEvent.setup();
+    chat.getAll.mockRejectedValueOnce(new Error('Conversation store offline'));
+    renderMessaging();
+
+    expect(await screen.findByTestId('messaging-list-error'))
+      .toHaveTextContent('Conversation store offline');
+    expect(screen.queryByText('No saved direct messages.')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', {
+      name: 'Retry loading saved conversations',
+    }));
+
+    await waitFor(() => expect(chat.getAll).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('No saved direct messages.')).toBeInTheDocument();
+    expect(screen.queryByTestId('messaging-list-error')).not.toBeInTheDocument();
+  });
+
+  it('keeps pod list failures distinct from an empty pod list and retries', async () => {
+    const user = userEvent.setup();
+    pods.list.mockRejectedValueOnce(new Error('Pod storage offline'));
+    renderMessaging();
+
+    expect(await screen.findByTestId('pod-list-error'))
+      .toHaveTextContent('Pod storage offline');
+    expect(screen.queryByText('No pod rooms or discovered pods yet.'))
+      .not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', {
+      name: 'Retry loading saved pod channels',
+    }));
+
+    await waitFor(() => expect(pods.list).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('Pod 1 / General')).toBeInTheDocument();
+    expect(screen.queryByTestId('pod-list-error')).not.toBeInTheDocument();
   });
 });

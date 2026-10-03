@@ -4,14 +4,27 @@
 
 import * as slskdnAPI from '../../../lib/slskdn';
 import Network from '.';
+import useFeatureGates from '../../Shared/useFeatureGates';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
+import { toast } from 'react-toastify';
 
 vi.mock('../../../lib/slskdn');
+vi.mock('../../Shared/useFeatureGates', () => ({
+  default: vi.fn(),
+  isFeatureEnabled: (featureGates, featureId) =>
+    featureGates?.[featureId]?.enabled !== false,
+}));
 vi.mock('../../Shared', () => ({
   LoaderSegment: () => <div>Loading...</div>,
-  ShrinkableButton: ({ children, ...props }) => (
-    <button {...props}>{children}</button>
+  ShrinkableButton: ({ children, tooltip, ...props }) => (
+    <button
+      title={tooltip}
+      {...props}
+    >
+      {children}
+    </button>
   ),
 }));
 vi.mock('react-toastify', () => ({
@@ -25,8 +38,10 @@ vi.mock('react-toastify', () => ({
 describe('Network', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    Object.assign(navigator, {
-      clipboard: {
+    useFeatureGates.mockReturnValue({ featureGates: {}, ready: true });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
         writeText: vi.fn().mockResolvedValue(undefined),
       },
     });
@@ -64,6 +79,41 @@ describe('Network', () => {
     });
   });
 
+  it('disables mesh actions and labels gated network features when unavailable', async () => {
+    useFeatureGates.mockReturnValue({
+      featureGates: {
+        dht: { enabled: false, message: 'Experimental feature is disabled.' },
+        mesh: { enabled: false, message: 'Experimental feature is disabled.' },
+        multiSourceDownloads: {
+          enabled: false,
+          message: 'Experimental feature is disabled.',
+        },
+      },
+      ready: true,
+    });
+    slskdnAPI.getSlskdnStats.mockResolvedValue({
+      capabilities: { features: [], version: 'slskdn' },
+      dht: { dhtNodeCount: 0, isDhtRunning: false },
+      discoveredPeers: [],
+      hashDb: { currentSeqId: 0, totalEntries: 0 },
+      mesh: { connectedPeerCount: 1, warnings: [] },
+      meshPeers: [{ username: 'mesh-peer' }],
+      swarmJobs: [{ filename: '/tmp/file.flac', jobId: 'swarm-disabled' }],
+    });
+
+    render(<Network theme="light" />);
+
+    expect(await screen.findByText('Mesh is disabled')).toBeInTheDocument();
+    expect(screen.getByText('DHT rendezvous is disabled')).toBeInTheDocument();
+    expect(screen.getByText('Multi-source downloads is disabled')).toBeInTheDocument();
+    expect(screen.getByText('Disabled')).toBeInTheDocument();
+    expect(screen.queryByText('swarm-disabled')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Sync' }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Sync' }));
+    expect(slskdnAPI.triggerMeshSync).not.toHaveBeenCalled();
+  });
   it('shows the connectivity diagnostics warning when no peers are reachable', async () => {
     render(<Network theme="light" />);
 
@@ -91,6 +141,50 @@ describe('Network', () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         expect.stringContaining('slskdN network health report'),
       );
+    });
+  });
+
+  it('reports a mesh sync error instead of showing a success toast', async () => {
+    slskdnAPI.getSlskdnStats.mockResolvedValueOnce({
+      capabilities: { features: [], version: 'slskdN' },
+      dht: {},
+      hashDb: {},
+      mesh: { connectedPeerCount: 1, warnings: [] },
+      meshPeers: [{ username: 'mesh-peer' }],
+      swarmJobs: [],
+    });
+    slskdnAPI.triggerMeshSync.mockResolvedValueOnce({
+      error: 'Peer does not support mesh sync',
+      success: false,
+    });
+
+    render(<Network theme="light" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Sync' }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Peer does not support mesh sync');
+    });
+    expect(toast.success).not.toHaveBeenCalledWith('Sync initiated with mesh-peer');
+  });
+
+  it('shows success only when the mesh sync result reports success', async () => {
+    slskdnAPI.getSlskdnStats.mockResolvedValueOnce({
+      capabilities: { features: [], version: 'slskdN' },
+      dht: {},
+      hashDb: {},
+      mesh: { connectedPeerCount: 1, warnings: [] },
+      meshPeers: [{ username: 'mesh-peer' }],
+      swarmJobs: [],
+    });
+    slskdnAPI.triggerMeshSync.mockResolvedValueOnce({ success: true });
+
+    render(<Network theme="light" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Sync' }));
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('Sync initiated with mesh-peer');
     });
   });
 
@@ -129,8 +223,9 @@ describe('Network', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows a dismissable DHT exposure notice for first-run public DHT usage', async () => {
-    const { container } = render(<Network theme="light" />);
+  it('dismisses the public DHT notice with the keyboard and remembers the choice', async () => {
+    const user = userEvent.setup();
+    render(<Network theme="light" />);
 
     await waitFor(() => {
       expect(
@@ -138,7 +233,11 @@ describe('Network', () => {
       ).toBeInTheDocument();
     });
 
-    fireEvent.click(container.querySelector('.close.icon'));
+    const dismissButton = screen.getByRole('button', {
+      name: 'Dismiss public DHT exposure notice',
+    });
+    dismissButton.focus();
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(

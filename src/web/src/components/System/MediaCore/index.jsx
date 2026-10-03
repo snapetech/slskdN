@@ -1,4 +1,6 @@
 import * as mediacore from '../../../lib/mediacore';
+import FeatureGateNotice from '../../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../../Shared/useFeatureGates';
 import Button from './MediaCoreButton';
 import MediaCorePods from './MediaCorePods';
 import MediaCoreStats from './MediaCoreStats';
@@ -53,6 +55,8 @@ export const areContentIdStatsEqual = (left, right) => {
 };
 
 const MediaCore = () => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const podsEnabled = featureGatesReady && isFeatureEnabled(featureGates, 'pods');
   const mountedRef = useRef(false);
   const statsLoadedRef = useRef(false);
   const statsInFlightRef = useRef(false);
@@ -822,10 +826,11 @@ const MediaCore = () => {
         MediaCore ContentID Registry
       </Header>
 
-      <Segment>
-        <Header as="h3">
-          <Icon name="sitemap" />
-          Pod Workflow Index
+      {podsEnabled ? (
+        <Segment>
+          <Header as="h3">
+            <Icon name="sitemap" />
+            Pod Workflow Index
         </Header>
         <Message warning>
           Pod workflows mix read-only diagnostics with operations that publish
@@ -884,8 +889,21 @@ const MediaCore = () => {
               </Card.Content>
             </Card>
           ))}
-        </Card.Group>
-      </Segment>
+          </Card.Group>
+        </Segment>
+      ) : (
+        <Segment>
+          {featureGatesReady ? (
+            <FeatureGateNotice
+              configurationKeys={['feature.Pods']}
+              featureGate={featureGates.pods}
+              featureName="Pods"
+            />
+          ) : (
+            <Message info>Checking PodCore availability…</Message>
+          )}
+        </Segment>
+      )}
 
       <Grid stackable>
         {/* Statistics Overview */}
@@ -3022,7 +3040,12 @@ const MediaCore = () => {
 
 
         {/* PodCore Operations */}
-        <MediaCorePods isPodWorkflowVisible={isPodWorkflowVisible} supportedAlgorithms={supportedAlgorithms} />
+        {podsEnabled && (
+          <MediaCorePods
+            isPodWorkflowVisible={isPodWorkflowVisible}
+            supportedAlgorithms={supportedAlgorithms}
+          />
+        )}
       </Grid>
     </div>
   );

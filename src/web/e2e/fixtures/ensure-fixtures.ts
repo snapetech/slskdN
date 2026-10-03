@@ -12,7 +12,7 @@ const OPTIONAL_MEDIA_FILES = [
 ];
 
 function getRepoRootFromCwd(cwd: string = process.cwd()): string {
-  return path.join(cwd, '..', '..', '..');
+  return path.resolve(cwd, '..', '..');
 }
 
 function getFullFixturesPath(

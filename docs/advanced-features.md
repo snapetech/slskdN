@@ -175,7 +175,8 @@ feature:
 
 Open **System → Experience** to configure browser-local presentation choices.
 These settings are saved in the current browser and do not change server
-configuration, searches, downloads, or network behavior.
+configuration or start new searches or downloads. Hiding the player stops
+current playback and clears its local queue.
 
 - **Show browser player** keeps or hides the persistent music player. Turning
   it off stops current local playback, clears the browser player queue, hides

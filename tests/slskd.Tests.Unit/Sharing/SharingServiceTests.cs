@@ -188,6 +188,34 @@ public class SharingServiceTests
     }
 
     [Fact]
+    public async Task GetManifestAsync_IncomingGrantWithoutOwnerEndpoint_OmitsUnreachableStreamUrl()
+    {
+        var svc = CreateService();
+        var grantId = Guid.NewGuid();
+        var collectionId = Guid.NewGuid();
+        var grant = new ShareGrant
+        {
+            Id = grantId,
+            CollectionId = collectionId,
+            AllowStream = true,
+            AudienceId = "network:alice",
+            ShareToken = "remote-share-token",
+        };
+        var collection = new Collection { Id = collectionId, Title = "Remote", Type = CollectionType.ShareList };
+        var items = new List<CollectionItem> { new() { ContentId = "sha256:track" } };
+
+        _grantsMock.Setup(x => x.GetAccessibleByIdAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(grant);
+        _collectionsMock.Setup(x => x.GetByIdAsync(collectionId, It.IsAny<CancellationToken>())).ReturnsAsync(collection);
+        _collectionsMock.Setup(x => x.GetItemsAsync(collectionId, It.IsAny<CancellationToken>())).ReturnsAsync(items);
+
+        var manifest = await svc.GetManifestAsync(grantId, null, "alice", CancellationToken.None);
+
+        Assert.NotNull(manifest);
+        Assert.Null(manifest.Items[0].StreamUrl);
+    }
+
+    [Fact]
     public async Task GetManifestAsync_AllowStreamFalse_OmitsStreamUrl()
     {
         var svc = CreateService();

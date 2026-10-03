@@ -171,13 +171,10 @@ public class SharesController : ControllerBase
     {
         if (_soulseekClient == null) return;
 
-        var web = _options.CurrentValue.Web;
-        var scheme = web.Https?.Disabled != true ? "https" : "http";
-        var urlBase = string.IsNullOrWhiteSpace(web.UrlBase) ? "/" : web.UrlBase;
-        var basePath = urlBase == "/" ? string.Empty : "/" + urlBase.Trim('/'); // normalize: "" or "/slskd"
-
-        // Use IPv4 loopback explicitly (Playwright request client may prefer ::1 for "localhost")
-        var ownerEndpoint = web.Port > 0 ? $"{scheme}://127.0.0.1:{web.Port}{basePath}" : $"{scheme}://127.0.0.1{basePath}";
+        var configuredEndpoint = _options.CurrentValue.Sharing.ExternalEndpoint;
+        var ownerEndpoint = string.IsNullOrWhiteSpace(configuredEndpoint)
+            ? null
+            : configuredEndpoint.TrimEnd('/');
 
         var token = await _sharing.CreateTokenAsync(created.Id, TimeSpan.FromDays(7), ct).ConfigureAwait(false);
         var collection = await _sharing.GetCollectionAsync(created.CollectionId, ct).ConfigureAwait(false);
@@ -206,6 +203,11 @@ public class SharesController : ControllerBase
         {
             _log.LogInformation("[ShareGrantAnnounce] No recipients for share {ShareId}", created.Id);
             return;
+        }
+
+        if (ownerEndpoint == null)
+        {
+            _log.LogWarning("[ShareGrantAnnounce] Sharing.ExternalEndpoint is not configured; recipients will not be able to stream this share over HTTP");
         }
 
         foreach (var recipient in recipients)
@@ -468,8 +470,11 @@ public class SharesController : ControllerBase
                 return StatusCode(500, "Downloads directory not configured or does not exist");
             }
 
-            using var httpClient = _httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
-            httpClient.Timeout = TimeSpan.FromMinutes(30);
+            using var publicHttpClient = _httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
+            publicHttpClient.Timeout = TimeSpan.FromMinutes(30);
+            using var trustedPrivateHttpClient = _httpClientFactory.CreateClient(OutboundUriGuard.LocalNoRedirectHttpClientName);
+            trustedPrivateHttpClient.Timeout = TimeSpan.FromMinutes(30);
+            var trustedPrivateOwnerOrigins = _options.CurrentValue.Sharing.TrustedPrivateOwnerOrigins;
 
             foreach (var item in manifest.Items)
             {
@@ -490,7 +495,8 @@ public class SharesController : ControllerBase
                     }
 
                     var (safe, reason) = await OutboundUriGuard.CheckAsync(streamUri, ct).ConfigureAwait(false);
-                    if (!safe)
+                    var trustedPrivateOrigin = !safe && IsTrustedPrivateOwnerOrigin(ownerEndpoint, streamUri, trustedPrivateOwnerOrigins);
+                    if (!safe && !trustedPrivateOrigin)
                     {
                         _log.LogWarning("[Backfill] Blocked unsafe stream URL for {ContentId} from {Host}: {Reason}", item.ContentId, streamUri.Host, reason);
                         failed++;
@@ -507,6 +513,7 @@ public class SharesController : ControllerBase
                         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", grant.ShareToken);
                     }
 
+                    var httpClient = trustedPrivateOrigin ? trustedPrivateHttpClient : publicHttpClient;
                     using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                     if (IsRedirect(response.StatusCode))
                     {
@@ -519,37 +526,79 @@ public class SharesController : ControllerBase
                         throw new InvalidOperationException("Share backfill download exceeds the maximum allowed size.");
                     }
 
-                    // Generate safe filename from ContentId
-                    var safeFilename = item.ContentId.Replace(":", "_").Replace("/", "_").Replace("\\", "_");
-                    var extension = item.MediaKind?.ToLowerInvariant() switch
-                    {
-                        "audio" => ".mp3", // Default, could be improved with content-type detection
-                        "video" => ".mp4",
-                        "image" => ".jpg",
-                        _ => ".bin"
-                    };
-                    var filename = $"{safeFilename}{extension}";
-                    var filePath = Path.Combine(downloadsDir, filename);
+                    // Preserve the owner's real extension when present. MediaKind alone does not identify
+                    // the codec, so use .bin rather than falsely labeling arbitrary audio as MP3.
+                    var safeFilename = string.IsNullOrWhiteSpace(item.FileName)
+                        ? $"{PathGuard.SanitizeFilename(item.ContentId)}.bin"
+                        : PathGuard.SanitizeFilename(item.FileName);
+                    var filename = string.IsNullOrWhiteSpace(Path.GetExtension(safeFilename))
+                        ? $"{safeFilename}.bin"
+                        : safeFilename;
 
-                    // Ensure unique filename
-                    var counter = 1;
-                    while (System.IO.File.Exists(filePath))
+                    // Skip paths already occupied by files or links, then open the selected path without following links.
+                    var nameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
+                    var extension = Path.GetExtension(filename);
+                    var counter = 0;
+                    string filePath;
+                    while (true)
                     {
-                        var nameWithoutExt = Path.GetFileNameWithoutExtension(filename);
-                        filePath = Path.Combine(downloadsDir, $"{nameWithoutExt}_{counter}{extension}");
+                        var candidateFilename = counter == 0 ? filename : $"{nameWithoutExtension}_{counter}{extension}";
                         counter++;
+
+                        var candidatePath = PathGuard.NormalizeAndValidate(candidateFilename, downloadsDir);
+                        if (candidatePath == null || System.IO.File.Exists(candidatePath))
+                        {
+                            continue;
+                        }
+
+                        filePath = candidatePath;
+                        break;
                     }
 
-                    // Save file
-                    System.IO.Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+                    // Save to a private staging path until content-safety policy accepts the bytes.
+                    var stagingPath = ContentSafety.CreateStagingPath(filePath, downloadsDir);
+                    System.IO.FileStream? fileStream = null;
                     try
                     {
-                        using var fileStream = new System.IO.FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+#pragma warning disable CA2000 // The stream is disposed in finally and before failed-file cleanup.
+                        fileStream = SecureFileWriter.Open(stagingPath, downloadsDir);
+#pragma warning restore CA2000
                         await CopyContentToFileWithLimitAsync(response.Content, fileStream, MaxBackfillHttpDownloadBytes, ct).ConfigureAwait(false);
                     }
                     catch
                     {
-                        TryDeletePartialBackfillFile(filePath);
+                        fileStream?.Dispose();
+                        fileStream = null;
+                        TryDeletePartialBackfillFile(stagingPath, downloadsDir);
+                        throw;
+                    }
+                    finally
+                    {
+                        fileStream?.Dispose();
+                    }
+
+                    var contentSafetyDisposition = await ContentSafety.InspectAndApplyPolicyAsync(
+                        stagingPath,
+                        downloadsDir,
+                        downloadsDir,
+                        _options.CurrentValue.Security,
+                        CancellationToken.None,
+                        _log,
+                        Path.GetFileName(filePath)).ConfigureAwait(false);
+                    if (contentSafetyDisposition.Rejected)
+                    {
+                        failed++;
+                        errors.Add($"Content safety rejected {item.ContentId.Substring(0, Math.Min(16, item.ContentId.Length))}...");
+                        continue;
+                    }
+
+                    try
+                    {
+                        ContentSafety.PublishStagedFile(stagingPath, filePath, downloadsDir);
+                    }
+                    catch
+                    {
+                        TryDeletePartialBackfillFile(stagingPath, downloadsDir);
                         throw;
                     }
 
@@ -696,7 +745,12 @@ public class SharesController : ControllerBase
             return false;
         }
 
-        if (!Uri.TryCreate(ownerEndpoint, UriKind.Absolute, out var ownerUri))
+        if (!Uri.TryCreate(ownerEndpoint, UriKind.Absolute, out var ownerUri) ||
+            (!string.Equals(ownerUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(ownerUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) ||
+            !string.IsNullOrEmpty(ownerUri.UserInfo) ||
+            !string.IsNullOrEmpty(ownerUri.Query) ||
+            !string.IsNullOrEmpty(ownerUri.Fragment))
         {
             uri = null!;
             return false;
@@ -708,17 +762,43 @@ public class SharesController : ControllerBase
         }
 
         return string.Equals(uri.Scheme, ownerUri.Scheme, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(uri.Authority, ownerUri.Authority, StringComparison.OrdinalIgnoreCase);
+            string.Equals(uri.Authority, ownerUri.Authority, StringComparison.OrdinalIgnoreCase) &&
+            string.IsNullOrEmpty(uri.UserInfo);
     }
 
-    private static void TryDeletePartialBackfillFile(string filePath)
+    private static bool IsTrustedPrivateOwnerOrigin(string? ownerEndpoint, Uri streamUri, IEnumerable<string> trustedOrigins)
+    {
+        if (!Uri.TryCreate(ownerEndpoint, UriKind.Absolute, out var ownerUri))
+        {
+            return false;
+        }
+
+        foreach (var trustedOrigin in trustedOrigins)
+        {
+            if (!Uri.TryCreate(trustedOrigin, UriKind.Absolute, out var trustedUri))
+            {
+                continue;
+            }
+
+            if (string.Equals(ownerUri.Scheme, trustedUri.Scheme, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(ownerUri.IdnHost, trustedUri.IdnHost, StringComparison.OrdinalIgnoreCase) &&
+                ownerUri.Port == trustedUri.Port &&
+                string.Equals(streamUri.Scheme, trustedUri.Scheme, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(streamUri.IdnHost, trustedUri.IdnHost, StringComparison.OrdinalIgnoreCase) &&
+                streamUri.Port == trustedUri.Port)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void TryDeletePartialBackfillFile(string filePath, string downloadsDirectory)
     {
         try
         {
-            if (System.IO.File.Exists(filePath))
-            {
-                System.IO.File.Delete(filePath);
-            }
+            ContentSafety.DeleteStagedFile(filePath, downloadsDirectory);
         }
         catch
         {

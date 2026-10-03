@@ -31,6 +31,7 @@ public class MeshContentMeshServiceTests
                 .Returns((Filename: tempFile, Size: 4L));
             var shares = new Mock<IShareService>();
             shares.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+            SetupResolvedLocalFile(shares, "masked.flac", tempFile, 4L);
             var service = new MeshContentMeshService(Mock.Of<ILogger<MeshContentMeshService>>(), shares.Object);
 
             var reply = await service.HandleCallAsync(
@@ -73,6 +74,7 @@ public class MeshContentMeshServiceTests
 
             var shareService = new Mock<IShareService>();
             shareService.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+            SetupResolvedLocalFile(shareService, "masked-file.flac", tempFile, 4L);
 
             var service = new MeshContentMeshService(
                 Mock.Of<ILogger<MeshContentMeshService>>(),
@@ -165,6 +167,7 @@ public class MeshContentMeshServiceTests
 
         var shareService = new Mock<IShareService>();
         shareService.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+        SetupResolvedLocalFile(shareService, "masked-file.flac", Path.GetTempFileName(), 40L * 1024 * 1024);
 
         var service = new MeshContentMeshService(
             Mock.Of<ILogger<MeshContentMeshService>>(),
@@ -200,6 +203,7 @@ public class MeshContentMeshServiceTests
 
         var shareService = new Mock<IShareService>();
         shareService.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+        SetupResolvedLocalFile(shareService, "masked-file.flac", Path.GetTempFileName(), 1024L);
 
         var service = new MeshContentMeshService(
             Mock.Of<ILogger<MeshContentMeshService>>(),
@@ -230,6 +234,7 @@ public class MeshContentMeshServiceTests
 
         var shareService = new Mock<IShareService>();
         shareService.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+        SetupResolvedLocalFile(shareService, "masked-file.flac", Path.GetTempFileName(), 1024L);
 
         var service = new MeshContentMeshService(
             Mock.Of<ILogger<MeshContentMeshService>>(),
@@ -270,6 +275,7 @@ public class MeshContentMeshServiceTests
 
             var shareService = new Mock<IShareService>();
             shareService.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+            SetupResolvedLocalFile(shareService, "masked-file.flac", tempFile, 64L * 1024 * 1024);
             var service = new MeshContentMeshService(
                 Mock.Of<ILogger<MeshContentMeshService>>(),
                 shareService.Object);
@@ -297,6 +303,17 @@ public class MeshContentMeshServiceTests
         {
             File.Delete(tempFile);
         }
+    }
+
+    private static void SetupResolvedLocalFile(
+        Mock<IShareService> shareService,
+        string maskedFilename,
+        string localFilename,
+        long size)
+    {
+        shareService
+            .Setup(service => service.ResolveFileAsync(maskedFilename))
+            .ReturnsAsync((Program.LocalHostName, localFilename, size));
     }
 
     private sealed class TestMeshServiceStream : MeshServiceStream

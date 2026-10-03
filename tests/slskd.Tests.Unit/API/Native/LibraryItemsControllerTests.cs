@@ -545,6 +545,51 @@ public class LibraryItemsControllerTests
     }
 
     [Fact]
+    public async Task BrowseItems_LocalFallbackDoesNotExposeFilesThroughOutsideSymlinks()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var tempRoot = Path.Combine(Path.GetTempPath(), "player-library-link-" + Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(tempRoot, "downloads");
+        var outside = Path.Combine(tempRoot, "outside");
+        var linkedDirectory = Path.Combine(root, "Linked");
+        System.IO.Directory.CreateDirectory(root);
+        System.IO.Directory.CreateDirectory(outside);
+        await System.IO.File.WriteAllTextAsync(Path.Combine(outside, "outside-track.wav"), "outside");
+        System.IO.Directory.CreateSymbolicLink(linkedDirectory, outside);
+
+        try
+        {
+            shareServiceMock.Setup(service => service.BrowseAsync(It.IsAny<Share>()))
+                .ReturnsAsync(Array.Empty<Soulseek.Directory>());
+            var configuration = new slskd.Options
+            {
+                Shares = new slskd.Options.SharesOptions { Directories = Array.Empty<string>() },
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = root },
+            };
+            var settings = new Mock<IOptionsSnapshot<slskd.Options>>();
+            settings.SetupGet(value => value.Value).Returns(configuration);
+            var browser = new LibraryItemsController(shareServiceMock.Object, hashDbServiceMock.Object,
+                loggerMock.Object, settings.Object);
+
+            var result = await browser.BrowseItems(query: "outside-track", kinds: "Audio");
+
+            var response = Assert.IsType<OkObjectResult>(result).Value!;
+            var files = Assert.IsAssignableFrom<System.Collections.IEnumerable>(
+                response.GetType().GetProperty("files")!.GetValue(response));
+            Assert.Empty(files.Cast<object>());
+        }
+        finally
+        {
+            System.IO.Directory.Delete(linkedDirectory);
+            System.IO.Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task BrowseItems_ListsChildFoldersAndPagedFilesForPath()
     {
         var directories = new List<Soulseek.Directory>

@@ -18,6 +18,28 @@ describe('slskdn', () => {
     vi.clearAllMocks();
   });
 
+  it('returns effective experimental feature gates from capabilities', async () => {
+    const capabilities = {
+      featureGates: {
+        pods: { enabled: false, status: 'Disabled' },
+      },
+      features: [],
+    };
+    api.get.mockResolvedValue({ data: capabilities });
+
+    await expect(slskdn.getCapabilities()).resolves.toEqual(capabilities);
+    expect(api.get).toHaveBeenCalledWith('/capabilities');
+  });
+
+  it('keeps capabilities available when the endpoint is missing', async () => {
+    api.get.mockRejectedValue({ response: { status: 404 } });
+
+    await expect(slskdn.getCapabilities()).resolves.toEqual({
+      featureGates: {},
+      features: [],
+    });
+  });
+
   it('encodes dynamic route segments', async () => {
     api.get.mockResolvedValue({ data: { id: 'job/1' } });
     api.post.mockResolvedValue({ data: { success: true } });
@@ -27,6 +49,18 @@ describe('slskdn', () => {
 
     expect(api.post).toHaveBeenCalledWith('/mesh/sync/alice%2Fbob');
     expect(api.get).toHaveBeenCalledWith('/multisource/jobs/job%2F1');
+  });
+
+  it('preserves the server error when mesh sync is rejected', async () => {
+    api.post.mockRejectedValueOnce({
+      message: 'Request failed with status code 400',
+      response: { data: { error: 'Failed to sync with peer' } },
+    });
+
+    await expect(slskdn.triggerMeshSync('mesh-peer')).resolves.toEqual({
+      error: 'Failed to sync with peer',
+      success: false,
+    });
   });
 
   it('normalizes the combined network snapshot and real peer lists', async () => {

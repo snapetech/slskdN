@@ -2,11 +2,13 @@ import * as identityAPI from '../../lib/identity';
 import Contacts from './Contacts';
 import QRCode from 'qrcode';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../lib/identity', () => ({
+  addContactFromDiscovery: vi.fn(),
   addContactFromInvite: vi.fn(),
   getContacts: vi.fn(),
   getNearby: vi.fn(),
@@ -80,6 +82,75 @@ describe('Contacts', () => {
     expect(screen.queryByText('contacts.map is not a function')).not.toBeInTheDocument();
     await waitFor(() => expect(identityAPI.getContacts).toHaveBeenCalled());
     expect(screen.queryByText('No peer id')).not.toBeInTheDocument();
+  });
+
+  it('shows contact-list failures instead of claiming the list is empty', async () => {
+    const user = userEvent.setup();
+    identityAPI.getContacts.mockRejectedValueOnce({
+      response: { data: { detail: 'Contacts service unavailable', status: 503 } },
+    });
+    renderContacts();
+
+    expect(await screen.findByTestId('contacts-load-error'))
+      .toHaveTextContent('Contacts service unavailable');
+    expect(screen.queryByText('No contacts yet')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry Contacts' }));
+
+    expect(await screen.findByText('No contacts yet')).toBeInTheDocument();
+    expect(identityAPI.getContacts).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows nearby discovery failures and retries the request', async () => {
+    identityAPI.getNearby
+      .mockRejectedValueOnce({
+        response: { data: { detail: 'mDNS service unavailable', status: 503 } },
+      })
+      .mockResolvedValueOnce({
+        data: [{ displayName: 'Nearby Alice', endpoint: '192.0.2.4', peerId: 'peer-1' }],
+      });
+
+    renderContacts();
+    fireEvent.click(await screen.findByText('Nearby'));
+
+    expect(await screen.findByTestId('contacts-nearby-error'))
+      .toHaveTextContent('mDNS service unavailable');
+    expect(screen.queryByText('No nearby peers found')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry Nearby' }));
+
+    expect(await screen.findByText('Nearby Alice')).toBeInTheDocument();
+    expect(identityAPI.getNearby).toHaveBeenCalledTimes(2);
+  });
+
+  it('adds a nearby peer through an in-app nickname dialog', async () => {
+    const user = userEvent.setup();
+    identityAPI.getNearby.mockResolvedValue({
+      data: [{ displayName: 'Nearby Alice', endpoint: '192.0.2.4', peerId: 'peer-1' }],
+    });
+    identityAPI.getContacts
+      .mockResolvedValueOnce({ data: [] })
+      .mockResolvedValueOnce({
+        data: [{ id: 'contact-1', nickname: 'Alice', peerId: 'peer-1' }],
+      });
+    identityAPI.addContactFromDiscovery.mockResolvedValue({ data: {} });
+    renderContacts();
+
+    await user.click(await screen.findByText('Nearby'));
+    await user.click(await screen.findByRole('button', { name: 'Add Contact' }));
+
+    const dialog = await screen.findByTestId('nearby-contact-dialog');
+    const nickname = within(dialog).getByRole('textbox', { name: 'Nickname' });
+    expect(nickname).toHaveValue('Nearby Alice');
+    await user.clear(nickname);
+    await user.type(nickname, 'Alice');
+    await user.click(within(dialog).getByTestId('nearby-contact-add-submit'));
+
+    await waitFor(() => expect(identityAPI.addContactFromDiscovery).toHaveBeenCalledWith({
+      nickname: 'Alice',
+      peerId: 'peer-1',
+    }));
+    expect(screen.queryByTestId('nearby-contact-dialog')).not.toBeInTheDocument();
+    await user.click(screen.getByText('All Contacts'));
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
   });
 
   it('shows a stable error when invite creation returns a malformed payload', async () => {

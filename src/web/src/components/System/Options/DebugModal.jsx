@@ -1,23 +1,35 @@
 import { getCurrentDebugView } from '../../../lib/options';
 import { CodeEditor, PlaceholderSegment, Switch } from '../../Shared';
-import React, { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
-import { Button, Icon, Modal } from 'semantic-ui-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button, Icon, Message, Modal, Popup } from 'semantic-ui-react';
+
+const getErrorText = (error) => {
+  const data = error?.response?.data;
+  if (typeof data === 'string') return data;
+  if (data && typeof data === 'object') {
+    return data.detail || data.message || data.error || data.title || JSON.stringify(data);
+  }
+  return error?.message || 'Could not load the debug view.';
+};
 
 const DebugModal = ({ onClose, open, theme }) => {
   const [loading, setLoading] = useState(true);
   const [debugView, setDebugView] = useState();
+  const [error, setError] = useState();
+  const requestId = useRef(0);
 
   const get = async () => {
+    const nextRequestId = ++requestId.current;
     setLoading(true);
+    setError(undefined);
 
     try {
-      setDebugView(await getCurrentDebugView());
-    } catch (error) {
-      console.error(error);
-      toast.error(error?.response?.data ?? error?.message ?? error);
+      const result = await getCurrentDebugView();
+      if (nextRequestId === requestId.current) setDebugView(result);
+    } catch (caught) {
+      if (nextRequestId === requestId.current) setError(getErrorText(caught));
     } finally {
-      setLoading(false);
+      if (nextRequestId === requestId.current) setLoading(false);
     }
   };
 
@@ -25,6 +37,9 @@ const DebugModal = ({ onClose, open, theme }) => {
     if (open) {
       get();
     }
+    return () => {
+      requestId.current += 1;
+    };
   }, [open]);
 
   return (
@@ -42,17 +57,34 @@ const DebugModal = ({ onClose, open, theme }) => {
         scrolling
       >
         <Switch loading={loading && <PlaceholderSegment loading />}>
-          <CodeEditor
-            basicSetup={false}
-            editable={false}
-            style={{ minHeight: 500 }}
-            theme={theme}
-            value={debugView}
-          />
+          {error ? (
+            <Message negative>
+              <Message.Content>{error}</Message.Content>
+              <Popup
+                content="Retry loading the current debug view."
+                trigger={(
+                  <Button onClick={get} primary>
+                    Retry Debug View
+                  </Button>
+                )}
+              />
+            </Message>
+          ) : (
+            <CodeEditor
+              basicSetup={false}
+              editable={false}
+              style={{ minHeight: 500 }}
+              theme={theme}
+              value={debugView}
+            />
+          )}
         </Switch>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={onClose}>Close</Button>
+        <Popup
+          content="Close the debug view and return to Options."
+          trigger={<Button onClick={onClose}>Close</Button>}
+        />
       </Modal.Actions>
     </Modal>
   );

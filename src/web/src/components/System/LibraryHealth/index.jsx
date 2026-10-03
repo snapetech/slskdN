@@ -10,6 +10,7 @@ import {
 } from '../../../lib/libraryHealthReport';
 import { LoaderSegment } from '../../Shared';
 import * as searches from '../../../lib/searches';
+import './LibraryHealth.css';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Button,
@@ -37,6 +38,8 @@ const LibraryHealth = () => {
   const [libraryPath, setLibraryPath] = useState('');
   const [scanning, setScanning] = useState(false);
   const [summary, setSummary] = useState(null);
+  const [dashboardPath, setDashboardPath] = useState('');
+  const [dashboardLoadFailed, setDashboardLoadFailed] = useState(false);
   const [issuesByType, setIssuesByType] = useState([]);
   const [issuesByArtist, setIssuesByArtist] = useState([]);
   const [issues, setIssues] = useState([]);
@@ -44,10 +47,18 @@ const LibraryHealth = () => {
   const [fixing, setFixing] = useState(false);
   const [searchingReplacements, setSearchingReplacements] = useState(false);
   const [reportMessage, setReportMessage] = useState('');
+  const [copyFallback, setCopyFallback] = useState('');
+  const [copyFallbackLabel, setCopyFallbackLabel] = useState('');
+  const [scanMonitoringPaused, setScanMonitoringPaused] = useState(false);
+  const [scanMessage, setScanMessage] = useState('');
+  const [scanMessageType, setScanMessageType] = useState('info');
+  const [scanProgress, setScanProgress] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const dashboardRequestRef = useRef(0);
   const activeScanRef = useRef(null);
   const mountedRef = useRef(true);
+  const scanMonitoringPausedRef = useRef(false);
   const pollDeadlineRef = useRef(null);
   const pollRequestRef = useRef(null);
   const pollScanStatusRef = useRef(null);
@@ -79,12 +90,16 @@ const LibraryHealth = () => {
     return () => {
       mountedRef.current = false;
       resetScanPolling();
+      dashboardRequestRef.current += 1;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
-  const loadSummary = async (path) => {
-    if (!path) return;
+  const loadSummary = async (path, { preserveFeedback = false } = {}) => {
+    if (!path?.trim()) return;
+
+    const requestId = dashboardRequestRef.current + 1;
+    dashboardRequestRef.current = requestId;
 
     try {
       if (!mountedRef.current) {
@@ -93,29 +108,41 @@ const LibraryHealth = () => {
 
       setLoading(true);
       setError(null);
+      setDashboardLoadFailed(false);
       const response = await libraryHealth.getDashboard(path, 10, 100);
 
-      if (!mountedRef.current) {
+      if (!mountedRef.current || dashboardRequestRef.current !== requestId) {
         return;
       }
 
       setSummary(isObject(response.data?.summary) ? response.data.summary : null);
       setIssuesByType(asArray(response.data?.issuesByType).filter(isObject));
       setIssuesByArtist(asArray(response.data?.issuesByArtist).filter(isObject));
-      setIssues(asArray(response.data?.issues).filter(isObject));
-      setReportMessage('');
+      const nextIssues = asArray(response.data?.issues).filter(isObject);
+      setIssues(nextIssues);
+      setSelectedIssues((current) => new Set(
+        [...current].filter((issueId) =>
+          nextIssues.some((issue) => issue.issueId === issueId)),
+      ));
+      setDashboardPath(path);
+      if (!preserveFeedback) {
+        setReportMessage('');
+        setCopyFallback('');
+        setCopyFallbackLabel('');
+      }
     } catch (error_) {
-      if (!mountedRef.current) {
+      if (!mountedRef.current || dashboardRequestRef.current !== requestId) {
         return;
       }
 
+      setDashboardLoadFailed(true);
       setError(
         error_.response?.data?.message ||
           error_.message ||
           'Failed to load library health data',
       );
     } finally {
-      if (mountedRef.current) {
+      if (mountedRef.current && dashboardRequestRef.current === requestId) {
         setLoading(false);
       }
     }
@@ -123,7 +150,7 @@ const LibraryHealth = () => {
 
   const scheduleScanPoll = (delay = SCAN_POLL_INTERVAL_MS) => {
     clearScanTimer();
-    if (!activeScanRef.current || document.hidden) {
+    if (!activeScanRef.current || document.hidden || scanMonitoringPausedRef.current) {
       return;
     }
 
@@ -134,51 +161,112 @@ const LibraryHealth = () => {
     }, Math.max(0, Math.min(delay, remaining)));
   };
 
-  const pollScanStatus = async () => {
+  const pauseScanMonitoring = (message, type = 'warning') => {
+    clearScanTimer();
+    scanMonitoringPausedRef.current = true;
+    if (mountedRef.current) {
+      setScanMonitoringPaused(true);
+      setScanMessage(message);
+      setScanMessageType(type);
+    }
+  };
+
+  const pollScanStatus = async (resume = false) => {
     const activeScan = activeScanRef.current;
-    if (!activeScan || document.hidden || pollRequestRef.current === activeScan) {
+    if (
+      !activeScan ||
+      document.hidden ||
+      (scanMonitoringPausedRef.current && !resume) ||
+      pollRequestRef.current === activeScan
+    ) {
       return;
     }
 
     if (Date.now() >= pollDeadlineRef.current) {
-      resetScanPolling();
-      if (mountedRef.current) {
-        setScanning(false);
-        loadSummary(activeScan.libraryPath);
-      }
+      pauseScanMonitoring(
+        'Status checks paused after one minute. The server may still be scanning this library; continue monitoring before starting another scan.',
+      );
+      loadSummary(activeScan.libraryPath);
       return;
     }
 
     pollRequestRef.current = activeScan;
+    let pauseAfterRequest = false;
     try {
       const statusResp = await libraryHealth.getScanStatus(activeScan.scanId);
       if (!mountedRef.current || activeScanRef.current !== activeScan) {
         return;
       }
 
-      const status = isObject(statusResp.data) ? statusResp.data.status : '';
-      if (status === 'Completed' || status === 'Failed') {
+      const scanData = isObject(statusResp.data) ? statusResp.data : {};
+      const status = scanData.status;
+      const filesScanned = Number.isFinite(scanData.filesScanned)
+        ? scanData.filesScanned
+        : 0;
+      const issuesDetected = Number.isFinite(scanData.issuesDetected)
+        ? scanData.issuesDetected
+        : 0;
+      setScanProgress({ filesScanned, issuesDetected });
+
+      if (status === 'Completed' || status === 'Failed' || status === 'Cancelled') {
         resetScanPolling();
+        scanMonitoringPausedRef.current = false;
         setScanning(false);
+        setScanMonitoringPaused(false);
+        if (status === 'Completed') {
+          setScanMessage(
+            `Scan complete: ${filesScanned} files checked and ${issuesDetected} issues found.`,
+          );
+          setScanMessageType('positive');
+        } else if (status === 'Failed') {
+          setScanMessage(
+            scanData.errorMessage ||
+              `Library Health scan failed after checking ${filesScanned} files.`,
+          );
+          setScanMessageType('negative');
+        } else {
+          setScanMessage(
+            `Library Health scan was cancelled after checking ${filesScanned} files.`,
+          );
+          setScanMessageType('warning');
+        }
         loadSummary(activeScan.libraryPath);
+      } else if (status !== 'Running') {
+        setError('The scan status response did not contain a supported status.');
+        pauseAfterRequest = true;
+        pauseScanMonitoring(
+          'The scan may still be running. Retry status checks before starting another scan.',
+        );
+      } else {
+        setScanMessage(
+          `Scan in progress: ${filesScanned} files checked and ${issuesDetected} issues found.`,
+        );
+        setScanMessageType('info');
       }
     } catch (error_) {
       if (!mountedRef.current || activeScanRef.current !== activeScan) {
         return;
       }
 
-      resetScanPolling();
       setError(
         error_.response?.data?.message ||
           error_.message ||
           'Failed to poll Library Health scan status',
       );
-      setScanning(false);
+      pauseAfterRequest = true;
+      pauseScanMonitoring(
+        'The server may still be scanning. Retry status checks before starting another scan.',
+      );
     } finally {
       if (pollRequestRef.current === activeScan) {
         pollRequestRef.current = null;
       }
-      if (mountedRef.current && activeScanRef.current === activeScan) {
+      if (
+        mountedRef.current &&
+        activeScanRef.current === activeScan &&
+        !scanMonitoringPausedRef.current &&
+        !pauseAfterRequest
+      ) {
         scheduleScanPoll();
       }
     }
@@ -187,14 +275,19 @@ const LibraryHealth = () => {
   pollScanStatusRef.current = pollScanStatus;
 
   const handleStartScan = async () => {
-    if (!libraryPath) {
+    if (!libraryPath.trim()) {
       setError('Please enter a library path');
       return;
     }
 
     try {
       resetScanPolling();
+      scanMonitoringPausedRef.current = false;
       setScanning(true);
+      setScanMonitoringPaused(false);
+      setScanProgress({ filesScanned: 0, issuesDetected: 0 });
+      setScanMessage('Starting a recursive, read-only scan of the entered server-side path.');
+      setScanMessageType('info');
       setError(null);
       const response = await libraryHealth.startScan(libraryPath);
       const scanId = isObject(response.data) && typeof response.data.scanId === 'string'
@@ -209,10 +302,13 @@ const LibraryHealth = () => {
 
       activeScanRef.current = { libraryPath, scanId };
       pollDeadlineRef.current = Date.now() + SCAN_POLL_TIMEOUT_MS;
+      setScanMessage('Scan started. Waiting for the first progress update.');
       scheduleScanPoll();
     } catch (error_) {
       resetScanPolling();
       if (mountedRef.current) {
+        scanMonitoringPausedRef.current = false;
+        setScanMonitoringPaused(false);
         setError(
           error_.response?.data?.message ||
             error_.message ||
@@ -220,6 +316,41 @@ const LibraryHealth = () => {
         );
         setScanning(false);
       }
+    }
+  };
+
+  const handleResumeScanMonitoring = () => {
+    if (!activeScanRef.current) {
+      return;
+    }
+
+    setError(null);
+    scanMonitoringPausedRef.current = false;
+    setScanMonitoringPaused(false);
+    setScanMessage('Checking the current scan status.');
+    setScanMessageType('info');
+    pollDeadlineRef.current = Date.now() + SCAN_POLL_TIMEOUT_MS;
+    pollScanStatusRef.current?.(true);
+  };
+
+  const handleLibraryPathChange = (event) => {
+    const nextPath = event.target.value;
+    dashboardRequestRef.current += 1;
+    setLibraryPath(nextPath);
+    setLoading(false);
+    setDashboardLoadFailed(false);
+    setError(null);
+    setReportMessage('');
+    setCopyFallback('');
+    setCopyFallbackLabel('');
+
+    if (nextPath !== dashboardPath) {
+      setDashboardPath('');
+      setSummary(null);
+      setIssuesByType([]);
+      setIssuesByArtist([]);
+      setIssues([]);
+      setSelectedIssues(new Set());
     }
   };
 
@@ -275,37 +406,42 @@ const LibraryHealth = () => {
   };
 
   const handleToggleAll = () => {
-    if (selectedIssues.size === issues.length) {
+    const allIssuesSelected =
+      issues.length > 0 && issues.every((issue) => selectedIssues.has(issue.issueId));
+
+    if (allIssuesSelected) {
       setSelectedIssues(new Set());
     } else {
       setSelectedIssues(new Set(issues.map((index) => index.issueId)));
     }
   };
 
+  const selectedIssueList = issues.filter((issue) =>
+    selectedIssues.has(issue.issueId));
+  const selectedFixableIssueIds = getLibraryHealthSafeFixIssueIds(selectedIssueList);
+  const selectedAutoFixableCount = selectedIssueList.filter((issue) =>
+    issue.canAutoFix).length;
+
   const handleFixSelected = async () => {
-    if (selectedIssues.size === 0) {
+    if (selectedFixableIssueIds.length === 0) {
       setError('Please select issues to fix');
       return;
     }
 
-    const selectedIssueList = issues.filter((issue) =>
-      selectedIssues.has(issue.issueId));
-    const issueIds = getLibraryHealthSafeFixIssueIds(selectedIssueList);
-    if (issueIds.length === 0) {
-      setError('Select at least one auto-fixable issue.');
-      return;
-    }
+    const issueIds = selectedFixableIssueIds;
+    const remainingAutoFixable = Math.max(0, selectedAutoFixableCount - issueIds.length);
 
     try {
       setFixing(true);
       setError(null);
       await libraryHealth.createRemediationJob(issueIds);
-      setSelectedIssues(new Set());
-      setReportMessage(`Queued remediation job for ${issueIds.length} auto-fixable issue${issueIds.length === 1 ? '' : 's'}.`);
-      // Reload issues after a delay
-      setTimeout(() => {
-        loadSummary(libraryPath);
-      }, 1_000);
+      setSelectedIssues((current) => new Set(
+        [...current].filter((issueId) => !issueIds.includes(issueId)),
+      ));
+      setReportMessage(
+        `Queued remediation for ${issueIds.length} auto-fixable issue${issueIds.length === 1 ? '' : 's'}.${remainingAutoFixable > 0 ? ` ${remainingAutoFixable} remain selected for another batch.` : ''}`,
+      );
+      await loadSummary(dashboardPath, { preserveFeedback: true });
     } catch (error_) {
       setError(
         error_.response?.data?.message ||
@@ -323,9 +459,7 @@ const LibraryHealth = () => {
       setError(null);
       await libraryHealth.createRemediationJob([issueId]);
       setReportMessage('Queued remediation job for 1 auto-fixable issue.');
-      setTimeout(() => {
-        loadSummary(libraryPath);
-      }, 1_000);
+      await loadSummary(dashboardPath, { preserveFeedback: true });
     } catch (error_) {
       setError(
         error_.response?.data?.message ||
@@ -337,80 +471,69 @@ const LibraryHealth = () => {
     }
   };
 
-  const handleCopyReport = () => {
+  const copyText = async (text, label) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard access is unavailable');
+      }
+
+      await navigator.clipboard.writeText(text);
+      setCopyFallback('');
+      setCopyFallbackLabel('');
+      setReportMessage(`${label} copied to the clipboard.`);
+    } catch (_error) {
+      setCopyFallback(text);
+      setCopyFallbackLabel(label);
+      setReportMessage(`Clipboard access failed. Select and copy the ${label.toLowerCase()} below.`);
+    }
+  };
+
+  const handleCopyReport = async () => {
     const report = buildLibraryHealthReport({
       issues,
       issuesByArtist,
       issuesByType,
-      libraryPath,
+      libraryPath: dashboardPath,
       summary,
     });
 
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(report).catch(() => {});
-    }
-
-    setReportMessage(`Library health report prepared for ${issues.length} loaded issues.`);
+    await copyText(report, 'Library Health report');
   };
 
-  const handleCopyActionPlan = () => {
-    const selectedIssueList = issues.filter((issue) =>
-      selectedIssues.has(issue.issueId));
+  const handleCopyActionPlan = async () => {
     const plan = buildLibraryHealthActionPlan({
       issues: selectedIssueList,
-      libraryPath,
+      libraryPath: dashboardPath,
     });
 
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(plan).catch(() => {});
-    }
-
-    setReportMessage(`Library health action plan prepared for ${selectedIssueList.length} selected issues.`);
+    await copyText(plan, 'Library Health action plan');
   };
 
-  const handleCopySafeFixManifest = () => {
-    const selectedIssueList = issues.filter((issue) =>
-      selectedIssues.has(issue.issueId));
+  const handleCopySafeFixManifest = async () => {
     const manifest = buildLibraryHealthSafeFixManifest({
       issues: selectedIssueList,
-      libraryPath,
+      libraryPath: dashboardPath,
     });
 
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(manifest).catch(() => {});
-    }
-
-    setReportMessage(`Library health safe-fix manifest prepared for ${selectedIssueList.length} selected issues.`);
+    await copyText(manifest, 'Library Health safe-fix manifest');
   };
 
-  const handleCopySearchSeeds = () => {
-    const selectedIssueList = issues.filter((issue) =>
-      selectedIssues.has(issue.issueId));
+  const handleCopySearchSeeds = async () => {
     const seeds = buildLibraryHealthSearchSeeds({
       issues: selectedIssueList,
-      libraryPath,
+      libraryPath: dashboardPath,
     });
 
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(seeds).catch(() => {});
-    }
-
-    setReportMessage(`Library health replacement search seeds prepared for ${selectedIssueList.length} selected issues.`);
+    await copyText(seeds, 'Library Health replacement search seeds');
   };
 
-  const handleCopyQuarantinePacket = () => {
-    const selectedIssueList = issues.filter((issue) =>
-      selectedIssues.has(issue.issueId));
+  const handleCopyQuarantinePacket = async () => {
     const packet = buildLibraryHealthQuarantinePacket({
       issues: selectedIssueList,
-      libraryPath,
+      libraryPath: dashboardPath,
     });
 
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(packet).catch(() => {});
-    }
-
-    setReportMessage(`Library health quarantine review packet prepared for ${selectedIssueList.length} selected issues.`);
+    await copyText(packet, 'Library Health quarantine review packet');
   };
 
   const handleRunReplacementSearches = async () => {
@@ -441,9 +564,96 @@ const LibraryHealth = () => {
     }
   };
 
-  const OverviewPane = () => (
+  const renderErrorMessage = () => error ? (
+    <Message
+      className="library-health-error"
+      negative
+      role="alert"
+    >
+      <Message.Content>{error}</Message.Content>
+      {dashboardLoadFailed && libraryPath ? (
+        <Popup
+          className="library-health-popup"
+          content="Retry loading saved Library Health results for this path. This does not start another scan."
+          trigger={(
+            <Button
+              aria-label="Retry loading saved Library Health results"
+              className="library-health-action"
+              disabled={loading || scanning}
+              loading={loading}
+              onClick={() => loadSummary(libraryPath)}
+              type="button"
+            >
+              Retry Loading Results
+            </Button>
+          )}
+        />
+      ) : null}
+    </Message>
+  ) : null;
+
+  const renderScanMessage = () => scanMessage ? (
+    <Message
+      className="library-health-scan-message"
+      info={scanMessageType === 'info'}
+      negative={scanMessageType === 'negative'}
+      positive={scanMessageType === 'positive'}
+      role="status"
+      warning={scanMessageType === 'warning'}
+    >
+      <Message.Content>{scanMessage}</Message.Content>
+      {scanProgress && scanning ? (
+        <div className="library-health-progress">
+          <strong>Progress:</strong> {scanProgress.filesScanned} files checked;
+          {' '}{scanProgress.issuesDetected} issues found.
+        </div>
+      ) : null}
+      {scanMonitoringPaused && activeScanRef.current ? (
+        <Popup
+          className="library-health-popup"
+          content="Resume status checks for the current server-side scan. This does not start a second scan."
+          trigger={(
+            <Button
+              aria-label="Retry Library Health scan status checks"
+              className="library-health-action"
+              onClick={handleResumeScanMonitoring}
+              type="button"
+            >
+              Retry Status Checks
+            </Button>
+          )}
+        />
+      ) : null}
+    </Message>
+  ) : null;
+
+  const renderActionFeedback = () => reportMessage ? (
+    <div aria-live="polite" className="library-health-feedback">
+      <Message
+        compact
+        data-testid="library-health-report-message"
+        size="mini"
+      >
+        {reportMessage}
+      </Message>
+      {copyFallback ? (
+        <label className="library-health-copy-fallback">
+          {copyFallbackLabel} — select and copy
+          <textarea
+            aria-label={`${copyFallbackLabel} text to copy manually`}
+            onFocus={(event) => event.target.select()}
+            readOnly
+            rows={8}
+            value={copyFallback}
+          />
+        </label>
+      ) : null}
+    </div>
+  ) : null;
+
+  const renderOverviewPane = () => (
     <Tab.Pane>
-      <Grid>
+      <Grid stackable>
         <Grid.Row>
           <Grid.Column width={16}>
             <Segment>
@@ -452,7 +662,8 @@ const LibraryHealth = () => {
                 <Header.Content>
                   Library Health Scanner
                   <Header.Subheader>
-                    Detect quality issues, transcodes, and missing tracks
+                    Detect quality issues, transcodes, and missing tracks.
+                    Results are limited to the selected server-side path.
                   </Header.Subheader>
                 </Header.Content>
               </Header>
@@ -462,37 +673,87 @@ const LibraryHealth = () => {
 
         <Grid.Row>
           <Grid.Column width={16}>
-            <Segment>
+            <Segment className="library-health-scan-controls">
+              <label
+                className="library-health-path-label"
+                htmlFor="library-health-path"
+              >
+                Library path on the server
+              </label>
               <Input
-                action={
-                  <Button
-                    disabled={scanning || !libraryPath}
-                    loading={scanning}
-                    onClick={handleStartScan}
-                    primary
-                  >
-                    <Icon name="search" />
-                    {scanning ? 'Scanning...' : 'Start Scan'}
-                  </Button>
-                }
                 disabled={scanning}
                 fluid
-                onChange={(e) => setLibraryPath(e.target.value)}
-                placeholder="Enter library path (e.g., /music or C:\Music)"
+                input={{
+                  'aria-label': 'Library path on the server',
+                  id: 'library-health-path',
+                }}
+                onChange={handleLibraryPathChange}
+                placeholder="Enter a server path (for example, /music or C:\\Music)"
                 value={libraryPath}
               />
+              <div className="library-health-actions">
+                <Popup
+                  className="library-health-popup"
+                  content="Load saved health results for the entered server-side path without scanning files. Use this to review a previous scan or recover from a dashboard loading error."
+                  trigger={(
+                    <Button
+                      aria-label="Load saved Library Health results for this path"
+                      className="library-health-action"
+                      disabled={scanning || loading || !libraryPath.trim()}
+                      loading={loading}
+                      onClick={() => loadSummary(libraryPath)}
+                      type="button"
+                    >
+                      <Icon name="folder open" />
+                      Load Saved Results
+                    </Button>
+                  )}
+                />
+                <Popup
+                  className="library-health-popup"
+                  content="Recursively scan the entered server-side path for audio health issues. This manually starts read-only file inspection with up to four files checked at once; it does not contact peers or modify files."
+                  trigger={(
+                    <Button
+                      aria-label="Start a recursive Library Health scan for this path"
+                      className="library-health-action"
+                      disabled={scanning || loading || !libraryPath.trim()}
+                      loading={scanning && !scanMonitoringPaused}
+                      onClick={handleStartScan}
+                      primary
+                      type="button"
+                    >
+                      <Icon name="search" />
+                      {scanning
+                        ? scanMonitoringPaused ? 'Scan Monitor Paused' : 'Scanning...'
+                        : 'Start Scan'}
+                    </Button>
+                  )}
+                />
+              </div>
+              <Message
+                className="library-health-scan-guidance"
+                info
+                size="small"
+              >
+                Paths are resolved by the server. Scans include subdirectories,
+                inspect supported audio files, and leave the files unchanged.
+                You can load saved results without starting a scan.
+              </Message>
             </Segment>
           </Grid.Column>
         </Grid.Row>
 
-        {error && (
+        {renderErrorMessage() && (
           <Grid.Row>
             <Grid.Column width={16}>
-              <Message negative>
-                <Icon name="warning circle" />
-                {error}
-              </Message>
+              {renderErrorMessage()}
             </Grid.Column>
+          </Grid.Row>
+        )}
+
+        {renderScanMessage() && (
+          <Grid.Row>
+            <Grid.Column width={16}>{renderScanMessage()}</Grid.Column>
           </Grid.Row>
         )}
 
@@ -523,11 +784,17 @@ const LibraryHealth = () => {
                       <Statistic.Label>Resolved</Statistic.Label>
                     </Statistic>
                   </Statistic.Group>
+                  <div className="library-health-loaded-path">
+                    Results for <strong>{dashboardPath}</strong>
+                  </div>
                   <Popup
+                    className="library-health-popup"
                     content="Copy a read-only health report for offline review. This does not fix, rescan, quarantine, search, or mutate files."
                     trigger={
-                      <Button
-                        data-testid="library-health-copy-report"
+                    <Button
+                      aria-label="Copy a read-only Library Health report"
+                      className="library-health-action"
+                      data-testid="library-health-copy-report"
                         disabled={!summary}
                         onClick={handleCopyReport}
                         type="button"
@@ -537,15 +804,7 @@ const LibraryHealth = () => {
                       </Button>
                     }
                   />
-                  {reportMessage ? (
-                    <Message
-                      compact
-                      data-testid="library-health-report-message"
-                      size="mini"
-                    >
-                      {reportMessage}
-                    </Message>
-                  ) : null}
+                  {renderActionFeedback()}
                 </Segment>
               </Grid.Column>
             </Grid.Row>
@@ -646,61 +905,91 @@ const LibraryHealth = () => {
     </Tab.Pane>
   );
 
-  const IssuesPane = () => (
+  const renderIssuesPane = () => (
     <Tab.Pane>
-      <Grid>
+      <Grid stackable>
         <Grid.Row>
           <Grid.Column width={16}>
-            {error && (
-              <Message negative>
-                <Icon name="warning circle" />
-                {error}
+            {renderErrorMessage()}
+            {renderScanMessage()}
+            {dashboardPath ? (
+              <Message info size="small">
+                Showing results for <strong>{dashboardPath}</strong>
               </Message>
-            )}
+            ) : null}
 
             {selectedIssues.size > 0 && (
-              <Segment>
-                <Button
-                  disabled={fixing}
-                  loading={fixing}
-                  onClick={handleFixSelected}
-                  primary
-                >
-                  <Icon name="wrench" />
-                  Fix {selectedIssues.size} Selected Issue
-                  {selectedIssues.size > 1 ? 's' : ''}
-                </Button>
+              <Segment className="library-health-selection-actions">
+                <div className="library-health-selection-count" aria-live="polite">
+                  {selectedIssues.size} issue{selectedIssues.size === 1 ? '' : 's'} selected
+                </div>
                 <Popup
+                  className="library-health-popup"
+                  content="Queue bounded remediation downloads for up to 25 selected auto-fixable issues. This starts the existing download/remediation workflow; use it when you want slskd to attempt a replacement. The original files are not edited by this control."
+                  trigger={(
+                    <Button
+                      aria-label={`Queue fixes for ${selectedFixableIssueIds.length} selected auto-fixable issues`}
+                      className="library-health-action"
+                      data-testid="library-health-fix-selected"
+                      disabled={fixing || selectedFixableIssueIds.length === 0}
+                      loading={fixing}
+                      onClick={handleFixSelected}
+                      primary
+                      type="button"
+                    >
+                      <Icon name="wrench" />
+                      {selectedAutoFixableCount > 25
+                        ? `Queue fixes for ${selectedFixableIssueIds.length} of ${selectedAutoFixableCount} auto-fixable issues`
+                        : `Queue fixes for ${selectedFixableIssueIds.length} auto-fixable issue${selectedFixableIssueIds.length === 1 ? '' : 's'}`}
+                    </Button>
+                  )}
+                />
+                <Popup
+                  className="library-health-popup"
                   content="Start bounded live Soulseek replacement searches for selected replacement candidates. This starts searches only; it does not browse peers, download, quarantine, or mutate files."
                   trigger={
                     <Button
+                      className="library-health-action"
                       data-testid="library-health-run-replacement-searches"
                       disabled={fixing || searchingReplacements}
                       loading={searchingReplacements}
                       onClick={handleRunReplacementSearches}
                       type="button"
+                      aria-label="Start bounded replacement searches for selected Library Health issues"
                     >
                       <Icon name="search" />
                       Start Replacement Searches
                     </Button>
                   }
                 />
-                <Button
-                  basic
-                  disabled={fixing}
-                  onClick={() => setSelectedIssues(new Set())}
-                >
-                  Clear Selection
-                </Button>
                 <Popup
+                  className="library-health-popup"
+                  content="Clear selected issues without changing issue status or starting any job. Use this to choose a different review or action set."
+                  trigger={(
+                    <Button
+                      aria-label="Clear selected Library Health issues"
+                      basic
+                      className="library-health-action"
+                      disabled={fixing}
+                      onClick={() => setSelectedIssues(new Set())}
+                      type="button"
+                    >
+                      Clear Selection
+                    </Button>
+                  )}
+                />
+                <Popup
+                  className="library-health-popup"
                   content="Copy a selected-issue action plan for review. This does not create remediation jobs, queue searches, quarantine files, or mutate files."
                   trigger={
                     <Button
                       basic
+                      className="library-health-action"
                       data-testid="library-health-copy-action-plan"
                       disabled={fixing}
                       onClick={handleCopyActionPlan}
                       type="button"
+                      aria-label="Copy a review plan for selected Library Health issues"
                     >
                       <Icon name="copy" />
                       Copy Action Plan
@@ -708,14 +997,17 @@ const LibraryHealth = () => {
                   }
                 />
                 <Popup
+                  className="library-health-popup"
                   content="Copy an auto-fixable issue manifest for review. This does not create a remediation job, execute safe fixes, or mutate files."
                   trigger={
                     <Button
                       basic
+                      className="library-health-action"
                       data-testid="library-health-copy-safe-fix-manifest"
                       disabled={fixing}
                       onClick={handleCopySafeFixManifest}
                       type="button"
+                      aria-label="Copy a safe-fix manifest for selected Library Health issues"
                     >
                       <Icon name="check circle" />
                       Copy Safe-Fix Manifest
@@ -723,14 +1015,17 @@ const LibraryHealth = () => {
                   }
                 />
                 <Popup
+                  className="library-health-popup"
                   content="Copy replacement search seed queries for selected issues. This does not open Search, contact peers, download files, or mutate files."
                   trigger={
                     <Button
                       basic
+                      className="library-health-action"
                       data-testid="library-health-copy-search-seeds"
                       disabled={fixing}
                       onClick={handleCopySearchSeeds}
                       type="button"
+                      aria-label="Copy replacement search seeds for selected Library Health issues"
                     >
                       <Icon name="search" />
                       Copy Search Seeds
@@ -738,14 +1033,17 @@ const LibraryHealth = () => {
                   }
                 />
                 <Popup
+                  className="library-health-popup"
                   content="Copy a manual quarantine review packet for selected risky issues. This does not change quarantine state, move files, send peer messages, or mutate files."
                   trigger={
                     <Button
                       basic
+                      className="library-health-action"
                       data-testid="library-health-copy-quarantine-packet"
                       disabled={fixing}
                       onClick={handleCopyQuarantinePacket}
                       type="button"
+                      aria-label="Copy a quarantine review packet for selected Library Health issues"
                     >
                       <Icon name="shield" />
                       Copy Quarantine Packet
@@ -754,9 +1052,17 @@ const LibraryHealth = () => {
                 />
               </Segment>
             )}
+            {renderActionFeedback()}
 
             {loading ? (
               <LoaderSegment>Loading issues...</LoaderSegment>
+            ) : !dashboardPath ? (
+              <Segment placeholder>
+                <Header icon>
+                  <Icon name="search" />
+                  Load saved results or scan a library from the Overview tab to see issues.
+                </Header>
+              </Segment>
             ) : issues.length === 0 ? (
               <Segment placeholder>
                 <Header icon>
@@ -768,21 +1074,33 @@ const LibraryHealth = () => {
                 </Header>
               </Segment>
             ) : (
-              <Table
-                celled
-                selectable
+              <div
+                aria-label="Library Health issues table"
+                className="library-health-issues-scroll"
+                data-testid="library-health-issues-scroll"
+                role="region"
+                tabIndex={0}
               >
+                <Table
+                  celled
+                  className="library-health-issues-table"
+                  selectable
+                  unstackable
+                >
                 <Table.Header>
                   <Table.Row>
                     <Table.HeaderCell collapsing>
-                      <input
-                        checked={
-                          selectedIssues.size === issues.length &&
-                          issues.length > 0
-                        }
-                        onChange={handleToggleAll}
-                        type="checkbox"
-                      />
+                      <label className="library-health-issue-checkbox">
+                        <input
+                          aria-label={`Select all ${issues.length} loaded Library Health issues`}
+                          checked={
+                            issues.length > 0 &&
+                            issues.every((issue) => selectedIssues.has(issue.issueId))
+                          }
+                          onChange={handleToggleAll}
+                          type="checkbox"
+                        />
+                      </label>
                     </Table.HeaderCell>
                     <Table.HeaderCell>Type</Table.HeaderCell>
                     <Table.HeaderCell>Severity</Table.HeaderCell>
@@ -799,12 +1117,14 @@ const LibraryHealth = () => {
                   {issues.map((issue) => (
                     <Table.Row key={issue.issueId}>
                       <Table.Cell collapsing>
-                        <input
-                          checked={selectedIssues.has(issue.issueId)}
-                          disabled={!issue.canAutoFix}
-                          onChange={() => handleToggleIssue(issue.issueId)}
-                          type="checkbox"
-                        />
+                        <label className="library-health-issue-checkbox">
+                          <input
+                            aria-label={`Select ${[issue.artist, issue.title].filter(Boolean).join(' — ') || issue.issueId}`}
+                            checked={selectedIssues.has(issue.issueId)}
+                            onChange={() => handleToggleIssue(issue.issueId)}
+                            type="checkbox"
+                          />
+                        </label>
                       </Table.Cell>
                       <Table.Cell>
                         <Label
@@ -850,13 +1170,17 @@ const LibraryHealth = () => {
                       <Table.Cell textAlign="center">
                         {issue.canAutoFix && issue.status === 'Detected' && (
                           <Popup
+                            className="library-health-popup"
                             content="Queue a remediation job for this auto-fixable issue. The backend still applies its remediation safeguards."
                             trigger={
                               <Button
+                                aria-label={`Queue a remediation job for ${[issue.artist, issue.title].filter(Boolean).join(' — ') || 'this issue'}`}
+                                className="library-health-action"
                                 disabled={fixing}
                                 onClick={() => handleFixSingle(issue.issueId)}
                                 primary
                                 size="tiny"
+                                type="button"
                               >
                                 <Icon name="wrench" />
                                 Fix
@@ -875,7 +1199,8 @@ const LibraryHealth = () => {
                     </Table.Row>
                   ))}
                 </Table.Body>
-              </Table>
+                </Table>
+              </div>
             )}
           </Grid.Column>
         </Grid.Row>
@@ -890,7 +1215,7 @@ const LibraryHealth = () => {
         icon: 'dashboard',
         key: 'overview',
       },
-      render: () => <OverviewPane />,
+      render: renderOverviewPane,
     },
     {
       menuItem: {
@@ -898,12 +1223,15 @@ const LibraryHealth = () => {
         icon: 'warning',
         key: 'issues',
       },
-      render: () => <IssuesPane />,
+      render: renderIssuesPane,
     },
   ];
 
   return (
-    <div className="library-health">
+    <div
+      aria-busy={scanning || loading}
+      className="library-health"
+    >
       <Tab
         activeIndex={activeIndex}
         onTabChange={(_event, { activeIndex: nextIndex }) =>

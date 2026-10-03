@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Transfers.Downloads;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -30,6 +31,22 @@ using Xunit;
 [Collection(StaticEventCollection.Name)]
 public class DownloadServiceTests
 {
+    private static readonly string TestDirectoryRoot = System.IO.Path.Combine(
+        System.IO.Path.GetTempPath(),
+        $"slskdn-download-service-tests-{Guid.NewGuid():N}");
+
+    private static slskd.Options CreateTestOptions()
+    {
+        return new slskd.Options
+        {
+            Directories = new slskd.Options.DirectoriesOptions
+            {
+                Downloads = System.IO.Path.Combine(TestDirectoryRoot, "downloads"),
+                Incomplete = System.IO.Path.Combine(TestDirectoryRoot, "incomplete"),
+            },
+        };
+    }
+
     [Fact]
     public async Task EnqueueAsync_GlobalDownloadExclusionRejectsBeforeCreatingTransfer()
     {
@@ -436,6 +453,362 @@ public class DownloadServiceTests
         {
             service.Dispose();
             DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_IncompleteSymlinkEscape_DoesNotCreateFileOutsideConfiguredRoot()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var workDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-download-path-{Guid.NewGuid():N}");
+        var incompleteDirectory = System.IO.Path.Combine(workDirectory, "incomplete");
+        var outsideDirectory = System.IO.Path.Combine(workDirectory, "outside");
+        var databasePath = System.IO.Path.Combine(workDirectory, "transfers.db");
+        var linkDirectory = System.IO.Path.Combine(incompleteDirectory, "Music");
+        System.IO.Directory.CreateDirectory(incompleteDirectory);
+        System.IO.Directory.CreateDirectory(outsideDirectory);
+        System.IO.Directory.CreateSymbolicLink(linkDirectory, outsideDirectory);
+
+        var databaseOptions = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        await using (var context = new TransfersDbContext(databaseOptions))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var configuredOptions = new slskd.Options
+        {
+            Directories = new slskd.Options.DirectoriesOptions
+            {
+                Downloads = System.IO.Path.Combine(workDirectory, "downloads"),
+                Incomplete = incompleteDirectory,
+            },
+        };
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient.SetupGet(client => client.Downloads).Returns(Array.Empty<Soulseek.Transfer>());
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                string username,
+                string filename,
+                Func<Task<Stream>> outputStreamFactory,
+                long? size,
+                long startOffset,
+                int? token,
+                TransferOptions transferOptions,
+                CancellationToken? cancellationToken) =>
+            {
+                using var output = await outputStreamFactory();
+                output.WriteByte(1);
+                throw new TransferRejectedException("Synthetic transfer failure after opening output.");
+            });
+
+        using var service = CreateDownloadService(databaseOptions, soulseekClient, configuredOptions);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\track.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Single(enqueued);
+            Assert.Empty(failed);
+            await WaitForTransferAsync(
+                () => service.Find(t => t.Id == enqueued.Single().Id && t.State.HasFlag(TransferStates.Completed)),
+                TimeSpan.FromSeconds(5));
+
+            Assert.False(System.IO.File.Exists(System.IO.Path.Combine(outsideDirectory, "track.flac")));
+        }
+        finally
+        {
+            service.Dispose();
+            await using (var context = new TransfersDbContext(databaseOptions))
+            {
+                await context.Database.CloseConnectionAsync();
+            }
+
+            System.IO.Directory.Delete(workDirectory, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EnqueueAsync_ContentSafetyQuarantinesExecutableAndMismatchedFiles(bool verifyMagicBytes)
+    {
+        var workDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-download-content-safety-{Guid.NewGuid():N}");
+        var downloadsDirectory = System.IO.Path.Combine(workDirectory, "downloads");
+        var incompleteDirectory = System.IO.Path.Combine(workDirectory, "incomplete");
+        var databasePath = System.IO.Path.Combine(workDirectory, "transfers.db");
+        System.IO.Directory.CreateDirectory(workDirectory);
+
+        var databaseOptions = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        await using (var context = new TransfersDbContext(databaseOptions))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var configuredOptions = new slskd.Options
+        {
+            Directories = new slskd.Options.DirectoriesOptions
+            {
+                Downloads = downloadsDirectory,
+                Incomplete = incompleteDirectory,
+            },
+            Security = new slskd.Common.Security.SecurityOptions
+            {
+                Enabled = true,
+                ContentSafety = new slskd.Common.Security.ContentSafetyOptions
+                {
+                    Enabled = true,
+                    VerifyMagicBytes = verifyMagicBytes,
+                    QuarantineSuspicious = true,
+                    BlockExecutables = true,
+                },
+            },
+        };
+        var executableHeader = new byte[] { 0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00 };
+        var mismatchedHeader = new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D, 0x31 };
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient.SetupGet(client => client.Downloads).Returns(Array.Empty<Soulseek.Transfer>());
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                string username,
+                string remoteFilename,
+                Func<Task<Stream>> outputStreamFactory,
+                long? size,
+                long startOffset,
+                int? token,
+                TransferOptions transferOptions,
+                CancellationToken? cancellationToken) =>
+            {
+                var payload = remoteFilename.EndsWith(".flac", StringComparison.OrdinalIgnoreCase)
+                    ? mismatchedHeader
+                    : executableHeader;
+                await using (var output = await outputStreamFactory())
+                {
+                    await output.WriteAsync(payload, cancellationToken ?? CancellationToken.None);
+                }
+
+                var completed = new Soulseek.Transfer(
+                    TransferDirection.Download,
+                    username,
+                    remoteFilename,
+                    token: token ?? 1,
+                    state: TransferStates.Completed | TransferStates.Succeeded,
+                    size: payload.Length,
+                    startOffset: 0,
+                    bytesTransferred: payload.Length);
+                transferOptions.StateChanged?.Invoke((TransferStates.InProgress, completed));
+                return completed;
+            });
+
+        using var service = CreateDownloadService(databaseOptions, soulseekClient, configuredOptions);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[]
+                {
+                    (Filename: @"Music\track.mp3", Size: (long)executableHeader.Length),
+                    (Filename: @"Music\mismatched.flac", Size: (long)mismatchedHeader.Length),
+                },
+                CancellationToken.None);
+
+            Assert.Equal(2, enqueued.Count);
+            Assert.Empty(failed);
+
+            await WaitUntilAsync(
+                () => enqueued.All(item => service.Find(t => t.Id == item.Id)?.State.HasFlag(TransferStates.Completed) == true),
+                TimeSpan.FromSeconds(5));
+
+            var rejectedTransfers = enqueued.Select(item => service.Find(t => t.Id == item.Id)).ToArray();
+            var executableTransfer = rejectedTransfers.Single(t => t!.Filename.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))!;
+            var mismatchedTransfer = rejectedTransfers.Single(t => t!.Filename.EndsWith(".flac", StringComparison.OrdinalIgnoreCase))!;
+            Assert.True(executableTransfer.State.HasFlag(TransferStates.Errored));
+            Assert.Contains("Content safety rejected", executableTransfer.Exception, StringComparison.Ordinal);
+            Assert.NotNull(executableTransfer.LocalFilename);
+            Assert.StartsWith(System.IO.Path.Combine(downloadsDirectory, ".quarantine"), executableTransfer.LocalFilename, StringComparison.Ordinal);
+            Assert.True(System.IO.File.Exists(executableTransfer.LocalFilename));
+
+            if (verifyMagicBytes)
+            {
+                Assert.True(mismatchedTransfer.State.HasFlag(TransferStates.Errored));
+                Assert.Contains("Content safety rejected", mismatchedTransfer.Exception, StringComparison.Ordinal);
+                Assert.NotNull(mismatchedTransfer.LocalFilename);
+                Assert.StartsWith(System.IO.Path.Combine(downloadsDirectory, ".quarantine"), mismatchedTransfer.LocalFilename, StringComparison.Ordinal);
+                Assert.True(System.IO.File.Exists(mismatchedTransfer.LocalFilename));
+            }
+            else
+            {
+                Assert.True(mismatchedTransfer.State.HasFlag(TransferStates.Succeeded));
+                Assert.Equal(System.IO.Path.Combine(downloadsDirectory, "Music", "mismatched.flac"), mismatchedTransfer.LocalFilename);
+                Assert.True(System.IO.File.Exists(mismatchedTransfer.LocalFilename));
+            }
+
+            Assert.False(System.IO.File.Exists(System.IO.Path.Combine(downloadsDirectory, "Music", "track.mp3")));
+            Assert.Equal(verifyMagicBytes, System.IO.File.Exists(System.IO.Path.Combine(downloadsDirectory, ".quarantine", "mismatched.flac")));
+
+            await using var requestContext = new TransfersDbContext(databaseOptions);
+            var requestIds = enqueued.Select(item => item.RequestId).ToArray();
+            var requests = await requestContext.DownloadRequests.Where(r => requestIds.Contains(r.Id)).ToListAsync();
+            Assert.Equal(2, requests.Count);
+            Assert.Equal(DownloadRequestState.Failed, requests.Single(r => r.Id == executableTransfer.RequestId).State);
+            Assert.Equal(
+                verifyMagicBytes ? DownloadRequestState.Failed : DownloadRequestState.Completed,
+                requests.Single(r => r.Id == mismatchedTransfer.RequestId).State);
+            Assert.False(service.TryCancel(executableTransfer.Id));
+            Assert.False(service.TryCancel(mismatchedTransfer.Id));
+        }
+        finally
+        {
+            service.Dispose();
+            await using (var context = new TransfersDbContext(databaseOptions))
+            {
+                await context.Database.CloseConnectionAsync();
+            }
+
+            System.IO.Directory.Delete(workDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TryCancel_WhenCompletedTransferRetainsCancellationSource_ReturnsFalseWithoutCancelling()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        var transfer = new slskd.Transfers.Transfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Direction = TransferDirection.Download,
+            Filename = @"Music\completed.flac",
+            Size = 1234,
+            RequestedAt = DateTime.UtcNow.AddMinutes(-1),
+            EndedAt = DateTime.UtcNow,
+            State = TransferStates.Completed | TransferStates.Succeeded,
+        };
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.Add(transfer);
+            await context.SaveChangesAsync();
+        }
+
+        var service = CreateDownloadService(options, new Mock<ISoulseekClient>());
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var token = cancellationTokenSource.Token;
+        var cancellationTokens = (ConcurrentDictionary<Guid, CancellationTokenSource>)typeof(DownloadService)
+            .GetProperty("CancellationTokens", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(service)!;
+        cancellationTokens[transfer.Id] = cancellationTokenSource;
+
+        try
+        {
+            Assert.False(service.TryCancel(transfer.Id));
+            Assert.False(token.IsCancellationRequested);
+            Assert.False(cancellationTokens.ContainsKey(transfer.Id));
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task Remove_CompletedDownloadWithSymlinkEscape_LeavesOutsideFileIntact()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var workDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-remove-path-{Guid.NewGuid():N}");
+        var downloadsDirectory = System.IO.Path.Combine(workDirectory, "downloads");
+        var outsideDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-remove-target-{Guid.NewGuid():N}");
+        var databasePath = System.IO.Path.Combine(workDirectory, "transfers.db");
+        var linkDirectory = System.IO.Path.Combine(downloadsDirectory, "Artist");
+        var outsideFilename = System.IO.Path.Combine(outsideDirectory, "track.flac");
+        System.IO.Directory.CreateDirectory(downloadsDirectory);
+        System.IO.Directory.CreateDirectory(outsideDirectory);
+        System.IO.File.WriteAllText(outsideFilename, "keep this file");
+        System.IO.Directory.CreateSymbolicLink(linkDirectory, outsideDirectory);
+
+        var transferId = Guid.NewGuid();
+        var databaseOptions = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        await using (var context = new TransfersDbContext(databaseOptions))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.Add(new slskd.Transfers.Transfer
+            {
+                Id = transferId,
+                Username = "alice",
+                Direction = TransferDirection.Download,
+                Filename = @"Music\Artist\track.flac",
+                LocalFilename = System.IO.Path.Combine(linkDirectory, "track.flac"),
+                Size = 1234,
+                RequestedAt = DateTime.UtcNow.AddMinutes(-1),
+                EndedAt = DateTime.UtcNow,
+                State = TransferStates.Completed | TransferStates.Succeeded,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var configuredOptions = new slskd.Options
+        {
+            Directories = new slskd.Options.DirectoriesOptions
+            {
+                Downloads = downloadsDirectory,
+                Incomplete = System.IO.Path.Combine(workDirectory, "incomplete"),
+            },
+        };
+        using var service = CreateDownloadService(databaseOptions, new Mock<ISoulseekClient>(), configuredOptions);
+
+        try
+        {
+            service.Remove(transferId, deleteFile: true);
+
+            Assert.True(System.IO.File.Exists(outsideFilename));
+        }
+        finally
+        {
+            service.Dispose();
+            System.IO.Directory.Delete(linkDirectory);
+            System.IO.Directory.Delete(downloadsDirectory);
+            System.IO.Directory.Delete(outsideDirectory, recursive: true);
+            System.IO.Directory.Delete(workDirectory, recursive: true);
         }
     }
 
@@ -1293,10 +1666,10 @@ public class DownloadServiceTests
             });
 
         var service = new DownloadService(
-            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            new TestOptionsMonitor<slskd.Options>(CreateTestOptions()),
             soulseekClient.Object,
             new TestDbContextFactory(options),
-            new FileService(new TestOptionsMonitor<slskd.Options>(new slskd.Options())),
+            new FileService(new TestOptionsMonitor<slskd.Options>(CreateTestOptions())),
             Mock.Of<IRelayService>(),
             Mock.Of<IFTPService>(),
             new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
@@ -1371,10 +1744,10 @@ public class DownloadServiceTests
             });
 
         var service = new DownloadService(
-            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            new TestOptionsMonitor<slskd.Options>(CreateTestOptions()),
             soulseekClient.Object,
             new TestDbContextFactory(options),
-            new FileService(new TestOptionsMonitor<slskd.Options>(new slskd.Options())),
+            new FileService(new TestOptionsMonitor<slskd.Options>(CreateTestOptions())),
             Mock.Of<IRelayService>(),
             Mock.Of<IFTPService>(),
             new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
@@ -1404,6 +1777,7 @@ public class DownloadServiceTests
             Assert.True(cancelledTransfer.State.HasFlag(TransferStates.Completed));
             Assert.DoesNotContain("SemaphoreSlim", cancelledTransfer.Exception ?? string.Empty, StringComparison.Ordinal);
             Assert.DoesNotContain("disposed object", cancelledTransfer.Exception ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            Assert.False(service.TryCancel(transferId));
         }
         finally
         {
@@ -1458,10 +1832,10 @@ public class DownloadServiceTests
             });
 
         var service = new DownloadService(
-            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            new TestOptionsMonitor<slskd.Options>(CreateTestOptions()),
             soulseekClient.Object,
             new TestDbContextFactory(options),
-            new FileService(new TestOptionsMonitor<slskd.Options>(new slskd.Options())),
+            new FileService(new TestOptionsMonitor<slskd.Options>(CreateTestOptions())),
             Mock.Of<IRelayService>(),
             Mock.Of<IFTPService>(),
             new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
@@ -1552,10 +1926,10 @@ public class DownloadServiceTests
             });
 
         var service = new DownloadService(
-            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            new TestOptionsMonitor<slskd.Options>(CreateTestOptions()),
             soulseekClient.Object,
             new TestDbContextFactory(options),
-            new FileService(new TestOptionsMonitor<slskd.Options>(new slskd.Options())),
+            new FileService(new TestOptionsMonitor<slskd.Options>(CreateTestOptions())),
             Mock.Of<IRelayService>(),
             Mock.Of<IFTPService>(),
             new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
@@ -1634,6 +2008,45 @@ public class DownloadServiceTests
         Assert.Equal(
             System.IO.Path.Combine(options.Directories.Downloads, "Artist - Album"),
             destination);
+    }
+
+    [Fact]
+    public void ResolveCompletedDestinationDirectory_RejectsSymlinkEscapeFromConfiguredRoot()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var options = CreateDownloadLayoutOptions();
+        var outsideDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-download-destination-{Guid.NewGuid():N}");
+        System.IO.Directory.CreateDirectory(options.Directories.Downloads);
+        System.IO.Directory.CreateDirectory(outsideDirectory);
+        System.IO.Directory.CreateSymbolicLink(
+            System.IO.Path.Combine(options.Directories.Downloads, "Artist - Album"),
+            outsideDirectory);
+        var transfer = new slskd.Transfers.Transfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Direction = TransferDirection.Download,
+            Filename = @"Root\Artist - Album\01 Song.flac",
+            RequestedAt = DateTime.UtcNow,
+        };
+
+        try
+        {
+            using var service = CreateDownloadServiceForLayoutTest(options);
+
+            var exception = Assert.Throws<TargetInvocationException>(() => ResolveCompletedDestinationDirectory(service, transfer));
+
+            Assert.IsType<System.IO.IOException>(exception.InnerException);
+        }
+        finally
+        {
+            System.IO.Directory.Delete(options.Directories.Downloads, recursive: true);
+            System.IO.Directory.Delete(outsideDirectory, recursive: true);
+        }
     }
 
     [Fact]
@@ -1812,7 +2225,7 @@ public class DownloadServiceTests
         Mock<ISoulseekClient> soulseekClient,
         slskd.Options? configuredOptions = null)
     {
-        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(configuredOptions ?? new slskd.Options());
+        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(configuredOptions ?? CreateTestOptions());
         var eventService = new Mock<EventService>(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>());
         eventService.Setup(service => service.Add(It.IsAny<EventRecord>()));
 
@@ -1845,7 +2258,7 @@ public class DownloadServiceTests
         Microsoft.EntityFrameworkCore.IDbContextFactory<TransfersDbContext> contextFactory,
         Mock<ISoulseekClient> soulseekClient)
     {
-        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(new slskd.Options());
+        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(CreateTestOptions());
         var eventService = new Mock<EventService>(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>());
         eventService.Setup(service => service.Add(It.IsAny<EventRecord>()));
 

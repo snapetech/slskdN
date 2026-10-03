@@ -18,196 +18,60 @@ import {
 const storageKey = EXPERIENCE_PREFERENCES_STORAGE_KEY;
 
 const defaults = {
-  discoveryApprovalFilter: 'all',
-  discoveryConfidenceFloor: '0.70',
-  discoveryExplanationDetail: 'full',
-  discoveryProviderFilter: '',
-  discoveryStaleDays: '14',
-  messagesDenseMode: false,
-  messagesPinnedRestore: true,
-  messagesRoomUserFilter: true,
-  messagesSearchEnabled: true,
-  messagesUnreadBadges: true,
   playerVisible: true,
-  playerCaptureHistory: true,
-  playerDefaultVisualizer: 'last',
-  playerKeyboardShortcuts: true,
-  playerQueueAutoFill: false,
-  playerRadioSeedMode: 'current',
-  playerScrobbleMode: 'manual',
-  playerShowRatings: true,
   searchAlbumCandidatesVisible: true,
-  searchActionPreviewDensity: 'detailed',
-  searchDuplicateFolding: true,
-  searchPreferredCondition: 'lossless',
-  searchRankingProfile: 'balanced',
-};
-
-const booleanPreferenceKeys = [
-  'messagesDenseMode',
-  'messagesPinnedRestore',
-  'messagesRoomUserFilter',
-  'messagesSearchEnabled',
-  'messagesUnreadBadges',
-  'playerVisible',
-  'playerCaptureHistory',
-  'playerKeyboardShortcuts',
-  'playerQueueAutoFill',
-  'playerShowRatings',
-  'searchAlbumCandidatesVisible',
-  'searchDuplicateFolding',
-];
-
-const options = {
-  actionPreviewDensity: [
-    { key: 'compact', text: 'Compact', value: 'compact' },
-    { key: 'detailed', text: 'Detailed', value: 'detailed' },
-  ],
-  approvalFilter: [
-    { key: 'all', text: 'All', value: 'all' },
-    { key: 'needs-review', text: 'Needs review', value: 'needs-review' },
-    { key: 'approved', text: 'Approved', value: 'approved' },
-    { key: 'snoozed', text: 'Snoozed', value: 'snoozed' },
-  ],
-  explanationDetail: [
-    { key: 'compact', text: 'Compact', value: 'compact' },
-    { key: 'full', text: 'Full evidence', value: 'full' },
-  ],
-  preferredCondition: [
-    { key: 'lossless', text: 'Lossless first', value: 'lossless' },
-    { key: 'complete', text: 'Complete releases first', value: 'complete' },
-    { key: 'fastest', text: 'Fastest source first', value: 'fastest' },
-  ],
-  radioSeedMode: [
-    { key: 'current', text: 'Current track', value: 'current' },
-    { key: 'queue', text: 'Queue context', value: 'queue' },
-    { key: 'history', text: 'Listening history', value: 'history' },
-  ],
-  rankingProfile: [
-    { key: 'balanced', text: 'Balanced', value: 'balanced' },
-    { key: 'quality', text: 'Quality', value: 'quality' },
-    { key: 'availability', text: 'Availability', value: 'availability' },
-    { key: 'network-light', text: 'Network-light', value: 'network-light' },
-  ],
-  scrobbleMode: [
-    { key: 'manual', text: 'Manual', value: 'manual' },
-    { key: 'review', text: 'Review before send', value: 'review' },
-    { key: 'off', text: 'Off', value: 'off' },
-  ],
-  visualizerDefault: [
-    { key: 'last', text: 'Last used', value: 'last' },
-    { key: 'art', text: 'Album art', value: 'art' },
-    { key: 'butterchurn', text: 'Butterchurn', value: 'butterchurn' },
-    { key: 'native-webgl2', text: 'MilkDrop3 WebGL2', value: 'native-webgl2' },
-    { key: 'native-webgpu', text: 'MilkDrop3 WebGPU', value: 'native-webgpu' },
-  ],
-};
-
-const optionPreferenceKeys = {
-  discoveryApprovalFilter: options.approvalFilter,
-  discoveryExplanationDetail: options.explanationDetail,
-  playerDefaultVisualizer: options.visualizerDefault,
-  playerRadioSeedMode: options.radioSeedMode,
-  playerScrobbleMode: options.scrobbleMode,
-  searchActionPreviewDensity: options.actionPreviewDensity,
-  searchPreferredCondition: options.preferredCondition,
-  searchRankingProfile: options.rankingProfile,
 };
 
 const isObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
-const isOptionValue = (optionList, value) =>
-  optionList.some((option) => option.value === value);
-
-const normalizeDecimalString = (value, fallback, minimum, maximum) => {
-  if (typeof value !== 'string') {
-    return fallback;
+const readStoredPreferenceRecord = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    return isObject(stored) ? stored : {};
+  } catch {
+    return {};
   }
-
-  const trimmed = value.trim();
-  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
-    return fallback;
-  }
-
-  const parsed = Number(trimmed);
-  return parsed >= minimum && parsed <= maximum ? trimmed : fallback;
-};
-
-const normalizeIntegerString = (value, fallback, minimum, maximum) => {
-  if (typeof value !== 'string') {
-    return fallback;
-  }
-
-  const trimmed = value.trim();
-  if (!/^\d+$/.test(trimmed)) {
-    return fallback;
-  }
-
-  const parsed = Number(trimmed);
-  return parsed >= minimum && parsed <= maximum ? trimmed : fallback;
 };
 
 const normalizeStoredPreferences = (stored) => {
   if (!isObject(stored)) {
-    return defaults;
+    return { ...defaults };
   }
 
-  const normalized = { ...defaults };
-
-  Object.entries(optionPreferenceKeys).forEach(([key, optionList]) => {
-    if (isOptionValue(optionList, stored[key])) {
-      normalized[key] = stored[key];
-    }
-  });
-
-  booleanPreferenceKeys.forEach((key) => {
-    if (typeof stored[key] === 'boolean') {
-      normalized[key] = stored[key];
-    }
-  });
-
-  if (typeof stored.discoveryProviderFilter === 'string') {
-    normalized.discoveryProviderFilter = stored.discoveryProviderFilter;
-  }
-
-  normalized.discoveryConfidenceFloor = normalizeDecimalString(
-    stored.discoveryConfidenceFloor,
-    defaults.discoveryConfidenceFloor,
-    0,
-    1,
-  );
-  normalized.discoveryStaleDays = normalizeIntegerString(
-    stored.discoveryStaleDays,
-    defaults.discoveryStaleDays,
-    1,
-    3650,
-  );
-
-  return normalized;
+  return {
+    playerVisible: typeof stored.playerVisible === 'boolean'
+      ? stored.playerVisible
+      : defaults.playerVisible,
+    searchAlbumCandidatesVisible: typeof stored.searchAlbumCandidatesVisible === 'boolean'
+      ? stored.searchAlbumCandidatesVisible
+      : defaults.searchAlbumCandidatesVisible,
+  };
 };
 
-const readStoredPreferences = () => {
-  try {
-    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    return normalizeStoredPreferences(stored);
-  } catch {
-    return defaults;
-  }
-};
+const readStoredPreferences = () =>
+  normalizeStoredPreferences(readStoredPreferenceRecord());
 
 const buildReport = (form) =>
   [
-    'slskdN experience preferences',
-    `Search: ranking=${form.searchRankingProfile}, condition=${form.searchPreferredCondition}, duplicate_folding=${form.searchDuplicateFolding}, album_candidates=${form.searchAlbumCandidatesVisible}, previews=${form.searchActionPreviewDensity}`,
-    `Discovery: provider=${form.discoveryProviderFilter || 'all'}, approval=${form.discoveryApprovalFilter}, confidence>=${form.discoveryConfidenceFloor}, stale_days=${form.discoveryStaleDays}, explanations=${form.discoveryExplanationDetail}`,
-    `Player: visible=${form.playerVisible}, queue_auto_fill=${form.playerQueueAutoFill}, radio_seed=${form.playerRadioSeedMode}, ratings=${form.playerShowRatings}, history=${form.playerCaptureHistory}, scrobble=${form.playerScrobbleMode}, visualizer=${form.playerDefaultVisualizer}, shortcuts=${form.playerKeyboardShortcuts}`,
-    `Messages: dense=${form.messagesDenseMode}, pinned_restore=${form.messagesPinnedRestore}, unread_badges=${form.messagesUnreadBadges}, user_filter=${form.messagesRoomUserFilter}, search=${form.messagesSearchEnabled}`,
+    'slskdN browser experience preferences',
+    `Search: album_candidates=${form.searchAlbumCandidatesVisible}`,
+    `Player: visible=${form.playerVisible}`,
   ].join('\n');
+
+const getPreferenceActionError = (error, fallback) => {
+  const data = error?.response?.data;
+  if (typeof data === 'string') return data;
+  if (data && typeof data === 'object') {
+    return data.detail || data.message || data.title || JSON.stringify(data);
+  }
+
+  return error?.message || fallback;
+};
 
 const ExperienceSettings = () => {
   const [form, setForm] = useState(defaults);
-  const [message, setMessage] = useState(null);
+  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
     setForm(readStoredPreferences());
@@ -215,25 +79,62 @@ const ExperienceSettings = () => {
 
   const update = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
-    setMessage(null);
+    setFeedback(null);
   };
 
   const save = () => {
-    localStorage.setItem(storageKey, JSON.stringify(form));
-    notifyExperiencePreferencesChanged();
-    setMessage('Experience preferences saved locally in this browser.');
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ ...readStoredPreferenceRecord(), ...form }),
+      );
+      notifyExperiencePreferencesChanged();
+      setFeedback({
+        message: 'Experience preferences saved locally in this browser.',
+        type: 'success',
+      });
+    } catch (error) {
+      setFeedback({
+        message: getPreferenceActionError(error, 'Could not save browser preferences.'),
+        type: 'error',
+      });
+    }
   };
 
   const reset = () => {
-    localStorage.removeItem(storageKey);
-    setForm(defaults);
-    notifyExperiencePreferencesChanged();
-    setMessage('Experience preferences reset to defaults.');
+    try {
+      localStorage.removeItem(storageKey);
+      setForm(defaults);
+      notifyExperiencePreferencesChanged();
+      setFeedback({
+        message: 'Experience preferences reset to defaults.',
+        type: 'success',
+      });
+    } catch (error) {
+      setFeedback({
+        message: getPreferenceActionError(error, 'Could not reset browser preferences.'),
+        type: 'error',
+      });
+    }
   };
 
-  const copyReport = () => {
-    navigator.clipboard?.writeText(buildReport(form));
-    setMessage('Experience preference report copied.');
+  const copyReport = async () => {
+    try {
+      if (typeof navigator.clipboard?.writeText !== 'function') {
+        throw new Error('Clipboard access is not available in this browser.');
+      }
+
+      await navigator.clipboard.writeText(buildReport(form));
+      setFeedback({
+        message: 'Experience preference report copied.',
+        type: 'success',
+      });
+    } catch (error) {
+      setFeedback({
+        message: getPreferenceActionError(error, 'Could not copy the preference report.'),
+        type: 'error',
+      });
+    }
   };
 
   return (
@@ -244,17 +145,19 @@ const ExperienceSettings = () => {
           Experience Preferences
         </Header>
         <p>
-          Browser-local preference surface for Search, Player, and Messages
-          behavior that can be consumed by page-specific backfill.
+          These choices are stored in this browser and do not change server
+          configuration or start new searches or downloads. Hiding the player
+          stops current playback and clears its local queue.
         </p>
       </Segment>
 
-      {message && (
+      {feedback && (
         <Message
-          positive
+          negative={feedback.type === 'error'}
+          positive={feedback.type === 'success'}
           size="small"
         >
-          {message}
+          {feedback.message}
         </Message>
       )}
 
@@ -268,49 +171,10 @@ const ExperienceSettings = () => {
               <Icon name="search" />
               Search
             </Card.Header>
-            <Card.Meta>Ranking, duplicate folding, album-candidate visibility, preferred conditions, and planned-action density.</Card.Meta>
+            <Card.Meta>Control the local review panel shown with song search results.</Card.Meta>
           </Card.Content>
           <Card.Content>
             <Form>
-              <Form.Group widths="equal">
-                <Form.Select
-                  aria-label="Search ranking profile preference"
-                  label="Ranking Profile"
-                  onChange={(_, { value }) => update('searchRankingProfile', value)}
-                  options={options.rankingProfile}
-                  value={form.searchRankingProfile}
-                />
-                <Form.Select
-                  aria-label="Search preferred condition preference"
-                  label="Preferred Condition"
-                  onChange={(_, { value }) => update('searchPreferredCondition', value)}
-                  options={options.preferredCondition}
-                  value={form.searchPreferredCondition}
-                />
-                <Form.Select
-                  aria-label="Search action preview density preference"
-                  label="Action Preview Density"
-                  onChange={(_, { value }) =>
-                    update('searchActionPreviewDensity', value)
-                  }
-                  options={options.actionPreviewDensity}
-                  value={form.searchActionPreviewDensity}
-                />
-              </Form.Group>
-              <Popup
-                content="Fold likely duplicate results into a single review row when page support is available."
-                trigger={
-                  <Checkbox
-                    aria-label="Enable search duplicate folding preference"
-                    checked={form.searchDuplicateFolding}
-                    label="Fold duplicate results"
-                    onChange={(_, { checked }) =>
-                      update('searchDuplicateFolding', Boolean(checked))
-                    }
-                    toggle
-                  />
-                }
-              />
               <Popup
                 content="Show the album-candidate review panel below song searches. It only organizes results already received and does not start another search or contact more peers."
                 trigger={
@@ -335,143 +199,24 @@ const ExperienceSettings = () => {
               <Icon name="play circle" />
               Player
             </Card.Header>
-            <Card.Meta>Visibility, queue, radio, ratings, history, scrobbling, visualizer, and keyboard behavior.</Card.Meta>
+            <Card.Meta>Show or hide the persistent music player across the Web UI.</Card.Meta>
           </Card.Content>
           <Card.Content>
             <Form>
-              <Form.Group widths="equal">
-                <Form.Select
-                  aria-label="Player radio seed preference"
-                  label="Radio Seed"
-                  onChange={(_, { value }) => update('playerRadioSeedMode', value)}
-                  options={options.radioSeedMode}
-                  value={form.playerRadioSeedMode}
-                />
-                <Form.Select
-                  aria-label="Player scrobble mode preference"
-                  label="Scrobble Mode"
-                  onChange={(_, { value }) => update('playerScrobbleMode', value)}
-                  options={options.scrobbleMode}
-                  value={form.playerScrobbleMode}
-                />
-                <Form.Select
-                  aria-label="Player default visualizer preference"
-                  label="Default Visualizer"
-                  onChange={(_, { value }) => update('playerDefaultVisualizer', value)}
-                  options={options.visualizerDefault}
-                  value={form.playerDefaultVisualizer}
-                />
-              </Form.Group>
-              <Form.Group grouped>
-                <Popup
-                  content="Show the persistent browser music player and allow player actions such as Stream and Play. Turning it off stops current local playback and clears the browser player queue."
-                  trigger={
-                    <Checkbox
-                      aria-label="Show browser player preference"
-                      checked={form.playerVisible}
-                      label="Show browser player"
-                      onChange={(_, { checked }) =>
-                        update('playerVisible', Boolean(checked))
-                      }
-                      toggle
-                    />
-                  }
-                />
-                <Popup
-                  content="Allow player pages to append local similar-track queue candidates when explicit page support is available."
-                  trigger={
-                    <Checkbox
-                      aria-label="Enable player queue auto-fill preference"
-                      checked={form.playerQueueAutoFill}
-                      label="Enable queue auto-fill"
-                      onChange={(_, { checked }) =>
-                        update('playerQueueAutoFill', Boolean(checked))
-                      }
-                      toggle
-                    />
-                  }
-                />
-                <Checkbox
-                  aria-label="Show player ratings preference"
-                  checked={form.playerShowRatings}
-                  label="Show ratings"
-                  onChange={(_, { checked }) =>
-                    update('playerShowRatings', Boolean(checked))
-                  }
-                />
-                <Checkbox
-                  aria-label="Capture player history preference"
-                  checked={form.playerCaptureHistory}
-                  label="Capture local history"
-                  onChange={(_, { checked }) =>
-                    update('playerCaptureHistory', Boolean(checked))
-                  }
-                />
-                <Checkbox
-                  aria-label="Enable player keyboard shortcuts preference"
-                  checked={form.playerKeyboardShortcuts}
-                  label="Enable keyboard shortcuts"
-                  onChange={(_, { checked }) =>
-                    update('playerKeyboardShortcuts', Boolean(checked))
-                  }
-                />
-              </Form.Group>
-            </Form>
-          </Card.Content>
-        </Card>
-
-        <Card fluid>
-          <Card.Content>
-            <Card.Header>
-              <Icon name="comments" />
-              Messages
-            </Card.Header>
-            <Card.Meta>Dense display, pinned panels, unread badges, user filtering, and local search preference.</Card.Meta>
-          </Card.Content>
-          <Card.Content>
-            <Form>
-              <Form.Group grouped>
-                <Checkbox
-                  aria-label="Enable messages dense mode preference"
-                  checked={form.messagesDenseMode}
-                  label="Dense display"
-                  onChange={(_, { checked }) =>
-                    update('messagesDenseMode', Boolean(checked))
-                  }
-                />
-                <Checkbox
-                  aria-label="Restore pinned message panels preference"
-                  checked={form.messagesPinnedRestore}
-                  label="Restore pinned panels"
-                  onChange={(_, { checked }) =>
-                    update('messagesPinnedRestore', Boolean(checked))
-                  }
-                />
-                <Checkbox
-                  aria-label="Show unread message badges preference"
-                  checked={form.messagesUnreadBadges}
-                  label="Show unread badges"
-                  onChange={(_, { checked }) =>
-                    update('messagesUnreadBadges', Boolean(checked))
-                  }
-                />
-                <Checkbox
-                  aria-label="Enable room user filtering preference"
-                  checked={form.messagesRoomUserFilter}
-                  label="Enable room user filtering"
-                  onChange={(_, { checked }) =>
-                    update('messagesRoomUserFilter', Boolean(checked))
-                  }
-                />
-                <Checkbox
-                  aria-label="Enable local message search preference"
-                  checked={form.messagesSearchEnabled}
-                  label="Enable local message search"
-                  onChange={(_, { checked }) =>
-                    update('messagesSearchEnabled', Boolean(checked))
-                  }
-                />
-              </Form.Group>
+              <Popup
+                content="Hide the player across the Web UI. Current playback stops and the browser player queue is cleared; the Show player control stays available at the bottom of the page."
+                trigger={
+                  <Checkbox
+                    aria-label="Show browser player preference"
+                    checked={form.playerVisible}
+                    label="Show browser player"
+                    onChange={(_, { checked }) =>
+                      update('playerVisible', Boolean(checked))
+                    }
+                    toggle
+                  />
+                }
+              />
             </Form>
           </Card.Content>
         </Card>
@@ -479,7 +224,7 @@ const ExperienceSettings = () => {
 
       <div className="integration-actions">
         <Popup
-          content="Save these preference choices to this browser. No server settings, searches, downloads, messages, or files are changed."
+          content="Save these choices to this browser. This does not edit server configuration or start a search or download. Hiding the player stops current playback and clears its local queue."
           trigger={
             <Button
               icon
@@ -493,7 +238,7 @@ const ExperienceSettings = () => {
           }
         />
         <Popup
-          content="Reset these browser-local preference choices to the slskdN defaults."
+          content="Clear browser-local experience preferences and restore the supported defaults."
           trigger={
             <Button
               icon
@@ -506,7 +251,7 @@ const ExperienceSettings = () => {
           }
         />
         <Popup
-          content="Copy a review report of the selected preferences for implementation handoff."
+          content="Copy a short report of these browser-local choices to include with a support request."
           trigger={
             <Button
               icon

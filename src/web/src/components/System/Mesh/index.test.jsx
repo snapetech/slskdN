@@ -5,12 +5,18 @@
 import Mesh from './index';
 import * as mesh from '../../../lib/mesh';
 import * as soulseekDiscovery from '../../../lib/soulseekDiscovery';
+import useFeatureGates from '../../Shared/useFeatureGates';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../lib/mesh', () => ({
   getStats: vi.fn(),
+}));
+vi.mock('../../Shared/useFeatureGates', () => ({
+  default: vi.fn(),
+  isFeatureEnabled: (featureGates, featureId) =>
+    featureGates?.[featureId]?.enabled !== false,
 }));
 
 vi.mock('../../../lib/soulseekDiscovery', () => ({
@@ -51,6 +57,7 @@ const meshStats = {
 describe('System Mesh', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useFeatureGates.mockReturnValue({ featureGates: {}, ready: true });
     Object.defineProperty(document, 'hidden', {
       configurable: true,
       value: false,
@@ -66,6 +73,23 @@ describe('System Mesh', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('shows disabled mesh and DHT gates without polling their APIs', async () => {
+    useFeatureGates.mockReturnValue({
+      featureGates: {
+        dht: { enabled: false, message: 'Experimental feature is disabled.' },
+        mesh: { enabled: false, message: 'Experimental feature is disabled.' },
+      },
+      ready: true,
+    });
+
+    render(<Mesh />);
+
+    expect(await screen.findByText('Mesh is disabled')).toBeInTheDocument();
+    expect(screen.getByText('DHT rendezvous is disabled')).toBeInTheDocument();
+    expect(mesh.getStats).not.toHaveBeenCalled();
+    expect(soulseekDiscovery.getMeshRendezvousStatus).not.toHaveBeenCalled();
   });
 
   it('pauses stats polling while hidden and catches up when visible', async () => {
@@ -175,8 +199,21 @@ describe('System Mesh', () => {
     expect(await screen.findByText('Soulseek Mesh Rendezvous')).toBeInTheDocument();
     expect(screen.getByText('Opt-in public rendezvous is disabled')).toBeInTheDocument();
     expect(screen.getByText('slskdn-mesh-v1')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Publish Interest/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Load Candidates/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', {
+        name: /Publish Interest/i,
+      }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', {
+        name: /Remove Interest/i,
+      }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', {
+        name: /Load Candidates/i,
+      }),
+    ).toBeDisabled();
   });
 
   it('publishes, removes, and loads rendezvous candidates when enabled', async () => {

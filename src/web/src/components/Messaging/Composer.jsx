@@ -2,6 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const ME_PREFIX = '/me ';
 
+const getSendErrorMessage = (error) => {
+  const data = error?.response?.data;
+  if (typeof data === 'string') return data;
+  if (data && typeof data === 'object') {
+    return data.detail || data.message || data.title || JSON.stringify(data);
+  }
+
+  return error?.message || 'The message could not be sent.';
+};
+
 const matchSuggestions = (draft, commands) => {
   if (!draft.startsWith('/') || draft.startsWith('/ ')) return [];
   const space = draft.indexOf(' ');
@@ -29,16 +39,19 @@ const Composer = ({
 }) => {
   const [busy, setBusy] = useState(false);
   const [cursor, setCursor] = useState(0);
+  const [sendError, setSendError] = useState('');
   const localRef = useRef(null);
   const ref = inputRef || localRef;
 
   useEffect(() => {
     setCursor(0);
+    setSendError('');
   }, [adapter]);
 
   const setValue = useCallback(
     (next) => {
       if (typeof onChange === 'function') onChange(next);
+      setSendError('');
     },
     [onChange],
   );
@@ -71,12 +84,13 @@ const Composer = ({
       }
     }
 
+    setSendError('');
     setBusy(true);
     try {
       await adapter.send(trimmed);
       setValue('');
     } catch (error) {
-      console.error('Composer send failed:', error);
+      setSendError(getSendErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -178,6 +192,16 @@ const Composer = ({
           {busy ? '…' : '▶'}
         </button>
       </div>
+      {sendError && (
+        <div
+          aria-live="assertive"
+          className="msgv2-composer-error"
+          data-testid="message-send-error"
+          role="alert"
+        >
+          {sendError} Your draft is still here; try Send again.
+        </div>
+      )}
     </div>
   );
 };

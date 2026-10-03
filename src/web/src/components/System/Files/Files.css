@@ -1,19 +1,88 @@
+.system-files-explorer {
+  min-width: 0;
+}
+
 .explorer-working-directory {
   margin-top: 7px !important;
+  overflow-wrap: anywhere;
+}
+
+.explorer-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.explorer-table-scroll:focus-visible {
+  outline: 2px solid var(--slskdn-color, #54c8ff);
+  outline-offset: 2px;
+}
+
+.explorer-table {
+  min-width: 640px;
+  table-layout: fixed;
 }
 
 .explorer-list-name {
-  word-wrap: break-word !important;
-}
-
-.explorer-list-size {
-  width: 100px;
+  min-width: 260px;
+  overflow-wrap: anywhere;
+  width: 48%;
 }
 
 .explorer-list-date {
-  width: 210px;
+  min-width: 185px;
+  white-space: nowrap;
+  width: 185px;
+}
+
+.explorer-list-size {
+  min-width: 90px;
+  white-space: nowrap;
+  width: 90px;
 }
 
 .explorer-list-action {
-  width: 5px !important;
+  min-width: 70px;
+  text-align: center !important;
+  width: 70px;
+}
+
+.explorer-directory-button.ui.button {
+  align-items: center;
+  display: inline-flex;
+  justify-content: flex-start;
+  line-height: 1.35;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+  padding: 0.5em 0.65em !important;
+  text-align: left;
+  white-space: normal;
+  width: 100%;
+}
+
+.explorer-list-action .ui.button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.system-files-explorer .ui.message p {
+  overflow-wrap: anywhere;
+}
+
+@media only screen and (max-width: 480px) {
+  .explorer-table-scroll {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    width: calc(100% + 0.5rem);
+  }
+
+  .explorer-working-directory.ui.header {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  .explorer-directory-button.ui.button {
+    padding-left: 0.35em !important;
+  }
 }

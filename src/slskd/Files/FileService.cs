@@ -28,6 +28,7 @@ namespace slskd.Files
     using System.Linq;
     using System.Security;
     using System.Threading.Tasks;
+    using slskd.Common.Security;
     using OneOf;
     using Serilog;
 
@@ -56,22 +57,7 @@ namespace slskd.Files
 
         private bool IsAllowedPath(string path)
         {
-            var fullPath = Path.GetFullPath(path);
-
-            return AllowedDirectories.Any(allowed =>
-            {
-                var fullAllowed = Path.GetFullPath(allowed);
-                if (fullPath.Equals(fullAllowed, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                var allowedPrefix = fullAllowed.EndsWith(Path.DirectorySeparatorChar)
-                    ? fullAllowed
-                    : fullAllowed + Path.DirectorySeparatorChar;
-
-                return fullPath.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase);
-            });
+            return PathGuard.NormalizeAbsolutePathWithinRoots(path, AllowedDirectories) != null;
         }
 
         /// <summary>

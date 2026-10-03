@@ -1,4 +1,6 @@
 import * as bridge from '../../../lib/bridge';
+import FeatureGateNotice from '../../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../../Shared/useFeatureGates';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Button,
@@ -53,6 +55,9 @@ const dashboardRenderSignature = (dashboard) =>
   });
 
 const Bridge = () => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const virtualSoulfindEnabled =
+    featureGatesReady && isFeatureEnabled(featureGates, 'virtualSoulfind');
   const appliedDashboardSequenceRef = useRef(0);
   const configLoadedRef = useRef(false);
   const configRequestRef = useRef(null);
@@ -77,7 +82,11 @@ const Bridge = () => {
 
   const requestDashboard = React.useCallback(
     async (lifecycle, requireFresh = false) => {
-      if (document.hidden || !isCurrentLifecycle(lifecycle)) return null;
+      if (
+        !virtualSoulfindEnabled ||
+        document.hidden ||
+        !isCurrentLifecycle(lifecycle)
+      ) return null;
 
       if (requireFresh && dashboardRequestRef.current) {
         try {
@@ -116,12 +125,16 @@ const Bridge = () => {
         }
       }
     },
-    [isCurrentLifecycle],
+    [isCurrentLifecycle, virtualSoulfindEnabled],
   );
 
   const hydrate = React.useCallback(
     async (lifecycle) => {
-      if (document.hidden || !isCurrentLifecycle(lifecycle)) return;
+      if (
+        !virtualSoulfindEnabled ||
+        document.hidden ||
+        !isCurrentLifecycle(lifecycle)
+      ) return;
 
       const needsConfig = !configLoadedRef.current;
       let configRequest = null;
@@ -158,7 +171,7 @@ const Bridge = () => {
         }
       }
     },
-    [isCurrentLifecycle, requestDashboard],
+    [isCurrentLifecycle, requestDashboard, virtualSoulfindEnabled],
   );
 
   useEffect(() => {
@@ -171,7 +184,12 @@ const Bridge = () => {
       }
     };
     const startPolling = () => {
-      if (document.hidden || pollIntervalRef.current) return;
+      if (
+        !featureGatesReady ||
+        !virtualSoulfindEnabled ||
+        document.hidden ||
+        pollIntervalRef.current
+      ) return;
 
       hydrate(lifecycle);
       pollIntervalRef.current = window.setInterval(() => {
@@ -194,7 +212,7 @@ const Bridge = () => {
       mountedRef.current = false;
       lifecycleRef.current++;
     };
-  }, [hydrate, requestDashboard]);
+  }, [featureGatesReady, hydrate, requestDashboard, virtualSoulfindEnabled]);
 
   const handleConfigChange = (field, value) => {
     setConfig((previous) => ({
@@ -204,6 +222,8 @@ const Bridge = () => {
   };
 
   const handleSaveConfig = async () => {
+    if (!virtualSoulfindEnabled) return;
+
     try {
       setSaving(true);
       setError(null);
@@ -224,6 +244,8 @@ const Bridge = () => {
   };
 
   const handleStartBridge = async () => {
+    if (!virtualSoulfindEnabled) return;
+
     try {
       setBridgeAction('start');
       setError(null);
@@ -240,6 +262,8 @@ const Bridge = () => {
   };
 
   const handleStopBridge = async () => {
+    if (!virtualSoulfindEnabled) return;
+
     try {
       setBridgeAction('stop');
       setError(null);
@@ -254,6 +278,22 @@ const Bridge = () => {
       }
     }
   };
+
+  if (featureGatesReady && !virtualSoulfindEnabled) {
+    return (
+      <div>
+        <Header as="h2">
+          <Icon name="exchange" />
+          Legacy Client Bridge
+        </Header>
+        <FeatureGateNotice
+          configurationKeys={['feature.VirtualSoulfind']}
+          featureGate={featureGates.virtualSoulfind}
+          featureName="VirtualSoulfind"
+        />
+      </div>
+    );
+  }
 
   if (loading && !config) {
     return (

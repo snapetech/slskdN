@@ -23,7 +23,7 @@ using slskd.Streaming;
 /// </summary>
 public sealed class ListeningPartyService : IListeningPartyService, IDisposable
 {
-    private const int AnnouncementTtlSeconds = 900;
+    internal const int AnnouncementTtlSeconds = 900;
     private const string DirectoryIndexKey = "slskdn:listening-party:index:v1";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

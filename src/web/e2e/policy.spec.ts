@@ -264,7 +264,11 @@ test.describe('policy enforcement', () => {
         response.request().method() === 'GET',
     );
     await clickNav(pageB, T.navSharedWithMe);
-    const incomingShares = await (await incomingSharesResponse).json();
+    const incomingSharesPayload = await (await incomingSharesResponse).json();
+    if (!Array.isArray(incomingSharesPayload)) {
+      throw new Error('Incoming shares response was not a list.');
+    }
+    const incomingShares = incomingSharesPayload as Array<{ id: string }>;
     expect(incomingShares.some((share) => share.id === createShareBody.id)).toBe(
       true,
     );
@@ -509,7 +513,11 @@ test.describe('policy enforcement', () => {
         response.request().method() === 'GET',
     );
     await clickNav(pageB, T.navSharedWithMe);
-    const incomingShares = await (await incomingSharesResponse).json();
+    const incomingSharesPayload = await (await incomingSharesResponse).json();
+    if (!Array.isArray(incomingSharesPayload)) {
+      throw new Error('Incoming shares response was not a list.');
+    }
+    const incomingShares = incomingSharesPayload as Array<{ id: string }>;
     expect(incomingShares.some((share) => share.id === createShareBody.id)).toBe(
       true,
     );

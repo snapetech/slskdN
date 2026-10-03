@@ -125,6 +125,7 @@ const Security = () => {
           position="top center"
           trigger={
             <Button
+              aria-label="Retry loading the Security dashboard"
               onClick={() => fetchData(true)}
               size="small"
             >
@@ -199,6 +200,7 @@ const Security = () => {
           position="top center"
           trigger={
             <Button
+              aria-label="Refresh Security status"
               icon="refresh"
               loading={refreshing}
               onClick={() => fetchData(true)}
@@ -238,6 +240,7 @@ const Security = () => {
                 position="top center"
                 trigger={
                   <Button
+                    aria-label="Refresh the security dashboard"
                     icon="refresh"
                     loading={refreshing}
                     onClick={() => fetchData(true)}
@@ -249,6 +252,7 @@ const Security = () => {
             </div>
 
             <Statistic.Group
+              className="security-summary-stats"
               size="small"
               widths={4}
             >

@@ -4,6 +4,7 @@
 namespace slskd.Search.API;
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading;
@@ -16,6 +17,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd;
 using slskd.Common;
+using slskd.Common.Security;
 using slskd.Core.Security;
 using slskd.Destinations;
 using slskd.Mesh;
@@ -68,7 +70,7 @@ public class SearchActionsController : ControllerBase
     }
 
     /// <summary>
-    ///     Initiates a download for a search result item, routing to pod or scene based on source.
+    ///     Initiates a download for a search result item, routing to pod, mesh, or scene based on source.
     /// </summary>
     /// <param name="searchId">The search ID.</param>
     /// <param name="itemId">The item ID (response index or file identifier).</param>
@@ -79,6 +81,7 @@ public class SearchActionsController : ControllerBase
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(422)]
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
@@ -168,7 +171,7 @@ public class SearchActionsController : ControllerBase
         }
 
         // Route based on primary source
-        var primarySource = response.PrimarySource ?? "scene"; // Default to scene if not set
+        var primarySource = response.PrimarySource ?? "scene";
 
         if (primarySource == "pod" && response.PodContentRef != null)
         {
@@ -183,6 +186,21 @@ public class SearchActionsController : ControllerBase
         {
             // Scene download - use existing Soulseek download pipeline
             return await HandleSceneDownloadAsync(response.SceneContentRef, file, normalizedDestination, cancellationToken);
+        }
+        else if (primarySource == "mesh")
+        {
+            if (!string.IsNullOrWhiteSpace(file.ContentId))
+            {
+                return await HandlePodDownloadAsync(file.ContentId, file, response.Username, normalizedDestination, cancellationToken);
+            }
+
+            var sceneRef = new SceneContentRef
+            {
+                Username = response.Username,
+                Filename = file.Filename,
+                Size = file.Size,
+            };
+            return await HandleSceneDownloadAsync(sceneRef, file, normalizedDestination, cancellationToken);
         }
         else
         {
@@ -265,20 +283,28 @@ public class SearchActionsController : ControllerBase
         }
 
         var primarySource = response.PrimarySource ?? "scene";
-
-        if (primarySource != "pod" || response.PodContentRef == null)
+        var contentId = primarySource switch
         {
+            "pod" when response.PodContentRef != null => !string.IsNullOrWhiteSpace(file.ContentId)
+                ? file.ContentId
+                : response.PodContentRef.ContentId,
+            "mesh" => file.ContentId,
+            _ => null,
+        };
+
+        if (string.IsNullOrWhiteSpace(contentId))
+        {
+            var isMeshResult = primarySource == "mesh";
             return BadRequest(new ProblemDetails
             {
-                Type = "scene_streaming_not_supported",
-                Title = "Scene streaming not supported",
-                Detail = "Streaming is only supported for pod results. Use download endpoint for scene results."
+                Type = isMeshResult ? "mesh_streaming_not_supported" : "scene_streaming_not_supported",
+                Title = isMeshResult ? "Mesh streaming not supported" : "Scene streaming not supported",
+                Detail = isMeshResult
+                    ? "Streaming a mesh result requires a content ID. Use the peer preview for other results."
+                    : "Streaming is only supported for pod results. Use download endpoint for scene results."
             });
         }
 
-        var contentId = !string.IsNullOrWhiteSpace(file.ContentId)
-            ? file.ContentId
-            : response.PodContentRef.ContentId;
         var local = _contentLocator.Resolve(contentId, cancellationToken);
         if (local != null)
         {
@@ -380,15 +406,21 @@ public class SearchActionsController : ControllerBase
             }
 
             var completedRoot = destination ?? DownloadDestinationResolver.GetDefaultPath(_optionsMonitor.CurrentValue);
-            var localFilename = file.Filename.ToLocalFilename(baseDirectory: completedRoot);
-            var localDirectory = System.IO.Path.GetDirectoryName(localFilename);
-            if (!string.IsNullOrEmpty(localDirectory) && !System.IO.Directory.Exists(localDirectory))
+            var candidateFilename = file.Filename.ToLocalFilename(baseDirectory: completedRoot);
+            var localFilename = PathGuard.NormalizeAbsolutePathWithinRoots(candidateFilename, new[] { completedRoot });
+            if (localFilename == null)
             {
-                System.IO.Directory.CreateDirectory(localDirectory);
+                return BadRequest(new ProblemDetails
+                {
+                    Type = "pod_download_path_invalid",
+                    Title = "Invalid pod download path",
+                    Detail = "The selected file path is outside the configured download destination"
+                });
             }
 
+            var stagingFilename = ContentSafety.CreateStagingPath(localFilename, completedRoot);
             IActionResult? fetchFailure = null;
-            using (var fileStream = System.IO.File.Create(localFilename))
+            using (var fileStream = SecureFileWriter.Open(stagingFilename, completedRoot))
             {
                 var offset = 0L;
                 while (offset < file.Size && fetchFailure == null)
@@ -425,8 +457,37 @@ public class SearchActionsController : ControllerBase
 
             if (fetchFailure != null)
             {
-                TryDeletePartialPodDownload(localFilename);
+                TryDeletePartialPodDownload(stagingFilename, completedRoot);
                 return fetchFailure;
+            }
+
+            var options = _optionsMonitor.CurrentValue;
+            var contentSafetyDisposition = await ContentSafety.InspectAndApplyPolicyAsync(
+                stagingFilename,
+                completedRoot,
+                options.Directories.Downloads,
+                options.Security,
+                CancellationToken.None,
+                _logger,
+                Path.GetFileName(localFilename));
+            if (contentSafetyDisposition.Rejected)
+            {
+                return UnprocessableEntity(new ProblemDetails
+                {
+                    Type = "pod_content_safety_rejected",
+                    Title = "Pod content rejected",
+                    Detail = "Downloaded content failed configured safety checks"
+                });
+            }
+
+            try
+            {
+                ContentSafety.PublishStagedFile(stagingFilename, localFilename, completedRoot, overwrite: true);
+            }
+            catch
+            {
+                TryDeletePartialPodDownload(stagingFilename, completedRoot);
+                throw;
             }
 
             _logger.LogInformation("[SearchActions] Successfully downloaded pod content {ContentId} from peer {PeerId} to {Path}",
@@ -459,11 +520,11 @@ public class SearchActionsController : ControllerBase
         return User.FindFirstValue(ClaimTypes.Name) ?? _optionsMonitor.CurrentValue.Soulseek.Username ?? string.Empty;
     }
 
-    private static void TryDeletePartialPodDownload(string localFilename)
+    private static void TryDeletePartialPodDownload(string localFilename, string trustedRoot)
     {
         try
         {
-            System.IO.File.Delete(localFilename);
+            ContentSafety.DeleteStagedFile(localFilename, trustedRoot);
         }
         catch
         {

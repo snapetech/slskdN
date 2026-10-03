@@ -54,6 +54,32 @@
   text-align: right;
 }
 
+.msg-stream-search-control {
+  display: inline-flex;
+}
+
+.msg-stream-error {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  color: var(--msgv2-fg, #efe7dc);
+  background: var(--msgv2-error-bg, rgba(150, 35, 35, 0.2));
+  border-bottom: 1px solid var(--msgv2-error-border, rgba(230, 90, 90, 0.45));
+  font-size: 0.9em;
+}
+
+.msg-stream-retry.ui.button {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 4px 8px;
+  color: var(--msgv2-fg, #efe7dc) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .msg-stream-search-button {
   background: transparent;
   border: 1px solid var(--msgv2-border, rgba(255, 255, 255, 0.08));

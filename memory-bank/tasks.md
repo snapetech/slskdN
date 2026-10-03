@@ -26,7 +26,222 @@
 
 ## Active Development
 
+### Stable release `.334` — 2026-10-03
+
+- [x] Fix [issue #348](https://github.com/snapetech/slskdN/issues/348): keep
+  no-auth passthrough active when protected API requests return 401, preventing
+  the browser reload loop. Reproduced the baseline failure on telemetry KPIs,
+  unacknowledged conversations, and room activity; focused regression coverage
+  passes 9/9 and JWT expiry behavior remains intact. Remote no-auth still needs
+  an explicit matching `allowed_cidrs` entry. Release tag and published
+  artifact verification are the remaining release steps.
+
 ### High Priority
+
+- [x] **Sharing**: Restore cross-node share endpoint and backfill reachability without broadening SSRF protection (2026-10-03).
+  - Notes: Owners now advertise `sharing.externalEndpoint` instead of loopback.
+    Public backfills retain the guarded connection path; private backfills need
+    an exact configured private/loopback IP origin on the recipient. Incoming
+    manifests omit broken local stream URLs when the owner endpoint is absent,
+    and Shared with Me explains the setup. Validation passed: 54 focused
+    sharing/options/controller tests, 8 Shared with Me tests, strict E2E types,
+    targeted frontend lint, and the three-node share suite (6/6, including two
+    downloaded and verified files). Full gates passed: Web 1,196/1,196, .NET 74
+    smoke / 5,368 unit / 284 integration, Web lint, `./bin/lint`, Release
+    backend build, production Web build, release preview and identity scan. The
+    contacts E2E response listener now subscribes before route navigation.
+    Route inventory is current. The broader remediation script stopped at its
+    final branch-sync guard because local `main` is 80 commits ahead of
+    `origin/main`; this work does not include a push or release.
+
+- [ ] **product**: Improve core user journeys and maintainability across slskdN.
+  - Status: active (2026-10-03); preserve supported features, API contracts,
+    routes, and the Iris visual identity while reorganizing advanced surfaces.
+  - Completed: reconciled maturity README drift; clarified Getting Started and
+    feature-status counts; made coherence checks enforce the reviewed landing
+    page; grouped optional Search discovery panels while preserving saved state;
+    removed Collections route debug side effects; added a disconnected Search
+    recovery path to connection settings and separate connecting-state copy;
+    ran live Search -> mesh result -> completed local transfer and two-way
+    messaging through an isolated loopback Soulseek network; added keyboard
+    submission to result detail, named Search/Browse file selection controls,
+    and verified Search results, Browse selection/destination/queue handoff,
+    Messaging, and responsive navigation at 320 px.
+    Added keyboard-operable System section links and verified the Downloads
+    handoff, Downloads/Uploads transfer roots, and System overview/options at
+    320 px without page-level overflow.
+    Transfer tables now expose a focusable horizontal scroll region with
+    Left/Right Arrow support so narrow screens can reach all columns. Verified
+    the Network and Sharing grouped popups and all of their links stay within
+    the 320 px viewport.
+    Extracted the grouped primary navigation into `PrimaryNavigation.jsx`; the
+    app shell still owns session, connection and utility-menu state.
+    Audited the remaining 13 primary routes at 320 px against visible page
+    content markers; their empty/disconnected views have no page-level overflow.
+    Unknown URLs now use the existing Search redirect without runtime test
+    diagnostics, and the Collections E2E waits for its page content instead of
+    inspecting browser-global debug flags. Populated Collections, Share Groups,
+    Shared with Me, and Wishlist table/card states now fit at 320 px; any
+    overflowing table stays inside a labeled, keyboard-focusable scroll area.
+    Connection status actions now explain their connect/disconnect behavior and
+    expose accessible names. The Pending Action alert links across its full row
+    to System Info with an explanation.
+    App's primary navigation, endpoint migration notice, connection status
+    action, and route definitions now have focused component boundaries.
+    Removed the identity `withTokenCheck` route wrapper; the existing session
+    gate remains the authentication boundary.
+    Theme controls now explain choices, and update/logout actions have clear
+    accessible names and cancelable confirmation. System Info now leads with
+    the live connection, version, and pending-action state; raw YAML is behind
+    an advanced disclosure. Update/restart/shutdown controls no longer wait for
+    diagnostic serialization, and Get Privileges waits only for a username.
+    System Shares now opens contents from a named, keyboard-operable button
+    without changing the URL; its populated six-column table stays inside a
+    labeled, keyboard-focusable horizontal scroll region at 320 px.
+    The populated System Network dashboard now reports peer-sync failures from
+    the API instead of showing false success, and compact Sync controls explain
+    their action. The public DHT exposure notice now has a named, tooltip-backed
+    button that can be dismissed with Enter; the choice remains remembered.
+    System Jobs actions now have useful accessible names and Popup guidance;
+    the swarm visualization closes by keyboard, and the populated jobs table is
+    keyboard-scrollable at 320 px without page overflow.
+    System Security metrics now use a readable 2×2 layout on phones. Status,
+    transport, Tor, settings-save, and list-edit actions have clear names and
+    guidance, with keyboard activation tested; adversarial defaults are intact.
+    System Mesh now explains the public and network effects of its three
+    manual rendezvous actions and gives them full-width mobile targets; the
+    existing opt-in gate remains unchanged. Populated System Bridge metrics
+    and client data have a 320 px no-overflow browser guard.
+    System Metrics now has guided keyboard-operable refresh and retry actions;
+    dense metric groups wrap cleanly, and the details table scrolls inside a
+    labeled, keyboard-focusable region on mobile. Its browser regression
+    recovers from an initial 503 without reloading the route.
+    System Events now preserves formatted event payloads in a labeled,
+    keyboard-scrollable table region. Event identifiers are focusable and
+    tooltip-backed; failed pages can be retried, and stale page responses are
+    ignored. Its populated mobile regression covers those paths.
+    System Logs now owns and closes its live hub connection, keeps buffered
+    records visible while reconnecting, retries failed starts, and explains
+    keyboard-operable severity filters. The 320 px layout wraps those filters
+    and places line-preserving records in a keyboard-scrollable table. System
+    Info now cancels delayed YAML serialization when the view unmounts.
+    System Data now explains cleanup scope, keeps failed requests retryable, and
+    preserves the fact that download files already saved on disk are untouched.
+    System Files now supports keyboard directory navigation, guided delete
+    confirmation, in-place retry, post-delete refresh, and a labeled mobile
+    scroll region. Its directory requests ignore stale results and do not
+    duplicate the initial fetch.
+    System Library Health now keeps saved results tied to the displayed path,
+    retries dashboard loading separately from a recursive scan, and preserves
+    scan progress/failure state across interrupted polling. Bounded remediation
+    explains its 25-issue limit, keeps unprocessed selections, and reports
+    actions in the active pane. Admin Policies now exposes its retention table
+    through a labeled keyboard-scroll region, validates new API-key drafts and
+    required integer fields before save, and keeps failed saves retryable.
+    Discovery, Messaging, Sharing, and Settings now also have in-place recovery
+    for failed list/detail/polling requests, visible action failures, accessible
+    in-app forms, route-safe async work, and Popup guidance that works for
+    disabled controls. Strict E2E type checking is part of the browser test
+    preflight, and fixture resolution now runs the three-node share stream
+    scenario instead of silently skipping it.
+    The fail-closed local core journey now proves Search-to-download and
+    two-way private-message delivery through the Messages UI against two nodes
+    and pinned loopback Soulfind. Its loopback-only frame proxy gives the
+    protocol client a non-negative private-message ID and maps acknowledgements
+    back to the fixture ID; production protocol validation remains unchanged.
+    `BUG-20261003-168` is verified.
+    System Experience now exposes only the two preferences with live Search
+    and Player consumers; saves preserve older stored keys without displaying
+    them as active controls. The copied report lists only active choices, and
+    the 320 px settings journey verifies hide, reload, and player restoration.
+    The API route inventory remains current, and feature-coherence, README
+    maturity, and roadmap-claim checks pass; those consistency checks do not
+    upgrade the 51 features still classified as experimental.
+    The filesystem call-site audit now resolves current symlink targets for
+    browse, stream, share, relay, download, and delete operations. It also
+    closes a peer-derived pod download write and a Library Items symlink
+    metadata exposure, plus cached mesh proof-of-possession chunk reads.
+    `BUG-20261003-171` through `BUG-20261003-178` are verified. Full validation
+    passes: .NET 74 application, 5,383 unit, and
+    284 integration tests; `./bin/lint`; path containment, release-note
+    preview, local-identity, and whitespace checks.
+    Completed Soulseek, pod/mesh search, collection backfill, relay,
+    multi-source, and VirtualSoulfind receives now use the shared
+    `ContentSafety` policy after the output stream closes. Disguised executables
+    fail closed even when magic-byte matching is disabled; mismatches quarantine
+    by default. Direct transfer/request state records rejection, and each other
+    receiver preserves its own failure contract.
+    The native capabilities response exposes effective status for all seven
+    runtime feature gates. A shared Web hook now applies it to Search
+    (SongID/federated recommendations), Messaging and MediaCore (Pods), System
+    (Mesh/DHT, VirtualSoulfind, multi-source jobs and analytics), and Network
+    sync actions. It waits for status before gated requests, refreshes on
+    foreground and once per minute, and keeps older capability responses
+    compatible. The MediaCore parent workflow index is hidden with the gated
+    PodCore controls to avoid dead anchors. Moved-route 410 handling and the
+    design-only enum guard are also complete. Focused Web regressions passed
+    100/100. Final validation passed: Web 1,211/1,211 across 186 files, .NET
+    74 application / 5,394 unit / 285 integration, Web and repository lint,
+    strict E2E types, production build and bundle checks, both loopback core
+    browser journeys, all route/feature/path/maturity audits, and release-note
+    preview.
+    DownloadService lifecycle regressions also verify cancellation-source
+    cleanup after cancelled, failed, and successful transfers, active shutdown
+    cancellation/drain, and the intentionally no-tracking duplicate query. The
+    existing CI release gate already runs the scoped unit-test project, so the
+    plan's CI requirement is satisfied without adding a duplicate workflow job.
+    Transfer registrations now have a dedicated `TransfersServiceCollectionExtensions`
+    owner; the core graph delegates transfer services and the integration graph
+    adds hosted workers at their original startup position. The duplicate
+    `IAutoReplaceService` descriptor is removed and covered by registration
+    tests (`BUG-20261003-181`). Prometheus, reports, and telemetry aggregation
+    registrations now have a dedicated telemetry module with descriptor-count
+    coverage. Lidarr, scripts, VPN, webhooks, now-playing, and listening-party
+    registrations now have a dedicated integration module; the Lidarr hosted
+    workers stay in their original registration positions. The options-driven
+    application security graph already belongs to
+    `Common.Security.SecurityStartup.AddSlskdnSecurity(...)`; its binding and
+    middleware behavior have unit/integration coverage. ASP.NET
+    authentication/authorization remains in the Web registration module.
+    Discovery and Mesh registration now map to focused existing owners across
+    core discovery, transfer discovery/backfill/hash sync, capabilities/DHT
+    rendezvous, the integration discovery graph, experimental mesh, and mesh
+    streaming; no duplicate umbrella wrapper was added. Descriptor-count
+    coverage now checks transfer discovery and SongID registrations, preserves
+    the documented Mesh/DHT defaults, and verifies the multi-source rescue
+    worker gate. `BUG-20261003-182` records the terminal-transfer cancellation
+    race fix; its release fragment and changelog entry are present.
+    Full validation passed: .NET 74 application, 5,404 unit, and 285
+    integration tests; focused registration tests (8/8), `./bin/lint`,
+    release-note tests and preview, and `git diff --check`.
+    The Player audit now has captured Linux Orca/Chromium speech for keyboard
+    playback status, 99% volume, and 1 dB equalizer changes. Both tagged
+    screen-reader workflows pass with isolated audio capture; the production
+    Web build, E2E type check, Web lint, ShellCheck, repository lint, and
+    whitespace check pass. This internal test/audit evidence does not close
+    other screen reader/browser pairings or physical assistive technology.
+  - Next: continue populated multi-step journeys and the broader remediation.
+    Keep WAN radio/reciprocal-transfer and physical-device accessibility open.
+    Route inventory and maturity claims are reconciled; retain the current 51
+    experimental classifications until evidence justifies a change. Keep the
+    broad initiative active.
+  - Acceptance: task-based browser flows, keyboard/accessibility and responsive
+    checks for changed surfaces; Web tests/build, `./bin/lint`, and
+    `dotnet test` for completed batches; docs and release fragments for
+    user-facing changes. No release tags as part of this initiative.
+
+- [x] **security**: Apply content-safety disposition to alternate receive paths.
+  - Status: completed 2026-10-03. The shared policy now covers pod/mesh search,
+    HTTP collection backfill, relay, multi-source, and VirtualSoulfind receives.
+  - Notes: Added real-file quarantine regressions for the receiver paths while
+    preserving source-specific size limits, hash checks, SSRF controls, path
+    guards, and failure results. Receivers stage bytes until accepted, then
+    publish under the final filename. A nested-destination publication defect
+    was fixed; the direct unit regression and two-node mesh test both pass.
+    Full validation passed: `dotnet test` (74 app, 5,391 unit, 285
+    integration), `./bin/lint`, path containment, release preview,
+    local-identity, feature-coherence, README-maturity, roadmap-claim, and
+    whitespace checks. Gotchas `0z1398`–`0z1408` were committed separately.
 
 - [x] Publish the stable Docker image after the `.330` image build failure.
   - Status: corrected and published with `2026093002-slskdn.331` (2026-09-30).
@@ -5285,7 +5500,9 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Retain direct local-host playback and renew tickets on initial setup/media retries; preserve scope through the player queue and exclude radio restore.
 - [x] Support single HTTP byte ranges and pace bounded 44 KiB reads under the existing global RPC budget; enforce and release one stream per listener node/host.
 - [x] Verify real production loopback TLS byte delivery/tail/revocation, gateway/reader ranges, global limits, source replacement and retry.
-- [ ] Verify sustained two-backend browser playback and seek/expiry behavior; complete dual-participant room recovery and the remaining player quality audit.
+- [x] 2026-10-03 Verify sustained 96 kHz stereo playback and a post-read-ahead range seek across two backends; verify the remote ticket remains valid past two minutes and the seek reuses its single fairness admission.
+- [x] 2026-10-03 Rerun the complete Player follow browser spec (2/2), covering routed room following, reconnect catch-up, and authenticated cross-node Play/Pause/Seek/Stop delivery plus membership revocation.
+- [ ] Complete the remaining Player quality audit.
 
 ## Connected radio playback and room authorization — 2026-09-28
 
@@ -5416,7 +5633,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Cover canceled entry skipping, control progress, queue overflow, failure and shutdown in real TLS tests.
 - [x] Repair constructor-bypassing lifecycle fixtures exposed by the full gate.
 - [x] 2026-09-28 Complete final backend, Release and all 21 runtime cases; publish after exact-range release preview and fork verification.
-- [ ] Establish sustained radio throughput for supported high-rate formats.
+- [x] 2026-10-03 Establish sustained 96 kHz stereo remote-radio playback and post-read-ahead seeking under a constrained loopback browser link. WAN paths and physical devices remain open in the Player audit.
 
 ## Persistent host controls — 2026-09-28
 

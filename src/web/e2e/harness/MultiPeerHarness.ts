@@ -19,12 +19,17 @@ export class MultiPeerHarness {
     flags?: {
       noConnect?: boolean;
       radioMesh?: boolean;
+      scenePodBridge?: boolean;
       listenAlongMembers?: boolean;
       listenAlongPeers?: string[];
       ffmpegPath?: string;
       jwtTtlMilliseconds?: number;
+      remoteFileManagement?: boolean;
+      soulseekServerAddress?: string;
+      soulseekServerPort?: number;
       soulseekEndpointOverrides?: Record<string, number>;
       soulseekListenPort?: number;
+      trustedPrivateOwnerOrigins?: string[];
     },
   ): Promise<SlskdnNode> {
     if (this.nodes.has(name)) {

@@ -40,6 +40,36 @@ public class FeatureGateFilterTests
     }
 
     [Fact]
+    public async Task OnActionExecutionAsync_WhenFeatureMovedToSlskr_ReturnsGoneWithLinkAndSkipsAction()
+    {
+        var gate = new Mock<IFeatureGate>();
+        gate.Setup(instance => instance.Get(FeatureId.SongId)).Returns(new FeatureGateResult(
+            FeatureId.SongId,
+            FeatureStatus.MovedToSlskr,
+            false,
+            "SongID moved to slskr."));
+        var filter = new FeatureGateFilter(gate.Object, FeatureId.SongId);
+        var context = CreateActionExecutingContext();
+        var executed = false;
+
+        await filter.OnActionExecutionAsync(context, () =>
+        {
+            executed = true;
+            return Task.FromResult(CreateActionExecutedContext(context));
+        });
+
+        var result = Assert.IsType<ObjectResult>(context.Result);
+        Assert.Equal(StatusCodes.Status410Gone, result.StatusCode);
+        Assert.False(executed);
+        Assert.Equal(
+            "https://github.com/snapetech/slskr",
+            result.Value!.GetType().GetProperty("link")?.GetValue(result.Value));
+        Assert.Equal(
+            "SongID moved to slskr.",
+            result.Value.GetType().GetProperty("error")?.GetValue(result.Value));
+    }
+
+    [Fact]
     public async Task OnActionExecutionAsync_WhenFeatureEnabled_RunsAction()
     {
         var gate = new Mock<IFeatureGate>();

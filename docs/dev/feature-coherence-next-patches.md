@@ -2,25 +2,28 @@
 
 This branch establishes the truth table, maturity-first README draft, security documentation split, coherence CI scripts, and first concrete security utility tests. The remaining work below should be implemented as small reviewable patches.
 
-## 1. Replace README.md with README.maturity.md
+## 1. Keep the maturity-first README current
 
-Status: blocked in connector-based editing because the current README is large and full-file replacement risks truncation.
+Status: completed and revalidated 2026-10-02. The maturity-first landing
+README was previously introduced, then the root README regrew into an
+unqualified feature catalogue. README.md now matches the reviewed concise
+landing page; setup and feature maturity links are prominent, and the separate
+feature inventory remains authoritative. The copy check prevents drift.
 
-Recommended patch from a real checkout:
+Validation:
 
 ```bash
-cp README.maturity.md README.md
 bash scripts/audit-feature-coherence.sh
 bash scripts/audit-readme-maturity-draft.sh
-git diff -- README.md README.maturity.md
-git commit -am "docs: replace README with maturity-first version"
+bash scripts/audit-roadmap-claims.sh
+cmp README.md README.maturity.md
 ```
 
 Acceptance criteria:
 
 - `README.md` points to `FEATURE_INVENTORY.md` and `docs/status.md`.
 - The README no longer markets roadmap-only security systems as implemented.
-- The README clearly distinguishes stable, experimental, roadmap-only, and moved-to-slskr work.
+- The README distinguishes the core baseline, experimental extensions, roadmap-only security claims, and the separate slskr project.
 
 ## 2. Wire BindExposureAnalyzer into Program.cs
 
@@ -57,7 +60,9 @@ Required cases:
 
 ## 4. Audit PathGuard call sites
 
-Status: `PathGuard` has focused unit tests. Call-site audit still needed.
+Status: Complete (2026-10-03). The audit covered the user/server-derived file
+paths that list, read, write, move, or delete files and added regressions for
+symlink escapes.
 
 Search targets:
 
@@ -72,16 +77,88 @@ Acceptance criteria:
 - Delete-file, streaming, downloads, browse, relay, and share paths are explicitly covered.
 - Any bypass gets a TODO tied to an issue or a test.
 
+Coverage:
+
+- Files API listing and deletion validate decoded paths against configured roots;
+  `FileService` resolves current symlink targets and skips reparse points.
+- Library Items fallback browsing skips reparse points and validates each file
+  against its configured share/download roots before checking metadata or
+  registering a content ID.
+- Streaming and player tag operations start from `ContentLocator`'s rooted
+  physical-file resolver. Mesh content serving uses `ShareService.ResolveFileAsync`;
+  relay reads and local uploads use the same current-root share resolution.
+  Mesh proof-of-possession chunk reads revalidate cached FLAC-key paths against
+  configured share roots before opening them.
+- Incomplete downloads, completed destinations, and persisted transfer removal
+  revalidate paths against their configured roots. Pod downloads validate the
+  peer filename before directory creation or fetching bytes, then use
+  `SecureFileWriter`. Share backfills validate generated paths and use the
+  same safe writer; relay destinations remain rooted and size-limited.
+- `ShareScanner` skips reparse points. `ShareService` revalidates cached local
+  share paths at use time and requests a rescan when an indexed path has moved
+  outside configured shares.
+- Remaining direct `FindFileInfo` calls in relay, backfill, and moderation are
+  index/metadata checks only. The physical read is delegated to the guarded
+  resolver, the destination to `DownloadService`, or no filesystem operation
+  occurs.
+- `scripts/check-path-containment.sh` asserts the central call sites, and
+  focused symlink regressions cover browsing, streaming, deletion, downloads,
+  share resolution, pod downloads, and mesh proof-of-possession chunk reads.
+
 ## 5. Audit ContentSafety call sites and policy
 
-Status: `ContentSafety` has focused unit tests. Runtime policy still needs confirmation.
+Status: Complete for standard Soulseek downloads, pod/mesh search downloads,
+HTTP collection backfills, relay imports, multi-source output, and the
+VirtualSoulfind mesh-transfer receiver. Every completed output is checked after
+its write stream closes and before success is reported; alternate receivers
+keep it in a private staging path until accepted. The standard Soulseek pipeline
+persists failed transfer and request state when policy rejects a file.
+
+Policy:
+
+- Dangerous executable signatures disguised as another file type are always
+  rejected while content scanning is active. `BlockExecutables` also rejects
+  executable signatures under executable extensions.
+- Failed signature verification is rejected. A known-type mismatch warning is
+  quarantined when `QuarantineSuspicious` is true; otherwise it is logged and
+  allowed to the normal destination.
+- Rejected files move to the configured quarantine directory by default. An
+  empty setting means `<directories.downloads>/.quarantine`; relative paths are
+  resolved under the downloads root. When quarantine is disabled, rejected
+  files are removed from the incomplete directory.
+- Disabling `VerifyMagicBytes` skips format-mismatch enforcement. Executable
+  signatures are still checked when `BlockExecutables` is enabled. Disabling
+  both settings turns off signature scanning.
+
+Shared implementation: `ContentSafety.InspectAndApplyPolicyAsync` performs the
+same enabled check, signature assessment, warning/rejection decision, and
+quarantine/removal disposition for each receiver. Collection backfills preserve
+the manifest filename when available and use `.bin` when no true extension is
+known, avoiding a false MP3 claim based only on `MediaKind`.
 
 Acceptance criteria:
 
-- Post-download verification call site is identified.
-- Policy is explicit for mismatch warnings: block, quarantine, log only, or surface in UI.
-- Dangerous executable masquerading as media fails closed when content safety is enabled.
-- Integration tests cover the post-download path once policy is decided.
+- All receive paths call the shared post-write policy before success.
+- Mismatch handling is explicit: quarantine warnings by default, log and allow
+  them when quarantine is disabled, and reject failed verification.
+- Dangerous executable masquerading as media is rejected and quarantined by
+  default, even when ordinary magic-byte matching is disabled.
+- `DownloadServiceTests.EnqueueAsync_ContentSafetyQuarantinesExecutableAndMismatchedFiles`
+  exercises the real output factory, SQLite transfer/request records, and local
+  filesystem disposition with magic-byte checking both enabled and disabled.
+- Focused regressions cover pod HTTP status and quarantine, collection backfill
+  failure counts, relay notification quarantine, multi-source sequential
+  failover, and the VirtualSoulfind receiver.
+- Existing limits, hash checks, SSRF controls, and path guards remain active.
+- `ContentSafetyTests.PublishStagedFile_CreatesMissingNestedDestinationDirectory`
+  verifies publication creates a missing nested target directory; the full
+  two-node mesh search/download test verifies the same path through a real
+  receiver.
+
+Validation on 2026-10-03: `dotnet test` passed (74 application, 5,391 unit,
+285 integration), `./bin/lint`, path containment, release-note preview,
+local-identity, feature-coherence, README-maturity, roadmap-claim, and whitespace
+checks passed.
 
 ## 6. Remove or hide HashFromAudioFileEnabled
 
@@ -236,6 +313,13 @@ extracted bootstrap helpers directly instead of routing through Program
 wrappers.
 The remaining antiforgery Program wrappers were removed after the MVC CSRF
 filter and focused tests moved to `AntiforgeryCookieRecovery` directly.
+Transfer service registration now belongs to
+`Bootstrap/TransfersServiceCollectionExtensions.cs`. The core graph delegates
+download, upload, transfer, file-service, and auto-replace registration to that
+module. Transfer hosted-service descriptors are added from the integration
+graph at their previous position, preserving hosted-service startup order.
+`IAutoReplaceService` now has one registration owner, protected by a descriptor
+count test.
 
 Target modules:
 
@@ -320,14 +404,35 @@ Target modules:
 - `StartupWebApplicationRunner`. Implemented for ASP.NET hardening validation,
   builder configuration, service registration, DI build, pipeline setup,
   no-start handling, and run lifecycle.
-- `AddSlskdTransfers(...)`
-- `AddSlskdSecurity(...)`
-- `AddSlskdIntegrations(...)`
-- `AddSlskdTelemetry(...)`
+- `AddSlskdTransfers(...)`. Implemented for rate limiting, downloads, uploads,
+  transfer coordination, file access, and auto-replace services.
+- `AddSlskdSecurity(...)`. The existing
+  `Common.Security.SecurityStartup.AddSlskdnSecurity(...)` owns the
+  configuration-driven application security graph and middleware; its option
+  binding and HTTP middleware have unit/integration coverage. ASP.NET
+  authentication and authorization remain part of `AddSlskdWebServices(...)`.
+- `AddSlskdIntegrations(...)`. Implemented for VPN, Lidarr, scripts, webhooks,
+  now-playing, listening-party, and the existing Lidarr hosted workers.
+- `AddSlskdTelemetry(...)`. Implemented for Prometheus, reports, and telemetry
+  aggregation services.
 - `AddSlskdUserData(...)`. Implemented.
-- `AddExperimentalDiscovery(...)`. Partly covered by `AddSlskdExperimentalFeatureGraph(...)`.
-- `AddExperimentalMesh(...)`. Partly covered by `AddSlskdExperimentalFeatureGraph(...)`.
-- `AddExperimentalSongId(...)` / `AddSlskdSongId(...)`. Started.
+- `AddExperimentalDiscovery(...)`. Implemented across the existing domain
+  owners: `AddSlskdTransferDiscoveryServices(...)` owns backfill, mesh hash
+  sync, source discovery and rescue; `AddSlskdCapabilitiesAndRendezvousServices(...)`
+  owns DHT rendezvous and peer discovery; `AddSlskdCoreApplicationServices(...)`
+  owns Soulseek discovery; and `AddSlskdIntegrationAndMediaServices(...)`
+  owns the discovery graph. Their existing call order stays in
+  `AddSlskdExperimentalFeatureGraph(...)`; no extra wrapper layer is needed.
+- `AddExperimentalMesh(...)`. Implemented across
+  `AddSlskdExperimentalMeshServices(...)` for mesh/DHT transport and realm
+  services, `AddSlskdCapabilitiesAndRendezvousServices(...)` for DHT overlay
+  peers, `AddSlskdTransferDiscoveryServices(...)` for hash synchronization,
+  and `AddSlskdMeshStreamingServices(...)` for content/peer streams at the
+  original core graph position. Existing feature gates, stream admission, and
+  hosted-service order are covered by focused tests.
+- `AddExperimentalSongId(...)` / `AddSlskdSongId(...)`. Implemented in
+  `SongIdServiceCollectionExtensions`; focused descriptor-count coverage
+  checks all three services register once.
 
 Acceptance criteria:
 
@@ -350,20 +455,43 @@ Acceptance criteria:
 
 ## 8. Add feature gate enforcement
 
-Status: foundation implemented. `FeatureGate` now evaluates experimental feature IDs from existing options, and SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs are gated surfaces.
+Status: runtime gate status is now exposed through the native capabilities
+response. A shared frontend hook waits for that response before gated API
+requests, refreshes when a page returns to the foreground and once per minute,
+and treats missing gate metadata from older servers as enabled for
+compatibility. Messaging and MediaCore hide disabled Pods controls and avoid
+PodCore requests; Search does the same for SongID and federated
+recommendations; System does the same for Mesh, DHT rendezvous,
+VirtualSoulfind, and multi-source downloads. Network sync actions are disabled
+when Mesh is off, and the parent MediaCore workflow index is hidden with its
+gated PodCore panel so its anchor links cannot point at missing content. The
+response uses the same effective gate decisions as the controllers, including
+Mesh overlay and DHT service settings. The filter returns 404 for
+configuration-disabled gates and 410 with the canonical slskr link for
+MovedToSlskr. The only inventory row marked moved is a documentation handoff
+with no active runtime route. A unit test pins FeatureId to the seven shipped
+gated surfaces so design-only inventory entries stay out of runtime
+registration.
 
 Minimum implementation:
 
 - `FeatureId` enum. Done.
 - `FeatureGate` service. Done.
-- Controller/action attribute or explicit helper for experimental API endpoints.
-- UI route metadata or status endpoint so the frontend can hide disabled features.
+- Controller/action attribute or explicit helper for experimental API
+  endpoints. Done for the inventoried surfaces.
+- UI route metadata or status endpoint so the frontend can hide disabled features. Done for all current UI consumers of the seven runtime gates through featureGates and the shared gate hook.
 
 Acceptance criteria:
 
-- Disabled experimental API surfaces return explicit disabled/404/410 behavior. Started with SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs.
-- Moved-to-slskr features can return 410 with a message/link.
-- Design-only features are not registered at runtime.
+- Disabled experimental API surfaces return explicit disabled/404 behavior.
+  The inventoried SongID, mesh, DHT, pods, social federation, VirtualSoulfind,
+  and multi-source APIs are gated and the disabled response is covered.
+- A `MovedToSlskr` gate returns 410 with an error message and project link.
+  No current runtime route is classified as moved.
+- Design-only features are not runtime `FeatureId`s; the enum inventory test
+  will fail if one is added without an explicit runtime decision.
+- A disabled UI surface does not poll its gated API, expose callable controls,
+  or leave links to content hidden with the gate.
 
 ## 8a. Dependency ownership inventory
 
@@ -394,10 +522,15 @@ Acceptance criteria:
 
 ## 10. Add DownloadService regression tests
 
-Status: expanded. Added focused coverage for in-progress duplicate protection,
-completed-transfer supersession, terminal failed cleanup when the background
-download start path throws, same-user enqueue serialization, and different-user
-enqueue concurrency.
+Status: complete (2026-10-03). Focused coverage protects in-progress
+duplicates, supersedes completed transfers, records terminal failures when the
+background start path throws, serializes same-user enqueues, and allows
+different users to enqueue concurrently. Cancellation-source cleanup is
+verified after cancellation, failure, and successful completion by confirming
+terminal transfers cannot be cancelled again. The shutdown regression verifies
+active cancellation and waits for the in-flight task to drain. The
+`AsNoTracking()` query remains explicit, with a 10,000-record history regression
+confirming only the requested filename is materialized.
 
 Required cases:
 
@@ -405,15 +538,19 @@ Required cases:
 - Existing in-progress transfer protected. Done.
 - Completed old transfer can be superseded. Done.
 - Enqueue exception moves transfer to terminal failed state. Done.
-- CTS cleanup after cancel/fail/complete.
-- Shutdown cancels active transfers.
+- CTS cleanup after cancel/fail/complete. Done.
+- Shutdown cancels active transfers and drains their tasks. Done.
 - Per-user semaphore serializes same-user enqueue. Done.
 - Different users can enqueue concurrently. Done.
-- `AsNoTracking()` behavior remains intentional.
+- `AsNoTracking()` behavior remains intentional. Done.
 
 ## 11. Add CI test job after branch builds locally
 
-Status: pending local validation.
+Status: covered by the existing CI release-gate step (2026-10-03). The
+`ci.yml` build job invokes `packaging/scripts/run-release-gate.sh` for pull
+requests, version tags, and manual dispatch; that gate already runs the scoped
+`tests/slskd.Tests.Unit` project. The full local `dotnet test` run passed, so no
+duplicate workflow job or trigger change is needed.
 
 Do not add an always-on full test job until the branch is known to build locally on the intended .NET SDK. The repo currently targets `net10.0`, so CI image/toolchain availability should be validated first.
 
@@ -423,4 +560,5 @@ Suggested manual command:
 dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --no-restore
 ```
 
-If that passes locally, add a scoped workflow job for the unit test project.
+The standalone unit-test command remains useful for local iteration. The
+release-gate invocation is the CI owner of that test project.

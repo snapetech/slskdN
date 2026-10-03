@@ -182,6 +182,9 @@ public class SearchActionsControllerTests : IClassFixture<slskd.Tests.Integratio
         var fileSize = 1024L;
         var testContent = new byte[fileSize];
         new Random().NextBytes(testContent);
+        testContent[0] = 0x49;
+        testContent[1] = 0x44;
+        testContent[2] = 0x33;
 
         // Set up search service with a pod result
         var searchService = factory.Services.GetRequiredService<ISearchService>() as StubSearchService;
@@ -249,6 +252,56 @@ public class SearchActionsControllerTests : IClassFixture<slskd.Tests.Integratio
     }
 
     [Fact]
+    public async Task DownloadItem_PodResult_QuarantinesExecutableDisguisedAsMedia()
+    {
+        var searchId = Guid.NewGuid();
+        var contentId = "content:mb:recording:unsafe-test";
+        var peerId = "peer:test-peer-unsafe";
+        var filename = $"blocked-{Guid.NewGuid():N}.mp3";
+        var maliciousContent = new byte[1024];
+        maliciousContent[0] = 0x4D;
+        maliciousContent[1] = 0x5A;
+
+        var searchService = factory.Services.GetRequiredService<ISearchService>() as StubSearchService;
+        searchService?.SeedSearch(new Search
+        {
+            Id = searchId,
+            SearchText = "test",
+            State = Soulseek.SearchStates.Completed,
+            StartedAt = DateTime.UtcNow,
+            EndedAt = DateTime.UtcNow,
+            Token = 0,
+            Responses = new List<Response>
+            {
+                new()
+                {
+                    Username = peerId,
+                    Files = new List<slskd.Search.File> { new() { Filename = filename, Size = maliciousContent.Length } },
+                    PrimarySource = "pod",
+                    SourceProviders = new List<string> { "pod" },
+                    PodContentRef = new PodContentRef { ContentId = contentId }
+                }
+            }
+        });
+
+        var meshContentFetcher = factory.Services.GetRequiredService<IMeshContentFetcher>() as StubMeshContentFetcher;
+        meshContentFetcher?.SeedContent(peerId, contentId, maliciousContent);
+
+        var response = await client.PostAsync($"/api/v0/searches/{searchId}/items/0:0/download", null);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        var options = factory.Services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<slskd.Options>>().CurrentValue;
+        var completedPath = Path.Combine(options.Directories.Downloads, filename);
+        Assert.False(System.IO.File.Exists(completedPath));
+
+        var quarantineDirectory = Path.Combine(options.Directories.Downloads, ".quarantine");
+        var quarantinedPath = Directory.GetFiles(quarantineDirectory)
+            .Single(path => Path.GetFileName(path).StartsWith(Path.GetFileNameWithoutExtension(filename), StringComparison.Ordinal));
+        Assert.Equal(maliciousContent, await System.IO.File.ReadAllBytesAsync(quarantinedPath));
+        System.IO.File.Delete(quarantinedPath);
+    }
+
+    [Fact]
     public async Task DownloadItem_ExplicitOutOfRangeFileIndex_ReturnsNotFound()
     {
         var searchId = Guid.NewGuid();
@@ -297,6 +350,9 @@ public class SearchActionsControllerTests : IClassFixture<slskd.Tests.Integratio
         var fileSize = 2048L;
         var testContent = new byte[fileSize];
         new Random().NextBytes(testContent);
+        testContent[0] = 0x49;
+        testContent[1] = 0x44;
+        testContent[2] = 0x33;
 
         // Set up search service with a pod result (no peerId in username)
         var searchService = factory.Services.GetRequiredService<ISearchService>() as StubSearchService;

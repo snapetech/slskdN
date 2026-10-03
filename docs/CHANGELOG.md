@@ -22,6 +22,164 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Authentication-disabled browser sessions
+
+- Preserve the no-auth passthrough session when background API requests return
+  401, preventing repeated page reloads while keeping JWT expiry behavior.
+
+## [2026100314-slskdn.334] — 2026-10-03
+
+### Authentication-disabled browser sessions
+
+- Preserve the no-auth passthrough mode when a protected API request returns
+  401, so a rejected request does not clear the mode and force a page reload.
+  Remote passthrough still requires an explicit matching client CIDR when
+  `web.allow_remote_no_auth` is enabled.
+
+### Transfer cancellation
+
+- Late cancellation requests no longer interrupt download cleanup after the
+  transfer has already reached a terminal state.
+
+### Runtime feature-gate visibility
+
+- Report effective experimental feature status through native capabilities.
+  Messaging hides disabled Pods controls, avoids pod API requests, and explains
+  the disabled state when users open `/pods` directly. Configuration-disabled
+  API routes return 404; a gate marked `MovedToSlskr` returns 410 with the
+  replacement project link.
+- Extend effective gate handling across Search and System: disabled SongID,
+  federated recommendations, Mesh/DHT, PodCore, VirtualSoulfind, and
+  multi-source surfaces now show their server configuration state and skip
+  gated requests. Mesh sync controls and MediaCore's Pod workflow navigation
+  follow the same status.
+
+### Filesystem path containment
+
+- Resolve current symlink targets against configured roots before browsing,
+  streaming, downloading, or deleting local files. Reject stale share-index
+  paths, and keep peer-derived pod downloads inside the selected destination.
+
+### Download content safety
+
+- Apply the configured content-safety policy to completed Soulseek, pod/mesh,
+  collection backfill, relay, multi-source, and VirtualSoulfind receives.
+  Stage alternate receives until accepted, quarantine rejected files by
+  default, remove them when quarantine is off, and report direct transfer
+  failures in transfer and request state.
+
+### Player listed-radio playback
+
+- Sustain high-rate remote radio playback and allow seeks beyond buffered audio
+  while reusing the current fairness admission. Remote stream tickets expire
+  before the host's published capability; local direct tickets remain
+  two-minute tickets.
+
+### System Experience Preferences
+
+- Show only browser-local preferences that currently change Search or Player
+  behavior, preserve older saved keys when either supported preference is
+  updated, and clarify that hiding the player stops playback and clears its
+  local queue.
+
+### System Shares accessibility
+
+- Open share contents with a named, keyboard-operable action that leaves the
+  route unchanged; keep wide configured-share tables in a labeled, keyboard-
+  focusable horizontal scroll region.
+
+### Secure incoming share streams
+
+- Exchange reusable share credentials through the owner's `X-Share-Token`
+  header and open only short-lived, content-bound stream tickets. Remote share
+owners must allow the recipient app origin, `POST`, and `X-Share-Token` in
+their Web CORS settings.
+
+### Cross-node collection sharing
+
+- Announce the operator-configured peer-reachable share endpoint instead of a
+  loopback URL. Recipients keep public URL protection; private/LAN backfills
+  require an exact private IP origin in `sharing.trustedPrivateOwnerOrigins`.
+  When no endpoint is published, the recipient hides unusable Stream actions
+  and explains the owner's `sharing.externalEndpoint` setup.
+
+### Workflow feedback and recovery
+
+- Discovery, Messaging, Sharing, Search, and Settings distinguish request
+  failures from successful empty results, preserve loaded data and drafts, and
+  offer in-place retries. Clipboard, browser storage, and send failures report
+  the actual outcome, and blocking prompts are replaced with in-app forms.
+
+### Network Sync feedback
+
+- Report mesh sync failures with the API's reason instead of claiming success.
+  Compact peer-sync controls have descriptive names and explain when to use
+  them. The public DHT exposure notice can also be dismissed by keyboard.
+
+### System Jobs accessibility
+
+- Explain job sorting, refresh and swarm details actions; make the swarm
+  visualization dialog closable with a named keyboard button, and keep dense
+  job rows reachable through a labeled scroll region on narrow screens.
+
+### System Security accessibility
+
+- Keep populated security metrics readable on narrow screens, and explain
+  refresh, connectivity-test, settings-save, and dynamic-list actions to mouse
+  and keyboard users.
+
+### System Mesh rendezvous controls
+
+- Explain the public and network effects of publishing, removing, and searching
+  the opt-in Soulseek rendezvous. Keep these manual controls touch-friendly on
+  narrow screens without changing the existing opt-in gate.
+
+### System Metrics accessibility
+
+- Make Prometheus metrics refresh and error retry keyboard-operable and
+  explain both actions. Keep metric labels readable and the details table
+  reachable through a labeled horizontal scroll region on narrow screens.
+
+### System Events diagnostics
+
+- Preserve formatted event payloads and keep wide records inside a labeled,
+  keyboard-scrollable table. Expose event identifiers to keyboard users and
+  let operators retry a failed page load without leaving Events.
+
+### System Logs recovery and mobile controls
+
+- Stop the live log connection when leaving the page, keep buffered records
+  visible while reconnecting, and offer retry after a failed connection.
+  Severity filters explain their effect, expose their selected state, and wrap
+  on narrow screens; long log messages preserve line breaks and remain inside
+  a labeled keyboard-scrollable table.
+
+### Transfer history cleanup feedback
+
+- Explain the scope of completed upload and download cleanup, keep the actions
+  usable on phones, and show a retryable error if the transfer-history request
+  fails. Clearing history does not remove downloaded files from disk.
+
+### System Files navigation and recovery
+
+- Make directory navigation and delete confirmation keyboard-operable with
+  clear action guidance. Retry failed listings and deletes in place, refresh
+  the current directory after deletion, and keep wide listings inside a labeled
+  scroll region on narrow screens.
+
+### System Library Health recovery
+
+- Keep saved results tied to their displayed library path, make dashboard loads
+  retryable without rescanning, and retain scan status after interrupted
+  polling. Explain bounded remediation actions, preserve remaining selections,
+  and keep issue tables and feedback usable on narrow screens.
+
+### Admin Policies validation and mobile controls
+
+- Keep transfer-retention fields readable in a labeled scroll region, require
+  a name and key before saving a new API-key policy, reject incomplete numeric
+  inputs, and keep save errors retryable.
+
 ### Web React compatibility
 
 - Upgrade the Web UI to React 19 while preserving input and history behavior across Browse, Users, Search, Chat, and Rooms.

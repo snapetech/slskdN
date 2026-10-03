@@ -6,6 +6,7 @@ namespace slskd.Common.Security;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,228 @@ public static class ContentSafety
     /// Minimum header size for reliable detection.
     /// </summary>
     public const int MinHeaderSize = 16;
+
+    /// <summary>
+    /// Creates a unique, rooted staging path that preserves the destination extension.
+    /// </summary>
+    /// <param name="destinationPath">The intended final file path.</param>
+    /// <param name="trustedRoot">The trusted root that contains the final and staging paths.</param>
+    /// <returns>A path beneath the root's hidden `.partial` directory.</returns>
+    public static string CreateStagingPath(string destinationPath, string trustedRoot)
+    {
+        var safeDestinationPath = PathGuard.NormalizeAbsolutePathWithinRoots(destinationPath, new[] { trustedRoot })
+            ?? throw new IOException("Destination path resolves outside its configured directory");
+        var stagingPath = Path.Combine(
+            Path.GetFullPath(trustedRoot),
+            ".partial",
+            Guid.NewGuid().ToString("N"),
+            Path.GetFileName(safeDestinationPath));
+        return PathGuard.NormalizeAbsolutePathWithinRoots(stagingPath, new[] { trustedRoot })
+            ?? throw new IOException("Staging path resolves outside its configured directory");
+    }
+
+    /// <summary>
+    /// Publishes a completed staging file after it has passed content-safety policy.
+    /// </summary>
+    /// <param name="stagingPath">The closed staging file.</param>
+    /// <param name="destinationPath">The intended final file path.</param>
+    /// <param name="trustedRoot">The trusted root for both paths.</param>
+    /// <param name="overwrite">Whether to replace an existing final file.</param>
+    /// <returns>The normalized final file path.</returns>
+    public static string PublishStagedFile(string stagingPath, string destinationPath, string trustedRoot, bool overwrite = false)
+    {
+        var stagingRoot = Path.Combine(Path.GetFullPath(trustedRoot), ".partial");
+        var safeStagingPath = PathGuard.NormalizeAbsolutePathWithinRoots(stagingPath, new[] { stagingRoot })
+            ?? throw new IOException("Staging path resolves outside its private directory");
+        var safeDestinationPath = PathGuard.NormalizeAbsolutePathWithinRoots(destinationPath, new[] { trustedRoot })
+            ?? throw new IOException("Destination path resolves outside its configured directory");
+
+        var destinationDirectory = Path.GetDirectoryName(safeDestinationPath)
+            ?? throw new IOException("Destination path has no parent directory");
+        var safeDestinationDirectory = PathGuard.NormalizeAbsolutePathWithinRoots(destinationDirectory, new[] { trustedRoot })
+            ?? throw new IOException("Destination directory resolves outside its configured directory");
+        Directory.CreateDirectory(safeDestinationDirectory);
+        safeDestinationPath = PathGuard.NormalizeAbsolutePathWithinRoots(destinationPath, new[] { trustedRoot })
+            ?? throw new IOException("Destination path resolves outside its configured directory");
+
+        File.Move(safeStagingPath, safeDestinationPath, overwrite);
+        CleanupEmptyStagingDirectories(safeStagingPath, trustedRoot);
+        return safeDestinationPath;
+    }
+
+    /// <summary>
+    /// Removes a partial staging file and its empty private staging directories.
+    /// </summary>
+    /// <param name="stagingPath">The staging file to remove.</param>
+    /// <param name="trustedRoot">The trusted root for the staging path.</param>
+    public static void DeleteStagedFile(string stagingPath, string trustedRoot)
+    {
+        var stagingRoot = Path.Combine(Path.GetFullPath(trustedRoot), ".partial");
+        var safeStagingPath = PathGuard.NormalizeAbsolutePathWithinRoots(stagingPath, new[] { stagingRoot })
+            ?? throw new IOException("Staging path resolves outside its private directory");
+        if (File.Exists(safeStagingPath))
+        {
+            File.Delete(safeStagingPath);
+        }
+
+        CleanupEmptyStagingDirectories(safeStagingPath, trustedRoot);
+    }
+
+    /// <summary>
+    /// Inspects a completed receive and applies the configured rejection and quarantine policy.
+    /// </summary>
+    /// <param name="filePath">The completed file path.</param>
+    /// <param name="fileRoot">The trusted root that contains the completed file.</param>
+    /// <param name="downloadsRoot">The configured downloads root used to resolve relative quarantine paths.</param>
+    /// <param name="securityOptions">The active security options.</param>
+    /// <param name="cancellationToken">The token to monitor while inspecting the file.</param>
+    /// <param name="logger">Optional logger for verification diagnostics.</param>
+    /// <param name="quarantineFilename">Optional final filename to use when quarantining a staged receive.</param>
+    /// <returns>The verification and local disposition applied to the file.</returns>
+    public static async Task<ContentSafetyDisposition> InspectAndApplyPolicyAsync(
+        string filePath,
+        string fileRoot,
+        string downloadsRoot,
+        SecurityOptions securityOptions,
+        CancellationToken cancellationToken = default,
+        ILogger? logger = null,
+        string? quarantineFilename = null)
+    {
+        var options = securityOptions.ContentSafety;
+        if (!securityOptions.Enabled || !options.Enabled || (!options.VerifyMagicBytes && !options.BlockExecutables))
+        {
+            return ContentSafetyDisposition.Skipped;
+        }
+
+        var safeFilePath = PathGuard.NormalizeAbsolutePathWithinRoots(filePath, new[] { fileRoot })
+            ?? throw new IOException("Completed download path resolves outside its configured directory");
+        var verification = await VerifyFileAsync(safeFilePath, cancellationToken, logger).ConfigureAwait(false);
+        var executableBlocked = verification.ThreatLevel == ContentThreatLevel.Dangerous
+            || (verification.ThreatLevel == ContentThreatLevel.Executable && options.BlockExecutables);
+        var magicBytesRejected = options.VerifyMagicBytes && !verification.IsValid;
+        var warningQuarantined = options.VerifyMagicBytes && verification.IsWarning && options.QuarantineSuspicious;
+        var rejected = executableBlocked || magicBytesRejected || warningQuarantined;
+
+        if (verification.IsWarning || !verification.IsValid)
+        {
+            logger?.LogWarning(
+                "Content verification for {Filename} reported {ThreatLevel}: {Message}",
+                Path.GetFileName(safeFilePath),
+                verification.ThreatLevel,
+                verification.Message);
+        }
+
+        if (!rejected)
+        {
+            return new ContentSafetyDisposition(true, false, verification, null);
+        }
+
+        if (options.QuarantineSuspicious)
+        {
+            try
+            {
+                var configuredDirectory = options.QuarantineDirectory;
+                var quarantineDirectory = string.IsNullOrWhiteSpace(configuredDirectory)
+                    ? Path.Combine(downloadsRoot, ".quarantine")
+                    : Path.IsPathRooted(configuredDirectory)
+                        ? configuredDirectory
+                        : Path.Combine(downloadsRoot, configuredDirectory);
+                quarantineDirectory = Path.GetFullPath(quarantineDirectory);
+
+                if (PathGuard.NormalizeAbsolutePathWithinRoots(quarantineDirectory, new[] { quarantineDirectory }) == null)
+                {
+                    throw new IOException("Configured quarantine directory is invalid");
+                }
+
+                Directory.CreateDirectory(quarantineDirectory);
+                var safeQuarantineDirectory = PathGuard.NormalizeAbsolutePathWithinRoots(
+                    quarantineDirectory,
+                    new[] { quarantineDirectory })
+                    ?? throw new IOException("Configured quarantine directory is invalid");
+                var quarantinedPath = MoveToQuarantine(
+                    safeFilePath,
+                    safeQuarantineDirectory,
+                    quarantineFilename ?? Path.GetFileName(safeFilePath));
+                CleanupEmptyStagingDirectories(safeFilePath, fileRoot);
+                return new ContentSafetyDisposition(true, true, verification, quarantinedPath);
+            }
+            catch (Exception quarantineException)
+            {
+                try
+                {
+                    File.Delete(safeFilePath);
+                    CleanupEmptyStagingDirectories(safeFilePath, fileRoot);
+                }
+                catch (Exception removalException)
+                {
+                    throw new AggregateException(
+                        "Content-safety rejected output could not be quarantined or removed",
+                        quarantineException,
+                        removalException);
+                }
+
+                throw new ContentSafetyRejectedException(
+                    $"Content-safety rejected output was removed because quarantine failed: {verification.Message}",
+                    quarantineException);
+            }
+        }
+
+        File.Delete(safeFilePath);
+        CleanupEmptyStagingDirectories(safeFilePath, fileRoot);
+        return new ContentSafetyDisposition(true, true, verification, null);
+    }
+
+    private static string MoveToQuarantine(string sourcePath, string quarantineDirectory, string filename)
+    {
+        filename = PathGuard.SanitizeFilename(Path.GetFileName(filename));
+        var destinationPath = PathGuard.NormalizeAbsolutePathWithinRoots(
+            Path.Combine(quarantineDirectory, filename),
+            new[] { quarantineDirectory })
+            ?? throw new IOException("Quarantine file path is invalid");
+
+        if (File.Exists(destinationPath) || Directory.Exists(destinationPath))
+        {
+            var extension = Path.GetExtension(filename);
+            var name = Path.GetFileNameWithoutExtension(filename);
+            destinationPath = PathGuard.NormalizeAbsolutePathWithinRoots(
+                Path.Combine(quarantineDirectory, $"{name}_{Guid.NewGuid():N}{extension}"),
+                new[] { quarantineDirectory })
+                ?? throw new IOException("Quarantine file path is invalid");
+        }
+
+        File.Move(sourcePath, destinationPath, overwrite: false);
+        return destinationPath;
+    }
+
+    private static void CleanupEmptyStagingDirectories(string stagingPath, string trustedRoot)
+    {
+        var stagingRoot = Path.Combine(Path.GetFullPath(trustedRoot), ".partial");
+        var stagingDirectory = Path.GetDirectoryName(stagingPath);
+        if (stagingDirectory == null ||
+            PathGuard.NormalizeAbsolutePathWithinRoots(stagingDirectory, new[] { stagingRoot }) == null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (Directory.Exists(stagingDirectory) && !Directory.EnumerateFileSystemEntries(stagingDirectory).Any())
+            {
+                Directory.Delete(stagingDirectory);
+            }
+
+            if (Directory.Exists(stagingRoot) && !Directory.EnumerateFileSystemEntries(stagingRoot).Any())
+            {
+                Directory.Delete(stagingRoot);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
 
     /// <summary>
     /// File signature (magic bytes) definitions.
@@ -290,6 +513,37 @@ public static class ContentSafety
             Offset = offset;
             Description = description;
         }
+    }
+}
+
+/// <summary>
+/// Result of applying content-safety policy to a completed receive.
+/// </summary>
+public readonly record struct ContentSafetyDisposition(
+    bool Inspected,
+    bool Rejected,
+    ContentVerificationResult? Verification,
+    string? QuarantinedPath)
+{
+    /// <summary>
+    /// Gets a disposition for a path that policy did not inspect.
+    /// </summary>
+    public static ContentSafetyDisposition Skipped => new(false, false, null, null);
+}
+
+/// <summary>
+/// Indicates that a completed receive was rejected by content-safety policy.
+/// </summary>
+public sealed class ContentSafetyRejectedException : Exception
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ContentSafetyRejectedException"/> class.
+    /// </summary>
+    /// <param name="message">The rejection reason.</param>
+    /// <param name="innerException">Optional exception that prevented quarantine.</param>
+    public ContentSafetyRejectedException(string message, Exception? innerException = null)
+        : base(message, innerException)
+    {
     }
 }
 

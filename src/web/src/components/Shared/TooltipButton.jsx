@@ -41,7 +41,7 @@ const TooltipButton = ({
     <Popup
       content={content}
       position={popupPosition}
-      trigger={button}
+      trigger={props.disabled ? <span>{button}</span> : button}
     />
   );
 };

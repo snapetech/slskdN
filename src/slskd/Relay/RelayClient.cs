@@ -669,7 +669,11 @@ namespace slskd.Relay
                             {
                                 // if we're debugging, we're referencing the same file for both the controller and agent which will lead to an
                                 // access violation. prefix the destination file to avoid this.
-                                destinationFile = PathGuard.NormalizeAndValidate($"{filename}.relayed", downloadsDirectory);
+                                var extension = Path.GetExtension(filename);
+                                var debugFilename = string.IsNullOrEmpty(extension)
+                                    ? $"{filename}.relayed"
+                                    : $"{filename[..^extension.Length]}.relayed{extension}";
+                                destinationFile = PathGuard.NormalizeAndValidate(debugFilename, downloadsDirectory);
                                 if (destinationFile == null)
                                 {
                                     throw new InvalidOperationException("Relay debug download filename is outside the downloads directory.");
@@ -696,10 +700,47 @@ namespace slskd.Relay
 
                                 using var remoteStream = await response.Content.ReadAsStreamAsync();
 
-                                using var localStream = SecureFileWriter.Open(destinationFile, downloadsDirectory);
-                                await CopyWithLimitAsync(remoteStream, localStream, MaxRelayDownloadBytes);
+                                var stagingFile = ContentSafety.CreateStagingPath(destinationFile, downloadsDirectory);
+                                try
+                                {
+                                    using (var localStream = SecureFileWriter.Open(stagingFile, downloadsDirectory))
+                                    {
+                                        await CopyWithLimitAsync(remoteStream, localStream, MaxRelayDownloadBytes);
+                                    }
+
+                                    var contentSafetyDisposition = await ContentSafety.InspectAndApplyPolicyAsync(
+                                        stagingFile,
+                                        downloadsDirectory,
+                                        downloadsDirectory,
+                                        OptionsMonitor.CurrentValue.Security,
+                                        CancellationToken.None,
+                                        quarantineFilename: Path.GetFileName(destinationFile)).ConfigureAwait(false);
+                                    if (contentSafetyDisposition.Verification is { } contentVerification &&
+                                        (contentVerification.IsWarning || !contentVerification.IsValid))
+                                    {
+                                        Log.Warning(
+                                            "Relay content verification for {Filename} reported {ThreatLevel}: {Message}",
+                                            filename,
+                                            contentVerification.ThreatLevel,
+                                            contentVerification.Message);
+                                    }
+
+                                    if (contentSafetyDisposition.Rejected)
+                                    {
+                                        throw new ContentSafetyRejectedException(
+                                            contentSafetyDisposition.Verification?.Message
+                                            ?? "Relay content failed configured safety checks");
+                                    }
+
+                                    ContentSafety.PublishStagedFile(stagingFile, destinationFile, downloadsDirectory, overwrite: true);
+                                }
+                                catch
+                                {
+                                    ContentSafety.DeleteStagedFile(stagingFile, downloadsDirectory);
+                                    throw;
+                                }
                             },
-                            isRetryable: (_, _) => true,
+                            isRetryable: (_, ex) => ex is not ContentSafetyRejectedException,
                             onFailure: (_, ex) => Log.Error(ex, "Failed to handle file download notification for {Filename} ({Token})", filename, GetRelayTokenLogId(token)),
                             maxAttempts: 3,
                             maxDelayInMilliseconds: 60000);

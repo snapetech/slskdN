@@ -533,7 +533,21 @@ class Response extends Component {
     const { qualitySummary } = this.state;
     const sourceProviders = asArray(response.sourceProviders);
     const hasPodSource = sourceProviders.includes('pod');
+    const hasMeshSource = sourceProviders.includes('mesh');
     const primarySource = response.primarySource || 'scene';
+    const selectedStreamFile = selectedFiles[0];
+    const hasContentId = Boolean(
+      selectedStreamFile?.contentId || response.podContentRef?.contentId,
+    );
+    const canStreamFromSearch =
+      (hasPodSource || hasMeshSource) && hasContentId;
+    let streamTooltip = 'Preview the first selected audio file directly from this Soulseek peer. This is a manual, limited stream and does not save the file or start a batch download.';
+    if (canStreamFromSearch) {
+      streamTooltip =
+        primarySource === 'mesh'
+          ? 'Stream this content-ID result from the mesh peer.'
+          : `Stream from Pod (${primarySource === 'pod' ? 'preferred' : 'available'}).`;
+    }
     const preview = buildSearchActionPreview({
       candidateRank,
       communityQualitySummary: response.communityQualitySummary || qualitySummary,
@@ -586,11 +600,7 @@ class Response extends Component {
           />
           {playerVisible && (
             <Popup
-              content={
-                hasPodSource
-                  ? `Stream from Pod (${primarySource === 'pod' ? 'preferred' : 'available'}).`
-                  : 'Preview the first selected audio file directly from this Soulseek peer. This is a manual, limited stream and does not save the file or start a batch download.'
-              }
+              content={streamTooltip}
               position="top center"
               trigger={
                 <Button
@@ -604,7 +614,7 @@ class Response extends Component {
                   }
                   icon="play"
                   onClick={() =>
-                    hasPodSource
+                    canStreamFromSearch
                       ? this.streamSearchActionPreview(selectedFiles[0])
                       : this.streamPreview(
                           this.props.response.username,
@@ -832,6 +842,17 @@ class Response extends Component {
                           }
                         />
                       )}
+                      {sourceProviders.includes('mesh') && (
+                        <Popup
+                          content="Found through the mesh overlay. Files with content IDs transfer over mesh; other files use the peer's Soulseek share."
+                          position="top center"
+                          trigger={
+                            <Label color="teal" size="tiny">
+                              MESH
+                            </Label>
+                          }
+                        />
+                      )}
                       {sourceProviders.includes('scene') && (
                         <Popup
                           content="Available from Soulseek Scene"
@@ -848,14 +869,14 @@ class Response extends Component {
                       )}
                       {sourceProviders.length > 1 && (
                         <Popup
-                          content={`Available from both Pod and Scene. Preferred: ${response.primarySource?.toUpperCase() || 'POD'}`}
+                          content={`Available from ${sourceProviders.map((provider) => provider.toUpperCase()).join(' and ')}. Preferred: ${response.primarySource?.toUpperCase() || sourceProviders[0].toUpperCase()}`}
                           position="top center"
                           trigger={
                             <Label
                               color="teal"
                               size="tiny"
                             >
-                              POD+SCENE
+                              {sourceProviders.map((provider) => provider.toUpperCase()).join('+')}
                             </Label>
                           }
                         />

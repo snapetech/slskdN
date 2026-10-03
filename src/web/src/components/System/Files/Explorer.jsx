@@ -1,60 +1,144 @@
 import { deleteDirectory, deleteFile, list } from '../../../lib/files';
 import { formatBytes, formatDate } from '../../../lib/util';
-import React, { useEffect, useState } from 'react';
-import { Header, Icon, Modal, Table } from 'semantic-ui-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button, Header, Icon, Message, Modal, Popup, Table } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const emptyDirectory = { directories: [], files: [] };
+
+const getErrorMessage = (error, fallback) => {
+  const response = error?.response?.data;
+  if (typeof response === 'string' && response.trim()) {
+    return response;
+  }
+
+  return response?.message || error?.message || fallback;
+};
+
+const DeleteControl = ({ fullName, isDirectory, onDeleted, path, root }) => {
+  const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState(null);
+  const itemType = isDirectory ? 'directory' : 'file';
+
+  const remove = async () => {
+    setDeleting(true);
+    setError(null);
+
+    try {
+      const removeItem = isDirectory ? deleteDirectory : deleteFile;
+      await removeItem({ path, root });
+      setOpen(false);
+      onDeleted();
+    } catch (error_) {
+      setError(
+        getErrorMessage(error_, `Unable to delete this ${itemType}.`),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <Popup
+        content={`Open confirmation to permanently delete ${itemType} '${fullName}'.`}
+        on={['hover', 'focus']}
+        position="top center"
+        trigger={(
+          <Button
+            aria-label={`Delete ${itemType} ${fullName}`}
+            basic
+            icon="trash alternate"
+            onClick={() => {
+              setError(null);
+              setOpen(true);
+            }}
+            size="small"
+          />
+        )}
+      />
+      <Modal
+        onClose={() => !deleting && setOpen(false)}
+        open={open}
+        size="small"
+      >
+        <Modal.Header>
+          <Icon name="trash alternate" />
+          {`Delete ${itemType}`}
+        </Modal.Header>
+        <Modal.Content>
+          <p>{`Are you sure you want to permanently delete '${fullName}'?`}</p>
+          {error ? (
+            <Message
+              content={error}
+              error
+              role="alert"
+            />
+          ) : null}
+        </Modal.Content>
+        <Modal.Actions>
+          <Popup
+            content="Close this confirmation without deleting the item."
+            on={['hover', 'focus']}
+            trigger={(
+              <Button
+                disabled={deleting}
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+            )}
+          />
+          <Popup
+            content={`Permanently delete this ${itemType}. This action cannot be undone.`}
+            on={['hover', 'focus']}
+            trigger={(
+              <Button
+                disabled={deleting}
+                loading={deleting}
+                negative
+                onClick={remove}
+              >
+                Delete
+              </Button>
+            )}
+          />
+        </Modal.Actions>
+      </Modal>
+    </>
+  );
+};
 
 const FileRow = ({
   fullName,
   length,
   modifiedAt,
   name,
+  onDeleted,
   remoteFileManagement,
   root,
   subdirectory,
 }) => (
   <Table.Row key={fullName}>
-    <Table.Cell>
+    <Table.Cell className="explorer-list-name">
       <Icon name="file outline" />
       {name}
     </Table.Cell>
-    <Table.Cell>{modifiedAt ? formatDate(modifiedAt) : ''}</Table.Cell>
-    <Table.Cell>{length ? formatBytes(length) : ''}</Table.Cell>
-    <Table.Cell>
+    <Table.Cell className="explorer-list-date">
+      {modifiedAt ? formatDate(modifiedAt) : ''}
+    </Table.Cell>
+    <Table.Cell className="explorer-list-size">
+      {length ? formatBytes(length) : ''}
+    </Table.Cell>
+    <Table.Cell className="explorer-list-action">
       {remoteFileManagement ? (
-        <Modal
-          actions={[
-            'Cancel',
-            {
-              content: 'Delete',
-              key: 'done',
-              negative: true,
-              onClick: async () => {
-                await deleteFile({
-                  path: `${subdirectory.join('/')}/${fullName}`,
-                  root,
-                });
-                fetch();
-              },
-            },
-          ]}
-          centered
-          content={`Are you sure you want to delete file '${fullName}'?`}
-          header={
-            <Header
-              content="Confirm File Delete"
-              icon="trash alternate"
-            />
-          }
-          size="small"
-          trigger={
-            <Icon
-              color="red"
-              name="trash alternate"
-              style={{ cursor: 'pointer' }}
-            />
-          }
+        <DeleteControl
+          fullName={fullName}
+          isDirectory={false}
+          onDeleted={onDeleted}
+          path={[...subdirectory, fullName].filter(Boolean).join('/')}
+          root={root}
         />
       ) : null}
     </Table.Cell>
@@ -67,106 +151,116 @@ const DirectoryRow = ({
   modifiedAt,
   name,
   onClick = () => {},
+  onDeleted,
   remoteFileManagement,
   root,
   subdirectory,
-}) => (
-  <Table.Row key={name}>
-    <Table.Cell
-      onClick={onClick}
-      style={{ cursor: 'pointer' }}
-    >
-      <Icon name="folder" />
-      {name}
-    </Table.Cell>
-    <Table.Cell>{modifiedAt ? formatDate(modifiedAt) : ''}</Table.Cell>
-    <Table.Cell />
-    <Table.Cell>
-      {remoteFileManagement && deletable ? (
-        <Modal
-          actions={[
-            'Cancel',
-            {
-              content: 'Delete',
-              key: 'done',
-              negative: true,
-              onClick: async () => {
-                await deleteDirectory({
-                  path: `${subdirectory.join('/')}/${fullName}`,
-                  root,
-                });
-                fetch();
-              },
-            },
-          ]}
-          centered
-          content={`Are you sure you want to delete directory '${fullName}'?`}
-          header={
-            <Header
-              content="Confirm Directory Delete"
-              icon="trash alternate"
-            />
-          }
-          size="small"
-          trigger={
-            <Icon
-              color="red"
-              name="trash alternate"
-              style={{ cursor: 'pointer' }}
-            />
-          }
+}) => {
+  const isParent = name === '..';
+  const description = isParent
+    ? 'Go up one directory.'
+    : `Open the ${name} directory.`;
+
+  return (
+    <Table.Row key={name}>
+      <Table.Cell className="explorer-list-name">
+        <Popup
+          content={description}
+          on={['hover', 'focus']}
+          position="top left"
+          trigger={(
+            <Button
+              aria-label={description}
+              basic
+              className="explorer-directory-button"
+              onClick={onClick}
+            >
+              <Icon name={isParent ? 'level up' : 'folder'} />
+              {name}
+            </Button>
+          )}
         />
-      ) : (
-        ''
-      )}
-    </Table.Cell>
-  </Table.Row>
-);
+      </Table.Cell>
+      <Table.Cell className="explorer-list-date">
+        {modifiedAt ? formatDate(modifiedAt) : ''}
+      </Table.Cell>
+      <Table.Cell className="explorer-list-size" />
+      <Table.Cell className="explorer-list-action">
+        {remoteFileManagement && deletable ? (
+          <DeleteControl
+            fullName={fullName}
+            isDirectory
+            onDeleted={onDeleted}
+            path={[...subdirectory, fullName].filter(Boolean).join('/')}
+            root={root}
+          />
+        ) : null}
+      </Table.Cell>
+    </Table.Row>
+  );
+};
 
 const Explorer = ({ active = true, remoteFileManagement, root }) => {
-  const [directory, setDirectory] = useState({ directories: [], files: [] });
+  const [directory, setDirectory] = useState(emptyDirectory);
   const [subdirectory, setSubdirectory] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const fetch = async () => {
-    if (!active) {
-      return;
-    }
-
-    setLoading(true);
-    const directoryResult = await list({
-      root,
-      subdirectory: subdirectory.join('/'),
-    });
-    setDirectory(directoryResult);
-    setLoading(false);
-  };
+  const [error, setError] = useState(null);
+  const [refreshSequence, setRefreshSequence] = useState(0);
+  const previousRoot = useRef(root);
 
   useEffect(() => {
-    if (!active) {
-      return;
+    if (previousRoot.current !== root) {
+      previousRoot.current = root;
+      if (subdirectory.length > 0) {
+        setSubdirectory([]);
+        return undefined;
+      }
     }
 
-    fetch();
-  }, [active, root, subdirectory]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!active) {
+      return undefined;
+    }
 
-  useEffect(() => {
-    setSubdirectory([]);
-  }, [root]);
+    let requestIsCurrent = true;
+    const loadDirectory = async () => {
+      setLoading(true);
+      setError(null);
+      setDirectory(emptyDirectory);
 
-  const select = ({ path }) => {
-    setSubdirectory([...subdirectory, path]);
+      try {
+        const result = await list({
+          root,
+          subdirectory: subdirectory.join('/'),
+        });
+        if (!requestIsCurrent) return;
+
+        setDirectory({
+          directories: asArray(result?.directories),
+          files: asArray(result?.files),
+        });
+      } catch (error_) {
+        if (!requestIsCurrent) return;
+        setError(getErrorMessage(error_, 'Unable to load this directory.'));
+      } finally {
+        if (requestIsCurrent) setLoading(false);
+      }
+    };
+
+    loadDirectory();
+    return () => {
+      requestIsCurrent = false;
+    };
+  }, [active, refreshSequence, root, subdirectory]);
+
+  const select = (path) => {
+    setSubdirectory((current) => [...current, path]);
   };
 
   const upOneSubdirectory = () => {
-    const copy = [...subdirectory];
-    copy.pop();
-    setSubdirectory(copy);
+    setSubdirectory((current) => current.slice(0, -1));
   };
 
-  const total =
-    (directory?.directories?.length ?? 0) +
-    (directory?.files?.length ?? 0);
+  const total = directory.directories.length + directory.files.length;
 
   if (!active) {
     return (
@@ -181,7 +275,7 @@ const Explorer = ({ active = true, remoteFileManagement, root }) => {
   }
 
   return (
-    <>
+    <section className="system-files-explorer">
       <Header
         className="explorer-working-directory"
         size="small"
@@ -189,39 +283,59 @@ const Explorer = ({ active = true, remoteFileManagement, root }) => {
         <Icon name="folder open" />
         {'/' + root + '/' + subdirectory.join('/')}
       </Header>
-      <Table
-        className="unstackable"
-        size="large"
-      >
-        <Table.Header>
-          <Table.Row>
-            <Table.HeaderCell className="explorer-list-name">
-              Name
-            </Table.HeaderCell>
-            <Table.HeaderCell className="explorer-list-date">
-              Date Modified
-            </Table.HeaderCell>
-            <Table.HeaderCell className="explorer-list-size">
-              Size
-            </Table.HeaderCell>
-            <Table.HeaderCell className="explorer-list-action" />
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {total === 0 ? (
-            <Table.Row>
-              <Table.Cell
-                colSpan={99}
-                style={{
-                  opacity: 0.5,
-                  padding: '10px !important',
-                  textAlign: 'center',
-                }}
+
+      {error ? (
+        <Message
+          error
+          header="Could not load this directory"
+          role="alert"
+        >
+          <p>{error}</p>
+          <Popup
+            content="Retry loading the current directory after the request error."
+            on={['hover', 'focus']}
+            position="top center"
+            trigger={(
+              <Button
+                onClick={() => setRefreshSequence((current) => current + 1)}
+                primary
               >
-                {loading ? 'Loading files' : 'No files or directories'}
-              </Table.Cell>
+                <Icon name="refresh" />
+                Try Again
+              </Button>
+            )}
+          />
+        </Message>
+      ) : null}
+
+      <div
+        aria-label={`${root === 'downloads' ? 'Downloads' : 'Incomplete'} files and directories`}
+        className="explorer-table-scroll"
+        role="region"
+        tabIndex={0}
+      >
+        <Table
+          aria-label="Files and directories"
+          className="unstackable explorer-table"
+          size="large"
+        >
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell className="explorer-list-name">
+                Name
+              </Table.HeaderCell>
+              <Table.HeaderCell className="explorer-list-date">
+                Date Modified
+              </Table.HeaderCell>
+              <Table.HeaderCell className="explorer-list-size">
+                Size
+              </Table.HeaderCell>
+              <Table.HeaderCell className="explorer-list-action">
+                Actions
+              </Table.HeaderCell>
             </Table.Row>
-          ) : (
+          </Table.Header>
+          <Table.Body>
             <>
               {subdirectory.length > 0 && (
                 <DirectoryRow
@@ -234,30 +348,43 @@ const Explorer = ({ active = true, remoteFileManagement, root }) => {
                   subdirectory={subdirectory}
                 />
               )}
-              {asArray(directory?.directories).map((d) => (
+              {total === 0 ? (
+                <Table.Row>
+                  <Table.Cell colSpan={4}>
+                    {loading
+                      ? 'Loading files'
+                      : error
+                        ? 'Directory contents are unavailable'
+                        : 'No files or directories'}
+                  </Table.Cell>
+                </Table.Row>
+              ) : null}
+              {directory.directories.map((item) => (
                 <DirectoryRow
-                  key={d.name}
-                  onClick={() => select({ path: d.name })}
+                  key={item.name}
+                  onClick={() => select(item.name)}
+                  onDeleted={() => setRefreshSequence((current) => current + 1)}
                   remoteFileManagement={remoteFileManagement}
                   root={root}
                   subdirectory={subdirectory}
-                  {...d}
+                  {...item}
                 />
               ))}
-              {asArray(directory?.files).map((f) => (
+              {directory.files.map((item) => (
                 <FileRow
-                  key={f.name}
+                  key={item.name}
+                  onDeleted={() => setRefreshSequence((current) => current + 1)}
                   remoteFileManagement={remoteFileManagement}
                   root={root}
                   subdirectory={subdirectory}
-                  {...f}
+                  {...item}
                 />
               ))}
             </>
-          )}
-        </Table.Body>
-      </Table>
-    </>
+          </Table.Body>
+        </Table>
+      </div>
+    </section>
   );
 };
 

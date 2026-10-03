@@ -5,6 +5,24 @@ them individually or use the reduction profile below. The upstream Soulseek
 client, shares, search, transfers, and Gluetun integration continue to operate
 when all experimental flags are false.
 
+The authenticated native capabilities endpoint (`/api/slskdn/capabilities`,
+also available at `/api/v0/slskdn/capabilities`) reports each gated feature's
+effective `status`, `enabled` value, and operator-facing message under
+`featureGates`. The values come from the same runtime gate used by API
+controllers, including dependent service settings such as mesh overlay and
+DHT enablement. The Web UI reads this status before opening gated surfaces,
+refreshes it when a page returns to the foreground and once per minute, and
+keeps older servers compatible when they omit feature-gate metadata. Messaging
+and MediaCore hide disabled Pods controls and avoid PodCore requests; Search
+does the same for SongID and federated recommendations; System does the same
+for Mesh, DHT rendezvous, VirtualSoulfind, and multi-source downloads. The
+`/pods` routes remain registered so they can explain the disabled state
+without redirecting elsewhere.
+Configuration-disabled API routes return 404. A gated route whose runtime
+status is `MovedToSlskr` returns 410 Gone with a link to the separate slskr
+project. The current moved-to-slskr inventory entry is a documentation handoff
+and has no active API route.
+
 ## Feature and service lifecycle gates
 
 These settings gate both their controllers/APIs and their corresponding

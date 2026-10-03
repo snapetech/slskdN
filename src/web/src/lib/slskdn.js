@@ -19,7 +19,7 @@ const safeGet = async (endpoint, fallback = null) => {
 
 // Capabilities API
 export const getCapabilities = async () => {
-  return safeGet('/capabilities', { features: [] });
+  return safeGet('/capabilities', { features: [], featureGates: {} });
 };
 
 export const getDiscoveredPeers = async () => {
@@ -61,7 +61,15 @@ export const triggerMeshSync = async (username) => {
   try {
     return (await api.post(`/mesh/sync/${encodeURIComponent(username)}`)).data;
   } catch (error) {
-    return { error: error?.message || 'Sync failed', success: false };
+    const message =
+      error?.response?.data?.error ??
+      error?.response?.data?.detail ??
+      error?.message;
+
+    return {
+      error: typeof message === 'string' ? message : 'Sync failed',
+      success: false,
+    };
   }
 };
 

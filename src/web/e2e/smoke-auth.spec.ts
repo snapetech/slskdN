@@ -162,7 +162,7 @@ test.describe('smoke/auth', () => {
     await Promise.race([
       page
         .waitForURL(
-          (url) => url.includes('/login') || !url.includes('/system'),
+          (url) => url.href.includes('/login') || !url.href.includes('/system'),
           { timeout: 10_000 },
         )
         .catch(() => {}),

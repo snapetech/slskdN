@@ -1,144 +1,86 @@
-<h1 align="center">slskdN(OT)</h1>
-<p align="center"><strong>The feature-forward Soulseek web client</strong></p>
+<h1 align="center">slskdN</h1>
+<p align="center"><strong>A web interface and daemon for Soulseek file sharing</strong></p>
 <p align="center">
-  <a href="https://github.com/snapetech/slskdn"><strong>slskdN</strong></a>
-  is an unofficial fork of
-  <a href="https://github.com/slskd/slskd"><strong>slskd</strong></a>.
+  <a href="https://github.com/snapetech/slskdn/releases">Releases</a> ·
+  <a href="https://github.com/snapetech/slskdn/issues">Issues</a> ·
+  <a href="https://discord.gg/5PyXBfvS6T">Community</a>
 </p>
 
-> **Feature maturity notice**
->
-> slskdN contains stable slskd-compatible behavior plus a large set of experimental and design-stage extensions. Before relying on an advanced feature, check:
->
-> - [`FEATURE_INVENTORY.md`](FEATURE_INVENTORY.md) — canonical feature maturity table
-> - [`docs/status.md`](docs/status.md) — user/contributor-facing implementation status
-> - [`docs/security/implemented-security.md`](docs/security/implemented-security.md) — implemented security controls only
-> - [`docs/security/security-roadmap.md`](docs/security/security-roadmap.md) — planned security work
-> - [`docs/security/security-non-goals.md`](docs/security/security-non-goals.md) — explicit non-goals and overclaim guardrails
+slskdN is an unofficial fork of [slskd](https://github.com/slskd/slskd). It
+provides a web UI, REST API, and Soulseek client. It also includes extended
+search, automation, media, and networking features at different levels of
+maturity.
 
----
+> **Check feature maturity before relying on an extension.** The
+> [feature inventory](FEATURE_INVENTORY.md) is the canonical per-feature
+> status. [Implementation status](docs/status.md) summarizes the main groups.
+> Experimental features are not guaranteed stable, and feature gates have
+> feature-specific defaults.
 
-## What is slskdN?
+## Get started
 
-**slskdN(OT)** is a feature-forward fork of `slskd`. The stable baseline remains normal slskd-compatible Soulseek daemon behavior, Web UI, REST API, and standard single-source transfers.
+- [Install and configure slskdN](docs/getting-started.md)
+- [Configuration reference](docs/config.md)
+- [Docker deployment](docs/docker.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Build from source](docs/build.md)
 
-The project also contains experimental work around richer search, ranking, metadata, automation, streaming, mesh/discovery, and integrations. Those areas are intentionally tracked by maturity so documentation does not imply that every advertised idea is stable or production-ready.
+For first use, follow the setup guide to install the daemon, open its Web UI,
+set credentials, configure a download directory and Soulseek account, then
+search, browse, and manage transfers.
 
-## slskr / Rust rewrite status
+## Use the main workflows
 
-[`snapetech/slskr`](https://github.com/snapetech/slskr) is the forward-looking Rust daemon/API/Web UI stack. Features whose active implementation target has moved to slskr should be marked `moved-to-slskr` in `FEATURE_INVENTORY.md` rather than described as stable slskdN behavior.
+- [Search and discovery](docs/soulseek-native-discovery.md) — search peers and
+  review optional discovery tools.
+- [Browse and download](docs/advanced-features.md) — select files and folders,
+  choose a destination, and follow transfer progress.
+- [Wishlist and Lidarr](docs/lidarr-integration.md) — configure background
+  acquisition workflows and their safeguards.
+- [Messages, rooms, and pods](docs/pods-and-rooms.md) — review the distinct
+  Soulseek and mesh messaging surfaces.
+- [Player and listening parties](docs/listening-party.md) — configure local
+  playback and optional shared listening.
+- [System settings](docs/system-surfaces.md) — manage policies, integrations,
+  diagnostics, and local experience preferences.
 
-## Current stable baseline
+## Feature maturity
 
-The project should preserve these first:
+The stable baseline is slskd-compatible daemon behavior, the Web UI and REST
+API, and standard single-source Soulseek transfers. The project also ships
+experimental features; their maturity, gates, tests, and smoke coverage vary.
+Consult the inventory and feature-specific guide before enabling an extension.
 
-- Core slskd-compatible daemon behavior.
-- Normal single-source Soulseek transfers.
-- Existing Web UI and API compatibility.
-- Existing configuration compatibility where practical.
-
-## Implemented but needs audit / tests before stronger claims
-
-These areas have concrete implementation signals, but should remain conservative in user-facing claims until the inventory records tests and smoke paths:
-
-- Auto-replace / conservative transfer rescue.
-- Wishlist and background search.
-- Advanced search filters and smart ranking.
-- User notes, ratings, badges, and source history.
-- Delete-file and file-type restriction workflows.
-- Ntfy/Pushover/Now Playing integrations.
-- Integrated player and local streaming.
-- Prometheus metrics UI.
-- Native Soulseek discovery.
-- MusicBrainz, AcoustID, Chromaprint, auto-tagging, and library health.
-- Lidarr integration.
-- VPN binding / port-forward agent.
-- Type-1 Soulseek peer/distributed/file-transfer obfuscation.
-
-## Experimental / opt-in distributed systems
-
-These must be disabled by default or explicitly gated until proven safe and documented:
-
-- DHT rendezvous.
-- Mesh overlay.
-- Hash database gossip.
-- Runtime capability handshakes.
-- Soulseek mesh rendezvous publication.
-- Pods and Gold Star Club behavior.
-- VirtualSoulfind.
-- Social federation.
-- Service Fabric.
-- Multi-source / accelerated downloads beyond conservative single-source rescue.
+DHT rendezvous, mesh networking, pods, federation, VirtualSoulfind, and
+multi-source downloads are distinct experimental systems. Their presence in
+the UI, API, configuration, or documentation does not mean they are enabled,
+interoperable, or suitable for production in every setup.
 
 ## Roadmap-only security claims
 
-Do **not** describe these as implemented security guarantees unless concrete code, enforcement points, tests, and smoke paths exist:
+Some proposed security systems remain design-only. See the separate documents
+for [implemented security controls](docs/security/implemented-security.md),
+the [security roadmap](docs/security/security-roadmap.md), and
+[security non-goals](docs/security/security-non-goals.md).
 
-- NetworkGuard as a central incoming-message guard.
-- PeerReputation as a behavioral security system.
-- CryptographicCommitment.
-- ProofOfStorage.
-- ByzantineConsensus.
-- Honeypots.
-- Canary traps.
-- Entropy monitoring.
-- Paranoid mode.
+`HashFromAudioFileEnabled` is unavailable in this build; enabling it causes
+startup validation to fail. Runtime SongID capabilities are reported by the
+application and may differ with configuration and installed tools.
 
-Implemented security controls currently documented separately:
+## Project status and contribution
 
-- `PathGuard` filesystem/path containment utilities.
-- `ContentSafety` magic-byte / executable masquerading checks.
-- `HardeningValidator` startup checks, pending bind-exposure correction.
+- [Feature inventory](FEATURE_INVENTORY.md) — canonical maturity and coverage
+  table.
+- [Implementation status](docs/status.md) — user- and contributor-facing
+  summary.
+- [Feature overview](docs/FEATURES.md) — detailed capability descriptions.
+- [Contributing](CONTRIBUTING.md) — development and contribution guidance.
+- [API documentation](docs/api-documentation.md) — HTTP API reference.
 
-## Known broken or unavailable surfaces
-
-`HashFromAudioFileEnabled` is known-unavailable unless real PCM extraction support is present. It must not be marketed as working SongID/audio-fingerprint behavior until the runtime capability exists and is tested.
-
-## Quick start
-
-Use the existing slskd-compatible setup paths while this maturity cleanup is underway. The current packaging and configuration docs remain the authoritative install references:
-
-- `docs/config.md`
-- `config/slskd.example.yml`
-- packaging docs under `packaging/`
-- release artifacts under GitHub Releases
-
-## Documentation index
-
-| Document | Purpose |
-|---|---|
-| [`FEATURE_INVENTORY.md`](FEATURE_INVENTORY.md) | Canonical feature maturity table. |
-| [`docs/status.md`](docs/status.md) | Human-readable feature status summary. |
-| [`docs/security/implemented-security.md`](docs/security/implemented-security.md) | Implemented security controls only. |
-| [`docs/security/security-roadmap.md`](docs/security/security-roadmap.md) | Planned security systems and promotion requirements. |
-| [`docs/security/security-non-goals.md`](docs/security/security-non-goals.md) | Explicit non-goals and overclaim guardrails. |
-| [`docs/dependencies.md`](docs/dependencies.md) | Dependency ownership / feature mapping. |
-| [`docs/analyzer-suppressions.md`](docs/analyzer-suppressions.md) | Analyzer suppression audit. |
-
-## Release rule
-
-A feature is not stable merely because it appears in README, screenshots, config, a controller, a service registration, or a design doc.
-
-Stable requires:
-
-1. Concrete implementation.
-2. Feature inventory row.
-3. Tests.
-4. Manual or automated smoke path.
-5. Accurate documentation.
-6. No startup validator or runtime capability reporter saying the feature is unavailable.
-
----
+slskdN is an unofficial fork. The separate [slskr project](https://github.com/snapetech/slskr)
+is a Rust implementation; consult that repository for its own status and
+compatibility claims.
 
 ## License
 
-GNU Affero General Public License v3.0, same as upstream slskd.
-
-## Acknowledgments
-
-slskdN is built on the work of:
-
-- upstream `slskd` by jpdillingham and contributors
-- `slskNet.Runtime` (derived from `Soulseek.NET`)
-- the Soulseek community
-- MusicBrainz, Cover Art Archive, AcoustID, and related metadata projects
+GNU Affero General Public License v3.0. See [LICENSE](LICENSE).

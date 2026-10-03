@@ -7,10 +7,12 @@ import React, { Component } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
+  Form,
   Header,
   Icon,
   Label,
   List,
+  Message,
   Modal,
   Popup,
   Segment,
@@ -66,6 +68,7 @@ class Contacts extends Component {
     addFriendModalOpen: false,
     contactPage: 1,
     contacts: [],
+    contactsLoadError: null,
     createInviteModalOpen: false,
     error: null,
     inviteFriendCode: null,
@@ -73,6 +76,11 @@ class Contacts extends Component {
     inviteQrDataUrl: null,
     loading: true,
     nearby: [],
+    nearbyAddError: null,
+    nearbyAddPeer: null,
+    nearbyAdding: false,
+    nearbyNickname: '',
+    nearbyError: null,
     nearbyLoading: false,
     nearbyPage: 1,
   };
@@ -84,11 +92,12 @@ class Contacts extends Component {
 
   loadContacts = async () => {
     try {
-      this.setState({ error: null, loading: true });
+      this.setState({ contactsLoadError: null, error: null, loading: true });
       const response = await identityAPI.getContacts();
       this.setState({
         contactPage: 1,
         contacts: asArray(response.data).map(normalizeContact).filter(Boolean),
+        contactsLoadError: null,
         loading: false,
       });
     } catch (error) {
@@ -98,25 +107,36 @@ class Contacts extends Component {
         error.response?.status === 403 ||
         error.response?.status === 404
       ) {
-        this.setState({ contacts: [], error: null, loading: false });
+        this.setState({
+          contacts: [],
+          contactsLoadError: null,
+          error: null,
+          loading: false,
+        });
       } else {
-        this.setState({ error: error.message, loading: false });
+        this.setState({
+          contactsLoadError: getErrorMessage(error, 'Failed to load contacts.'),
+          loading: false,
+        });
       }
     }
   };
 
   loadNearby = async () => {
     try {
-      this.setState({ nearbyLoading: true });
+      this.setState({ nearbyError: null, nearbyLoading: true });
       const response = await identityAPI.getNearby();
       this.setState({
         nearby: asArray(response.data),
+        nearbyError: null,
         nearbyLoading: false,
         nearbyPage: 1,
       });
-    } catch {
-      this.setState({ nearbyLoading: false });
-      // Nearby may fail if mDNS not available, don't show error
+    } catch (error) {
+      this.setState({
+        nearbyError: getErrorMessage(error, 'Nearby peer discovery failed.'),
+        nearbyLoading: false,
+      });
     }
   };
 
@@ -132,10 +152,20 @@ class Contacts extends Component {
 
   handleAddFromDiscovery = async (peerId, nickname) => {
     try {
+      this.setState({ nearbyAddError: null, nearbyAdding: true });
       await identityAPI.addContactFromDiscovery({ nickname, peerId });
+      this.setState({
+        nearbyAddError: null,
+        nearbyAddPeer: null,
+        nearbyAdding: false,
+        nearbyNickname: '',
+      });
       await this.loadContacts();
     } catch (error) {
-      this.setState({ error: getErrorMessage(error, 'Failed to add contact') });
+      this.setState({
+        nearbyAddError: getErrorMessage(error, 'Failed to add contact'),
+        nearbyAdding: false,
+      });
     }
   };
 
@@ -257,6 +287,7 @@ class Contacts extends Component {
       addFriendModalOpen,
       contactPage,
       contacts,
+      contactsLoadError,
       createInviteModalOpen,
       error,
       inviteFriendCode,
@@ -264,7 +295,12 @@ class Contacts extends Component {
       inviteQrDataUrl,
       loading,
       nearby,
+      nearbyAddError,
+      nearbyAddPeer,
+      nearbyAdding,
+      nearbyError,
       nearbyLoading,
+      nearbyNickname,
       nearbyPage,
     } = this.state;
     const contactPages = Math.max(1, Math.ceil(contacts.length / CONTACT_PAGE_SIZE));
@@ -285,8 +321,31 @@ class Contacts extends Component {
         menuItem: 'All Contacts',
         render: () => (
           <Tab.Pane>
+            {contactsLoadError && contacts.length > 0 && (
+              <Message warning data-testid="contacts-load-warning">
+                <p>{contactsLoadError}</p>
+                <Button
+                  onClick={this.loadContacts}
+                  tooltip="Try loading the latest contacts again."
+                >
+                  Retry Contacts
+                </Button>
+              </Message>
+            )}
             {loading ? (
               <LoaderSegment />
+            ) : contactsLoadError && contacts.length === 0 ? (
+              <Message negative data-testid="contacts-load-error">
+                <Message.Header>Contacts could not be loaded</Message.Header>
+                <p>{contactsLoadError}</p>
+                <Button
+                  onClick={this.loadContacts}
+                  primary
+                  tooltip="Retry loading your saved contacts."
+                >
+                  Retry Contacts
+                </Button>
+              </Message>
             ) : contacts.length === 0 ? (
               <Segment placeholder>
                 <Header icon>
@@ -406,6 +465,18 @@ class Contacts extends Component {
           <Tab.Pane>
             {nearbyLoading ? (
               <LoaderSegment />
+            ) : nearbyError ? (
+              <Message negative data-testid="contacts-nearby-error">
+                <Message.Header>Nearby discovery failed</Message.Header>
+                <p>{nearbyError}</p>
+                <Button
+                  onClick={this.loadNearby}
+                  primary
+                  tooltip="Try nearby peer discovery again."
+                >
+                  Retry Nearby
+                </Button>
+              </Message>
             ) : nearby.length === 0 ? (
               <Segment placeholder>
                 <Header icon>
@@ -430,17 +501,15 @@ class Contacts extends Component {
                         Endpoint: {peer.endpoint}
                       </List.Description>
                       <Button
-                        onClick={() => {
-                          const nickname = prompt(
-                            'Enter nickname for this contact:',
-                          );
-                          if (nickname) {
-                            this.handleAddFromDiscovery(peer.peerId, nickname);
-                          }
-                        }}
+                        onClick={() => this.setState({
+                          nearbyAddError: null,
+                          nearbyAddPeer: peer,
+                          nearbyNickname: peer.displayName || '',
+                        })}
                         primary
                         size="small"
                         style={{ marginTop: '0.5em' }}
+                        tooltip="Choose a nickname and save this nearby peer as a contact."
                       >
                         Add Contact
                       </Button>
@@ -535,6 +604,67 @@ class Contacts extends Component {
                 }}
               />
             </Modal.Content>
+          </Modal>
+
+          <Modal
+            data-testid="nearby-contact-dialog"
+            closeIcon={false}
+            onClose={() => this.setState({
+              nearbyAddError: null,
+              nearbyAddPeer: null,
+              nearbyNickname: '',
+            })}
+            open={Boolean(nearbyAddPeer)}
+          >
+            <Modal.Header>Add Nearby Contact</Modal.Header>
+            <Modal.Content>
+              <p>Choose a nickname for {nearbyAddPeer?.displayName || nearbyAddPeer?.peerId}.</p>
+              <Form>
+                <Form.Field>
+                  <label htmlFor="nearby-contact-nickname">Nickname</label>
+                  <input
+                    autoFocus
+                    data-testid="nearby-contact-nickname"
+                    id="nearby-contact-nickname"
+                    onChange={(event) => this.setState({ nearbyNickname: event.target.value })}
+                    placeholder="Contact name"
+                    type="text"
+                    value={nearbyNickname}
+                  />
+                </Form.Field>
+              </Form>
+              {nearbyAddError && (
+                <Message negative data-testid="nearby-contact-add-error">
+                  {nearbyAddError}
+                </Message>
+              )}
+            </Modal.Content>
+            <Modal.Actions>
+              <Button
+                disabled={nearbyAdding}
+                onClick={() => this.setState({
+                  nearbyAddError: null,
+                  nearbyAddPeer: null,
+                  nearbyNickname: '',
+                })}
+                tooltip="Close this dialog without adding the contact."
+              >
+                Cancel
+              </Button>
+              <Button
+                data-testid="nearby-contact-add-submit"
+                disabled={!nearbyNickname.trim() || nearbyAdding}
+                loading={nearbyAdding}
+                onClick={() => this.handleAddFromDiscovery(
+                  nearbyAddPeer.peerId,
+                  nearbyNickname.trim(),
+                )}
+                primary
+                tooltip="Save this peer as a contact using the nickname above."
+              >
+                Add Contact
+              </Button>
+            </Modal.Actions>
           </Modal>
 
           {/* Create Invite Modal */}

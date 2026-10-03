@@ -155,8 +155,6 @@ public sealed class MeshOverlaySearchService : IMeshOverlaySearchService
                 })
                 .ToList();
 
-            var firstContentFile = resp.Files.FirstOrDefault(f => !string.IsNullOrWhiteSpace(f.ContentId));
-
             return new PeerSearchOutcome(new Response
             {
                 Username = connection.Username ?? "?",
@@ -168,15 +166,8 @@ public sealed class MeshOverlaySearchService : IMeshOverlaySearchService
                 Files = files,
                 LockedFileCount = 0,
                 LockedFiles = new List<SlskdSearchFile>(),
-                SourceProviders = new List<string> { "pod" },
-                PrimarySource = firstContentFile == null ? string.Empty : "pod",
-                PodContentRef = firstContentFile == null
-                    ? null
-                    : new PodContentRef
-                    {
-                        ContentId = firstContentFile.ContentId!,
-                        Hash = firstContentFile.Hash,
-                    },
+                SourceProviders = new List<string> { "mesh" },
+                PrimarySource = "mesh",
             }, PeerSearchStatus.Results);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

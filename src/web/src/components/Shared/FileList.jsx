@@ -82,6 +82,7 @@ const FileList = ({
                 <Table.Row>
                   <Table.HeaderCell className="filelist-selector">
                     <Checkbox
+                      aria-label={`Select all files in ${directoryName}`}
                       checked={allSelected}
                       disabled={disabled}
                       fitted
@@ -109,6 +110,7 @@ const FileList = ({
                   <Table.Row key={f.filename}>
                     <Table.Cell className="filelist-selector">
                       <Checkbox
+                        aria-label={`Select ${f.filename}`}
                         checked={f.selected}
                         disabled={disabled}
                         fitted

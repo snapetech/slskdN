@@ -14,6 +14,7 @@ import {
   Label,
   Loader,
   Message,
+  Popup,
   Segment,
   Statistic,
   Tab,
@@ -254,12 +255,19 @@ const AdversarialSettings = () => {
           in adversarial environments. They are disabled by default and require
           explicit configuration.
         </p>
-        <Button
-          onClick={fetchSettings}
-          size="small"
-        >
-          Retry
-        </Button>
+        <Popup
+          content="Try loading adversarial settings again after enabling them on the server or restoring the connection."
+          position="top center"
+          trigger={(
+            <Button
+              aria-label="Retry loading adversarial settings"
+              onClick={fetchSettings}
+              size="small"
+            >
+              Retry
+            </Button>
+          )}
+        />
       </Message>
     );
   }
@@ -657,12 +665,19 @@ const AdversarialSettings = () => {
                           />
                         ),
                       )}
-                      <Button
-                        icon="plus"
-                        onClick={() =>
-                          addArrayItem('Privacy.Padding.BucketSizes')
-                        }
-                        size="mini"
+                      <Popup
+                        content="Add another size to the message-padding list."
+                        position="top center"
+                        trigger={(
+                          <Button
+                            aria-label="Add message-padding bucket size"
+                            icon="plus"
+                            onClick={() =>
+                              addArrayItem('Privacy.Padding.BucketSizes')
+                            }
+                            size="mini"
+                          />
+                        )}
                       />
                     </Form.Field>
 
@@ -1088,25 +1103,39 @@ const AdversarialSettings = () => {
                               style={{ marginRight: '5px' }}
                               value={line}
                             />
-                            <Button
-                              icon="minus"
-                              onClick={() =>
-                                removeArrayItem(
-                                  'Transport.Obfs4.BridgeLines',
-                                  index,
-                                )
-                              }
-                              size="mini"
+                            <Popup
+                              content="Remove this Obfs4 bridge line from the settings."
+                              position="top center"
+                              trigger={(
+                                <Button
+                                  aria-label={`Remove Obfs4 bridge line ${index + 1}`}
+                                  icon="minus"
+                                  onClick={() =>
+                                    removeArrayItem(
+                                      'Transport.Obfs4.BridgeLines',
+                                      index,
+                                    )
+                                  }
+                                  size="mini"
+                                />
+                              )}
                             />
                           </div>
                         ),
                       )}
-                      <Button
-                        icon="plus"
-                        onClick={() =>
-                          addArrayItem('Transport.Obfs4.BridgeLines')
-                        }
-                        size="mini"
+                      <Popup
+                        content="Add another bridge line for Obfs4 transport."
+                        position="top center"
+                        trigger={(
+                          <Button
+                            aria-label="Add Obfs4 bridge line"
+                            icon="plus"
+                            onClick={() =>
+                              addArrayItem('Transport.Obfs4.BridgeLines')
+                            }
+                            size="mini"
+                          />
+                        )}
                       />
                     </Form.Field>
                   </>
@@ -1184,64 +1213,90 @@ const AdversarialSettings = () => {
             </Header.Subheader>
           </Header.Content>
         </Header>
-        <div>
-          <Button
-            icon="refresh"
-            onClick={() => {
-              fetchSettings();
-              fetchStatus();
-              fetchTransportStatus();
-              fetchTorStatus();
-            }}
-            size="tiny"
-            title="Refresh Settings & Status"
+        <div className="security-actions">
+          <Popup
+            content="Reload the current adversarial settings and transport status."
+            position="top center"
+            trigger={(
+              <Button
+                aria-label="Refresh adversarial settings and status"
+                icon="refresh"
+                onClick={() => {
+                  fetchSettings();
+                  fetchStatus();
+                  fetchTransportStatus();
+                  fetchTorStatus();
+                }}
+                size="tiny"
+              />
+            )}
           />
-          <Button
-            icon="plug"
-            loading={transportLoading}
-            onClick={async () => {
-              try {
-                await securityApi.testTransportConnectivity();
-                setSuccess('Transport connectivity test completed');
-                fetchTransportStatus();
-              } catch (error) {
-                setError(
-                  error?.response?.data ??
-                    error?.message ??
-                    'Transport test failed',
-                );
-              }
-            }}
-            size="tiny"
-            title="Test Transport Connectivity"
+          <Popup
+            content="Check whether the configured transport can connect."
+            position="top center"
+            trigger={(
+              <Button
+                aria-label="Test transport connectivity"
+                icon="plug"
+                loading={transportLoading}
+                onClick={async () => {
+                  try {
+                    await securityApi.testTransportConnectivity();
+                    setSuccess('Transport connectivity test completed');
+                    fetchTransportStatus();
+                  } catch (error) {
+                    setError(
+                      error?.response?.data ??
+                        error?.message ??
+                        'Transport test failed',
+                    );
+                  }
+                }}
+                size="tiny"
+              />
+            )}
           />
-          <Button
-            icon="shield alternate"
-            loading={torLoading}
-            onClick={async () => {
-              try {
-                await securityApi.testTorConnectivity();
-                setSuccess('Tor connectivity test completed');
-                fetchTorStatus();
-              } catch (error) {
-                setError(
-                  error?.response?.data ?? error?.message ?? 'Tor test failed',
-                );
-              }
-            }}
-            size="tiny"
-            title="Test Tor Connectivity"
+          <Popup
+            content="Check whether the configured Tor service is reachable."
+            position="top center"
+            trigger={(
+              <Button
+                aria-label="Test Tor connectivity"
+                icon="shield alternate"
+                loading={torLoading}
+                onClick={async () => {
+                  try {
+                    await securityApi.testTorConnectivity();
+                    setSuccess('Tor connectivity test completed');
+                    fetchTorStatus();
+                  } catch (error) {
+                    setError(
+                      error?.response?.data ??
+                        error?.message ??
+                        'Tor test failed',
+                    );
+                  }
+                }}
+                size="tiny"
+              />
+            )}
           />
-          <Button
-            disabled={!hasChanges}
-            icon="save"
-            loading={saving}
-            onClick={handleSave}
-            primary
-            style={{ marginLeft: '10px' }}
-          >
-            Save Changes
-          </Button>
+          <Popup
+            content="Save the current adversarial settings to this server."
+            position="top center"
+            trigger={(
+              <Button
+                aria-label="Save adversarial settings"
+                disabled={!hasChanges}
+                icon="save"
+                loading={saving}
+                onClick={handleSave}
+                primary
+              >
+                Save Changes
+              </Button>
+            )}
+          />
         </div>
       </div>
 

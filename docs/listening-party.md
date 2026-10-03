@@ -285,22 +285,25 @@ discover extra peers or request Soulseek downloads. Locally hosted snapshots
 retain their direct HTTP stream with a fresh ticket. Older directory entries
 without transport metadata show **Host update required**.
 
-Remote reads support one HTTP byte range at a time, use at most 44 KiB per
-request and are paced at no more than five requests per second. The listener
-allows one active radio stream to each host, sharing the existing global
-500-call-per-minute peer budget. High bitrate audio or slow connections may
-buffer. Press Play to retry initial ticket or media failures; retry obtains a
-fresh local ticket. Temporary radio streams are not restored after reload.
+Remote reads support one HTTP byte range at a time, use at most 47 KiB per
+request and start no more often than every 122 ms. The listener allows one
+active radio stream to each host, sharing the existing global 500-call-per-
+minute peer budget. High bitrate audio or slow connections may buffer. Press
+Play to retry initial ticket or media failures; retry obtains a fresh local
+ticket. Temporary radio streams are not restored after reload.
 
 Real loopback TLS checks establish remote byte delivery and host permission
 revocation. They do not establish sustained radio quality across real network
 latencies, physical devices or simultaneous listen-along participants; see
 the [player quality audit](dev/player-quality-audit.md).
 
-Radio seeks retain the fairness admission of their short-lived ticket. A new
-radio ticket still checks the existing fairness policy. Replacing a byte range
-for the same ticket ends its preceding HTTP response; other tickets cannot
-preempt it. One active stream per owner and host remains enforced.
+Remote radio stream tickets expire no later than the selected host capability,
+up to its 15-minute publication lifetime. Seeks reuse the current stream URL
+and its fairness admission; a new ticket still checks the existing fairness
+policy. Locally hosted direct stream tickets remain valid for two minutes.
+Replacing a byte range for the same ticket ends its preceding HTTP response;
+other tickets cannot preempt it. One active stream per owner and host remains
+enforced.
 
 ## Stalled radio and manual refresh
 

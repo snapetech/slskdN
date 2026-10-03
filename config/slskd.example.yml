@@ -244,15 +244,15 @@
 #  url_base: /
 #  content_path: wwwroot
 #  enforce_security: false   # PR-01: when true, strict auth/CORS/startup checks; ModelState 400 when invalid
-#  allow_remote_no_auth: false  # when no-auth, allow non-loopback only if true
+#  allow_remote_no_auth: false  # remote no-auth also requires a matching CIDR below
 #  max_request_body_size: 10485760  # PR-09: Kestrel Limits.MaxRequestBodySize in bytes; default 10 MB
 #  logging: false
 #  authentication:
 #    disabled: false
 #    username: slskd
 #    password: ""   # set a non-empty password before enabling metrics auth
-#    passthrough:              # PR-03: when no-auth, AllowedCidrs can allow non-loopback in addition to loopback
-#      allowed_cidrs: ~        # optional; e.g. 127.0.0.1/32,::1/128
+#    passthrough:              # PR-03: remote no-auth is restricted to explicitly allowed client networks
+#      allowed_cidrs: ~        # required with allow_remote_no_auth; e.g. 192.168.1.0/24
 #    jwt:
 #      key: ~
 #      ttl: 604800000
@@ -355,6 +355,9 @@
 #    SignatureMode: Off   # Off | Warn | Enforce
 #  Join:
 #    SignatureMode: Off   # Off | Warn | Enforce
+#sharing:
+#  externalEndpoint: "https://shares.example.net/slskd" # Peer-reachable base URL announced with shared collections.
+#  trustedPrivateOwnerOrigins: [] # Exact private IP origins for private/LAN backfills; public URLs need no entry.
 #feature:                    # Experimental feature and hosted-service gates. See docs/runtime-feature-gating.md.
 # Gold Star Club is strictly opt-in and is separate from the pod API gate:
 # enable it only with feature.Pods: true and the daemon environment variable
@@ -410,10 +413,12 @@
 #    max_path_length: 512
 #    max_path_depth: 20
 #  content_safety:
+#    # Applied to completed Soulseek, pod/mesh, backfill, relay, multi-source, and VirtualSoulfind receives.
+#    # Alternate receivers stage bytes until policy accepts them.
 #    enabled: true
 #    verify_magic_bytes: true
 #    quarantine_suspicious: true
-#    quarantine_directory: ~
+#    quarantine_directory: ~  # Empty defaults to <directories.downloads>/.quarantine; relative paths are under downloads
 #    block_executables: true
 #  peer_reputation:
 #    enabled: true

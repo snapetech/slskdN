@@ -73,6 +73,7 @@ public sealed class ListedRadioTransportTests
         var controller = new ListedRadioController(parties.Object, client.Object, meshTickets.Object, EnabledOptions(), localTickets, guard.Object);
         var result = Assert.IsType<OkObjectResult>(await controller.CreateTicket("party", new ListedRadioSelection("track"), CancellationToken.None));
         var url = Assert.IsType<string>(result.Value!.GetType().GetProperty("streamUrl")!.GetValue(result.Value));
+        Assert.Equal(120, Assert.IsType<int>(result.Value.GetType().GetProperty("expiresInSeconds")!.GetValue(result.Value)));
         var token = Uri.UnescapeDataString(url.Split("?ticket=")[1]);
         Assert.Equal("listening-party:party", localTickets.Validate(token, "track")!.OwnerKey);
         guard.VerifyNoOtherCalls();
@@ -318,8 +319,10 @@ public sealed class ListedRadioTransportTests
         locator.Verify(service => service.Resolve(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task Listener_HostMetadata_CreatesPinnedScopedTicketAndStreamsRange()
+    [Theory]
+    [InlineData(2, 119)]
+    [InlineData(30, 899)]
+    public async Task Listener_HostMetadata_CreatesPinnedScopedTicketAndStreamsRange(int announcementLifetimeMinutes, int maximumTicketLifetimeSeconds)
     {
         var path = Path.Combine(Path.GetTempPath(), $"radio-{Guid.NewGuid():N}.wav");
         try
@@ -330,7 +333,9 @@ public sealed class ListedRadioTransportTests
             hostParties.Setup(service => service.GetStateByPartyIdAsync("party", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ListeningPartyEvent { PartyId = "party", ContentId = "track", Listed = true, AllowMeshStreaming = true });
             var hostTickets = new StreamTicketService();
-            var capability = hostTickets.Create("track", "listening-party:party", TimeSpan.FromMinutes(2));
+            var capabilityLifetimeMinutes = Math.Min(announcementLifetimeMinutes, ListeningPartyService.AnnouncementTtlSeconds / 60);
+            var capability = hostTickets.Create("track", "listening-party:party", TimeSpan.FromMinutes(capabilityLifetimeMinutes));
+            var hostCapabilityExpiry = hostTickets.Validate(capability, "track")!.ExpiresAtUtc;
             var locator = new Mock<IContentLocator>();
             locator.Setup(service => service.Resolve("track", It.IsAny<CancellationToken>())).Returns(new ResolvedContent(path, bytes.Length, "audio/wav"));
             var host = new ListedRadioMeshService(hostParties.Object, hostTickets, locator.Object, EnabledOptions(), Mock.Of<ILogger<ListedRadioMeshService>>());
@@ -338,6 +343,7 @@ public sealed class ListedRadioTransportTests
             client.Setup(service => service.CallAsync("host-overlay", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
                 .Returns((string peer, ServiceCall call, CancellationToken token) => host.HandleCallAsync(call, Context(), token));
             var listenerParties = new Mock<IListeningPartyService>();
+            var announcementExpiresAt = DateTimeOffset.UtcNow.AddMinutes(announcementLifetimeMinutes);
             listenerParties.Setup(service => service.ListDirectoryAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[]
                 {
@@ -349,7 +355,7 @@ public sealed class ListedRadioTransportTests
                         TransportUsername = "host-overlay",
                         StreamTicket = capability,
                         AllowMeshStreaming = true,
-                        ExpiresAtUnixMs = DateTimeOffset.UtcNow.AddMinutes(2).ToUnixTimeMilliseconds(),
+                        ExpiresAtUnixMs = announcementExpiresAt.ToUnixTimeMilliseconds(),
                     },
                 });
             var localTickets = new MeshStreamTicketService();
@@ -359,9 +365,13 @@ public sealed class ListedRadioTransportTests
             };
             controller.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "listener") }, "test"));
             var response = Assert.IsType<OkObjectResult>(await controller.CreateTicket("party", new ListedRadioSelection("track"), CancellationToken.None));
+            var expiresInSeconds = Assert.IsType<int>(response.Value!.GetType().GetProperty("expiresInSeconds")!.GetValue(response.Value));
+            Assert.InRange(expiresInSeconds, 1, maximumTicketLifetimeSeconds);
             var url = Assert.IsType<string>(response.Value!.GetType().GetProperty("streamUrl")!.GetValue(response.Value));
             var ticket = url.Split('/').Last();
             var claims = Assert.IsType<MeshStreamTicket>(localTickets.Validate(ticket));
+            Assert.True(claims.ExpiresAtUtc < announcementExpiresAt);
+            Assert.True(claims.ExpiresAtUtc < hostCapabilityExpiry);
             Assert.Equal("host-overlay", claims.PeerId);
             Assert.Equal("user:listener", claims.OwnerKey);
             Assert.Equal(new MeshRadioScope("party", capability), claims.Radio);

@@ -3,12 +3,13 @@
 }
 
 .security-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid var(--slskdn-border, rgba(255, 255, 255, 0.1));
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
   margin-bottom: 1.5em;
   padding-bottom: 0.5em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .security-header .ui.header {
@@ -26,6 +27,18 @@
 .security-stats .column {
   text-align: center;
   padding: 1em !important;
+}
+
+.security-dashboard .security-summary-stats.ui.statistics {
+  display: grid;
+  gap: 1rem 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.security-dashboard .security-summary-stats.ui.statistics > .statistic {
+  margin: 0 !important;
+  min-width: 0;
+  width: auto !important;
 }
 
 .security-cards {
@@ -115,14 +128,17 @@
 
 .security-dashboard .ui.statistic > .value,
 .security-dashboard .ui.statistics .statistic > .value {
-  color: rgba(255, 255, 255, 0.95) !important;
+  color: var(--slskd-color, rgba(255, 255, 255, 0.95)) !important;
 }
 
 .security-dashboard .ui.statistic > .label,
 .security-dashboard .ui.statistics .statistic > .label {
-  color: rgba(255, 255, 255, 0.6) !important;
-  text-transform: uppercase;
-  font-size: 0.7em !important;
+  color: var(--slskd-muted-color, rgba(255, 255, 255, 0.7)) !important;
+  font-size: 0.78em !important;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-transform: none;
+  white-space: normal;
 }
 
 /* Modal dark theme */
@@ -189,4 +205,43 @@
   animation: pulse 1s infinite;
 }
 
+.adversarial-settings .security-header {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
 
+.adversarial-settings .security-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.adversarial-settings .security-actions > .ui.button {
+  margin: 0 !important;
+  min-height: 42px;
+  min-width: 42px;
+}
+
+@media only screen and (max-width: 516px) {
+  .security-dashboard .security-summary-stats.ui.statistics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adversarial-settings .security-header > .ui.header {
+    flex: 1 1 100%;
+  }
+
+  .adversarial-settings .security-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .adversarial-settings .security-actions > .ui.button {
+    flex: 0 0 42px;
+  }
+
+  .adversarial-settings .security-actions > .ui.button:last-child {
+    flex: 1 1 100%;
+  }
+}

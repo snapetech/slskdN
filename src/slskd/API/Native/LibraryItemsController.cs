@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 using slskd.Core.Security;
 using slskd.HashDb;
 using slskd.Shares;
@@ -209,6 +210,11 @@ public class LibraryItemsController : ControllerBase
         var filters = options.Value.Shares.Filters
             .Select(filter => new Regex(filter, regexOptions))
             .ToList();
+        var enumerationOptions = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint,
+        };
 
         var files = localDirs.SelectMany(localDir =>
         {
@@ -217,7 +223,7 @@ public class LibraryItemsController : ControllerBase
                 return System.IO.Directory.EnumerateFiles(
                     localDir,
                     "*",
-                    SearchOption.AllDirectories);
+                    enumerationOptions);
             }
             catch
             {
@@ -288,11 +294,12 @@ public class LibraryItemsController : ControllerBase
         string filename,
         IReadOnlyList<string> localDirs)
     {
-        if (!System.IO.File.Exists(filename)) return null;
-        var info = new FileInfo(filename);
+        var allowedFilename = PathGuard.NormalizeAbsolutePathWithinRoots(filename, localDirs);
+        if (allowedFilename == null || !System.IO.File.Exists(allowedFilename)) return null;
+        var info = new FileInfo(allowedFilename);
         var contentId = contentLocator == null
-            ? $"path:{slskd.Compute.Sha256Hash($"{filename}|{info.Length}")}"
-            : contentLocator.RegisterLocalFile(filename);
+            ? $"path:{slskd.Compute.Sha256Hash($"{allowedFilename}|{info.Length}")}"
+            : contentLocator.RegisterLocalFile(allowedFilename);
         if (contentId == null) return null;
         return new LibraryItemResponse
         {

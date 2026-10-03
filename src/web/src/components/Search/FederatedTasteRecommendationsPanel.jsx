@@ -8,6 +8,8 @@ import {
   promoteTasteRecommendationToWishlist,
   subscribeTasteRecommendationReleaseRadar,
 } from '../../lib/tasteRecommendations';
+import FeatureGateNotice from '../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../Shared/useFeatureGates';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import {
@@ -33,6 +35,9 @@ const getSearchText = (workRef = {}) =>
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const FederatedTasteRecommendationsPanel = ({ disabled }) => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const socialFederationEnabled =
+    featureGatesReady && isFeatureEnabled(featureGates, 'socialFederation');
   const [error, setError] = useState('');
   const [graphPreview, setGraphPreview] = useState(null);
   const [includeSoulseekRecommendations, setIncludeSoulseekRecommendations] = useState(false);
@@ -114,6 +119,28 @@ const FederatedTasteRecommendationsPanel = ({ disabled }) => {
       <Segment raised>
         <Header as="h4">Federated Taste Recommendations</Header>
         <p>Connect to the server to load privacy-filtered recommendations.</p>
+      </Segment>
+    );
+  }
+
+  if (!featureGatesReady) {
+    return (
+      <Segment raised>
+        <Header as="h4">Federated Taste Recommendations</Header>
+        <Message info size="small">Checking feature availability…</Message>
+      </Segment>
+    );
+  }
+
+  if (!socialFederationEnabled) {
+    return (
+      <Segment raised>
+        <Header as="h4">Federated Taste Recommendations</Header>
+        <FeatureGateNotice
+          configurationKeys={['feature.SocialFederation']}
+          featureGate={featureGates.socialFederation}
+          featureName="Social federation"
+        />
       </Segment>
     );
   }

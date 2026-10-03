@@ -489,7 +489,22 @@ const TransferTable = ({
   const hasSelection = selectedFiles.length > 0;
 
   return (
-    <div className="transfer-table-wrapper">
+    <div
+      aria-label="Transfer table. Use the Left and Right Arrow keys to view all columns."
+      className="transfer-table-wrapper"
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        const direction = event.key === 'ArrowRight' ? 1 : -1;
+        event.currentTarget.scrollLeft += direction * Math.max(
+          80,
+          Math.floor(event.currentTarget.clientWidth * 0.8),
+        );
+      }}
+      role="region"
+      tabIndex={0}
+    >
       {hasSelection && (
         <div className="transfer-bulk-bar">
           <span>{`${selectedFiles.length} selected`}</span>

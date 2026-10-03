@@ -19,6 +19,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 
 namespace slskd.Shares
@@ -320,8 +321,17 @@ namespace slskd.Shares
             }
             else if (!string.IsNullOrEmpty(resolvedFilename))
             {
-                Log.Debug("Resolved remote file to {ResolvedFilename} on local host", resolvedFilename);
-                return Task.FromResult((Program.LocalHostName, resolvedFilename, size));
+                var allowedFilename = PathGuard.NormalizeAbsolutePathWithinRoots(
+                    resolvedFilename,
+                    OptionsMonitor.CurrentValue.Shares.Directories);
+                if (allowedFilename != null)
+                {
+                    Log.Debug("Resolved remote file to {ResolvedFilename} on local host", allowedFilename);
+                    return Task.FromResult((Program.LocalHostName, allowedFilename, size));
+                }
+
+                Log.Warning("Indexed local share path for {RemoteFilename} no longer resolves under a configured share; requesting a scan", remoteFilename);
+                RequestScan();
             }
             else
             {

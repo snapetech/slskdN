@@ -875,13 +875,13 @@ namespace slskd
 
         private static UserEndPointCache CreateUserEndPointCache()
         {
-            var cache = new UserEndPointCache();
             var overrides = Environment.GetEnvironmentVariable("SLSKDN_TEST_USER_ENDPOINT_OVERRIDES");
             if (string.IsNullOrWhiteSpace(overrides))
             {
-                return cache;
+                return new UserEndPointCache();
             }
 
+            var fixedEndpoints = new Dictionary<string, IPEndPoint>(StringComparer.OrdinalIgnoreCase);
             foreach (var entry in overrides.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 var separatorIndex = entry.IndexOf('=');
@@ -905,11 +905,11 @@ namespace slskd
                     port > 0 &&
                     port <= 65535)
                 {
-                    cache.AddOrUpdate(username, new IPEndPoint(address, port));
+                    fixedEndpoints[username] = new IPEndPoint(address, port);
                 }
             }
 
-            return cache;
+            return new UserEndPointCache(fixedEndpoints);
         }
 
         async Task IHostedService.StopAsync(CancellationToken cancellationToken)

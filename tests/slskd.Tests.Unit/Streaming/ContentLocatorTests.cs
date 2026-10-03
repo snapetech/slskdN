@@ -108,23 +108,83 @@ public class ContentLocatorTests
     [Fact]
     public void Resolve_FileNotOnDisk_ReturnsNull()
     {
-        var locator = CreateLocator();
-        _repoMock.Setup(x => x.FindContentItem("c1")).Returns(("Music", "w1", "masked.flac", true, "", 0L));
-        _repoMock.Setup(x => x.FindFileInfo("masked.flac")).Returns((Filename: "/nonexistent.flac", Size: 1000));
+        var root = Path.Combine(Path.GetTempPath(), "ContentLoc_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var locator = CreateLocator(new slskd.Options
+            {
+                Directories = new slskd.Options.DirectoriesOptions
+                {
+                    Downloads = root,
+                    Incomplete = Path.GetTempPath(),
+                },
+            });
+            _repoMock.Setup(x => x.FindContentItem("c1"))
+                .Returns(("Music", "w1", "masked.flac", true, "", 0L));
+            _repoMock.Setup(x => x.FindFileInfo("masked.flac"))
+                .Returns((Filename: Path.Combine(root, "missing.flac"), Size: 1000));
 
-        var r = locator.Resolve("c1");
+            var r = locator.Resolve("c1");
 
-        Assert.Null(r);
+            Assert.Null(r);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Resolve_RepositoryFileOutsideAllowedRoots_ReturnsNull()
+    {
+        var allowedRoot = Path.Combine(Path.GetTempPath(), "ContentLocAllowed_" + Guid.NewGuid().ToString("N"));
+        var outsideRoot = Path.Combine(Path.GetTempPath(), "ContentLocOutside_" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(outsideRoot, "outside.flac");
+        try
+        {
+            Directory.CreateDirectory(allowedRoot);
+            Directory.CreateDirectory(outsideRoot);
+            File.WriteAllBytes(path, new byte[] { 1, 2, 3 });
+            var locator = CreateLocator(new slskd.Options
+            {
+                Directories = new slskd.Options.DirectoriesOptions
+                {
+                    Downloads = allowedRoot,
+                    Incomplete = Path.GetTempPath(),
+                },
+            });
+            _repoMock.Setup(x => x.FindContentItem("c1"))
+                .Returns(("Music", "w1", "masked.flac", true, string.Empty, 0L));
+            _repoMock.Setup(x => x.FindFileInfo("masked.flac"))
+                .Returns((Filename: path, Size: 3));
+
+            Assert.Null(locator.Resolve("c1"));
+        }
+        finally
+        {
+            try { Directory.Delete(allowedRoot, recursive: true); } catch { }
+            try { Directory.Delete(outsideRoot, recursive: true); } catch { }
+        }
     }
 
     [Fact]
     public void Resolve_Success_ReturnsResolvedContent()
     {
-        var path = Path.Combine(Path.GetTempPath(), "ContentLoc_" + Guid.NewGuid().ToString("N")[..8] + ".mp3");
+        var root = Path.Combine(Path.GetTempPath(), "ContentLoc_" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "track.mp3");
         try
         {
+            Directory.CreateDirectory(root);
             File.WriteAllBytes(path, new byte[] { 1, 2, 3 });
-            var locator = CreateLocator();
+            var locator = CreateLocator(new slskd.Options
+            {
+                Directories = new slskd.Options.DirectoriesOptions
+                {
+                    Downloads = root,
+                    Incomplete = Path.GetTempPath(),
+                },
+            });
             _repoMock.Setup(x => x.FindContentItem("c1")).Returns(("Music", "w1", "masked.flac", true, "", 0L));
             _repoMock.Setup(x => x.FindFileInfo("masked.flac")).Returns((Filename: path, Size: 3));
 
@@ -137,18 +197,27 @@ public class ContentLocatorTests
         }
         finally
         {
-            try { File.Delete(path); } catch { }
+            try { Directory.Delete(root, recursive: true); } catch { }
         }
     }
 
     [Fact]
     public void Resolve_DetectsMimeType()
     {
-        var path = Path.Combine(Path.GetTempPath(), "ContentLoc_" + Guid.NewGuid().ToString("N")[..8] + ".flac");
+        var root = Path.Combine(Path.GetTempPath(), "ContentLoc_" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "track.flac");
         try
         {
+            Directory.CreateDirectory(root);
             File.WriteAllBytes(path, new byte[] { 1 });
-            var locator = CreateLocator();
+            var locator = CreateLocator(new slskd.Options
+            {
+                Directories = new slskd.Options.DirectoriesOptions
+                {
+                    Downloads = root,
+                    Incomplete = Path.GetTempPath(),
+                },
+            });
             _repoMock.Setup(x => x.FindContentItem("c1")).Returns(("Music", "w1", "masked.flac", true, "", 0L));
             _repoMock.Setup(x => x.FindFileInfo("masked.flac")).Returns((Filename: path, Size: 1));
 
@@ -159,7 +228,7 @@ public class ContentLocatorTests
         }
         finally
         {
-            try { File.Delete(path); } catch { }
+            try { Directory.Delete(root, recursive: true); } catch { }
         }
     }
 

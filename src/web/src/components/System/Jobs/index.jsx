@@ -3,6 +3,8 @@
 // </copyright>
 
 import * as jobsLibrary from '../../../lib/jobs';
+import FeatureGateNotice from '../../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../../Shared/useFeatureGates';
 import { formatBytes } from '../../../lib/util';
 import SwarmVisualization from '../SwarmVisualization';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,6 +20,7 @@ import {
   Loader,
   Modal,
   Pagination,
+  Popup,
   Progress,
   Segment,
   Statistic,
@@ -48,6 +51,9 @@ const sameSwarmJobs = (previous, next) =>
   );
 
 const Jobs = () => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const multiSourceEnabled =
+    featureGatesReady && isFeatureEnabled(featureGates, 'multiSourceDownloads');
   const mountedRef = useRef(false);
   const swarmFetchInFlightRef = useRef(false);
   const swarmPollIntervalRef = useRef(null);
@@ -112,6 +118,7 @@ const Jobs = () => {
 
   const fetchSwarmJobs = useCallback(async () => {
     if (
+      !multiSourceEnabled ||
       document.hidden ||
       !mountedRef.current ||
       swarmFetchInFlightRef.current
@@ -137,13 +144,20 @@ const Jobs = () => {
         setSwarmLoading(false);
       }
     }
-  }, []);
+  }, [multiSourceEnabled]);
 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
   useEffect(() => {
+    if (!featureGatesReady) return undefined;
+    if (!multiSourceEnabled) {
+      setSwarmJobs([]);
+      setSwarmLoading(false);
+      return undefined;
+    }
+
     const stopPolling = () => {
       if (swarmPollIntervalRef.current) {
         window.clearInterval(swarmPollIntervalRef.current);
@@ -174,7 +188,7 @@ const Jobs = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopPolling();
     };
-  }, [fetchSwarmJobs]);
+  }, [fetchSwarmJobs, featureGatesReady, multiSourceEnabled]);
 
   const analytics = useMemo(() => {
     const allJobs = [...jobs, ...swarmJobs];
@@ -259,16 +273,28 @@ const Jobs = () => {
   };
 
   const totalPages = Math.ceil(pagination.total / pagination.limit);
+  const closeSwarmVisualization = () => {
+    setShowVisualization(false);
+    setSelectedSwarmJobId(null);
+  };
 
   return (
-    <div>
+    <div className="system-jobs-dashboard">
+      <FeatureGateNotice
+        configurationKeys={['feature.MultiSourceDownloads']}
+        featureGate={featureGates.multiSourceDownloads}
+        featureName="Multi-source downloads"
+      />
       {/* Analytics Overview */}
       <Segment>
         <Header as="h3">
           <Icon name="chart bar" />
           <Header.Content>Job Analytics</Header.Content>
         </Header>
-        <Grid columns={4}>
+        <Grid
+          columns={4}
+          stackable
+        >
           <Grid.Column>
             <Statistic>
               <Statistic.Value>{analytics.total}</Statistic.Value>
@@ -328,7 +354,10 @@ const Jobs = () => {
               inline="centered"
             />
           )}
-          <Grid columns={2}>
+          <Grid
+            columns={2}
+            stackable
+          >
             {swarmJobs.map((job) => (
               <Grid.Column key={job.jobId}>
                 <Card fluid>
@@ -365,18 +394,24 @@ const Jobs = () => {
                       </Label>
                     )}
                     <div style={{ marginTop: '0.5em' }}>
-                      <Button
-                        compact
-                        icon
-                        onClick={() => {
-                          setSelectedSwarmJobId(job.jobId);
-                          setShowVisualization(true);
-                        }}
-                        size="small"
-                      >
-                        <Icon name="chart bar" />
-                        View Details
-                      </Button>
+                      <Popup
+                        content={`Inspect contributing sources and chunk progress for ${job.filename?.split('/').pop() ?? 'this swarm download'}.`}
+                        position="top center"
+                        trigger={(
+                          <Button
+                            aria-label={`View swarm download details for ${job.filename?.split('/').pop() ?? 'unknown file'}`}
+                            compact
+                            onClick={() => {
+                              setSelectedSwarmJobId(job.jobId);
+                              setShowVisualization(true);
+                            }}
+                            size="small"
+                          >
+                            <Icon name="chart bar" />
+                            View Details
+                          </Button>
+                        )}
+                      />
                     </div>
                   </Card.Content>
                 </Card>
@@ -388,17 +423,31 @@ const Jobs = () => {
 
       {/* Swarm Visualization Modal */}
       <Modal
-        closeIcon
-        onClose={() => {
-          setShowVisualization(false);
-          setSelectedSwarmJobId(null);
-        }}
+        closeIcon={false}
+        onClose={closeSwarmVisualization}
         open={showVisualization}
         size="large"
       >
-        <Modal.Header>
-          <Icon name="chart bar" />
-          Swarm Download Visualization
+        <Modal.Header className="system-jobs-visualization-header">
+          <span className="system-jobs-visualization-title">
+            <Icon name="chart bar" />
+            Swarm Download Visualization
+          </span>
+          <Popup
+            content="Close the swarm visualization and return to the job list."
+            position="left center"
+            trigger={(
+              <Button
+                aria-label="Close swarm download visualization"
+                basic
+                icon
+                onClick={closeSwarmVisualization}
+                title="Close swarm download visualization"
+              >
+                <Icon name="close" />
+              </Button>
+            )}
+          />
         </Modal.Header>
         <Modal.Content scrolling>
           {selectedSwarmJobId && (
@@ -415,7 +464,7 @@ const Jobs = () => {
         </Header>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: '1em', marginBottom: '1em' }}>
+        <div className="system-jobs-filters">
           <Dropdown
             clearable
             onChange={(_e, { value }) => handleFilterChange('type', value)}
@@ -455,28 +504,56 @@ const Jobs = () => {
             selection
             value={filters.sortBy}
           />
-          <Button
-            icon
-            onClick={() =>
-              handleFilterChange(
-                'sortOrder',
-                filters.sortOrder === 'asc' ? 'desc' : 'asc',
-              )
+          <Popup
+            content={
+              filters.sortOrder === 'asc'
+                ? 'Sort the current job list in descending order.'
+                : 'Sort the current job list in ascending order.'
             }
-            toggle
-          >
-            <Icon
-              name={filters.sortOrder === 'asc' ? 'sort up' : 'sort down'}
-            />
-            {filters.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-          </Button>
-          <Button
-            icon
-            onClick={fetchJobs}
-          >
-            <Icon name="refresh" />
-            Refresh
-          </Button>
+            position="top center"
+            trigger={(
+              <Button
+                aria-label={
+                  filters.sortOrder === 'asc'
+                    ? 'Sort jobs in descending order'
+                    : 'Sort jobs in ascending order'
+                }
+                icon
+                onClick={() =>
+                  handleFilterChange(
+                    'sortOrder',
+                    filters.sortOrder === 'asc' ? 'desc' : 'asc',
+                  )
+                }
+                title={
+                  filters.sortOrder === 'asc'
+                    ? 'Sort jobs in descending order'
+                    : 'Sort jobs in ascending order'
+                }
+                toggle
+              >
+                <Icon
+                  name={filters.sortOrder === 'asc' ? 'sort up' : 'sort down'}
+                />
+                {filters.sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              </Button>
+            )}
+          />
+          <Popup
+            content="Reload the current job list after job status or page data changes."
+            position="top center"
+            trigger={(
+              <Button
+                aria-label="Refresh job list"
+                icon
+                onClick={fetchJobs}
+                title="Refresh the current job list."
+              >
+                <Icon name="refresh" />
+                Refresh
+              </Button>
+            )}
+          />
         </div>
 
         {loading ? (
@@ -494,70 +571,77 @@ const Jobs = () => {
           </Segment>
         ) : (
           <>
-            <Table celled>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>ID</Table.HeaderCell>
-                  <Table.HeaderCell>Type</Table.HeaderCell>
-                  <Table.HeaderCell>Status</Table.HeaderCell>
-                  <Table.HeaderCell>Progress</Table.HeaderCell>
-                  <Table.HeaderCell>Created</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {jobs.map((job) => (
-                  <Table.Row key={job.id}>
-                    <Table.Cell>
-                      <code>{job.id}</code>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Label>{job.type || 'unknown'}</Label>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Label color={getStatusColor(job.status)}>
-                        <Icon name={getStatusIcon(job.status)} />
-                        {job.status || 'unknown'}
-                      </Label>
-                    </Table.Cell>
-                    <Table.Cell>
-                      {job.progress ? (
-                        <div>
-                          <Progress
-                            color={getStatusColor(job.status)}
-                            percent={
-                              job.progress.releases_total > 0
-                                ? (job.progress.releases_done /
-                                    job.progress.releases_total) *
-                                  100
-                                : 0
-                            }
-                            progress
-                            size="small"
-                          />
-                          <div
-                            style={{ fontSize: '0.9em', marginTop: '0.25em' }}
-                          >
-                            {job.progress.releases_done || 0} /{' '}
-                            {job.progress.releases_total || 0} releases
-                            {job.progress.releases_failed > 0 && (
-                              <Label
-                                color="red"
-                                size="tiny"
-                              >
-                                {job.progress.releases_failed} failed
-                              </Label>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        'N/A'
-                      )}
-                    </Table.Cell>
-                    <Table.Cell>{formatDate(job.created_at)}</Table.Cell>
+            <div
+              aria-label="Job list"
+              className="system-jobs-table-scroll"
+              role="region"
+              tabIndex={0}
+            >
+              <Table celled>
+                <Table.Header>
+                  <Table.Row>
+                    <Table.HeaderCell>ID</Table.HeaderCell>
+                    <Table.HeaderCell>Type</Table.HeaderCell>
+                    <Table.HeaderCell>Status</Table.HeaderCell>
+                    <Table.HeaderCell>Progress</Table.HeaderCell>
+                    <Table.HeaderCell>Created</Table.HeaderCell>
                   </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
+                </Table.Header>
+                <Table.Body>
+                  {jobs.map((job) => (
+                    <Table.Row key={job.id}>
+                      <Table.Cell>
+                        <code>{job.id}</code>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Label>{job.type || 'unknown'}</Label>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Label color={getStatusColor(job.status)}>
+                          <Icon name={getStatusIcon(job.status)} />
+                          {job.status || 'unknown'}
+                        </Label>
+                      </Table.Cell>
+                      <Table.Cell>
+                        {job.progress ? (
+                          <div>
+                            <Progress
+                              color={getStatusColor(job.status)}
+                              percent={
+                                job.progress.releases_total > 0
+                                  ? (job.progress.releases_done /
+                                      job.progress.releases_total) *
+                                    100
+                                  : 0
+                              }
+                              progress
+                              size="small"
+                            />
+                            <div
+                              style={{ fontSize: '0.9em', marginTop: '0.25em' }}
+                            >
+                              {job.progress.releases_done || 0} /{' '}
+                              {job.progress.releases_total || 0} releases
+                              {job.progress.releases_failed > 0 && (
+                                <Label
+                                  color="red"
+                                  size="tiny"
+                                >
+                                  {job.progress.releases_failed} failed
+                                </Label>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          'N/A'
+                        )}
+                      </Table.Cell>
+                      <Table.Cell>{formatDate(job.created_at)}</Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
 
             {totalPages > 1 && (
               <Pagination

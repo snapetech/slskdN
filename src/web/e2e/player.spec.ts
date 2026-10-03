@@ -57,6 +57,22 @@ const expectOrcaSpeech = async (text: string, previousCount: number) => {
   }).toBeGreaterThan(previousCount);
 };
 
+const readOrcaSpeechMatchingCount = async (pattern: RegExp) => {
+  if (process.env.SLSKDN_PLAYER_SCREEN_READER !== '1') return 0;
+  const debugLog = process.env.SLSKDN_PLAYER_A11Y_DEBUG_LOG;
+  if (!debugLog) throw new Error('The screen-reader run did not provide its Orca debug log.');
+  const contents = await fs.readFile(debugLog, 'utf8');
+  return contents.split(/\r?\n/u).filter((line) => line.includes('SPEECH OUTPUT:') && pattern.test(line)).length;
+};
+
+const expectOrcaSpeechMatching = async (pattern: RegExp, description: string, previousCount: number) => {
+  if (process.env.SLSKDN_PLAYER_SCREEN_READER !== '1') return;
+  await expect.poll(() => readOrcaSpeechMatchingCount(pattern), {
+    message: `Orca did not speak the ${description}.`,
+    timeout: 10_000,
+  }).toBeGreaterThan(previousCount);
+};
+
 const readPlayerTabOrder = async (page: Page) => page.locator('.player-bar').evaluate((player) => {
   const candidates = Array.from(player.querySelectorAll<HTMLElement>([
     'a[href]',
@@ -935,6 +951,28 @@ test.describe('player browser playback', () => {
     await page.getByTestId('player-stop').click();
     await expect(playbackAnnouncement).toHaveText('Playback stopped.');
     await expectOrcaSpeech('Playback stopped.', stopSpeechCount);
+  });
+
+  test('speaks changed volume and equalizer values to assistive technology @player-screen-reader', async ({ page }) => {
+    const volume = page.getByLabel('Playback volume', { exact: true });
+    const volumeSpeechPattern = /\b99\s*(?:%|percent)/iu;
+    const volumeSpeechCount = await readOrcaSpeechMatchingCount(volumeSpeechPattern);
+    await volume.focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect(volume).toHaveAttribute('aria-valuetext', '99%');
+    await expectOrcaSpeechMatching(volumeSpeechPattern, '99 percent playback volume', volumeSpeechCount);
+
+    await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
+    await page.getByRole('button', { name: 'Show equalizer', exact: true }).click();
+    await page.getByRole('button', { name: 'Enable equalizer', exact: true }).click();
+
+    const gain = page.getByRole('slider', { name: '31 equalizer gain', exact: true });
+    const gainSpeechPattern = /\b1\s*(?:dB|decibels?)/iu;
+    const gainSpeechCount = await readOrcaSpeechMatchingCount(gainSpeechPattern);
+    await gain.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(gain).toHaveAttribute('aria-valuetext', '1 dB');
+    await expectOrcaSpeechMatching(gainSpeechPattern, 'one decibel equalizer gain', gainSpeechCount);
   });
 
   test('keeps the visible player controls in keyboard Tab order across modes', async ({ page }) => {

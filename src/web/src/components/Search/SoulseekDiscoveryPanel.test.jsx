@@ -5,8 +5,9 @@
 import SoulseekDiscoveryPanel from './SoulseekDiscoveryPanel';
 import * as soulseekDiscovery from '../../lib/soulseekDiscovery';
 import * as wishlist from '../../lib/wishlist';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../lib/soulseekDiscovery', () => ({
@@ -48,16 +49,17 @@ describe('SoulseekDiscoveryPanel', () => {
   });
 
   it('loads native recommendations and hands them to search and Wishlist', async () => {
+    const user = userEvent.setup();
     const onSearch = vi.fn();
     render(<SoulseekDiscoveryPanel onSearch={onSearch} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'My Recs' }));
+    await user.click(screen.getByRole('button', { name: 'My Recs' }));
 
     expect(await screen.findByText('Deep Dub')).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Search Deep Dub'));
+    await user.click(screen.getByLabelText('Search Deep Dub'));
     expect(onSearch).toHaveBeenCalledWith('Deep Dub');
 
-    fireEvent.click(screen.getByLabelText('Add Deep Dub to Wishlist'));
+    await user.click(screen.getByLabelText('Add Deep Dub to Wishlist'));
     await waitFor(() =>
       expect(wishlist.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -69,12 +71,13 @@ describe('SoulseekDiscoveryPanel', () => {
   });
 
   it('loads similar users and then user interests on demand', async () => {
+    const user = userEvent.setup();
     render(<SoulseekDiscoveryPanel />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Similar Users' }));
+    await user.click(screen.getByRole('button', { name: 'Similar Users' }));
 
     expect(await screen.findByText('taste-peer')).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('Load taste-peer interests'));
+    await user.click(screen.getByLabelText('Load taste-peer interests'));
 
     expect(await screen.findByText('dub')).toBeInTheDocument();
     expect(screen.getByText('noise')).toBeInTheDocument();
@@ -84,13 +87,14 @@ describe('SoulseekDiscoveryPanel', () => {
   });
 
   it('treats malformed similar-user payloads as an empty list', async () => {
+    const user = userEvent.setup();
     soulseekDiscovery.getSimilarUsers.mockResolvedValue({
       data: { username: 'not-a-list' },
     });
 
     render(<SoulseekDiscoveryPanel />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Similar Users' }));
+    await user.click(screen.getByRole('button', { name: 'Similar Users' }));
 
     expect(await screen.findByText('Loaded 0 similar users.')).toBeInTheDocument();
     expect(screen.queryByText('not-a-list')).not.toBeInTheDocument();

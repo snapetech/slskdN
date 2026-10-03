@@ -1,5 +1,6 @@
 import EditModal from './EditModal';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
   getYaml,
@@ -85,5 +86,51 @@ describe('EditModal', () => {
 
     expect(await screen.findByText(/Remote configuration is read-only/))
       .toBeInTheDocument();
+  });
+
+  it('shows validation request failures and blocks saving invalid YAML', async () => {
+    validateYaml.mockRejectedValue(new Error('YAML validator unavailable'));
+    render(
+      <EditModal
+        onClose={vi.fn()}
+        open
+        theme="dark"
+      />,
+    );
+
+    fireEvent.change(await screen.findByLabelText('Options YAML'), {
+      target: { value: 'feature: true\n' },
+    });
+
+    expect(await screen.findByText(/YAML validator unavailable/))
+      .toBeInTheDocument();
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(validateYaml).toHaveBeenCalledWith({
+      yaml: 'feature: true\n',
+    }));
+    expect(updateYaml).not.toHaveBeenCalled();
+  });
+
+  it('shows the remote options load error and retries in the dialog', async () => {
+    const user = userEvent.setup();
+    getYaml.mockRejectedValueOnce({
+      response: { data: { detail: 'Options file unavailable', status: 503 } },
+    });
+    render(
+      <EditModal
+        onClose={vi.fn()}
+        open
+        theme="dark"
+      />,
+    );
+
+    expect(await screen.findByText('Options file unavailable'))
+      .toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry Options' }));
+
+    expect(await screen.findByLabelText('Options YAML'))
+      .toHaveValue('remote_configuration: true\n');
+    expect(getYaml).toHaveBeenCalledTimes(2);
   });
 });

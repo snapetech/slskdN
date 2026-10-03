@@ -1,59 +1,86 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { TooltipButton } from '../Shared';
 import { Form, Message, Segment } from 'semantic-ui-react';
 import api from '../../lib/api';
 
 export default function SolidSettings() {
   const [status, setStatus] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState('');
   const [webId, setWebId] = useState('');
   const [resolved, setResolved] = useState(null);
-  const [err, setErr] = useState('');
+  const [resolveError, setResolveError] = useState('');
+  const [resolving, setResolving] = useState(false);
+  const statusRequestId = useRef(0);
 
   const formatError = (e) => {
     const data = e?.response?.data;
     if (typeof data === 'string' && data.trim().length > 0) return data;
-    if (data != null && typeof data !== 'string') {
-      try {
-        return JSON.stringify(data);
-      } catch {
-        return String(data);
-      }
+    if (data && typeof data === 'object') {
+      return data.detail || data.message || data.error || data.title || JSON.stringify(data);
     }
     return e?.message ?? String(e);
   };
 
-  useEffect(() => {
-    (async () => {
-      setErr('');
-      try {
-        const res = await api.get('/solid/status');
-        setStatus(res.data);
-      } catch (e) {
-        const statusCode = e?.response?.status;
-        if (statusCode === 404) {
-          setStatus({ enabled: false });
-          return;
-        }
-
-        setErr(formatError(e));
+  const loadStatus = useCallback(async () => {
+    const requestId = ++statusRequestId.current;
+    setStatusLoading(true);
+    setStatusError('');
+    try {
+      const res = await api.get('/solid/status');
+      if (requestId === statusRequestId.current) setStatus(res.data);
+    } catch (e) {
+      if (requestId !== statusRequestId.current) return;
+      if (e?.response?.status === 404) {
+        setStatus({ enabled: false });
+      } else {
+        setStatusError(formatError(e));
       }
-    })();
+    } finally {
+      if (requestId === statusRequestId.current) setStatusLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    loadStatus();
+    return () => {
+      statusRequestId.current += 1;
+    };
+  }, [loadStatus]);
+
   const resolveWebId = async () => {
-    setErr('');
+    setResolveError('');
     setResolved(null);
+    setResolving(true);
     try {
       const res = await api.post('/solid/resolve-webid', { webId });
       setResolved(res.data);
     } catch (e) {
-      setErr(formatError(e));
+      setResolveError(formatError(e));
+    } finally {
+      setResolving(false);
     }
   };
 
   return (
     <Segment data-testid="solid-root">
       <h2>Solid</h2>
+
+      {statusLoading && (
+        <Message info role="status">Checking Solid integration…</Message>
+      )}
+
+      {statusError && (
+        <Message negative role="alert">
+          <Message.Content>{statusError}</Message.Content>
+          <TooltipButton
+            onClick={loadStatus}
+            tooltip="Retry checking whether the Solid integration is enabled."
+          >
+            Retry Status
+          </TooltipButton>
+        </Message>
+      )}
 
       {status && !status.enabled && (
         <Message warning>
@@ -74,21 +101,29 @@ export default function SolidSettings() {
         </Message>
       )}
 
-      {err && <Message negative>{err}</Message>}
+      {resolveError && <Message negative role="alert">{resolveError}</Message>}
 
       <Form>
-        <Form.Input
-          label="WebID"
-          placeholder="https://example.com/profile/card#me"
-          value={webId}
-          onChange={(e) => setWebId(e.target.value)}
-          data-testid="solid-webid-input"
-        />
+        <Form.Field>
+          <label htmlFor="solid-webid">WebID</label>
+          <Form.Input
+            id="solid-webid"
+            placeholder="https://example.com/profile/card#me"
+            value={webId}
+            onChange={(e) => {
+              setWebId(e.target.value);
+              setResolveError('');
+            }}
+            data-testid="solid-webid-input"
+          />
+        </Form.Field>
         <TooltipButton
           primary
           type="button"
           onClick={resolveWebId}
           data-testid="solid-resolve-webid"
+          disabled={statusLoading || status?.enabled !== true || !webId.trim() || resolving}
+          loading={resolving}
           tooltip="Resolve this WebID and show the Solid identity document returned by the server."
         >
           Resolve WebID

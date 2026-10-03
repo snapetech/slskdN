@@ -1,5 +1,7 @@
 import * as mesh from '../../../lib/mesh';
 import * as soulseekDiscovery from '../../../lib/soulseekDiscovery';
+import FeatureGateNotice from '../../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../../Shared/useFeatureGates';
 import MeshEvidencePolicy from './MeshEvidencePolicy';
 import RealmSubjectIndexConflicts from './RealmSubjectIndexConflicts';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -13,6 +15,7 @@ import {
   List,
   Loader,
   Message,
+  Popup,
   Segment,
   Statistic,
 } from 'semantic-ui-react';
@@ -42,6 +45,9 @@ const sameMeshStats = (previous, next) =>
   previous?.messageFlowHealthy === next?.messageFlowHealthy;
 
 const Mesh = () => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const meshEnabled = featureGatesReady && isFeatureEnabled(featureGates, 'mesh');
+  const dhtEnabled = featureGatesReady && isFeatureEnabled(featureGates, 'dht');
   const mountedRef = useRef(false);
   const statsFetchInFlightRef = useRef(false);
   const statsLoadedRef = useRef(false);
@@ -72,6 +78,7 @@ const Mesh = () => {
 
   const fetchStats = useCallback(async () => {
     if (
+      !meshEnabled ||
       document.hidden ||
       !mountedRef.current ||
       statsFetchInFlightRef.current
@@ -104,9 +111,16 @@ const Mesh = () => {
         setLoading(false);
       }
     }
-  }, []);
+  }, [meshEnabled]);
 
   useEffect(() => {
+    if (!featureGatesReady) return undefined;
+    if (!meshEnabled) {
+      setStats(null);
+      setLoading(false);
+      return undefined;
+    }
+
     const stopPolling = () => {
       if (statsPollIntervalRef.current) {
         window.clearInterval(statsPollIntervalRef.current);
@@ -136,9 +150,11 @@ const Mesh = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopPolling();
     };
-  }, [fetchStats]);
+  }, [fetchStats, featureGatesReady, meshEnabled]);
 
   useEffect(() => {
+    if (!featureGatesReady || !dhtEnabled) return undefined;
+
     const fetchRendezvousStatus = async () => {
       try {
         const response = await soulseekDiscovery.getMeshRendezvousStatus();
@@ -154,9 +170,12 @@ const Mesh = () => {
     };
 
     fetchRendezvousStatus();
-  }, []);
+    return undefined;
+  }, [dhtEnabled, featureGatesReady]);
 
   const handleAddRendezvousInterest = async () => {
+    if (!dhtEnabled) return;
+
     setRendezvousLoading(true);
     setRendezvousMessage(null);
     try {
@@ -179,6 +198,8 @@ const Mesh = () => {
   };
 
   const handleRemoveRendezvousInterest = async () => {
+    if (!dhtEnabled) return;
+
     setRendezvousLoading(true);
     setRendezvousMessage(null);
     try {
@@ -201,6 +222,8 @@ const Mesh = () => {
   };
 
   const handleLoadRendezvousUsers = async () => {
+    if (!dhtEnabled) return;
+
     setRendezvousLoading(true);
     setRendezvousMessage(null);
     try {
@@ -255,6 +278,27 @@ const Mesh = () => {
     }
   };
 
+  if (featureGatesReady && !meshEnabled) {
+    return (
+      <div>
+        <Header as="h2">
+          <Icon name="sitemap" />
+          Mesh Network Status
+        </Header>
+        <FeatureGateNotice
+          configurationKeys={['feature.Mesh', 'mesh.enable_overlay']}
+          featureGate={featureGates.mesh}
+          featureName="Mesh"
+        />
+        <FeatureGateNotice
+          configurationKeys={['feature.Dht', 'dht.enabled']}
+          featureGate={featureGates.dht}
+          featureName="DHT rendezvous"
+        />
+      </div>
+    );
+  }
+
   if (loading && !stats) {
     return (
       <Segment>
@@ -283,6 +327,11 @@ const Mesh = () => {
         <Icon name="sitemap" />
         Mesh Network Status
       </Header>
+      <FeatureGateNotice
+        configurationKeys={['feature.Dht', 'dht.enabled']}
+        featureGate={featureGates.dht}
+        featureName="DHT rendezvous"
+      />
 
       <Grid stackable>
         {/* Overall Health Status */}
@@ -506,21 +555,24 @@ const Mesh = () => {
               <Icon name={rendezvousStatus?.enabled ? 'privacy' : 'lock'} />
               <Message.Content>
                 <Message.Header>
-                  {rendezvousStatus?.enabled
+                  {!dhtEnabled
+                    ? 'DHT rendezvous is disabled by its feature gate'
+                    : rendezvousStatus?.enabled
                     ? 'Opt-in public rendezvous is enabled'
                     : 'Opt-in public rendezvous is disabled'}
                 </Message.Header>
                 <p>
-                  This feature uses the native Soulseek interest graph to find
-                  other slskdN mesh-capable accounts. Publishing the interest
-                  tag makes this account visibly identifiable as a slskdN mesh
-                  participant.
+                  {dhtEnabled
+                    ? 'This feature uses the native Soulseek interest graph to find other slskdN mesh-capable accounts. Publishing the interest tag makes this account visibly identifiable as a slskdN mesh participant.'
+                    : 'Review the DHT feature gate notice above before using public rendezvous controls.'}
                 </p>
-                <p>
-                  Interest tag:{' '}
-                  <code>{rendezvousStatus?.interestTag || 'slskdn-mesh-v1'}</code>
-                </p>
-                {!rendezvousStatus?.enabled && (
+                {dhtEnabled && (
+                  <p>
+                    Interest tag:{' '}
+                    <code>{rendezvousStatus?.interestTag || 'slskdn-mesh-v1'}</code>
+                  </p>
+                )}
+                {dhtEnabled && !rendezvousStatus?.enabled && (
                   <p>
                     Enable <code>mesh.enableSoulseekRendezvous</code> in
                     configuration before using these controls.
@@ -536,34 +588,52 @@ const Mesh = () => {
                 {rendezvousMessage.text}
               </Message>
             )}
-            <Button.Group>
-              <Button
-                disabled={!rendezvousStatus?.enabled || rendezvousLoading}
-                loading={rendezvousLoading}
-                onClick={handleAddRendezvousInterest}
-                positive
-              >
-                <Icon name="bullhorn" />
-                Publish Interest
-              </Button>
-              <Button
-                disabled={!rendezvousStatus?.enabled || rendezvousLoading}
-                loading={rendezvousLoading}
-                onClick={handleRemoveRendezvousInterest}
-              >
-                <Icon name="remove circle" />
-                Remove Interest
-              </Button>
-              <Button
-                disabled={!rendezvousStatus?.enabled || rendezvousLoading}
-                loading={rendezvousLoading}
-                onClick={handleLoadRendezvousUsers}
-                primary
-              >
-                <Icon name="search" />
-                Load Candidates
-              </Button>
-            </Button.Group>
+            <div className="mesh-rendezvous-actions">
+              <Popup
+                content="Publish the slskdN rendezvous interest on this Soulseek account so other mesh-capable users can discover it."
+                position="top center"
+                trigger={(
+                  <Button
+                    disabled={!dhtEnabled || !rendezvousStatus?.enabled || rendezvousLoading}
+                    loading={rendezvousLoading}
+                    onClick={handleAddRendezvousInterest}
+                    positive
+                  >
+                    <Icon name="bullhorn" />
+                    Publish Interest
+                  </Button>
+                )}
+              />
+              <Popup
+                content="Remove this account's public slskdN rendezvous interest when you no longer want to appear in mesh discovery."
+                position="top center"
+                trigger={(
+                  <Button
+                    disabled={!dhtEnabled || !rendezvousStatus?.enabled || rendezvousLoading}
+                    loading={rendezvousLoading}
+                    onClick={handleRemoveRendezvousInterest}
+                  >
+                    <Icon name="remove circle" />
+                    Remove Interest
+                  </Button>
+                )}
+              />
+              <Popup
+                content="Search the Soulseek interest graph for opted-in mesh accounts and their published capabilities."
+                position="top center"
+                trigger={(
+                  <Button
+                    disabled={!dhtEnabled || !rendezvousStatus?.enabled || rendezvousLoading}
+                    loading={rendezvousLoading}
+                    onClick={handleLoadRendezvousUsers}
+                    primary
+                  >
+                    <Icon name="search" />
+                    Load Candidates
+                  </Button>
+                )}
+              />
+            </div>
             {rendezvousUsers.length > 0 && (
               <List
                 divided

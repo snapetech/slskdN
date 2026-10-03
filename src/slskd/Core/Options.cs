@@ -1887,8 +1887,26 @@ namespace slskd
         /// <summary>
         ///     Sharing options (collections, share-grants, token signing).
         /// </summary>
-        public class SharingOptions
+        public class SharingOptions : IValidatableObject
         {
+            /// <summary>
+            ///     Base URL recipients can use to reach this instance's share streaming API.
+            ///     Leave empty when this instance is not reachable by other peers.
+            /// </summary>
+            [EnvironmentVariable("SHARING_EXTERNAL_ENDPOINT")]
+            [Description("absolute HTTP(S) base URL recipients can use to reach this instance, including any URL base path")]
+            [RequiresRestart]
+            public string ExternalEndpoint { get; init; } = string.Empty;
+
+            /// <summary>
+            ///     Exact private or loopback IP origins trusted for incoming share backfill requests.
+            ///     Only these origins may bypass the public-address outbound guard.
+            /// </summary>
+            [EnvironmentVariable("SHARING_TRUSTED_PRIVATE_OWNER_ORIGINS")]
+            [Description("exact private or loopback IP origins allowed for incoming share backfills")]
+            [RequiresRestart]
+            public string[] TrustedPrivateOwnerOrigins { get; init; } = Array.Empty<string>();
+
             /// <summary>
             ///     Base64-encoded key for HMAC-SHA256 signing of share tokens. Decoded key must be at least 32 bytes.
             ///     When empty, IShareTokenService.Create throws. Used for token auth on streams and manifest.
@@ -1898,6 +1916,51 @@ namespace slskd
             [Description("base64-encoded HMAC key for share tokens (min 32 bytes decoded)")]
             [Secret]
             public string TokenSigningKey { get; init; } = string.Empty;
+
+            /// <inheritdoc />
+            public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+            {
+                if (!string.IsNullOrWhiteSpace(ExternalEndpoint) &&
+                    (!Uri.TryCreate(ExternalEndpoint, UriKind.Absolute, out var externalEndpoint) ||
+                     !IsHttpUri(externalEndpoint) ||
+                     !string.IsNullOrEmpty(externalEndpoint.UserInfo) ||
+                     !string.IsNullOrEmpty(externalEndpoint.Query) ||
+                     !string.IsNullOrEmpty(externalEndpoint.Fragment)))
+                {
+                    yield return new ValidationResult(
+                        "Sharing.ExternalEndpoint must be an absolute HTTP(S) URL without credentials, query, or fragment.",
+                        new[] { nameof(ExternalEndpoint) });
+                }
+
+                foreach (var origin in TrustedPrivateOwnerOrigins ?? Array.Empty<string>())
+                {
+                    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri) ||
+                        !IsHttpUri(uri) ||
+                        !string.IsNullOrEmpty(uri.UserInfo) ||
+                        !string.IsNullOrEmpty(uri.Query) ||
+                        !string.IsNullOrEmpty(uri.Fragment) ||
+                        (uri.AbsolutePath != string.Empty && uri.AbsolutePath != "/") ||
+                        !IPAddress.TryParse(uri.DnsSafeHost, out var address) ||
+                        !IsTrustedPrivateOwnerAddress(address))
+                    {
+                        yield return new ValidationResult(
+                            "Each Sharing.TrustedPrivateOwnerOrigins entry must be an exact HTTP(S) origin with a private, unique-local, or loopback IP literal; link-local and reserved addresses are not allowed.",
+                            new[] { nameof(TrustedPrivateOwnerOrigins) });
+                    }
+                }
+            }
+
+            private static bool IsHttpUri(Uri uri) =>
+                string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+
+            private static bool IsTrustedPrivateOwnerAddress(IPAddress address)
+            {
+                return Common.Security.IpRangeClassifier.Classify(address) is
+                    Common.Security.IpRangeClassifier.IpClassification.Loopback or
+                    Common.Security.IpRangeClassifier.IpClassification.PrivateRfc1918 or
+                    Common.Security.IpRangeClassifier.IpClassification.PrivateUla;
+            }
         }
 
         /// <summary>

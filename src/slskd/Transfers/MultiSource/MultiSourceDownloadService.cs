@@ -116,6 +116,26 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
     /// <inheritdoc/>
     public ConcurrentDictionary<Guid, MultiSourceDownloadStatus> ActiveDownloads { get; } = new();
 
+    private async Task<ContentSafetyDisposition> InspectOutputContentAsync(string outputPath, string quarantineFilename)
+    {
+        var options = optionsMonitor?.CurrentValue;
+        if (options == null)
+        {
+            return ContentSafetyDisposition.Skipped;
+        }
+
+        var outputRoot = GetAllowedOutputRoot(outputPath)
+            ?? throw new InvalidOperationException("Output path is outside allowed roots");
+        return await ContentSafety.InspectAndApplyPolicyAsync(
+            outputPath,
+            outputRoot,
+            options.Directories.Downloads,
+            options.Security,
+            CancellationToken.None,
+            _logger,
+            quarantineFilename).ConfigureAwait(false);
+    }
+
     private static bool IsContentVariantMatch(string filename, long fileSize, ContentVariantsResult contentVariants)
     {
         var baseFilename = IOPath.GetFileName(filename);
@@ -559,6 +579,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         status.TargetFingerprint = request.TargetFingerprint;
         status.TargetSemanticKey = request.TargetSemanticKey;
         ActiveDownloads[request.Id] = status;
+        string? stagingOutputPath = null;
+        string? outputRoot = null;
 
         try
         {
@@ -572,13 +594,25 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             // Policy split: parallel chunking is only safe for trusted mesh-overlay peers.
             // Soulseek peers (or mixed sets) use sequential failover so we never produce
             // mid-stream cancellations that show as "transfer failed" on Nicotine+/SoulseekQt UIs.
+            outputRoot = GetAllowedOutputRoot(request.OutputPath)
+                ?? throw new InvalidOperationException("Output path is outside allowed roots");
+            stagingOutputPath = ContentSafety.CreateStagingPath(request.OutputPath, outputRoot);
             var allMesh = request.Sources.All(s => s.IsMeshOverlay());
             if (!allMesh)
             {
                 _logger.LogInformation(
                     "[SWARM] Soulseek/mixed source set ({Count} sources); using sequential failover instead of parallel chunking",
                     request.Sources.Count);
-                return await DownloadSequentialFailoverAsync(request, status, result, stopwatch, activity, cancellationToken);
+                return await DownloadSequentialFailoverAsync(
+                    request,
+                    stagingOutputPath,
+                    request.OutputPath,
+                    outputRoot,
+                    status,
+                    result,
+                    stopwatch,
+                    activity,
+                    cancellationToken);
             }
 
             // Calculate chunks - optimize chunk size if optimizer available
@@ -860,12 +894,23 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             status.State = MultiSourceDownloadState.Assembling;
             _logger.LogInformation("Assembling {Count} chunks into final file", chunks.Count);
 
-            await AssembleChunksAsync(tempDir, chunks.Count, request.OutputPath, cancellationToken);
+            await AssembleChunksAsync(tempDir, chunks.Count, stagingOutputPath, cancellationToken);
 
             // Verify final file
             status.State = MultiSourceDownloadState.VerifyingFinal;
-            var finalHash = await ComputeFileHashAsync(request.OutputPath, cancellationToken);
+            var finalHash = await ComputeFileHashAsync(stagingOutputPath, cancellationToken);
             result.FinalHash = finalHash;
+
+            var contentSafetyDisposition = await InspectOutputContentAsync(
+                stagingOutputPath,
+                IOPath.GetFileName(request.OutputPath));
+            if (contentSafetyDisposition.Rejected)
+            {
+                result.Error = $"Content safety rejected final output: {contentSafetyDisposition.Verification?.Message ?? "configured safety check failed"}";
+                result.Success = false;
+                status.State = MultiSourceDownloadState.Failed;
+                return result;
+            }
 
             if (request.ExpectedHash != null && !finalHash.Equals(request.ExpectedHash, StringComparison.OrdinalIgnoreCase))
             {
@@ -884,7 +929,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 && string.IsNullOrWhiteSpace(request.TargetMusicBrainzRecordingId)
                 ? new FingerprintVerificationResult(null, false, null)
                 : await VerifyFinalFileAsync(
-                    request.OutputPath,
+                    stagingOutputPath,
                     request.TargetFingerprint,
                     request.TargetSemanticKey,
                     request.TargetMusicBrainzRecordingId,
@@ -897,6 +942,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             status.Fingerprint = verification.Fingerprint ?? string.Empty;
             status.FingerprintVerified = verification.Verified;
             status.ResolvedRecordingId = verification.ResolvedRecordingId;
+
+            ContentSafety.PublishStagedFile(stagingOutputPath, request.OutputPath, outputRoot, overwrite: true);
 
             // Cleanup temp files
             try
@@ -954,6 +1001,11 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         }
         finally
         {
+            if (stagingOutputPath != null && outputRoot != null)
+            {
+                ContentSafety.DeleteStagedFile(stagingOutputPath, outputRoot);
+            }
+
             activity?.Dispose();
             ActiveDownloads.TryRemove(request.Id, out _);
         }
@@ -968,6 +1020,9 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
     /// </summary>
     private async Task<MultiSourceDownloadResult> DownloadSequentialFailoverAsync(
         MultiSourceDownloadRequest request,
+        string stagingOutputPath,
+        string finalOutputPath,
+        string outputRoot,
         MultiSourceDownloadStatus status,
         MultiSourceDownloadResult result,
         Stopwatch stopwatch,
@@ -978,7 +1033,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         const int slowDurationMs = 12000;
         const int peerTimeoutSeconds = 30;
 
-        var outputDir = IOPath.GetDirectoryName(request.OutputPath);
+        var outputDir = IOPath.GetDirectoryName(stagingOutputPath);
         if (!string.IsNullOrEmpty(outputDir))
         {
             IODirectory.CreateDirectory(outputDir);
@@ -1001,11 +1056,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         }
 
         // FileStream stays open across failover attempts; each peer resumes at bytesReceived.
-        await using var fileStream = new FileStream(
-            request.OutputPath,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None);
+        await using var fileStream = SecureFileWriter.Open(stagingOutputPath, outputRoot);
 
         while (bytesReceived < request.FileSize && !cancellationToken.IsCancellationRequested)
         {
@@ -1129,6 +1180,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         }
 
         await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+        await fileStream.DisposeAsync().ConfigureAwait(false);
 
         result.SourcesUsed = sourcesUsed;
         result.BytesDownloaded = bytesReceived;
@@ -1146,8 +1198,19 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
         // Final hash + fingerprint verification (same as parallel path).
         status.State = MultiSourceDownloadState.VerifyingFinal;
-        var finalHash = await ComputeFileHashAsync(request.OutputPath, cancellationToken).ConfigureAwait(false);
+        var finalHash = await ComputeFileHashAsync(stagingOutputPath, cancellationToken).ConfigureAwait(false);
         result.FinalHash = finalHash;
+
+        var contentSafetyDisposition = await InspectOutputContentAsync(
+            stagingOutputPath,
+            IOPath.GetFileName(finalOutputPath)).ConfigureAwait(false);
+        if (contentSafetyDisposition.Rejected)
+        {
+            result.Error = $"Content safety rejected final output: {contentSafetyDisposition.Verification?.Message ?? "configured safety check failed"}";
+            result.Success = false;
+            status.State = MultiSourceDownloadState.Failed;
+            return result;
+        }
 
         if (!string.IsNullOrEmpty(request.ExpectedHash) &&
             !finalHash.Equals(request.ExpectedHash, StringComparison.OrdinalIgnoreCase))
@@ -1167,7 +1230,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             && string.IsNullOrWhiteSpace(request.TargetMusicBrainzRecordingId)
             ? new FingerprintVerificationResult(null, false, null)
             : await VerifyFinalFileAsync(
-                request.OutputPath,
+                stagingOutputPath,
                 request.TargetFingerprint,
                 request.TargetSemanticKey,
                 request.TargetMusicBrainzRecordingId,
@@ -1180,6 +1243,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         status.Fingerprint = verification.Fingerprint ?? string.Empty;
         status.FingerprintVerified = verification.Verified;
         status.ResolvedRecordingId = verification.ResolvedRecordingId;
+
+        ContentSafety.PublishStagedFile(stagingOutputPath, finalOutputPath, outputRoot, overwrite: true);
 
         result.Success = true;
         status.State = MultiSourceDownloadState.Completed;

@@ -1,14 +1,52 @@
 import '../System.css';
 import { createLogsHubConnection } from '../../../lib/hubFactory';
-import { LoaderSegment } from '../../Shared';
-import React, { Component } from 'react';
-import { Button, ButtonGroup, Table } from 'semantic-ui-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Button,
+  ButtonGroup,
+  Header,
+  Message,
+  Popup,
+  Table,
+} from 'semantic-ui-react';
 
-const initialState = {
-  connected: false,
-  filterLevel: 'all',
-  logs: [], // 'all', 'Information', 'Warning', 'Error', 'Debug'
-};
+const maxLogs = 500;
+
+const filters = [
+  {
+    accessibleName: 'Show all severities',
+    description: 'Show every severity so you can inspect the full live log feed.',
+    label: 'All',
+    level: 'all',
+  },
+  {
+    accessibleName: 'Show information logs',
+    color: 'blue',
+    description: 'Show informational records to follow normal application activity.',
+    label: 'Info',
+    level: 'Information',
+  },
+  {
+    accessibleName: 'Show warning logs',
+    color: 'yellow',
+    description: 'Show warnings to review conditions that may need attention.',
+    label: 'Warn',
+    level: 'Warning',
+  },
+  {
+    accessibleName: 'Show error logs',
+    color: 'red',
+    description: 'Show errors to focus on failed operations and their causes.',
+    label: 'Error',
+    level: 'Error',
+  },
+  {
+    accessibleName: 'Show debug logs',
+    description: 'Show debug records when investigating detailed application behavior.',
+    label: 'Debug',
+    level: 'Debug',
+  },
+];
 
 const levels = {
   Debug: 'DBG',
@@ -17,162 +55,251 @@ const levels = {
   Warning: 'WRN',
 };
 
-const maxLogs = 500;
+const getErrorMessage = (error, fallback) =>
+  error?.message || fallback;
 
-class Logs extends Component {
-  constructor(props) {
-    super(props);
+const formatTimestamp = (timestamp) => {
+  const date = new Date(timestamp);
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+};
 
-    this.state = initialState;
-  }
+const Logs = () => {
+  const [logs, setLogs] = useState([]);
+  const [filterLevel, setFilterLevel] = useState('all');
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [connectionError, setConnectionError] = useState('');
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
 
-  componentDidMount() {
+  useEffect(() => {
+    let active = true;
     const logsHub = createLogsHubConnection();
 
     logsHub.on('buffer', (buffer) => {
-      this.setState({
-        connected: true,
-        logs: buffer.reverse().slice(0, maxLogs),
-      });
+      if (!active) return;
+
+      setLogs(Array.isArray(buffer) ? [...buffer].reverse().slice(0, maxLogs) : []);
+      setConnectionStatus('connected');
+      setConnectionError('');
     });
 
     logsHub.on('log', (log) => {
-      this.setState((previousState) => ({
-        connected: true,
-        logs: [log].concat(previousState.logs).slice(0, maxLogs),
-      }));
+      if (!active) return;
+
+      setLogs((current) => [log, ...current].slice(0, maxLogs));
+      setConnectionStatus('connected');
+      setConnectionError('');
     });
 
-    logsHub.onreconnecting(() => this.setState({ connected: false }));
+    logsHub.onreconnecting((error) => {
+      if (!active) return;
+
+      setConnectionStatus('reconnecting');
+      setConnectionError(getErrorMessage(error, 'The live log connection was interrupted.'));
+    });
+
+    logsHub.onreconnected(() => {
+      if (!active) return;
+
+      setConnectionStatus('connected');
+      setConnectionError('');
+    });
+
     logsHub.onclose((error) => {
-      this.setState({ connected: false });
-      if (error) {
-        console.error('[Logs] Hub connection closed with error:', error);
-      }
+      if (!active) return;
+
+      setConnectionStatus('disconnected');
+      setConnectionError(getErrorMessage(error, 'The live log connection closed.'));
     });
-    logsHub.onreconnected(() => this.setState({ connected: true }));
 
-    logsHub.start().catch((error) => {
-      console.error('[Logs] Failed to start hub connection:', error);
-      this.setState({ connected: false });
-    });
-  }
+    logsHub.start().then(
+      () => {
+        if (active) {
+          setConnectionStatus('connected');
+          setConnectionError('');
+        }
+      },
+      (error) => {
+        if (active) {
+          setConnectionStatus('disconnected');
+          setConnectionError(getErrorMessage(error, 'Unable to connect to live logs.'));
+        }
+      },
+    );
 
-  formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`; // eslint-disable-line max-len
+    return () => {
+      active = false;
+      logsHub.stop().catch((error) => {
+        console.error('[Logs] Failed to stop hub connection:', error);
+      });
+    };
+  }, [connectionAttempt]);
+
+  const filteredLogs = useMemo(
+    () =>
+      filterLevel === 'all'
+        ? logs
+        : logs.filter((log) => log.level === filterLevel),
+    [filterLevel, logs],
+  );
+
+  const retryConnection = () => {
+    setConnectionError('');
+    setConnectionStatus('connecting');
+    setConnectionAttempt((attempt) => attempt + 1);
   };
 
-  handleFilterChange = (level) => {
-    this.setState({ filterLevel: level });
-  };
+  const connectionMessage = {
+    connected: null,
+    connecting: {
+      content: 'Recent log entries will appear here as they arrive.',
+      header: 'Connecting to live logs',
+      info: true,
+    },
+    disconnected: {
+      content: connectionError,
+      header: 'Live logs are disconnected',
+      warning: true,
+    },
+    reconnecting: {
+      content: connectionError
+        ? `${connectionError} Buffered entries remain available while the connection recovers.`
+        : 'Buffered entries remain available while the connection recovers.',
+      header: 'Reconnecting to live logs',
+      warning: true,
+    },
+  }[connectionStatus];
 
-  getFilteredLogs = () => {
-    const { filterLevel, logs } = this.state;
-    if (filterLevel === 'all') {
-      return logs;
-    }
+  return (
+    <div className="logs">
+      <Header as="h2">
+        <Header.Content>System Logs</Header.Content>
+        <Header.Subheader>
+          Monitor the most recent application records as they arrive.
+        </Header.Subheader>
+      </Header>
 
-    return logs.filter((log) => log.level === filterLevel);
-  };
-
-  render() {
-    const { connected, filterLevel } = this.state;
-    const filteredLogs = this.getFilteredLogs();
-
-    return (
-      <div className="logs">
-        <div style={{ marginBottom: '1em' }}>
-          {/* The one place severity color earns its keep: the selected filter
-              picks up the same color its rows render with below. */}
-          <ButtonGroup>
-            <Button
-              active={filterLevel === 'all'}
-              onClick={() => this.handleFilterChange('all')}
-            >
-              All
-            </Button>
-            <Button
-              active={filterLevel === 'Information'}
-              color={filterLevel === 'Information' ? 'blue' : undefined}
-              onClick={() => this.handleFilterChange('Information')}
-            >
-              Info
-            </Button>
-            <Button
-              active={filterLevel === 'Warning'}
-              color={filterLevel === 'Warning' ? 'yellow' : undefined}
-              onClick={() => this.handleFilterChange('Warning')}
-            >
-              Warn
-            </Button>
-            <Button
-              active={filterLevel === 'Error'}
-              color={filterLevel === 'Error' ? 'red' : undefined}
-              onClick={() => this.handleFilterChange('Error')}
-            >
-              Error
-            </Button>
-            <Button
-              active={filterLevel === 'Debug'}
-              onClick={() => this.handleFilterChange('Debug')}
-            >
-              Debug
-            </Button>
-          </ButtonGroup>
-          <span style={{ color: '#666', marginLeft: '1em' }}>
-            {connected
-              ? `Showing ${filteredLogs.length} of ${this.state.logs.length} logs`
-              : 'Connecting to logs...'}
-          </span>
-        </div>
-        {!connected && <LoaderSegment />}
-        {connected && (
-          <Table
-            className="logs-table"
-            compact="very"
-          >
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>Timestamp</Table.HeaderCell>
-                <Table.HeaderCell>Level</Table.HeaderCell>
-                <Table.HeaderCell>Message</Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body className="logs-table-body">
-              {filteredLogs.length === 0 ? (
-                <Table.Row>
-                  <Table.Cell
-                    colSpan="3"
-                    textAlign="center"
+      <div className="logs-controls">
+        <ButtonGroup
+          aria-label="Filter log entries by severity"
+          className="logs-filter-buttons"
+          role="group"
+        >
+          {filters.map(({ accessibleName, color, description, label, level }) => {
+            const active = filterLevel === level;
+            return (
+              <Popup
+                key={level}
+                content={description}
+                on={['hover', 'focus']}
+                position="top center"
+                trigger={(
+                  <Button
+                    active={active}
+                    aria-label={accessibleName}
+                    aria-pressed={active}
+                    color={active ? color : undefined}
+                    onClick={() => setFilterLevel(level)}
+                    toggle
                   >
-                    No logs match the selected filter
+                    {label}
+                  </Button>
+                )}
+              />
+            );
+          })}
+        </ButtonGroup>
+
+        <span
+          aria-live="polite"
+          className="logs-count"
+        >
+          {connectionStatus === 'connected'
+            ? `Showing ${filteredLogs.length} of ${logs.length} logs`
+            : `Showing ${filteredLogs.length} of ${logs.length} buffered logs`}
+        </span>
+      </div>
+
+      {connectionMessage && (
+        <Message
+          className="logs-connection-message"
+          info={connectionMessage.info}
+          warning={connectionMessage.warning}
+        >
+          <Message.Header>{connectionMessage.header}</Message.Header>
+          <p>{connectionMessage.content}</p>
+          {connectionStatus === 'disconnected' && (
+            <Popup
+              content="Retry the live log connection to receive new records."
+              on={['hover', 'focus']}
+              position="top center"
+              trigger={(
+                <Button
+                  aria-label="Retry live log connection"
+                  className="logs-retry"
+                  onClick={retryConnection}
+                  size="small"
+                >
+                  Retry
+                </Button>
+              )}
+            />
+          )}
+        </Message>
+      )}
+
+      <div
+        aria-label="System log entries"
+        className="logs-table-scroll"
+        role="region"
+        tabIndex={0}
+      >
+        <Table
+          aria-label="System log entries"
+          className="logs-table"
+          compact="very"
+          unstackable
+        >
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell>Timestamp</Table.HeaderCell>
+              <Table.HeaderCell>Level</Table.HeaderCell>
+              <Table.HeaderCell>Message</Table.HeaderCell>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body className="logs-table-body">
+            {filteredLogs.length === 0 ? (
+              <Table.Row>
+                <Table.Cell
+                  colSpan="3"
+                  textAlign="center"
+                >
+                  {connectionStatus === 'connected'
+                    ? 'No logs match the selected filter'
+                    : 'No buffered log entries'}
+                </Table.Cell>
+              </Table.Row>
+            ) : (
+              filteredLogs.map((log, index) => (
+                <Table.Row
+                  key={`${log.timestamp}-${log.level}-${index}`}
+                  negative={log.level === 'Error'}
+                  warning={log.level === 'Warning'}
+                >
+                  <Table.Cell>
+                    {formatTimestamp(log.timestamp)}
+                  </Table.Cell>
+                  <Table.Cell>{levels[log.level] || log.level}</Table.Cell>
+                  <Table.Cell className="logs-table-message">
+                    {log.message}
                   </Table.Cell>
                 </Table.Row>
-              ) : (
-                filteredLogs.map((log) => (
-                  <Table.Row
-                    disabled={log.level === 'Debug' && filterLevel !== 'Debug'}
-                    key={log.timestamp}
-                    negative={log.level === 'Error'}
-                    warning={log.level === 'Warning'}
-                  >
-                    <Table.Cell>
-                      {this.formatTimestamp(log.timestamp)}
-                    </Table.Cell>
-                    <Table.Cell>{levels[log.level] || log.level}</Table.Cell>
-                    <Table.Cell className="logs-table-message">
-                      {log.message}
-                    </Table.Cell>
-                  </Table.Row>
-                ))
-              )}
-            </Table.Body>
-          </Table>
-        )}
+              ))
+            )}
+          </Table.Body>
+        </Table>
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default Logs;

@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import Composer, { matchSuggestions } from './Composer';
 import React, { useState } from 'react';
+import userEvent from '@testing-library/user-event';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -115,6 +116,27 @@ describe('Composer', () => {
     await waitFor(() => {
       expect(adapter.send).toHaveBeenCalledWith('hello world');
     });
+  });
+
+  it('shows send failures and keeps the draft available for retry', async () => {
+    const user = userEvent.setup();
+    const adapter = buildAdapter();
+    adapter.send
+      .mockRejectedValueOnce(new Error('Network disconnected'))
+      .mockResolvedValueOnce();
+    render(<ControlledComposer adapter={adapter} commands={COMMANDS} />);
+    const input = screen.getByLabelText('Message composer');
+    fireEvent.change(input, { target: { value: 'hello again' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(await screen.findByRole('alert'))
+      .toHaveTextContent('Network disconnected');
+    expect(input).toHaveValue('hello again');
+    await user.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => expect(adapter.send).toHaveBeenCalledTimes(2));
+    expect(input).toHaveValue('');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('reflects value updates from the parent', () => {

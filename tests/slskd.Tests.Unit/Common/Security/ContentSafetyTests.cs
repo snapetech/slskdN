@@ -3,6 +3,10 @@
 // </copyright>
 namespace slskd.Tests.Unit.Common.Security;
 
+using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using slskd.Common.Security;
 using Xunit;
 
@@ -82,5 +86,144 @@ public class ContentSafetyTests
         var detected = ContentSafety.DetectFileType(new byte[] { 0x66, 0x4C, 0x61, 0x43 });
 
         Assert.Equal("FLAC audio", detected);
+    }
+
+    [Fact]
+    public async Task PublishStagedFile_CreatesMissingNestedDestinationDirectory()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"slskdn-content-safety-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        var destinationPath = Path.Combine(root, "shares", "albums", "track.flac");
+        var stagingPath = ContentSafety.CreateStagingPath(destinationPath, root);
+        Directory.CreateDirectory(Path.GetDirectoryName(stagingPath)!);
+        var content = new byte[] { 0x66, 0x4C, 0x61, 0x43, 0x00 };
+        await File.WriteAllBytesAsync(stagingPath, content);
+
+        try
+        {
+            Assert.False(Directory.Exists(Path.GetDirectoryName(destinationPath)));
+
+            var publishedPath = ContentSafety.PublishStagedFile(stagingPath, destinationPath, root);
+
+            Assert.Equal(destinationPath, publishedPath);
+            Assert.Equal(content, await File.ReadAllBytesAsync(destinationPath));
+            Assert.False(File.Exists(stagingPath));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InspectAndApplyPolicyAsync_QuarantinesExecutableEvenWhenMagicByteMatchingIsDisabled()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"slskdn-content-safety-{Guid.NewGuid():N}");
+        var downloadsRoot = Path.Combine(root, "downloads");
+        Directory.CreateDirectory(downloadsRoot);
+        var filePath = Path.Combine(downloadsRoot, "disguised.mp3");
+        await File.WriteAllBytesAsync(filePath, new byte[] { 0x4D, 0x5A, 0x90, 0x00 });
+
+        try
+        {
+            var disposition = await ContentSafety.InspectAndApplyPolicyAsync(
+                filePath,
+                downloadsRoot,
+                downloadsRoot,
+                new SecurityOptions
+                {
+                    ContentSafety = new ContentSafetyOptions
+                    {
+                        VerifyMagicBytes = false,
+                        BlockExecutables = true,
+                        QuarantineSuspicious = true
+                    }
+                },
+                CancellationToken.None);
+
+            Assert.True(disposition.Inspected);
+            Assert.True(disposition.Rejected);
+            Assert.NotNull(disposition.QuarantinedPath);
+            Assert.False(File.Exists(filePath));
+            Assert.Equal(new byte[] { 0x4D, 0x5A, 0x90, 0x00 }, await File.ReadAllBytesAsync(disposition.QuarantinedPath!));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InspectAndApplyPolicyAsync_AllowsMismatchWarningWhenQuarantineIsDisabled()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"slskdn-content-safety-{Guid.NewGuid():N}");
+        var downloadsRoot = Path.Combine(root, "downloads");
+        Directory.CreateDirectory(downloadsRoot);
+        var filePath = Path.Combine(downloadsRoot, "mismatch.flac");
+        await File.WriteAllBytesAsync(filePath, new byte[] { 0x25, 0x50, 0x44, 0x46 });
+
+        try
+        {
+            var disposition = await ContentSafety.InspectAndApplyPolicyAsync(
+                filePath,
+                downloadsRoot,
+                downloadsRoot,
+                new SecurityOptions
+                {
+                    ContentSafety = new ContentSafetyOptions
+                    {
+                        VerifyMagicBytes = true,
+                        BlockExecutables = true,
+                        QuarantineSuspicious = false
+                    }
+                },
+                CancellationToken.None);
+
+            Assert.True(disposition.Inspected);
+            Assert.False(disposition.Rejected);
+            Assert.True(File.Exists(filePath));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InspectAndApplyPolicyAsync_RemovesRejectedFileWhenQuarantineCannotBeCreated()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"slskdn-content-safety-{Guid.NewGuid():N}");
+        var downloadsRoot = Path.Combine(root, "downloads");
+        Directory.CreateDirectory(downloadsRoot);
+        var filePath = Path.Combine(downloadsRoot, "disguised.mp3");
+        var quarantineBlocker = Path.Combine(downloadsRoot, "quarantine-blocker");
+        await File.WriteAllBytesAsync(filePath, new byte[] { 0x4D, 0x5A, 0x90, 0x00 });
+        await File.WriteAllTextAsync(quarantineBlocker, "not a directory");
+
+        try
+        {
+            await Assert.ThrowsAsync<ContentSafetyRejectedException>(() => ContentSafety.InspectAndApplyPolicyAsync(
+                filePath,
+                downloadsRoot,
+                downloadsRoot,
+                new SecurityOptions
+                {
+                    ContentSafety = new ContentSafetyOptions
+                    {
+                        VerifyMagicBytes = true,
+                        BlockExecutables = true,
+                        QuarantineSuspicious = true,
+                        QuarantineDirectory = "quarantine-blocker"
+                    }
+                },
+                CancellationToken.None));
+
+            Assert.False(File.Exists(filePath));
+            Assert.True(File.Exists(quarantineBlocker));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
 }

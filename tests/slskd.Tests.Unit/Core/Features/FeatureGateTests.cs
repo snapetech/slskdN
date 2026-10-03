@@ -12,6 +12,23 @@ using Xunit;
 public class FeatureGateTests
 {
     [Fact]
+    public void FeatureIds_ContainOnlyRuntimeGatedFeatures()
+    {
+        Assert.Equal(
+            new[]
+            {
+                FeatureId.SongId,
+                FeatureId.Mesh,
+                FeatureId.Dht,
+                FeatureId.Pods,
+                FeatureId.SocialFederation,
+                FeatureId.VirtualSoulfind,
+                FeatureId.MultiSourceDownloads,
+            },
+            Enum.GetValues<FeatureId>());
+    }
+
+    [Fact]
     public void Get_SongId_DefaultsEnabled()
     {
         var gate = CreateGate(new slskd.Options());

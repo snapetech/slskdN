@@ -569,6 +569,42 @@ describe('PlayerBar', () => {
     await waitFor(() => expect(audio.getAttribute('src')).toBe('/api/v0/mesh-streams/reconnected'));
   });
 
+  it.each([false, true])('reuses the admitted radio URL when seeking and preserves play state (wasPlaying=%s)', async (wasPlaying) => {
+    const streamUrl = '/api/v0/mesh-streams/admitted-radio';
+    const create = vi.spyOn(listeningParty, 'createRadioStreamUrl').mockResolvedValue(streamUrl);
+    vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
+      { partyId: 'radio-seek', contentId: 'radio:seek', title: 'Seek radio', allowMeshStreaming: true, transportUsername: 'host', streamTicket: 'capability' },
+    ]);
+    let paused = true;
+    HTMLMediaElement.prototype.play.mockImplementation(() => {
+      paused = false;
+      return Promise.resolve();
+    });
+    HTMLMediaElement.prototype.pause.mockImplementation(() => { paused = true; });
+
+    renderPlayer();
+    fireEvent.click(screen.getByTestId('player-open-listed-radio'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Play Seek radio from listed radio' }));
+    const audio = document.querySelector('audio');
+    Object.defineProperty(audio, 'paused', { configurable: true, get: () => paused });
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 400 });
+    Object.defineProperty(audio, 'currentTime', { configurable: true, writable: true, value: 0 });
+    await waitFor(() => expect(audio.getAttribute('src')).toBe(streamUrl));
+    fireEvent.loadedMetadata(audio);
+    fireEvent.play(audio);
+    if (!wasPlaying) fireEvent.click(screen.getByTestId('player-toggle-playback'));
+    expect(paused).toBe(!wasPlaying);
+
+    const seek = screen.getByLabelText('Seek playback');
+    fireEvent.change(seek, { target: { value: '300' } });
+    fireEvent.pointerUp(seek);
+    await waitFor(() => expect(audio.currentTime).toBe(300));
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(audio.getAttribute('src')).toBe(streamUrl);
+    expect(paused).toBe(!wasPlaying);
+  });
+
   it('does not probe local decoding after a listed-radio stream failure', async () => {
     vi.spyOn(listeningParty, 'createRadioStreamUrl').mockResolvedValue('/radio-fixture.wav');
     vi.spyOn(listeningParty, 'getPartyDirectory').mockResolvedValue([
@@ -686,6 +722,7 @@ describe('PlayerBar', () => {
     renderPlayer({ reportPlaybackEvent });
     fireEvent.click(screen.getByText('Play fixture'));
     await screen.findByText('Playback could not start. Check the file or try again.');
+    await waitFor(() => expect(ctx.state).toBe('suspended'));
     expect({ events: reportPlaybackEvent.mock.calls, contextState: ctx.state })
       .toEqual({ events: [['pause', 0]], contextState: 'suspended' });
   });

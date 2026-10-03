@@ -1,23 +1,25 @@
 # Getting Started with slskdN
 
-Welcome to slskdN! This guide will help you get up and running quickly.
+This guide covers installation, first-run configuration, and the core Soulseek workflows.
 
 ## What is slskdN?
 
-**slskdN(OT)** is a feature-rich fork of [slskd](https://github.com/slskd/slskd), the modern web-based Soulseek client. While slskd focuses on being a lean, API-first daemon, **slskdN includes everything built-in**—no external scripts required.
+**slskdN** is an unofficial fork of [slskd](https://github.com/slskd/slskd), the web-based Soulseek client. It includes a Web UI, REST API, and the standard search, browse, and transfer workflows, along with extensions whose maturity varies. Check the [feature inventory](../FEATURE_INVENTORY.md) and [implementation status](status.md) before relying on an extension.
 
-### Key Features
+### Core workflow
 
-- **Auto-Replace Stuck Downloads**: Automatically finds alternatives when downloads get stuck
-- **Wishlist / Background Search**: Save searches that run automatically in the background
-- **Multiple Download Destinations**: Configure multiple download folders
-- **Smart Search Result Ranking**: Intelligent sorting that considers multiple factors
-- **Conservative Multi-Source Rescue**: Optional verified multi-source and failover paths with network-health guardrails
-- **Scene ↔ Pod Bridging**: Optional unified review surfaces across Pod/Mesh and Soulseek Scene networks
-- **Collections & Sharing**: Share collections with other users
-- **Integrated Player**: Stream shared/downloaded local audio and collection items from the Web UI
-- **System Admin Surfaces**: Guided panels for integrations, policies, source providers, diagnostics, mesh, and security
-- **And much more!**
+- Search for files on Soulseek.
+- Browse peer shares and enqueue downloads.
+- Choose a download destination and monitor transfer progress.
+- Configure shared folders, credentials, and daemon settings.
+
+### Extended features
+
+Wishlist automation, player and streaming, metadata discovery, Lidarr, mesh,
+pods, and other extensions are documented in the relevant guides. Their
+maturity, defaults, and verification coverage vary; consult the feature
+inventory before enabling or relying on them. Experimental status does not
+necessarily mean a feature is disabled by default.
 
 ## Installation
 

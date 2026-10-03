@@ -21,6 +21,7 @@ const ScanButton = ({ rescan, scanPending, working }) => (
     mediaQuery="(max-width: 516px)"
     onClick={() => rescan()}
     primary={!scanPending}
+    tooltip="Recount files in configured shares after changing files or exclusions."
   >
     Rescan Shares
   </ShrinkableButton>
@@ -33,6 +34,7 @@ const CancelButton = ({ cancel, working }) => (
     icon="x"
     mediaQuery="(max-width: 516px)"
     onClick={() => cancel()}
+    tooltip="Stop the active share scan; counts may stay incomplete until the next scan."
   >
     Cancel Scan
   </ShrinkableButton>

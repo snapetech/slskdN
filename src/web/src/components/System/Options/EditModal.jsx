@@ -6,8 +6,8 @@ import {
 } from '../../../lib/options';
 import { Div, PlaceholderSegment, Switch } from '../../Shared';
 import CodeEditor from '../../Shared/CodeEditor';
-import React, { useEffect, useState } from 'react';
-import { Button, Icon, Message, Modal } from 'semantic-ui-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button, Icon, Message, Modal, Popup } from 'semantic-ui-react';
 
 const getErrorText = (error, fallback = 'Options update failed') => {
   const data = error?.response?.data;
@@ -41,6 +41,8 @@ const EditModal = ({ onClose, open, theme }) => {
   });
   const [yamlError, setYamlError] = useState();
   const [updateError, setUpdateError] = useState();
+  const [saving, setSaving] = useState(false);
+  const validationRequestId = useRef(0);
 
   const get = async () => {
     setLoading({ error: false, loading: true });
@@ -54,23 +56,42 @@ const EditModal = ({ onClose, open, theme }) => {
       setYaml({ isDirty: false, location: locationResult, yaml: yamlResult });
       setLoading({ error: false, loading: false });
     } catch (getError) {
-      setLoading({ error: getError.message, loading: false });
+      setLoading({
+        error: getErrorText(getError, 'Could not load remote options.'),
+        loading: false,
+      });
     }
   };
 
   const validate = async (newYaml) => {
-    const response = await validateYaml({ yaml: newYaml });
-    setYamlError(response);
-    return response;
+    const requestId = ++validationRequestId.current;
+    try {
+      const response = await validateYaml({ yaml: newYaml });
+      if (requestId !== validationRequestId.current) return undefined;
+      const error = typeof response === 'string'
+        ? response
+        : response
+          ? getErrorText({ response: { data: response } }, 'YAML validation failed.')
+          : undefined;
+      setYamlError(error);
+      return error;
+    } catch (error) {
+      if (requestId !== validationRequestId.current) return undefined;
+      const message = getErrorText(error, 'YAML validation failed.');
+      setYamlError(message);
+      return message;
+    }
   };
 
   const update = async (newYaml) => {
     setYaml({ isDirty: true, location, yaml: newYaml });
-    validate(newYaml);
+    setYamlError(undefined);
+    await validate(newYaml);
   };
 
   const save = async (newYaml) => {
     setUpdateError(undefined);
+    setSaving(true);
     const nextYamlError = await validate(newYaml);
 
     if (!nextYamlError) {
@@ -81,6 +102,7 @@ const EditModal = ({ onClose, open, theme }) => {
         setUpdateError(getErrorText(nextUpdateError));
       }
     }
+    setSaving(false);
   };
 
   useEffect(() => {
@@ -113,7 +135,19 @@ const EditModal = ({ onClose, open, theme }) => {
         scrolling
       >
         <Switch
-          error={error && <PlaceholderSegment icon="close" />}
+          error={error && (
+            <Message negative>
+              <Message.Content>{error}</Message.Content>
+              <Popup
+                content="Retry loading the remote YAML and its source location."
+                trigger={(
+                  <Button onClick={get} primary>
+                    Retry Options
+                  </Button>
+                )}
+              />
+            </Message>
+          )}
           loading={loading && <PlaceholderSegment loading />}
         >
           <div
@@ -125,6 +159,7 @@ const EditModal = ({ onClose, open, theme }) => {
             }}
           >
             <CodeEditor
+              editable={!saving}
               onChange={(value) => update(value)}
               style={{ minHeight: 500 }}
               theme={theme}
@@ -140,24 +175,38 @@ const EditModal = ({ onClose, open, theme }) => {
             negative
           >
             <Icon name="x" />
-            {(yamlError ?? '') + (updateError ?? '')}
+            {[yamlError, updateError].filter(Boolean).join(' ')}
           </Message>
         )}
-        <Button
-          disabled={!isDirty}
-          onClick={() => save(yaml)}
-          primary
+        <Popup
+          content="Validate the current YAML and save it to the remote configuration file."
+          trigger={(
+            <span>
+              <Button
+                disabled={!isDirty || saving || loading}
+                loading={saving}
+                onClick={() => save(yaml)}
+                primary
+              >
+                <Icon name="save" />
+                Save
+              </Button>
+            </span>
+          )}
+        />
+        <Popup
+          content="Close the editor without applying unsaved YAML changes."
+          trigger={(
+            <Button
+              negative
+              onClick={onClose}
+            >
+              <Icon name="close" />
+              Cancel
+            </Button>
+          )}
         >
-          <Icon name="save" />
-          Save
-        </Button>
-        <Button
-          negative
-          onClick={onClose}
-        >
-          <Icon name="close" />
-          Cancel
-        </Button>
+        </Popup>
       </Modal.Actions>
     </Modal>
   );

@@ -144,6 +144,7 @@ public sealed class SharingService : ISharingService
         var effectiveToken = tokenForStreamUrl ?? g.ShareToken;
         var ownerEndpoint = string.IsNullOrWhiteSpace(g.OwnerEndpoint) ? null : g.OwnerEndpoint.TrimEnd('/');
         var allowStream = g.AllowStream && (effectiveToken != null || currentUserId != null);
+        var remoteGrantWithoutOwnerEndpoint = ownerEndpoint == null && !string.IsNullOrWhiteSpace(g.ShareToken);
 
         var list = items.Select(i => new ShareManifestItemDto
         {
@@ -153,7 +154,7 @@ public sealed class SharingService : ISharingService
             Title = i.Title,
             Artist = i.Artist,
             Album = i.Album,
-            StreamUrl = allowStream
+            StreamUrl = allowStream && !remoteGrantWithoutOwnerEndpoint
                 ? (effectiveToken != null
                     ? (ownerEndpoint != null
                         ? $"{ownerEndpoint}{StreamsPath}/{i.ContentId}?token={Uri.EscapeDataString(effectiveToken)}"

@@ -4,6 +4,8 @@
 
 import React, { useEffect, useState } from 'react';
 import * as federationDiagnostics from '../../../lib/federationDiagnostics';
+import FeatureGateNotice from '../../Shared/FeatureGateNotice';
+import useFeatureGates, { isFeatureEnabled } from '../../Shared/useFeatureGates';
 import {
   Button,
   Card,
@@ -30,11 +32,16 @@ const boolLabel = (value, trueText = 'Enabled', falseText = 'Disabled') => (
 );
 
 const FederationDiagnosticsPanel = () => {
+  const { featureGates, ready: featureGatesReady } = useFeatureGates();
+  const socialFederationEnabled =
+    featureGatesReady && isFeatureEnabled(featureGates, 'socialFederation');
   const [diagnostics, setDiagnostics] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!socialFederationEnabled) return undefined;
+
     let mounted = true;
 
     const loadDiagnostics = async () => {
@@ -61,7 +68,35 @@ const FederationDiagnosticsPanel = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [socialFederationEnabled]);
+
+  if (!featureGatesReady || !socialFederationEnabled) {
+    return (
+      <Card fluid>
+        <Card.Content>
+          <Card.Header>
+            <Icon name="share alternate" />
+            Federation and Pod Diagnostics
+          </Card.Header>
+          <Card.Meta>
+            Read-only posture for ActivityPub, pod signing, and mesh-adjacent
+            publishing.
+          </Card.Meta>
+        </Card.Content>
+        <Card.Content>
+          {featureGatesReady ? (
+            <FeatureGateNotice
+              configurationKeys={['feature.SocialFederation']}
+              featureGate={featureGates.socialFederation}
+              featureName="Social federation"
+            />
+          ) : (
+            <Message info size="small">Checking feature availability…</Message>
+          )}
+        </Card.Content>
+      </Card>
+    );
+  }
 
   const federation = diagnostics?.federation || {};
   const publishing = diagnostics?.publishing || {};

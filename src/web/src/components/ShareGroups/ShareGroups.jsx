@@ -1,6 +1,7 @@
 import * as collectionsAPI from '../../lib/collections';
 import * as identityAPI from '../../lib/identity';
 import ErrorSegment from '../Shared/ErrorSegment';
+import LoaderSegment from '../Shared/LoaderSegment';
 import TooltipButton from '../Shared/TooltipButton';
 import React, { Component } from 'react';
 import {
@@ -9,6 +10,7 @@ import {
   Form,
   Header,
   Icon,
+  List,
   Message,
   Modal,
   Segment,
@@ -42,6 +44,11 @@ export default class ShareGroups extends Component {
     createModalOpen: false,
     error: null,
     loading: true,
+    memberDetails: [],
+    memberDetailsError: null,
+    memberDetailsGroup: null,
+    memberDetailsLoading: false,
+    memberDetailsModalOpen: false,
     newGroupName: '',
     selectedContactId: null,
     selectedGroup: null,
@@ -50,8 +57,14 @@ export default class ShareGroups extends Component {
     usePeerId: true,
   };
 
+  memberDetailsRequestId = 0;
+
   componentDidMount() {
     this.loadData();
+  }
+
+  componentWillUnmount() {
+    this.memberDetailsRequestId += 1;
   }
 
   loadData = async () => {
@@ -242,6 +255,46 @@ export default class ShareGroups extends Component {
     }
   };
 
+  handleViewMembers = async (group) => {
+    const requestId = ++this.memberDetailsRequestId;
+    this.setState({
+      memberDetails: [],
+      memberDetailsError: null,
+      memberDetailsGroup: group,
+      memberDetailsLoading: true,
+      memberDetailsModalOpen: true,
+    });
+
+    try {
+      const membersRes = await collectionsAPI.getShareGroupMembers(
+        group.id,
+        true,
+      );
+      if (requestId !== this.memberDetailsRequestId) return;
+      this.setState({
+        memberDetails: asArray(membersRes.data),
+        memberDetailsLoading: false,
+      });
+    } catch (error) {
+      if (requestId !== this.memberDetailsRequestId) return;
+      this.setState({
+        memberDetailsError: getErrorMessage(error, 'Failed to load group members'),
+        memberDetailsLoading: false,
+      });
+    }
+  };
+
+  closeMemberDetails = () => {
+    this.memberDetailsRequestId += 1;
+    this.setState({
+      memberDetails: [],
+      memberDetailsError: null,
+      memberDetailsGroup: null,
+      memberDetailsLoading: false,
+      memberDetailsModalOpen: false,
+    });
+  };
+
   render() {
     const {
       addMemberModalOpen,
@@ -249,6 +302,11 @@ export default class ShareGroups extends Component {
       createModalOpen,
       error,
       loading,
+      memberDetails,
+      memberDetailsError,
+      memberDetailsGroup,
+      memberDetailsLoading,
+      memberDetailsModalOpen,
       newGroupName,
       selectedContactId,
       selectedGroup,
@@ -323,23 +381,8 @@ export default class ShareGroups extends Component {
                   <Table.Cell>{group.name}</Table.Cell>
                   <Table.Cell>
                     <Button
-                      onClick={async () => {
-                        try {
-                          const membersRes =
-                            await collectionsAPI.getShareGroupMembers(
-                              group.id,
-                              true,
-                            );
-                          const members = asArray(membersRes.data);
-                          alert(
-                            `Members:\n${members
-                              .map((m) => m.contactNickname || m.userId)
-                              .join('\n')}`,
-                          );
-                        } catch (error_) {
-                          console.error(error_);
-                        }
-                      }}
+                      data-testid="group-view-members"
+                      onClick={() => this.handleViewMembers(group)}
                       size="small"
                       tooltip="Show the contacts or users currently assigned to this group."
                     >
@@ -510,6 +553,50 @@ export default class ShareGroups extends Component {
               tooltip="Add the selected contact or username to this share group."
             >
               Add Member
+            </Button>
+          </Modal.Actions>
+        </Modal>
+
+        <Modal
+          closeIcon={false}
+          onClose={this.closeMemberDetails}
+          open={memberDetailsModalOpen}
+        >
+          <Modal.Header>Members of {memberDetailsGroup?.name || 'Share Group'}</Modal.Header>
+          <Modal.Content>
+            {memberDetailsLoading ? (
+              <LoaderSegment />
+            ) : memberDetailsError ? (
+              <Message negative>
+                <Message.Content>{memberDetailsError}</Message.Content>
+                <Button
+                  onClick={() =>
+                    memberDetailsGroup && this.handleViewMembers(memberDetailsGroup)
+                  }
+                  primary
+                  tooltip="Retry loading members for this share group."
+                >
+                  Retry Members
+                </Button>
+              </Message>
+            ) : memberDetails.length > 0 ? (
+              <List divided relaxed>
+                {memberDetails.map((member, index) => (
+                  <List.Item key={member.userId || member.peerId || index}>
+                    {member.contactNickname || member.nickname || member.userId || member.peerId || 'Unknown member'}
+                  </List.Item>
+                ))}
+              </List>
+            ) : (
+              <Segment placeholder>No members are assigned to this group.</Segment>
+            )}
+          </Modal.Content>
+          <Modal.Actions>
+            <Button
+              onClick={this.closeMemberDetails}
+              tooltip="Close the member list and return to share groups."
+            >
+              Close
             </Button>
           </Modal.Actions>
         </Modal>

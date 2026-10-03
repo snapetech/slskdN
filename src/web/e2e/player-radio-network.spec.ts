@@ -302,6 +302,10 @@ test.describe('listed radio between isolated nodes', () => {
     }, { timeout: 30_000 }).toMatchObject({ contentId: radioItem!.contentId, title });
 
     await page.addInitScript(() => localStorage.setItem('slskdn.player.collapsed', 'false'));
+    let radioTicketRequests = 0;
+    page.on('request', (requestEvent) => {
+      if (requestEvent.url().includes(`/api/v0/listed-radio/${partyId}/tickets`)) radioTicketRequests += 1;
+    });
     const browserDebug = await page.context().newCDPSession(page);
     await browserDebug.send('Network.enable');
     await browserDebug.send('Network.emulateNetworkConditionsByRule', {
@@ -321,7 +325,13 @@ test.describe('listed radio between isolated nodes', () => {
     await page.getByTestId('player-open-listed-radio').click();
     const playRadio = page.getByRole('button', { name: `Play ${title} from listed radio`, exact: true });
     await expect(playRadio).toBeVisible();
+    const radioTicketResponse = page.waitForResponse((response) =>
+      response.url().includes(`/api/v0/listed-radio/${partyId}/tickets`) && response.request().method() === 'POST');
     await playRadio.click();
+    const ticketResponse = await radioTicketResponse;
+    expect(ticketResponse.status()).toBe(200);
+    const radioTicket = await ticketResponse.json() as { expiresInSeconds: number };
+    expect(radioTicket.expiresInSeconds).toBeGreaterThan(220);
     const audio = audioElements(page).first();
     await expect.poll(() => audio.evaluate((element) =>
       element instanceof HTMLAudioElement && !element.paused && element.currentTime > 1),
@@ -345,9 +355,11 @@ test.describe('listed radio between isolated nodes', () => {
     expect(seekBounds).not.toBeNull();
     const highRateSeekResponse = page.waitForResponse((response) =>
       response.url().includes('/api/v0/mesh-streams/') &&
-      response.request().headers().range !== undefined && response.status() === 206);
+      response.request().headers().range !== undefined,
+    { timeout: 30_000 });
     await seek.click({ position: { x: seekBounds!.width * 0.94, y: seekBounds!.height / 2 } });
-    expect((await highRateSeekResponse).status()).toBe(206);
+    const rangedResponse = await highRateSeekResponse;
+    expect(rangedResponse.status(), `Mesh stream responses: ${meshStatuses.join(', ')}`).toBe(206);
     await expect.poll(async () => {
       const state = await currentTime();
       return !state.paused && !state.ended && state.currentTime > 355;
@@ -357,6 +369,7 @@ test.describe('listed radio between isolated nodes', () => {
     expect(meshStatuses).toContain(206);
     expect(meshStatuses).not.toContain(429);
     expect(meshStatuses).not.toContain(500);
+    expect(radioTicketRequests).toBe(1);
 
     const [hostTraffic, listenerTraffic] = [trafficTotals(host.getAppDir()), trafficTotals(listener.getAppDir())];
     expect(hostTraffic[0]).toBeGreaterThan(0);

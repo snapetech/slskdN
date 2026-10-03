@@ -237,6 +237,8 @@ public class MeshStreamServiceTests
                 .Returns((Filename: tempFile, Size: (long)size));
             var shares = new Mock<IShareService>();
             shares.Setup(instance => instance.GetLocalRepository()).Returns(repository.Object);
+            shares.Setup(instance => instance.ResolveFileAsync("track.wav"))
+                .ReturnsAsync((Program.LocalHostName, tempFile, (long)size));
             var host = new MeshContentMeshService(Mock.Of<ILogger<MeshContentMeshService>>(), shares.Object);
             var client = new Mock<IMeshServiceClient>();
             client.Setup(instance => instance.CallAsync("host-peer", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
