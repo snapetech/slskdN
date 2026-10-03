@@ -34672,3 +34672,16 @@ passing an input id does not guarantee that the generated label references it.
 **Prevention:** Use an explicit `<label htmlFor>` when the component library
 does not expose the association, and query the rendered control by its
 accessible name in component tests.
+
+### 0z1361. Await Browser Clipboard Writes Before Reporting Success (2026-10-03)
+
+**What went wrong:** Experience Settings called `navigator.clipboard.writeText`
+without awaiting it and displayed success even when the browser rejected the
+write or did not provide clipboard support.
+
+**Why:** Clipboard access is asynchronous and permission-gated; starting a
+write does not mean the browser accepted it.
+
+**Prevention:** Await clipboard writes, keep positive feedback behind the
+successful resolution, and surface denied/unavailable failures as errors.
+Cover a rejected clipboard promise in the component tests.
