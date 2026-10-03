@@ -35397,3 +35397,17 @@ checking whether that issue ID already existed.
 **Prevention:** Before adding a ledger row, search the full ledger for its ID.
 Update the existing row when the evidence or status changes, and confirm the ID
 appears exactly once after editing.
+
+### 0z1409. Avoid Matching Sentences Split By Inline Elements (2026-10-03)
+
+**What went wrong:** A React Testing Library assertion searched for a sentence
+that included an inline `<code>` element. The disabled-state UI rendered
+correctly, but the full-sentence matcher could not find text split across the
+element boundary.
+
+**Why:** The assertion treated a composite React text layout as one direct text
+node, so the test query did not match the rendered DOM structure.
+
+**Prevention:** Assert the surrounding status region and the inline code text
+separately, or use a matcher based on the parent element's `textContent` when
+the sentence itself is the contract.
