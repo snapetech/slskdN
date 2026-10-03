@@ -35697,3 +35697,21 @@ did not bound the duration of an individual blocking command.
 the remote `docker exec` request, and keep the timeout shorter than the runner's
 overall startup budget. Verify a stalled probe exits through the normal cleanup
 path rather than leaving the container or audio capture running.
+
+### 0z1428. Give Concurrent EF Contexts Separate SQLite Connections (2026-10-03)
+
+**What went wrong:** A download cancellation regression test configured every
+EF context with the same open in-memory SQLite connection. The cancellation
+path then queried transfer state from a second context while the download task
+was active, and SQLite rejected EF's function registration with
+`unable to delete/modify user-function due to active statements`.
+
+**Why:** Reusing one `SqliteConnection` across concurrently active contexts
+shares connection-local statements and functions. That setup hides the
+separate-connection behavior used by the application and fails as soon as
+background work overlaps a query.
+
+**Prevention:** For tests that create concurrent contexts, use a uniquely named
+shared in-memory SQLite database or a temporary database file, and give each
+context its own connection. Keep an anchor connection open only to preserve a
+shared in-memory database's lifetime.
