@@ -35792,3 +35792,32 @@ resource limit instead of exercising a free slot.
 explicitly stop playback and wait for the existing HTTP stream to release its
 slot. Keep the one-active-stream limit and separately assert its 429 behavior
 when testing concurrency limits.
+
+### 0z1434. Keep The .NET Launcher Beside Its Runtime Root In E2E Containers (2026-10-03)
+
+**What went wrong:** The containerized Playwright host copied the .NET runtime
+under `/usr/share/dotnet` and copied the `dotnet` executable to `/usr/bin`.
+The executable then searched for `host/fxr` beneath `/usr/bin` and exited before
+the local slskd node could start.
+
+**Why:** The .NET host derives its runtime root from the location of the
+executable it runs. Copying the launcher to a different directory from the
+runtime changes that lookup root.
+
+**Prevention:** Keep the .NET launcher at `/usr/share/dotnet/dotnet` and put
+`/usr/share/dotnet` first on `PATH`. Do not copy the launcher into `/usr/bin`
+unless the runtime layout is also present beside it. Verify the host with
+`dotnet --info` inside the final image.
+
+### 0z1435. Include Port-Diagnostic Tools In Containerized E2E Hosts (2026-10-03)
+
+**What went wrong:** When the containerized E2E node failed to bind its port,
+the harness could not include listener details because the Playwright image did
+not provide the `ss` command.
+
+**Why:** The harness uses `ss -ltnp` to report listeners after a startup timeout;
+the minimal browser image does not include the `iproute2` package by default.
+
+**Prevention:** Install `iproute2` in container images that run the E2E harness,
+and keep the listener summary available so a bind failure can be distinguished
+from an application startup failure.
