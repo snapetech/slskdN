@@ -35139,3 +35139,18 @@ proof that current path components still resolve inside their original root.
 `PathGuard.NormalizeAbsolutePathWithinRoots` immediately before deletion and
 skip deletion when it is outside the allowed roots. Keep a regression with a
 stored filename under a symlink to an outside directory.
+
+### 0z1392. Revalidate Local Share Paths After Indexing (2026-10-03)
+
+**What went wrong:** `ShareService.ResolveFileAsync` returned an indexed local
+filename after a parent directory had been replaced with a symlink to an outside
+directory. A focused service regression confirmed the path was still accepted.
+
+**Why:** Share scanning skips reparse points, but the filesystem can change
+after a scan. A cached repository row does not prove that its current physical
+path remains under a configured share root.
+
+**Prevention:** Resolve local indexed filenames with
+`PathGuard.NormalizeAbsolutePathWithinRoots` against current configured share
+directories before returning them to uploads or relay reads. Re-scan when a
+cached path no longer resolves inside an allowed root.
