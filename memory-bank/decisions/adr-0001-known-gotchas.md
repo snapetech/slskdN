@@ -35637,3 +35637,19 @@ the page title that precedes the stable browser frame name.
 line rather than anchoring it to the start. Keep Player status and control
 speech assertions in the live Playwright workflow so the log also proves the
 browser was accessible while its page remained open.
+
+### 0z1425. Preserve the Stable Installer URL in README Changes (2026-10-03)
+
+**What went wrong:** A README cleanup removed the literal latest-release
+installer URL and invocation used by the packaging metadata validator. The
+release gate stopped before tagging because Linux users could no longer find
+the documented stable installer command.
+
+**Why:** The README was reorganized around project maturity and feature status,
+but its required install entry point was not retained as an exact, testable
+literal.
+
+**Prevention:** Keep the stable installer URL and `sudo bash
+install-linux-release.sh` command in README installation guidance. Run
+`packaging/scripts/validate-packaging-metadata.sh` after changing top-level
+installation documentation.
