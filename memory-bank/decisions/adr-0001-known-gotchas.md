@@ -34960,3 +34960,19 @@ renew the ticket before opening a new ranged response.
 seek, preserve the target position and prior play/pause state while reloading
 the audio source, and keep tickets short-lived. Cover seek after the existing
 120-second lifetime in the isolated radio browser journey.
+
+### 0z1381. Do Not Re-Admit An Existing Radio Session On Every Seek (2026-10-03)
+
+**What went wrong:** A follow-up changed each active-radio seek to request a
+fresh ticket. That ticket endpoint re-evaluates remote fairness, which rejected
+the same admitted session after it had already consumed overlay bytes. The
+browser surfaced `radio_fairness_limited` instead of opening the ranged stream.
+
+**Why:** Ticket creation is a new stream admission, not a continuation of the
+existing host-bound stream. Repeating admission on every seek can make an
+already playing, user-selected stream fail based on its own traffic.
+
+**Prevention:** Reuse the active radio URL for seeks while its ticket is
+valid. Set its lifetime within the host capability window so ordinary tracks
+can be sought without re-running fairness admission; retain fairness checks
+for a genuinely new stream selection or retry.
