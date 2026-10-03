@@ -36066,3 +36066,20 @@ build-tools project, reference that project directly from tests that exercise
 the task, and assert both that the task's assembly is the build-tools assembly
 and that the application has no Roslyn runtime references. Inspect publish
 output when moving build-only dependencies.
+
+### 0z1450. Match MSBuild Task Packages To The SDK Runtime (2026-10-03)
+
+**What went wrong:** The .NET 10 build-tools project referenced
+`Microsoft.Build.Framework` and `Microsoft.Build.Utilities.Core` 18.10.1.
+Those package assets target .NET 11 for the runtime-specific build, so the
+project emitted unsupported-target warnings and could load task APIs newer
+than the SDK's MSBuild host.
+
+**Why:** The package versions were advanced past the MSBuild runtime bundled
+with the repository's .NET 10 SDK. A successful compile did not prove that
+MSBuild could load the custom task against its own runtime assemblies.
+
+**Prevention:** Keep custom task package versions aligned with the MSBuild
+major/minor line bundled by the pinned SDK and verify the package target
+framework matches the task project's target. Build and invoke the task with
+the pinned SDK after changing either version.
