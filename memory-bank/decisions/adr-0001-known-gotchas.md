@@ -35749,3 +35749,16 @@ announcement.
 **Prevention:** Coalesce rapid loading and buffering transitions so the live
 region announces the settled playback state. Verify actual speech in Firefox
 with Orca in addition to checking the region's rendered text.
+
+### 0z1431. Retain Playback Transition State Until A Delayed Announcement Commits (2026-10-03)
+
+**What went wrong:** Delaying the `Playback stopped` live-region update cleared
+the previous-track ref before the timer fired. A later effect cleanup canceled
+the timer, and the next effect no longer recognized that playback had stopped.
+
+**Why:** Effect cleanup runs whenever a dependency changes, while the ref was
+also being used as the marker that this transition still needed an announcement.
+
+**Prevention:** Keep a transition marker until its delayed callback commits, or
+track the timer independently. Cover dependency-triggered rerenders while a
+delayed state announcement is pending.
