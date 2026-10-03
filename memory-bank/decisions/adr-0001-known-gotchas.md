@@ -35154,3 +35154,21 @@ path remains under a configured share root.
 `PathGuard.NormalizeAbsolutePathWithinRoots` against current configured share
 directories before returning them to uploads or relay reads. Re-scan when a
 cached path no longer resolves inside an allowed root.
+
+### 0z1393. Guard Pod Download Paths Before Creating Directories (2026-10-03)
+
+**What went wrong:** A peer-provided pod filename was converted to a path under
+the selected download destination, then directory creation and file creation
+followed an existing directory symlink into a sibling directory. A focused
+download regression confirmed that fetched bytes were written outside the
+configured destination.
+
+**Why:** `ToLocalFilename` prevents lexical traversal but does not resolve
+existing filesystem links. Checking after directory creation would still let
+the directory operation follow the link.
+
+**Prevention:** Resolve the complete candidate with
+`PathGuard.NormalizeAbsolutePathWithinRoots` against the selected destination
+before creating any directory or requesting peer data. Open it through
+`SecureFileWriter`, and revalidate the same root before cleaning up partial
+downloads.
