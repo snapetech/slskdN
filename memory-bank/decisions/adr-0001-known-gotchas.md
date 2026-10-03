@@ -34976,3 +34976,19 @@ already playing, user-selected stream fail based on its own traffic.
 valid. Set its lifetime within the host capability window so ordinary tracks
 can be sought without re-running fairness admission; retain fairness checks
 for a genuinely new stream selection or retry.
+
+### 0z1382. Cap Remote Radio Tickets To The Host Publication Lifetime (2026-10-03)
+
+**What went wrong:** When extending remote radio stream tickets past two minutes,
+the listener could have trusted an overlong DHT announcement expiry and minted
+a local mesh ticket that remained active longer than the host's 15-minute
+publication capability.
+
+**Why:** The listener controls its own mesh ticket, while the remote directory
+entry supplies the expiry timestamp. The host separately enforces its scoped
+capability, but the local ticket should still expire within that same bound.
+
+**Prevention:** Derive the local ticket lifetime from the remaining announcement
+time, leave an expiry margin, and cap it below the host's shared announcement
+TTL before converting it to seconds or a `TimeSpan`. Keep a regression for both
+a shorter announcement and an overlong one.
