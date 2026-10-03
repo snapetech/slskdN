@@ -35236,5 +35236,6 @@ with the visible terminal state first.
 **Prevention:** Keep successful terminal states in memory until verification
 and final placement succeed. For quarantine failures, persist the safe local
 filename and request failure before exposing the transfer's terminal error.
-Keep a service regression that writes an executable signature through the real
-download output factory and checks the terminal transfer and request records.
+Keep a service regression that writes executable and mismatched signatures
+through the real download output factory and checks terminal transfer and
+request records.
