@@ -35282,3 +35282,18 @@ types, and the test copied the production namespace imports without aliases.
 
 **Prevention:** Tests that need both namespaces should use explicit aliases for
 `System.IO.File` and `System.IO.Directory` before compiling the new regression.
+
+### 0z1401. Close Multi-Source Output Before Content Inspection (2026-10-03)
+
+**What went wrong:** Sequential multi-source failover held its output
+`FileStream` open with exclusive sharing while the new content-safety check
+tried to read and quarantine the completed file. Verification failed as an
+unknown read error and quarantine could not move the still-open file.
+
+**Why:** The final hash and policy checks were added after the write loop, but
+the `await using` stream remained alive until the whole method returned.
+
+**Prevention:** Explicitly close the receive stream immediately after flushing
+and before any final hash, content, or fingerprint verification. Keep a
+real-file failover regression that asserts rejected bytes leave the normal
+destination.
