@@ -34877,3 +34877,17 @@ when their `sourceProviders` includes `mesh`.
 that provider. Keep the core Soulseek search/download journey focused on the
 peer, file, and successful transfer; give mesh discovery a separate fixture
 and explicit provider assertion.
+
+### 0z1376. Keep Incoming Soulseek Message IDs Protocol-Valid In E2E Fixtures (2026-10-03)
+
+**What went wrong:** The pinned local Soulfind E2E image delivered the test
+private message with a negative ID. Soulseek.NET rejected the event before
+slskdN could persist or broadcast it, so the receiving Messages view correctly
+remained empty.
+
+**Why:** The local server fixture does not satisfy the non-negative ID
+invariant enforced by both incoming-message and acknowledgement APIs.
+
+**Prevention:** Do not weaken message-ID validation or invent acknowledgements
+for invalid IDs. Keep the outgoing-message journey separate and use a
+protocol-valid Soulseek server fixture for inbound private-message coverage.
