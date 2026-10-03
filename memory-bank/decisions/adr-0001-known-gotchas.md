@@ -35762,3 +35762,16 @@ also being used as the marker that this transition still needed an announcement.
 **Prevention:** Keep a transition marker until its delayed callback commits, or
 track the timer independently. Cover dependency-triggered rerenders while a
 delayed state announcement is pending.
+
+### 0z1432. Scale Speech-Capture Floors To The Selected Accessibility Suite (2026-10-03)
+
+**What went wrong:** The Firefox playback-only Orca test spoke every expected
+status, but the runner rejected its isolated PCM capture at nine active windows
+because the shared threshold was fifteen.
+
+**Why:** The threshold was chosen for the longer combined and controls runs;
+the playback-only profile intentionally captures fewer short utterances.
+
+**Prevention:** Keep the speech-log assertions exact and choose a minimum PCM
+window count that matches the selected suite. Retain minimum duration and peak
+checks so a short profile still must capture real speech audio.
