@@ -35437,3 +35437,16 @@ feature disabled by configuration from one moved out of this application.
 **Prevention:** Map `MovedToSlskr` to 410 Gone and include the canonical slskr
 project link in that response. Keep a focused filter test for the status,
 message, and link.
+
+### 0z1412. Gate Parent Navigation With Its Child Surface (2026-10-03)
+
+**What went wrong:** MediaCore hid the PodCore operations component when Pods
+was disabled, but its parent-owned workflow index remained visible and kept
+links to anchors that no longer existed.
+
+**Why:** The runtime gate was applied at the data/operations child without
+checking which component owned the navigation into that child.
+
+**Prevention:** Gate parent-owned navigation and the child surface together.
+Test that disabled features leave neither callable controls nor links to
+missing content.
