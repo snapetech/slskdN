@@ -51,6 +51,20 @@ when the view or test unmounted.
 callback on the effect still being active. Keep the full Web test run free of
 uncaught teardown errors, not only assertion failures.
 
+### 0z1342. Do Not Duplicate Inline And Toast Error Feedback
+
+**What went wrong:** Transfer Data cleanup rendered the same request failure in
+a persistent inline alert and a transient toast. The browser regression found
+two simultaneous alert announcements for one error, adding noise while the
+inline message already kept the retry path visible.
+
+**Why:** The shared toast pattern was copied alongside a new in-page error
+state without considering that both rendered the same failure at once.
+
+**Prevention:** Use one primary error surface for an action. When a failed
+operation leaves an inline retry control available, keep the actionable error
+beside that control and avoid a duplicate toast for the same response.
+
 ### 0z1337. Preserve Visible Button Names When Adding Accessibility Guidance
 
 **What went wrong:** Adding a detailed `aria-label` to a button replaced its
