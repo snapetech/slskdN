@@ -35549,3 +35549,20 @@ utilities package that supplies its modifier-map helper.
 
 **Prevention:** Install `x11-xkb-utils` in the dedicated Orca test image and
 keep a startup-level regression that reaches actual speech output.
+
+### 0z1420. Do Not Treat Passthrough 401s As Expired Sessions (2026-10-03)
+
+**What went wrong:** The shared Web API interceptor cleared the stored token and
+reloaded the page after every protected-route 401. In authentication-disabled
+passthrough mode, the token is a mode sentinel rather than an authenticated
+session, so one denied request erased that mode and restarted initialization.
+The UI repeated the same denied request and entered a reload loop.
+
+**Why:** The 401 recovery path assumed every API request used an expiring user
+session and did not distinguish the passthrough sentinel from a bearer token.
+
+**Prevention:** Preserve passthrough state and leave request-specific 401
+handling to the caller when passthrough mode is active. Keep the existing
+clear-and-reload behavior for authenticated sessions. Remote no-auth access
+still requires both `AllowRemoteNoAuth` and a matching explicit `AllowedCidrs`
+entry; do not weaken that boundary to hide an authorization failure.
