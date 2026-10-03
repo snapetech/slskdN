@@ -35463,3 +35463,19 @@ does not transform parameter properties into class fields and assignments.
 **Prevention:** For TypeScript modules executed directly by Node's strip-types
 mode, declare the field on the class and assign it in the constructor body.
 Keep a direct Node test for the helper so syntax-support regressions fail early.
+
+### 0z1414. Give Each DI Service Registration One Owner (2026-10-03)
+
+**What went wrong:** `IAutoReplaceService` was registered once in core services
+and again in the integration graph. Ordinary single-service resolution hid the
+duplicate by selecting the last descriptor; `IEnumerable<IAutoReplaceService>`
+would expose two separately constructed singleton instances.
+
+**Why:** Transfer registrations had been copied between service-collection
+extensions as the runtime graph expanded, leaving ownership split across
+modules.
+
+**Prevention:** Keep each service implementation registration in one owning
+extension and pin descriptor counts in focused registration tests. Register
+hosted transfer services at their existing startup position when extracting
+their service ownership.
