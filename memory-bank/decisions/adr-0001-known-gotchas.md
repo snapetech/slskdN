@@ -34943,3 +34943,20 @@ default, leaving the Release artifact stale.
 **Prevention:** After backend changes, build the backend in Release before
 running local-node browser tests, and confirm that the harness reports the
 current Release artifact as its launch target.
+
+### 0z1380. Renew Short-Lived Radio Tickets Before A Committed Seek (2026-10-03)
+
+**What went wrong:** A listed-radio stream could continue after its two-minute
+local stream ticket expired, but a later seek reused that expired URL for a new
+byte-range request. A 96 kHz playback journey reached its sustained-playback
+threshold and then failed to observe a ranged response when it sought after
+220 seconds.
+
+**Why:** Ticket lifetime is enforced when each HTTP stream request opens. The
+already-open response remains valid, but the Player's seek handler did not
+renew the ticket before opening a new ranged response.
+
+**Prevention:** Renew the content- and host-bound ticket on an explicit radio
+seek, preserve the target position and prior play/pause state while reloading
+the audio source, and keep tickets short-lived. Cover seek after the existing
+120-second lifetime in the isolated radio browser journey.
