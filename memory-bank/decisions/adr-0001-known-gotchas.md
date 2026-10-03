@@ -34992,3 +34992,20 @@ capability, but the local ticket should still expire within that same bound.
 time, leave an expiry margin, and cap it below the host's shared announcement
 TTL before converting it to seconds or a `TimeSpan`. Keep a regression for both
 a shorter announcement and an overlong one.
+
+### 0z1383. Subscribe To Synchronous Browser Responses Before Clicking (2026-10-03)
+
+**What went wrong:** The Shared with Me backfill E2E clicked **Backfill All**,
+waited one second, and only then subscribed to the POST response. The controller
+finishes the bounded HTTP backfill before returning, so successful or failed
+response details could be missed. The test caught the wait timeout and kept
+going, leaving only a later missing-file error.
+
+**Why:** Playwright response events are not retained for listeners installed
+after the response, and the test treated diagnostics as optional even though
+the response explains whether files were enqueued or rejected.
+
+**Prevention:** Create the `waitForResponse` promise before clicking, assert the
+HTTP status and response counts, and only then verify downloaded file contents.
+Do not catch an unexpected response timeout when that response is the workflow's
+primary result.
