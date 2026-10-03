@@ -34928,3 +34928,18 @@ budget, and single-stream limits, but do not add a fixed per-chunk sleep that
 prevents supported playback from keeping its buffer filled. Validate playback
 and long seeks under a documented listener bandwidth cap using an isolated
 mesh test.
+
+### 0z1379. Rebuild The Release Backend Before Local-Node Playwright Runs (2026-10-03)
+
+**What went wrong:** A high-rate radio Playwright rerun launched the harness's
+prebuilt Release `slskd.dll` even though the source change had only been built
+by a Debug unit-test run. It reproduced the old playback cutoff, so it had not
+exercised the edited stream code.
+
+**Why:** The local-node harness prefers `bin/Release/<target-framework>` and
+does not rebuild the backend. A targeted `dotnet test` compiles Debug by
+default, leaving the Release artifact stale.
+
+**Prevention:** After backend changes, build the backend in Release before
+running local-node browser tests, and confirm that the harness reports the
+current Release artifact as its launch target.
