@@ -35479,3 +35479,17 @@ modules.
 extension and pin descriptor counts in focused registration tests. Register
 hosted transfer services at their existing startup position when extracting
 their service ownership.
+
+### 0z1415. Qualify Product Namespaces In Unit Tests (2026-10-03)
+
+**What went wrong:** In a test under `slskd.Tests.Unit`, the reference
+`NowPlaying.NowPlayingService` resolved against the test namespace hierarchy
+instead of the product namespace, causing compiler error CS0234.
+
+**Why:** Namespace-relative lookup can prefer a matching child namespace under
+the test project's root namespace when product namespaces are only partially
+qualified.
+
+**Prevention:** Fully qualify product types when a test namespace can shadow
+the product namespace prefix. Compile focused tests immediately after adding
+type references to a new registration module.
