@@ -36011,3 +36011,20 @@ invocation.
 tests, commit executable mode (`100755`) and run at least one direct-invocation
 smoke check. Use `bash scripts/name.sh` only when the workflow is intentionally
 responsible for selecting the interpreter.
+
+### 0z1447. Bound Retries For Live `/proc` Census Reads (2026-10-03)
+
+**What went wrong:** The Player resource census sampled live `/proc` entries
+once and counted every failed `stat` read as unavailable. An interrupted or
+temporarily unavailable read could therefore omit a process that was still
+present, with no indication that a retry could have recovered it.
+
+**Why:** `/proc` is a changing process view, and collection overlaps process
+startup and exit. The census reported a total miss count but did not retry
+transient filesystem errors or distinguish recovered reads from final misses.
+
+**Prevention:** Retry at most once for `EINTR` and `EAGAIN`, recording both the
+retry and recovery counts. Keep `ENOENT`, permission errors, malformed data,
+and identity changes visible as unavailable; a vanished PID must not be
+re-read as if it were the same process. Preserve explicit endpoint and churn
+limits in any resource conclusion.
