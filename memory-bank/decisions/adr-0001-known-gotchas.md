@@ -34647,3 +34647,15 @@ inside the Messaging workspace.
 **Prevention:** Use the Messaging foreground token for error text and semantic
 danger tokens for the border and background. Check both Messaging themes when
 adding new inline status surfaces.
+
+### 0z1359. Separate Contacts Load Errors From Empty Contacts (2026-10-03)
+
+**What went wrong:** Contacts.loadContacts kept the list empty after an API
+failure, then rendered “No contacts yet” with no retry control.
+
+**Why:** The component used list length as its only success/empty signal and
+did not preserve whether the list request had completed successfully.
+
+**Prevention:** Keep contact-load error state separate from mutation feedback
+and successful empty state. Show retry when the initial list request fails,
+and test that an error does not claim the account has no contacts.
