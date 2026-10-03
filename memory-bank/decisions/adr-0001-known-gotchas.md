@@ -35310,3 +35310,19 @@ implied by its filename.
 **Prevention:** For successful receive fixtures under active content-safety
 policy, seed a valid signature for the declared extension. Use mismatched or
 executable signatures only in tests that assert rejection or quarantine.
+
+### 0z1403. Stage Received Files Until Safety Accepts Them (2026-10-03)
+
+**What went wrong:** Alternate receivers initially wrote bytes under the final
+download filename and inspected them only after the stream closed. Partial or
+rejected content could therefore be visible before disposition. If quarantine
+creation or movement failed, the rejected file could remain at that final path.
+
+**Why:** Applying the shared policy after writing was treated as sufficient,
+without preserving the standard download pipeline's staging-before-promotion
+boundary.
+
+**Prevention:** Receive into a rooted staging directory with the original
+extension, close the stream, then inspect. Publish only accepted files. If
+quarantine fails, remove the rejected staging file before surfacing failure.
+Keep regressions that assert the normal target is absent on rejection.
