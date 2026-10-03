@@ -35898,8 +35898,8 @@ and otherwise selects a working-directory filename. Passing `--debug` without
 an explicit path failed because that default file was not writable. Setting
 `PYTHONUNBUFFERED=1` does not unbuffer the separate file object Orca opens.
 
-**Prevention:** Keep `--debug-file`, point it at `/dev/stderr`, and run Orca
-under `script --quiet --flush` so its stderr is a pseudo-terminal and the
-shared transcript is flushed after each write. Python line-buffers a text file
-opened on a TTY; do not rely on `PYTHONUNBUFFERED` to flush a file Orca opens
-itself. Verify a new announcement is visible before Orca exits.
+**Prevention:** Keep `--debug-file` on a regular evidence file and do not read
+it as a live event stream. Let the browser workflow assert the accessible
+status and control values, then stop Orca so the file closes and flushes before
+checking the actual speech output. Any live log transport must be validated
+against Orca itself, not only an isolated buffering probe.
