@@ -35715,3 +35715,21 @@ background work overlaps a query.
 shared in-memory SQLite database or a temporary database file, and give each
 context its own connection. Keep an anchor connection open only to preserve a
 shared in-memory database's lifetime.
+
+### 0z1429. Isolate Allocation Checks and Budget Hosted-Service Startup (2026-10-03)
+
+**What went wrong:** The release gate intermittently failed a current-thread
+allocation assertion and a real-socket test's wait for a background listener
+to bind. The allocation-measuring test class was outside the non-parallel
+allocation collection, and the listener test gave a scheduler-delayed
+background service only ten seconds to bind on a shared runner.
+
+**Why:** Tight allocation assertions need the same isolation used by the other
+allocation suites. A background service begins after an asynchronous yield, so
+runner contention can delay its bind beyond a short test-only deadline without
+indicating a socket implementation failure.
+
+**Prevention:** Put test classes that measure per-thread allocation in
+`AllocationTestCollection`. For tests that poll a background service's
+readiness, set the startup token and polling deadline to a realistic budget for
+shared CI runners, while keeping the wait bounded.
