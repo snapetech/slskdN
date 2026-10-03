@@ -16587,26 +16587,6 @@ Recorded that the Web authentication/authorization stack stays in
 No code change was needed. Continue the experimental Discovery/Mesh ownership
 review and populated journey work; the whole-product initiative remains active.
 
-## 2026-10-03 14:01 UTC — Capture Player slider speech with Orca
-
-Extended the isolated Orca/Chromium workflow to verify keyboard changes to the
-Player volume and equalizer through both `aria-valuetext` and actual Orca speech.
-The captured values were 99% (“99 percent”) and 1 dB; the existing playback,
-pause, seek, compact-mode and stop speech checks remain covered. Two tagged
-browser workflows pass, with 27 active 100 ms PCM windows over 24.6 seconds.
-
-Fixed the AT-SPI daemon readiness probe to use dbus-send's bus mode and made
-the browser registration gate tolerate Orca's page-title prefix. Added durable
-gotchas `0z1423` and `0z1424` in docs-only commits `81c278342` and `4cdaba6c8`.
-Updated the internal Player audit and product task notes. Validation passed:
-the isolated screen-reader test (including production build), E2E TypeScript,
-Web lint, ShellCheck, `./bin/lint`, and `git diff --check`. This changes test
-and audit evidence only; no release fragment or deployment was needed.
-
-Next: continue the whole-product remediation. Other screen-reader/browser
-pairings, physical assistive technology, physical media controls/routing, WAN
-radio and reciprocal transfers, and sustained resource evidence remain open.
-
 ## 2026-10-03 13:26 UTC — Reconcile Discovery/Mesh ownership and cancellation state
 
 Mapped the Discovery and Mesh registration targets to the existing focused
@@ -16634,5 +16614,70 @@ requirement, and added regression tests for the three routes plus normal JWT
 401 behavior. The unpatched baseline failed all three new cases; the patched
 focused suite passes 9/9, targeted ESLint passes, and `git diff --check` passes.
 
-Release notes are assigned to `2026100314-slskdn.334`. The full release gate,
+Release notes are assigned to `2026100314-slskdn.335`. The full release gate,
 tag-triggered publication, and published-artifact verification remain pending.
+
+## 2026-10-03 14:53 UTC — Diagnose failed `.334` build and prepare `.335`
+
+Three hosted attempts of immutable tag `build-main-2026100314-slskdn.334`
+failed before publishing a release. The recurring SQLite error was caused by
+the Enqueue cancellation test sharing one open in-memory connection across
+concurrent EF contexts. Switched the test to its own temporary file database
+connections and recorded the SQLite connection rule in ADR-0001. Serialized
+`SecurityStatsAggregationTests`, whose current-thread allocation assertions
+were running outside the allocation test collection, and raised the real mesh
+listener test's startup budget for slow hosted runners. Six focused regressions
+pass; the fragmented SOCKS case passed ten local reruns. `.334` remains
+immutable; the replacement candidate is `.335`.
+
+The local full gate, push/tag build, and published-artifact verification remain
+pending. No source behavior change was made for the single non-repeating SOCKS
+failure from attempt 2. The reported issue #348 fix remains in the candidate.
+
+## 2026-10-03 14:01 UTC — Capture Player slider speech with Orca
+
+Extended the isolated Orca/Chromium workflow to verify keyboard changes to the
+Player volume and equalizer through both `aria-valuetext` and actual Orca speech.
+The captured values were 99% (“99 percent”) and 1 dB; the existing playback,
+pause, seek, compact-mode and stop speech checks remain covered. Two tagged
+browser workflows pass, with 27 active 100 ms PCM windows over 24.6 seconds.
+
+Fixed the AT-SPI daemon readiness probe to use dbus-send's bus mode and made
+the browser registration gate tolerate Orca's page-title prefix. Added durable
+gotchas `0z1423` and `0z1424` in docs-only commits `81c278342` and `4cdaba6c8`.
+Updated the internal Player audit and product task notes. Validation passed:
+the isolated screen-reader test (including production build), E2E TypeScript,
+Web lint, ShellCheck, `./bin/lint`, and `git diff --check`. This changes test
+and audit evidence only; no release fragment or deployment was needed.
+
+Next: continue the whole-product remediation. Other screen-reader/browser
+pairings, physical assistive technology, physical media controls/routing, WAN
+radio and reciprocal transfers, and sustained resource evidence remain open.
+
+## 2026-10-03 14:22 UTC — Extend Orca speech checks to Firefox controls
+
+The isolated screen-reader runner now accepts a browser and either the full
+Player speech suite or a controls-only profile. The full Chromium profile
+passes both tagged workflows and captures playback, pause, seek, compact-mode,
+stop, 99% volume and 1 dB equalizer speech (37 active 100 ms windows over 29.7
+seconds). Firefox's controls-only profile passes and captures 99% volume and
+1 dB equalizer speech (18 active windows over 8.9 seconds).
+
+The full Firefox profile's generated WAV does not advance while Orca is active;
+the same headed Firefox playback test passes without Orca, including with a
+virtual PulseAudio sink, so the runner interaction remains unresolved. WebKit
+could not start because host Playwright runtime libraries are missing; its
+browser speech remains unverified here. Updated the Player audit and E2E README
+to state this evidence and its limits. Gotcha `0z1425` is committed separately
+as `aafcda46f`.
+
+Validation passed: Chromium full screen-reader profile (2/2), Firefox
+controls-only profile (1/1), strict E2E types, Web lint, `./bin/lint`,
+ShellCheck, and `git diff --check`. Firefox full profile had one failed audio
+case and one passing controls case; the WebKit run failed before launch. This
+is test/audit work only, with no release fragment, tag, release, or deployment.
+
+Next: continue the whole-product remediation. Resolve or bound the Firefox /
+Orca playback interaction, test WebKit in its supported container, and keep
+physical accessibility, device, WAN, reciprocal-transfer, and long-session
+resource validation open.

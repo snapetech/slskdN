@@ -234,7 +234,7 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
         var listener = new SharedMeshTcpListener(NullLogger<SharedMeshTcpListener>.Instance,
             new OptionsAtStartup { Soulseek = new slskd.Options.SoulseekOptions { ListenIpAddress = "127.0.0.1", ListenPort = 0 } },
             options, new FedTcpListener(), server);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         await server.StartAsync(timeout.Token);
         await listener.StartAsync(timeout.Token);
         try
@@ -603,7 +603,7 @@ public sealed class SharedMeshTcpListenerRealMeshOverlayTests : IDisposable
 
     private static async Task<IPEndPoint> WaitForBoundEndPointAsync(SharedMeshTcpListener listener)
     {
-        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(10);
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(30);
         while (listener.LocalEndPoint is null)
         {
             if (DateTimeOffset.UtcNow > deadline)

@@ -91,7 +91,7 @@ simulated device APIs.
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
 | Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before and after first output | Setup cancellation: component/API tests / high; six codec-retry/server-failure workflows pass in Chromium, Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
-| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; isolated Linux Orca/Chromium capture verifies playback status, 99% volume and 1 dB equalizer speech / high for tested controls; other reader/browser pairs and physical assistive technology remain open |
+| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; isolated Linux Orca captures playback status and slider values in Chromium, plus slider values in a Firefox controls-only workflow / high for tested controls; Firefox playback-status speech and physical assistive technology remain open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 107 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
@@ -128,22 +128,28 @@ does not verify other screen readers, browser pairings, spoken volume/equalizer
 values, or physical assistive-technology hardware. Confidence is high for the
 tested runtime path.
 
-### Captured Orca volume and equalizer speech — 2026-10-03
+### Captured Orca speech for Player controls — 2026-10-03
 
 The isolated Linux runner now completes its AT-SPI readiness check, launches
 Chromium and Orca together, and records Orca speech on its own virtual audio
-sink. Two tagged Playwright workflows passed. While the controls were focused,
-Orca spoke the volume slider's `99%` value as “99 percent” and the 31 Hz
-equalizer slider's `1 dB` value; the rendered `aria-valuetext` matched both
-spoken values. The run also retained the earlier keyboard playback, pause,
-seek, compact-mode and stop announcements. The speech capture contained 27
-active 100 ms windows over 24.6 seconds, and the log showed no
-Speech Dispatcher connection failure.
+sink. The full Chromium profile passed both tagged workflows and retained the
+earlier keyboard playback, pause, seek, compact-mode and stop announcements.
+Orca spoke the volume slider's `99%` as “99 percent” and the 31 Hz equalizer
+slider's `1 dB`; the rendered `aria-valuetext` matched. The capture contained
+37 active 100 ms windows over 29.7 seconds, with no Speech Dispatcher
+connection failure.
 
-This is direct speech evidence for one Linux Orca/Chromium pairing and these
-Player controls. Other screen reader/browser combinations and physical
-assistive-technology hardware remain unverified. Confidence is high for the
-captured pairing and controls.
+A Firefox controls-only profile also passed. Orca spoke “99 percent” and “1
+dB,” and its isolated capture contained 18 active 100 ms windows over 8.9
+seconds. This verifies slider-value speech in the tested Linux Firefox/Orca
+pairing. The full Firefox playback/seek speech workflow did not pass: its
+generated WAV stayed paused during the Orca-enabled run. The same headed
+Firefox playback workflow passed without Orca, including with an isolated
+PulseAudio sink, so the runner interaction remains unresolved and no Firefox
+playback-status speech claim is made. Other screen readers, WebKit speech, and
+physical assistive-technology hardware remain unverified. Confidence is high
+for Chromium speech and Firefox slider values; Firefox playback-status
+behavior remains unknown.
 
 ### Listed-radio active stream recovery — 2026-09-29
 
@@ -184,9 +190,9 @@ The compact and expanded volume sliders now expose `aria-valuetext` as a
 rounded percentage. Unit coverage checks initial, changed and compact values;
 the cross-browser keyboard regression verifies that ArrowLeft and ArrowRight
 update the announced value in Chromium, Firefox and WebKit. Confidence is high
-for the rendered accessible value and keyboard update. Actual spoken volume
-values and additional screen-reader/browser combinations remain unverified;
-the Orca runtime workflow above covers playback status only.
+for the rendered accessible value and keyboard update. The 2026-10-03 Orca
+capture above now verifies spoken volume in Linux Chromium and Firefox; other
+screen-reader/browser combinations remain open.
 
 ### Equalizer gain announcements — 2026-09-29
 
@@ -195,8 +201,9 @@ The ten equalizer sliders now expose their gain in decibels through
 the disabled default, enabled state and a direct -3 dB adjustment. A browser
 workflow adjusts the first vertical band by keyboard and verifies the spoken
 value attribute in Chromium, Firefox and WebKit. Confidence is high for the
-accessible value and update. Actual spoken equalizer gains remain
-unverified; the Orca runtime workflow above covers playback status only.
+accessible value and update. The 2026-10-03 Orca capture above now verifies
+spoken equalizer gain in Linux Chromium and Firefox; other
+screen-reader/browser combinations remain open.
 
 ### Expanded and compact keyboard focus order — 2026-09-29
 
@@ -444,15 +451,18 @@ are happening; that reciprocal-transfer workflow remains open.
   visualizer, output-switch, floating-window and radio workloads.
 - Define CPU and memory acceptance budgets on representative minimum and target
   hardware; current Chromium figures are host-specific measurements.
-- Extend assistive-technology speech coverage beyond the verified Linux
-  Orca/Chromium workflow. Captured speech now verifies “Now playing,” “Paused,”
-  Stop, 99% volume and 1 dB equalizer updates. All eight
+- Extend assistive-technology speech coverage beyond the verified Linux Orca
+  browser pairings. Captured Chromium speech verifies “Now playing,” “Paused,”
+  Stop, 99% volume and 1 dB equalizer updates; Firefox controls-only speech
+  verifies 99% and 1 dB. The Firefox playback/seek workflow did not start its
+  generated WAV with Orca active, although the same headed test passes without
+  Orca; its runner interaction remains unresolved. All eight
   player dialogs now expose their title, receive focus on entry, wrap Tab in
   both directions, and restore the opener on Escape. The queue dialog workflow
   verifies those behaviors in three browser engines; the visible expanded,
   advanced and compact player Tab order now passes in all three too. Captured
-  Orca speech now verifies “Now playing,” “Paused,” Stop and two slider values
-  across the isolated Chromium workflows. Other reader/browser combinations
+  Orca speech verifies “Now playing,” “Paused,” Stop and slider values in
+  Chromium, plus slider values in Firefox. Other reader/browser combinations
   and physical assistive technology remain open. Core playback, paused seeking
   and compact-mode keyboard activation also pass in all three engines.
 - Resolve newly discovered defects and update this audit with direct evidence.

@@ -59,6 +59,29 @@ These are graceful skips that allow tests to pass when features are intentionall
 pnpm --filter @slskdn/web test:e2e
 ```
 
+### Player Screen-Reader Speech
+
+The isolated Orca runner builds the Web app, starts Chromium with Orca and
+Speech Dispatcher, and captures screen-reader audio separately from player
+audio:
+
+```bash
+pnpm --filter @slskdn/web run test:player:screen-reader
+```
+
+By default, `SLSKDN_PLAYER_A11Y_BROWSER` is `chromium` and
+`SLSKDN_PLAYER_A11Y_SUITE` is `all`. The full suite checks playback-status
+speech plus keyboard changes to volume and equalizer values. Set the suite to
+`playback` or `controls` to run only that part. Set the browser to `firefox` or
+`webkit` to try another local Playwright browser.
+
+Current direct evidence covers the full suite in Linux Chromium and the
+controls-only suite in Linux Firefox. The full Firefox playback-status case
+does not currently advance its generated WAV while Orca is active, although
+the same headed test passes without Orca. WebKit needs its Playwright runtime
+dependencies installed or a matching browser container. See
+`docs/dev/player-quality-audit.md` for the tested scope and remaining gaps.
+
 ### CI Environment
 
 Tests run with `SLSKDN_TEST_NO_CONNECT=true` to disable Soulseek connections for deterministic testing.

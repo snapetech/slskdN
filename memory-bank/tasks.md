@@ -26,15 +26,19 @@
 
 ## Active Development
 
-### Stable release `.334` — 2026-10-03
+### Stable release `.335` — 2026-10-03
 
 - [x] Fix [issue #348](https://github.com/snapetech/slskdN/issues/348): keep
   no-auth passthrough active when protected API requests return 401, preventing
   the browser reload loop. Reproduced the baseline failure on telemetry KPIs,
   unacknowledged conversations, and room activity; focused regression coverage
   passes 9/9 and JWT expiry behavior remains intact. Remote no-auth still needs
-  an explicit matching `allowed_cidrs` entry. Release tag and published
-  artifact verification are the remaining release steps.
+  an explicit matching `allowed_cidrs` entry. The immutable `.334` build tag
+  failed the hosted release gate on repeated attempts and produced no release
+  or assets. The SQLite cancellation test now uses independent file-backed
+  connections; allocation measurements are serialized; the shared-listener
+  bind wait has a larger hosted-runner budget. Focused reruns pass. Run the
+  full gate, publish `.335`, and verify its published artifacts.
 
 ### High Priority
 
@@ -215,8 +219,13 @@
     integration tests; focused registration tests (8/8), `./bin/lint`,
     release-note tests and preview, and `git diff --check`.
     The Player audit now has captured Linux Orca/Chromium speech for keyboard
-    playback status, 99% volume, and 1 dB equalizer changes. Both tagged
-    screen-reader workflows pass with isolated audio capture; the production
+    playback status, 99% volume, and 1 dB equalizer changes; Firefox's
+    controls-only profile also captures both slider values. Chromium's full
+    profile passes 2/2 with 37 active PCM windows; Firefox controls passes 1/1
+    with 18. Firefox's full playback workflow does not advance the generated
+    WAV when Orca is active, though the same headed workflow passes without
+    Orca, so this remains a runner interaction to resolve. WebKit could not
+    launch because the host lacks Playwright runtime libraries. The production
     Web build, E2E type check, Web lint, ShellCheck, repository lint, and
     whitespace check pass. This internal test/audit evidence does not close
     other screen reader/browser pairings or physical assistive technology.

@@ -1614,11 +1614,10 @@ public class DownloadServiceTests
     [Fact]
     public async Task EnqueueAsync_DoesNotRequirePeerPreflightConnection()
     {
-        await using var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
 
         var options = new DbContextOptionsBuilder<TransfersDbContext>()
-            .UseSqlite(connection)
+            .UseSqlite($"Data Source={databasePath}")
             .Options;
 
         await using (var context = new TransfersDbContext(options))
@@ -1697,6 +1696,7 @@ public class DownloadServiceTests
         finally
         {
             service.Dispose();
+            DeleteDatabase(databasePath);
         }
     }
 

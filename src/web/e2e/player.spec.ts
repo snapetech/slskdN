@@ -896,12 +896,25 @@ test.describe('player browser playback', () => {
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     const audioState = () => page.evaluate(() => {
       const element = document.querySelector<HTMLAudioElement>('audio');
-      return element ? { currentTime: element.currentTime, paused: element.paused } : null;
+      return element ? {
+        currentTime: element.currentTime,
+        duration: element.duration,
+        errorCode: element.error?.code ?? null,
+        errorMessage: element.error?.message ?? null,
+        networkState: element.networkState,
+        paused: element.paused,
+        readyState: element.readyState,
+      } : null;
     });
-    await expect.poll(async () => {
-      const state = await audioState();
-      return state !== null && !state.paused && state.currentTime > 0.2;
-    }).toBe(true);
+    try {
+      await expect.poll(async () => {
+        const state = await audioState();
+        return state !== null && !state.paused && state.currentTime > 0.2;
+      }, { message: 'Local WAV playback did not advance.' }).toBe(true);
+    } catch (error) {
+      const failureMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`${failureMessage}\nFinal media state: ${JSON.stringify(await audioState())}`);
+    }
     const playbackAnnouncement = page.getByTestId('player-playback-announcement');
     await expect(playbackAnnouncement).toHaveText(/Now playing: .+/u);
     await expectOrcaSpeech('Now playing: Player runtime first.', firstPlayCount);

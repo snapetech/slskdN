@@ -1,3 +1,47 @@
+## Current state — Issue #348 fix and replacement release candidate — 2026-10-03 14:53 UTC
+
+Issue #348's no-auth 401 reload loop is fixed and pushed in the release tree.
+The `.334` build tag is immutable; three hosted attempts failed in backend
+tests and published no release or assets. The repeatable SQLite failure came
+from a cancellation test sharing one open in-memory connection across concurrent
+EF contexts. That test now uses a temporary file database; allocation tests are
+serialized; the real mesh listener test has a 30-second bind wait and a
+60-second cancellation budget. Six focused tests pass, and the fragmented
+SOCKS case passed ten consecutive local runs.
+
+Replacement candidate: `build-main-2026100314-slskdn.335`. The full release
+gate, push/tag build, and artifact verification remain pending. Commit the
+current test and documentation changes, push `main`, run the local gate, create
+`.335`, then verify every published artifact. Continue the Player audit's open
+Firefox/Orca playback, WebKit runtime, physical accessibility, WAN, and
+long-session work after the release.
+
+## Current state — Expanded Orca Player speech coverage — 2026-10-03 14:22 UTC
+
+Added browser and suite selection to the isolated Orca runner. Its full
+Chromium profile passes both tagged workflows and captures playback, pause,
+seek, compact-mode, stop, 99% volume, and 1 dB equalizer speech (37 active PCM
+windows over 29.7 seconds). The Firefox controls-only profile passes and
+captures both slider values (18 active windows over 8.9 seconds).
+
+The full Firefox profile remains unresolved: its generated WAV does not advance
+with Orca active, while the same headed Firefox playback test passes without
+Orca, including with an isolated PulseAudio sink. WebKit could not launch on
+this host because Playwright runtime dependencies are missing. The current
+audit and E2E README state these limits; no user-facing behavior changed.
+Gotcha `0z1425` is committed separately as `aafcda46f`.
+
+Validation passed: Chromium full Orca profile (2/2), Firefox controls profile
+(1/1), strict E2E types, Web lint, `./bin/lint`, ShellCheck, and
+`git diff --check`. The exploratory Firefox full profile failed one audio
+playback case and passed the controls case; the WebKit attempt failed at
+browser startup. Do not mark these pairs validated.
+
+Next: continue the whole-product remediation and Player audit. Resolve or
+bound the Firefox/Orca playback interaction, exercise WebKit in its supported
+container, and retain the open physical assistive-technology, device routing,
+WAN radio, reciprocal-transfer, and long-session resource work.
+
 ## Current state — Orca Player control speech evidence — 2026-10-03 14:01 UTC
 
 The isolated Linux screen-reader runner now reaches its AT-SPI bus, starts

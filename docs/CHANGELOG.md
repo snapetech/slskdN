@@ -22,7 +22,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-## [2026100314-slskdn.334] — 2026-10-03
+## [2026100314-slskdn.335] — 2026-10-03
 
 ### Linux installation
 

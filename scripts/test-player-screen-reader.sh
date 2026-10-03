@@ -16,6 +16,7 @@ esac
 screen_reader_suite="${SLSKDN_PLAYER_A11Y_SUITE:-all}"
 case "$screen_reader_suite" in
   all) playwright_test_grep='@player-screen-reader' ;;
+  playback) playwright_test_grep='controls playback and seeking with the keyboard' ;;
   controls) playwright_test_grep='speaks changed volume and equalizer values' ;;
   *)
     echo "Unsupported screen-reader suite: $screen_reader_suite" >&2
@@ -23,7 +24,7 @@ case "$screen_reader_suite" in
     ;;
 esac
 
-for executable in dbus-run-session docker pactl parec pnpm python3 xvfb-run; do
+for executable in dbus-run-session docker pactl parec pnpm python3 timeout xvfb-run; do
   if ! command -v "$executable" >/dev/null 2>&1; then
     echo "Required executable is unavailable: $executable" >&2
     exit 1
@@ -151,6 +152,7 @@ export SLSKDN_PLAYER_A11Y_SINK="$sink_name"
 export SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY="$runtime_directory"
 export SLSKDN_PLAYER_SCREEN_READER=1
 export HEADLESS=false
+export PULSE_SERVER="$pulse_server"
 export PULSE_SINK="$browser_sink_name"
 export XDG_RUNTIME_DIR="$runtime_directory"
 export TMPDIR="$playwright_tmp_directory"
@@ -208,15 +210,15 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
     docker exec --detach "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
       /usr/bin/speech-dispatcher --run-daemon --timeout 0
     speech_dispatcher_ready=false
-    for attempt in $(seq 1 30); do
-      if docker exec "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+    if timeout --kill-after=1s 20s docker exec "${container_exec_options[@]}" \
+      "$SLSKDN_PLAYER_A11Y_CONTAINER" /bin/sh -c \
+      "attempt=0; while [ \$attempt -lt 30 ]; do \
         /usr/bin/spd-say --wait --application-name=PlayerScreenReaderAudit \
-        "Speech engine audio check" >/dev/null 2>&1; then
-        speech_dispatcher_ready=true
-        break
-      fi
-      sleep 0.5
-    done
+          \"Speech engine audio check\" >/dev/null 2>&1 && exit 0; \
+        attempt=\$((attempt + 1)); sleep 0.5; \
+      done; exit 1"; then
+      speech_dispatcher_ready=true
+    fi
     if [[ "$speech_dispatcher_ready" != true ]]; then
       echo "Speech Dispatcher did not produce its isolated audio check." >&2
       exit 1
@@ -291,7 +293,7 @@ if grep -Eiq 'Speech Dispatcher service failed to connect|No speech server for f
   echo 'Orca logged a Speech Dispatcher connection failure.' >&2
   exit 1
 fi
-if [[ "$screen_reader_suite" == 'all' ]]; then
+if [[ "$screen_reader_suite" == 'all' || "$screen_reader_suite" == 'playback' ]]; then
   required_speech=("Now playing: Player runtime first." "Paused: Player runtime first." "Playback stopped.")
 else
   required_speech=("Playback volume" "99 percent" "31 equalizer gain" "1 dB")

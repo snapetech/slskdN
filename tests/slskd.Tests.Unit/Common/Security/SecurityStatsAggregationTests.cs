@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using slskd.Common.Security;
 using Xunit;
 
+[Collection(AllocationTestCollection.Name)]
 public class SecurityStatsAggregationTests
 {
     [Fact]
