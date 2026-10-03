@@ -34454,3 +34454,18 @@ failure that does not match a completed browser interaction.
 **Prevention:** Use an awaited `userEvent` interaction for Fomantic controls,
 then wait for the visible result. When a test passes alone but fails in the
 full Web suite, retain the full-suite scheduling as part of the regression.
+
+### 0z1345. Wait For Audio Graph Suspension In Playback Error Tests (2026-10-03)
+
+**What went wrong:** The Player rejection test waited for its visible error
+message, then immediately asserted the audio context was suspended. Under full
+Web-suite load, the message was present while the context still reported
+`running`.
+
+**Why:** Playback status renders synchronously, but the Web Audio graph is
+suspended by an asynchronous effect. The user-facing error can therefore
+appear before the native audio context transition has settled.
+
+**Prevention:** Assert the error message and eventual audio-context state as
+separate conditions. Wait for the context to reach `suspended` instead of
+assuming a rendered message also means asynchronous graph cleanup completed.
