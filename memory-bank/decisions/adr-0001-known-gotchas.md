@@ -35270,3 +35270,15 @@ local values.
 **Prevention:** Before extracting disposition logic, search every reference to
 the moved resolver and every variable used by follow-on collision handling.
 Run a focused build immediately after the extraction.
+
+### 0z1400. Disambiguate Filesystem Types In Soulseek Tests (2026-10-03)
+
+**What went wrong:** A new multi-source safety regression imported both
+`Soulseek` and `System.IO`, making unqualified `File` and `Directory` names
+ambiguous at compile time.
+
+**Why:** Soulseek exposes domain types with the same names as the filesystem
+types, and the test copied the production namespace imports without aliases.
+
+**Prevention:** Tests that need both namespaces should use explicit aliases for
+`System.IO.File` and `System.IO.Directory` before compiling the new regression.
