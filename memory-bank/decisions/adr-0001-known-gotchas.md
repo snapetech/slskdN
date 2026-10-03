@@ -34619,3 +34619,17 @@ response, although network failures reject before a response exists.
 **Prevention:** Convert request failures to a renderable message at the catch
 boundary. Cover both structured HTTP errors and response-less network errors,
 and verify the latter does not create a second rendering failure.
+
+### 0z1357. Surface Chat Delivery Failures Beside The Draft (2026-10-03)
+
+**What went wrong:** Composer.submit logged a rejected message send to the
+browser console only. The draft stayed in the input, but the user received no
+indication that delivery failed.
+
+**Why:** The error path was treated as developer diagnostics rather than a
+user-visible failed action, so the preserved draft looked like a successful
+send attempt that had simply not cleared.
+
+**Prevention:** Show an accessible error beside the composer, retain the draft,
+and let the user retry through the existing Send action. Test a failed send
+followed by a successful retry.
