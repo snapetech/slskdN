@@ -2622,16 +2622,24 @@ const PlayerBar = () => {
 
   useEffect(() => {
     const previousItem = previousAnnouncementItemRef.current;
-    previousAnnouncementItemRef.current = current;
     if (!current) {
-      if (previousItem) setPlaybackAnnouncement('Playback stopped.');
+      if (previousItem) {
+        const timer = window.setTimeout(() => {
+          if (previousAnnouncementItemRef.current === previousItem) {
+            previousAnnouncementItemRef.current = null;
+            setPlaybackAnnouncement('Playback stopped.');
+          }
+        }, 200);
+        return () => window.clearTimeout(timer);
+      }
       return undefined;
     }
 
+    previousAnnouncementItemRef.current = current;
     const title = current.title || current.fileName || current.contentId || 'Current track';
     if (previousItem !== current) {
-      setPlaybackAnnouncement(`Loading: ${title}.`);
-      return undefined;
+      const timer = window.setTimeout(() => setPlaybackAnnouncement(`Loading: ${title}.`), 400);
+      return () => window.clearTimeout(timer);
     }
     const messages = {
       buffering: `Buffering: ${title}.`,
@@ -2644,8 +2652,14 @@ const PlayerBar = () => {
     if (!message) return undefined;
     if (playbackStatus !== 'error' && activeItemRef.current !== current) return undefined;
 
-    if (playbackStatus === 'buffering') {
-      const timer = window.setTimeout(() => setPlaybackAnnouncement(message), 1200);
+    // Let transport-label updates settle before the polite status announcement.
+    const delay = {
+      buffering: 1200,
+      paused: 200,
+      playing: 200,
+    }[playbackStatus] || 0;
+    if (delay > 0) {
+      const timer = window.setTimeout(() => setPlaybackAnnouncement(message), delay);
       return () => window.clearTimeout(timer);
     }
 

@@ -37,8 +37,16 @@
   failed the hosted release gate on repeated attempts and produced no release
   or assets. The SQLite cancellation test now uses independent file-backed
   connections; allocation measurements are serialized; the shared-listener
-  bind wait has a larger hosted-runner budget. Focused reruns pass. Run the
-  full gate, publish `.335`, and verify its published artifacts.
+  bind wait has a larger hosted-runner budget. The local full gate passed:
+  Web 1,215/1,215, .NET unit 5,404/5,404, application 74/74, release smoke
+  111/111, and integration smoke 40/40. Hosted `.335` attempt 1 hit a
+  non-repeating allocation measurement failure; the same immutable tag passed
+  its retry. Release `2026100314-slskdn.335` was published and
+  `scripts/verify-release-artifacts.sh` verified all six archives, checksums,
+  support assets, VPN helper, Web marker, and Linux version. AUR, COPR,
+  Chocolatey, Nix, and Homebrew publication succeeded; PPA source-package
+  build failed. The `.335` Docker image job is still in progress. The live
+  instance remains on `.320`; it has not been deployed from this release.
 
 ### High Priority
 
@@ -218,17 +226,20 @@
     Full validation passed: .NET 74 application, 5,404 unit, and 285
     integration tests; focused registration tests (8/8), `./bin/lint`,
     release-note tests and preview, and `git diff --check`.
-    The Player audit now has captured Linux Orca/Chromium speech for keyboard
-    playback status, 99% volume, and 1 dB equalizer changes; Firefox's
-    controls-only profile also captures both slider values. Chromium's full
-    profile passes 2/2 with 37 active PCM windows; Firefox controls passes 1/1
-    with 18. Firefox's full playback workflow does not advance the generated
-    WAV when Orca is active, though the same headed workflow passes without
-    Orca, so this remains a runner interaction to resolve. WebKit could not
-    launch because the host lacks Playwright runtime libraries. The production
-    Web build, E2E type check, Web lint, ShellCheck, repository lint, and
-    whitespace check pass. This internal test/audit evidence does not close
-    other screen reader/browser pairings or physical assistive technology.
+    The Player audit now has captured Linux Orca/Chromium and Orca/Firefox
+    speech for playback status, 99% volume, and 1 dB equalizer changes. Both
+    full profiles pass 2/2: Chromium captured 25 active PCM windows; Firefox
+    captured 27. Firefox's playback-only profile passes 1/1 with 11 active
+    windows. Gecko had emitted Loading, Buffering and Now playing changes
+    within about 30 ms, which Orca discarded as duplicate events; the Player
+    now coalesces those transitions and lets transport-label updates settle.
+    The runner preserves the host PulseAudio address across its private
+    runtime-directory override, bounds its speech preflight, and applies a
+    suite-specific PCM floor. WebKit could not launch because this host lacks
+    its Playwright runtime dependencies. WebKit speech, other reader/browser
+    pairings, and physical assistive technology remain open. Release-note
+    fragment `20261003-player-accessible-playback-status.md` records the
+    user-facing change. The broad initiative remains active.
   - Next: continue populated multi-step journeys and the broader remediation.
     Keep WAN radio/reciprocal-transfer and physical-device accessibility open.
     Route inventory and maturity claims are reconciled; retain the current 51

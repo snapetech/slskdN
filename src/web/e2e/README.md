@@ -75,11 +75,11 @@ speech plus keyboard changes to volume and equalizer values. Set the suite to
 `playback` or `controls` to run only that part. Set the browser to `firefox` or
 `webkit` to try another local Playwright browser.
 
-Current direct evidence covers the full suite in Linux Chromium and the
-controls-only suite in Linux Firefox. The full Firefox playback-status case
-does not currently advance its generated WAV while Orca is active, although
-the same headed test passes without Orca. WebKit needs its Playwright runtime
-dependencies installed or a matching browser container. See
+Current direct evidence covers the full suite in Linux Chromium and Firefox
+(2/2 workflows in each). The Firefox playback-only profile also passes 1/1;
+Orca speaks the track-start, pause/resume, compact-mode, stop, volume and
+equalizer updates. WebKit needs its Playwright runtime dependencies installed
+or a matching browser container. See
 `docs/dev/player-quality-audit.md` for the tested scope and remaining gaps.
 
 ### CI Environment

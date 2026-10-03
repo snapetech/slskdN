@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   searches can play configured local downloads before indexing, with no file
   hashing for that fallback. Successful path resolution is reused across
   ticket and media requests while rechecking allowed roots and file size.
+- Player playback-status announcements now coalesce rapid state changes so
+  screen readers can speak track-start, pause/resume, and stop updates in
+  Firefox as well as Chromium.
 - Collapse remains available while player tools are closed. Narrow compact
   layouts retain readable titles; expanded mobile controls have 44-pixel
   minimum touch targets.

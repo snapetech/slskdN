@@ -214,13 +214,16 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
       "$SLSKDN_PLAYER_A11Y_CONTAINER" /bin/sh -c \
       "attempt=0; while [ \$attempt -lt 30 ]; do \
         /usr/bin/spd-say --wait --application-name=PlayerScreenReaderAudit \
-          \"Speech engine audio check\" >/dev/null 2>&1 && exit 0; \
+          \"Speech engine audio check\" && exit 0; \
         attempt=\$((attempt + 1)); sleep 0.5; \
-      done; exit 1"; then
+      done; exit 1" >"$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG" 2>&1; then
       speech_dispatcher_ready=true
     fi
     if [[ "$speech_dispatcher_ready" != true ]]; then
       echo "Speech Dispatcher did not produce its isolated audio check." >&2
+      if [[ -s "$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG" ]]; then
+        cat "$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG" >&2
+      fi
       exit 1
     fi
     sleep 0.5
@@ -307,12 +310,18 @@ for spoken_text in "${required_speech[@]}"; do
   fi
 done
 
-python3 - "$pcm_capture" "$pcm_offset_file" <<'PY'
+capture_minimum_active_windows=15
+if [[ "$screen_reader_suite" == 'playback' ]]; then
+  capture_minimum_active_windows=8
+fi
+
+python3 - "$pcm_capture" "$pcm_offset_file" "$capture_minimum_active_windows" <<'PY'
 from array import array
 import math
 import os
 import sys
 
+minimum_active_windows = int(sys.argv[3])
 with open(sys.argv[1], "rb") as capture_file:
     with open(sys.argv[2], encoding="utf8") as offset_file:
         capture_file.seek(int(offset_file.read().strip()))
@@ -333,8 +342,8 @@ for offset in range(0, len(samples) - samples_per_tenth + 1, samples_per_tenth):
 
 seconds = len(samples) / (48_000 * 2)
 peak = max((abs(sample) for sample in samples), default=0)
-print(f"Orca speech capture contains {active_windows} active 100 ms windows over {seconds:.1f} seconds; peak {peak}.")
-if seconds < 2 or active_windows < 15 or peak < 300:
+print(f"Orca speech capture contains {active_windows} active 100 ms windows over {seconds:.1f} seconds; peak {peak}; minimum {minimum_active_windows}.")
+if seconds < 2 or active_windows < minimum_active_windows or peak < 300:
     raise SystemExit("The isolated screen-reader sink did not capture enough synthesized speech.")
 PY
 

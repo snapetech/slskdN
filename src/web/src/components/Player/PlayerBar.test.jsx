@@ -657,7 +657,7 @@ describe('PlayerBar', () => {
     await waitFor(() => expect(audio.getAttribute('src')).toContain('retry-ticket'));
   });
 
-  it('announces playback, pause, and media errors without announcing seek updates', async () => {
+  it('announces stable playback, pause, and media errors without announcing seek updates', async () => {
     renderPlayer();
     fireEvent.click(screen.getByText('Play fixture'));
     const audio = document.querySelector('audio');
@@ -666,8 +666,6 @@ describe('PlayerBar', () => {
     expect(announcement).toHaveAttribute('role', 'status');
     expect(announcement).toHaveAttribute('aria-live', 'polite');
     expect(announcement).toHaveAttribute('aria-atomic', 'true');
-    expect(announcement).toHaveTextContent('Loading: Local stream.');
-
     fireEvent.play(audio);
     await waitFor(() => expect(announcement).toHaveTextContent('Now playing: Local stream.'));
     audio.currentTime = 12;

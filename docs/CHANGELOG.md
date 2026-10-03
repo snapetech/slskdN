@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Player accessibility
+
+- Coalesce rapid playback-state updates before changing the Player's screen
+  reader status, so Firefox with Orca reliably announces track start,
+  pause/resume, and stop.
+
 ## [2026100314-slskdn.335] — 2026-10-03
 
 ### Linux installation

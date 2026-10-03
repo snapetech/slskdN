@@ -132,24 +132,30 @@ tested runtime path.
 
 The isolated Linux runner now completes its AT-SPI readiness check, launches
 Chromium and Orca together, and records Orca speech on its own virtual audio
-sink. The full Chromium profile passed both tagged workflows and retained the
-earlier keyboard playback, pause, seek, compact-mode and stop announcements.
-Orca spoke the volume slider's `99%` as “99 percent” and the 31 Hz equalizer
-slider's `1 dB`; the rendered `aria-valuetext` matched. The capture contained
-37 active 100 ms windows over 29.7 seconds, with no Speech Dispatcher
-connection failure.
+sink. The full Chromium profile passed both tagged workflows. Orca spoke the
+playback, pause, seek, compact-mode and stop updates, plus the volume slider's
+`99%` (“99 percent”) and the 31 Hz equalizer slider's `1 dB`; the rendered
+`aria-valuetext` matched. The latest capture contained 25 active 100 ms
+windows over 33.8 seconds, with no Speech Dispatcher connection failure.
 
-A Firefox controls-only profile also passed. Orca spoke “99 percent” and “1
-dB,” and its isolated capture contained 18 active 100 ms windows over 8.9
-seconds. This verifies slider-value speech in the tested Linux Firefox/Orca
-pairing. The full Firefox playback/seek speech workflow did not pass: its
-generated WAV stayed paused during the Orca-enabled run. The same headed
-Firefox playback workflow passed without Orca, including with an isolated
-PulseAudio sink, so the runner interaction remains unresolved and no Firefox
-playback-status speech claim is made. Other screen readers, WebKit speech, and
-physical assistive-technology hardware remain unverified. Confidence is high
-for Chromium speech and Firefox slider values; Firefox playback-status
-behavior remains unknown.
+A Firefox full profile now passes both tagged workflows. Its generated WAV
+advances with Orca active, and Orca speaks playback, pause, resume, compact-mode,
+stop and slider-value updates. The capture contained 27 active 100 ms windows
+over 19.5 seconds. A focused Firefox playback-only run also passed (1/1, 11
+active windows over 20.5 seconds); the combined Firefox profile passed 2/2.
+Firefox controls-only previously passed with 18 active windows over 8.9
+seconds.
+
+The Firefox trace showed Gecko sending `Loading`, `BUFFERING`, and `Now
+playing` live-region changes within about 30 ms, which Orca discarded as
+duplicate events. The Player now delays transient loading/buffering and
+coalesces playback, pause, resume and stop announcements until related control
+updates settle. The runner preserves the explicit host PulseAudio address when
+it overrides `XDG_RUNTIME_DIR` and bounds the Speech Dispatcher readiness
+probe. WebKit speech and physical assistive-technology hardware remain
+unverified because this host's Playwright WebKit runtime dependencies are
+unavailable. Confidence is high for the tested Linux Chromium/Orca and
+Firefox/Orca workflows; other reader/browser pairings remain open.
 
 ### Listed-radio active stream recovery — 2026-09-29
 
@@ -452,11 +458,10 @@ are happening; that reciprocal-transfer workflow remains open.
 - Define CPU and memory acceptance budgets on representative minimum and target
   hardware; current Chromium figures are host-specific measurements.
 - Extend assistive-technology speech coverage beyond the verified Linux Orca
-  browser pairings. Captured Chromium speech verifies “Now playing,” “Paused,”
-  Stop, 99% volume and 1 dB equalizer updates; Firefox controls-only speech
-  verifies 99% and 1 dB. The Firefox playback/seek workflow did not start its
-  generated WAV with Orca active, although the same headed test passes without
-  Orca; its runner interaction remains unresolved. All eight
+  browser pairings. Captured Chromium and Firefox speech now verifies playback,
+  pause/resume, stop, 99% volume and 1 dB equalizer updates. WebKit speech,
+  other reader/browser combinations and physical assistive technology remain
+  open. All eight
   player dialogs now expose their title, receive focus on entry, wrap Tab in
   both directions, and restore the opener on Escape. The queue dialog workflow
   verifies those behaviors in three browser engines; the visible expanded,

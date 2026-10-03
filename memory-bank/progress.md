@@ -16634,6 +16634,24 @@ The local full gate, push/tag build, and published-artifact verification remain
 pending. No source behavior change was made for the single non-repeating SOCKS
 failure from attempt 2. The reported issue #348 fix remains in the candidate.
 
+## 2026-10-03 15:34 UTC — Publish and verify stable release `.335`
+
+Created immutable tag `build-main-2026100314-slskdn.335` from the pushed
+`main` tree. The local release gate passed (Web 1,215; .NET 5,404 unit, 74
+application, and 40 integration smoke tests, plus 111 backend smoke tests).
+The hosted Release Gate failed once on a strict allocation measurement; ten
+local Release reruns passed, and the same immutable hosted tag retry passed.
+All six platform archives and required support assets were published, and
+`scripts/verify-release-artifacts.sh` confirmed their SHA-256 checksums, VPN
+helper, bundled Web marker, and Linux binary version. AUR, COPR, Chocolatey,
+Nix, and Homebrew jobs succeeded. The PPA publisher failed while building its
+source package; the Docker image job remains in progress.
+
+The `.335` release contains the issue #348 passthrough-401 fix. The live
+`slskd.home` page remains reachable, but its service is still on `.320`; no
+deployment was performed. New Firefox/Orca Player changes arrived after the
+tag and remain in the next-release worktree with a validated release fragment.
+
 ## 2026-10-03 14:01 UTC — Capture Player slider speech with Orca
 
 Extended the isolated Orca/Chromium workflow to verify keyboard changes to the

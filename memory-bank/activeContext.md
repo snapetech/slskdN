@@ -1,3 +1,41 @@
+## Current state — `.335` released; reconcile post-tag work — 2026-10-03 15:34 UTC
+
+Stable release `2026100314-slskdn.335` is published at
+https://github.com/snapetech/slskdN/releases/tag/2026100314-slskdn.335. Its
+hosted release gate passed on the same-tag retry after one allocation assertion
+reported a non-repeating 87 KB current-thread sample; the full local release
+gate passed. All six platform archives and their checksums, required support
+assets, VPN helper, Web marker, and embedded Linux version passed
+`scripts/verify-release-artifacts.sh`. AUR, COPR, Chocolatey, Nix, and Homebrew
+jobs succeeded; PPA source-package build failed. The Docker publisher is still
+running.
+
+The live login page is https://slskd.home/; the service is healthy but still
+runs `.320`. Release `.335` has not been deployed there. The new Player
+Firefox/Orca announcement changes arrived after the `.335` tag, so they are
+tracked for a later release in
+`release-notes/20261003-player-accessible-playback-status.md`. The full Web
+suite passes 1,215/1,215 and targeted Player ESLint passes. Preserve these
+post-tag edits and the concurrent release-metadata commit when pushing `main`.
+
+## Current state — Firefox/Orca Player announcements verified — 2026-10-03 15:21 UTC
+
+The Firefox/Orca playback failure is resolved. Gecko was exposing rapid
+Loading, Buffering and Now playing updates within about 30 ms, and Orca dropped
+them as duplicate live-region events. Player status announcements now coalesce
+transient changes and wait briefly for transport/focus updates to settle. The
+Firefox and Chromium full Orca profiles each pass 2/2 workflows and capture
+speech for playback status, volume and equalizer. Firefox's focused playback
+profile passes 1/1 as well.
+
+The screen-reader runner keeps the host PulseAudio address explicit while
+overriding `XDG_RUNTIME_DIR`, caps Speech Dispatcher preflight at 20 seconds,
+and uses an 8-window PCM floor for the shorter playback-only suite (15 for the
+combined and controls suites). WebKit speech and physical assistive technology
+remain open. The broad product-remediation goal remains active; continue with
+the remaining UX, network, sustained-resource and physical-device work. No
+tag, release or deployment was created.
+
 ## Current state — Issue #348 fix and replacement release candidate — 2026-10-03 14:53 UTC
 
 Issue #348's no-auth 401 reload loop is fixed and pushed in the release tree.

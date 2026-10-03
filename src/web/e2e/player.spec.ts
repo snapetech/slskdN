@@ -893,6 +893,8 @@ test.describe('player browser playback', () => {
 
   test('controls playback and seeking with the keyboard in expanded and compact modes @player-screen-reader', async ({ page }) => {
     const firstPlayCount = await readOrcaSpeechCount('Now playing: Player runtime first.');
+    const loadingSpeechCount = await readOrcaSpeechCount('Loading: Player runtime first.');
+    const bufferingSpeechCount = await readOrcaSpeechCount('Buffering: Player runtime first.');
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     const audioState = () => page.evaluate(() => {
       const element = document.querySelector<HTMLAudioElement>('audio');
@@ -918,6 +920,8 @@ test.describe('player browser playback', () => {
     const playbackAnnouncement = page.getByTestId('player-playback-announcement');
     await expect(playbackAnnouncement).toHaveText(/Now playing: .+/u);
     await expectOrcaSpeech('Now playing: Player runtime first.', firstPlayCount);
+    expect(await readOrcaSpeechCount('Loading: Player runtime first.')).toBe(loadingSpeechCount);
+    expect(await readOrcaSpeechCount('Buffering: Player runtime first.')).toBe(bufferingSpeechCount);
 
     const play = page.getByTestId('player-toggle-playback');
     await expect(play).toHaveAccessibleName('Pause local playback');
