@@ -35219,3 +35219,22 @@ prove that current filesystem components still resolve inside the share root.
 `PathGuard.NormalizeAbsolutePathWithinRoots` against the current configured
 share directories. Reject the request when the path is missing, the options
 are unavailable, or the resolved path escapes those roots.
+
+### 0z1397. Persist Download Success After Local Disposition (2026-10-03)
+
+**What went wrong:** Download state callbacks persisted `Completed | Succeeded`
+before content verification and the move into the completed destination. Since
+`TryFail` preserves terminal states, a rejected executable or local move failure
+could remain recorded as successful. Separately, a quarantined transfer's
+terminal error became visible before its quarantine filename was saved.
+
+**Why:** The remote peer's terminal state was treated as the final application
+state even though local validation and file placement still had to complete.
+The quarantine metadata and failure state were also written in separate steps
+with the visible terminal state first.
+
+**Prevention:** Keep successful terminal states in memory until verification
+and final placement succeed. For quarantine failures, persist the safe local
+filename and request failure before exposing the transfer's terminal error.
+Keep a service regression that writes an executable signature through the real
+download output factory and checks the terminal transfer and request records.
