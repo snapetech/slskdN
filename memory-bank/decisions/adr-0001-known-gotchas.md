@@ -35070,3 +35070,19 @@ response too late.
 **Prevention:** Create the `waitForResponse` promise before the navigation or
 user action that triggers the request. Await and assert that promise where its
 response is part of the journey diagnostics.
+
+### 0z1388. Recheck Indexed File Paths Against Configured Roots (2026-10-03)
+
+**What went wrong:** `ContentLocator` checked configured roots for path-ID
+fallbacks but trusted an advertisable share-index row's resolved filename. A
+focused regression resolved an indexed file outside the configured download
+root.
+
+**Why:** `IsAdvertisable` records share-policy state, but it does not prove that
+the physical file still resides under an allowed root after the scan that
+created the index row.
+
+**Prevention:** Normalize every repository-resolved filename with
+`PathGuard.NormalizeAbsolutePathWithinRoots` immediately before returning it to
+streaming or tag-edit callers. Keep the regression where the repository returns
+an existing file outside all configured share and download roots.
