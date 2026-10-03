@@ -34555,3 +34555,42 @@ navigation.
 share token. Exchange the grant token in a request header with the owning server
 for a short-lived, content-bound ticket, then open only the ticket URL. Verify
 the browser-visible URL and `window.open` argument contain no reusable token.
+
+### 0z1352. Keep Manifest Failures Inside The Open Dialog (2026-10-03)
+
+**What went wrong:** SharedWithMe reported a manifest load failure behind the
+open contents dialog and showed only generic copy inside the dialog, with no
+retry action.
+
+**Why:** The route-level error state remained technically visible in React but
+was visually covered by the active modal, so the user could neither see the
+actual response nor recover the request in place.
+
+**Prevention:** Render request errors at the surface where the action occurs.
+Give modal requests an in-dialog retry that repeats the same operation, and
+test both the failure detail and successful recovery without closing the modal.
+
+### 0z1353. Distinguish A Failed Share List From An Empty Share List (2026-10-03)
+
+**What went wrong:** SharedWithMe rendered its ordinary empty state after a
+share-list request failed, while the failure message appeared separately and
+there was no retry action.
+
+**Why:** The empty-state condition checked only the current list length and did
+not account for whether the request had succeeded.
+
+**Prevention:** Render the empty state only after a successful list response.
+Keep load failure and empty success as separate states, provide an in-place
+retry, and test that failure never claims the account has no shares.
+
+### 0z1354. Render Share-Group Members In A Navigable Dialog (2026-10-03)
+
+**What went wrong:** Share Groups displayed View Members results in a blocking
+browser alert and only logged request failures to the console.
+
+**Why:** The action had no in-app state for loading, results, or failure, so it
+could not support navigation, accessible reading, or recovery.
+
+**Prevention:** Model asynchronous detail actions with explicit loading,
+success, and error states in an in-app surface. Show request details and a
+retry action there, and cover both successful loading and failure recovery.
