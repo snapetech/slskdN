@@ -35055,3 +35055,18 @@ the exact range preview was deferred until the end of implementation.
 **Prevention:** Use an exact supported category and keep the user-impact body
 within 30–400 characters. Preview the complete uncommitted release range before
 considering its release documentation validated.
+
+### 0z1387. Subscribe To Route Data Responses Before Navigation (2026-10-03)
+
+**What went wrong:** The contacts journey waited for `/contacts` to render and
+then registered a Playwright response listener. Navigation had already reached
+`networkidle`, so the earlier contacts API response was missed and diagnostics
+timed out on every run.
+
+**Why:** Playwright does not retain response events for listeners registered
+after the request. Waiting for the rendered route made the test observe the
+response too late.
+
+**Prevention:** Create the `waitForResponse` promise before the navigation or
+user action that triggers the request. Await and assert that promise where its
+response is part of the journey diagnostics.
