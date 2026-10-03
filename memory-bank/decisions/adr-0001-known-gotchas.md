@@ -35108,3 +35108,19 @@ check uses `Path.GetFullPath` without resolving existing symlink components; a
 link inside an allowed root can still make list/delete access escape. Test and
 fix the actual `FileService` boundary with a symlink rooted outside the allowed
 directories.
+
+### 0z1390. Validate Incomplete Download Paths After Resolving Symlinks (2026-10-03)
+
+**What went wrong:** A peer filename mapped lexically under the incomplete
+download directory, but an existing directory symlink redirected file creation
+outside that root. An end-to-end regression confirmed the download output
+factory created the file at the symlink target.
+
+**Why:** `ToLocalFilename` prevents lexical traversal but does not resolve
+existing filesystem links. The download path inspected partial files and opened
+the output stream without rechecking the path against its configured root.
+
+**Prevention:** Use `PathGuard.NormalizeAbsolutePathWithinRoots` on incomplete
+and completed download paths before inspecting, creating, or moving files. Keep
+an end-to-end regression that invokes the real output-stream factory through a
+symlink rooted outside the incomplete directory.
