@@ -34831,3 +34831,18 @@ typecheck in its normal pre-test hooks.
 **Prevention:** Keep a strict browser-and-Node E2E tsconfig, narrow response and
 DOM values at boundaries, and run the typecheck before both local and CI
 Playwright suites.
+
+### 0z1373. Resolve Fixture Paths From The Web Package Root (2026-10-03)
+
+**What went wrong:** The E2E fixture helper walked three parent directories
+from `src/web`, resolving the repository root as its parent directory. Optional
+media fixture checks therefore returned false even when every fixture existed,
+silently skipping multi-peer sharing tests.
+
+**Why:** The helper assumed Playwright ran with `src/web/e2e` as its current
+directory, while `pnpm --filter @slskdn/web exec playwright` runs from
+`src/web`.
+
+**Prevention:** Resolve the repository root relative to the actual package
+working directory and run a fixture-gated browser test to verify it is not
+being skipped when the repository fixtures are present.
