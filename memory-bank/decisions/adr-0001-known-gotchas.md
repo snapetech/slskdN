@@ -34673,6 +34673,19 @@ passing an input id does not guarantee that the generated label references it.
 does not expose the association, and query the rendered control by its
 accessible name in component tests.
 
+### 0z1363. Recheck Cancellation After Search Result Delays (2026-10-03)
+
+**What went wrong:** Search Detail waited briefly before fetching completed
+results but checked its cleanup flag only after the request. Leaving the route
+during that wait still started a stale API request.
+
+**Why:** Effect cleanup cancelled the scheduled start before it ran, but could
+not interrupt a delay that had already begun.
+
+**Prevention:** Recheck cancellation after each awaited delay and before
+starting network work. Test unmounting during the delay and verify the request
+never starts.
+
 ### 0z1361. Await Browser Clipboard Writes Before Reporting Success (2026-10-03)
 
 **What went wrong:** Experience Settings called `navigator.clipboard.writeText`
