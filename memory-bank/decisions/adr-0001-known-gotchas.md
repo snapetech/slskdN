@@ -35835,3 +35835,18 @@ the slskd web server also requires the ASP.NET Core shared framework.
 slskd. Verify `dotnet --list-runtimes` includes both
 `Microsoft.NETCore.App` and `Microsoft.AspNetCore.App` at the target major
 version before running the E2E harness.
+
+### 0z1437. Mount Containerized E2E Checkouts At Their Build-Time Path (2026-10-03)
+
+**What went wrong:** The Playwright container mounted the repository at a new
+`/workspace` path. The prebuilt slskd node then failed during web startup
+because its static-web-assets manifest referenced the original checkout path.
+
+**Why:** The Release build records absolute content paths in the generated
+static-web-assets manifest. A container can read the DLL and copied Web bundle
+while still missing the manifest's original content root.
+
+**Prevention:** Bind-mount the repository into the container at the same
+absolute path used for the Release build. Set the Playwright working directory
+under that mount, and confirm the node reaches its readiness endpoint before
+debugging browser navigation.
