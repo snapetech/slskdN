@@ -35893,7 +35893,13 @@ does not flush each debug line. The test reads that file while Orca is still
 running, so a spoken event can remain invisible until the buffer fills or the
 process exits.
 
-**Prevention:** Capture Orca's `--debug` stderr stream instead of `--debug-file`;
-Python's stderr is line-buffered even when redirected. Keep startup diagnostics
-separate only when stderr is not serving as the live speech log, and verify a
-new announcement is visible before Orca exits.
+**Correction (2026-10-03):** Orca's `--debug` option requires a debug-file path
+and otherwise selects a working-directory filename. Passing `--debug` without
+an explicit path failed because that default file was not writable. Setting
+`PYTHONUNBUFFERED=1` does not unbuffer the separate file object Orca opens.
+
+**Prevention:** Keep `--debug-file`, point it at `/dev/stderr`, and run Orca
+under `script --quiet --flush` so its stderr is a pseudo-terminal and the
+shared transcript is flushed after each write. Python line-buffers a text file
+opened on a TTY; do not rely on `PYTHONUNBUFFERED` to flush a file Orca opens
+itself. Verify a new announcement is visible before Orca exits.
