@@ -35,6 +35,22 @@ mark that effect inactive before cleanup, and stop the hub on unmount. Guard
 event, lifecycle, and startup-promise callbacks against the inactive effect;
 test both stop-on-unmount and late-event behavior.
 
+### 0z1341. Clear Delayed Diagnostic Serialization On Unmount
+
+**What went wrong:** `System/Info` scheduled YAML serialization with an
+untracked timeout. After its test unmounted the route and Vitest tore down
+jsdom, the callback attempted to update React state and failed with
+`ReferenceError: window is not defined`, making the full Web suite fail despite
+all assertions passing.
+
+**Why:** A one-shot timeout can outlive the route just like a polling timer.
+Treating it as a short-lived implementation detail left no owner to cancel it
+when the view or test unmounted.
+
+**Prevention:** Store and clear the timeout in the effect cleanup, and gate its
+callback on the effect still being active. Keep the full Web test run free of
+uncaught teardown errors, not only assertion failures.
+
 ### 0z1337. Preserve Visible Button Names When Adding Accessibility Guidance
 
 **What went wrong:** Adding a detailed `aria-label` to a button replaced its
