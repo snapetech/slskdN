@@ -34659,3 +34659,16 @@ did not preserve whether the list request had completed successfully.
 **Prevention:** Keep contact-load error state separate from mutation feedback
 and successful empty state. Show retry when the initial list request fails,
 and test that an error does not claim the account has no contacts.
+
+### 0z1360. Verify Semantic Form Labels In The Rendered Input (2026-10-03)
+
+**What went wrong:** The nearby-contact dialog initially used `Form.Input`
+with a visible “Nickname” label and an id on the nested input, but the rendered
+label had no `htmlFor` association. The field therefore had no accessible name.
+
+**Why:** Semantic UI React renders the label and nested input separately, and
+passing an input id does not guarantee that the generated label references it.
+
+**Prevention:** Use an explicit `<label htmlFor>` when the component library
+does not expose the association, and query the rendered control by its
+accessible name in component tests.
