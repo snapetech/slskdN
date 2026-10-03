@@ -35124,3 +35124,18 @@ the output stream without rechecking the path against its configured root.
 and completed download paths before inspecting, creating, or moving files. Keep
 an end-to-end regression that invokes the real output-stream factory through a
 symlink rooted outside the incomplete directory.
+
+### 0z1391. Revalidate Persisted Download Paths Before Deletion (2026-10-03)
+
+**What went wrong:** Removing a completed download trusted its persisted local
+filename and deleted through a parent-directory symlink that could point
+outside configured download roots.
+
+**Why:** The path was safe when the download completed, but the filesystem can
+change before the user later removes the transfer. Persisted paths are not
+proof that current path components still resolve inside their original root.
+
+**Prevention:** Resolve the current target with
+`PathGuard.NormalizeAbsolutePathWithinRoots` immediately before deletion and
+skip deletion when it is outside the allowed roots. Keep a regression with a
+stored filename under a symlink to an outside directory.
