@@ -35622,3 +35622,18 @@ generic address selected the wrong connection mode for a bus method call.
 **Prevention:** Use `dbus-send --bus="$a11y_bus_address"` when checking a
 daemon bus address. Keep the readiness check aligned with the tool's explicit
 connection mode and exercise it against the real containerized AT-SPI bus.
+
+### 0z1424. Match Orca's Browser Name Within Its Spoken Window Title (2026-10-03)
+
+**What went wrong:** The screen-reader runner required the browser frame name
+to begin an Orca speech line. Orca prefixed it with the page title, so real
+browser accessibility and Player speech passed while the final log gate failed.
+
+**Why:** Orca speaks the accessible window title as a combined string such as
+`slskdN - Google Chrome for Testing frame`. Requiring a fixed prefix ignored
+the page title that precedes the stable browser frame name.
+
+**Prevention:** Match the stable browser frame name within the captured speech
+line rather than anchoring it to the start. Keep Player status and control
+speech assertions in the live Playwright workflow so the log also proves the
+browser was accessible while its page remained open.
