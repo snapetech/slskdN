@@ -34594,3 +34594,15 @@ could not support navigation, accessible reading, or recovery.
 **Prevention:** Model asynchronous detail actions with explicit loading,
 success, and error states in an in-app surface. Show request details and a
 retry action there, and cover both successful loading and failure recovery.
+
+### 0z1355. Keep Nearby Discovery Failures Separate From Empty Results (2026-10-03)
+
+**What went wrong:** Contacts.loadNearby swallowed request errors, then rendered
+the normal “No nearby peers found” state as if discovery had succeeded.
+
+**Why:** The component treated discovery being unavailable, such as an mDNS
+failure, as equivalent to a successful scan with zero peers.
+
+**Prevention:** Model discovery errors separately from empty results. Show the
+request detail and a retry action, and test a failed scan followed by a
+successful retry.
