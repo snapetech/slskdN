@@ -35916,7 +35916,11 @@ vertical-lr`. Browser keyboard handling for a vertical native range follows
 the slider axis and can reverse the horizontal key's effect. The HTML Standard
 places the lowest value at the top for a left-to-right vertical range control.
 
-**Prevention:** Use `ArrowUp` to increase and `ArrowDown` to decrease the
-equalizer gain, and assert the expected value from its `0 dB` baseline. Keep
-`ArrowLeft` and `ArrowRight` for horizontal player controls such as volume and
-seek.
+**Correction:** The first version of this gotcha reversed the vertical keys.
+Chromium also changes `0 dB` to `-1 dB` on `ArrowUp` for this control.
+
+**Prevention:** The HTML Standard places the lowest value at the top of a
+left-to-right vertical range control, so use `ArrowDown` to increase and
+`ArrowUp` to decrease the equalizer gain. Assert the expected value from its
+`0 dB` baseline. Keep `ArrowLeft` and `ArrowRight` for horizontal player
+controls such as volume and seek.
