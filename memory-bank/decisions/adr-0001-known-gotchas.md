@@ -35493,3 +35493,18 @@ qualified.
 **Prevention:** Fully qualify product types when a test namespace can shadow
 the product namespace prefix. Compile focused tests immediately after adding
 type references to a new registration module.
+
+### 0z1416. Check Terminal State Before Cancelling Retained Transfer Sources (2026-10-03)
+
+**What went wrong:** A completed download could still have a cancellation
+source in `CancellationTokens` while its async cleanup was finishing. During
+that window `TryCancel` removed the source, cancelled it, and returned `true`
+even though the persisted transfer was already terminal.
+
+**Why:** The final state is published before the download task's `finally`
+removes its cancellation source, so dictionary membership can lag transfer
+state.
+
+**Prevention:** Treat persisted terminal state as authoritative when servicing
+cancellation requests, and test cancellation during the completion/cleanup
+window as well as after isolated transfer completion.
