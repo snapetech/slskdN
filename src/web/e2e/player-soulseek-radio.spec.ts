@@ -339,18 +339,6 @@ test.describe('player radio during local Soulseek transfers', () => {
     expect(reverseStreamResponse.status()).toBe(206);
     expect(reverseStreamBody.byteLength).toBe(reverseRadioSize);
 
-    const balancedAdmission = await request.post(
-      `${listener.apiUrl}/api/v0/listed-radio/${encodeURIComponent(partyId)}/tickets`, {
-        headers: listenerHeaders, data: { contentId: radioItem!.contentId },
-      });
-    const balancedAdmissionBody = await balancedAdmission.text();
-    expect(balancedAdmission.status(), balancedAdmissionBody).toBe(200);
-    const balancedTicket = JSON.parse(balancedAdmissionBody) as { streamUrl: string };
-    const balancedStreamResponse = await request.get(new URL(balancedTicket.streamUrl, listener.nodeCfg.baseUrl).href, {
-      headers: { Range: 'bytes=0-65535' },
-    });
-    expect(balancedStreamResponse.status()).toBe(206);
-    expect((await balancedStreamResponse.body()).byteLength).toBe(65_536);
     const transferProgressDuringBalancedAdmission = await transfers();
     expect(Object.values(transferProgressDuringBalancedAdmission).every((bytes) => bytes < transferFixtureBytes)).toBe(true);
 
@@ -382,6 +370,24 @@ test.describe('player radio during local Soulseek transfers', () => {
     expect(hostTrafficAfter.soulseekUpload).toBeGreaterThan(0);
     expect(listenerTrafficAfter.soulseekDownload).toBeGreaterThan(0);
     expect(listenerTrafficAfter.soulseekUpload).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: 'Stop local playback', exact: true }).click();
+    await expect.poll(() => page.locator('audio').evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
+
+    const balancedAdmission = await request.post(
+      `${listener.apiUrl}/api/v0/listed-radio/${encodeURIComponent(partyId)}/tickets`, {
+        headers: listenerHeaders, data: { contentId: radioItem!.contentId },
+      });
+    const balancedAdmissionBody = await balancedAdmission.text();
+    expect(balancedAdmission.status(), balancedAdmissionBody).toBe(200);
+    const balancedTicket = JSON.parse(balancedAdmissionBody) as { streamUrl: string };
+    const balancedStreamResponse = await request.get(new URL(balancedTicket.streamUrl, listener.nodeCfg.baseUrl).href, {
+      headers: { Range: 'bytes=0-65535' },
+    });
+    expect(balancedStreamResponse.status()).toBe(206);
+    expect((await balancedStreamResponse.body()).byteLength).toBe(65_536);
+
     await browserDebug.detach();
     console.log(JSON.stringify({
       soulseekSpeedLimitKiB,

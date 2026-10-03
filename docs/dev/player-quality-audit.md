@@ -102,7 +102,7 @@ simulated device APIs.
 | Layout | Expanded/compact controls at 1440, 768, 390 and 320px; narrow primary controls meet 44px bounds | Chromium, host Firefox and WebKit viewport checks / high; physical mobile unverified |
 | Output routing | New playback waits for switch success/failure and uses selected/rolled-back sink | Simulated regression checks / high; physical routing unverified |
 | Native playback resources | Fifteen-minute baseline plus a two-hour diagnostic capture | Linux headless Chromium; the diagnostic run retained login response/console listeners throughout playback, so its CPU/PSS trends are not clean acceptance evidence; the later three-hour attempt stopped after 132/180 windows and is incomplete diagnostic data; other engines/devices and portable budgets remain open |
-| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket, 15-minute live renewal soak, active-stream replacement and withdrawal verified / high; loopback mesh-link delay plus URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; WAN behavior and sustained throughput remain open |
+| Listed radio | Reachable picker, directory failure/manual refresh, metadata-only controls, actual HTTP audio failure/retry, temporary URL exclusion | Real two-backend Chromium discovery, decoded playback/seek, revocation, counters, reverse publication, refreshed host ticket, 15-minute live renewal soak, active-stream replacement and withdrawal verified / high; loopback mesh-link delay plus URL-scoped 24 KiB/s and 450 ms browser-link throttling produces buffering, an unbuffered seek recovers at 128 KiB/s and 120 ms, and same-party snapshot replacement rejects the stale content ticket / high; reciprocal Soulseek transfers during playback now verified on loopback; WAN behavior and longer sustained throughput remain open |
 | Listen-along recovery | Startup retry, closed/rejoin/refresh failure controls, disposed callbacks, live-event precedence and authenticated cross-node updates | Actual Chromium PlayerBar catches the latest state after automatic transport recovery; two authenticated SignalR clients verify leave/rejoin/snapshot/live-ban behavior, and the two-backend browser workflow verifies initial snapshot, playback, Pause/Seek/Stop updates and banned-member denial over loopback / high; WAN behavior remains unverified |
 
 See the dated validation sections below for latest gate counts; earlier counts
@@ -167,7 +167,8 @@ during playback cuts off the second stream, shows the same actionable guidance,
 and removes the room from the refreshed directory. The complete radio network
 spec passes five workflows; its separately tagged 15-minute soak is skipped by
 default. Confidence is high for replacement and withdrawal on the real loopback
-mesh path. WAN behavior and real Soulseek upload/download overlap remain open.
+mesh path. WAN behavior remained open after this run; the later loopback
+reciprocal-transfer evidence is recorded below.
 
 The generic isolated PlayerBar radio regression also checks the same
 radio-specific failure copy before retrying a controlled HTTP stream. The full
@@ -327,7 +328,9 @@ including the two-minute ticket-expiry and host-session fencing cases.
 This is a deterministic loopback delay injection, not a calibrated RTT or WAN
 emulator. Per-chunk scheduling can affect throughput as well as propagation;
 it does not model packet loss, jitter, routing changes or real deployment
-congestion. WAN performance and reciprocal Soulseek transfers remain open.
+congestion. WAN performance remained open after this run. The later combined
+loopback workload covers reciprocal Soulseek transfers, but does not close the
+WAN gap.
 
 ## Resource sample
 
@@ -444,12 +447,32 @@ event-started commits before dependency injection disposes the accounting gate.
 The accounting service and application event wiring pass focused regressions;
 the full backend suite passes 5,346 unit, 74 smoke and 284 integration tests,
 and repository lint passes. These checks verify counters and persistence
-handoff. They do not demonstrate radio admission while real Soulseek uploads
-are happening; that reciprocal-transfer workflow remains open.
+handoff. End-to-end reciprocal-transfer coverage was added later and is
+documented below.
+
+## Reciprocal radio playback during Soulseek transfers — 2026-10-03
+
+The isolated Playwright runner starts two local nodes against the pinned
+loopback Soulfind fixture and caps each node's Soulseek upload and download at
+128 KiB/s. The browser discovers and plays a listed radio stream while both
+nodes download 16 MiB from the other. All four direction totals reach 16 MiB,
+and the radio remains unpaused and advances more than 60 seconds through the
+transfer completion. The test also verifies that a repeated ticket request is
+rejected with the expected `radio_fairness_limited` response during the
+transfer, then that a fresh ticket serves a 65,536-byte range after transfers
+finish and the active browser stream is stopped. The runner passed 1/1 in 2.4
+minutes; strict E2E type checking passed. Confidence is high for the capped
+two-node loopback scenario and low for extrapolating to WAN behavior.
+
+The first run exposed a test-ordering defect: it opened a second ranged stream
+while the browser still owned the first stream, so the deliberate one-active
+stream limit returned 429. The test now waits for playback to remain active
+through all transfers, stops it, then verifies the fresh ranged stream. This
+preserves the production concurrency limit.
 
 ## Remaining completion work
 
-- Verify repeated radio admissions during actual Soulseek reciprocal transfers and sustained playback over representative WAN latency. The loopback radio scenario now delays each mesh TCP stream chunk by 60 ms per direction and separately constrains the browser-to-listener HTTP leg; this does not model WAN packet loss, jitter, route changes or real sustained congestion. Active snapshot replacement and withdrawal now pass against two real backends. Upload/download counters include network-confirmed payload, but the radio harness does not exercise Soulseek file transfers.
+- Verify repeated radio admissions, buffering, seeking and recovery under representative WAN latency, packet loss, jitter, routing changes and sustained congestion. The local reciprocal-transfer scenario is covered above; the loopback radio scenario also delays each mesh TCP stream chunk by 60 ms per direction and separately constrains the browser-to-listener HTTP leg, but neither models real WAN paths. Active snapshot replacement and withdrawal pass against two real backends, and upload/download counters include network-confirmed payload.
 - Verify physical mobile interactions, physical output routing/media buttons,
   and Picture-in-Picture window sizing/focus.
 - Attribute the sustained owned-tree PSS rise seen in the two-hour native run,
@@ -581,13 +604,12 @@ bootstrap, same-ticket response replacement and ticket-lifetime fairness
 admission address those boundaries without increasing concurrent streams or
 read pacing. Live room subscriptions also enforce pod membership on join.
 
-Still required: ticket/capability expiry and renewal, permission revocation in
-the browser, source replacement and dual-participant reconnect. Fairness
-lifecycle needs broader validation: overlay upload accounting has no production
-call sites, so repeated playback admissions and reciprocal serving cannot yet
-be treated as verified. Continuous membership revocation after a hub group
-join is also unverified. These remain open alongside existing format, browser,
-physical-device, accessibility and sustained-resource requirements.
+At the time of this 2026-09-28 run, ticket/capability expiry and renewal,
+permission revocation in the browser, source replacement, dual-participant
+reconnect and reciprocal fairness were still open. Later evidence is recorded
+in the current cross-engine and reciprocal-transfer sections above. Continuous
+membership revocation after a hub group join remains unverified in this dated
+run.
 
 ## Connected radio final gates — 2026-09-28
 
@@ -1684,11 +1706,12 @@ queued bytes, and unsent stream reads. A traffic-store error is logged without
 changing the peer transfer result. Lifecycle regressions cover completed and
 partial transfers, zero-byte callbacks, and accounting-store failure.
 
-Repeated admission during sustained traffic and while a Soulseek upload is
-still in progress remains open. The LAN-only two-node radio fixture has no real
-Soulseek download path, so current proof stops at the actual upload service
-reporter and unit-level accounting. Do not close the sustained-use task based
-only on completed-attempt accounting.
+At the time of this 2026-09-28 accounting review, the LAN-only radio fixture
+had no real Soulseek download path, so proof stopped at the upload reporter
+and unit-level accounting. The 2026-10-03 two-node overlap workflow now
+verifies reciprocal transfers while playback is active; longer WAN use remains
+open. Do not close sustained resource work based only on completed-attempt
+accounting.
 
 ## Live fairness visibility follow-up — 2026-09-28
 

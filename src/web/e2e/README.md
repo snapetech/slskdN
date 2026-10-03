@@ -113,6 +113,19 @@ node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types \
 pnpm --filter @slskdn/web test:core:soulseek-journeys
 ```
 
+The Player radio overlap runner exercises a listed stream during reciprocal
+Soulseek transfers between two local nodes, checks the fairness response while
+traffic is active, and confirms a fresh ranged stream after the active Player
+stream is stopped. Each node is capped at 128 KiB/s. Run it with:
+
+```bash
+pnpm --filter @slskdn/web test:player:soulseek-radio
+```
+
+It uses the pinned loopback Soulfind image with `--pull=never` and publishes
+its port only on `127.0.0.1`; it does not contact public Soulseek peers. This
+is loopback evidence and does not establish WAN behavior.
+
 ## Test Harness
 
 The `MultiPeerHarness` manages multiple slskdn instances for cross-node testing:
