@@ -34469,3 +34469,18 @@ appear before the native audio context transition has settled.
 **Prevention:** Assert the error message and eventual audio-context state as
 separate conditions. Wait for the context to reach `suspended` instead of
 assuming a rendered message also means asynchronous graph cleanup completed.
+
+### 0z1346. Keep Active Pane Element Types Stable Across Parent Renders
+
+**What went wrong:** Library Health declared `OverviewPane` and `IssuesPane`
+inside the stateful parent, then rendered them as React component elements.
+Every path edit or issue-selection update created new function identities, so
+React could remount the active pane and drop keyboard focus.
+
+**Why:** A function declared during render has a new identity on every parent
+render. Using that function as an element type tells React it is a different
+component even when the returned markup is unchanged.
+
+**Prevention:** Declare pane components at module scope, or use render helpers
+that return a stable root element type directly. Add a focus-retention test for
+controlled inputs and selection controls that update the parent.
