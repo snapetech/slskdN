@@ -34846,3 +34846,19 @@ directory, while `pnpm --filter @slskdn/web exec playwright` runs from
 **Prevention:** Resolve the repository root relative to the actual package
 working directory and run a fixture-gated browser test to verify it is not
 being skipped when the repository fixtures are present.
+
+### 0z1374. Pin Core Journey E2E Nodes To The Loopback Soulseek Server (2026-10-03)
+
+**What went wrong:** The core journey runner set `SLSK_ADDRESS` and `SLSK_PORT`,
+but the app's prefixed environment names are `SLSKD_SLSK_ADDRESS` and
+`SLSKD_SLSK_PORT`. The node therefore used its configured public server
+endpoint instead of the local Soulfind fixture.
+
+**Why:** The test relied on environment-variable binding and did not verify the
+effective endpoint before starting network-connected nodes. The generated
+per-node YAML is a higher-precedence configuration source.
+
+**Prevention:** Put the loopback address and dynamic fixture port directly in
+the per-node Soulseek configuration for this test, validate that the test
+endpoint is loopback before launching either node, and confirm the startup log
+shows that endpoint before treating the local journey as isolated.
