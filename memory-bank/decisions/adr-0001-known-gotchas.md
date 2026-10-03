@@ -35326,3 +35326,18 @@ boundary.
 extension, close the stream, then inspect. Publish only accepted files. If
 quarantine fails, remove the rejected staging file before surfacing failure.
 Keep regressions that assert the normal target is absent on rejection.
+
+### 0z1404. Make Staging Cleanup Idempotent After Quarantine (2026-10-03)
+
+**What went wrong:** The content-safety helper moved a rejected file into
+quarantine and removed its now-empty staging directory. The multi-source
+`finally` then attempted to delete the original staging path and threw
+`DirectoryNotFoundException`, replacing the intended rejected-download result.
+
+**Why:** Cleanup assumed the staging parent still existed after another
+successful disposition path had already removed it.
+
+**Prevention:** Staging deletion must check for file existence and remain
+idempotent when quarantine or publication already moved the file and removed
+its private staging directories. Keep a receiver regression through the
+outermost cleanup path.
