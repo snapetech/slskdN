@@ -34862,3 +34862,18 @@ per-node YAML is a higher-precedence configuration source.
 the per-node Soulseek configuration for this test, validate that the test
 endpoint is loopback before launching either node, and confirm the startup log
 shows that endpoint before treating the local journey as isolated.
+
+### 0z1375. Match Search Badge Assertions To The Result Provider (2026-10-03)
+
+**What went wrong:** The core Soulseek journey required a `MESH` badge on a
+result returned by the local Soulseek search server. The browser found the
+peer and file, but the result correctly had no mesh-provider badge.
+
+**Why:** The test conflated a result being local to the test network with the
+result being discovered by the mesh provider. Search cards show `MESH` only
+when their `sourceProviders` includes `mesh`.
+
+**Prevention:** Assert source labels only when a workflow deliberately tests
+that provider. Keep the core Soulseek search/download journey focused on the
+peer, file, and successful transfer; give mesh discovery a separate fixture
+and explicit provider assertion.
