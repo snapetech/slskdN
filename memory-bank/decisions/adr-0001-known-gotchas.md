@@ -34438,3 +34438,19 @@ silently duplicate and cancel asynchronous work.
 real root change requires it. For request effects, test that the first request
 is the one whose failure reaches the user; do not let an initialization update
 consume one-shot failure paths or mask a rejected request.
+
+### 0z1344. Await Fomantic Card Interactions In Component Tests (2026-10-03)
+
+**What went wrong:** The full Web suite intermittently failed the MediaCore
+workflow-focus test after a raw `fireEvent.click` on a Fomantic Card, reporting
+that its event handler was called before its callback ref was installed. The
+same test passed when run alone.
+
+**Why:** Fomantic UI React 3 stores the latest Card handler in a ref updated by
+an isomorphic layout effect. A synchronous synthetic click and immediate
+assertion can outrun that effect under full-suite scheduling, producing a test
+failure that does not match a completed browser interaction.
+
+**Prevention:** Use an awaited `userEvent` interaction for Fomantic controls,
+then wait for the visible result. When a test passes alone but fails in the
+full Web suite, retain the full-suite scheduling as part of the regression.
