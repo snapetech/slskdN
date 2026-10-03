@@ -34765,3 +34765,15 @@ branch, so the presence of cached messages hid the failed request.
 independent accessible error and retry control. After an initial load fails,
 do not render the successful-empty message until a retry succeeds. Cover both
 initial and subsequent refresh failures.
+
+### 0z1368. Give Debug View Requests An In-Modal Recovery Path (2026-10-03)
+
+**What went wrong:** Options Debug View reported a failed request only through a
+toast and browser console. The open modal showed no reason or retry action.
+
+**Why:** The request handler treated the debug view as background diagnostics,
+even though the user was waiting inside a modal for that result.
+
+**Prevention:** Render the normalized failure in the active modal and provide a
+retry control there. Ignore responses from requests that outlive the modal or
+are superseded by a later retry.
