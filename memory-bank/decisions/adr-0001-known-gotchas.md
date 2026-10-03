@@ -34791,3 +34791,16 @@ name.
 **Prevention:** Keep loading, request failure, disabled status, and successful
 status distinct. Provide an in-place retry and test WebID by its rendered
 accessible name after explicitly associating the label and input.
+
+### 0z1370. Keep Tooltips Available On Disabled Compact Buttons (2026-10-03)
+
+**What went wrong:** Options controls gained explanatory Semantic UI Popups,
+but the disabled remote-edit button could not trigger its Popup because the
+disabled button itself was the trigger.
+
+**Why:** Disabled native buttons do not reliably dispatch hover and focus
+events to the Popup trigger.
+
+**Prevention:** When a Popup explains a disabled button, use a neutral wrapper
+as the Popup trigger while keeping the actual button disabled. Verify the
+guidance can be shown in the rendered UI.
