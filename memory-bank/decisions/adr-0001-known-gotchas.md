@@ -34633,3 +34633,17 @@ send attempt that had simply not cleared.
 **Prevention:** Show an accessible error beside the composer, retain the draft,
 and let the user retry through the existing Send action. Test a failed send
 followed by a successful retry.
+
+### 0z1358. Use Messaging Theme Tokens For Error Contrast (2026-10-03)
+
+**What went wrong:** The new composer error used a dark Semantic UI red as its
+text color against Messaging's dark surface, which would make the new failure
+message difficult to read.
+
+**Why:** The route uses its own dark and light theme tokens, so a color that is
+readable in a generic light Semantic UI segment is not necessarily readable
+inside the Messaging workspace.
+
+**Prevention:** Use the Messaging foreground token for error text and semantic
+danger tokens for the border and background. Check both Messaging themes when
+adding new inline status surfaces.
