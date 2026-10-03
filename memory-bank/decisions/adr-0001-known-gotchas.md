@@ -34673,19 +34673,6 @@ passing an input id does not guarantee that the generated label references it.
 does not expose the association, and query the rendered control by its
 accessible name in component tests.
 
-### 0z1363. Recheck Cancellation After Search Result Delays (2026-10-03)
-
-**What went wrong:** Search Detail waited briefly before fetching completed
-results but checked its cleanup flag only after the request. Leaving the route
-during that wait still started a stale API request.
-
-**Why:** Effect cleanup cancelled the scheduled start before it ran, but could
-not interrupt a delay that had already begun.
-
-**Prevention:** Recheck cancellation after each awaited delay and before
-starting network work. Test unmounting during the delay and verify the request
-never starts.
-
 ### 0z1361. Await Browser Clipboard Writes Before Reporting Success (2026-10-03)
 
 **What went wrong:** Experience Settings called `navigator.clipboard.writeText`
@@ -34711,3 +34698,30 @@ feedback and did not connect request failures to rendered workspace state.
 **Prevention:** Render a polite, accessible workspace error for failed user
 actions, include the server detail when available, and preserve the user's
 draft so they can retry. Verify one failure path through the rendered route.
+
+### 0z1363. Recheck Cancellation After Search Result Delays (2026-10-03)
+
+**What went wrong:** Search Detail waited briefly before fetching completed
+results but checked its cleanup flag only after the request. Leaving the route
+during that wait still started a stale API request.
+
+**Why:** Effect cleanup cancelled the scheduled start before it ran, but could
+not interrupt a delay that had already begun.
+
+**Prevention:** Recheck cancellation after each awaited delay and before
+starting network work. Test unmounting during the delay and verify the request
+never starts.
+
+### 0z1364. Preserve Messaging Lists When Hydration Fails (2026-10-03)
+
+**What went wrong:** MessagingV2 logged failed conversation and pod-list
+requests, converted saved/discovered pod failures into empty arrays, and could
+render normal empty-state copy or clear the last successful pod data.
+
+**Why:** The hydration error paths reused the same empty-array value as a
+successful response, so the UI could not tell whether it had loaded no data or
+had failed to load data.
+
+**Prevention:** Keep load failures separate from successful empty results,
+preserve the last successful data while showing an error, and expose a retry
+for the affected list. Test failure followed by successful retry.
