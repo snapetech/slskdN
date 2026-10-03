@@ -35913,14 +35913,17 @@ increase even though it was using the horizontal direction key.
 
 **Why:** The equalizer uses a native range input with `writing-mode:
 vertical-lr`. Browser keyboard handling for a vertical native range follows
-the slider axis and can reverse the horizontal key's effect. The HTML Standard
-places the lowest value at the top for a left-to-right vertical range control.
+different axes: the isolated browser probe increased with Down/Right in
+Chromium, Up/Right in Firefox, and Up/Left in WebKit. Users therefore got
+different gain changes for the same arrow key.
 
-**Correction:** The first version of this gotcha reversed the vertical keys.
-Chromium also changes `0 dB` to `-1 dB` on `ArrowUp` for this control.
+**Correction:** Earlier guidance to use one vertical arrow key was incomplete.
+The disagreement is between browser engines and cannot be solved by choosing
+one native arrow key for every browser.
 
-**Prevention:** The HTML Standard places the lowest value at the top of a
-left-to-right vertical range control, so use `ArrowDown` to increase and
-`ArrowUp` to decrease the equalizer gain. Assert the expected value from its
-`0 dB` baseline. Keep `ArrowLeft` and `ArrowRight` for horizontal player
-controls such as volume and seek.
+**Prevention:** For a cross-browser vertical range control, handle all four
+arrow keys explicitly: Up/Right increase by one step; Down/Left decrease by
+one step. Prevent the browser's native key action before updating the
+controlled value, clamp to the input bounds, and expose `aria-orientation` as
+`vertical`. Keep native key handling for horizontal player controls such as
+volume and seek.
