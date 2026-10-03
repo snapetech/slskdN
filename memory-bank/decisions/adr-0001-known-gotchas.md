@@ -36029,6 +36029,24 @@ and identity changes visible as unavailable; a vanished PID must not be
 re-read as if it were the same process. Preserve explicit endpoint and churn
 limits in any resource conclusion.
 
+### 0z1449. Alias Build-Tools References When Linked Sources Duplicate Types (2026-10-03)
+
+**What went wrong:** Adding the build-tools project as a normal unit-test
+reference caused `CS0433` for CodeQuality types such as `MethodRiskLevel`.
+The build-tools project links the CodeQuality source glob while the runtime
+project also compiles runtime-used helpers from that directory, so both
+assemblies exposed types with the same fully qualified names.
+
+**Why:** Moving a test dependency from the application assembly to the tooling
+assembly exposed the existing linked-source overlap. Project references are
+global by default, and the compiler could no longer choose an assembly for
+duplicated public types.
+
+**Prevention:** When a test needs only selected types from a linked-source
+project, give that project reference an explicit C# alias and access the
+intended types through `extern alias`. Alternatively, narrow the tooling
+project's compile items before exposing its public types globally.
+
 ### 0z1448. Keep Build-Time Roslyn Out Of The Runtime Package (2026-10-03)
 
 **What went wrong:** The application project referenced `Microsoft.CodeAnalysis.CSharp`
