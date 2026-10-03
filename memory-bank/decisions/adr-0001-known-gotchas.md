@@ -34750,3 +34750,18 @@ failure had no corresponding UI state or save-blocking result.
 **Prevention:** Catch validator failures, render their normalized details as
 validation errors, and prevent the configuration update until validation
 succeeds.
+
+### 0z1367. Keep Message Refresh Failures Visible With Existing History (2026-10-03)
+
+**What went wrong:** MessageStream stored polling failures, but only used the
+error when deciding which empty-state copy to show. Once any messages had
+loaded, a later refresh failure disappeared from the interface and had no
+retry action.
+
+**Why:** The message list and refresh status were rendered as one success/error
+branch, so the presence of cached messages hid the failed request.
+
+**Prevention:** Keep the last successful messages visible while rendering an
+independent accessible error and retry control. After an initial load fails,
+do not render the successful-empty message until a retry succeeds. Cover both
+initial and subsequent refresh failures.
