@@ -34910,3 +34910,21 @@ behavior and regression coverage exist. Preserve legacy stored keys when
 updating the active preference subset. In Playwright, activate a Semantic UI
 checkbox through its visible label when the hidden, read-only input intercepts
 pointer clicks.
+
+### 0z1378. Do Not Pace Listed-Radio Reads Below Playback Demand (2026-10-03)
+
+**What went wrong:** `MeshStreamService.FetchAndCopyAsync` waited 200 ms after
+every 44 KiB listed-radio read. An isolated 96 kHz stereo PCM playback check
+advanced only 105.5 seconds in 220 seconds even though the browser link allowed
+512 KiB/s and the stream returned no transport errors.
+
+**Why:** A fixed delay was added to be conservative with peer traffic, but it
+limited useful delivery to roughly 220 KiB/s before mesh-call and HTTP overhead,
+below the 384,000 bytes/s consumed by this audio format. The existing per-peer
+service-call budget and one-stream host limiter already bound radio activity.
+
+**Prevention:** Keep radio reads bounded by the mesh payload cap, per-peer call
+budget, and single-stream limits, but do not add a fixed per-chunk sleep that
+prevents supported playback from keeping its buffer filled. Validate playback
+and long seeks under a documented listener bandwidth cap using an isolated
+mesh test.
