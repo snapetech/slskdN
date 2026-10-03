@@ -34725,3 +34725,28 @@ had failed to load data.
 **Prevention:** Keep load failures separate from successful empty results,
 preserve the last successful data while showing an error, and expose a retry
 for the affected list. Test failure followed by successful retry.
+
+### 0z1365. Show Remote Options Load Errors With Retry (2026-10-03)
+
+**What went wrong:** The Options editor reduced a failed remote YAML load to a
+generic placeholder and discarded the response detail. The user could not
+retry the load from the open editor.
+
+**Why:** The load catch retained only `error.message`, while the loading/error
+switch rendered a static placeholder without an action.
+
+**Prevention:** Normalize the response detail at the load boundary, render it
+inside the active editor, and provide an in-place retry that reloads the YAML
+and location together.
+
+### 0z1366. Catch Rejected Options Validation Requests (2026-10-03)
+
+**What went wrong:** EditModal.validate allowed a rejected network request to
+escape from the editor's change handler and Save path as an unhandled promise.
+
+**Why:** Validation responses were handled as validation results, but transport
+failure had no corresponding UI state or save-blocking result.
+
+**Prevention:** Catch validator failures, render their normalized details as
+validation errors, and prevent the configuration update until validation
+succeeds.
