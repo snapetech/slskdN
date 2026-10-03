@@ -22,11 +22,6 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-### Authentication-disabled browser sessions
-
-- Preserve the no-auth passthrough session when background API requests return
-  401, preventing repeated page reloads while keeping JWT expiry behavior.
-
 ## [2026100314-slskdn.334] — 2026-10-03
 
 ### Authentication-disabled browser sessions
