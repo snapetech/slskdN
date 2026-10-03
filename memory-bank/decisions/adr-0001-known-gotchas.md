@@ -35188,3 +35188,19 @@ before validating that the resolved file remained under an allowed local root.
 normalize each candidate with `PathGuard.NormalizeAbsolutePathWithinRoots`
 before checking existence, size, hash, or registering its content ID. Keep a
 regression with an outside symlink under a configured local root.
+
+### 0z1395. Mock The Guarded Resolver In Mesh Content Tests (2026-10-03)
+
+**What went wrong:** `MeshContentMeshService` was changed to obtain local files
+through `IShareService.ResolveFileAsync`, which validates current share roots,
+but the real-host stream tests mocked only `GetLocalRepository` and
+`FindFileInfo`. The mock therefore returned no local file and two byte-preservation
+cases failed in the full unit suite.
+
+**Why:** The tests still modeled the old direct-repository access path and did
+not satisfy the new service contract.
+
+**Prevention:** Mesh content-serving tests must configure
+`ResolveFileAsync` with the local host, physical filename, and size. Keep direct
+repository mocks only for repository-index behavior, not for the guarded
+physical-file resolver.
