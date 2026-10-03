@@ -35009,3 +35009,22 @@ the response explains whether files were enqueued or rejected.
 HTTP status and response counts, and only then verify downloaded file contents.
 Do not catch an unexpected response timeout when that response is the workflow's
 primary result.
+
+### 0z1384. Advertise Reachable Share Endpoints Without Weakening SSRF Protection (2026-10-03)
+
+**What went wrong:** The multi-node Shared with Me backfill journey received an
+owner URL on `127.0.0.1`, which is only reachable from the owner's own host.
+Backfill correctly rejected that loopback URL through the public outbound URI
+guard, so the real file transfer never started.
+
+**Why:** Share announcements derived their owner URL from the web listener's
+port and hard-coded loopback. The feature had no configured peer-reachable base
+URL, while the backfill guard intentionally blocks remote-provided private
+destinations to prevent SSRF.
+
+**Prevention:** Advertise an explicitly configured HTTP(S) share endpoint.
+Keep the public outbound guard and its guarded connect callback for public
+hosts. If an operator needs a private/LAN owner, allow only its exact private
+or loopback IP origin in local sharing configuration; do not make the shared
+guard accept arbitrary private URLs, DNS hostnames, redirects, or link-local
+and reserved destinations.
