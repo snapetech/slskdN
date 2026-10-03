@@ -35881,3 +35881,19 @@ accessibility bus rather than relying on session-bus discovery for one side.
 WebKitGTK as `AT_SPI_BUS_ADDRESS` and to libatspi clients as
 `ATSPI_BUS_ADDRESS`. Check that Orca can resolve page objects before treating
 missing speech as an application live-region defect.
+
+### 0z1440. Capture Orca Speech Logs Through An Unbuffered Stream (2026-10-03)
+
+**What went wrong:** The Player speech E2E intermittently timed out waiting for
+Orca to announce “Playback stopped,” although the announcement appeared in the
+log after the runner shut Orca down.
+
+**Why:** Orca's `--debug-file` writes through a buffered Python file object and
+does not flush each debug line. The test reads that file while Orca is still
+running, so a spoken event can remain invisible until the buffer fills or the
+process exits.
+
+**Prevention:** Capture Orca's `--debug` stderr stream instead of `--debug-file`;
+Python's stderr is line-buffered even when redirected. Keep startup diagnostics
+separate only when stderr is not serving as the live speech log, and verify a
+new announcement is visible before Orca exits.
