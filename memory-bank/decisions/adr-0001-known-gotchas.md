@@ -34804,3 +34804,16 @@ events to the Popup trigger.
 **Prevention:** When a Popup explains a disabled button, use a neutral wrapper
 as the Popup trigger while keeping the actual button disabled. Verify the
 guidance can be shown in the rendered UI.
+
+### 0z1371. Wrap Disabled TooltipButton Triggers (2026-10-03)
+
+**What went wrong:** TooltipButton passed a disabled Fomantic button directly
+to Popup, so the explanatory guidance could not be opened while the action was
+unavailable.
+
+**Why:** Native disabled buttons do not reliably dispatch the hover event that
+opens a Popup.
+
+**Prevention:** Use a neutral span as the Popup trigger when TooltipButton is
+disabled; retain the disabled state on the actual button and test the rendered
+guidance on hover.
