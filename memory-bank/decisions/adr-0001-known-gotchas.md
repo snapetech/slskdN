@@ -35204,3 +35204,18 @@ not satisfy the new service contract.
 `ResolveFileAsync` with the local host, physical filename, and size. Keep direct
 repository mocks only for repository-index behavior, not for the guarded
 physical-file resolver.
+
+### 0z1396. Revalidate Mesh Proof-Of-Possession Chunk Paths (2026-10-03)
+
+**What went wrong:** Mesh proof-of-possession resolved a FLAC key through a
+cached local share-path index and opened the returned filename directly. A
+peer chunk request could therefore read a file outside configured shares
+after a share directory was replaced with a symlink.
+
+**Why:** The path cache records which file produced a key, but it does not
+prove that current filesystem components still resolve inside the share root.
+
+**Prevention:** Before opening a requested chunk, resolve the cached path with
+`PathGuard.NormalizeAbsolutePathWithinRoots` against the current configured
+share directories. Reject the request when the path is missing, the options
+are unavailable, or the resolved path escapes those roots.
