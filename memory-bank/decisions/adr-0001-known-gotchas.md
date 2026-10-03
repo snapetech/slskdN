@@ -34526,3 +34526,16 @@ enforce that persistence precondition.
 **Prevention:** Require a name and key value for a new API key policy, and
 require a replacement value before targeting a different name. Test both the
 blocked draft and the serialized YAML after completing it.
+
+### 0z1350. Reject Empty Required Policy Numbers Before Serialization (2026-10-03)
+
+**What went wrong:** Clearing a required integer control such as upload slots
+left Save enabled. The YAML serializer then substituted its default value and
+reported success instead of preserving the current policy or asking for input.
+
+**Why:** `toNumber` intentionally supplies a fallback for invalid input, while
+the external Save button bypasses browser form validation.
+
+**Prevention:** Validate required numeric form values before YAML generation;
+keep optional values explicitly separate. Verify that clearing a value blocks
+save and that restoring it persists the entered value.
