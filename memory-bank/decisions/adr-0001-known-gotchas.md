@@ -35821,3 +35821,17 @@ the minimal browser image does not include the `iproute2` package by default.
 **Prevention:** Install `iproute2` in container images that run the E2E harness,
 and keep the listener summary available so a bind failure can be distinguished
 from an application startup failure.
+
+### 0z1436. Include The ASP.NET Shared Framework In Containerized E2E Hosts (2026-10-03)
+
+**What went wrong:** The Playwright container found the .NET 10 runtime but the
+slskd test node exited because `Microsoft.AspNetCore.App` 10.0 was not
+installed.
+
+**Why:** The generic .NET runtime image includes `Microsoft.NETCore.App`, while
+the slskd web server also requires the ASP.NET Core shared framework.
+
+**Prevention:** Use a pinned ASP.NET runtime image for containers that launch
+slskd. Verify `dotnet --list-runtimes` includes both
+`Microsoft.NETCore.App` and `Microsoft.AspNetCore.App` at the target major
+version before running the E2E harness.
