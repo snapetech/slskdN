@@ -34817,3 +34817,17 @@ opens a Popup.
 **Prevention:** Use a neutral span as the Popup trigger when TooltipButton is
 disabled; retain the disabled state on the actual button and test the rendered
 guidance on hover.
+
+### 0z1372. Typecheck Every Playwright Browser Spec (2026-10-03)
+
+**What went wrong:** The `src/web/e2e` specs contained strict TypeScript
+errors in nullable DOM content, DOM element datasets, unchecked API JSON, share
+IDs, and Playwright URL callbacks. Playwright transpilation did not report
+these errors before browser execution.
+
+**Why:** This E2E directory had no dedicated strict TypeScript project or
+typecheck in its normal pre-test hooks.
+
+**Prevention:** Keep a strict browser-and-Node E2E tsconfig, narrow response and
+DOM values at boundaries, and run the typecheck before both local and CI
+Playwright suites.
