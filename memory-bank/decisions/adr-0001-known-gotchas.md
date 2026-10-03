@@ -35733,3 +35733,19 @@ indicating a socket implementation failure.
 `AllocationTestCollection`. For tests that poll a background service's
 readiness, set the startup token and polling deadline to a realistic budget for
 shared CI runners, while keeping the wait bounded.
+
+### 0z1430. Coalesce Rapid Player Status Events For Screen Readers (2026-10-03)
+
+**What went wrong:** Firefox exposed the Player's live status text to AT-SPI,
+but Orca did not speak `Now playing` for an auto-started local track. The log
+showed `Loading`, `BUFFERING`, and `Now playing` updates within about 30 ms;
+Orca classified the text-change events as duplicate updates and ignored them.
+
+**Why:** Playback lifecycle state can move through several intermediate values
+faster than a screen reader can process a polite live region. Updating the
+region for every transient state produced a burst instead of one useful final
+announcement.
+
+**Prevention:** Coalesce rapid loading and buffering transitions so the live
+region announces the settled playback state. Verify actual speech in Firefox
+with Orca in addition to checking the region's rendered text.
