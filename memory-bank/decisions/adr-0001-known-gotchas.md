@@ -35523,3 +35523,29 @@ to `bash -c`. A syntax-only check did not exercise that runtime expansion.
 **Prevention:** Pass nested command text with an explicit shell-safe quote
 splice or use positional arguments without reopening the outer quote. Run the
 actual script entry point after `bash -n` when editing nested shell invocations.
+
+### 0z1418. Give Containerized Accessibility Processes an NSS Identity (2026-10-03)
+
+**What went wrong:** Orca and the AT-SPI bus ran in a Debian container under
+the host's numeric UID, but that UID had no `/etc/passwd` entry in the image.
+The bus daemon could not resolve the process identity, and Orca timed out while
+registering with the accessibility bus.
+
+**Why:** Passing `--user UID:GID` changes process credentials but does not add
+that identity to the container's passwd or group databases. D-Bus authorization
+and desktop libraries still use NSS to resolve usernames.
+
+**Prevention:** Provide a minimal synthetic passwd/group mapping for the
+container user and retain the root entry needed by D-Bus policy. Verify that
+the accessibility bus answers before starting Orca.
+
+### 0z1419. Install Orca's XKB Runtime Helper (2026-10-03)
+
+**What went wrong:** Orca started in the screen-reader container but exited
+during user-settings initialization because it could not execute `xkbcomp`.
+
+**Why:** The minimal Debian image installed Orca without the separate XKB
+utilities package that supplies its modifier-map helper.
+
+**Prevention:** Install `x11-xkb-utils` in the dedicated Orca test image and
+keep a startup-level regression that reaches actual speech output.
