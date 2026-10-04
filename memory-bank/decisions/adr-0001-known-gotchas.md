@@ -5384,16 +5384,19 @@ stdout to EOF before starting to read stderr. `AudioSketchService` did the same
 for ffmpeg, while the Soulfind bridge redirected both streams without draining
 either, the obfs4 version check waited for exit without reading its pipes, and
 the long-running obfs4 proxy stopped reading stdout after its startup line and
-never drained stderr. Noisy children can fill a bounded pipe, block before
-exit, and leave the parent waiting indefinitely.
+never drained stderr. `PerceptualHasher` also attempted to read stderr before
+starting FFmpeg, which throws before extraction begins. Noisy children can fill
+a bounded pipe, block before exit, and leave the parent waiting indefinitely;
+redirected streams are unavailable until their child process starts.
 
 **Why:** Redirected stdout and stderr use separate bounded pipes. Making each
 read asynchronous does not prevent deadlock when the reads themselves are
 started sequentially.
 
 **Prevention:** Start draining stdout and stderr before awaiting either stream
-or process exit. When caller cancellation or an output failure interrupts a
-tool, terminate its process tree and observe the outstanding drain tasks.
+or process exit, and start the child before accessing its redirected streams.
+When caller cancellation or an output failure interrupts a tool, terminate its
+process tree and observe the outstanding drain tasks.
 
 **Files affected:**
 - `src/slskd/SongID/SongIdService.cs`
@@ -5402,6 +5405,7 @@ tool, terminate its process tree and observe the outstanding drain tasks.
 - `src/slskd/VirtualSoulfind/Bridge/SoulfindBridgeService.cs`
 - `src/slskd/Common/Security/Obfs4VersionChecker.cs`
 - `src/slskd/Common/Security/Obfs4Transport.cs`
+- `src/slskd/MediaCore/PerceptualHasher.cs`
 
 ### 0z853. Project Lidarr GET Resources Into Manual-Import Command Files
 
