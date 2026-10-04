@@ -8,7 +8,9 @@
 
 **What went wrong:** BitTorrent operations caught caller cancellation in broad
 exception handlers and returned empty results. Cleanup also reused the already
-canceled token, which could prevent a manager from being removed.
+canceled token, which could prevent a manager from being removed. The resolver's
+generic fetch handler also converted propagated cancellation into an ordinary
+candidate failure.
 
 **Why:** Cancellation was treated as an ordinary network failure, and cleanup
 was coupled to the caller's stopped operation.
@@ -16,7 +18,7 @@ was coupled to the caller's stopped operation.
 **Prevention:** Clean up torrent managers with a non-canceled cleanup path,
 then rethrow when the caller token is canceled. Keep timeout and network
 failures distinct from caller cancellation, and test that cancellation both
-propagates and releases manager resources.
+propagates through the resolver and releases manager resources.
 
 ### 0z1546. Do Not Log Magnet URL Previews (2026-10-04)
 
