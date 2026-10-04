@@ -36303,3 +36303,20 @@ standalone MSBuild host could resolve the target application's dependencies.
 **Prevention:** Validate analyzer loading through the real opt-in MSBuild
 target as well as unit tests. Ensure the runtime shared-framework directory is
 normalized before deriving its versioned sibling path.
+
+### 0z1465. Do Not Treat Name-Only Reflection Rules As Actionable Findings (2026-10-04)
+
+**What went wrong:** Once the MSBuild analyzer loaded the application types,
+it reported 4,281 async-naming warnings because every method ending in `Async`
+contains the substring `Sync`. It also flagged every Task-returning method
+without a cancellation token and every string parameter named for a path/query
+as a violation, producing thousands of non-actionable warnings.
+
+**Why:** These reflection rules infer naming, duration, and trust boundaries
+from substrings and return types alone. They do not inspect method bodies,
+callers, or actual input flow.
+
+**Prevention:** Exclude the `Async` portion from sync-name checks, and keep
+rules that infer long-running work or untrusted-input boundaries disabled until
+they analyze relevant method behavior. Verify rule counts against a whole-app
+run before enabling a reflection heuristic by default.
