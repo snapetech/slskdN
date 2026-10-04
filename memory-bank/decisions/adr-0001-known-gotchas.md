@@ -36289,3 +36289,17 @@ the complete event sequence.
 **Prevention:** Remove a rule's detector when retiring it from configuration,
 and have task tests assert over the full warning/error event collection so both
 specific diagnostics and their final task result remain covered.
+
+### 0z1464. Test Framework Probing Outside An ASP.NET-Capable Test Host (2026-10-04)
+
+**What went wrong:** The analyzer's unit test passed because its test process
+already had ASP.NET shared-framework assemblies available, while the actual
+MSBuild task host still failed to load `Microsoft.Extensions.Hosting.Abstractions`.
+
+**Why:** The custom load context's shared-framework fallback was not exercised
+by the unit-test environment, so passing unit analysis did not prove the
+standalone MSBuild host could resolve the target application's dependencies.
+
+**Prevention:** Validate analyzer loading through the real opt-in MSBuild
+target as well as unit tests. Ensure the runtime shared-framework directory is
+normalized before deriving its versioned sibling path.
