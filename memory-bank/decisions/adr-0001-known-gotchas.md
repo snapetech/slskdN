@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1558. Update The Changelog Used By Release Tooling (2026-10-04)
+
+**What went wrong:** A fix was added to the repository-root `CHANGELOG.md`,
+but the staged release check rejected the change because release-note tooling
+reads `docs/CHANGELOG.md`.
+
+**Why:** The repository has two changelog files, and the release generator's
+authoritative path is not the conventional root filename.
+
+**Prevention:** Put shipped feature and fix bullets in `docs/CHANGELOG.md`,
+then run `scripts/validate-changelog-entry.sh staged` before committing.
+
 ### 0z1557. Count Immediate Rate-Limiter Callbacks Against The Concurrency Limit (2026-10-04)
 
 **What went wrong:** `RateLimiter.Invoke` ran its first callback directly without
