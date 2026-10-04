@@ -36141,10 +36141,11 @@ did not reserve it across concurrently publishing rooms or check an existing
 DHT announcement's owner before a new listing replaced that key.
 
 **Prevention:** Atomically reserve a newly listed party ID against other local
-rooms before persisting the event, and reject a DHT key already owned by a
-different peer or room. Preserve ownership checks during directory refresh.
-The current DHT API has no compare-and-swap, so do not claim race-free global
-allocation across nodes without a stronger distributed primitive.
+room and host owners before persisting the event, and reject a DHT key already
+owned by a different room or host peer. Ignore private unlisted snapshots
+during radio lookup. The current DHT API has no compare-and-swap, so do not
+claim race-free global allocation across nodes without a stronger distributed
+primitive.
 
 ### 0z1455. Scope Party ID Uniqueness To Listed Radio Ownership (2026-10-04)
 
@@ -36161,3 +36162,16 @@ room state with public radio identity.
 radio lookup select only listed local state. Keep ordinary private playback
 outside the DHT ownership preflight; preserve the current room's accepted ID
 when processing unlist/Stop cleanup.
+
+### 0z1456. Compile Extended Ownership Predicates Before Continuing (2026-10-04)
+
+**What went wrong:** Extending the local and remote party-owner predicates
+missed the closing parenthesis for each `if (Any(...))` expression, stopping
+the backend from compiling.
+
+**Why:** The nested lambda, grouping expression, `Any` call, and `if` each own
+their own delimiter. Reviewing only the predicate text did not verify the
+complete expression.
+
+**Prevention:** Compile the touched backend slice after changing nested
+ownership predicates before continuing to unrelated edits.
