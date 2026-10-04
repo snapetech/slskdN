@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1531. Keep Caller Cancellation Separate From STUN Timeouts (2026-10-04)
+
+**What went wrong:** STUN DNS resolution and response waits converted caller
+cancellation into a missing probe result, and the detector converted any
+remaining cancellation into `NatType.Unknown`. A canceled caller could therefore
+continue through fallback probes and receive a normal result.
+
+**Why:** Local DNS/response timeouts and caller-requested cancellation shared
+the same recovery path even though only the local timeout is a best-effort
+probe failure.
+
+**Prevention:** Rethrow cancellation when the caller token is canceled at the
+DNS, response, and detector boundaries. Treat only the detector's own bounded
+DNS/response timeout as a missing probe result. Verify that a pre-canceled call
+does not start network work.
+
 ### 0z1530. Match Background Shutdown Catches To Their Owning Token (2026-10-04)
 
 **What went wrong:** Several worker shutdown paths treated every
