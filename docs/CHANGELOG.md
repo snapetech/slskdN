@@ -29,6 +29,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
   subprocess checks now terminate child processes. Large command output can no
   longer block these workflows on a full pipe.
 
+### Linux packaging
+
+- Wait up to three hours for Launchpad to publish the exact PPA binary after
+  its source build succeeds, avoiding a false workflow failure when binary
+  publication finishes shortly after the previous 90-minute limit.
+
 ### Developer tooling
 
 - Bind the opt-in blocking-call and dangerous-API diagnostics to symbols from
