@@ -97,6 +97,21 @@ unrelated failure, or completion before the cancellation signal.
 success. Treat unrelated faults and operations already complete before the
 cancellation request as unsuccessful, and add regressions for each case.
 
+### 0z1485. Keep Friend-Code Resolution Asynchronous (2026-10-04)
+
+**What went wrong:** `ProfileService.DecodeFriendCode()` synchronously blocked
+on asynchronous profile and contact reads with `GetAwaiter().GetResult()`. It
+also caught every failure and returned `null`, making storage faults look like
+an unrecognized friend code.
+
+**Why:** The public service method exposed a synchronous shape over APIs that
+are inherently asynchronous, and combined lookup with a catch-all fallback.
+
+**Prevention:** Expose an async friend-code resolution method with a
+cancellation token. Await each store read and allow cancellation and unexpected
+storage failures to reach the caller; reserve `null` for invalid or unmatched
+codes.
+
 ### 0z1471. Cross-Check DHT Identity Documentation Against Production Derivation (2026-10-04)
 
 **What went wrong:** The T-902 research note said the production Kademlia
