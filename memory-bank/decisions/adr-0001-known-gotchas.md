@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1516. Preserve Caller Cancellation Through Optional Planner Backends (2026-10-04)
+
+**What went wrong:** `MultiSourcePlanner` caught every backend exception and
+continued. A backend honoring the caller's canceled token therefore became an
+ordinary missing candidate source, and planning could return a partial result.
+
+**Why:** The planner's best-effort backend fallback did not distinguish an
+optional backend failure from cancellation of the entire planning request.
+
+**Prevention:** Rethrow `OperationCanceledException` when the caller token is
+canceled before handling recoverable backend failures. Test cancellation at a
+backend boundary and assert later backends are not queried.
+
 ### 0z1515. Preserve Cancellation Through Final Content Safety Checks (2026-10-04)
 
 **What went wrong:** Multi-source final-output safety inspection always received
