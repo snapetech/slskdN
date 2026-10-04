@@ -4,6 +4,27 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1486. Do Not Hide Music Actor Provider Failures As An Empty Outbox (2026-10-04)
+
+**What went wrong:** `MusicContentDomainProvider.GetRecentItemsAsync()` logged
+HashDb failures and returned an empty collection, while
+`MusicLibraryActor.GetRecentWorkRefsAsync()` also caught provider failures and
+cancellation and returned an empty collection. Its comments said the base
+actor handled those failures, but `LibraryActor.GetRecentActivitiesAsync()` has
+no such handler. A broken or cancelled provider read therefore looked like a
+successful empty ActivityPub outbox response.
+
+**Why:** Error recovery was implemented as catch-and-return-empty at both the
+database provider and actor boundaries. The actor also reused its per-item
+fallback for whole-batch failures without preserving cancellation or reporting
+the error.
+
+**Prevention:** Let HashDb failures and cancellation propagate through the
+provider and actor to the request boundary. If individual items are
+intentionally skipped, catch only around their conversion and log the item
+failure; do not turn a failed batch read into a successful empty result. Cover
+provider exceptions and cancellation with regressions.
+
 ### 0z1479. Do Not Couple API Availability To Automatic Network Advertising (2026-10-04)
 
 **What went wrong:** Enabling the broad Identity/Friends feature also started
