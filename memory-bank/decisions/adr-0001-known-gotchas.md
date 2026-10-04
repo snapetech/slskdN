@@ -4,6 +4,24 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1493. Distinguish Caller Cancellation From Expected Verification Probe Timeouts (2026-10-04)
+
+**What went wrong:** `ContentVerificationService` converted every
+`OperationCanceledException` from a Soulseek probe into a timeout result. Its
+HashDb lookup and store helpers also caught caller cancellation and continued
+with fallbacks. A canceled verification request could therefore return a
+partial result and proceed to later persistence work instead of stopping.
+
+**Why:** Verification intentionally cancels its own transfer after reading
+the required 32 KB, so cancellation was treated broadly as an expected probe
+outcome. That did not distinguish the bounded internal cancellation from the
+caller token.
+
+**Prevention:** Keep the `LimitedWriteStream.LimitReached` cancellation as the
+expected success path, but rethrow cancellation when the caller token is
+cancelled through HashDb lookup, peer verification, and hash storage. Cover
+both request cancellation and the deliberate post-chunk cancellation.
+
 ### 0z1492. Fail Closed When The Persistent Soulseek Probe Budget Is Unavailable (2026-10-04)
 
 **What went wrong:** `ContentVerificationService` caught probe-budget load and
