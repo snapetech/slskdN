@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1467. Check Visibility Emulation Against The Pinned Chromium Protocol (2026-10-04)
+
+**What went wrong:** A local Playwright probe called
+`Emulation.setPageVisibilityState` to force a hidden document, but the pinned
+Chromium protocol rejected the command as unknown.
+
+**Why:** The command name was assumed from memory and was not present in this
+browser build's DevTools protocol.
+
+**Prevention:** Verify DevTools commands against the browser version used by the
+test harness before building coverage around them. Prefer an actual headed tab
+focus change when the goal is to exercise browser background behavior.
+
 ### 0z1466. Verify A Playwright Page Is Actually Hidden Before Testing Visibility Recovery (2026-10-04)
 
 **What went wrong:** The Player E2E opened a second blank page and assumed the
