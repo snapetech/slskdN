@@ -65,6 +65,21 @@ cancellation signal and link it to the caller token. Ensure generator disposal
 cancels active enumerators before releasing owned resources, and cover both
 explicit disposal and live configuration replacement with regression tests.
 
+### 0z1483. Preserve Cleanup Worker State After A Bounded Dispose Wait (2026-10-04)
+
+**What went wrong:** `PrivateGatewayMeshService.Dispose()` ignored the result of
+its one-second cleanup-task wait and always disposed the cancellation source.
+If tunnel cleanup was still in progress, the worker could resume and access
+that disposed source on its next loop iteration, faulting after its owner had
+returned from disposal.
+
+**Why:** The bounded wait limited shutdown latency, but its timeout path did not
+retain the state still owned by the running worker.
+
+**Prevention:** Dispose worker-owned cancellation resources only after the
+worker has completed. If shutdown times out, retain the resources until a
+completion continuation performs cleanup, and observe late worker faults.
+
 ### 0z1471. Cross-Check DHT Identity Documentation Against Production Derivation (2026-10-04)
 
 **What went wrong:** The T-902 research note said the production Kademlia
