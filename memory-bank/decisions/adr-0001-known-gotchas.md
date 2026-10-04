@@ -36113,3 +36113,17 @@ logging API, whose formatted overload expects numeric composite tokens.
 **Prevention:** Use an interpolated string with the single-string logging
 overload, or use numeric composite tokens with matching arguments. Exercise
 error-reporting paths so diagnostics do not throw while reporting failures.
+
+### 0z1453. Assert Exception Messages Without Assuming Type Names (2026-10-03)
+
+**What went wrong:** A build-task regression expected `Exception.Message` to
+contain `BadImageFormatException`. The runtime message carried the load failure
+details but omitted the exception type, so the test failed even though the
+task correctly captured and reported the warning.
+
+**Why:** The exception type and its human-readable message are separate data;
+framework exceptions do not promise to repeat the type name in `Message`.
+
+**Prevention:** Assert stable message content for user-facing diagnostics. If
+the exception type itself is part of the contract, capture the exception type
+separately instead of inferring it from `Exception.Message`.
