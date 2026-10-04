@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1526. Do Not Mark Port-Forwarding Workers Complete On A Wait Timeout (2026-10-04)
+
+**What went wrong:** `ForwarderConnection.CloseAsync` set its mapping completion
+task after a one-second wait timed out, then disposed the cancellation source
+while mapping work could still be blocked in a mesh call.
+
+**Why:** A bounded caller wait was mistaken for proof that the worker had
+stopped; the task completion source and cancellation source were also cleaned
+up from both the closer and worker paths.
+
+**Prevention:** Let only the coordinator that joins all mapping and queue tasks
+signal completion and dispose their linked cancellation source. On close
+timeout, report the timeout and leave both worker state and completion truthful
+until the workers really finish. Test with a mesh call that ignores
+cancellation.
+
 ### 0z1525. Use Async Disposal For Port-Forwarder Tunnel Cleanup (2026-10-04)
 
 **What went wrong:** `LocalPortForwarder.Dispose` called each active
