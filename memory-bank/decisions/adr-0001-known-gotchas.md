@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1495. Qualify System.IO Directory Calls In Soulseek Tests (2026-10-04)
+
+**What went wrong:** A test fixture importing `Soulseek` used unqualified
+`Directory.CreateDirectory`, `Directory.Exists`, and `Directory.Delete`; the
+compiler resolved `Directory` to Soulseek's model type instead of
+`System.IO.Directory`.
+
+**Why:** The protocol library defines names that overlap with common filesystem
+types, and adding a filesystem fixture can introduce the collision even when
+the test itself does not use a Soulseek directory value.
+
+**Prevention:** In tests that import `Soulseek`, qualify filesystem types as
+`System.IO.File` and `System.IO.Directory` where the name may be ambiguous.
+
 ### 0z1494. Make Verification Failure Tests Reach The Download Call (2026-10-04)
 
 **What went wrong:** `VerifySourcesAsync_WhenDownloadThrows_ReturnsSanitizedFailureReason`
