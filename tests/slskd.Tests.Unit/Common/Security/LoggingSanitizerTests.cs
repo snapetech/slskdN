@@ -209,8 +209,10 @@ namespace slskd.Tests.Unit.Common.Security
         public void Sanitizers_EscapeLogBreakingControlCharacters()
         {
             var result = LoggingSanitizer.SanitizeQueryText("first\r\nsecond\tthird");
+            var pathResult = LoggingSanitizer.SanitizeExternalIdentifier("/safe\r\nforged");
 
             Assert.Equal("first\\r\\nsecond\\tthird", result);
+            Assert.Equal("/safe\\r\\nforged", pathResult);
         }
     }
 }

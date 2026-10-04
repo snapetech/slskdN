@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 using System;
 using System.Net;
 using System.Security.Cryptography;
@@ -47,7 +48,8 @@ public class MeshGatewayAuthMiddleware
         // This must be the very first check to ensure we return 404, not 400/403
         if (!_options.Enabled)
         {
-            _logger.LogDebug("[GatewayAuth] Mesh gateway is disabled, returning 404 for {Path}", context.Request.Path);
+            _logger.LogDebug("[GatewayAuth] Mesh gateway is disabled, returning 404 for {Path}",
+                LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value));
             context.Response.StatusCode = (int)HttpStatusCode.NotFound;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new { error = "mesh_gateway_disabled" });
@@ -160,7 +162,7 @@ public class MeshGatewayAuthMiddleware
         // Passed all checks
         _logger.LogDebug(
             "[GatewayAuth] Authorized request from {RemoteIp} to {Path}",
-            remoteIp, context.Request.Path);
+            remoteIp, LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value));
 
         await _next(context);
     }

@@ -17991,7 +17991,7 @@ release check confirmed `docs/CHANGELOG.md` is authoritative; gotcha `0z1558`
 is committed and pushed, and the changelog check passes.
 
 Active discovery is not complete: callback/event candidates now total 210 and
-red-team candidates 12,213; both remain open. Stable `.338` is published, its
+red-team candidates 12,219; both remain open. Stable `.338` is published, its
 Docker Omnibus Testers job completed, and its Launchpad PPA job is still
 in progress. Continue code-backed remediation while publication runs; then
 validate and cut `.339` through `scripts/create-release-tag.sh` after rechecking
@@ -18013,7 +18013,20 @@ fragment and changelog bullet are ready with the limiter fix.
 Stable `.338` has published its core artifacts and both Docker images; its
 Launchpad PPA job is the only release job still running. Keep `.339` untagged
 until that source publication completes. Recheck GitHub target and branch sync,
-move only the two shipped bullets into a dated `.339` section, validate the
+move the shipped Unreleased bullets into a dated `.339` section, validate the
 release note range, and then run the guarded tag helper. Continue the open
-whole-product backlog after release; the 210 callback and 12,213 red-team
+whole-product backlog after release; the 210 callback and 12,219 red-team
 candidates are discovery queues, not closed inventories.
+
+## Current state — Sanitize request diagnostics — 2026-10-04 23:24 UTC
+
+Removed query-bearing `RawTarget` from static-file and security-middleware
+logging, and escaped request paths at web diagnostic call sites. Raw targets
+remain available to request parsing and security checks. Updated sanitizer
+coverage, the security release note/changelog, task/progress state, and the
+remote-text diagnostic backlog classification. The full .NET and lint gates
+pass: 5,909 .NET tests, repository lint, active-backlog counts, local-identity
+scan, and whitespace validation. Remaining broad discovery queues are open at
+210 callback/event, 487 remote-text, 12,219 red-team, and 820 mutable-ownership
+candidates. Stable `.338` Launchpad PPA publication remains outstanding;
+publish `.339` only after it completes.

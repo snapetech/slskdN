@@ -48,7 +48,7 @@ public static class WebApplicationPipelineExtensions
             if (feature?.Error != null)
             {
                 var ex = feature.Error;
-                var path = context.Request.Path.Value ?? string.Empty;
+                var path = LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value);
                 var traceId = context.TraceIdentifier;
                 Serilog.Log.Error(ex, "[ExceptionHandler] Unhandled exception for {Method} {Path} traceId={TraceId}: {Message}",
                     context.Request.Method, path, traceId, ex.Message);
@@ -140,8 +140,8 @@ public static class WebApplicationPipelineExtensions
             var path = context.Request.Path.Value ?? string.Empty;
             if (path.Contains("mediacore", StringComparison.OrdinalIgnoreCase))
             {
-                Serilog.Log.Debug("[CSRF Middleware] Processing MediaCore request: {Method} {Path} (Raw: {RawPath})",
-                    context.Request.Method, path, context.Request.Path);
+                Serilog.Log.Debug("[CSRF Middleware] Processing MediaCore request: {Method} {Path}",
+                    context.Request.Method, LoggingSanitizer.SanitizeExternalIdentifier(path));
             }
 
             if (HttpMethods.IsGet(context.Request.Method) ||
@@ -172,7 +172,8 @@ public static class WebApplicationPipelineExtensions
                         context,
                         antiforgery,
                         optionsAtStartup.Web.Port,
-                        path => Log.Warning("[CSRF Middleware] Cleared stale antiforgery cookies for {Path} after key-ring mismatch", path));
+                        path => Log.Warning("[CSRF Middleware] Cleared stale antiforgery cookies for {Path} after key-ring mismatch",
+                            LoggingSanitizer.SanitizeExternalIdentifier(path)));
 
                     // ASP.NET stores the antiforgery cookie token using the configured Cookie.Name.
                     // Only publish the JavaScript-readable request token here.
@@ -200,13 +201,13 @@ public static class WebApplicationPipelineExtensions
                 {
                     // This is expected for some requests - log at debug level only
                     Serilog.Log.Debug(ex, "[CSRF Middleware] Antiforgery validation exception for {Method} {Path} (this is normal for some requests)",
-                        context.Request.Method, context.Request.Path);
+                        context.Request.Method, LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value));
                 }
                 catch (Exception ex)
                 {
                     // Log other exceptions but don't fail - GetAndStoreTokens can fail for some requests
                     Serilog.Log.Warning(ex, "[CSRF Middleware] Exception getting/storing tokens for {Method} {Path}",
-                        context.Request.Method, context.Request.Path);
+                        context.Request.Method, LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value));
                 }
             }
 
@@ -234,13 +235,15 @@ public static class WebApplicationPipelineExtensions
             var rawTarget = context.Context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>()?.RawTarget ?? string.Empty;
 
             // Log static file requests for debugging
-            Serilog.Log.Debug("[FILE_SERVER] Serving static file: {Path}, Status: {Status}", path, context.Context.Response.StatusCode);
+            Serilog.Log.Debug("[FILE_SERVER] Serving static file: {Path}, Status: {Status}",
+                LoggingSanitizer.SanitizeExternalIdentifier(path), context.Context.Response.StatusCode);
 
             if (path.Contains("/etc/passwd") || path.Contains("/etc/") ||
                 rawTarget.Contains("/etc/passwd") || rawTarget.Contains("/etc/") ||
                 path.StartsWith("/etc", StringComparison.OrdinalIgnoreCase))
             {
-                Serilog.Log.Warning("[FILE_SERVER_BLOCK] Blocking suspicious path: {Path}, RawTarget: {RawTarget}", path, rawTarget);
+                Serilog.Log.Warning("[FILE_SERVER_BLOCK] Blocking suspicious path: {Path}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(path));
                 context.Context.Response.StatusCode = 400;
                 context.Context.Response.ContentLength = 0;
             }
@@ -511,7 +514,8 @@ public static class WebApplicationPipelineExtensions
             if (statusCode >= 400 && statusCode < 500)
             {
                 Serilog.Log.Warning("[BodyFinalizer] {Method} {Path} -> {StatusCode} bufferLen={BufferLen} contentType={ContentType} contentLengthHeader={ContentLength}",
-                    ctx.Request.Method, ctx.Request.Path, statusCode, bufferLen, contentType ?? "null", contentLengthHeader?.ToString() ?? "null");
+                    ctx.Request.Method, LoggingSanitizer.SanitizeExternalIdentifier(ctx.Request.Path.Value), statusCode, bufferLen,
+                    contentType ?? "null", contentLengthHeader?.ToString() ?? "null");
             }
 
             // For 400-499 status codes, ensure the body is written
@@ -549,7 +553,8 @@ public static class WebApplicationPipelineExtensions
             if (context.Request.Path.StartsWithSegments("/api"))
             {
                 // Log 404s for API routes to help debug route mismatches
-                Serilog.Log.Warning("[API404] {Method} {Path} - No matching endpoint found", context.Request.Method, context.Request.Path);
+                Serilog.Log.Warning("[API404] {Method} {Path} - No matching endpoint found", context.Request.Method,
+                    LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value));
                 context.Response.StatusCode = 404;
                 return;
             }
@@ -617,7 +622,8 @@ public static class WebApplicationPipelineExtensions
 
                         if (!isApi && !isSwagger && !isHub && !isHealth && !isStatic && !hasExtension)
                         {
-                            Serilog.Log.Debug("[SPA Fallback Middleware] Serving index.html for {Path} (file server returned 404)", path);
+                            Serilog.Log.Debug("[SPA Fallback Middleware] Serving index.html for {Path} (file server returned 404)",
+                                LoggingSanitizer.SanitizeExternalIdentifier(path));
                             context.Response.StatusCode = 200;
                             context.Response.ContentType = "text/html; charset=utf-8";
                             await context.Response.SendFileAsync(indexPath);

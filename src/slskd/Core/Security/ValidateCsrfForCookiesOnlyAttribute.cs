@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Serilog;
+using slskd.Common.Security;
 
 /// <summary>
 /// Validates CSRF tokens for cookie-based authentication ONLY.
@@ -48,17 +49,20 @@ public class ValidateCsrfForCookiesOnlyAttribute : Attribute, IAsyncAuthorizatio
         if (SafeMethods.Contains(request.Method, StringComparer.OrdinalIgnoreCase))
         {
             // Verbose level - safe methods are very common and don't need logging
-            Log.Verbose("[CSRF] Skipping validation for safe method: {Method} {Path}", request.Method, request.Path);
+            Log.Verbose("[CSRF] Skipping validation for safe method: {Method} {Path}", request.Method,
+                LoggingSanitizer.SanitizeExternalIdentifier(request.Path.Value));
             return; // Safe method - no CSRF needed
         }
 
-        Log.Verbose("[CSRF] Processing non-safe method: {Method} {Path}", request.Method, request.Path);
+        Log.Verbose("[CSRF] Processing non-safe method: {Method} {Path}", request.Method,
+            LoggingSanitizer.SanitizeExternalIdentifier(request.Path.Value));
 
         // 1. Exempt endpoints with [AllowAnonymous] attribute (like login)
         var endpoint = context.HttpContext.GetEndpoint();
         if (endpoint?.Metadata?.GetMetadata<Microsoft.AspNetCore.Authorization.IAllowAnonymous>() != null)
         {
-            Log.Verbose("[CSRF] Skipping validation for anonymous endpoint: {Path}", request.Path);
+            Log.Verbose("[CSRF] Skipping validation for anonymous endpoint: {Path}",
+                LoggingSanitizer.SanitizeExternalIdentifier(request.Path.Value));
             return; // Anonymous endpoint - no CSRF needed (e.g., login)
         }
 
@@ -96,14 +100,15 @@ public class ValidateCsrfForCookiesOnlyAttribute : Attribute, IAsyncAuthorizatio
 
         // 6. This is a cookie-based request (web UI) - validate CSRF token
         Log.Verbose("[CSRF] Validating CSRF token for cookie-based request: {Method} {Path}",
-            request.Method, request.Path);
+            request.Method, LoggingSanitizer.SanitizeExternalIdentifier(request.Path.Value));
 
         var antiforgery = context.HttpContext.RequestServices.GetRequiredService<IAntiforgery>();
 
         try
         {
             await antiforgery.ValidateRequestAsync(context.HttpContext);
-            Log.Verbose("[CSRF] Token validation successful for {Path}", request.Path);
+            Log.Verbose("[CSRF] Token validation successful for {Path}",
+                LoggingSanitizer.SanitizeExternalIdentifier(request.Path.Value));
         }
         catch (AntiforgeryValidationException ex)
         {
@@ -112,11 +117,11 @@ public class ValidateCsrfForCookiesOnlyAttribute : Attribute, IAsyncAuthorizatio
                 var optionsAtStartup = context.HttpContext.RequestServices.GetRequiredService<OptionsAtStartup>();
                 AntiforgeryCookieRecovery.ClearKnownCookies(context.HttpContext, optionsAtStartup.Web.Port);
                 Log.Warning("[CSRF] Cleared stale antiforgery cookies for {Method} {Path} after key-ring mismatch",
-                    request.Method, request.Path);
+                    request.Method, LoggingSanitizer.SanitizeExternalIdentifier(request.Path.Value));
             }
 
             Log.Warning("[CSRF] Token validation failed for {Method} {Path}: {Message}",
-                request.Method, request.Path, ex.Message);
+                request.Method, LoggingSanitizer.SanitizeExternalIdentifier(request.Path.Value), ex.Message);
 
             // Ensure response hasn't started before writing error
             if (!context.HttpContext.Response.HasStarted)
@@ -144,7 +149,7 @@ public class ValidateCsrfForCookiesOnlyAttribute : Attribute, IAsyncAuthorizatio
         {
             // Catch any other exceptions from ValidateRequestAsync
             Log.Error(ex, "[CSRF] Unexpected error during token validation for {Method} {Path}",
-                request.Method, request.Path);
+                request.Method, LoggingSanitizer.SanitizeExternalIdentifier(request.Path.Value));
 
             // Ensure response hasn't started before writing error
             if (!context.HttpContext.Response.HasStarted)

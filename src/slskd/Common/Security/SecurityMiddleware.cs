@@ -70,8 +70,8 @@ public sealed class SecurityMiddleware
         if (!isPrivateIp)
         {
             _logger.LogDebug(
-                "[SecurityMiddleware] Request from {Ip}: Path='{Path}', RawTarget='{RawTarget}'",
-                remoteIp, path, rawTarget);
+                "[SecurityMiddleware] Request from {Ip}: Path='{Path}'",
+                remoteIp, LoggingSanitizer.SanitizeExternalIdentifier(path));
         }
 
         // CRITICAL: Path traversal protection should ALWAYS be enabled, even when security is disabled

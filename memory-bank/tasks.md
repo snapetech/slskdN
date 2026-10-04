@@ -87,6 +87,13 @@
   passes 5,908 tests (74 application, 5,545 unit, 289 integration), and
   `./bin/lint` passes. Two release fragments and changelog bullets are ready
   for the next stable release.
+- [x] Remove raw request-target logging and escape request paths in web
+  diagnostics. Static-file and security checks retain raw targets for
+  validation, but logs now contain only sanitized paths. Regression coverage
+  verifies that the security middleware omits query credentials and escapes
+  path control characters. Full .NET tests pass 5,909/5,909; `./bin/lint`,
+  active backlog, identity, and whitespace checks pass. Release note and
+  changelog entry are ready.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings; T-908 fallback lifecycle and distributed evidence
   requirements remain open.

@@ -17586,3 +17586,17 @@ separately before the fix, and a second release fragment covers download retry
 state reporting. The active callback queue remains open at 210 candidates.
 Stable `.338` now has only its Launchpad PPA job outstanding; `.339` remains
 untagged until that publication finishes.
+
+## Update 2026-10-04 23:03 UTC — Sanitize web request diagnostics
+
+Removed raw HTTP request-target output from the static-file and security
+middleware diagnostics while keeping the raw value available for path checks.
+Escaped request paths in exception, security, antiforgery, mesh-gateway,
+static-file, API response, API 404, and SPA fallback diagnostics using the
+existing logging sanitizer. Added a regression assertion for control
+characters in path identifiers and added the security release fragment and
+changelog entry. The broader remote-text diagnostic queue remains open. Stable
+`.338` Launchpad PPA publication is still in progress, so the `.339` tag
+remains on hold. Full `dotnet test -c Release --no-restore` passes 5,909 tests
+(74 application, 5,546 unit, 289 integration), `./bin/lint` passes, and the
+refreshed active-backlog, local-identity, and whitespace checks pass.
