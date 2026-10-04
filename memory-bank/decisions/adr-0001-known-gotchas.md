@@ -16,7 +16,8 @@ orchestrator's actual chunk calculation.
 
 **Prevention:** Derive multi-chunk fixture sizes from the production chunk size
 and have the peer mock write the full first chunk plus the exact final
-remainder. Assert each verifier call's byte count and the assembled file bytes.
+remainder; report that same actual chunk length in the mocked transfer result.
+Assert each verifier call's byte count and the assembled file bytes.
 
 ### 0z1505. Release Verified Chunk Buffers Before Assembling Large Files (2026-10-04)
 
