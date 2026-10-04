@@ -4,6 +4,24 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1488. Preserve Pod Routing Cancellation Before Marking Messages Seen (2026-10-04)
+
+**What went wrong:** `PodMessageRouter.RouteMessageAsync()` registered a message
+in its time-windowed deduplication filter before peer fan-out completed. The
+route and per-peer helpers also caught caller `OperationCanceledException` as
+an ordinary failed delivery. A cancelled request could therefore look like a
+normal result, and a retry could be discarded as a duplicate even though the
+fan-out was interrupted.
+
+**Why:** The generic catch-all failure paths did not distinguish caller
+cancellation from an unavailable peer. The write-only Bloom filter entry was
+committed before the asynchronous work that could be cancelled.
+
+**Prevention:** Preserve caller cancellation through the route and per-peer
+boundaries. Do not commit the completed-message deduplication marker until the
+fan-out finishes without caller cancellation; cover cancellation during
+fan-out and a subsequent retry.
+
 ### 0z1486. Do Not Hide Music Actor Provider Failures As An Empty Outbox (2026-10-04)
 
 **What went wrong:** `MusicContentDomainProvider.GetRecentItemsAsync()` logged
