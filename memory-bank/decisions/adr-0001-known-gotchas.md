@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1498. Keep Swarm Shutdown Cancellation Out Of Chunk Failure Handling (2026-10-04)
+
+**What went wrong:** `SwarmDownloadOrchestrator` caught cancellation from a
+chunk download as an ordinary peer failure, requeued work, and then marked the
+whole job failed when its shutdown token was canceled.
+
+**Why:** Chunk, job, and host-loop catches did not distinguish caller-owned
+shutdown cancellation from network failures or the intentional limited-stream
+cancel used after receiving a chunk.
+
+**Prevention:** Rethrow cancellation when the owning token is requested before
+retry/failure handling at the chunk, job, and host-loop boundaries. Keep the
+successful limited-chunk cancellation on its separate guarded path.
+
 ### 0z1497. Ignore Only Already-Applied SQLite Schema Changes (2026-10-04)
 
 **What went wrong:** `UserDataServiceCollectionExtensions` treated every
