@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1533. Qualify Filesystem File References In Search Tests (2026-10-04)
+
+**What went wrong:** A new search-controller regression test used unqualified
+`File.Exists` inside a namespace that also imports `slskd.Search.File`, so the
+test project failed to compile with an ambiguous-reference error.
+
+**Why:** The domain model and filesystem API share the same short type name,
+and the test file imports the domain namespace.
+
+**Prevention:** In search tests that import `slskd.Search`, qualify filesystem
+operations as `System.IO.File` to keep domain `File` references unambiguous.
+
 ### 0z1532. Carry Cancellation Through Every Content-Safety Call Site (2026-10-04)
 
 **What went wrong:** After multi-source final verification was fixed to use its
