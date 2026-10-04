@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1537. Expect Hosted Worker Tasks To Cancel During Shutdown Delay (2026-10-04)
+
+**What went wrong:** A hosted-worker regression test asserted that its
+`ExecuteTask` completed successfully after the stopping token was canceled
+while the worker was in a retry delay.
+
+**Why:** The service intentionally lets the stopping token cancel the delay,
+so the worker task can end in the canceled state even though shutdown was
+handled correctly.
+
+**Prevention:** Assert that unexpected operation cancellation does not end the
+worker before shutdown. When shutdown cancels a later delay, accept the
+worker's normal canceled task state.
+
 ### 0z1536. Separate Caller Cancellation From Local Timeout Tokens (2026-10-04)
 
 **What went wrong:** Several operations linked a caller token to a local timeout
