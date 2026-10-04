@@ -29,7 +29,9 @@ being ordinary xUnit tests with no event signature requirement.
 
 **Prevention:** xUnit async test methods must return `Task` (or
 `ValueTask` when supported). Reserve `async void` for event handlers whose
-boundary explicitly observes and handles all asynchronous failures.
+boundary explicitly observes and handles all asynchronous failures. Keep a
+separate test-source check; a production-only async-void guard cannot catch
+unawaitable `[Fact]` methods.
 
 ### 0z1507. Report Full Swarm Queue Rejection Truthfully (2026-10-04)
 
