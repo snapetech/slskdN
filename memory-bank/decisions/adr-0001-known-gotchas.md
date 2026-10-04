@@ -36127,3 +36127,21 @@ framework exceptions do not promise to repeat the type name in `Message`.
 **Prevention:** Assert stable message content for user-facing diagnostics. If
 the exception type itself is part of the contract, capture the exception type
 separately instead of inferring it from `Exception.Message`.
+
+### 0z1454. Enforce Ownership Of Listed Party IDs Before Publishing (2026-10-04)
+
+**What went wrong:** Listening-party stream lookup selects local state by
+`PartyId`, while both the in-memory directory and DHT announcement key are
+also keyed only by that ID. Explicitly reusing one listed ID in another room
+can overwrite its announcement and make the stream route resolve the wrong
+room's state.
+
+**Why:** The ID was treated as globally unique by convention, but the service
+did not reserve it across concurrently publishing rooms or check an existing
+DHT announcement's owner before a new listing replaced that key.
+
+**Prevention:** Atomically reserve a newly listed party ID against other local
+rooms before persisting the event, and reject a DHT key already owned by a
+different peer or room. Preserve ownership checks during directory refresh.
+The current DHT API has no compare-and-swap, so do not claim race-free global
+allocation across nodes without a stronger distributed primitive.
