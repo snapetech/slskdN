@@ -35,6 +35,19 @@ sinks and evaluates interpolated expressions with semantic context. Retain
 examples for both parameterized placeholder construction and unsafe dynamic
 values; do not treat keyword-only matches as confirmed injection findings.
 
+### 0z1470. Keep Vitest Unit Files Outside The Excluded E2E Tree (2026-10-04)
+
+**What went wrong:** A new Vitest test placed under `src/web/e2e/` was not
+collected; Vitest reported that no test files matched because that directory is
+explicitly excluded to keep Playwright specs out of the unit runner.
+
+**Why:** The E2E directory contains Playwright tests and is excluded by the
+Vitest configuration, including otherwise correctly named `*.test.ts` files.
+
+**Prevention:** Put harness unit tests under an included test directory such as
+`src/web/scripts/`, or change Vitest discovery narrowly without allowing its
+unit runner to collect Playwright specs.
+
 ### 0z1467. Check Visibility Emulation Against The Pinned Chromium Protocol (2026-10-04)
 
 **What went wrong:** A local Playwright probe called
