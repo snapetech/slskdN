@@ -1,27 +1,27 @@
-## Current state — Remediation candidate validated, release pending — 2026-10-04 17:31 UTC
+## Current state — Refresh release gate baseline — 2026-10-04 17:39 UTC
 
-The .NET 10 and whole-product remediation candidate is ready for the guarded
-release process. All first-party projects under `src`, `tests`, and `tools`
-target `net10.0`. MonoTorrent is upgraded to
-`3.9.0-alpha.unstable.rev0000`; its package supplies a compatible `net8.0`
-asset because no `net10.0` asset is published. The experimental torrent path
-remains opt-in and private; cross-peer fallback rejects unsupported variants
-and never starts a manager without a complete job lifecycle.
+The validated .NET 10 remediation and release-preparation commits are pushed
+to `origin/main`. The first guarded `.336` release attempt validated 36 curated
+fragments and 48 bullets, then stopped before tagging because three active
+bug-council source-candidate counts were stale. The scanner has been rerun and
+the ledger counts refreshed (callback/event 206, red-team 12,169, public
+mutable ownership 817); these broad queues remain open for classification.
+Commit and push the ledger refresh, preview the exact release range, then rerun
+the guarded release script. No tag was created by the failed attempt.
 
-The origin donation-link cleanup is merged. Full validation passes: .NET
-74 application, 5,530 unit, and 289 integration tests; Web 1,232 tests; Web
-lint, production build, strict E2E types, `./bin/lint`, release-note generation
-and validation, identity scan, and `git diff --check`. The release candidate
-has 37 validated fragments and a versioned `2026100417-slskdn.336` changelog
-section. It has not yet been pushed or tagged; next run the exact-range preview,
-commit the release ledger, push `main`, then invoke the guarded tag script.
+Every first-party project under `src`, `tests`, and `tools` targets `net10.0`.
+MonoTorrent `3.9.0-alpha.unstable.rev0000` supplies a compatible `net8.0`
+asset; the application remains `net10.0`. Experimental torrent features stay
+opt-in and private. Cross-peer fallback checks exact variant ownership and
+remains fail-closed because there is no production sender/receiver job path
+that owns acknowledgement activation, cancellation, and manager cleanup.
 
-Outstanding evidence/design work remains explicit: cross-peer fallback sender
-activation/job cancellation and manager cleanup; atomic global Party ID claims
-across disjoint DHT views; actual background-tab timer throttling; WebKit Orca
-and physical assistive-technology speech; representative WAN and sustained
-resource measurements; and the original frontend `ERR_NETWORK_CHANGED` cause.
-Do not claim those are solved by the current local and browser checks.
+Outstanding evidence/design work remains explicit: the T-908 cross-peer
+fallback lifecycle; atomic global Party ID claims across disjoint DHT views;
+actual background-tab timer throttling; WebKit Orca and physical
+assistive-technology speech; representative WAN and sustained-resource
+measurements; and the original frontend `ERR_NETWORK_CHANGED` cause. Do not
+claim those are solved by the current local and browser checks.
 
 ## Current state — Continue whole-product remediation — 2026-10-04 14:12 UTC
 

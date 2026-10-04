@@ -17397,3 +17397,15 @@ tests; Web 1,232 tests; Web lint, production build, strict E2E types,
 scan, and `git diff --check`. Release generation found 37 curated fragments
 and validated 49 bullets. `origin/main` donation-link removal is merged. The
 release tag and push remain pending the guarded release process.
+
+## Update 2026-10-04 17:39 UTC — Refresh the release-gate source ledger
+
+Pushed the validated remediation and release-preparation commits to
+`origin/main`. The guarded `.336` tag attempt validated 36 curated release
+fragments and 48 bullets, then stopped before tagging when the active
+bug-council gate found stale source-candidate counts. Re-ran the candidate
+scanner and updated the durable ledger to callback/event 206, red-team 12,169,
+and public mutable ownership 817. These queues remain open for classification;
+the counts update does not claim the candidates are all bugs or resolved. No
+tag was created. Next: commit and push this ledger correction, preview the
+exact release range, then rerun the guarded release gate.
