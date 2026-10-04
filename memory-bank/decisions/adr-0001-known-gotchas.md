@@ -5388,6 +5388,8 @@ never drained stderr. `PerceptualHasher` also attempted to read stderr before
 starting FFmpeg, which throws before extraction begins. Noisy children can fill
 a bounded pipe, block before exit, and leave the parent waiting indefinitely;
 redirected streams are unavailable until their child process starts.
+`FingerprintExtractionService` also tied stderr draining to the caller's token
+and killed FFmpeg on cancellation without waiting for the process tree to exit.
 
 **Why:** Redirected stdout and stderr use separate bounded pipes. Making each
 read asynchronous does not prevent deadlock when the reads themselves are
@@ -5396,7 +5398,7 @@ started sequentially.
 **Prevention:** Start draining stdout and stderr before awaiting either stream
 or process exit, and start the child before accessing its redirected streams.
 When caller cancellation or an output failure interrupts a tool, terminate its
-process tree and observe the outstanding drain tasks.
+process tree, wait for termination, and observe any outstanding drain tasks.
 
 **Files affected:**
 - `src/slskd/SongID/SongIdService.cs`
@@ -5406,6 +5408,7 @@ process tree and observe the outstanding drain tasks.
 - `src/slskd/Common/Security/Obfs4VersionChecker.cs`
 - `src/slskd/Common/Security/Obfs4Transport.cs`
 - `src/slskd/MediaCore/PerceptualHasher.cs`
+- `src/slskd/Integrations/Chromaprint/FingerprintExtractionService.cs`
 
 ### 0z1557. Test Public Helpers Through Their Declaring Type (2026-10-04)
 
