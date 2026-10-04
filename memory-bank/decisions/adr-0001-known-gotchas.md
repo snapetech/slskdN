@@ -43,6 +43,19 @@ safe when the central aggregator wrote them to runtime logs.
 Keep the event payload intact when the event feed needs the original value, and
 do not assume a value is log-safe because it has already crossed an event API.
 
+### 0z1563. Escape External File Names And Paths In Logs (2026-10-04)
+
+**What went wrong:** Several file and transfer diagnostics wrote external
+filenames, local staging paths, or peer-provided identifiers directly into
+logs. Those values can contain log-breaking control characters.
+
+**Why:** Structured logging fields were mistaken for safe output even though
+the values still came from peers, user-selected files, or remote filenames.
+
+**Prevention:** Apply `LoggingSanitizer.SanitizeFilePath` to paths and
+`SanitizeExternalIdentifier` to external names at every log call site. Add
+regression coverage for CR/LF while preserving ordinary operator-visible text.
+
 ### 0z1559. Keep Retry Notifications Outside The Operation Failure Handler (2026-10-04)
 
 **What went wrong:** `Retry.Do` invoked `onRetry` inside the same `try` block
