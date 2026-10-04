@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1508. Return Task From Awaiting xUnit Tests (2026-10-04)
+
+**What went wrong:** Two `[Fact]` methods returned `async void`. The test runner
+cannot await those methods, so assertions after an `await` could execute after
+the test had already been reported complete, and asynchronous exceptions could
+escape the test result.
+
+**Why:** Event-handler examples had normalized `async void` despite the methods
+being ordinary xUnit tests with no event signature requirement.
+
+**Prevention:** xUnit async test methods must return `Task` (or
+`ValueTask` when supported). Reserve `async void` for event handlers whose
+boundary explicitly observes and handles all asynchronous failures.
+
 ### 0z1507. Report Full Swarm Queue Rejection Truthfully (2026-10-04)
 
 **What went wrong:** The bounded swarm job channel used `DropWrite`. When full,
