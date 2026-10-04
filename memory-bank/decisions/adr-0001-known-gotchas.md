@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1494. Make Verification Failure Tests Reach The Download Call (2026-10-04)
+
+**What went wrong:** `VerifySourcesAsync_WhenDownloadThrows_ReturnsSanitizedFailureReason`
+used a file smaller than the 32 KB verification chunk and expected the early
+"File too small" result. Its throwing `DownloadAsync` mock was never reached,
+so it did not cover exception sanitization at all.
+
+**Why:** The fixture's input size took an earlier successful validation branch,
+while the assertion matched that branch instead of the named download failure.
+
+**Prevention:** Give download-failure tests a file size larger than
+`VerificationChunkSize` and assert the sanitized failure produced by the
+download exception. Confirm mocks are actually invoked when their behavior is
+the subject of the test.
+
 ### 0z1493. Distinguish Caller Cancellation From Expected Verification Probe Timeouts (2026-10-04)
 
 **What went wrong:** `ContentVerificationService` converted every
