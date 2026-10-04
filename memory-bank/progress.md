@@ -17467,3 +17467,13 @@ background-tab throttling, WebKit Orca/physical assistive-technology evidence,
 representative WAN and sustained-resource measurements, original frontend
 `ERR_NETWORK_CHANGED` cause, and broad bug-council candidate classification
 remain open and are not claimed fixed by this batch.
+
+## Update 2026-10-04 20:40 UTC — Refresh active bug-council inventory
+
+The first `.337` release-gate attempt stopped before Web/backend tests because
+the tracked active-bughunt candidate counts had drifted. Regenerated the
+report and refreshed the callback/event count to 208, red-team count to 12,197,
+and public mutable ownership count to 820. The active-backlog check passes;
+these broad queues remain open and are not treated as confirmed defects or
+closed work. No release tag was created by the stopped attempt. The guarded
+gate must be rerun after pushing this documentation update.

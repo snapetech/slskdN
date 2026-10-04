@@ -41,6 +41,10 @@
   passes 107/107 tests without compiler warnings. Full `dotnet test` now passes
   5,905 tests: 74 application, 5,542 unit, and 289 integration; `./bin/lint`,
   release-note preview, changelog validation, and release identity checks pass.
+  The guarded release gate's first attempt stopped before product tests on
+  stale active bug-council counts; the refreshed report matches the backlog
+  (208 callback/event, 12,197 red-team, 820 public mutable ownership), and its
+  check now passes. These discovery queues remain open.
 - [x] Verify exact .336 Launchpad publication. The source and amd64 build
   succeeded; the GitHub job timed out after its 5,400-second wait, then the
   exact Jammy binary appeared as Published shortly afterward. The shared wait

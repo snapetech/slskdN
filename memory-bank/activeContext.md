@@ -1,4 +1,4 @@
-## Current state — Post-.336 reliability fixes and .337 release prep — 2026-10-04 20:35 UTC
+## Current state — Post-.336 reliability fixes and .337 release prep — 2026-10-04 20:40 UTC
 
 The guarded stable release is published as
 [`2026100417-slskdn.336`](https://github.com/snapetech/slskdN/releases/tag/2026100417-slskdn.336),
@@ -52,11 +52,14 @@ measurements; the original frontend `ERR_NETWORK_CHANGED` cause; and the broad
 bug-council candidate queues. Do not claim these are solved by the current
 local, browser, or release checks. Current full `dotnet test` passes 5,905
 tests; `./bin/lint`, shell syntax, whitespace, changelog range validation,
-release-note preview, and release-facing identity checks pass. Three scoped
-implementation commits are ready, with memory-bank records still being updated.
-Next: commit those records, push `main`, run the guarded release gate and cut
-`.337`; continue the remaining code-backed remediation and required evidence
-work after this release batch.
+release-note preview, and release-facing identity checks pass. The first
+guarded release attempt stopped before product tests because three active
+bug-council candidate counts were stale. The refreshed report now matches the
+backlog (208 callback/event, 12,197 red-team, 820 mutable-ownership
+candidates); these remain open queues. Next: commit and push the backlog
+refresh, rerun the guarded release gate, and cut `.337` only after it passes.
+Continue remaining code-backed remediation and evidence work after this release
+batch.
 
 ## Current state — Continue whole-product remediation — 2026-10-04 14:12 UTC
 
