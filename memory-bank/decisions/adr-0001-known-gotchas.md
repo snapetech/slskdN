@@ -17,6 +17,19 @@ query credentials, and path values were treated as trusted diagnostic text.
 log only the request path, and escape that path with the existing logging
 sanitizer before emitting it.
 
+### 0z1561. Apply Raw-Target Logging Hygiene To Every Middleware (2026-10-04)
+
+**What went wrong:** A repository-wide follow-up found that `SecurityMiddleware`
+also logged `IHttpRequestFeature.RawTarget`, including its query string, after
+the static-file diagnostics had been identified.
+
+**Why:** The first fix was scoped to the discovered file-server callback instead
+of checking every raw-target consumer for logging behavior.
+
+**Prevention:** Search all `RawTarget` consumers when fixing request-target
+logging. Keep raw targets for parsing or security decisions, never for log
+fields, and audit neighboring middleware paths at the same time.
+
 ### 0z1559. Keep Retry Notifications Outside The Operation Failure Handler (2026-10-04)
 
 **What went wrong:** `Retry.Do` invoked `onRetry` inside the same `try` block
