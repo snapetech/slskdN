@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
+
+**What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
+blocking async call in `RelayService`, even though it returns a `Task` that the
+caller awaits.
+
+**Why:** The syntax-only rule flagged every member invocation named `Wait`
+without checking whether it was `Task.Wait()` or a task-producing helper with
+the same method name.
+
+**Prevention:** Resolve the invoked symbol where possible, or exclude generic
+task-producing `Wait<T>` helpers from the blocking-call heuristic. Keep a
+regression for custom task waiters so analyzer output reflects actual blocking.
+
 ### 0z1467. Check Visibility Emulation Against The Pinned Chromium Protocol (2026-10-04)
 
 **What went wrong:** A local Playwright probe called
