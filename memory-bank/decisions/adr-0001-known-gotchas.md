@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1515. Preserve Cancellation Through Final Content Safety Checks (2026-10-04)
+
+**What went wrong:** Multi-source final-output safety inspection always received
+`CancellationToken.None`, so canceling during a long scan could not stop it; the
+download could then publish the output after cancellation.
+
+**Why:** The safety helper treated its scan as an independent best-effort step
+instead of part of the request-owned download operation.
+
+**Prevention:** Forward the request token to final safety inspection and check
+it again immediately before publishing the staged file. Test canceled safety
+inspection without exposing the final output.
+
 ### 0z1514. Rethrow Caller Cancellation From Optional Fingerprint Verification (2026-10-04)
 
 **What went wrong:** `VerifyFinalFileAsync` caught every exception from
