@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1501. Bound Swarm Chunk Assignment And Download Retries (2026-10-04)
+
+**What went wrong:** `SwarmDownloadOrchestrator.ProcessJob` requeued chunks forever
+when peer assignment, download, or verification kept failing. A job with no
+working peer could consume a worker indefinitely instead of reaching a failed
+state.
+
+**Why:** The chunk queue was treated as an eventual retry mechanism without a
+retry ceiling or a terminal record for chunks that could not be completed.
+
+**Prevention:** Count assignment attempts per chunk, cap retries, record
+exhausted chunks as failures, and finish the job with an actionable incomplete
+result after active workers drain. Test persistent assignment, download, and
+verification failures with bounded completion time.
+
 ### 0z1500. Do Not Use Swarm Job IDs As Filesystem Paths (2026-10-04)
 
 **What went wrong:** `SwarmDownloadOrchestrator` combined the caller-provided
