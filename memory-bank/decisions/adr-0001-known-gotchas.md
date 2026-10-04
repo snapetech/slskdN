@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1554. Search Existing Release Fragments Before Adding A Note (2026-10-04)
+
+**What went wrong:** Preparing the release added a second user-facing fragment
+for the existing static frontend startup fallback. The behavior already had an
+append-only fragment with equivalent coverage, so the new file would repeat
+the same change in generated release notes.
+
+**Why:** The release-note directory was not searched by behavior before
+creating another fragment, and matching the wording or area label was treated
+as sufficient to distinguish it.
+
+**Prevention:** Search existing fragments for the behavior before creating a
+new one. Keep the existing immutable fragment and update the current changelog
+entry if it was missing; do not emit two fragments for the same shipped
+behavior in one release.
+
 ### 0z1553. Do Not Treat Stub Variant Membership As Request Validation (2026-10-04)
 
 **What went wrong:** `SwarmJobExtensions.HasVariant` returns `true` for every
