@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1536. Separate Caller Cancellation From Local Timeout Tokens (2026-10-04)
+
+**What went wrong:** Several operations linked a caller token to a local timeout
+but caught every `OperationCanceledException` as a timeout or normal shutdown.
+That converted caller cancellation into a failed/empty result or stopped a
+background worker early.
+
+**Why:** A linked timeout token carries both causes, while the catch blocks
+classified the exception without checking which owner requested cancellation.
+
+**Prevention:** In a timeout catch, first propagate cancellation when the
+caller token is canceled; handle only the local timeout as a timeout. In
+hosted loops, treat cancellation as normal shutdown only when the stopping
+token is canceled.
+
 ### 0z1535. Anchor Repeated Test Helper Calls To Their Owning Test (2026-10-04)
 
 **What went wrong:** While adding a service-aware overload to a transfer-test
