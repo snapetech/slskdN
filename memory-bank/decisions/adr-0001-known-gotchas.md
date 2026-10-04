@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1559. Keep Retry Notifications Outside The Operation Failure Handler (2026-10-04)
+
+**What went wrong:** `Retry.Do` invoked `onRetry` inside the same `try` block
+as the operation. If the notification failed, its exception was recorded as an
+operation failure, passed to `onFailure`, and consumed one of the configured
+attempts before the operation could be retried.
+
+**Why:** The retry notification and the retried operation shared one exception
+boundary even though they have different attempt and failure semantics.
+
+**Prevention:** Invoke `onRetry` outside the operation catch boundary. Keep the
+retry delay and operation in the attempt path, and test that notification
+failure does not call the operation-failure callback or consume an operation
+attempt.
+
 ### 0z1558. Update The Changelog Used By Release Tooling (2026-10-04)
 
 **What went wrong:** A fix was added to the repository-root `CHANGELOG.md`,
