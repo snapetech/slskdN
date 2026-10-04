@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1539. Keep A Useful Shell When The Frontend Does Not Mount (2026-10-04)
+
+**What went wrong:** The server returned the app document, but failed or
+interrupted frontend asset requests left the React root empty. The page then
+showed no explanation or recovery action.
+
+**Why:** The HTML document contained only an empty root and a JavaScript-off
+message, so the entire visible application depended on the entry module
+loading and mounting successfully.
+
+**Prevention:** Keep an accessible static startup status and a manual reload
+action outside the React root. Show a recovery message when startup fails or
+does not complete within a bounded interval, and remove it only after React
+mounts. Do not retry automatically or claim the underlying network cause is
+known without evidence.
+
 ### 0z1538. Preserve Relative Paths In Static-Analysis Findings (2026-10-04)
 
 **What went wrong:** The opt-in analyzer reduced each source location to its
