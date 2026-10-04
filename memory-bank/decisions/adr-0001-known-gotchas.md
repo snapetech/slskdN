@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1542. Distinguish Static Bootstrap Content From A React Mount (2026-10-04)
+
+**What went wrong:** Adding useful static fallback content inside `#root`
+made an existing E2E diagnostic report that React had mounted whenever the
+static document loaded, even if the entry module failed before rendering.
+
+**Why:** The diagnostic treated any root child as proof of a React commit,
+which was only true while the root started empty.
+
+**Prevention:** When the root contains static bootstrap markup, identify that
+known placeholder explicitly and report React mounted only after it has been
+replaced. Keep mount diagnostics tied to an app-rendered marker, not child
+count alone.
+
 ### 0z1541. Keep Browser Storage Values Out Of Failure Logs (2026-10-04)
 
 **What went wrong:** When login failed to find its token, the Playwright helper
