@@ -5382,9 +5382,10 @@ installer.
 **What went wrong:** `SongIdService.RunToolAsync` awaited the child process's
 stdout to EOF before starting to read stderr. `AudioSketchService` did the same
 for ffmpeg, while the Soulfind bridge redirected both streams without draining
-either and the obfs4 version check waited for exit without reading its pipes.
-Noisy children can fill a bounded pipe, block before exit, and leave the parent
-waiting indefinitely.
+either, the obfs4 version check waited for exit without reading its pipes, and
+the long-running obfs4 proxy stopped reading stdout after its startup line and
+never drained stderr. Noisy children can fill a bounded pipe, block before
+exit, and leave the parent waiting indefinitely.
 
 **Why:** Redirected stdout and stderr use separate bounded pipes. Making each
 read asynchronous does not prevent deadlock when the reads themselves are
@@ -5400,6 +5401,7 @@ tool, terminate its process tree and observe the outstanding drain tasks.
 - `src/slskd/Audio/AudioSketchService.cs`
 - `src/slskd/VirtualSoulfind/Bridge/SoulfindBridgeService.cs`
 - `src/slskd/Common/Security/Obfs4VersionChecker.cs`
+- `src/slskd/Common/Security/Obfs4Transport.cs`
 
 ### 0z853. Project Lidarr GET Resources Into Manual-Import Command Files
 
