@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100423-slskdn.339] — 2026-10-04
+
 ### Transfer updates
 
 - Rate-limited transfer and search updates now honor their concurrency limit
