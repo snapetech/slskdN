@@ -1,13 +1,22 @@
-## Current state — Refresh release gate baseline — 2026-10-04 17:39 UTC
+## Current state — Publish and verify .336 release — 2026-10-04 18:50 UTC
 
-The validated .NET 10 remediation and release-preparation commits are pushed
-to `origin/main`. The first guarded `.336` release attempt validated 36 curated
-fragments and 48 bullets, then stopped before tagging because three active
-bug-council source-candidate counts were stale. The scanner has been rerun and
-the ledger counts refreshed (callback/event 206, red-team 12,169, public
-mutable ownership 817); these broad queues remain open for classification.
-Commit and push the ledger refresh, preview the exact release range, then rerun
-the guarded release script. No tag was created by the failed attempt.
+The guarded stable release is published as
+[`2026100417-slskdn.336`](https://github.com/snapetech/slskdN/releases/tag/2026100417-slskdn.336),
+from validated commit `b479e62a1`; the tag-triggered build is
+`build-main-2026100417-slskdn.336`. The hosted release gate passed, all six
+platform archives and support files were published, and
+`scripts/verify-release-artifacts.sh` verified the checksums and release
+contents. The GitHub release workflow has passed its build, archive, Docker,
+Chocolatey, AUR, COPR, Nix metadata, Homebrew, and announcement jobs. Nix
+automation advanced `main` to `295798647`; local `main` is synchronized with
+`origin/main` and the working tree is clean.
+
+Launchpad accepted and published source version
+`2026100417.slskdn.336-1ppa202610041807~jammy`; its amd64 build succeeded, but
+the exact published-binary query still returned no binary at 18:50 UTC. The
+GitHub `Publish to PPA (Main)` job remains polling for publication. Recheck the
+job and exact Launchpad binary state before recording that package as
+published.
 
 Every first-party project under `src`, `tests`, and `tools` targets `net10.0`.
 MonoTorrent `3.9.0-alpha.unstable.rev0000` supplies a compatible `net8.0`
@@ -16,12 +25,21 @@ opt-in and private. Cross-peer fallback checks exact variant ownership and
 remains fail-closed because there is no production sender/receiver job path
 that owns acknowledgement activation, cancellation, and manager cleanup.
 
-Outstanding evidence/design work remains explicit: the T-908 cross-peer
-fallback lifecycle; atomic global Party ID claims across disjoint DHT views;
+The full release gate passed: Web 1,232 tests; .NET 74 application, 5,530
+unit, and 289 integration tests; focused fallback integration; lint, builds,
+release-note validation, and release-facing identity checks. One allocation
+assertion failed on the first full gate attempt, passed in isolation, then
+passed on the unchanged full rerun; no source change was made for that
+transient result.
+
+Outstanding remediation remains open: T-908 cross-peer fallback sender and
+receiver lifecycle; atomic global Party ID claims across disjoint DHT views;
 actual background-tab timer throttling; WebKit Orca and physical
 assistive-technology speech; representative WAN and sustained-resource
-measurements; and the original frontend `ERR_NETWORK_CHANGED` cause. Do not
-claim those are solved by the current local and browser checks.
+measurements; the original frontend `ERR_NETWORK_CHANGED` cause; and the broad
+bug-council candidate queues. Do not claim these are solved by the current
+local, browser, or release checks. Next: confirm PPA binary publication, then
+continue the remaining code-backed remediation and required evidence work.
 
 ## Current state — Continue whole-product remediation — 2026-10-04 14:12 UTC
 

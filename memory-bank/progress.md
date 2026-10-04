@@ -17409,3 +17409,34 @@ and public mutable ownership 817. These queues remain open for classification;
 the counts update does not claim the candidates are all bugs or resolved. No
 tag was created. Next: commit and push this ledger correction, preview the
 exact release range, then rerun the guarded release gate.
+
+## Update 2026-10-04 18:50 UTC — Publish and verify stable .336
+
+The guarded stable release is published as
+[`2026100417-slskdn.336`](https://github.com/snapetech/slskdN/releases/tag/2026100417-slskdn.336),
+tagged from validated commit `b479e62a1`. The tag build passed the hosted
+release gate, produced six platform archives, and published its supporting
+files. `scripts/verify-release-artifacts.sh` verified archive checksums,
+service/configuration files, Linux x64 version output, VPN helper payload, and
+the web footer marker. Build/archive and downstream Docker, Chocolatey, AUR,
+COPR, Nix, Homebrew, and announcement jobs passed. Nix automation committed
+stable metadata as `295798647`; local `main` is synced to `origin/main` with a
+clean worktree.
+
+The Release Gate passed 1,232 Web tests; .NET passed 74 application, 5,530
+unit, and 289 integration tests. Lint, production builds, release-note and
+identity checks passed. A large-cache allocation assertion exceeded its bound
+on the first full run, passed in isolation, then passed on the unchanged full
+rerun. The release note preview contained 36 fragments and 48 bullets.
+
+Launchpad now reports source version
+`2026100417.slskdn.336-1ppa202610041807~jammy` as Published and its amd64 build
+succeeded. The exact binary publication query still returned no Published
+binary at 18:50 UTC, so GitHub's `Publish to PPA (Main)` job remains in its
+polling step. Recheck before describing the PPA package as available.
+
+The cross-peer fallback lifecycle, global DHT Party ID ownership, real
+background-tab throttling, WebKit Orca/physical assistive-technology evidence,
+representative WAN and sustained-resource measurements, original frontend
+`ERR_NETWORK_CHANGED` cause, and bug-council candidate classification remain
+open. The release does not close those follow-ups.
