@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1534. Poll The Same Service Instance In Transfer Tests (2026-10-04)
+
+**What went wrong:** A new mesh-transfer test created a service with a
+callback logger but used the fixture's shared polling helper, which queried a
+different service instance.
+
+**Why:** The helper was bound to the fixture field instead of accepting the
+service instance being exercised.
+
+**Prevention:** When a test constructs a specialized service instance, poll
+that same instance directly or pass it into the shared terminal-state helper.
+
 ### 0z1533. Qualify Filesystem File References In Search Tests (2026-10-04)
 
 **What went wrong:** A new search-controller regression test used unqualified
