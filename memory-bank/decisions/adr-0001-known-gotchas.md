@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1505. Release Verified Chunk Buffers Before Assembling Large Files (2026-10-04)
+
+**What went wrong:** `SwarmDownloadOrchestrator` retained every verified chunk's
+byte array until whole-file assembly. Peak retained memory therefore grew with
+the entire file size, despite downloads being chunked and concurrency-limited.
+
+**Why:** Chunk bytes were used both as temporary input to verification and as
+the assembly source, so successful results kept the buffer after verification.
+
+**Prevention:** Keep verified chunks in the per-job temporary directory, clear
+the verification buffer once the chunk passes, and assemble by streaming each
+verified chunk file in order. Validate with multi-chunk output and bounded
+memory behavior.
+
 ### 0z1504. Dispose Chunk Output Before Reopening It (2026-10-04)
 
 **What went wrong:** `SwarmDownloadOrchestrator.DownloadChunkAsync` kept its
