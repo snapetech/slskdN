@@ -36192,3 +36192,19 @@ the corresponding cleanup.
 Stop, including local subscribers, peer delivery, DHT announcement withdrawal,
 and index update. Verify expiry after both a document close and a silent lease
 timeout; avoid a general idle polling loop.
+
+### 0z1458. Keep Host-Session Fences In Direct API Test Writes (2026-10-04)
+
+**What went wrong:** The Player host E2E started a browser-owned broadcast, then
+used direct API writes for directory scenarios without carrying that room's
+active host-session ID. The server correctly rejected the unlist as a replaced
+host session, so the test failed before its directory assertions.
+
+**Why:** The fixture mixed a fenced browser owner with legacy hostless API
+publication. Host ownership is room-scoped and remains active after the test
+changes from browser controls to direct requests.
+
+**Prevention:** When direct API writes continue a browser-owned host session,
+send its current `X-Listen-Along-Host-Session` fence and the accepted Party ID.
+When a test is specifically exercising legacy hostless publication, stop the
+browser-owned session first and assert that Stop was acknowledged.
