@@ -36145,3 +36145,19 @@ rooms before persisting the event, and reject a DHT key already owned by a
 different peer or room. Preserve ownership checks during directory refresh.
 The current DHT API has no compare-and-swap, so do not claim race-free global
 allocation across nodes without a stronger distributed primitive.
+
+### 0z1455. Scope Party ID Uniqueness To Listed Radio Ownership (2026-10-04)
+
+**What went wrong:** A first collision guard reserved IDs for all active room
+playback. Existing private, unlisted room playback can reuse an ID without
+owning the radio directory key, so the broader guard rejected valid updates.
+Party-ID stream lookup also needs to ignore private snapshots.
+
+**Why:** A party ID becomes a globally visible radio key only while it is
+listed. Treating every private playback snapshot as a directory owner conflates
+room state with public radio identity.
+
+**Prevention:** Enforce cross-room ID ownership when a room is listed, and make
+radio lookup select only listed local state. Keep ordinary private playback
+outside the DHT ownership preflight; preserve the current room's accepted ID
+when processing unlist/Stop cleanup.
