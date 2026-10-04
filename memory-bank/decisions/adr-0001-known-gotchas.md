@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1544. Revalidate Consumers When Raising A Library Target Framework (2026-10-04)
+
+**What went wrong:** Updating MonoTorrent from the package whose selected
+asset targeted `net6.0` to its newer `net8.0` package exposed source-breaking
+changes in `ISocketMessageListener`. The slskd application already targets
+`net10.0`, but the shared DHT/mesh listener still implemented the older API.
+
+**Why:** A compatible package target framework does not imply a source-stable
+dependency API. Raising a library version can change interfaces used by other
+subsystems even when those subsystems do not own the package reference.
+
+**Prevention:** Before adopting a newer dependency build, compile every project
+that consumes it, search for all implementations and call sites of changed
+interfaces, then run the focused tests for each affected subsystem. Do not
+infer library target compatibility from the application target framework alone.
+
 ### 0z1543. Keep Private Torrent Discovery Controls Separate (2026-10-04)
 
 **What went wrong:** The private torrent backend mapped `DisablePex` to
