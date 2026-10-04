@@ -37801,3 +37801,19 @@ dependency registrations.
 **Prevention:** Capture channel sends and assert the signal type, target, body,
 and policy decision. Let fixture initialization failures fail the test, and
 exercise malformed inputs through the real SignalBus dispatch path.
+
+### 0z1471. Reap Canceled FFmpeg Transcodes After Stopping Them (2026-10-04)
+
+**What went wrong:** The streaming transcode canceled its stderr drain with the
+client request token and killed FFmpeg from a cancellation callback, but did
+not await process-tree exit or observe the stderr task before disposing the
+process. A disconnected client could therefore leave cleanup incomplete.
+
+**Why:** Cancellation was treated as the cleanup action itself. Stopping a
+child process and releasing its handle are separate steps; redirected pipes
+also need to remain drained until the process has exited.
+
+**Prevention:** Drain stderr independently of request cancellation. In a
+`finally` path, terminate the process tree when it is still running, await its
+exit without the canceled request token, and observe the stderr drain before
+disposing the process. Cover disconnect cleanup with a process-backed test.
