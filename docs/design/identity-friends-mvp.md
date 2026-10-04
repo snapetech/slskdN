@@ -4,7 +4,7 @@
 
 **Principle:** Clean separation between:
 - **Canonical identity** (cryptographic, stable, verifiable): `PeerId` / public key
-- **Display name / nickname** (human-friendly, mutable): "Keith-Laptop", "Mike", etc.
+- **Display name / nickname** (human-friendly, mutable): "Music laptop", "Library PC", etc.
 - **Discovery** (how you find them): LAN discovery or invite link
 
 ---
@@ -309,7 +309,7 @@ public interface IProfileService
     string GetFriendCode(string peerId);
     
     /// <summary>Decode a friend code back to PeerId (fuzzy match if needed).</summary>
-    string? DecodeFriendCode(string code);
+    Task<string?> DecodeFriendCodeAsync(string code, CancellationToken ct = default);
 }
 ```
 
@@ -493,6 +493,11 @@ public bool IdentityFriends { get; init; } = false;
 ```
 
 Gate all endpoints and services behind this flag.
+
+Historical design note: the initial proposal defaulted this setting to false.
+The current implementation defaults Identity/Friends APIs to enabled and uses
+the separate `lan_discovery.advertise` setting (default false) for startup
+mDNS advertising.
 
 ---
 

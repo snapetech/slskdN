@@ -19,7 +19,7 @@
 - **Operations**: `Touch` / `TouchAsync(nodeId, address, pingFunc?)`, `GetClosest(targetId, count)`.
 - **Metrics**: `GetStats()` (TotalNodes, BucketCount, BucketSizes, MaxBucketSize, MinBucketSize), `GetAllNodes()`.
 
-**NodeId derivation (T-901 alignment)**: In production, `KademliaRoutingTable` is given `selfId = SHA1(Ed25519_public_key)` from `IKeyStore.Current.PublicKey` (Program). Alternative: `SHA256(publicKey)[0..20]` for new code. `InMemoryDhtClient` uses a separate internal table with `RandomNodeId()` (20 random bytes) when used as `IDhtClient`; the main DHT node uses the Ed25519-derived `KademliaRoutingTable` from DI.
+**NodeId derivation (T-901 alignment)**: In production, `KademliaRoutingTable` is given `selfId = SHA256(Ed25519_public_key)[0..20]` from `IKeyStore.Current.PublicKey` (`ExperimentalMeshServiceCollectionExtensions`). This is the byte identity behind `Ed25519Signer.DerivePeerId`; the PeerId string is its lower-case Base32 encoding. `DhtStoreMessage.VerifySignature` checks that a signed store's `RequesterId` equals the same first 20 SHA-256 bytes. `InMemoryDhtClient` uses a separate internal table with `RandomNodeId()` (20 random bytes) when used as `IDhtClient`; the main DHT node uses the Ed25519-derived `KademliaRoutingTable` from DI.
 
 ---
 
@@ -74,7 +74,7 @@ So we **join the DHT as a proper node**: we handle FIND_NODE, FIND_VALUE, STORE,
 
 | Type | Role |
 |------|------|
-| `KademliaRoutingTable` | 160-bit k-buckets, Touch, GetClosest. selfId from SHA1(Ed25519) in Program. |
+| `KademliaRoutingTable` | 160-bit k-buckets, Touch, GetClosest. Production `selfId` is the first 20 bytes of SHA-256 over the Ed25519 public key. |
 | `KademliaRpcClient` | FIND_NODE, FIND_VALUE, STORE, PING (client). |
 | `DhtMeshService` | FIND_NODE, FIND_VALUE, STORE, PING (server). |
 | `DhtService` | Orchestrates DHT; uses `KademliaRpcClient`, `IDhtClient`, `IMeshMessageSigner`. |
