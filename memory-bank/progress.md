@@ -17554,3 +17554,23 @@ Dockerfile, and stable-image pointer. `bash packaging/scripts/validate-packaging
 passes. The Docker Main job is still reporting in progress, while PPA
 publication is pending for `.338` and still running for `.337`; no service
 deployment was performed.
+
+## Update 2026-10-04 22:37 UTC — Fix rate-limited callback overlap
+
+Fixed `RateLimiter` so the immediate callback holds the configured execution
+slot, timer ticks atomically take the latest staged callback, and
+flush-on-dispose waits for a slot before invoking pending work. This prevents
+overlap at `concurrencyLimit: 1` and closes a staging race that could drop an
+update. Gotcha `0z1557` was committed separately before the implementation.
+The focused callback suite passes 8/8, full `dotnet test` passes 5,907 tests
+(74 application, 5,544 unit, 289 integration), and `./bin/lint` passes. The
+release-note fragment and changelog entry are ready for the next stable cut.
+The staged changelog gate identified `docs/CHANGELOG.md` as the authoritative
+release path; gotcha `0z1558` records that repository-specific rule, and the
+staged changelog check now passes.
+
+Refreshed active bug-council counts to 210 callback/event candidates and
+12,213 red-team candidates; both broad queues remain open. The `.338` Docker
+Omnibus Testers job has completed, while Launchpad PPA publication is still
+in progress. Continue independent whole-product remediation while that
+publication drains, then validate and cut the next stable release.

@@ -17973,3 +17973,30 @@ Next: continue the code-backed whole-product backlog while the `.337` and
 `.338` Launchpad jobs finish. The remaining work is listed above and stays
 open where it requires a new distributed ownership design or external browser,
 WAN, device, or long-duration evidence.
+
+## Current state — RateLimiter callback concurrency and next stable release — 2026-10-04 22:37 UTC
+
+The MonoTorrent question is resolved: every first-party project under `src`,
+`tests`, and `tools` targets `net10.0`; MonoTorrent `3.9.0-alpha.unstable.rev0000`
+provides a compatible `net8.0` package asset, and no active `.NET 6` target or
+selected asset exists. No framework change is required.
+
+Fixed the callback concurrency defect in `Common/RateLimiter.cs`. Immediate,
+timer, and flush-on-dispose callbacks now share the configured gate, and staged
+delegate access is synchronized. Gotcha `0z1557` is already committed and
+pushed separately. Focused callback coverage passes 8/8; full .NET passes
+5,907 (74 application, 5,544 unit, 289 integration); `./bin/lint` passes.
+The release fragment and changelog entry are committed and pushed. The staged
+release check confirmed `docs/CHANGELOG.md` is authoritative; gotcha `0z1558`
+is committed and pushed, and the changelog check passes.
+
+Active discovery is not complete: callback/event candidates now total 210 and
+red-team candidates 12,213; both remain open. Stable `.338` is published, its
+Docker Omnibus Testers job completed, and its Launchpad PPA job is still
+in progress. Continue code-backed remediation while publication runs; then
+validate and cut `.339` through `scripts/create-release-tag.sh` after rechecking
+the GitHub target. Remaining evidence/design work includes T-908 sender/receiver
+fallback lifecycle, global Party ID ownership across disjoint DHT views, real
+background-tab timer throttling, WebKit Orca/physical assistive-technology
+validation, representative WAN/resource measurements, and the original
+frontend `ERR_NETWORK_CHANGED` cause.
