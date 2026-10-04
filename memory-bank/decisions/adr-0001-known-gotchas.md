@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1546. Do Not Log Magnet URL Previews (2026-10-04)
+
+**What went wrong:** Torrent fetch failures logged the first 60 characters of
+the caller's backend reference. A magnet URL can begin with tracker URLs or
+other private source data, so truncating it does not make the value safe to
+retain in logs.
+
+**Why:** The failure path treated every backend reference as a harmless
+identifier, although magnets can embed network endpoints and credentials.
+
+**Prevention:** Log an infohash when one has been parsed, or log only that the
+reference could not be parsed. Never log a raw or truncated magnet URL; keep
+endpoint values out of error context.
+
 ### 0z1545. Observe Async DHT Operations After The MonoTorrent API Upgrade (2026-10-04)
 
 **What went wrong:** MonoTorrent 3.9 replaced synchronous DHT query and
