@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1545. Observe Async DHT Operations After The MonoTorrent API Upgrade (2026-10-04)
+
+**What went wrong:** MonoTorrent 3.9 replaced synchronous DHT query and
+announce calls with `ReusableTask` operations. The service also starts
+re-announces from synchronous VPN event callbacks, so changing the public
+method to async without changing those callbacks would leave failures
+unobserved.
+
+**Why:** The dependency upgrade changed a fire-and-return API into asynchronous
+work while existing callback wiring discarded the returned task.
+
+**Prevention:** Await DHT operations on regular async paths. For synchronous
+event callbacks, hand off to a helper that catches and logs every failure.
+Keep lookup concurrency bounded and preserve the service's bounded wait for
+discovery callers.
+
 ### 0z1544. Revalidate Consumers When Raising A Library Target Framework (2026-10-04)
 
 **What went wrong:** Updating MonoTorrent from the package whose selected
