@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1527. Start The Mocked Operation Before Testing Its Cancellation Race (2026-10-04)
+
+**What went wrong:** The port-mapping timeout regression closed its local
+socket immediately after scheduling the mapper. Cancellation won before the
+mocked mesh receive began, so the test did not create the non-cooperative
+in-flight operation it intended to hold open.
+
+**Why:** Scheduling the worker was mistaken for proof that it had reached the
+mesh boundary.
+
+**Prevention:** Have the mock signal when its operation starts, await that
+signal, and only then trigger cancellation or close the local endpoint. Keep
+the delayed response pending until after the bounded-close assertion.
+
 ### 0z1526. Do Not Mark Port-Forwarding Workers Complete On A Wait Timeout (2026-10-04)
 
 **What went wrong:** `ForwarderConnection.CloseAsync` set its mapping completion
