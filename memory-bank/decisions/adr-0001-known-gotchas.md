@@ -4,6 +4,24 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1553. Do Not Treat Stub Variant Membership As Request Validation (2026-10-04)
+
+**What went wrong:** `SwarmJobExtensions.HasVariant` returns `true` for every
+variant because `SwarmJob` does not currently store variant membership. The
+fallback handler uses that result as if it had validated the untrusted
+`variantId` against the job. Fallback is currently rejected before activation,
+but removing that rejection later would turn the placeholder into a silent
+authorization bypass.
+
+**Why:** The signal protocol expects job-to-variant ownership, while the job
+model only carries a file and source list. A convenience extension hid this
+model gap instead of rejecting the unsupported check.
+
+**Prevention:** Never implement a security or ownership predicate as an
+unconditional success when the model lacks the required data. Keep fallback
+requests explicitly unsupported until the job record binds authorized variant
+IDs, then validate that binding before policy evaluation or manager startup.
+
 ### 0z1552. Qualify Same-Named Configuration Types In Tests (2026-10-04)
 
 **What went wrong:** A bootstrap test imported both the core and VirtualSoulfind
