@@ -36274,3 +36274,18 @@ common helper existed in the build-tools project.
 **Prevention:** Keep one implemented rule-resolution helper for both analyzer
 sources, and compile the build-tools project before running its unit tests after
 changing analyzer task flow.
+
+### 0z1463. Keep Analyzer Findings And MSBuild Event Tests Aligned (2026-10-04)
+
+**What went wrong:** The analyzer calibration removed `MissingDocumentation`
+from its enabled rules but left the reflection detector emitting it. Its task
+regression also captured only the final summary error, hiding the specific
+incomplete-analysis error emitted earlier in the same execution.
+
+**Why:** Rule configuration and rule implementation were edited independently,
+and the MSBuild test stored only the last diagnostic event instead of keeping
+the complete event sequence.
+
+**Prevention:** Remove a rule's detector when retiring it from configuration,
+and have task tests assert over the full warning/error event collection so both
+specific diagnostics and their final task result remain covered.
