@@ -37625,3 +37625,23 @@ assertion directly.
 `Assert.DoesNotContain(collection, predicate)` for cardinality and absence
 checks. Run the upgraded test project with analyzer output visible and clear
 all newly introduced warnings before treating package upgrades as complete.
+
+### 0z1467. Do Not Let Experimental Signal Stubs Replace Real Security Policy (2026-10-04)
+
+**What went wrong:** The swarm signal handler referenced a same-namespace
+`ISecurityPolicyEngine` and a stub registered in production that always allowed
+requests. Those duplicate signal-local security types shadowed the application's
+composite `slskd.Security` policy engine. The handler also acknowledged a
+BitTorrent fallback as accepted even when the backend returned an empty id,
+and its successful preparation path had no owning-job cleanup.
+
+**Why:** Prototype signal contracts were copied beside production security
+types, then registered as if they were the application policy. The fallback
+request handler treated starting a manager as completion even though sender
+activation and job cancellation were not integrated.
+
+**Prevention:** Reuse `slskd.Security.ISecurityPolicyEngine` and its
+`SecurityContext` for signal authorization. Until fallback activation and job
+cleanup are connected end to end, return an explicit rejected acknowledgement
+and do not start a torrent manager. Never report success without a usable
+backend id and a lifecycle owner.
