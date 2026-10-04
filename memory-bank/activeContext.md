@@ -17960,3 +17960,16 @@ lifecycle, global Party ID claim semantics across disjoint DHT views, actual
 background-tab throttling, WebKit Orca/physical assistive-technology evidence,
 representative WAN and sustained-resource measurements, the originating
 frontend `ERR_NETWORK_CHANGED` failure, and broad bug-council discovery queues.
+
+### 2026-10-04 22:15 UTC — Verify `.338` image and Cloudron metadata
+
+The published `.338` Docker manifest is an OCI index with both `linux/amd64`
+and `linux/arm64` images. The guarded Cloudron update now records stable image
+`2026100421-slskdn.338` as `2026.10.0421`; packaging metadata validation passes.
+The GitHub Docker Main job is still reporting in progress, and the `.338` PPA
+is pending. No service deployment was performed.
+
+Next: continue the code-backed whole-product backlog while the `.337` and
+`.338` Launchpad jobs finish. The remaining work is listed above and stays
+open where it requires a new distributed ownership design or external browser,
+WAN, device, or long-duration evidence.

@@ -75,8 +75,10 @@
 - [x] Cut stable `.338` through the guarded release helper after the hosted
   gate retry passed on the immutable tag. The published release verifier
   checked all six archives and checksums, support assets, Linux version output,
-  VPN helper, and bundled Web marker. Docker Main is still building; the PPA
-  job is pending.
+  VPN helper, and bundled Web marker. The Docker image is published with
+  `linux/amd64` and `linux/arm64` manifests; Cloudron now tracks it as
+  `2026.10.0421`, and packaging metadata validation passes. The workflow is
+  still waiting on Launchpad PPA publication.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings; T-908 fallback lifecycle and distributed evidence
   requirements remain open.

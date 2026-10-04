@@ -17544,3 +17544,13 @@ distributed Party ID ownership semantics, actual hidden-tab timer throttling,
 WebKit/physical assistive-technology evidence, WAN and sustained-resource
 measurements, the original frontend bootstrap interruption, and broad
 bug-council discovery queues as their required environments and designs allow.
+
+## Update 2026-10-04 22:15 UTC — Verify `.338` Docker and Cloudron metadata
+
+The `.338` image registry manifest includes `linux/amd64` and `linux/arm64`.
+Ran `packaging/scripts/update-cloudron-stable-image.sh` for the tag, adding the
+immutable Cloudron `2026.10.0421` version record and updating its manifest,
+Dockerfile, and stable-image pointer. `bash packaging/scripts/validate-packaging-metadata.sh`
+passes. The Docker Main job is still reporting in progress, while PPA
+publication is pending for `.338` and still running for `.337`; no service
+deployment was performed.
