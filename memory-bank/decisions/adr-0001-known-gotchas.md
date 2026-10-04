@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1514. Rethrow Caller Cancellation From Optional Fingerprint Verification (2026-10-04)
+
+**What went wrong:** `VerifyFinalFileAsync` caught every exception from
+fingerprint extraction, HashDb, and AcoustID lookup, then returned an
+unverified result. A canceled request could therefore continue to publish the
+download as successful.
+
+**Why:** The optional metadata fallback treated caller cancellation like a
+recoverable fingerprint failure.
+
+**Prevention:** Rethrow `OperationCanceledException` when the request token is
+canceled before applying the best-effort fallback for other verification
+failures. Test cancellation while fingerprint extraction is in flight.
+
 ### 0z1513. Balance Multi-Source Download Resources On Every Exit (2026-10-04)
 
 **What went wrong:** The multi-source active-download gauge was incremented
