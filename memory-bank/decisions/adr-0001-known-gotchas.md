@@ -82,6 +82,23 @@ Task-returning `...Async` methods as suspicious.
 `Sync` suffix, and keep regressions for ordinary `Async`, action names such as
 `SynchronizeAsync`, and genuinely Task-returning names ending in `Sync`.
 
+### 0z1476. Do Not Classify Methods As Dangerous From Their Names (2026-10-04)
+
+**What went wrong:** The reflection analyzer labeled methods as dangerous when
+their names contained tokens such as `Deserialize` or `FromBase64String`.
+This reported generated MessagePack formatters and safe parsing methods even
+though the analyzer never inspected their bodies or the data they process.
+
+**Why:** A method declaration name does not establish use of a dangerous API,
+an unsafe deserialization mode, or attacker-controlled input. Substring
+matching generated security-looking warnings without checking the called API
+or its data flow.
+
+**Prevention:** Keep reflection analysis limited to properties it can establish
+from metadata. Detect risky API call sites in source syntax or semantic
+operation data, and report findings only when the API and relevant input flow
+are known. Treat deserialization review as format- and trust-boundary-specific.
+
 ### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
 
 **What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
