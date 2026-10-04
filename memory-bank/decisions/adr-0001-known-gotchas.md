@@ -4,6 +4,23 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1492. Fail Closed When The Persistent Soulseek Probe Budget Is Unavailable (2026-10-04)
+
+**What went wrong:** `ContentVerificationService` caught probe-budget load and
+save failures, then continued as though the daily counter were reliable. An
+unreadable budget file reset the per-peer count, and a failed save still
+allowed the current network probe. A restart after a failed save could then
+permit more than the documented 10 probes per peer per UTC day.
+
+**Why:** The recovery path treated persistence as best-effort even though the
+network-noise limit is documented as durable across restarts and exists to
+protect Soulseek peers from repeated partial-transfer probes.
+
+**Prevention:** Do not issue a probe when the budget cannot be read or
+atomically persisted. Distinguish an absent first-run budget from malformed or
+unreadable state, log persistence failures, and cover load and save failures
+with tests that assert the peer is not contacted.
+
 ### 0z1491. Query Nested Files In Library Browser Regressions (2026-10-04)
 
 **What went wrong:** A cancellation regression placed `song.mp3` under the
