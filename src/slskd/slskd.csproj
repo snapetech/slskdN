@@ -69,7 +69,16 @@
 
   <!-- Static analysis (H-CODE02) -->
   <Target Name="RunStaticAnalysis" AfterTargets="Build" Condition="'$(RunStaticAnalysis)' == 'true'">
-    <CodeAnalysisBuildTask ProjectDirectory="$(MSBuildProjectDirectory)" AssemblyPath="$(TargetPath)" TreatWarningsAsErrors="$(TreatWarningsAsErrors)" MaxViolations="100" />
+    <CodeAnalysisBuildTask
+      ProjectDirectory="$(MSBuildProjectDirectory)"
+      AssemblyPath="$(TargetPath)"
+      SourceFiles="@(Compile->'%(FullPath)')"
+      ReferencePaths="@(ReferencePath->'%(FullPath)')"
+      CSharpLanguageVersion="$(LangVersion)"
+      PreprocessorSymbols="$(DefineConstants)"
+      AllowUnsafe="$(AllowUnsafeBlocks)"
+      TreatWarningsAsErrors="$(TreatWarningsAsErrors)"
+      MaxViolations="100" />
   </Target>
 
   <!-- Test coverage analysis (H-CODE03) -->

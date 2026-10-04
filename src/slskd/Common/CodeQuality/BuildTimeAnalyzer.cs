@@ -30,25 +30,41 @@ namespace slskd.Common.CodeQuality
         /// <returns>List of violations found in the source code.</returns>
         public static IEnumerable<CodeAnalysisViolation> AnalyzeSourceCode(string sourceCode, string filePath, ILogger? logger = null)
         {
-            var violations = new List<CodeAnalysisViolation>();
-
             try
             {
                 var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
+                return AnalyzeSyntaxTree(syntaxTree, filePath, semanticModel: null, logger);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed to analyze source file {FilePath}", filePath);
+                return Array.Empty<CodeAnalysisViolation>();
+            }
+        }
+
+        /// <summary>
+        ///     Analyzes a syntax tree, using bound symbols when a semantic model is available.
+        /// </summary>
+        /// <param name="syntaxTree">The syntax tree to analyze.</param>
+        /// <param name="filePath">The file path for error reporting.</param>
+        /// <param name="semanticModel">The model used to resolve framework and project symbols.</param>
+        /// <param name="logger">Optional logger.</param>
+        /// <returns>List of violations found in the source tree.</returns>
+        public static IEnumerable<CodeAnalysisViolation> AnalyzeSyntaxTree(
+            SyntaxTree syntaxTree,
+            string filePath,
+            SemanticModel? semanticModel,
+            ILogger? logger = null)
+        {
+            var violations = new List<CodeAnalysisViolation>();
+            try
+            {
                 var root = syntaxTree.GetRoot();
 
-                // Analyze for blocking async calls
-                violations.AddRange(AnalyzeBlockingAsyncCalls(root, filePath));
-
-                // Analyze for insecure string operations
+                violations.AddRange(AnalyzeBlockingAsyncCalls(root, filePath, semanticModel));
                 violations.AddRange(AnalyzeInsecureStringOperations(root, filePath));
-
-                // Analyze for improper exception handling
                 violations.AddRange(AnalyzeExceptionHandling(root, filePath));
-
-                // Analyze for security issues
-                violations.AddRange(AnalyzeSecurityIssues(root, filePath));
-
+                violations.AddRange(AnalyzeSecurityIssues(root, filePath, semanticModel));
             }
             catch (Exception ex)
             {
@@ -58,8 +74,16 @@ namespace slskd.Common.CodeQuality
             return violations;
         }
 
-        private static IEnumerable<CodeAnalysisViolation> AnalyzeBlockingAsyncCalls(SyntaxNode root, string filePath)
+        private static IEnumerable<CodeAnalysisViolation> AnalyzeBlockingAsyncCalls(
+            SyntaxNode root,
+            string filePath,
+            SemanticModel? semanticModel)
         {
+            if (semanticModel is not null)
+            {
+                return AnalyzeBlockingAsyncCallsWithSymbols(root, filePath, semanticModel);
+            }
+
             var violations = new List<CodeAnalysisViolation>();
 
             // A property named Result is common in MVC and binding APIs. Only
@@ -130,6 +154,123 @@ namespace slskd.Common.CodeQuality
             }
 
             return violations;
+        }
+
+        private static IEnumerable<CodeAnalysisViolation> AnalyzeBlockingAsyncCallsWithSymbols(
+            SyntaxNode root,
+            string filePath,
+            SemanticModel semanticModel)
+        {
+            var violations = new List<CodeAnalysisViolation>();
+            foreach (var memberAccess in root.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+            {
+                if (memberAccess.Name.Identifier.ValueText != "Result" ||
+                    semanticModel.GetSymbolInfo(memberAccess).Symbol is not IPropertySymbol property ||
+                    !IsTaskLikeType(property.ContainingType))
+                {
+                    continue;
+                }
+
+                violations.Add(CreateBlockingViolation(filePath, memberAccess, ".Result"));
+            }
+
+            foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+                if (semanticModel.GetSymbolInfo(invocation).Symbol is not IMethodSymbol method)
+                {
+                    continue;
+                }
+
+                if (method.Name == "Wait" &&
+                    IsTaskLikeType(method.ContainingType) &&
+                    !HasZeroTimeout(invocation, semanticModel))
+                {
+                    violations.Add(CreateBlockingViolation(filePath, invocation, ".Wait()"));
+                    continue;
+                }
+
+                if (method.Name == "GetResult" && IsTaskAwaiterType(method.ContainingType))
+                {
+                    var getAwaiter = invocation.Expression is MemberAccessExpressionSyntax resultAccess &&
+                        resultAccess.Expression is InvocationExpressionSyntax awaiterInvocation
+                            ? semanticModel.GetSymbolInfo(awaiterInvocation).Symbol as IMethodSymbol
+                            : null;
+                    if (getAwaiter?.Name == "GetAwaiter" && IsTaskLikeType(getAwaiter.ContainingType))
+                    {
+                        violations.Add(CreateBlockingViolation(filePath, invocation, ".GetAwaiter().GetResult()"));
+                    }
+                }
+            }
+
+            return violations;
+        }
+
+        private static CodeAnalysisViolation CreateBlockingViolation(string filePath, SyntaxNode node, string operation)
+        {
+            var message = operation switch
+            {
+                ".Result" => "Blocking async call detected (.Result)",
+                ".Wait()" => "Blocking async call detected (.Wait())",
+                _ => "Blocking async call detected (.GetAwaiter().GetResult())"
+            };
+
+            var recommendation = operation switch
+            {
+                ".Result" => "Use 'await' instead of .Result to avoid deadlocks",
+                ".Wait()" => "Use 'await' instead of .Wait() to avoid deadlocks",
+                _ => "Use 'await' instead of .GetAwaiter().GetResult()"
+            };
+
+            return new CodeAnalysisViolation
+            {
+                FilePath = filePath,
+                LineNumber = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
+                Rule = "BlockingAsyncCall",
+                Severity = ViolationSeverity.Error,
+                Message = message,
+                CodeSnippet = node.ToString(),
+                Recommendation = recommendation
+            };
+        }
+
+        private static bool IsTaskLikeType(ITypeSymbol? type)
+        {
+            if (type is null)
+            {
+                return false;
+            }
+
+            var definition = type.OriginalDefinition;
+            return definition.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks" &&
+                (definition.MetadataName is "Task" or "Task`1" or "ValueTask" or "ValueTask`1");
+        }
+
+        private static bool IsTaskAwaiterType(ITypeSymbol type)
+        {
+            var definition = type.OriginalDefinition;
+            return definition.ContainingNamespace.ToDisplayString() == "System.Runtime.CompilerServices" &&
+                (definition.MetadataName is "TaskAwaiter" or "TaskAwaiter`1" or
+                    "ConfiguredTaskAwaiter" or "ConfiguredTaskAwaiter`1" or
+                    "ValueTaskAwaiter" or "ValueTaskAwaiter`1" or
+                    "ConfiguredValueTaskAwaiter" or "ConfiguredValueTaskAwaiter`1");
+        }
+
+        private static bool HasZeroTimeout(InvocationExpressionSyntax invocation, SemanticModel semanticModel)
+        {
+            if (invocation.ArgumentList.Arguments.Count == 0)
+            {
+                return false;
+            }
+
+            var timeout = invocation.ArgumentList.Arguments[0].Expression;
+            if (semanticModel.GetConstantValue(timeout) is { HasValue: true, Value: int value } && value == 0)
+            {
+                return true;
+            }
+
+            return semanticModel.GetSymbolInfo(timeout).Symbol is IPropertySymbol property &&
+                property.Name == "Zero" &&
+                property.ContainingType.ToDisplayString() == "System.TimeSpan";
         }
 
         private static bool IsTaskLikeExpression(ExpressionSyntax expression, SyntaxNode root)
@@ -398,7 +539,10 @@ namespace slskd.Common.CodeQuality
             return violations;
         }
 
-        private static IEnumerable<CodeAnalysisViolation> AnalyzeSecurityIssues(SyntaxNode root, string filePath)
+        private static IEnumerable<CodeAnalysisViolation> AnalyzeSecurityIssues(
+            SyntaxNode root,
+            string filePath,
+            SemanticModel? semanticModel)
         {
             var violations = new List<CodeAnalysisViolation>();
 
@@ -427,11 +571,13 @@ namespace slskd.Common.CodeQuality
             // Find use of dangerous APIs
             var dangerousInvocations = root.DescendantNodes()
                 .OfType<InvocationExpressionSyntax>()
-                .Where(i => i.Expression is MemberAccessExpressionSyntax m &&
-                           (m.Name.Identifier.Text == "ExecuteSqlRaw" ||
-                            m.Name.Identifier.Text == "FromSqlRaw" ||
-                            m.Name.Identifier.Text == "ProcessStart" ||
-                            m.Name.Identifier.Text == "ExecuteCommand"));
+                .Where(invocation => semanticModel is null
+                    ? invocation.Expression is MemberAccessExpressionSyntax member &&
+                        (member.Name.Identifier.Text == "ExecuteSqlRaw" ||
+                         member.Name.Identifier.Text == "FromSqlRaw" ||
+                         member.Name.Identifier.Text == "ProcessStart" ||
+                         member.Name.Identifier.Text == "ExecuteCommand")
+                    : semanticModel.GetSymbolInfo(invocation).Symbol is IMethodSymbol method && IsDangerousApi(method));
 
             foreach (var invocation in dangerousInvocations)
             {
@@ -448,6 +594,16 @@ namespace slskd.Common.CodeQuality
             }
 
             return violations;
+        }
+
+        private static bool IsDangerousApi(IMethodSymbol method)
+        {
+            var containingType = method.ContainingType.ToDisplayString();
+            return (containingType == "System.Diagnostics.Process" && method.Name == "Start") ||
+                (containingType == "Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions" &&
+                    method.Name is "ExecuteSqlRaw" or "ExecuteSqlRawAsync") ||
+                (containingType == "Microsoft.EntityFrameworkCore.RelationalQueryableExtensions" &&
+                    method.Name is "FromSqlRaw" or "FromSqlRawAsync");
         }
 
     }

@@ -12,6 +12,8 @@ namespace slskd.Common.CodeQuality
     using System.Runtime.Loader;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
+    using Microsoft.CodeAnalysis;
+    using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.Extensions.Logging;
 
     /// <summary>
@@ -54,6 +56,31 @@ namespace slskd.Common.CodeQuality
         ///     Gets or sets the analysis rules to exclude.
         /// </summary>
         public string[]? ExcludedRules { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the source files passed by the project compiler.
+        /// </summary>
+        public string[]? SourceFiles { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the compiler reference paths used for symbol binding.
+        /// </summary>
+        public string[]? ReferencePaths { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the C# language version used by the project.
+        /// </summary>
+        public string? CSharpLanguageVersion { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the project preprocessor symbols.
+        /// </summary>
+        public string? PreprocessorSymbols { get; set; }
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether the project allows unsafe code.
+        /// </summary>
+        public bool AllowUnsafe { get; set; }
 
         /// <summary>
         ///     Executes the build task.
@@ -138,7 +165,8 @@ namespace slskd.Common.CodeQuality
             // Analyze source files
             if (!string.IsNullOrEmpty(ProjectDirectory) && Directory.Exists(ProjectDirectory))
             {
-                violations.AddRange(AnalyzeSourceFiles(ProjectDirectory, config));
+                var sourceCompilation = CreateSourceCompilation(ProjectDirectory);
+                violations.AddRange(AnalyzeSourceFiles(ProjectDirectory, config, sourceCompilation));
             }
             else
             {
@@ -157,10 +185,13 @@ namespace slskd.Common.CodeQuality
             };
         }
 
-        private IEnumerable<AnalysisViolation> AnalyzeSourceFiles(string projectDirectory, AnalyzerConfig config)
+        private IEnumerable<AnalysisViolation> AnalyzeSourceFiles(
+            string projectDirectory,
+            AnalyzerConfig config,
+            CSharpCompilation? sourceCompilation)
         {
             var violations = new List<AnalysisViolation>();
-            var csFiles = Directory.EnumerateFiles(projectDirectory, "*.cs", SearchOption.AllDirectories);
+            var csFiles = GetAnalyzedSourceFiles(projectDirectory);
 
             foreach (var csFile in csFiles)
             {
@@ -172,8 +203,19 @@ namespace slskd.Common.CodeQuality
 
                 try
                 {
-                    var sourceCode = File.ReadAllText(csFile);
-                    var fileViolations = BuildTimeAnalyzer.AnalyzeSourceCode(sourceCode, csFile)
+                    var syntaxTree = sourceCompilation?.SyntaxTrees.FirstOrDefault(tree =>
+                        string.Equals(
+                            Path.GetFullPath(tree.FilePath),
+                            Path.GetFullPath(csFile),
+                            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal));
+                    var sourceCode = syntaxTree is null ? File.ReadAllText(csFile) : null;
+                    var sourceViolations = syntaxTree is null
+                        ? BuildTimeAnalyzer.AnalyzeSourceCode(sourceCode!, csFile)
+                        : BuildTimeAnalyzer.AnalyzeSyntaxTree(
+                            syntaxTree,
+                            csFile,
+                            sourceCompilation!.GetSemanticModel(syntaxTree, ignoreAccessibility: true));
+                    var fileViolations = sourceViolations
                         .Where(violation => IsRuleEnabled(violation.Rule, config))
                         .Take(config.MaxViolationsPerFile);
 
@@ -199,6 +241,107 @@ namespace slskd.Common.CodeQuality
             }
 
             return violations;
+        }
+
+        private CSharpCompilation? CreateSourceCompilation(string projectDirectory)
+        {
+            try
+            {
+                var parseOptions = CreateParseOptions();
+                var syntaxTrees = GetCompilationSourceFiles(projectDirectory)
+                    .Where(File.Exists)
+                    .Distinct(StringComparer.Ordinal)
+                    .Select(path => CSharpSyntaxTree.ParseText(File.ReadAllText(path), parseOptions, path))
+                    .ToArray();
+                if (syntaxTrees.Length == 0)
+                {
+                    return null;
+                }
+
+                var metadataReferences = GetMetadataReferences();
+                if (metadataReferences.Count == 0)
+                {
+                    Log.LogWarning("Semantic source analysis has no compiler references; using syntax-only findings.");
+                    return null;
+                }
+
+                return CSharpCompilation.Create(
+                    assemblyName: "slskd.CodeQuality.SourceAnalysis",
+                    syntaxTrees: syntaxTrees,
+                    references: metadataReferences,
+                    options: new CSharpCompilationOptions(
+                        OutputKind.DynamicallyLinkedLibrary,
+                        allowUnsafe: AllowUnsafe,
+                        nullableContextOptions: NullableContextOptions.Enable));
+            }
+            catch (Exception ex)
+            {
+                Log.LogWarning($"Semantic source analysis could not create a Roslyn compilation: {ex.Message}");
+                return null;
+            }
+        }
+
+        private CSharpParseOptions CreateParseOptions()
+        {
+            var languageVersion = LanguageVersion.Default;
+            if (!string.IsNullOrWhiteSpace(CSharpLanguageVersion) &&
+                LanguageVersionFacts.TryParse(CSharpLanguageVersion, out var parsedLanguageVersion))
+            {
+                languageVersion = parsedLanguageVersion;
+            }
+
+            var preprocessorSymbols = string.IsNullOrWhiteSpace(PreprocessorSymbols)
+                ? Array.Empty<string>()
+                : PreprocessorSymbols.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return new CSharpParseOptions(languageVersion, preprocessorSymbols: preprocessorSymbols);
+        }
+
+        private List<MetadataReference> GetMetadataReferences()
+        {
+            var referencePaths = (ReferencePaths ?? Array.Empty<string>())
+                .Where(path => !string.IsNullOrWhiteSpace(path) && File.Exists(path))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            if (ReferencePaths is not { Length: > 0 } && AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is string trustedAssemblies)
+            {
+                referencePaths.AddRange(trustedAssemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+            }
+
+            if (!string.IsNullOrWhiteSpace(AssemblyPath) && File.Exists(AssemblyPath))
+            {
+                referencePaths.Add(AssemblyPath);
+            }
+
+            var references = new List<MetadataReference>(referencePaths.Count);
+            foreach (var path in referencePaths)
+            {
+                try
+                {
+                    references.Add(MetadataReference.CreateFromFile(Path.GetFullPath(path)));
+                }
+                catch (Exception ex)
+                {
+                    Log.LogMessage(MessageImportance.Low, $"Ignoring unavailable compiler reference {Path.GetFileName(path)}: {ex.Message}");
+                }
+            }
+
+            return references;
+        }
+
+        private IEnumerable<string> GetCompilationSourceFiles(string projectDirectory)
+        {
+            return SourceFiles is { Length: > 0 }
+                ? SourceFiles.Select(path => Path.IsPathRooted(path) ? path : Path.Combine(projectDirectory, path))
+                : Directory.EnumerateFiles(projectDirectory, "*.cs", SearchOption.AllDirectories);
+        }
+
+        private IEnumerable<string> GetAnalyzedSourceFiles(string projectDirectory)
+        {
+            return GetCompilationSourceFiles(projectDirectory)
+                .Where(path => string.Equals(Path.GetExtension(path), ".cs", StringComparison.OrdinalIgnoreCase))
+                .Where(File.Exists)
+                .Distinct(StringComparer.Ordinal);
         }
 
         private bool IsExcludedPath(string filePath, IEnumerable<string> excludedPaths)

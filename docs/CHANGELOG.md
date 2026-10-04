@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Developer tooling
+
+- Bind the opt-in blocking-call and dangerous-API diagnostics to symbols from
+  the actual application compilation, reducing findings based only on names.
+
 ## [2026100417-slskdn.336] — 2026-10-04
 
 ### BitTorrent acquisition

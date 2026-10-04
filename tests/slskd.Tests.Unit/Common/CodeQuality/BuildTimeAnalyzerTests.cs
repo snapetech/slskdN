@@ -146,6 +146,74 @@ namespace slskd.Tests.Unit.Common.CodeQuality
         }
 
         [Fact]
+        public void CodeAnalysisBuildTask_UsesResolvedSymbolsForTaskAndDangerousApiFindings()
+        {
+            var projectDirectory = System.IO.Directory.CreateTempSubdirectory();
+            var buildEngine = new Mock<IBuildEngine>();
+            var messages = new System.Collections.Generic.List<BuildMessageEventArgs>();
+            buildEngine
+                .Setup(engine => engine.LogMessageEvent(It.IsAny<BuildMessageEventArgs>()))
+                .Callback<BuildMessageEventArgs>(messages.Add);
+
+            const string sourceCode = """
+                namespace Demo;
+
+                public sealed class Task
+                {
+                    public int Result => 1;
+                    public void Wait() { }
+                }
+
+                public static class Targets
+                {
+                    private static System.Threading.Tasks.Task<int> LoadAsync() =>
+                        System.Threading.Tasks.Task.FromResult(1);
+
+                    public static int ReadAsyncResult() => LoadAsync().Result;
+                    public static void WaitForAsync() => LoadAsync().Wait();
+                    public static int ReadAsyncValue() => LoadAsync().GetAwaiter().GetResult();
+
+                    private static Task LoadFakeTask() => new();
+                    public static int ReadFakeResult() => LoadFakeTask().Result;
+                    public static void WaitForFakeTask() => LoadFakeTask().Wait();
+
+                    public static void StartProcess() => System.Diagnostics.Process.Start("dotnet");
+                    public static void StartFakeProcess() => FakeProcess.Start("dotnet");
+                }
+
+                public static class FakeProcess
+                {
+                    public static void Start(string fileName) { }
+                }
+                """;
+            System.IO.File.WriteAllText(System.IO.Path.Combine(projectDirectory.FullName, "SemanticTargets.cs"), sourceCode);
+
+            try
+            {
+                var task = new CodeAnalysisBuildTask
+                {
+                    ProjectDirectory = projectDirectory.FullName,
+                    AssemblyPath = typeof(SafeControllerFeatureProvider).Assembly.Location,
+                    ReferencePaths = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string)?
+                        .Split(System.IO.Path.PathSeparator, System.StringSplitOptions.RemoveEmptyEntries),
+                    MaxViolations = int.MaxValue,
+                };
+                task.BuildEngine = buildEngine.Object;
+
+                Assert.True(task.Execute());
+                var sourceLocations = messages
+                    .Select(message => message.Message)
+                    .Where(message => message.Contains("Location: SemanticTargets.cs:", System.StringComparison.Ordinal))
+                    .ToList();
+                Assert.Equal(4, sourceLocations.Count);
+            }
+            finally
+            {
+                projectDirectory.Delete(recursive: true);
+            }
+        }
+
+        [Fact]
         public void AnalyzeSourceCode_WithBlockingAsyncCall_ReturnsViolation()
         {
             // Arrange
