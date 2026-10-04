@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1523. Preserve Faulted-Task Semantics When A Task API Completes Synchronously (2026-10-04)
+
+**What went wrong:** Replacing the synchronous body of `StartForwardingAsync`
+with a non-async `Task` method made lifecycle and validation failures throw
+before the caller received a task.
+
+**Why:** Removing an unnecessary async state machine was treated as a
+behavior-neutral cleanup, but async methods capture synchronous exceptions in
+their returned task.
+
+**Prevention:** When a task-returning API completes synchronously, return
+`Task.CompletedTask` for success and a faulted task for failures so callers keep
+the established async exception contract. Cover failures through
+`Assert.ThrowsAsync`.
+
 ### 0z1522. Fence Port-Forwarder Startup And Tunnel Registration Against Disposal (2026-10-04)
 
 **What went wrong:** `LocalPortForwarder.Dispose` set its disposed flag after
