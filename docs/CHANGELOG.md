@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100420-slskdn.337] — 2026-10-04
+
 ### External process reliability
 
 - Drain redirected output concurrently for SongID, audio sketching, Chromaprint
