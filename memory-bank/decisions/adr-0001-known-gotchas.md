@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1521. Make Stream-Release Disposal Atomic Across Sync And Async Paths (2026-10-04)
+
+**What went wrong:** `ReleaseOnDisposeStream` guarded both synchronous and
+asynchronous disposal with an unsynchronized Boolean. Concurrent response
+cleanup could invoke its lease-release callback twice, and callback failures
+were silently hidden.
+
+**Why:** The wrapper assumed the server would choose exactly one disposal path
+and that every release action would succeed.
+
+**Prevention:** Use one atomic exchange shared by sync and async disposal so
+inner-stream cleanup and the release callback happen once. Run inner cleanup
+even if the callback fails, and do not swallow callback exceptions. Cover
+concurrent mixed-mode disposal and callback failure.
+
 ### 0z1520. Do Not Dispose The Signal-Bus Semaphore While Calls May Still Release It (2026-10-04)
 
 **What went wrong:** `SignalBus.Dispose` disposed `subscribersLock` without
