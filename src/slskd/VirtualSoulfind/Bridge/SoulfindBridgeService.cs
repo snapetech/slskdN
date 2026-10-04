@@ -5,6 +5,7 @@ namespace slskd.VirtualSoulfind.Bridge;
 
 using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.IO;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using slskd;
@@ -61,14 +62,18 @@ public class BridgeHealthStatus
 /// <summary>
 /// Soulfind bridge service - allows legacy clients to use VSF mesh.
 /// </summary>
-public class SoulfindBridgeService : ISoulfindBridgeService
+public sealed class SoulfindBridgeService : ISoulfindBridgeService, IAsyncDisposable
 {
     private readonly ILogger<SoulfindBridgeService> logger;
     private readonly IOptionsMonitor<OptionsModel> optionsMonitor;
     private readonly ConcurrentDictionary<string, byte> connectedClients = new();
+    private readonly SemaphoreSlim lifecycleSemaphore = new(1, 1);
     private bool isRunning;
     private DateTimeOffset? startedAt;
     private Process? soulfindProcess;
+    private Task? stdoutDrainTask;
+    private Task? stderrDrainTask;
+    private int disposed;
 
     public SoulfindBridgeService(
         ILogger<SoulfindBridgeService> logger,
@@ -78,99 +83,167 @@ public class SoulfindBridgeService : ISoulfindBridgeService
         this.optionsMonitor = optionsMonitor;
     }
 
-    public bool IsRunning => isRunning;
+    public bool IsRunning => isRunning && soulfindProcess is { HasExited: false };
 
     public async Task StartAsync(CancellationToken ct)
     {
-        if (isRunning)
-        {
-            logger.LogWarning("[VSF-BRIDGE] Bridge already running");
-            return;
-        }
-
-        var options = optionsMonitor.CurrentValue;
-        if (options.VirtualSoulfind?.Bridge?.Enabled != true)
-        {
-            logger.LogInformation("[VSF-BRIDGE] Bridge disabled in configuration");
-            return;
-        }
-
-        logger.LogInformation("[VSF-BRIDGE] Starting Soulfind bridge service");
-
+        await lifecycleSemaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            // Start Soulfind in proxy mode
-            var soulfindPath = string.IsNullOrWhiteSpace(options.VirtualSoulfind.Bridge.SoulfindPath)
-                ? "soulfind"
-                : options.VirtualSoulfind.Bridge.SoulfindPath;
-            var bridgePort = options.VirtualSoulfind.Bridge.Port > 0
-                ? options.VirtualSoulfind.Bridge.Port
-                : 2242;
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
 
-            var startInfo = new ProcessStartInfo
+            if (IsRunning)
             {
-                FileName = soulfindPath,
-                Arguments = $"--port {bridgePort}",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            // Set PROXY_MODE environment variable
-            startInfo.Environment["PROXY_MODE"] = "true";
-            startInfo.Environment["SLSKDN_API_URL"] = $"http://localhost:{options.Web?.Port ?? 5030}";
-
-            soulfindProcess = Process.Start(startInfo);
-
-            if (soulfindProcess == null)
-            {
-                throw new Exception("Failed to start Soulfind process");
+                logger.LogWarning("[VSF-BRIDGE] Bridge already running");
+                return;
             }
 
-            // Wait for startup
-            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            if (soulfindProcess is not null)
+            {
+                await StopProcessAsync().ConfigureAwait(false);
+            }
 
-            isRunning = true;
-            startedAt = DateTimeOffset.UtcNow;
+            var options = optionsMonitor.CurrentValue;
+            if (options.VirtualSoulfind?.Bridge?.Enabled != true)
+            {
+                logger.LogInformation("[VSF-BRIDGE] Bridge disabled in configuration");
+                return;
+            }
 
-            logger.LogInformation("[VSF-BRIDGE] Soulfind bridge started on port {Port}", bridgePort);
+            logger.LogInformation("[VSF-BRIDGE] Starting Soulfind bridge service");
+
+            try
+            {
+                // Start Soulfind in proxy mode.
+                var soulfindPath = string.IsNullOrWhiteSpace(options.VirtualSoulfind.Bridge.SoulfindPath)
+                    ? "soulfind"
+                    : options.VirtualSoulfind.Bridge.SoulfindPath;
+                var bridgePort = options.VirtualSoulfind.Bridge.Port > 0
+                    ? options.VirtualSoulfind.Bridge.Port
+                    : 2242;
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = soulfindPath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+                startInfo.ArgumentList.Add("--port");
+                startInfo.ArgumentList.Add(bridgePort.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+                // Set PROXY_MODE environment variable.
+                startInfo.Environment["PROXY_MODE"] = "true";
+                startInfo.Environment["SLSKDN_API_URL"] = $"http://localhost:{options.Web?.Port ?? 5030}";
+
+                soulfindProcess = Process.Start(startInfo);
+
+                if (soulfindProcess is null)
+                {
+                    throw new InvalidOperationException("Failed to start Soulfind process.");
+                }
+
+                stdoutDrainTask = soulfindProcess.StandardOutput.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None);
+                stderrDrainTask = soulfindProcess.StandardError.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None);
+
+                // Wait for startup while continuing to drain both redirected pipes.
+                await Task.Delay(TimeSpan.FromSeconds(2), ct).ConfigureAwait(false);
+                if (soulfindProcess.HasExited)
+                {
+                    throw new InvalidOperationException($"Soulfind exited during startup with code {soulfindProcess.ExitCode}.");
+                }
+
+                isRunning = true;
+                startedAt = DateTimeOffset.UtcNow;
+
+                logger.LogInformation("[VSF-BRIDGE] Soulfind bridge started on port {Port}", bridgePort);
+            }
+            catch (Exception ex)
+            {
+                await StopProcessAsync().ConfigureAwait(false);
+                logger.LogError(ex, "[VSF-BRIDGE] Failed to start bridge: {Message}", ex.Message);
+                throw;
+            }
         }
-        catch (Exception ex)
+        finally
         {
-            logger.LogError(ex, "[VSF-BRIDGE] Failed to start bridge: {Message}", ex.Message);
-            throw;
+            lifecycleSemaphore.Release();
         }
     }
 
     public async Task StopAsync(CancellationToken ct)
     {
-        if (!isRunning)
+        await lifecycleSemaphore.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        try
         {
-            logger.LogDebug("[VSF-BRIDGE] Bridge not running");
+            if (soulfindProcess is null)
+            {
+                logger.LogDebug("[VSF-BRIDGE] Bridge not running");
+                return;
+            }
+
+            logger.LogInformation("[VSF-BRIDGE] Stopping Soulfind bridge");
+            await StopProcessAsync().ConfigureAwait(false);
+            connectedClients.Clear();
+            logger.LogInformation("[VSF-BRIDGE] Soulfind bridge stopped");
+        }
+        finally
+        {
+            lifecycleSemaphore.Release();
+        }
+    }
+
+    private async Task StopProcessAsync()
+    {
+        var process = soulfindProcess;
+        soulfindProcess = null;
+        isRunning = false;
+        startedAt = null;
+
+        if (process is null)
+        {
             return;
         }
 
-        logger.LogInformation("[VSF-BRIDGE] Stopping Soulfind bridge");
-
         try
         {
-            if (soulfindProcess != null && !soulfindProcess.HasExited)
+            if (!process.HasExited)
             {
-                soulfindProcess.Kill();
-                await soulfindProcess.WaitForExitAsync(ct);
+                process.Kill(entireProcessTree: true);
             }
 
-            connectedClients.Clear();
-            isRunning = false;
-            startedAt = null;
+            await process.WaitForExitAsync(CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                .ConfigureAwait(false);
 
-            logger.LogInformation("[VSF-BRIDGE] Soulfind bridge stopped");
+            await Task.WhenAll(
+                    stdoutDrainTask ?? Task.CompletedTask,
+                    stderrDrainTask ?? Task.CompletedTask)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE] Error stopping bridge: {Message}", ex.Message);
+            logger.LogError(ex, "[VSF-BRIDGE] Error stopping bridge process: {Message}", ex.Message);
         }
+        finally
+        {
+            process.Dispose();
+            stdoutDrainTask = null;
+            stderrDrainTask = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref disposed, 1) != 0)
+        {
+            return;
+        }
+
+        await StopAsync(CancellationToken.None).ConfigureAwait(false);
+        lifecycleSemaphore.Dispose();
     }
 
     public Task<BridgeHealthStatus> GetHealthAsync(CancellationToken ct)

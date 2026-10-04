@@ -24,6 +24,7 @@ using slskd.Integrations.MusicBrainz;
 using slskd.Integrations.MusicBrainz.Models;
 using slskd.Common.Security;
 using slskd.SongID.API;
+using slskd.Common.CodeQuality;
 
 public interface ISongIdService
 {
@@ -3754,37 +3755,87 @@ public sealed class SongIdService : ISongIdService
         }
 
         process.Start();
+        Task? stdoutTask = null;
+        Task? stderrTask = null;
 
-        if (process.StartInfo.RedirectStandardOutput &&
-            arguments.Contains("-") &&
-            string.Equals(fileName, "ffmpeg", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            using var stdoutStream = new MemoryStream();
-            using var stderrStream = new MemoryStream();
-            var copyStdout = process.StandardOutput.BaseStream.CopyToAsync(stdoutStream, cancellationToken);
-            var copyStderr = process.StandardError.BaseStream.CopyToAsync(stderrStream, cancellationToken);
-            await Task.WhenAll(copyStdout, copyStderr, process.WaitForExitAsync(cancellationToken)).ConfigureAwait(false);
-
-            var stdoutBytes = stdoutStream.ToArray();
-            var stderr = System.Text.Encoding.UTF8.GetString(stderrStream.ToArray()).Trim();
-            if (process.ExitCode != 0)
+            if (arguments.Contains("-") && string.Equals(fileName, "ffmpeg", StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException($"{fileName} exited with code {process.ExitCode}: {stderr}");
+                using var stdoutStream = new MemoryStream();
+                using var stderrStream = new MemoryStream();
+                stdoutTask = process.StandardOutput.BaseStream.CopyToAsync(stdoutStream, cancellationToken);
+                stderrTask = process.StandardError.BaseStream.CopyToAsync(stderrStream, cancellationToken);
+                await WaitForProcessAndOutputAsync(process, stdoutTask, stderrTask, cancellationToken).ConfigureAwait(false);
+
+                var stdoutBytes = stdoutStream.ToArray();
+                var stderr = System.Text.Encoding.UTF8.GetString(stderrStream.ToArray()).Trim();
+                if (process.ExitCode != 0)
+                {
+                    throw new InvalidOperationException($"{fileName} exited with code {process.ExitCode}: {stderr}");
+                }
+
+                return new CommandResult(string.Empty, stderr, Convert.ToBase64String(stdoutBytes));
             }
 
-            return new CommandResult(string.Empty, stderr, Convert.ToBase64String(stdoutBytes));
+            var standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var standardError = process.StandardError.ReadToEndAsync(cancellationToken);
+            stdoutTask = standardOutput;
+            stderrTask = standardError;
+            await WaitForProcessAndOutputAsync(process, stdoutTask, stderrTask, cancellationToken).ConfigureAwait(false);
+            var standardOutputText = await standardOutput.ConfigureAwait(false);
+            var standardErrorText = await standardError.ConfigureAwait(false);
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"{fileName} exited with code {process.ExitCode}: {standardErrorText}");
+            }
+
+            return new CommandResult(standardOutputText.Trim(), standardErrorText.Trim(), null);
         }
-
-        var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-        var stderrText = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-        if (process.ExitCode != 0)
+        catch
         {
-            throw new InvalidOperationException($"{fileName} exited with code {process.ExitCode}: {stderrText}");
+            await TerminateProcessAsync(process).ConfigureAwait(false);
+            if (stdoutTask is not null && stderrTask is not null)
+            {
+                _ = TaskObservation.Observe(
+                    Task.WhenAll(stdoutTask, stderrTask),
+                    ex => _logger.LogWarning(ex, "Failed to finish draining command output after process failure"));
+            }
+
+            throw;
         }
 
-        return new CommandResult(stdout.Trim(), stderrText.Trim(), null);
+        static async Task WaitForProcessAndOutputAsync(
+            Process childProcess,
+            Task standardOutputTask,
+            Task standardErrorTask,
+            CancellationToken ct)
+        {
+            var processTask = childProcess.WaitForExitAsync(ct);
+            var firstCompleted = await Task.WhenAny(processTask, standardOutputTask, standardErrorTask).ConfigureAwait(false);
+            await firstCompleted.ConfigureAwait(false);
+            await Task.WhenAll(processTask, standardOutputTask, standardErrorTask).ConfigureAwait(false);
+        }
+
+        async Task TerminateProcessAsync(Process childProcess)
+        {
+            try
+            {
+                if (!childProcess.HasExited)
+                {
+                    childProcess.Kill(entireProcessTree: true);
+                }
+
+                await childProcess.WaitForExitAsync(CancellationToken.None)
+                    .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to stop external command after output collection failed");
+            }
+        }
     }
 
     private async Task<bool> CommandExistsAsync(string fileName, CancellationToken cancellationToken)

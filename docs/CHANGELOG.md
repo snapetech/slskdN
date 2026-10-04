@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### External process reliability
+
+- Drain redirected output concurrently for SongID, audio sketching, Chromaprint
+  fingerprints, perceptual hashing, Soulfind bridge, and obfs4 checks; canceled
+  subprocess checks now terminate child processes. Large command output can no
+  longer block these workflows on a full pipe.
+
 ### Developer tooling
 
 - Bind the opt-in blocking-call and dangerous-API diagnostics to symbols from

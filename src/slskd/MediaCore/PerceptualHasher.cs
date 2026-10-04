@@ -597,11 +597,28 @@ public static class AudioUtilities
         psi.ArgumentList.Add("pipe:1");
 
         using var process = new Process { StartInfo = psi };
-        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
         process.Start();
+        var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
         await using var ms = new MemoryStream();
-        await process.StandardOutput.BaseStream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await process.StandardOutput.BaseStream.CopyToAsync(ms, cancellationToken).ConfigureAwait(false);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+
+            await process.WaitForExitAsync(CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                .ConfigureAwait(false);
+            await stderrTask.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
+
         var stderr = await stderrTask.ConfigureAwait(false);
 
         if (process.ExitCode != 0)

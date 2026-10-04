@@ -8,6 +8,7 @@ namespace slskd.Audio
     using System.IO;
     using System.Linq;
     using System.Security.Cryptography;
+    using System.Text;
     using Microsoft.Extensions.Options;
     using Serilog;
 
@@ -89,7 +90,16 @@ namespace slskd.Audio
                 psi.ArgumentList.Add("pipe:1");
 
                 using var process = new Process { StartInfo = psi };
+                var standardError = new StringBuilder();
+                process.ErrorDataReceived += (_, args) =>
+                {
+                    if (args.Data is not null)
+                    {
+                        standardError.AppendLine(args.Data);
+                    }
+                };
                 process.Start();
+                process.BeginErrorReadLine();
 
                 using var sha = SHA256.Create();
                 var buffer = new byte[8192];
@@ -107,8 +117,8 @@ namespace slskd.Audio
 
                 sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
 
-                var stderr = process.StandardError.ReadToEnd();
                 process.WaitForExit();
+                var stderr = standardError.ToString();
 
                 if (process.ExitCode != 0)
                 {

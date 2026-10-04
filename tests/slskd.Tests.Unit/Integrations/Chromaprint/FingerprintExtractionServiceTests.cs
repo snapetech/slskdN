@@ -4,7 +4,9 @@
 namespace slskd.Tests.Unit.Integrations.Chromaprint;
 
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -91,6 +93,69 @@ public class FingerprintExtractionServiceTests
     }
 
     [Fact]
+    public async Task ExtractFingerprintAsync_CancellationWaitsForTheFfmpegProcessTreeToExit()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), $"slskdn-fingerprint-cancel-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var filePath = Path.Combine(directory, "audio.flac");
+        var scriptPath = Path.Combine(directory, "fake-ffmpeg.sh");
+        var pidPath = Path.Combine(directory, "pid");
+        File.WriteAllText(filePath, "audio fixture");
+        File.WriteAllText(scriptPath, "#!/bin/sh\nprintf '%s' \"$$\" > '" + pidPath + "'\nsleep 30\n");
+        File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        var options = new slskd.Options
+        {
+            Integration = new slskd.Options.IntegrationOptions
+            {
+                Chromaprint = new ChromaprintOptions
+                {
+                    Enabled = true,
+                    FfmpegPath = scriptPath,
+                    SampleRate = 1,
+                    Channels = 1,
+                    DurationSeconds = 1,
+                },
+            },
+        };
+        var service = new FingerprintExtractionService(
+            Mock.Of<IChromaprintService>(),
+            new TestOptionsMonitor<slskd.Options>(options),
+            NullLogger<FingerprintExtractionService>.Instance);
+        int? childProcessId = null;
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
+        try
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                service.ExtractFingerprintAsync(filePath, cancellation.Token));
+
+            Assert.True(File.Exists(pidPath));
+            childProcessId = int.Parse(File.ReadAllText(pidPath), System.Globalization.CultureInfo.InvariantCulture);
+            Assert.False(IsProcessRunning(childProcessId.Value));
+        }
+        finally
+        {
+            if (childProcessId is null && File.Exists(pidPath))
+            {
+                childProcessId = int.Parse(File.ReadAllText(pidPath), System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (childProcessId is not null)
+            {
+                StopProcessTreeIfRunning(childProcessId.Value);
+            }
+
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void FormatDiagnostic_ReturnsUsefulFallbackForEmptyOutput()
     {
         Assert.Equal("(no diagnostic output)", FingerprintExtractionService.FormatDiagnostic(" \n\t"));
@@ -100,5 +165,37 @@ public class FingerprintExtractionServiceTests
     private static string GetProcessPath()
     {
         return OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+    }
+
+    private static bool IsProcessRunning(int processId)
+    {
+        var isRunning = false;
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.Id == processId)
+                {
+                    isRunning = !process.HasExited;
+                }
+            }
+        }
+
+        return isRunning;
+    }
+
+    private static void StopProcessTreeIfRunning(int processId)
+    {
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.Id == processId && !process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(5000);
+                }
+            }
+        }
     }
 }

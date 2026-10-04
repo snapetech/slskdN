@@ -30,7 +30,32 @@ public sealed class Obfs4VersionChecker : IObfs4VersionChecker
         cts.CancelAfter(TimeSpan.FromSeconds(5));
 
         process.Start();
-        await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+        var stdoutDrain = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None);
+        var stderrDrain = process.StandardError.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None);
+
+        try
+        {
+            await Task.WhenAll(
+                process.WaitForExitAsync(cts.Token),
+                stdoutDrain,
+                stderrDrain).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+
+            await process.WaitForExitAsync(CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                .ConfigureAwait(false);
+            await Task.WhenAll(stdoutDrain, stderrDrain)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                .ConfigureAwait(false);
+            throw;
+        }
+
         return process.ExitCode;
     }
 }

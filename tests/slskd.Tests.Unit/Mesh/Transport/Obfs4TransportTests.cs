@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Common.Security;
 using Xunit;
+using System.Diagnostics;
 
 namespace slskd.Tests.Unit.Mesh.Transport;
 
@@ -122,6 +123,156 @@ public class Obfs4TransportTests : IDisposable
 
         var status = transport.GetStatus();
         Assert.Equal(1, status.TotalConnectionsAttempted);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_DrainsProxyOutputAndStopsItsProcessTreeWhenConnectionFails()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), $"slskdn-obfs4-transport-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var scriptPath = Path.Combine(directory, "obfs4proxy.sh");
+        var markerPath = Path.Combine(directory, "streams-drained");
+        var pidPath = Path.Combine(directory, "pid");
+        var script = $$"""
+            #!/bin/sh
+            printf '%s' "$$" > '{{pidPath}}'
+            i=0
+            while [ "$i" -lt 4096 ]; do
+              printf 'stdout line %s\n' "$i"
+              printf 'stderr line %s\n' "$i" >&2
+              i=$((i + 1))
+            done
+            printf done > '{{markerPath}}'
+            printf 'VERSION 1\n'
+            sleep 30
+            """;
+        File.WriteAllText(scriptPath, script);
+        File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        var options = new Obfs4TransportOptions
+        {
+            Obfs4ProxyPath = scriptPath,
+            BridgeLines = new List<string> { "obfs4 192.0.2.1:443 1234567890ABCDEF cert=examplecert iat-mode=0" },
+        };
+        var transport = new Obfs4Transport(options, _loggerMock.Object);
+        int? childProcessId = null;
+
+        try
+        {
+            var connectionTask = transport.ConnectAsync("example.com", 80).WaitAsync(TimeSpan.FromSeconds(8));
+            var pidReadDeadline = Stopwatch.StartNew();
+            while (!File.Exists(pidPath) && pidReadDeadline.Elapsed < TimeSpan.FromSeconds(2))
+            {
+                await Task.Delay(10);
+            }
+
+            if (File.Exists(pidPath))
+            {
+                childProcessId = int.Parse(File.ReadAllText(pidPath), System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            await Assert.ThrowsAnyAsync<Exception>(() => connectionTask);
+
+            Assert.True(File.Exists(markerPath));
+            Assert.NotNull(childProcessId);
+            Assert.False(IsProcessRunning(childProcessId.Value));
+        }
+        finally
+        {
+            if (childProcessId is not null)
+            {
+                StopProcessTreeIfRunning(childProcessId.Value);
+            }
+
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ConnectAsync_CancellationDuringProxyStartupStopsTheChildProcess()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), $"slskdn-obfs4-cancel-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var scriptPath = Path.Combine(directory, "obfs4proxy.sh");
+        var pidPath = Path.Combine(directory, "pid");
+        File.WriteAllText(scriptPath, "#!/bin/sh\nprintf '%s' \"$$\" > '" + pidPath + "'\nsleep 30\n");
+        File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        var transport = new Obfs4Transport(
+            new Obfs4TransportOptions
+            {
+                Obfs4ProxyPath = scriptPath,
+                BridgeLines = new List<string> { "obfs4 192.0.2.1:443 1234567890ABCDEF cert=examplecert iat-mode=0" },
+            },
+            _loggerMock.Object);
+        int? childProcessId = null;
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
+        try
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => transport.ConnectAsync("example.com", 80, cancellation.Token).WaitAsync(TimeSpan.FromSeconds(5)));
+
+            Assert.True(File.Exists(pidPath));
+            childProcessId = int.Parse(File.ReadAllText(pidPath), System.Globalization.CultureInfo.InvariantCulture);
+            Assert.False(IsProcessRunning(childProcessId.Value));
+        }
+        finally
+        {
+            if (childProcessId is null && File.Exists(pidPath))
+            {
+                childProcessId = int.Parse(File.ReadAllText(pidPath), System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (childProcessId is not null)
+            {
+                StopProcessTreeIfRunning(childProcessId.Value);
+            }
+
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static bool IsProcessRunning(int processId)
+    {
+        var isRunning = false;
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.Id == processId)
+                {
+                    isRunning = !process.HasExited;
+                }
+            }
+        }
+
+        return isRunning;
+    }
+
+    private static void StopProcessTreeIfRunning(int processId)
+    {
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.Id == processId && !process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(5000);
+                }
+            }
+        }
     }
 
     [Theory]

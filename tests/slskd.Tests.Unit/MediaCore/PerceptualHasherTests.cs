@@ -4,7 +4,10 @@
 namespace slskd.Tests.Unit.MediaCore;
 
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using slskd;
 using slskd.MediaCore;
 using Xunit;
@@ -36,6 +39,112 @@ public class PerceptualHasherTests
     {
         var hash = hasher.ComputeHash(null, 44100);
         Assert.Equal(0UL, hash);
+    }
+
+    [Fact]
+    public async Task ExtractPcmSamplesAsync_StartsProcessBeforeReadingItsRedirectedStreams()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), $"slskdn-perceptual-hash-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var inputPath = Path.Combine(directory, "audio.flac");
+        var scriptPath = Path.Combine(directory, "fake-ffmpeg.sh");
+        File.WriteAllText(inputPath, "audio fixture");
+        File.WriteAllText(scriptPath, "#!/bin/sh\nprintf '\\001\\000'\n");
+        File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        try
+        {
+            var (samples, sampleRate) = await AudioUtilities.ExtractPcmSamplesAsync(inputPath, ffmpegPath: scriptPath);
+
+            Assert.Equal(22050, sampleRate);
+            Assert.Equal(1, samples.Length);
+            Assert.Equal(1 / 32768f, samples[0]);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ExtractPcmSamplesAsync_CancellationStopsTheChildProcessTree()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), $"slskdn-perceptual-cancel-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var inputPath = Path.Combine(directory, "audio.flac");
+        var scriptPath = Path.Combine(directory, "fake-ffmpeg.sh");
+        var pidPath = Path.Combine(directory, "pid");
+        File.WriteAllText(inputPath, "audio fixture");
+        File.WriteAllText(scriptPath, "#!/bin/sh\nprintf '%s' \"$$\" > '" + pidPath + "'\nsleep 30\n");
+        File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        int? childProcessId = null;
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+
+        try
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                AudioUtilities.ExtractPcmSamplesAsync(inputPath, cancellation.Token, scriptPath));
+
+            Assert.True(File.Exists(pidPath));
+            childProcessId = int.Parse(File.ReadAllText(pidPath), System.Globalization.CultureInfo.InvariantCulture);
+            Assert.False(IsProcessRunning(childProcessId.Value));
+        }
+        finally
+        {
+            if (childProcessId is null && File.Exists(pidPath))
+            {
+                childProcessId = int.Parse(File.ReadAllText(pidPath), System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (childProcessId is not null)
+            {
+                StopProcessTreeIfRunning(childProcessId.Value);
+            }
+
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static bool IsProcessRunning(int processId)
+    {
+        var isRunning = false;
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.Id == processId)
+                {
+                    isRunning = !process.HasExited;
+                }
+            }
+        }
+
+        return isRunning;
+    }
+
+    private static void StopProcessTreeIfRunning(int processId)
+    {
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.Id == processId && !process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(5000);
+                }
+            }
+        }
     }
 
     [Fact]

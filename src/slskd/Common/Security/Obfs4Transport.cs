@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using slskd.Common.CodeQuality;
 using Obfs4Options = slskd.Common.Security.Obfs4TransportOptions;
 
 namespace slskd.Common.Security;
@@ -274,6 +275,9 @@ public class Obfs4Transport : IAnonymityTransport
         var arguments = $"client -log-min-severity=warn 127.0.0.1:{localPort}";
 
         Process? process = null;
+        Task? stdoutDrainTask = null;
+        Task? stderrDrainTask = null;
+        var processStarted = false;
 
         try
         {
@@ -303,19 +307,32 @@ public class Obfs4Transport : IAnonymityTransport
                 $"node-id={bridge.Fingerprint},iat-mode={bridge.IatMode},cert={bridge.Cert}";
 
             process.Start();
+            processStarted = true;
+            stderrDrainTask = process.StandardError.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None);
 
             // Wait for obfs4proxy to be ready (it writes to stdout when ready)
             var ready = await WaitForObfs4ProxyReadyAsync(process, cancellationToken);
 
             if (!ready)
             {
-                process.Kill();
-                throw new Exception("obfs4proxy failed to start properly");
+                throw new InvalidOperationException("obfs4proxy failed to start properly.");
             }
 
-            var startedProcess = new Obfs4Process(process, localPort, bridge);
+            stdoutDrainTask = DrainOutputLinesAsync(process.StandardOutput);
+            var startedProcess = new Obfs4Process(process, localPort, bridge, stdoutDrainTask, stderrDrainTask, _logger);
             process = null;
+            stdoutDrainTask = null;
+            stderrDrainTask = null;
             return startedProcess;
+        }
+        catch
+        {
+            if (process is not null && processStarted)
+            {
+                await StopObfs4ProcessAsync(process, stdoutDrainTask, stderrDrainTask).ConfigureAwait(false);
+            }
+
+            throw;
         }
         finally
         {
@@ -325,19 +342,57 @@ public class Obfs4Transport : IAnonymityTransport
 
     private async Task<bool> WaitForObfs4ProxyReadyAsync(Process process, CancellationToken cancellationToken)
     {
-        // obfs4proxy signals readiness by writing "VERSION 1" to stdout
-        var outputTask = process.StandardOutput.ReadLineAsync(cancellationToken).AsTask();
-        var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var readinessCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
-        var completedTask = await Task.WhenAny(outputTask, timeoutTask);
+        try
+        {
+            // Drain startup lines until obfs4proxy signals readiness or closes stdout.
+            while (await process.StandardOutput.ReadLineAsync(readinessCancellation.Token).ConfigureAwait(false) is { } output)
+            {
+                if (output.Contains("VERSION 1", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
 
-        if (completedTask == timeoutTask)
+            return false;
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             return false;
         }
+    }
 
-        var output = await outputTask;
-        return output?.Contains("VERSION 1") == true;
+    private static async Task DrainOutputLinesAsync(StreamReader reader)
+    {
+        while (await reader.ReadLineAsync().ConfigureAwait(false) is not null)
+        {
+        }
+    }
+
+    private async Task StopObfs4ProcessAsync(Process process, Task? stdoutDrainTask, Task? stderrDrainTask)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+
+            await process.WaitForExitAsync(CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                .ConfigureAwait(false);
+            await Task.WhenAll(
+                    stdoutDrainTask ?? Task.CompletedTask,
+                    stderrDrainTask ?? Task.CompletedTask)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to stop obfs4proxy after startup did not complete");
+        }
     }
 
     /// <summary>
@@ -360,17 +415,52 @@ public class Obfs4Transport : IAnonymityTransport
         public Process Process { get; }
         public int LocalPort { get; }
         public Obfs4Bridge Bridge { get; }
+        private readonly Task stdoutDrainTask;
+        private readonly Task stderrDrainTask;
+        private readonly ILogger<Obfs4Transport> logger;
 
-        public Obfs4Process(Process process, int localPort, Obfs4Bridge bridge)
+        public Obfs4Process(
+            Process process,
+            int localPort,
+            Obfs4Bridge bridge,
+            Task stdoutDrainTask,
+            Task stderrDrainTask,
+            ILogger<Obfs4Transport> logger)
         {
             Process = process;
             LocalPort = localPort;
             Bridge = bridge;
+            this.stdoutDrainTask = stdoutDrainTask;
+            this.stderrDrainTask = stderrDrainTask;
+            this.logger = logger;
         }
 
         public void Dispose()
         {
-            Process.Dispose();
+            try
+            {
+                if (!Process.HasExited)
+                {
+                    Process.Kill(entireProcessTree: true);
+                }
+
+                if (!Process.WaitForExit(5_000))
+                {
+                    throw new TimeoutException("obfs4proxy did not exit after its stream closed.");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed while stopping obfs4proxy after the connection closed");
+            }
+            finally
+            {
+                _ = TaskObservation.Observe(
+                    Task.WhenAll(stdoutDrainTask, stderrDrainTask),
+                    ex => logger.LogWarning(ex, "Failed to drain obfs4proxy output streams after the process stopped"));
+                Process.Dispose();
+            }
         }
     }
 
@@ -426,20 +516,7 @@ public class Obfs4Transport : IAnonymityTransport
             {
                 _innerStream.Dispose();
 
-                try
-                {
-                    if (!_process.Process.HasExited)
-                    {
-                        _process.Process.Kill();
-                        _process.Process.WaitForExit(1000);
-                    }
-
-                    _process.Process.Dispose();
-                }
-                catch
-                {
-                    // Ignore process cleanup errors
-                }
+                _process.Dispose();
 
                 try
                 {

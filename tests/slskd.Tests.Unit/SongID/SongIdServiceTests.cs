@@ -432,6 +432,61 @@ public sealed class SongIdServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RunToolAsync_DrainsLargeStandardOutputAndErrorConcurrently()
+    {
+        var directory = Directory.CreateTempSubdirectory("slskdn-songid-process-test-");
+        var service = CreateService(new SongIdRunStore());
+        var runTool = typeof(SongIdService).GetMethod("RunToolAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(runTool);
+
+        try
+        {
+            var (fileName, arguments) = CreateLargeOutputCommand(directory.FullName);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var commandTask = Assert.IsAssignableFrom<Task>(runTool!.Invoke(
+                service,
+                new object[] { fileName, arguments, timeout.Token }));
+
+            await commandTask.WaitAsync(TimeSpan.FromSeconds(5));
+
+            var result = commandTask.GetType().GetProperty("Result")!.GetValue(commandTask)!;
+            var standardOutput = (string)result.GetType().GetProperty("StandardOutput")!.GetValue(result)!;
+            var standardError = (string)result.GetType().GetProperty("StandardError")!.GetValue(result)!;
+            Assert.True(standardOutput.Length > 64 * 1024);
+            Assert.True(standardError.Length > 64 * 1024);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task RunToolAsync_CancellationTerminatesChildProcessTree()
+    {
+        var directory = Directory.CreateTempSubdirectory("slskdn-songid-cancel-test-");
+        var service = CreateService(new SongIdRunStore());
+        var runTool = typeof(SongIdService).GetMethod("RunToolAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(runTool);
+
+        try
+        {
+            var (fileName, arguments) = CreateLongRunningCommand(directory.FullName);
+            using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
+            var commandTask = Assert.IsAssignableFrom<Task>(runTool!.Invoke(
+                service,
+                new object[] { fileName, arguments, cancellation.Token }));
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await commandTask.WaitAsync(TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task AddArtistCandidatesAsync_WithTimedOutReleaseGraph_UsesLightweightFallback()
     {
         var run = new SongIdRun
@@ -509,6 +564,47 @@ public sealed class SongIdServiceTests : IDisposable
             Mock.Of<ILogger<SongIdService>>(),
             enableBackgroundWorkers: false,
             commandExistsOverride: commandExistsOverride);
+    }
+
+    private static (string FileName, string[] Arguments) CreateLargeOutputCommand(string directory)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var scriptPath = Path.Combine(directory, "large-output.cmd");
+            const string script = """
+                @echo off
+                for /L %%i in (1,1,5000) do @echo 1234567890123456789012345678901234567890
+                for /L %%i in (1,1,5000) do @echo 1234567890123456789012345678901234567890 1>&2
+                """;
+            File.WriteAllText(scriptPath, script);
+            return (Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe", ["/d", "/c", scriptPath]);
+        }
+
+        var shellScriptPath = Path.Combine(directory, "large-output.sh");
+        File.WriteAllText(
+            shellScriptPath,
+            "#!/bin/sh\ndd if=/dev/zero bs=65536 count=2 2>/dev/null\ndd if=/dev/zero bs=65536 count=2 1>&2 2>/dev/null\n");
+        File.SetUnixFileMode(
+            shellScriptPath,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        return (shellScriptPath, []);
+    }
+
+    private static (string FileName, string[] Arguments) CreateLongRunningCommand(string directory)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var scriptPath = Path.Combine(directory, "long-running.cmd");
+            File.WriteAllText(scriptPath, "@echo off\r\nping 127.0.0.1 -n 31 > nul\r\n");
+            return (Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe", ["/d", "/c", scriptPath]);
+        }
+
+        var shellScriptPath = Path.Combine(directory, "long-running.sh");
+        File.WriteAllText(shellScriptPath, "#!/bin/sh\nsleep 30\n");
+        File.SetUnixFileMode(
+            shellScriptPath,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        return (shellScriptPath, []);
     }
 
     private static IHubContext<SongIdHub> CreateHubContext()

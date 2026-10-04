@@ -12,6 +12,7 @@ namespace slskd.Integrations.Chromaprint
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.CodeQuality;
     using ChromaprintOptions = slskd.Options.IntegrationOptions.ChromaprintOptions;
     using slskdOptions = slskd.Options;
 
@@ -64,7 +65,7 @@ namespace slskd.Integrations.Chromaprint
             using var process = new Process { StartInfo = psi };
 
             process.Start();
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+            var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
             var maxPcmBytes = GetMaximumPcmBytes(options);
             byte[] bytes;
@@ -75,9 +76,24 @@ namespace slskd.Integrations.Chromaprint
             }
             catch
             {
-                if (!process.HasExited)
+                try
                 {
-                    process.Kill(entireProcessTree: true);
+                    if (!process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+
+                    await process.WaitForExitAsync(CancellationToken.None)
+                        .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None)
+                        .ConfigureAwait(false);
+                    await stderrTask.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception cleanupException)
+                {
+                    log.LogWarning(cleanupException, "Failed to stop ffmpeg after fingerprint extraction failed for {FilePath}", filePath);
+                    _ = TaskObservation.Observe(
+                        stderrTask,
+                        exception => log.LogWarning(exception, "Failed to drain ffmpeg stderr after fingerprint extraction failed for {FilePath}", filePath));
                 }
 
                 throw;
