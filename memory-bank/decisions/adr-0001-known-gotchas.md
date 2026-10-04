@@ -4,6 +4,23 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1525. Use Async Disposal For Port-Forwarder Tunnel Cleanup (2026-10-04)
+
+**What went wrong:** `LocalPortForwarder.Dispose` called each active
+`ForwarderConnection.Dispose`, which synchronously waited for `CloseAsync` and
+its remote tunnel-close request. The mesh client allows a request to wait up to
+30 seconds, so several active connections could stall host shutdown
+sequentially.
+
+**Why:** A network cleanup operation was exposed only through `IDisposable`,
+forcing the service host's shutdown path to block while waiting for async I/O.
+
+**Prevention:** Implement `IAsyncDisposable` on the owning service and its
+async-owned resources, share one lifetime snapshot between sync and async
+disposal, and await remote close operations in the async path. Keep the sync
+path only for callers that require it and test that async disposal drains
+active cleanup.
+
 ### 0z1524. Propagate Port-Forwarder Connection Cancellation Into Mesh Calls (2026-10-04)
 
 **What went wrong:** Tunnel open, send, and receive calls used
