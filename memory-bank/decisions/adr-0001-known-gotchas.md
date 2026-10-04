@@ -80,6 +80,23 @@ retain the state still owned by the running worker.
 worker has completed. If shutdown times out, retain the resources until a
 completion continuation performs cleanup, and observe late worker faults.
 
+### 0z1484. Do Not Count Unrelated Failures As Successful Cancellation (2026-10-04)
+
+**What went wrong:** `AsyncRules.ValidateCancellationHandlingAsync()` returned
+`true` when the operation faulted with an unrelated exception because a
+catch-all treated every prompt failure as evidence that cancellation worked.
+It could also report success for an operation that finished before cancellation
+was requested.
+
+**Why:** The validator checked only that the task became terminal before its
+grace timeout and did not distinguish successful completion, cancellation,
+unrelated failure, or completion before the cancellation signal.
+
+**Prevention:** Only count successful completion or an
+`OperationCanceledException` after the validator requested cancellation as
+success. Treat unrelated faults and operations already complete before the
+cancellation request as unsuccessful, and add regressions for each case.
+
 ### 0z1471. Cross-Check DHT Identity Documentation Against Production Derivation (2026-10-04)
 
 **What went wrong:** The T-902 research note said the production Kademlia
