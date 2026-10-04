@@ -4,6 +4,24 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1543. Keep Private Torrent Discovery Controls Separate (2026-10-04)
+
+**What went wrong:** The private torrent backend mapped `DisablePex` to
+MonoTorrent's unrelated `AllowLocalPeerDiscovery` engine option, left the
+per-torrent `AllowPeerExchange` default enabled, and left manual peer addition
+as a no-op. Private-only magnet inputs could also retain trackers and web seeds.
+
+**Why:** Engine-wide discovery settings, per-torrent discovery settings, and
+explicit peer sources are separate MonoTorrent APIs. The backend's no-op
+helpers and comments were treated as completed behavior without checking the
+settings applied when each torrent manager was created.
+
+**Prevention:** Set engine and per-torrent discovery settings independently;
+pass `TorrentSettings` to `ClientEngine.AddAsync`; remove tracker/web-seed
+metadata when private-only mode is active; and add peers only from the
+configured overlay/invite sources. Test the constructed settings, magnet
+sanitization, and source selection without contacting peers.
+
 ### 0z1542. Distinguish Static Bootstrap Content From A React Mount (2026-10-04)
 
 **What went wrong:** Adding useful static fallback content inside `#root`
