@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1500. Do Not Use Swarm Job IDs As Filesystem Paths (2026-10-04)
+
+**What went wrong:** `SwarmDownloadOrchestrator` combined the caller-provided
+`SwarmJob.JobId` directly into its temporary-directory and output-file paths.
+Path separators and parent components could move writes outside the intended
+temporary roots.
+
+**Why:** A public job model was treated as a trusted filesystem identifier
+without validating or containing it.
+
+**Prevention:** Use an opaque generated storage identifier for filesystem names,
+and keep caller job IDs only as logical identifiers and log metadata. Assert
+that derived write paths remain beneath their dedicated roots.
+
 ### 0z1499. Remove Per-Job Swarm Chunk Directories (2026-10-04)
 
 **What went wrong:** `SwarmDownloadOrchestrator.ProcessJob` created a temporary
