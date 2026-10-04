@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1540. Include Sanitized Resource Details In Browser Failure Logs (2026-10-04)
+
+**What went wrong:** The login helper retained generic browser console errors
+such as `ERR_NETWORK_CHANGED` but not the failed request's resource path or
+failure reason, leaving a blank-page incident impossible to localize from the
+saved run log.
+
+**Why:** Response logging handled HTTP status failures, while transport-level
+`requestfailed` events were not observed by the shared login helper.
+
+**Prevention:** Attach a `requestfailed` listener before navigation and record
+the method, resource type, origin/path, and browser error. Strip query strings
+and fragments before retaining or printing request URLs, and remove the
+listener when login setup ends.
+
 ### 0z1539. Keep A Useful Shell When The Frontend Does Not Mount (2026-10-04)
 
 **What went wrong:** The server returned the app document, but failed or
