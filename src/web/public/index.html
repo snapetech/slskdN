@@ -11,9 +11,46 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <title>slskdN</title>
+        <style>
+            html,
+            body {
+                min-height: 100%;
+                margin: 0;
+            }
+
+            #app-startup {
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                max-width: 42rem;
+                min-height: 100vh;
+                margin: 0 auto;
+                padding: 2rem;
+                color: CanvasText;
+                background: Canvas;
+                font: 1rem/1.5 system-ui, sans-serif;
+            }
+
+            #app-startup h1 {
+                margin: 0 0 0.75rem;
+                font-size: 1.5rem;
+            }
+
+            #app-startup a:focus-visible {
+                outline: 2px solid currentColor;
+                outline-offset: 3px;
+            }
+        </style>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
-        <div id="root"></div>
+        <div id="root">
+            <main id="app-startup" role="status" aria-live="polite">
+                <h1>Starting slskdN…</h1>
+                <p>Loading the application. If this screen stays visible, reload the page to try again.</p>
+                <p><a href="./" title="Reload slskdN if it did not finish starting">Reload slskdN</a></p>
+            </main>
+        </div>
     </body>
 </html>

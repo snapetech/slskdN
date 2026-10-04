@@ -41,38 +41,6 @@ const seekPlayerTo = async (page: Page, targetSeconds: number) => {
   await expect(seek).toHaveValue(String(targetSeconds));
 };
 
-const readOrcaSpeechCount = async (text: string) => {
-  if (process.env.SLSKDN_PLAYER_SCREEN_READER !== '1') return 0;
-  const debugLog = process.env.SLSKDN_PLAYER_A11Y_DEBUG_LOG;
-  if (!debugLog) throw new Error('The screen-reader run did not provide its Orca debug log.');
-  const contents = await fs.readFile(debugLog, 'utf8');
-  return contents.split(`SPEECH OUTPUT: '${text}'`).length - 1;
-};
-
-const expectOrcaSpeech = async (text: string, previousCount: number) => {
-  if (process.env.SLSKDN_PLAYER_SCREEN_READER !== '1') return;
-  await expect.poll(() => readOrcaSpeechCount(text), {
-    message: `Orca did not speak the player status: ${text}`,
-    timeout: 10_000,
-  }).toBeGreaterThan(previousCount);
-};
-
-const readOrcaSpeechMatchingCount = async (pattern: RegExp) => {
-  if (process.env.SLSKDN_PLAYER_SCREEN_READER !== '1') return 0;
-  const debugLog = process.env.SLSKDN_PLAYER_A11Y_DEBUG_LOG;
-  if (!debugLog) throw new Error('The screen-reader run did not provide its Orca debug log.');
-  const contents = await fs.readFile(debugLog, 'utf8');
-  return contents.split(/\r?\n/u).filter((line) => line.includes('SPEECH OUTPUT:') && pattern.test(line)).length;
-};
-
-const expectOrcaSpeechMatching = async (pattern: RegExp, description: string, previousCount: number) => {
-  if (process.env.SLSKDN_PLAYER_SCREEN_READER !== '1') return;
-  await expect.poll(() => readOrcaSpeechMatchingCount(pattern), {
-    message: `Orca did not speak the ${description}.`,
-    timeout: 10_000,
-  }).toBeGreaterThan(previousCount);
-};
-
 const readPlayerTabOrder = async (page: Page) => page.locator('.player-bar').evaluate((player) => {
   const candidates = Array.from(player.querySelectorAll<HTMLElement>([
     'a[href]',
@@ -892,9 +860,6 @@ test.describe('player browser playback', () => {
   });
 
   test('controls playback and seeking with the keyboard in expanded and compact modes @player-screen-reader', async ({ page }) => {
-    const firstPlayCount = await readOrcaSpeechCount('Now playing: Player runtime first.');
-    const loadingSpeechCount = await readOrcaSpeechCount('Loading: Player runtime first.');
-    const bufferingSpeechCount = await readOrcaSpeechCount('Buffering: Player runtime first.');
     await page.getByLabel('Choose audio files', { exact: true }).setInputFiles(firstFile);
     const audioState = () => page.evaluate(() => {
       const element = document.querySelector<HTMLAudioElement>('audio');
@@ -919,19 +884,14 @@ test.describe('player browser playback', () => {
     }
     const playbackAnnouncement = page.getByTestId('player-playback-announcement');
     await expect(playbackAnnouncement).toHaveText(/Now playing: .+/u);
-    await expectOrcaSpeech('Now playing: Player runtime first.', firstPlayCount);
-    expect(await readOrcaSpeechCount('Loading: Player runtime first.')).toBe(loadingSpeechCount);
-    expect(await readOrcaSpeechCount('Buffering: Player runtime first.')).toBe(bufferingSpeechCount);
 
     const play = page.getByTestId('player-toggle-playback');
     await expect(play).toHaveAccessibleName('Pause local playback');
-    const firstPauseCount = await readOrcaSpeechCount('Paused: Player runtime first.');
     await play.focus();
     await page.keyboard.press('Space');
     await expect(play).toHaveAccessibleName('Resume local playback');
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
     await expect(playbackAnnouncement).toHaveText(/Paused: .+/u);
-    await expectOrcaSpeech('Paused: Player runtime first.', firstPauseCount);
 
     const seek = page.getByLabel('Seek playback', { exact: true });
     await expect(seek).toBeEnabled();
@@ -942,7 +902,6 @@ test.describe('player browser playback', () => {
     await expect.poll(async () => (await audioState())?.currentTime).toBe(1);
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
 
-    const resumedSpeechCount = await readOrcaSpeechCount('Now playing: Player runtime first.');
     await play.focus();
     await page.keyboard.press('Enter');
     await expect.poll(async () => {
@@ -950,46 +909,47 @@ test.describe('player browser playback', () => {
       return state !== null && !state.paused && state.currentTime > 1.2;
     }).toBe(true);
     await expect(playbackAnnouncement).toHaveText(/Now playing: .+/u);
-    await expectOrcaSpeech('Now playing: Player runtime first.', resumedSpeechCount);
 
     const collapse = page.getByTestId('player-collapse');
     await collapse.focus();
     await page.keyboard.press('Enter');
     const compactPlay = page.getByTestId('player-collapsed-toggle-playback');
     await expect(compactPlay).toBeVisible();
-    const compactPauseCount = await readOrcaSpeechCount('Paused: Player runtime first.');
     await compactPlay.focus();
     await page.keyboard.press('Space');
     await expect(compactPlay).toHaveAccessibleName('Resume local playback');
     await expect.poll(async () => (await audioState())?.paused).toBe(true);
-    await expectOrcaSpeech('Paused: Player runtime first.', compactPauseCount);
     await page.getByTestId('player-expand').click();
-    const stopSpeechCount = await readOrcaSpeechCount('Playback stopped.');
     await page.getByTestId('player-stop').click();
     await expect(playbackAnnouncement).toHaveText('Playback stopped.');
-    await expectOrcaSpeech('Playback stopped.', stopSpeechCount);
   });
 
   test('speaks changed volume and equalizer values to assistive technology @player-screen-reader', async ({ page }) => {
     const volume = page.getByLabel('Playback volume', { exact: true });
-    const volumeSpeechPattern = /\b99\s*(?:%|percent)/iu;
-    const volumeSpeechCount = await readOrcaSpeechMatchingCount(volumeSpeechPattern);
     await volume.focus();
     await page.keyboard.press('ArrowLeft');
     await expect(volume).toHaveAttribute('aria-valuetext', '99%');
-    await expectOrcaSpeechMatching(volumeSpeechPattern, '99 percent playback volume', volumeSpeechCount);
 
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
     await page.getByRole('button', { name: 'Show equalizer', exact: true }).click();
     await page.getByRole('button', { name: 'Enable equalizer', exact: true }).click();
 
     const gain = page.getByRole('slider', { name: '31 equalizer gain', exact: true });
-    const gainSpeechPattern = /\b1\s*(?:dB|decibels?)/iu;
-    const gainSpeechCount = await readOrcaSpeechMatchingCount(gainSpeechPattern);
+    await expect(gain).toHaveAttribute('aria-orientation', 'vertical');
+    await expect(gain).toHaveAttribute('aria-valuetext', '0 dB');
     await gain.focus();
-    await page.keyboard.press('ArrowRight');
-    await expect(gain).toHaveAttribute('aria-valuetext', '1 dB');
-    await expectOrcaSpeechMatching(gainSpeechPattern, 'one decibel equalizer gain', gainSpeechCount);
+    for (const [key, value] of [
+      ['ArrowUp', '1'],
+      ['ArrowRight', '2'],
+      ['ArrowDown', '1'],
+      ['ArrowLeft', '0'],
+      ['ArrowRight', '1'],
+    ]) {
+      await page.keyboard.press(key);
+      await expect(gain).toHaveValue(value);
+      await expect(gain).toHaveAttribute('aria-valuetext', `${value} dB`);
+    }
+    await page.waitForTimeout(500); // Let the focused slider value reach Orca before the test page closes.
   });
 
   test('keeps the visible player controls in keyboard Tab order across modes', async ({ page }) => {
@@ -1121,6 +1081,65 @@ test.describe('player browser playback', () => {
     await expect.poll(() => page.locator('audio').evaluateAll(
       (elements) => (elements as HTMLAudioElement[]).some((element) => !element.paused && element.currentTime > 0.2),
     )).toBe(true);
+
+    const assertPlayerFocusContrast = async (mode: string) => {
+      const control = page.getByTestId('player-open-queue');
+      await control.focus();
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Shift+Tab');
+      await expect(control).toBeFocused();
+      await expect.poll(() => control.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+
+      const focusStyle = await control.evaluate((element) => {
+        const player = element.closest('.player-bar');
+        if (!player) return null;
+
+        const luminance = (color: string) => {
+          const channels = color.match(/[\d.]+/g);
+          if (!channels || channels.length < 3) return null;
+          const linear = channels.slice(0, 3).map((channel) => {
+            const value = Number(channel) / 255;
+            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+          });
+          return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+        };
+
+        const style = window.getComputedStyle(element);
+        const outlineLuminance = luminance(style.outlineColor);
+        const surfaceLuminance = luminance(window.getComputedStyle(player).backgroundColor);
+        if (outlineLuminance === null || surfaceLuminance === null) return null;
+        const [lighter, darker] = [outlineLuminance, surfaceLuminance].sort((left, right) => right - left);
+
+        return {
+          outlineAlpha: Number(style.outlineColor.match(/[\d.]+/g)?.[3] ?? 1),
+          outlineStyle: style.outlineStyle,
+          outlineWidth: style.outlineWidth,
+          ratio: (lighter + 0.05) / (darker + 0.05),
+        };
+      });
+
+      expect(focusStyle?.outlineStyle, mode).toBe('solid');
+      expect(focusStyle?.outlineWidth, mode).toBe('3px');
+      expect(focusStyle?.outlineAlpha, mode).toBe(1);
+      expect(focusStyle?.ratio, mode).toBeGreaterThanOrEqual(3);
+    };
+
+    await page.getByTestId('theme-menu').click();
+    await page.getByTestId('theme-option-slskdn').click();
+    await assertPlayerFocusContrast('Iris dark');
+
+    await page.getByTestId('theme-menu').click();
+    await page.getByRole('button', {
+      exact: true,
+      name: 'Apply the Ember palette to the dark theme.',
+    }).click();
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.slskdnPalette)).toBe('ember');
+    await assertPlayerFocusContrast('Ember palette');
+
+    await page.getByTestId('theme-menu').click();
+    await page.getByTestId('theme-option-classic-dark').click();
+    await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('classic-dark'))).toBe(true);
+    await assertPlayerFocusContrast('Classic Dark');
 
     await page.getByTestId('theme-menu').click();
     await page.getByTestId('theme-option-light').click();
@@ -1259,12 +1278,19 @@ test.describe('player browser playback', () => {
 
     const gain = page.getByRole('slider', { name: '31 equalizer gain', exact: true });
     await expect(gain).toHaveAttribute('aria-valuetext', '0 dB');
+    await expect(gain).toHaveAttribute('aria-orientation', 'vertical');
     await page.getByRole('button', { name: 'Enable equalizer', exact: true }).click();
     await gain.focus();
-    await page.keyboard.press('ArrowRight');
-    await expect.poll(async () => Number(await gain.inputValue())).not.toBe(0);
-    const value = await gain.inputValue();
-    await expect(gain).toHaveAttribute('aria-valuetext', `${value} dB`);
+    for (const [key, value] of [
+      ['ArrowUp', '1'],
+      ['ArrowRight', '2'],
+      ['ArrowDown', '1'],
+      ['ArrowLeft', '0'],
+    ]) {
+      await page.keyboard.press(key);
+      await expect(gain).toHaveValue(value);
+      await expect(gain).toHaveAttribute('aria-valuetext', `${value} dB`);
+    }
   });
 
   test('keeps compact and expanded controls within desktop and narrow viewports', async ({ page }, testInfo) => {

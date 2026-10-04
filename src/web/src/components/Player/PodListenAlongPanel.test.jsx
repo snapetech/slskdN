@@ -238,9 +238,11 @@ describe('PodListenAlongPanel directory polling', () => {
 
   it.each([
     [429, null, 'Room updates are at capacity. Retry later.'],
+    [409, 'party_id_in_use', 'This Party ID is already in use. Start the broadcast again to claim a new ID.'],
     [403, null, 'Room access was revoked. Rejoin before broadcasting.'],
     [404, null, 'This room is unavailable. Choose an existing room.'],
     [503, 'room_storage_unavailable', 'The room update could not be saved. Try again.'],
+    [503, 'party_directory_unavailable', 'Party ID ownership could not be checked. Try again.'],
   ])('explains room publication status %s without losing retry controls', async (status, code, message) => {
     usePlayer.mockReturnValue({
       ...player,

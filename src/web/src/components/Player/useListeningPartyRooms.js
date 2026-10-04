@@ -23,7 +23,7 @@ const applyPartyState = (state, player) => {
   };
   const positionSeconds = Number.isFinite(state.positionSeconds) ? Math.max(0, state.positionSeconds) : 0;
   if (state.action === 'play' || state.action === 'seek') {
-    const elapsed = state.action === 'play' && state.serverTimeUnixMs > 0
+    const elapsed = state.serverTimeUnixMs > 0
       ? Math.max(0, (Date.now() - state.serverTimeUnixMs) / 1000) : 0;
     player.playItem(item, { fromParty: true, positionSeconds: positionSeconds + elapsed, replaceQueue: true });
   } else if (state.action === 'pause') {

@@ -22,6 +22,8 @@ public sealed record ListeningPartyEvent
     public string Artist { get; init; } = string.Empty;
     public string? Album { get; init; }
     public double PositionSeconds { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public long ClientPositionObservedAtUnixMs { get; init; }
     public long ServerTimeUnixMs { get; init; }
     public long Sequence { get; init; }
     public bool Listed { get; init; }

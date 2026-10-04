@@ -6,7 +6,12 @@ import * as listeningParty from '../../lib/listeningParty';
 import useListeningPartyBroadcast from './useListeningPartyBroadcast';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 
-vi.mock('../../lib/listeningParty', () => ({ getPartyState: vi.fn(), publishPartyState: vi.fn(), renewHostSession: vi.fn() }));
+vi.mock('../../lib/listeningParty', () => ({
+  getPartyState: vi.fn(),
+  publishPartyState: vi.fn(),
+  renewHostSession: vi.fn(),
+  stopPartyStateOnPageHide: vi.fn(),
+}));
 const config = { channelId: 'music', globalRadio: true, meshStreaming: true, podId: 'pod', user: 'host' };
 const track = { contentId: 'first', title: 'First' };
 let observer;
@@ -46,6 +51,66 @@ describe('persistent host publication', () => {
     expect(player.followParty).toHaveBeenCalledWith(null);
   });
 
+  it('publishes the current host position when a hidden document becomes visible', async () => {
+    const visibilityDescriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    let position = 8;
+    player.getPlaybackPosition = () => position;
+    const { result } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      expect(listeningParty.publishPartyState).toHaveBeenCalledOnce();
+
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+      expect(listeningParty.publishPartyState).toHaveBeenCalledOnce();
+
+      position = 42;
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+        await waitFor(() => expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(2));
+      });
+
+      expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({
+        action: 'play',
+        positionSeconds: 42,
+        clientPositionObservedAtUnixMs: expect.any(Number),
+      });
+      expect(listeningParty.publishPartyState.mock.calls.at(-1)[2].clientPositionObservedAtUnixMs).toBeGreaterThan(0);
+    } finally {
+      if (visibilityDescriptor) Object.defineProperty(document, 'visibilityState', visibilityDescriptor);
+      else delete document.visibilityState;
+    }
+  });
+
+  it('publishes an exact paused position when a hidden document becomes visible', async () => {
+    const visibilityDescriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    player.audioElement.paused = true;
+    player.getPlaybackPosition = () => 42;
+    const { result } = renderHook(() => useListeningPartyBroadcast(player));
+    try {
+      await start(result);
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+      expect(listeningParty.publishPartyState).toHaveBeenCalledOnce();
+
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+        await waitFor(() => expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(2));
+      });
+
+      expect(listeningParty.publishPartyState.mock.calls.at(-1)[2]).toMatchObject({
+        action: 'pause',
+        positionSeconds: 42,
+        clientPositionObservedAtUnixMs: 0,
+      });
+    } finally {
+      if (visibilityDescriptor) Object.defineProperty(document, 'visibilityState', visibilityDescriptor);
+      else delete document.visibilityState;
+    }
+  });
+
   it.each(['play', 'stop'])('uses a fresh host fence for manual %s while preserving Stop identity', async (action) => {
     const { result } = renderHook(() => useListeningPartyBroadcast(player));
     await act(async () => result.current.publishBroadcast({ ...config, partyId: 'observed' }, action));
@@ -68,6 +133,30 @@ describe('persistent host publication', () => {
     expect(listeningParty.getPartyState).toHaveBeenCalledOnce();
     expect(listeningParty.publishPartyState.mock.calls[0][2]).toMatchObject({ action: 'stop', partyId: 'existing' });
     expect(result.current.broadcastStatus).toBeNull();
+  });
+
+  it('sends a fenced keepalive Stop on document pagehide', async () => {
+    listeningParty.stopPartyStateOnPageHide.mockResolvedValue({ ok: true });
+    const { result } = renderHook(() => useListeningPartyBroadcast(player));
+    await start(result);
+    const hostSessionId = listeningParty.publishPartyState.mock.calls[0][3].hostSessionId;
+
+    act(() => window.dispatchEvent(new Event('pagehide')));
+
+    expect(listeningParty.stopPartyStateOnPageHide).toHaveBeenCalledExactlyOnceWith(
+      'pod',
+      'music',
+      expect.objectContaining({
+        action: 'stop',
+        partyId: 'party',
+        positionSeconds: 0,
+        listed: false,
+        allowMeshStreaming: false,
+      }),
+      hostSessionId,
+    );
+    expect(result.current.broadcastStatus).toBeNull();
+    expect(releaseRoom).toHaveBeenCalledOnce();
   });
 
   it('starts a paused host without announcing playback that did not occur', async () => {
@@ -102,6 +191,7 @@ describe('persistent host publication', () => {
     await act(async () => { request.resolve({ partyId: 'assigned', hostPeerId: 'authorized-host' }); await initial; await latest; });
     expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(2);
     expect(listeningParty.publishPartyState.mock.calls[1][2]).toMatchObject({ partyId: 'assigned', action: 'seek', positionSeconds: 99 });
+    expect(listeningParty.publishPartyState.mock.calls[1][2].clientPositionObservedAtUnixMs).toBeGreaterThan(0);
   });
 
   it('serializes Stop after the in-flight update and rejects later automatic updates', async () => {
@@ -379,6 +469,29 @@ describe('persistent host publication', () => {
       unmount();
       vi.useRealTimers();
     }
+  });
+
+  it('explains a party ID collision and allows a fresh identity retry', async () => {
+    listeningParty.publishPartyState.mockRejectedValueOnce({
+      response: { status: 409, data: { code: 'party_id_in_use' } },
+    });
+    const { result } = renderHook(() => useListeningPartyBroadcast(player));
+
+    await act(async () => {
+      await expect(result.current.publishBroadcast(config, 'play')).rejects.toMatchObject({
+        response: { status: 409, data: { code: 'party_id_in_use' } },
+      });
+    });
+    expect(result.current.broadcastStatus).toMatchObject({
+      active: false,
+      error: 'This Party ID is already in use. Start the broadcast again to claim a new ID.',
+    });
+    expect(releaseRoom).toHaveBeenCalledOnce();
+
+    await act(async () => result.current.publishBroadcast(config, 'play'));
+    expect(listeningParty.publishPartyState).toHaveBeenCalledTimes(2);
+    expect(listeningParty.publishPartyState.mock.calls.at(-1)[2].partyId).toBe('');
+    expect(listeningParty.publishPartyState.mock.calls.at(-1)[3].startHostSession).toBe(true);
   });
 
   it('surfaces renewal storage failures and restores the timer after Retry', async () => {

@@ -4,7 +4,9 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-image='slskdn-player-a11y:orca-clean'
+image_fingerprint="$(sha256sum scripts/player-a11y/Dockerfile)"
+image_fingerprint="${image_fingerprint%% *}"
+image="slskdn-player-a11y:${image_fingerprint:0:12}"
 screen_reader_browser="${SLSKDN_PLAYER_A11Y_BROWSER:-chromium}"
 case "$screen_reader_browser" in
   chromium|firefox|webkit) ;;
@@ -24,7 +26,7 @@ case "$screen_reader_suite" in
     ;;
 esac
 
-for executable in dbus-run-session docker pactl parec pnpm python3 timeout xvfb-run; do
+for executable in dbus-run-session docker dotnet pactl parec pnpm python3 sha256sum timeout xvfb-run; do
   if ! command -v "$executable" >/dev/null 2>&1; then
     echo "Required executable is unavailable: $executable" >&2
     exit 1
@@ -132,6 +134,7 @@ if ! kill -0 "$capture_pid" 2>/dev/null; then
 fi
 
 pnpm --filter @slskdn/web run build
+dotnet build src/slskd/slskd.csproj --configuration Release
 
 export SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY="$evidence_directory"
 export SLSKDN_PLAYER_A11Y_HOME_DIRECTORY="$home_directory"
@@ -145,10 +148,12 @@ export SLSKDN_PLAYER_A11Y_CONTAINER_USER="$container_user"
 export SLSKDN_PLAYER_A11Y_BROWSER="$screen_reader_browser"
 export SLSKDN_PLAYER_A11Y_PLAYWRIGHT_GREP="$playwright_test_grep"
 export SLSKDN_PLAYER_A11Y_IMAGE="$image"
+export SLSKDN_PLAYER_A11Y_REPOSITORY_ROOT="$repo_root"
 export SLSKDN_PLAYER_A11Y_PULSE_DIRECTORY="$pulse_socket_directory"
 export SLSKDN_PLAYER_A11Y_PULSE_SERVER="$pulse_server"
 export SLSKDN_PLAYER_A11Y_PULSE_COOKIE="$pulse_cookie"
 export SLSKDN_PLAYER_A11Y_SINK="$sink_name"
+export SLSKDN_PLAYER_A11Y_BROWSER_SINK="$browser_sink_name"
 export SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY="$runtime_directory"
 export SLSKDN_PLAYER_SCREEN_READER=1
 export HEADLESS=false
@@ -171,6 +176,7 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
     dbus_socket_directory="$(dirname "$dbus_socket_path")"
     container_mounts=(
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY,dst=$SLSKDN_PLAYER_A11Y_EVIDENCE_DIRECTORY"
+      --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_REPOSITORY_ROOT,dst=$SLSKDN_PLAYER_A11Y_REPOSITORY_ROOT"
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY,dst=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY"
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY/passwd,dst=/etc/passwd,readonly"
       --mount "type=bind,src=$SLSKDN_PLAYER_A11Y_RUNTIME_DIRECTORY/group,dst=/etc/group,readonly"
@@ -184,7 +190,7 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
       export PULSE_COOKIE=/tmp/player-a11y-pulse-cookie
     fi
 
-    docker run --detach --rm --name "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+    docker run --detach --rm --shm-size=1g --name "$SLSKDN_PLAYER_A11Y_CONTAINER" \
       --user "$SLSKDN_PLAYER_A11Y_CONTAINER_USER" \
       "${container_mounts[@]}" \
       --env DISPLAY --env DBUS_SESSION_BUS_ADDRESS \
@@ -203,14 +209,27 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
       --env XDG_RUNTIME_DIR
       --env HOME="$SLSKDN_PLAYER_A11Y_HOME_DIRECTORY"
       --env PULSE_SERVER="$SLSKDN_PLAYER_A11Y_PULSE_SERVER"
-      --env PULSE_SINK="$SLSKDN_PLAYER_A11Y_SINK"
       --env PULSE_COOKIE
     )
+    container_speech_exec_options=(
+      "${container_exec_options[@]}"
+      --env PULSE_SINK="$SLSKDN_PLAYER_A11Y_SINK"
+    )
+    container_test_exec_options=(
+      "${container_exec_options[@]}"
+      --workdir "$SLSKDN_PLAYER_A11Y_REPOSITORY_ROOT/src/web"
+      --env HEADLESS
+      --env SLSKDN_PLAYER_SCREEN_READER
+      --env SLSKDN_PLAYER_A11Y_BROWSER
+      --env SLSKDN_PLAYER_A11Y_DEBUG_LOG
+      --env TMPDIR
+      --env PULSE_SINK="$SLSKDN_PLAYER_A11Y_BROWSER_SINK"
+    )
 
-    docker exec --detach "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+    docker exec --detach "${container_speech_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
       /usr/bin/speech-dispatcher --run-daemon --timeout 0
     speech_dispatcher_ready=false
-    if timeout --kill-after=1s 20s docker exec "${container_exec_options[@]}" \
+    if timeout --kill-after=1s 20s docker exec "${container_speech_exec_options[@]}" \
       "$SLSKDN_PLAYER_A11Y_CONTAINER" /bin/sh -c \
       "attempt=0; while [ \$attempt -lt 30 ]; do \
         /usr/bin/spd-say --wait --application-name=PlayerScreenReaderAudit \
@@ -236,13 +255,13 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
     a11y_bus_address=''
     a11y_bus_ready=false
     for attempt in $(seq 1 30); do
-      a11y_bus_reply="$(docker exec "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+      a11y_bus_reply="$(docker exec "${container_speech_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
         /usr/bin/dbus-send --session --print-reply --dest=org.a11y.Bus \
         /org/a11y/bus org.a11y.Bus.GetAddress 2>/dev/null || true)"
       a11y_bus_address="${a11y_bus_reply#*string \"}"
       a11y_bus_address="${a11y_bus_address%%\"*}"
       if [[ -n "$a11y_bus_address" ]] && \
-        docker exec "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+        docker exec "${container_speech_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
           /usr/bin/dbus-send --bus="$a11y_bus_address" --print-reply \
           --dest=org.freedesktop.DBus /org/freedesktop/DBus \
           org.freedesktop.DBus.ListNames >/dev/null 2>&1; then
@@ -256,7 +275,12 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
       exit 1
     fi
 
-    docker exec --detach "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+    container_a11y_exec_options=(
+      "${container_speech_exec_options[@]}"
+      --env "AT_SPI_BUS_ADDRESS=$a11y_bus_address"
+      --env "ATSPI_BUS_ADDRESS=$a11y_bus_address"
+    )
+    docker exec --detach "${container_a11y_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
       /bin/sh -c \
       "exec /usr/bin/orca --replace --speech-system speechdispatcherfactory --debug-file=\"\$1\" --debug >\"\$2\" 2>&1" \
       player-orca "$SLSKDN_PLAYER_A11Y_DEBUG_LOG" "$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG"
@@ -270,17 +294,40 @@ xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24 -ac' \
       if [[ -s "$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG" ]]; then
         cat "$SLSKDN_PLAYER_A11Y_STARTUP_ERROR_LOG" >&2
       fi
-      docker exec "${container_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+      if [[ -s "$SLSKDN_PLAYER_A11Y_DEBUG_LOG" ]]; then
+        tail --lines=80 "$SLSKDN_PLAYER_A11Y_DEBUG_LOG" >&2
+      fi
+      docker exec "${container_a11y_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
         /usr/bin/pgrep --full /usr/bin/orca >&2 || true
       exit 1
     fi
 
-    pnpm --filter @slskdn/web exec playwright test e2e/player.spec.ts \
+    container_test_exec_options+=(
+      --env "AT_SPI_BUS_ADDRESS=$a11y_bus_address"
+      --env "ATSPI_BUS_ADDRESS=$a11y_bus_address"
+    )
+    docker exec "${container_test_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+      ./node_modules/.bin/playwright test e2e/player.spec.ts \
       --grep="$SLSKDN_PLAYER_A11Y_PLAYWRIGHT_GREP" \
       --browser="$SLSKDN_PLAYER_A11Y_BROWSER" \
       --workers=1 --retries=0 --trace=off --reporter=line
 
     sleep 2
+    docker exec "${container_a11y_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+      /usr/bin/pkill --signal TERM --exact orca >/dev/null 2>&1 || true
+    orca_stopped=false
+    for attempt in $(seq 1 20); do
+      if ! docker exec "${container_a11y_exec_options[@]}" "$SLSKDN_PLAYER_A11Y_CONTAINER" \
+        /usr/bin/pgrep --exact orca >/dev/null 2>&1; then
+        orca_stopped=true
+        break
+      fi
+      sleep 0.25
+    done
+    if [[ "$orca_stopped" != true ]]; then
+      echo "Orca did not stop cleanly after the Player speech workflow." >&2
+      exit 1
+    fi
   '
 
 kill -INT "$capture_pid" >/dev/null 2>&1 || true
@@ -297,15 +344,15 @@ if grep -Eiq 'Speech Dispatcher service failed to connect|No speech server for f
   exit 1
 fi
 if [[ "$screen_reader_suite" == 'all' || "$screen_reader_suite" == 'playback' ]]; then
-  required_speech=("Now playing: Player runtime first." "Paused: Player runtime first." "Playback stopped.")
+  required_speech_patterns=('Now playing: Player runtime first[.]' 'Paused: Player runtime first[.]' 'Playback stopped[.]')
 else
-  required_speech=("Playback volume" "99 percent" "31 equalizer gain" "1 dB")
+  required_speech_patterns=('Playback volume' '99(%| percent)' '31 equalizer gain' '1 dB')
 fi
-for spoken_text in "${required_speech[@]}"; do
-  if ! awk -v spoken_text="$spoken_text" \
-    'index($0, "SPEECH OUTPUT:") && index($0, spoken_text) { found = 1 } END { exit !found }' \
+for spoken_pattern in "${required_speech_patterns[@]}"; do
+  if ! awk -v spoken_pattern="$spoken_pattern" \
+    'index($0, "SPEECH OUTPUT:") && tolower($0) ~ tolower(spoken_pattern) { found = 1 } END { exit !found }' \
     "$debug_log"; then
-    echo "Orca did not send the expected player status to speech: $spoken_text" >&2
+    echo "Orca did not send the expected player speech matching: $spoken_pattern" >&2
     exit 1
   fi
 done

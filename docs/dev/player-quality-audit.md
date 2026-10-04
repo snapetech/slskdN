@@ -91,7 +91,7 @@ simulated device APIs.
 | Decoding | Actual AIFF to MP3 with absolute seeks while paused/playing; FLAC, MP3 and Ogg Vorbis playback through native support or on-demand server decoding | Verified in Chromium, host Firefox and WebKit / high |
 | Decode setup lifecycle | Cancelable stream-ticket and playback-info requests; late-result fencing on superseding seek, track replacement and unmount; FLAC/MP3/Ogg retry after a transient transcode response error; actual FFmpeg rejection before and after first output | Setup cancellation: component/API tests / high; six codec-retry/server-failure workflows pass in Chromium, Firefox and WebKit / high |
 | Queue and playlists | Backend save/load, repeated server entries and duplicate local files | Verified in Chromium, host Firefox and WebKit / high |
-| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and visible keyboard focus in Light theme | Queue workflow and dark-surface focus contrast verified in Chromium, host Firefox and WebKit; Listed Radio semantic unit assertion / high; full player Tab order verified in all three engines; isolated Linux Orca captures playback status and slider values in Chromium, plus slider values in a Firefox controls-only workflow / high for tested controls; Firefox playback-status speech and physical assistive technology remain open |
+| Dialog accessibility | Named player dialogs, focus on entry, Tab and Shift+Tab wrapping, Escape close, opener restoration, and high-contrast keyboard focus in all supported theme modes | Dialog and Light-theme controls meet 3:1 in Chromium, Firefox and WebKit; all 21 dark palettes meet 3:1 across four Player surfaces; browser workflow covers Iris, Ember, Classic Dark and Light / high; full player Tab order verified in all three engines; Orca speech verified for tested controls in Chromium and Firefox; other reader/browser pairs and physical assistive technology remain open |
 | Control guidance | Mouseover explanations for player buttons | AST source scan confirms Popup content on all 107 button declarations across 23 files; ListenBrainz token-clear Popup is render-tested / high |
 | Recovery | Refresh retains latest server position without autoplay; Previous restarts replay at zero | Verified in Chromium, host Firefox and WebKit / high |
 | Browser media actions | Metadata, position, Play/Pause, seek actions, Previous/Next, Stop | Registered callbacks verified in Chromium and host Firefox; WebKit lacks the transport handlers; physical controls unverified |
@@ -152,10 +152,50 @@ duplicate events. The Player now delays transient loading/buffering and
 coalesces playback, pause, resume and stop announcements until related control
 updates settle. The runner preserves the explicit host PulseAudio address when
 it overrides `XDG_RUNTIME_DIR` and bounds the Speech Dispatcher readiness
-probe. WebKit speech and physical assistive-technology hardware remain
-unverified because this host's Playwright WebKit runtime dependencies are
-unavailable. Confidence is high for the tested Linux Chromium/Orca and
-Firefox/Orca workflows; other reader/browser pairings remain open.
+probe. The runner now provides the pinned WebKit runtime in its container, but
+Orca receives a dead WebKitGTK page root there, so WebKit speech and physical
+assistive-technology hardware remain unverified. Confidence is high for the
+tested Linux Chromium/Orca and Firefox/Orca workflows; other reader/browser
+pairings remain open.
+
+### Cross-browser equalizer keyboard behavior — 2026-10-03
+
+An isolated pre-fix probe found that native vertical range inputs mapped arrow
+keys differently: Chromium increased on Down/Right, Firefox on Up/Right, and
+WebKit on Up/Left. The equalizer now handles all four keys with one contract:
+Up/Right increase gain, Down/Left decrease it, and changes clamp to the native
+-12 to +12 range. Each control explicitly exposes vertical orientation to
+assistive technology.
+
+Component coverage checks each direction and both gain limits. The Orca
+controls workflow passes 1/1 in Chromium (84 active 100 ms speech windows over
+13.0 seconds) and Firefox (44 windows over 8.9 seconds); both captures include
+the changed volume and `1 dB` gain. The same four-key Playwright workflow passes
+1/1 in headless WebKit. The headed WebKit/Orca browser assertions also pass.
+A repeated run on 2026-10-04 at 03:50 UTC confirms the runner cannot verify
+WebKit speech: its debug log contains only
+“Screen reader on,” then WebKit slider events refer to `[DEAD]` and Orca reports
+that `/org/a11y/atspi/accessible/root` does not exist. The runner also reports
+that Orca does not stop cleanly after this WebKit workflow. WebKit speech
+remains unverified; this result is not counted as an Orca pass.
+
+### Player focus contrast across dark palettes — 2026-10-03
+
+The 21 custom dark palettes used `primaryScale[4]` as their shared focus
+outline. That shade fell below the 3:1 adjacent-color target on at least one
+of the four Player surfaces in 20 palettes; Ember's lowest result was 1.67:1.
+The palette focus token now uses the lightest shade from the same primary
+scale, and redundant per-component translucent outline declarations were
+removed so controls use the shared focus treatment.
+
+The theme regression applies every built-in palette and checks the focus token
+against all four actual derived Player surface levels. All meet 3:1; the
+lowest computed ratio is 3.28:1. The Chromium browser workflow measures an
+opaque three-pixel Player focus ring in Iris Dark, Ember, Classic Dark and
+Light. The full Web suite passes 1,215/1,215, Web lint and strict E2E types
+pass, the production build and output check pass, and the focused browser
+workflow passes 1/1. Confidence is high for the shipped palette surfaces and
+tested browser modes; physical displays and assistive hardware remain open.
 
 ### Listed-radio active stream recovery — 2026-09-29
 
@@ -1747,6 +1787,18 @@ animation frames remained. CDP DOM-node and event-listener counters stayed above
 warmup; one OS ancestry enumeration read was unavailable at the stopped sample.
 Raw artifacts remain local under `.local/player-resource-evidence/`.
 
+### Transient `/proc` read accounting — 2026-10-03
+
+The owned-process census now retries a process `stat` or `smaps_rollup` read at
+most once when Linux reports `EINTR` or `EAGAIN`. New samples report retry and
+recovery counts separately from final unavailable reads. Persistent failures,
+vanished PIDs, malformed data and PID identity changes remain unavailable; the
+collector does not treat a second PID lookup as the same process. The focused
+collector suite passes 15/15. This improves future measurement coverage only:
+it does not modify older raw captures or turn their endpoint samples into a
+lifetime plateau. Broader sustained workload and renderer-PSS attribution
+remain open.
+
 The 20-cycle visualizer-only run also passed. PSS fell from 519.8 MiB warm to
 453.4 MiB after natural settle; JS heap fell from 32.0 to 13.3 MiB. All 21
 contexts were lost and the context attributes matched Butterchurn's request.
@@ -1781,3 +1833,109 @@ the sampled checkpoints. This closes the detached portal-tree issue with high
 confidence for the tested Chromium workload. The remaining renderer-PSS
 residual and multi-hour resource plateau are open; forced-GC endpoints do not
 represent natural long-session memory use.
+
+## Listed Party ID ownership — 2026-10-04
+
+Explicitly reusing a listed Party ID could overwrite the DHT announcement and
+make party-ID stream lookup choose an unrelated room. The service now reserves
+new listed IDs before room-message storage and checks active local plus observed
+remote listed ownership, including the host peer. An initial listing or relist
+preflights the existing DHT announcement; routine updates of the accepted owner
+do not add DHT reads. Directory-read failures are retryable 503 responses,
+observed ownership collisions are HTTP 409 `party_id_in_use`, and the Player
+explains how to retry with a new generated ID. Unlisted room playback does not
+claim a radio ID; radio lookup ignores private state, and unlisting retains the
+room's previously accepted ID.
+
+The service/controller slice passes 48 tests. The complete Web suite passes
+1,221 tests, and ESLint passes for the touched Player components. Same-process
+ownership is serialized; DHT preflight detects existing foreign claims. The
+Mesh DHT has no compare-and-swap, so simultaneous first claims on separate
+nodes can still race. This does not establish a race-free global ownership
+guarantee. Confidence is high for local reservation and HTTP behavior, moderate
+for existing remote-record detection, and low for concurrent first claims
+across nodes.
+
+## Host lease cleanup and synchronization — 2026-10-04
+
+Each browser host session now has a one-shot server deadline timer. On expiry,
+the service serializes Stop with room writes, removes local state, routes the
+Stop to subscribers and mesh peers, withdraws the DHT directory index entry,
+and retries transient storage/queue failures after a bounded delay. `pagehide`
+also attempts an authenticated keepalive Stop; server lease expiry remains the
+fallback. The focused service regression advances the injected `TimeProvider`,
+forces one cleanup write failure, then verifies Stop routing, state removal and
+index withdrawal after retry. Close notification is browser best effort; a
+process crash relies on the 900-second DHT TTL.
+
+The rebuilt `player-host.spec.ts` passes with real backend and browser assets.
+Its injected active media error publishes Pause at the captured absolute
+position, the follower pauses at that position, and explicit Play resumes.
+Unlist, relist, replacement and Stop remove old IDs from the directory while
+preserving a neighbor listing. The first run stopped at the later direct-API
+directory fixture because it omitted the active host-session fence; the fixture
+now acknowledges Stop before switching to legacy hostless writes. Existing
+two-node TLS directory evidence is recorded in the 2026-09-28 withdrawal section.
+Confidence is high for server lease cleanup and loopback host synchronization;
+pagehide delivery remains best effort, and WAN/disconnected-peer delivery is
+not proven by this test.
+
+### Host publication delay and listener position drift — 2026-10-04
+
+Active Play and Seek events carry the client time at which the playback
+position was observed. The server adds positive observation age to that
+position, capped at ten seconds, then clears the client-only timestamp before
+storage and fan-out. A listener also advances active positions by elapsed time
+since the server timestamp; Pause stays at its exact reported position. Hook
+tests simulate five seconds between server publication and listener receipt for
+Play, Seek and Pause. Backend tests cover a 500 ms active observation age, the
+ten-second cap, exact Pause, future client timestamps and timestamp removal.
+
+The rebuilt Chromium `player-host.spec.ts` injects a 500 ms delay into an active
+host Seek request, checks that the published state includes the delay, and
+asserts host/follower playback drift below 350 ms. Confidence is high for this
+injected local request-delay case. This does not validate actual background-tab
+timer throttling, representative WAN paths, or sustained workloads; those stay
+open.
+
+### Host position refresh after returning to the Player — 2026-10-04
+
+An active host now publishes one current Play/Pause snapshot when its document
+reports that it is visible again. The update uses the existing coalescing and
+250 ms pacing path; there is no periodic position polling. Hook coverage checks
+that hidden state does not publish and visible state sends the current active
+position. The rebuilt Chromium host E2E dispatches a visibility event against
+the real browser/backend journey, verifies the server snapshot matches the host
+position, and measures follower drift below 350 ms.
+
+The Playwright runner left the original document visible after opening another
+page, in both headless Chromium and headed Chromium under Xvfb. A headed
+Chromium attempt under a Weston Wayland desktop also left `document.hidden`
+false and a 100 ms interval running at roughly 100 ms after another page was
+activated. These runs therefore verify the visible-event resume path, not
+actual background-tab timer throttling. A browser session that can produce a
+confirmed hidden tab, representative WAN behavior, and sustained resource
+workloads remain open.
+
+### Frontend startup fallback — 2026-10-04
+
+The web document now keeps an accessible loading message and manual reload link
+inside `#root` until React mounts. A successful React render replaces that
+static content; if frontend assets fail before mount, users retain a recovery
+action instead of seeing an empty root. The production Vite build includes the
+fallback markup and styles. This improves recovery from the retained blank
+bootstrap symptom but does not identify or fix the original
+`ERR_NETWORK_CHANGED` cause, which remains open in `memory-bank/tasks.md`.
+
+### Startup request diagnostics — internal-only — 2026-10-04
+
+The shared Playwright login helper now records failed browser requests during
+page startup with method, resource type, origin/path and the browser error.
+Query strings and fragments are stripped; non-HTTP URL payloads are redacted.
+The listener is removed when login setup ends and stops collecting before
+credentials are submitted. This will identify the failed resource if the
+interruption recurs; it does not explain the retained failure from 2026-09-28.
+Failed-login storage diagnostics now report entry counts and whether the
+expected token is present without printing storage values. The mount diagnostic
+also checks that the static startup shell has been replaced, so the fallback
+cannot be mistaken for a successful React render.

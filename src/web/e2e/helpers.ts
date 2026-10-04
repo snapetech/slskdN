@@ -5,12 +5,22 @@ import {
   type ConsoleMessage,
   expect,
   type Page,
+  type Request,
   type Response,
 } from '@playwright/test';
 
 function logWithTimestamp(message: string): void {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] ${message}`);
+}
+
+function diagnosticUrl(value: string): string {
+  const url = new URL(value);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return `${url.protocol}[redacted]`;
+  }
+
+  return `${url.origin}${url.pathname}`;
 }
 
 export async function waitForHealth(
@@ -49,10 +59,19 @@ export async function login(page: Page, node: NodeCfg) {
     type: string;
     url: string;
   }> = [];
+  const failedRequestLog: Array<{
+    error: string;
+    method: string;
+    time: number;
+    type: string;
+    url: string;
+  }> = [];
+  let loginSubmitted = false;
   const baseUrlPrefix = node.baseUrl.endsWith('/') ? node.baseUrl : `${node.baseUrl}/`;
   const handleResponse = (response: Response) => {
-    const url = response.url();
-    if (url.startsWith(baseUrlPrefix) && !url.includes('/api/')) {
+    const responseUrl = response.url();
+    if (responseUrl.startsWith(baseUrlPrefix) && !responseUrl.includes('/api/')) {
+      const url = diagnosticUrl(responseUrl);
       const status = response.status();
       networkLog.push({
         status,
@@ -67,6 +86,23 @@ export async function login(page: Page, node: NodeCfg) {
       }
     }
   };
+  const handleRequestFailed = (request: Request) => {
+    if (loginSubmitted) return;
+
+    const failure = request.failure()?.errorText || 'unknown';
+    const failedRequest = {
+      error: failure,
+      method: request.method(),
+      time: Date.now() - loginStartTime,
+      type: request.resourceType(),
+      url: diagnosticUrl(request.url()),
+    };
+    failedRequestLog.push(failedRequest);
+    logWithTimestamp(
+      `[Login] Failed request: ${failedRequest.method} ${failedRequest.type} ${failedRequest.url} - ${failedRequest.error}`,
+    );
+  };
+  page.on('requestfailed', handleRequestFailed);
   page.on('response', handleResponse);
 
   // Capture console errors
@@ -116,15 +152,25 @@ export async function login(page: Page, node: NodeCfg) {
   const hasReactContent = await page
     .evaluate(() => {
       const root = document.querySelector('#root');
-      return root && root.children.length > 0;
+      return Boolean(
+        root &&
+          root.children.length > 0 &&
+          !root.querySelector('#app-startup'),
+      );
     })
     .catch(() => false);
   logWithTimestamp(
-    `[Login] React has mounted (root has children): ${hasReactContent}`,
+    `[Login] React has mounted (startup fallback replaced): ${hasReactContent}`,
   );
 
   // Check network log
   logWithTimestamp(`[Login] Network requests: ${networkLog.length} total`);
+  logWithTimestamp(`[Login] Failed browser requests: ${failedRequestLog.length} total`);
+  if (failedRequestLog.length > 0) {
+    logWithTimestamp(
+      `[Login] Failed browser request details: ${JSON.stringify(failedRequestLog, null, 2)}`,
+    );
+  }
   const failedRequests = networkLog.filter((r) => !(r.status >= 200 && r.status < 400));
   if (failedRequests.length > 0) {
     logWithTimestamp(
@@ -226,6 +272,7 @@ export async function login(page: Page, node: NodeCfg) {
     { timeout: 15_000 },
   );
 
+  loginSubmitted = true;
   await submit.click();
 
   // Wait for the login API response and check status
@@ -279,22 +326,15 @@ export async function login(page: Page, node: NodeCfg) {
   }
 
   if (!token) {
-    // Debug: check what's actually in storage
-    const storageDebug = await page.evaluate(() => {
-      return {
-        localStorage: Object.keys(localStorage).map((k) => ({
-          key: k,
-          value: localStorage.getItem(k)?.slice(0, 50),
-        })),
-        sessionStorage: Object.keys(sessionStorage).map((k) => ({
-          key: k,
-          value: sessionStorage.getItem(k)?.slice(0, 50),
-        })),
-      };
-    });
+    const storageState = await page.evaluate(() => ({
+      localStorageEntryCount: localStorage.length,
+      sessionStorageEntryCount: sessionStorage.length,
+      localTokenPresent: Boolean(localStorage.getItem('slskd-token')),
+      sessionTokenPresent: Boolean(sessionStorage.getItem('slskd-token')),
+    }));
     console.error(
-      '[Login] Token not found after polling. Storage contents:',
-      storageDebug,
+      '[Login] Token not found after polling. Storage state:',
+      storageState,
     );
     throw new Error('Login token not found in storage after login');
   }
@@ -478,6 +518,7 @@ export async function login(page: Page, node: NodeCfg) {
     );
   }
   } finally {
+    page.off('requestfailed', handleRequestFailed);
     page.off('response', handleResponse);
     page.off('console', handleConsole);
   }

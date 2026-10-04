@@ -124,4 +124,37 @@ public sealed class ListeningPartyControllerTests
         var conflict = Assert.IsType<ConflictObjectResult>(result);
         Assert.Contains("host_session_replaced", System.Text.Json.JsonSerializer.Serialize(conflict.Value));
     }
+
+    [Fact]
+    public async Task Publish_ReportsPartyIdOwnershipConflict()
+    {
+        var service = new Mock<IListeningPartyService>();
+        service.Setup(instance => instance.PublishHostEventAsync(It.IsAny<ListeningPartyEvent>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ListeningPartyIdConflictException());
+        var controller = PodControllerTestContext.AsAdministrator(new ListeningPartyController(
+            Mock.Of<IContentLocator>(), service.Object, Mock.Of<IStreamSessionLimiter>(), Mock.Of<IStreamTicketService>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()), Mock.Of<IPodService>()));
+
+        var result = await controller.Publish("pod-a", "music", new ListeningPartyEvent { Action = "play", ContentId = "track" }, CancellationToken.None);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        Assert.Contains("party_id_in_use", System.Text.Json.JsonSerializer.Serialize(conflict.Value));
+    }
+
+    [Fact]
+    public async Task Publish_ReportsDirectoryPreflightFailureAsRetryableUnavailable()
+    {
+        var service = new Mock<IListeningPartyService>();
+        service.Setup(instance => instance.PublishHostEventAsync(It.IsAny<ListeningPartyEvent>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ListeningPartyDirectoryUnavailableException(new InvalidOperationException()));
+        var controller = PodControllerTestContext.AsAdministrator(new ListeningPartyController(
+            Mock.Of<IContentLocator>(), service.Object, Mock.Of<IStreamSessionLimiter>(), Mock.Of<IStreamTicketService>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()), Mock.Of<IPodService>()));
+
+        var result = Assert.IsType<ObjectResult>(await controller.Publish("pod-a", "music",
+            new ListeningPartyEvent { Action = "play", ContentId = "track" }, CancellationToken.None));
+
+        Assert.Equal(503, result.StatusCode);
+        Assert.Contains("party_directory_unavailable", System.Text.Json.JsonSerializer.Serialize(result.Value));
+    }
 }

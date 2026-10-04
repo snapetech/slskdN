@@ -54,4 +54,51 @@ describe('player-owned listening rooms', () => {
     unmount();
     expect(hubs.map((hub) => hub.stop.mock.calls.length)).toEqual([1, 1]);
   });
+
+  it.each([
+    { action: 'play', expected: 35, startPaused: false },
+    { action: 'seek', expected: 35, startPaused: false },
+    { action: 'pause', expected: 30, startPaused: true },
+  ])('catches up delayed $action snapshots without moving paused state', async ({ action, expected, startPaused }) => {
+    const serverTime = 1_700_000_000_000;
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(serverTime + 5000);
+    const hub = createHub();
+    createListeningPartyHubConnection.mockReturnValue(hub);
+    const player = {
+      clear: vi.fn(),
+      current: null,
+      getPlaybackPosition: vi.fn(() => 0),
+      pause: vi.fn(),
+      playItem: vi.fn(),
+    };
+    const { result, unmount } = renderHook(() => useListeningPartyRooms(player, vi.fn()));
+
+    try {
+      await act(async () => {
+        result.current.observePartyRoom('pod', 'music', vi.fn());
+        result.current.followParty({ podId: 'pod', channelId: 'music' });
+      });
+      const receivePartyState = hub.on.mock.calls.find(([name]) => name === 'partyState')[1];
+      act(() => receivePartyState({
+        action,
+        channelId: 'music',
+        contentId: 'track',
+        partyId: 'party',
+        positionSeconds: 30,
+        serverTimeUnixMs: serverTime,
+        sequence: 1,
+      }));
+
+      expect(player.playItem).toHaveBeenCalledWith(expect.objectContaining({ contentId: 'track' }), {
+        fromParty: true,
+        positionSeconds: expected,
+        replaceQueue: true,
+        ...(startPaused ? { startPaused: true } : {}),
+      });
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
 });

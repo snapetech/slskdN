@@ -19,12 +19,16 @@ const publicationError = (error) => error?.response?.status === 429
     ? 'Another browser replaced this host session. Start a new broadcast to host again.'
     : error?.response?.status === 409 && error?.response?.data?.code === 'host_session_expired'
       ? 'This host session expired. Start a new broadcast to host again.'
+      : error?.response?.status === 409 && error?.response?.data?.code === 'party_id_in_use'
+        ? 'This Party ID is already in use. Start the broadcast again to claim a new ID.'
   : error?.response?.status === 404
     ? 'This room is unavailable. Choose an existing room.'
     : error?.response?.status === 403
       ? 'Room access was revoked. Rejoin before broadcasting.'
       : error?.response?.data?.code === 'room_storage_unavailable'
         ? 'The room update could not be saved. Try again.'
+        : error?.response?.data?.code === 'party_directory_unavailable'
+          ? 'Party ID ownership could not be checked. Try again.'
         : 'Room broadcast updates failed. Retry or stop the broadcast.';
 
 // An explicitly started host session survives route changes. One active request
@@ -120,7 +124,8 @@ export default function useListeningPartyBroadcast(player) {
       session.abort.signal.throwIfAborted();
       lastSentRef.current = performance.now();
       const state = await listeningParty.publishPartyState(session.config.podId, session.config.channelId,
-        { ...update.payload, partyId: session.startPending ? '' : session.partyId }, {
+        { ...update.payload, partyId: session.startPending ? '' : session.partyId,
+          clientPositionObservedAtUnixMs: update.positionObservedAtUnixMs }, {
           signal: session.abort.signal,
           hostSessionId: session.hostSessionId,
           startHostSession: session.startPending,
@@ -157,7 +162,12 @@ export default function useListeningPartyBroadcast(player) {
   const queue = useCallback((session, payload) => {
     session.lastDesired = payload;
     return new Promise((resolve, reject) => {
-      const update = { payload, reject, resolve };
+      const update = {
+        payload,
+        positionObservedAtUnixMs: payload.action === 'play' || payload.action === 'seek' ? Date.now() : 0,
+        reject,
+        resolve,
+      };
       if (session.inFlight) {
         session.pending?.resolve(null);
         session.pending = update;
@@ -257,6 +267,20 @@ export default function useListeningPartyBroadcast(player) {
     session.lastEvent = key;
     return queue(session, payload(session, action, position)).catch(() => {});
   }, [payload, queue, stopBroadcast]);
+  useEffect(() => {
+    const synchronizeWhenVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      const session = sessionRef.current;
+      const playback = playerRef.current;
+      if (!session || session.stopping || session.error || !playback.audioElement || !shareable(playback.current)) return;
+
+      const action = playback.audioElement.paused ? 'pause' : 'play';
+      queue(session, payload(session, action, playback.getPlaybackPosition())).catch(() => {});
+    };
+
+    document.addEventListener('visibilitychange', synchronizeWhenVisible);
+    return () => document.removeEventListener('visibilitychange', synchronizeWhenVisible);
+  }, [payload, queue]);
   const retryBroadcast = useCallback(() => {
     const session = sessionRef.current;
     if (!session) return Promise.resolve(null);
@@ -282,5 +306,50 @@ export default function useListeningPartyBroadcast(player) {
       }
     };
   }, [release]);
+  useEffect(() => {
+    const stopOnPageHide = () => {
+      const session = sessionRef.current;
+      if (!session) return;
+
+      if (session.renewalTimer !== null) {
+        window.clearTimeout(session.renewalTimer);
+        session.renewalTimer = null;
+      }
+
+      if (session.hostSessionId && session.partyId && session.lastState) {
+        const stopEvent = {
+          ...session.lastState,
+          action: 'stop',
+          positionSeconds: 0,
+          listed: false,
+          allowMeshStreaming: false,
+          album: '',
+          artist: '',
+          contentId: '',
+          title: '',
+        };
+        try {
+          listeningParty.stopPartyStateOnPageHide(
+            session.config.podId,
+            session.config.channelId,
+            stopEvent,
+            session.hostSessionId,
+          ).catch(() => {});
+        } catch {
+          // The server lease expiry remains the fallback if keepalive is unavailable.
+        }
+      }
+
+      sessionRef.current = null;
+      session.pending?.resolve(null);
+      session.pending = null;
+      session.abort.abort();
+      session.releaseRoom?.();
+      if (mountedRef.current) setBroadcastStatus(null);
+    };
+
+    window.addEventListener('pagehide', stopOnPageHide);
+    return () => window.removeEventListener('pagehide', stopOnPageHide);
+  }, []);
   return { broadcastStatus, publishBroadcast, reportPlaybackEvent, retryBroadcast, stopBroadcast };
 }

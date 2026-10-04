@@ -151,12 +151,16 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
           ? error.message
           : error?.response?.status === 429
           ? 'Room updates are at capacity. Retry later.'
+          : error?.response?.status === 409 && error?.response?.data?.code === 'party_id_in_use'
+            ? 'This Party ID is already in use. Start the broadcast again to claim a new ID.'
           : error?.response?.status === 403
             ? 'Room access was revoked. Rejoin before broadcasting.'
           : error?.response?.status === 404
             ? 'This room is unavailable. Choose an existing room.'
-            : error?.response?.data?.code === 'room_storage_unavailable'
+          : error?.response?.data?.code === 'room_storage_unavailable'
               ? 'The room update could not be saved. Try again.'
+              : error?.response?.data?.code === 'party_directory_unavailable'
+                ? 'Party ID ownership could not be checked. Try again.'
               : action === 'stop'
           ? 'Could not stop the room broadcast. Try again.'
           : updatingSettings

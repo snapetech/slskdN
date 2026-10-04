@@ -61,9 +61,11 @@ pnpm --filter @slskdn/web test:e2e
 
 ### Player Screen-Reader Speech
 
-The isolated Orca runner builds the Web app, starts Chromium with Orca and
-Speech Dispatcher, and captures screen-reader audio separately from player
-audio:
+The isolated Orca runner builds the Web app and Release backend, then starts
+the selected Playwright browser beside Orca and Speech Dispatcher in a
+digest-pinned Playwright container. The container shares the virtual display,
+accessibility bus and isolated audio sinks with the host runner; screen-reader
+speech is captured separately from player audio:
 
 ```bash
 pnpm --filter @slskdn/web run test:player:screen-reader
@@ -73,13 +75,17 @@ By default, `SLSKDN_PLAYER_A11Y_BROWSER` is `chromium` and
 `SLSKDN_PLAYER_A11Y_SUITE` is `all`. The full suite checks playback-status
 speech plus keyboard changes to volume and equalizer values. Set the suite to
 `playback` or `controls` to run only that part. Set the browser to `firefox` or
-`webkit` to try another local Playwright browser.
+`webkit` to run the matching browser from the same Playwright image. Docker,
+the .NET 10 SDK, and the project’s normal pnpm dependencies must be available.
 
 Current direct evidence covers the full suite in Linux Chromium and Firefox
 (2/2 workflows in each). The Firefox playback-only profile also passes 1/1;
 Orca speaks the track-start, pause/resume, compact-mode, stop, volume and
-equalizer updates. WebKit needs its Playwright runtime dependencies installed
-or a matching browser container. See
+equalizer updates. The controls workflow checks consistent Up/Right increases
+and Down/Left decreases for the vertical equalizer sliders in Chromium and
+Firefox; its headless WebKit browser assertion also passes. Orca cannot resolve
+WebKit's page accessibility root in the current pinned runtime, so WebKit
+speech is not verified. See
 `docs/dev/player-quality-audit.md` for the tested scope and remaining gaps.
 
 ### CI Environment
@@ -105,8 +111,7 @@ The proxy's frame-splitting and acknowledgement mapping can be checked without
 starting Soulfind:
 
 ```bash
-node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types \
-  --test src/web/e2e/harness/soulseekPrivateMessageIdMapper.node-test.mjs
+pnpm --filter @slskdn/web exec vitest run scripts/soulseekPrivateMessageIdMapper.test.ts
 ```
 
 ```bash
@@ -125,6 +130,11 @@ pnpm --filter @slskdn/web test:player:soulseek-radio
 It uses the pinned loopback Soulfind image with `--pull=never` and publishes
 its port only on `127.0.0.1`; it does not contact public Soulseek peers. This
 is loopback evidence and does not establish WAN behavior.
+
+Player resource captures keep `/proc` read interruptions, recovered retries,
+unavailable memory samples and process churn distinct. The collector retries
+`EINTR` and `EAGAIN` once; missing process paths, persistent errors and PID
+identity changes remain unavailable rather than being counted as zero.
 
 ## Test Harness
 

@@ -1,5 +1,7 @@
-import api from './api';
+import api, { buildApiUrl } from './api';
 import { rootUrl } from '../config';
+import { authHeaders } from './session';
+import { isPassthroughEnabled } from './token';
 
 export const getPartyDirectory = async ({ refresh = false } = {}) => {
   const { data } = await api.get(refresh ? '/listening-party?refresh=true' : '/listening-party');
@@ -26,6 +28,23 @@ export const publishPartyState = async (podId, channelId, event, { signal, hostS
       { signal, headers },
     )
   ).data;
+};
+
+export const stopPartyStateOnPageHide = (podId, channelId, event, hostSessionId) => {
+  const headers = isPassthroughEnabled() ? {} : authHeaders({ csrf: true });
+  return fetch(buildApiUrl(
+    `/listening-party/${encodeURIComponent(podId)}/${encodeURIComponent(channelId)}`,
+  ), {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json',
+      'X-Listen-Along-Host-Session': hostSessionId,
+    },
+    body: JSON.stringify(event),
+    credentials: 'include',
+    keepalive: true,
+  });
 };
 
 export const renewHostSession = async (podId, channelId, partyId, { signal, hostSessionId } = {}) => {

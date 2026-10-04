@@ -298,7 +298,7 @@ const computeCssOverrides = (t) => {
     '--slskdn-focus-ring': `0 0 0 3px rgba(${pRgb(5)}, 0.42)`,
     '--slskdn-affordance-hover-background': `rgba(${pRgb(5)}, 0.14)`,
     '--slskdn-affordance-active-background': `rgba(${pRgb(5)}, 0.24)`,
-    '--slskdn-affordance-outline': p(4),
+    '--slskdn-affordance-outline': p(0),
   };
 };
 

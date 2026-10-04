@@ -332,18 +332,35 @@ describe('PlayerBar', () => {
     expect(volume).toHaveAttribute('aria-valuetext', '42%');
   });
 
-  it('announces equalizer slider values in decibels', () => {
+  it('normalizes equalizer arrow keys and announces values in decibels', () => {
     renderPlayer();
     fireEvent.click(screen.getByRole('button', { name: 'Show equalizer' }));
 
     const gain = screen.getByLabelText('31 equalizer gain');
     expect(gain).toHaveAttribute('aria-valuetext', '0 dB');
+    expect(gain).toHaveAttribute('aria-orientation', 'vertical');
     expect(gain).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Enable equalizer' }));
     expect(gain).toBeEnabled();
-    fireEvent.change(gain, { target: { value: '-3' } });
-    expect(gain).toHaveAttribute('aria-valuetext', '-3 dB');
+    for (const [key, value] of [
+      ['ArrowUp', '1'],
+      ['ArrowRight', '2'],
+      ['ArrowDown', '1'],
+      ['ArrowLeft', '0'],
+    ]) {
+      fireEvent.keyDown(gain, { key });
+      expect(gain).toHaveValue(value);
+      expect(gain).toHaveAttribute('aria-valuetext', `${value} dB`);
+    }
+
+    fireEvent.change(gain, { target: { value: '12' } });
+    fireEvent.keyDown(gain, { key: 'ArrowUp' });
+    expect(gain).toHaveValue('12');
+    fireEvent.change(gain, { target: { value: '-12' } });
+    fireEvent.keyDown(gain, { key: 'ArrowDown' });
+    expect(gain).toHaveValue('-12');
+
     expect(gain).toHaveAttribute('min', '-12');
     expect(gain).toHaveAttribute('max', '12');
   });

@@ -29,6 +29,8 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan DirectoryRefreshInterval = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan HostSessionLeaseDuration = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan HostSessionCleanupRetryDelay = TimeSpan.FromSeconds(30);
+    private const long MaxClientPositionAgeMilliseconds = 10_000;
 
     private readonly IHubContext<ListeningPartyHub> _hub;
     private readonly IMeshDhtClient _dht;
@@ -47,6 +49,7 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
 
     // Directory ownership, withdrawal lifetime and same-server index ordering: ADR-0020.
     private readonly object _directoryStateLock = new();
+    private readonly Dictionary<string, (string PodId, string ChannelId, string HostPeerId)> _partyIdReservations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (string RoomKey, long ExpiresAt)> _withdrawnListings = new(StringComparer.Ordinal);
     private readonly HashSet<string> _pendingDirectoryWithdrawals = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _directoryIndexGate = new(1, 1);
@@ -73,6 +76,7 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
     private const int MaxPublicationsPerRoom = 16;
     private long _sequence;
     private readonly TimeProvider _timeProvider;
+    private int _disposed;
 
     public ListeningPartyService(
         IHubContext<ListeningPartyHub> hub,
@@ -209,7 +213,8 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
     public Task<ListeningPartyEvent?> GetStateByPartyIdAsync(string partyId, CancellationToken cancellationToken = default)
     {
         var normalizedPartyId = partyId?.Trim() ?? string.Empty;
-        var state = _states.Values.FirstOrDefault(x => string.Equals(x.PartyId, normalizedPartyId, StringComparison.Ordinal));
+        var state = _states.Values.FirstOrDefault(x => x.Listed &&
+            string.Equals(x.PartyId, normalizedPartyId, StringComparison.Ordinal));
         return Task.FromResult(state);
     }
 
@@ -290,8 +295,22 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
                 }
             }
 
+            var reservedPartyId = false;
             try
             {
+                if (state.Action != "stop" && state.Listed)
+                {
+                    try
+                    {
+                        ReservePartyId(state);
+                        reservedPartyId = true;
+                    }
+                    catch (ListeningPartyIdConflictException)
+                    {
+                        return ListeningPartyRemoteApplyResult.Ignored;
+                    }
+                }
+
                 var storage = scope.ServiceProvider.GetRequiredService<IPodMessageStorage>();
                 if (!await storage.StoreMessageAsync(podId, channelId, message, cancellationToken).ConfigureAwait(false))
                 {
@@ -323,11 +342,22 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
                     }
                 }
 
+                if (reservedPartyId)
+                {
+                    ReleasePartyIdReservation(state);
+                    reservedPartyId = false;
+                }
+
                 await SendToSubscribersAsync(state, cancellationToken).ConfigureAwait(false);
                 return ListeningPartyRemoteApplyResult.Applied;
             }
             finally
             {
+                if (reservedPartyId)
+                {
+                    ReleasePartyIdReservation(state);
+                }
+
                 if (reserveRemoteRoom)
                 {
                     lock (_remoteStatesLock)
@@ -517,7 +547,6 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
             {
                 if (!_hostSessions.TryGetValue(room, out var lease) || lease.ExpiresAt <= _timeProvider.GetUtcNow())
                 {
-                    _hostSessions.Remove(room);
                     throw new ListeningPartyHostSessionConflictException("host_session_expired");
                 }
 
@@ -556,7 +585,13 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
                     throw new ListeningPartyHostSessionConflictException("host_session_replaced");
                 }
 
-                _hostSessions[room] = lease with { ExpiresAt = _timeProvider.GetUtcNow().Add(HostSessionLeaseDuration) };
+                var expiresAt = _timeProvider.GetUtcNow().Add(HostSessionLeaseDuration);
+                if (!lease.ExpiryTimer.Change(HostSessionLeaseDuration, Timeout.InfiniteTimeSpan))
+                {
+                    throw new ListeningPartyHostSessionConflictException("host_session_expired");
+                }
+
+                _hostSessions[room] = lease with { ExpiresAt = expiresAt };
             }
 
             return true;
@@ -639,11 +674,6 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
 
         if (startHostSession)
         {
-            lock (_hostSessionsLock)
-            {
-                PruneExpiredHostSessions();
-            }
-
             return;
         }
 
@@ -667,7 +697,6 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
                     (hostSessionId == null || lease.HostSessionId == hostSessionId);
                 if (expiredSessionStop) return;
 
-                _hostSessions.Remove(room);
                 throw new ListeningPartyHostSessionConflictException("host_session_expired");
             }
 
@@ -701,7 +730,7 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
                 if (_hostSessions.TryGetValue(room, out var current) && current.PartyId == published.PartyId &&
                     (hostSessionId == null || current.HostSessionId == hostSessionId))
                 {
-                    _hostSessions.Remove(room);
+                    RemoveHostSessionNoLock(room, current);
                 }
 
                 return;
@@ -709,14 +738,151 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
 
             if (startHostSession && hostSessionId != null)
             {
-                _hostSessions[room] = new HostSessionLease(hostSessionId, published.PartyId, _timeProvider.GetUtcNow().Add(HostSessionLeaseDuration));
+                if (_hostSessions.TryGetValue(room, out var previous))
+                {
+                    previous.ExpiryTimer.Dispose();
+                }
+
+                _hostSessions[room] = CreateHostSessionLease(room, hostSessionId, published.PartyId);
             }
             else if (hostSessionId != null && _hostSessions.TryGetValue(room, out var current) && current.HostSessionId == hostSessionId)
             {
-                _hostSessions[room] = current with { PartyId = published.PartyId, ExpiresAt = _timeProvider.GetUtcNow().Add(HostSessionLeaseDuration) };
+                if (!current.ExpiryTimer.Change(HostSessionLeaseDuration, Timeout.InfiniteTimeSpan))
+                {
+                    current.ExpiryTimer.Dispose();
+                    _hostSessions[room] = CreateHostSessionLease(room, hostSessionId, published.PartyId);
+                }
+                else
+                {
+                    _hostSessions[room] = current with
+                    {
+                        PartyId = published.PartyId,
+                        ExpiresAt = _timeProvider.GetUtcNow().Add(HostSessionLeaseDuration),
+                    };
+                }
             }
         }
     }
+
+    private HostSessionLease CreateHostSessionLease(
+        (string PodId, string ChannelId) room,
+        string hostSessionId,
+        string partyId)
+    {
+        var timer = _timeProvider.CreateTimer(
+            static state =>
+            {
+                var timerState = (HostSessionExpiryTimerState)state!;
+                timerState.Service.OnHostSessionLeaseExpired(timerState.Room, timerState.HostSessionId);
+            },
+            new HostSessionExpiryTimerState(this, room, hostSessionId),
+            HostSessionLeaseDuration,
+            Timeout.InfiniteTimeSpan);
+        return new HostSessionLease(
+            hostSessionId,
+            partyId,
+            _timeProvider.GetUtcNow().Add(HostSessionLeaseDuration),
+            timer);
+    }
+
+    private void OnHostSessionLeaseExpired((string PodId, string ChannelId) room, string hostSessionId)
+    {
+        if (Volatile.Read(ref _disposed) == 0)
+        {
+            _ = CleanupExpiredHostSessionAsync(room, hostSessionId);
+        }
+    }
+
+    private async Task CleanupExpiredHostSessionAsync(
+        (string PodId, string ChannelId) room,
+        string hostSessionId)
+    {
+        try
+        {
+            await RunInPublicationQueueAsync(room.PodId, room.ChannelId, async () =>
+            {
+                HostSessionLease lease;
+                lock (_hostSessionsLock)
+                {
+                    if (!_hostSessions.TryGetValue(room, out lease!) || lease.HostSessionId != hostSessionId)
+                    {
+                        return false;
+                    }
+
+                    var remaining = lease.ExpiresAt - _timeProvider.GetUtcNow();
+                    if (remaining > TimeSpan.Zero)
+                    {
+                        lease.ExpiryTimer.Change(remaining, Timeout.InfiniteTimeSpan);
+                        return false;
+                    }
+                }
+
+                if (_states.TryGetValue(StateKey(room.PodId, room.ChannelId), out var state) && state.PartyId == lease.PartyId)
+                {
+                    var stopped = state with
+                    {
+                        Action = "stop",
+                        Album = string.Empty,
+                        Artist = string.Empty,
+                        ContentId = string.Empty,
+                        Listed = false,
+                        AllowMeshStreaming = false,
+                        PositionSeconds = 0,
+                        ServerTimeUnixMs = _timeProvider.GetUtcNow().ToUnixTimeMilliseconds(),
+                        Title = string.Empty,
+                    };
+                    await PublishCoreAsync(
+                        stopped,
+                        CancellationToken.None,
+                        published => CommitHostSession(room, published, lease.HostSessionId, startHostSession: false)).ConfigureAwait(false);
+                }
+                else
+                {
+                    lock (_hostSessionsLock)
+                    {
+                        if (_hostSessions.TryGetValue(room, out var current) && current.HostSessionId == lease.HostSessionId)
+                        {
+                            RemoveHostSessionNoLock(room, current);
+                        }
+                    }
+                }
+
+                return true;
+            }, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception,
+                "Failed to clean up expired listen-along host state for pod {PodId} channel {ChannelId}; cleanup will retry",
+                room.PodId,
+                room.ChannelId);
+            lock (_hostSessionsLock)
+            {
+                if (Volatile.Read(ref _disposed) == 0 &&
+                    _hostSessions.TryGetValue(room, out var current) &&
+                    current.HostSessionId == hostSessionId && current.ExpiresAt <= _timeProvider.GetUtcNow())
+                {
+                    current.ExpiryTimer.Change(HostSessionCleanupRetryDelay, Timeout.InfiniteTimeSpan);
+                }
+            }
+        }
+    }
+
+    private void RemoveHostSessionNoLock(
+        (string PodId, string ChannelId) room,
+        HostSessionLease lease)
+    {
+        if (_hostSessions.TryGetValue(room, out var current) && current.HostSessionId == lease.HostSessionId && current.PartyId == lease.PartyId)
+        {
+            _hostSessions.Remove(room);
+            current.ExpiryTimer.Dispose();
+        }
+    }
+
+    private sealed record HostSessionExpiryTimerState(
+        ListeningPartyService Service,
+        (string PodId, string ChannelId) Room,
+        string HostSessionId);
 
     private static string? NormalizeHostSessionId(string? hostSessionId)
     {
@@ -733,16 +899,7 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
         return parsed.ToString("N");
     }
 
-    private void PruneExpiredHostSessions()
-    {
-        var now = _timeProvider.GetUtcNow();
-        foreach (var room in _hostSessions.Where(entry => entry.Value.ExpiresAt <= now).Select(entry => entry.Key).ToArray())
-        {
-            _hostSessions.Remove(room);
-        }
-    }
-
-    private sealed record HostSessionLease(string HostSessionId, string PartyId, DateTimeOffset ExpiresAt);
+    private sealed record HostSessionLease(string HostSessionId, string PartyId, DateTimeOffset ExpiresAt, ITimer ExpiryTimer);
 
     private async Task<ListeningPartyEvent> PublishCoreAsync(
         ListeningPartyEvent partyEvent,
@@ -751,7 +908,8 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
     {
         var normalized = Normalize(partyEvent);
         var key = StateKey(normalized.PodId, normalized.ChannelId);
-        if (normalized.Action == "stop" && _states.TryGetValue(key, out var current))
+        if (_states.TryGetValue(key, out var current) &&
+            (normalized.Action == "stop" || (!normalized.Listed && current.Listed)))
         {
             normalized = normalized with { PartyId = current.PartyId };
         }
@@ -780,52 +938,69 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
             throw new ArgumentException("Listen-along metadata is invalid.", nameof(partyEvent));
         }
 
-        if (!await messageStorage.StoreMessageAsync(normalized.PodId, normalized.ChannelId, message, cancellationToken).ConfigureAwait(false))
-        {
-            throw new ListeningPartyStorageException();
-        }
-
+        var reservedPartyId = normalized.Action != "stop" && normalized.Listed;
+        var needsDirectoryCheck = reservedPartyId && ReservePartyId(normalized);
         bool updateIndex;
-        lock (_directoryStateLock)
+        try
         {
-            PruneWithdrawnListings();
-            if (_states.TryGetValue(key, out var previous) && previous.Listed &&
-                (normalized.Action == "stop" || !normalized.Listed || previous.PartyId != normalized.PartyId))
+            if (normalized.Listed && needsDirectoryCheck)
             {
-                WithdrawListing(previous.PartyId, key);
+                await EnsurePartyIdAvailableAsync(normalized, cancellationToken).ConfigureAwait(false);
             }
 
-            if (normalized.Action != "stop" && normalized.Listed)
+            if (!await messageStorage.StoreMessageAsync(normalized.PodId, normalized.ChannelId, message, cancellationToken).ConfigureAwait(false))
             {
-                _withdrawnListings.Remove(normalized.PartyId);
+                throw new ListeningPartyStorageException();
             }
 
-            updateIndex = _pendingDirectoryWithdrawals.Contains(key);
-
-            if (normalized.Action == "stop")
+            lock (_directoryStateLock)
             {
-                lock (_remoteStatesLock)
+                PruneWithdrawnListings();
+                if (_states.TryGetValue(key, out var previous) && previous.Listed &&
+                    (normalized.Action == "stop" || !normalized.Listed || previous.PartyId != normalized.PartyId))
                 {
-                    _states.TryRemove(key, out _);
-                    if (_remoteStates.Remove((normalized.PodId, normalized.ChannelId), out var previousRemote))
+                    WithdrawListing(previous.PartyId, key);
+                }
+
+                if (normalized.Action != "stop" && normalized.Listed)
+                {
+                    _withdrawnListings.Remove(normalized.PartyId);
+                }
+
+                updateIndex = _pendingDirectoryWithdrawals.Contains(key);
+
+                if (normalized.Action == "stop")
+                {
+                    lock (_remoteStatesLock)
                     {
-                        RetireRemotePartyNoLock((normalized.PodId, normalized.ChannelId), previousRemote.PartyId);
+                        _states.TryRemove(key, out _);
+                        if (_remoteStates.Remove((normalized.PodId, normalized.ChannelId), out var previousRemote))
+                        {
+                            RetireRemotePartyNoLock((normalized.PodId, normalized.ChannelId), previousRemote.PartyId);
+                        }
                     }
                 }
-            }
-            else
-            {
-                lock (_remoteStatesLock)
+                else
                 {
-                    _states[key] = normalized;
-                    if (_remoteStates.Remove((normalized.PodId, normalized.ChannelId), out var previousRemote))
+                    lock (_remoteStatesLock)
                     {
-                        RetireRemotePartyNoLock((normalized.PodId, normalized.ChannelId), previousRemote.PartyId);
+                        _states[key] = normalized;
+                        if (_remoteStates.Remove((normalized.PodId, normalized.ChannelId), out var previousRemote))
+                        {
+                            RetireRemotePartyNoLock((normalized.PodId, normalized.ChannelId), previousRemote.PartyId);
+                        }
                     }
                 }
-            }
 
-            hostStateCommitted?.Invoke(normalized);
+                hostStateCommitted?.Invoke(normalized);
+            }
+        }
+        finally
+        {
+            if (reservedPartyId)
+            {
+                ReleasePartyIdReservation(normalized);
+            }
         }
 
         if (normalized.Action == "stop")
@@ -869,6 +1044,98 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
         }
 
         return normalized;
+    }
+
+    private bool ReservePartyId(ListeningPartyEvent state)
+    {
+        var room = (state.PodId, state.ChannelId);
+        var key = StateKey(state.PodId, state.ChannelId);
+        lock (_directoryStateLock)
+        {
+            if (_states.Values.Any(existing => existing.Listed && existing.PartyId == state.PartyId &&
+                (existing.PodId != room.PodId || existing.ChannelId != room.ChannelId ||
+                 !string.Equals(existing.HostPeerId, state.HostPeerId, StringComparison.OrdinalIgnoreCase))))
+            {
+                throw new ListeningPartyIdConflictException();
+            }
+
+            lock (_remoteStatesLock)
+            {
+                if (_remoteStates.Values.Any(existing => existing.Listed && existing.PartyId == state.PartyId &&
+                    (existing.PodId != room.PodId || existing.ChannelId != room.ChannelId ||
+                     !string.Equals(existing.HostPeerId, state.HostPeerId, StringComparison.OrdinalIgnoreCase))))
+                {
+                    throw new ListeningPartyIdConflictException();
+                }
+            }
+
+            if (_partyIdReservations.TryGetValue(state.PartyId, out var reservedRoom) &&
+                (reservedRoom.PodId != room.PodId || reservedRoom.ChannelId != room.ChannelId ||
+                 !string.Equals(reservedRoom.HostPeerId, state.HostPeerId, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new ListeningPartyIdConflictException();
+            }
+
+            var listedInThisRoom = _states.TryGetValue(key, out var localState) &&
+                localState.Listed && localState.PartyId == state.PartyId &&
+                string.Equals(localState.HostPeerId, state.HostPeerId, StringComparison.OrdinalIgnoreCase);
+            if (!listedInThisRoom)
+            {
+                lock (_remoteStatesLock)
+                {
+                    listedInThisRoom = _remoteStates.TryGetValue(room, out var remoteState) &&
+                        remoteState.Listed && remoteState.PartyId == state.PartyId &&
+                        string.Equals(remoteState.HostPeerId, state.HostPeerId, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            _partyIdReservations[state.PartyId] = (room.PodId, room.ChannelId, state.HostPeerId);
+            return !listedInThisRoom;
+        }
+    }
+
+    private void ReleasePartyIdReservation(ListeningPartyEvent state)
+    {
+        lock (_directoryStateLock)
+        {
+            if (_partyIdReservations.TryGetValue(state.PartyId, out var room) &&
+                room.PodId == state.PodId && room.ChannelId == state.ChannelId &&
+                string.Equals(room.HostPeerId, state.HostPeerId, StringComparison.OrdinalIgnoreCase))
+            {
+                _partyIdReservations.Remove(state.PartyId);
+            }
+        }
+    }
+
+    private async Task EnsurePartyIdAvailableAsync(ListeningPartyEvent state, CancellationToken cancellationToken)
+    {
+        ListeningPartyAnnouncement? existing;
+        try
+        {
+            existing = await GetAsync<ListeningPartyAnnouncement>(AnnouncementKey(state.PartyId), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new ListeningPartyDirectoryUnavailableException(exception);
+        }
+
+        if (existing == null || existing.ExpiresAtUnixMs <= _timeProvider.GetUtcNow().ToUnixTimeMilliseconds())
+        {
+            return;
+        }
+
+        if (!string.Equals(existing.PartyId, state.PartyId, StringComparison.Ordinal) ||
+            !string.Equals(existing.PodId, state.PodId, StringComparison.Ordinal) ||
+            !string.Equals(existing.ChannelId, state.ChannelId, StringComparison.Ordinal) ||
+            !string.Equals(existing.HostPeerId, state.HostPeerId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ListeningPartyIdConflictException();
+        }
     }
 
     private async Task PublishAnnouncementAsync(ListeningPartyEvent partyEvent, CancellationToken cancellationToken)
@@ -1000,6 +1267,21 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        lock (_hostSessionsLock)
+        {
+            foreach (var lease in _hostSessions.Values)
+            {
+                lease.ExpiryTimer.Dispose();
+            }
+
+            _hostSessions.Clear();
+        }
+
         _directoryIndexGate.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -1032,6 +1314,19 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
             throw new ArgumentException("ContentId is required for listen-along playback events.", nameof(partyEvent));
         }
 
+        var now = _timeProvider.GetUtcNow();
+        var positionSeconds = double.IsFinite(partyEvent.PositionSeconds)
+            ? Math.Max(0, partyEvent.PositionSeconds)
+            : 0;
+        if ((action is "play" or "seek") && partyEvent.ClientPositionObservedAtUnixMs > 0)
+        {
+            var observedAgeMilliseconds = now.ToUnixTimeMilliseconds() - partyEvent.ClientPositionObservedAtUnixMs;
+            if (observedAgeMilliseconds > 0)
+            {
+                positionSeconds += Math.Min(observedAgeMilliseconds, MaxClientPositionAgeMilliseconds) / 1000d;
+            }
+        }
+
         return partyEvent with
         {
             PartyId = string.IsNullOrWhiteSpace(partyEvent.PartyId)
@@ -1046,10 +1341,9 @@ public sealed class ListeningPartyService : IListeningPartyService, IDisposable
             Title = (partyEvent.Title ?? string.Empty).Trim(),
             Artist = (partyEvent.Artist ?? string.Empty).Trim(),
             Album = string.IsNullOrWhiteSpace(partyEvent.Album) ? null : partyEvent.Album.Trim(),
-            PositionSeconds = double.IsFinite(partyEvent.PositionSeconds)
-                ? Math.Max(0, partyEvent.PositionSeconds)
-                : 0,
-            ServerTimeUnixMs = _timeProvider.GetUtcNow().ToUnixTimeMilliseconds(),
+            PositionSeconds = positionSeconds,
+            ClientPositionObservedAtUnixMs = 0,
+            ServerTimeUnixMs = now.ToUnixTimeMilliseconds(),
             Sequence = Interlocked.Increment(ref _sequence),
             Description = (partyEvent.Description ?? string.Empty).Trim(),
             Tags = partyEvent.Tags
@@ -1121,4 +1415,20 @@ public sealed class ListeningPartyHostSessionConflictException : Exception
     }
 
     public string Code { get; }
+}
+
+public sealed class ListeningPartyIdConflictException : Exception
+{
+    public ListeningPartyIdConflictException()
+        : base("The party ID is already owned by another room.")
+    {
+    }
+}
+
+public sealed class ListeningPartyDirectoryUnavailableException : Exception
+{
+    public ListeningPartyDirectoryUnavailableException(Exception innerException)
+        : base("Party ID ownership could not be verified.", innerException)
+    {
+    }
 }

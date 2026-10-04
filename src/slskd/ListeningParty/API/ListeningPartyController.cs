@@ -83,6 +83,7 @@ public sealed class ListeningPartyController : ControllerBase
     [ProducesResponseType(typeof(ListeningPartyEvent), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
     [ProducesResponseType(429)]
     [ProducesResponseType(503)]
     public async Task<IActionResult> Publish(
@@ -126,6 +127,14 @@ public sealed class ListeningPartyController : ControllerBase
         catch (ListeningPartyStorageException)
         {
             return StatusCode(503, new { code = "room_storage_unavailable", error = "The room update could not be saved. Try again." });
+        }
+        catch (ListeningPartyIdConflictException)
+        {
+            return Conflict(new { code = "party_id_in_use", error = "This Party ID is already used by another room. Start again to claim a new ID." });
+        }
+        catch (ListeningPartyDirectoryUnavailableException)
+        {
+            return StatusCode(503, new { code = "party_directory_unavailable", error = "Party ID ownership could not be verified. Try again." });
         }
         catch (ListeningPartyCapacityException)
         {

@@ -35,8 +35,10 @@ cannot update or renew; Stop remains available only when its current party ID
 still matches the room snapshot.
 
 Commit the host fence at the same serialized in-memory room-state transition.
-This keeps ownership aligned when later DHT or routing work fails. Prune expired
-leases during new starts; do not add an idle cleanup timer.
+This keeps ownership aligned when later DHT or routing work fails. Each active
+lease has one one-shot server expiry callback; there is no periodic idle sweep.
+See ADR-0029 for how expiry uses the room's Stop path and retries transient
+cleanup failures.
 
 ## Consequences
 

@@ -1,16 +1,25 @@
 import api from './api';
-import { createRadioStreamUrl, getPartyDirectory } from './listeningParty';
+import { authHeaders } from './session';
+import { isPassthroughEnabled } from './token';
+import { createRadioStreamUrl, getPartyDirectory, stopPartyStateOnPageHide } from './listeningParty';
 
 vi.mock('./api', () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
   },
+  buildApiUrl: vi.fn((path) => `/api/v0${path}`),
 }));
+vi.mock('./session', () => ({ authHeaders: vi.fn(() => ({ Authorization: 'Bearer host-token', 'X-CSRF-TOKEN': 'csrf-token' })) }));
+vi.mock('./token', () => ({ isPassthroughEnabled: vi.fn(() => false) }));
 
 describe('listeningParty', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('requests a fresh local ticket for a selected host snapshot', async () => {
@@ -42,5 +51,39 @@ describe('listeningParty', () => {
     api.get.mockResolvedValue({ data: { podId: 'not-a-list' } });
 
     await expect(getPartyDirectory()).resolves.toEqual([]);
+  });
+
+  it('sends an authenticated keepalive Stop for document close', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetch);
+    const event = { action: 'stop', partyId: 'party', podId: 'pod/a' };
+
+    await stopPartyStateOnPageHide('pod/a', 'music', event, 'session-id');
+
+    expect(authHeaders).toHaveBeenCalledWith({ csrf: true });
+    expect(isPassthroughEnabled).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/v0/listening-party/pod%2Fa/music', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer host-token',
+        'X-CSRF-TOKEN': 'csrf-token',
+        'Content-Type': 'application/json',
+        'X-Listen-Along-Host-Session': 'session-id',
+      },
+      body: JSON.stringify(event),
+      credentials: 'include',
+      keepalive: true,
+    });
+  });
+
+  it('does not send the passthrough sentinel as a bearer token', async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetch);
+    isPassthroughEnabled.mockReturnValue(true);
+
+    await stopPartyStateOnPageHide('pod', 'music', { action: 'stop' }, 'session-id');
+
+    expect(fetch.mock.calls[0][1].headers).not.toHaveProperty('Authorization');
+    expect(authHeaders).not.toHaveBeenCalled();
   });
 });

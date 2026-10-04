@@ -117,6 +117,7 @@ const Equalizer = ({ audioElement, fadeAudioElement, onAudioError }) => {
           <label className="player-eq-band" key={frequency}>
             <input
               aria-label={`${formatBand(frequency)} equalizer gain`}
+              aria-orientation="vertical"
               aria-valuetext={`${state.gains[index]} dB`}
               data-testid={`player-eq-slider-${frequency}`}
               disabled={!state.enabled}
@@ -131,6 +132,25 @@ const Equalizer = ({ audioElement, fadeAudioElement, onAudioError }) => {
                   ),
                   preset: 'Custom',
                 }));
+              }}
+              onKeyDown={(event) => {
+                if (!['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(event.key)) return;
+
+                event.preventDefault();
+                const adjustment = event.key === 'ArrowUp' || event.key === 'ArrowRight' ? 1 : -1;
+                setState((existing) => {
+                  const currentGain = existing.gains[index];
+                  const gain = Math.max(-12, Math.min(12, currentGain + adjustment));
+                  if (gain === currentGain) return existing;
+
+                  return {
+                    ...existing,
+                    gains: existing.gains.map((value, gainIndex) =>
+                      gainIndex === index ? gain : value,
+                    ),
+                    preset: 'Custom',
+                  };
+                });
               }}
               step="1"
               type="range"

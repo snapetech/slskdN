@@ -199,13 +199,71 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     const beforeIdle = publications;
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => audio.currentTime >= 18))).toBe(true);
     expect(publications).toBe(beforeIdle);
+    let delayedSeek = false;
+    let delayedSeekMilliseconds = 0;
+    await page.route(stateUrl, async (route) => {
+      const request = route.request();
+      if (!delayedSeek && request.method() === 'POST') {
+        const event = request.postDataJSON() as { action?: string; positionSeconds?: number };
+        if (event.action === 'seek' && (event.positionSeconds || 0) >= 3.5) {
+          delayedSeek = true;
+          const started = Date.now();
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          delayedSeekMilliseconds = Date.now() - started;
+        }
+      }
+
+      await route.continue();
+    });
     await seek.press('Home');
     for (let second = 0; second < 4; second++) await seek.press('ArrowRight');
     await expect.poll(async () => {
       const state = await snapshot();
-      return state?.action === 'seek' && Math.abs(state.positionSeconds - 4) < 0.4;
+      return state?.action === 'seek' && state.positionSeconds >= 4.35;
     }).toBe(true);
-    await expect.poll(() => listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).some((audio) => !audio.paused && audio.currentTime >= 4))).toBe(true);
+    expect(delayedSeekMilliseconds).toBeGreaterThanOrEqual(450);
+    let measuredPositionDrift = Number.POSITIVE_INFINITY;
+    await expect.poll(async () => {
+      const [hostPosition, listenerPosition] = await Promise.all([
+        page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).find((audio) => !audio.paused)?.currentTime ?? null),
+        listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).find((audio) => !audio.paused)?.currentTime ?? null),
+      ]);
+      if (hostPosition === null || listenerPosition === null) return Number.POSITIVE_INFINITY;
+      measuredPositionDrift = Math.abs(hostPosition - listenerPosition);
+      return measuredPositionDrift;
+    }).toBeLessThan(0.35);
+    await testInfo.attach('delayed-seek-position-drift', {
+      body: JSON.stringify({ delayedSeekMilliseconds, measuredPositionDrift }),
+      contentType: 'application/json',
+    });
+    await page.unroute(stateUrl);
+    const beforeVisibilityHostPosition = await page.locator('audio').evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).find((audio) => !audio.paused)?.currentTime ?? null);
+    expect(beforeVisibilityHostPosition).not.toBeNull();
+    const beforeVisibilitySyncPublications = publications;
+    await page.waitForTimeout(1500);
+    const visibilitySyncHostPosition = await page.locator('audio').evaluateAll((elements) =>
+      (elements as HTMLAudioElement[]).find((audio) => !audio.paused)?.currentTime ?? null);
+    expect(visibilitySyncHostPosition).not.toBeNull();
+    expect(visibilitySyncHostPosition!).toBeGreaterThan(beforeVisibilityHostPosition! + 1.25);
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect.poll(() => publications).toBeGreaterThan(beforeVisibilitySyncPublications);
+    let visibilityPositionDrift = Number.POSITIVE_INFINITY;
+    await expect.poll(async () => {
+      const [state, hostPosition, listenerPosition] = await Promise.all([
+        snapshot(),
+        page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).find((audio) => !audio.paused)?.currentTime ?? null),
+        listener.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).find((audio) => !audio.paused)?.currentTime ?? null),
+      ]);
+      if (state?.action !== 'play' || hostPosition === null || listenerPosition === null) return false;
+      visibilityPositionDrift = Math.abs(hostPosition - listenerPosition);
+      return Math.abs(state.positionSeconds - hostPosition) < 0.5 && visibilityPositionDrift < 0.35;
+    }).toBe(true);
+    await testInfo.attach('visibility-resume-position-resync', {
+      body: JSON.stringify({ visibilityPositionDrift, beforeVisibilityHostPosition, visibilitySyncHostPosition,
+        publicationDelta: publications - beforeVisibilitySyncPublications, hiddenTabThrottlingValidated: false }),
+      contentType: 'application/json',
+    });
     await page.getByRole('button', { name: 'Show player tools', exact: true }).click();
     await page.getByTestId('player-toggle-crossfade').click();
     // Reject the actual native Play promise once, before it emits a play event.
@@ -298,6 +356,12 @@ test('keeps an explicit host synchronized across navigation, paused seeks, track
     await expect.poll(() => page.locator('audio').evaluateAll((elements) => (elements as HTMLAudioElement[]).every((audio) => audio.paused))).toBe(true);
     expect((await directory()).some((entry: { partyId: string }) => entry.partyId === reloadedPartyId)).toBe(true);
     const listed = await snapshot();
+    // Release the browser-owned host fence before the legacy direct-API
+    // directory fixture begins. Its next writes intentionally omit that fence.
+    await page.getByRole('button', { name: 'Stop active room broadcast', exact: true }).click();
+    await expect.poll(snapshot).toBeNull();
+    const legacyRestore = await request.post(stateUrl, { headers, data: listed });
+    expect(legacyRestore.ok(), await legacyRestore.text()).toBe(true);
     const neighbor = await request.post(`${node.apiUrl}/api/v0/pods`, {
       headers, data: { requestingPeerId: node.nodeCfg.username, pod: { name: 'Protected listed room', visibility: 'Unlisted', isPublic: true, channels: [{ channelId: 'music', name: 'Music' }] } },
     });

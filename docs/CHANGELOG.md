@@ -50,6 +50,21 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Coalesce rapid playback-state updates before changing the Player's screen
   reader status, so Firefox with Orca reliably announces track start,
   pause/resume, and stop.
+- Equalizer gain sliders use the same arrow-key direction in supported
+  browsers, and keyboard focus remains visible across the built-in dark
+  palettes.
+
+### Listening parties
+
+- Reject listed Party IDs already owned by an observed room and explain how to
+  retry with a fresh ID. Host lease expiry now stops stale broadcasts and
+  withdraws their radio listing; active Play and Seek positions account for
+  publication delay, and returning to a visible tab publishes one resync.
+
+### Frontend recovery
+
+- Keep a readable loading message and reload action visible if the web
+  application cannot mount, instead of leaving an empty page root.
 
 ### Developer tooling
 

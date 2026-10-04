@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { THEME_PALETTES, getThemePalette, getThemeTokens } from './themes';
+import { applyPalette, THEME_PALETTES, getThemePalette, getThemeTokens } from './themes';
+
+const colorChannels = (color) => color.match(/[\d.]+/g).slice(0, 3).map(Number);
+
+const relativeLuminance = (channels) => {
+  const [red, green, blue] = channels.map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return red * 0.2126 + green * 0.7152 + blue * 0.0722;
+};
+
+const contrastRatio = (first, second) => {
+  const firstLuminance = relativeLuminance(first);
+  const secondLuminance = relativeLuminance(second);
+  return (Math.max(firstLuminance, secondLuminance) + 0.05) /
+    (Math.min(firstLuminance, secondLuminance) + 0.05);
+};
 
 describe('THEME_PALETTES', () => {
   it('includes all 21 palettes', () => {
@@ -94,8 +111,23 @@ describe('getThemeTokens', () => {
 });
 
 describe('applyPalette', () => {
-  it('is a function', async () => {
-    const { applyPalette } = await import('./themes');
-    expect(typeof applyPalette).toBe('function');
+  it('keeps the focus outline above 3:1 on every dark player surface in every palette', () => {
+    try {
+      for (const palette of THEME_PALETTES) {
+        applyPalette('dark', palette.id);
+        const tokens = getThemeTokens('dark', palette.id);
+        const focusColor = colorChannels(
+          getComputedStyle(document.documentElement).getPropertyValue('--slskdn-affordance-outline'),
+        );
+
+        expect(focusColor).toEqual(tokens.primaryScale[0].split(' ').map(Number));
+        for (const surfaceIndex of [6, 7, 8, 9]) {
+          const ratio = contrastRatio(focusColor, tokens.surfaceScale[surfaceIndex].split(' ').map(Number));
+          expect(ratio, `${palette.name} focus contrast on Player surface ${surfaceIndex}`).toBeGreaterThanOrEqual(3);
+        }
+      }
+    } finally {
+      applyPalette('dark', null);
+    }
   });
 });

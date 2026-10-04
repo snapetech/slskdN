@@ -191,11 +191,6 @@
     0 10px 22px rgba(0, 0, 0, 0.32);
 }
 
-.player-visual-stage:focus-visible {
-  outline: 2px solid rgba(156, 124, 240, 0.82);
-  outline-offset: 2px;
-}
-
 .player-visual-tile-motion-status {
   background: rgba(5, 7, 10, 0.9);
   border: 1px solid rgba(156, 124, 240, 0.32);
@@ -248,11 +243,6 @@
   min-width: 24px;
   padding: 0;
   width: 100%;
-}
-
-.player-visual-tile-controls .ui.button:focus-visible {
-  outline: 2px solid var(--player-cyan);
-  outline-offset: 2px;
 }
 
 .player-visual-tile-controls .ui.mini.icon.button > .icon {
@@ -436,8 +426,6 @@
   background: rgba(164, 116, 255, 0.16);
   border-color: rgba(164, 116, 255, 0.42);
   color: #f5e8ff;
-  outline: 2px solid rgba(164, 116, 255, 0.2);
-  outline-offset: 1px;
 }
 
 .player-rating-button-active {
@@ -491,11 +479,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.055),
     inset 0 0 18px rgba(156, 124, 240, 0.075),
     0 0 0 1px rgba(156, 124, 240, 0.1);
-}
-
-.player-analyzer-tile:focus-visible {
-  outline: 2px solid rgba(156, 124, 240, 0.82);
-  outline-offset: 2px;
 }
 
 .player-analyzer-tile .player-spectrum {
@@ -654,13 +637,6 @@
   color: #fff;
 }
 
-.player-tool-button.ui.button:focus-visible,
-.player-library-button.ui.button:focus-visible,
-.player-queue-item:focus-visible {
-  outline: 2px solid rgba(156, 124, 240, 0.82);
-  outline-offset: 2px;
-}
-
 .player-tool-button-active.ui.button {
   background:
     linear-gradient(180deg, rgba(156, 124, 240, 0.28), rgba(156, 124, 240, 0.08)),
@@ -813,8 +789,6 @@
 
 .player-collection-select:focus-visible {
   border-radius: 2px;
-  outline: 2px solid #9c7cf0;
-  outline-offset: 3px;
 }
 
 .player-browser-results {
@@ -864,8 +838,6 @@
   background: rgba(156, 124, 240, 0.16);
   border-color: rgba(156, 124, 240, 0.48);
   color: var(--slskd-color, #edeaf2);
-  outline: 2px solid rgba(156, 124, 240, 0.28);
-  outline-offset: 2px;
 }
 
 .player-file-explorer-body {
@@ -918,8 +890,6 @@
 .player-file-folder-row:focus-visible {
   background: rgba(156, 124, 240, 0.1);
   border-color: rgba(156, 124, 240, 0.28);
-  outline: 2px solid rgba(156, 124, 240, 0.2);
-  outline-offset: 1px;
 }
 
 .player-file-folder-row .icon {

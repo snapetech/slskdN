@@ -608,6 +608,10 @@ test('soaks repeated queue, analyzer, output and floating-player cycles @player-
         memoryProcessesMeasured: measured.length,
         memoryProcessesUnavailable: processTree.processes.length - measured.length,
         enumerationReadsUnavailable: processTree.enumerationReadsUnavailable,
+        enumerationReadsRetried: processTree.enumerationReadsRetried,
+        enumerationReadsRecovered: processTree.enumerationReadsRecovered,
+        memoryReadsRetried: processTree.memoryReadsRetried,
+        memoryReadsRecovered: processTree.memoryReadsRecovered,
       } : null,
       metrics: {
         timestamp: metrics.Timestamp,

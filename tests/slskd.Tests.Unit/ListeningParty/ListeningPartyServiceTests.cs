@@ -185,10 +185,131 @@ public sealed class ListeningPartyServiceTests
     }
 
     [Fact]
+    public async Task Publish_ReservesPartyIdAcrossRoomsBeforeStorage()
+    {
+        var storeEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var allowStore = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .Returns((string pod, string channel, PodMessage message, CancellationToken token) =>
+            {
+                storeEntered.TrySetResult();
+                return allowStore.Task;
+            });
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteListenAlongMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
+        using var service = new ListeningPartyService(Mock.Of<IHubContext<ListeningPartyHub>>(), dht.Object, router.Object,
+            provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(), Mock.Of<IStreamTicketService>(),
+            Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+
+        var first = service.PublishAsync(new ListeningPartyEvent
+        {
+            PartyId = "party-shared",
+            PodId = "pod-a",
+            ChannelId = "music-a",
+            ContentId = "track",
+            HostPeerId = "host",
+            Action = "play",
+            Listed = true,
+        });
+        await storeEntered.Task;
+        var conflict = await Record.ExceptionAsync(() => service.PublishAsync(new ListeningPartyEvent
+        {
+            PartyId = "party-shared",
+            PodId = "pod-a",
+            ChannelId = "music-b",
+            ContentId = "track",
+            HostPeerId = "host",
+            Action = "play",
+            Listed = true,
+        }));
+        allowStore.SetResult(true);
+        var accepted = await first;
+
+        Assert.IsType<ListeningPartyIdConflictException>(conflict);
+        Assert.Equal("music-a", accepted.ChannelId);
+        Assert.Equal(accepted, await service.GetStateByPartyIdAsync("party-shared"));
+        Assert.Null(await service.GetStateAsync("pod-a", "music-b"));
+        storage.Verify(instance => instance.StoreMessageAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Publish_RejectsPartyIdOwnedByAnotherDhtRoomBeforeStorage()
+    {
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync("slskdn:listening-party:party:party-shared", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Serialize(new ListeningPartyAnnouncement
+            {
+                PartyId = "party-shared",
+                PodId = "pod-other",
+                ChannelId = "music",
+                ExpiresAtUnixMs = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeMilliseconds(),
+            }));
+        var storage = new Mock<IPodMessageStorage>();
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
+        var service = new ListeningPartyService(Mock.Of<IHubContext<ListeningPartyHub>>(), dht.Object,
+            Mock.Of<IPodMessageRouter>(), provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(),
+            Mock.Of<IStreamTicketService>(), Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+
+        await Assert.ThrowsAsync<ListeningPartyIdConflictException>(() => service.PublishAsync(new ListeningPartyEvent
+        {
+            PartyId = "party-shared",
+            PodId = "pod-a",
+            ChannelId = "music",
+            ContentId = "track",
+            HostPeerId = "host",
+            Action = "play",
+            Listed = true,
+        }));
+
+        Assert.Null(await service.GetStateAsync("pod-a", "music"));
+        storage.Verify(instance => instance.StoreMessageAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()), Times.Never);
+        dht.Verify(instance => instance.PutAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Publish_DirectoryPreflightFailureDoesNotStoreRoomMessage()
+    {
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync("slskdn:listening-party:party:party-new", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DHT unavailable"));
+        var storage = new Mock<IPodMessageStorage>();
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
+        var service = new ListeningPartyService(Mock.Of<IHubContext<ListeningPartyHub>>(), dht.Object,
+            Mock.Of<IPodMessageRouter>(), provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(),
+            Mock.Of<IStreamTicketService>(), Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+
+        await Assert.ThrowsAsync<ListeningPartyDirectoryUnavailableException>(() => service.PublishAsync(new ListeningPartyEvent
+        {
+            PartyId = "party-new",
+            PodId = "pod-a",
+            ChannelId = "music",
+            ContentId = "track",
+            HostPeerId = "host",
+            Action = "play",
+            Listed = true,
+        }));
+
+        Assert.Null(await service.GetStateAsync("pod-a", "music"));
+        storage.Verify(instance => instance.StoreMessageAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Publish_NotifiesLocalAndRoutesRoomStateBeforeDirectoryFailure()
     {
         var order = new List<string>();
         var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(instance => instance.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
         dht.Setup(instance => instance.PutAsync(
                 It.IsAny<string>(), It.IsAny<object>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Callback((string key, object? value, int ttl, CancellationToken token) => order.Add("directory"))
@@ -239,9 +360,24 @@ public sealed class ListeningPartyServiceTests
         var now = DateTimeOffset.FromUnixTimeMilliseconds(1_800_000_000_000);
         var clock = new Mock<TimeProvider>();
         clock.Setup(provider => provider.GetUtcNow()).Returns(() => now);
+        var timers = new List<(TimerCallback Callback, object? State, Mock<ITimer> Timer)>();
+        clock.Setup(provider => provider.CreateTimer(
+                It.IsAny<TimerCallback>(), It.IsAny<object?>(), It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>()))
+            .Returns((TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) =>
+            {
+                var timer = new Mock<ITimer>();
+                timer.Setup(instance => instance.Change(It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>())).Returns(true);
+                timers.Add((callback, state, timer));
+                return timer.Object;
+            });
         var values = new System.Collections.Concurrent.ConcurrentDictionary<string, byte[]>();
         var writes = new List<(string Key, int Ttl)>();
         var failingAnnouncementTitle = string.Empty;
+        var expiringPartyId = string.Empty;
+        var failNextExpiryStopStorage = false;
+        var expiryStopRouted = new TaskCompletionSource<ListeningPartyEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var expiryIndexWithdrawn = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var expiryStopStorageFailed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var dht = new Mock<IMeshDhtClient>();
         dht.Setup(instance => instance.GetRawAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string key, CancellationToken token) => values.TryGetValue(key, out var value) ? value : null);
@@ -256,15 +392,43 @@ public sealed class ListeningPartyServiceTests
 
                 values[key] = (byte[])value;
                 writes.Add((key, ttl));
+                if (key == DirectoryIndexKey && !string.IsNullOrWhiteSpace(expiringPartyId))
+                {
+                    var index = JsonSerializer.Deserialize<ListeningPartyIndex>((byte[])value, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                    if (index?.PartyIds.Contains(expiringPartyId, StringComparer.Ordinal) == false)
+                    {
+                        expiryIndexWithdrawn.TrySetResult();
+                    }
+                }
             })
             .Returns(Task.CompletedTask);
         var storage = new Mock<IPodMessageStorage>();
         storage.Setup(instance => instance.StoreMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .ReturnsAsync((string podId, string channelId, PodMessage message, CancellationToken token) =>
+            {
+                var state = JsonSerializer.Deserialize<ListeningPartyEvent>(message.Body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                if (failNextExpiryStopStorage && state?.Action == "stop" && state.PartyId == expiringPartyId)
+                {
+                    failNextExpiryStopStorage = false;
+                    expiryStopStorageFailed.TrySetResult();
+                    return false;
+                }
+
+                return true;
+            });
         using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
         var router = new Mock<IPodMessageRouter>();
         router.Setup(instance => instance.RouteListenAlongMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+            .ReturnsAsync((PodMessage message, CancellationToken token) =>
+            {
+                var state = JsonSerializer.Deserialize<ListeningPartyEvent>(message.Body, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                if (state?.Action == "stop" && state.PartyId == expiringPartyId)
+                {
+                    expiryStopRouted.TrySetResult(state);
+                }
+
+                return new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero);
+            });
         var tickets = new Mock<IStreamTicketService>();
         var ticketNumber = 0;
         tickets.Setup(instance => instance.Create("track", It.IsAny<string>(), TimeSpan.FromSeconds(900)))
@@ -314,6 +478,7 @@ public sealed class ListeningPartyServiceTests
         failingAnnouncementTitle = string.Empty;
 
         var replacement = await service.PublishHostEventAsync(HostEvent("play", "Replacement"), replacementSession, startHostSession: true);
+        expiringPartyId = replacement.PartyId;
         Assert.NotEqual(first.PartyId, replacement.PartyId);
         Assert.Equal("Replacement", (await service.GetStateAsync("pod-a", "music"))?.Title);
 
@@ -332,9 +497,67 @@ public sealed class ListeningPartyServiceTests
         var expired = await Assert.ThrowsAsync<ListeningPartyHostSessionConflictException>(
             () => service.RenewHostSessionAsync("pod-a", "music", replacement.PartyId, replacementSession));
         Assert.Equal("host_session_expired", expired.Code);
+        var replacementTimer = timers[^1];
+        failNextExpiryStopStorage = true;
+        replacementTimer.Callback(replacementTimer.State);
+        await expiryStopStorageFailed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal("Replacement", (await service.GetStateAsync("pod-a", "music"))?.Title);
+        now = now.AddSeconds(30);
+        replacementTimer.Callback(replacementTimer.State);
+        var expiryStop = await expiryStopRouted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await expiryIndexWithdrawn.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(replacement.PartyId, expiryStop.PartyId);
+        Assert.Null(await service.GetStateAsync("pod-a", "music"));
         var restarted = await service.PublishHostEventAsync(HostEvent("play", "Restarted"), restartedSession, startHostSession: true);
         Assert.NotEqual(replacement.PartyId, restarted.PartyId);
         Assert.Equal("Restarted", (await service.GetStateAsync("pod-a", "music"))?.Title);
+    }
+
+    [Theory]
+    [InlineData("play", 500, 20.5)]
+    [InlineData("seek", 25000, 30)]
+    [InlineData("pause", 500, 20)]
+    [InlineData("seek", -500, 20)]
+    public async Task Publish_AdjustsActivePositionByBoundedClientObservationAge(
+        string action,
+        long observedAgeMilliseconds,
+        double expectedPositionSeconds)
+    {
+        var now = DateTimeOffset.FromUnixTimeMilliseconds(1_800_000_000_000);
+        var clock = new Mock<TimeProvider>();
+        clock.Setup(provider => provider.GetUtcNow()).Returns(() => now);
+        string? storedBody = null;
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .Callback((string podId, string channelId, PodMessage message, CancellationToken token) => storedBody = message.Body)
+            .ReturnsAsync(true);
+        var dht = new Mock<IMeshDhtClient>();
+        var router = new Mock<IPodMessageRouter>();
+        router.Setup(instance => instance.RouteListenAlongMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodMessageRoutingResult(true, "message", "pod-a", 0, 0, 0, TimeSpan.Zero));
+        using var provider = new ServiceCollection().AddSingleton(storage.Object).AddSingleton(AvailableRooms()).BuildServiceProvider();
+        using var service = new ListeningPartyService(
+            Mock.Of<IHubContext<ListeningPartyHub>>(), dht.Object, router.Object,
+            provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(),
+            Mock.Of<IStreamTicketService>(), Mock.Of<ILogger<ListeningPartyService>>(),
+            new TestOptionsMonitor<Options>(new Options()), clock.Object);
+
+        var published = await service.PublishAsync(new ListeningPartyEvent
+        {
+            PodId = "pod-a",
+            ChannelId = "music",
+            HostPeerId = "host",
+            ContentId = "track",
+            Action = action,
+            PositionSeconds = 20,
+            ClientPositionObservedAtUnixMs = now.ToUnixTimeMilliseconds() - observedAgeMilliseconds,
+        });
+
+        Assert.Equal(expectedPositionSeconds, published.PositionSeconds);
+        Assert.Equal(now.ToUnixTimeMilliseconds(), published.ServerTimeUnixMs);
+        Assert.Equal(0, published.ClientPositionObservedAtUnixMs);
+        Assert.DoesNotContain("clientPositionObservedAtUnixMs", storedBody, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -829,6 +1052,34 @@ public sealed class ListeningPartyServiceTests
     }
 
     [Fact]
+    public async Task ApplyRemoteMessageAsync_IgnoresPartyIdAlreadyActiveInAnotherRoom()
+    {
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var first = RemoteMessage("listen-remote-owner", "play", sequence: 1, now, listed: true);
+        var duplicate = RemoteMessage("listen-remote-duplicate", "play", sequence: 2, now + 1, channelId: "room-b", listed: true);
+        var pods = new Mock<IPodService>();
+        pods.Setup(instance => instance.GetChannelAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string pod, string channel, CancellationToken token) => new PodChannel { ChannelId = channel });
+        pods.Setup(instance => instance.GetMembersAsync(first.PodId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new PodMember { PeerId = first.SenderPeerId } });
+        var storage = new Mock<IPodMessageStorage>();
+        storage.Setup(instance => instance.StoreMessageAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        using var provider = new ServiceCollection().AddScoped(_ => storage.Object).AddScoped(_ => pods.Object).BuildServiceProvider();
+        using var service = new ListeningPartyService(Mock.Of<IHubContext<ListeningPartyHub>>(), Mock.Of<IMeshDhtClient>(),
+            Mock.Of<IPodMessageRouter>(), provider.GetRequiredService<IServiceScopeFactory>(), new NowPlayingService(),
+            Mock.Of<IStreamTicketService>(), Mock.Of<ILogger<ListeningPartyService>>(), new TestOptionsMonitor<Options>(new Options()));
+
+        Assert.Equal(ListeningPartyRemoteApplyResult.Applied, await service.ApplyRemoteMessageAsync(first, first.SenderPeerId));
+        Assert.Equal(ListeningPartyRemoteApplyResult.Ignored, await service.ApplyRemoteMessageAsync(duplicate, duplicate.SenderPeerId));
+        Assert.NotNull(await service.GetStateAsync(first.PodId, "music"));
+        Assert.Null(await service.GetStateAsync(first.PodId, "room-b"));
+        storage.Verify(instance => instance.StoreMessageAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task FailedLocalStore_PreservesThePreviouslyAppliedRemoteSnapshot()
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -870,15 +1121,23 @@ public sealed class ListeningPartyServiceTests
         Assert.Equal("Remote track", (await serviceUnderTest.GetStateAsync(remote.PodId, remote.ChannelId))?.Title);
     }
 
-    private static PodMessage RemoteMessage(string messageId, string action, long sequence, long timestamp)
+    private static PodMessage RemoteMessage(
+        string messageId,
+        string action,
+        long sequence,
+        long timestamp,
+        string channelId = "music",
+        string partyId = "party:remote",
+        bool listed = false)
     {
         var state = new ListeningPartyEvent
         {
-            PartyId = "party:remote",
+            PartyId = partyId,
             PodId = "pod:00000000000000000000000000000001",
-            ChannelId = "music",
+            ChannelId = channelId,
             HostPeerId = "peer-host",
             Action = action,
+            Listed = listed,
             ContentId = action == "stop" ? string.Empty : "sha256:track",
             Title = "Remote track",
             PositionSeconds = 10,
