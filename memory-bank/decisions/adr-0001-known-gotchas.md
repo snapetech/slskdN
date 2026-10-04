@@ -36224,3 +36224,20 @@ silently omitted the elapsed-time correction for the active `seek` case.
 server timestamp; keep `pause` positions exact. Test the receiver after an
 injected delay, rather than only asserting that the host sent the requested
 seek position.
+
+### 0z1460. Preserve Position Age Before The Server Timestamp (2026-10-04)
+
+**What went wrong:** The server stamped a Play/Seek snapshot when it began
+processing the request, but the browser had sampled `PositionSeconds` earlier.
+Time spent in the browser queue or outbound request was therefore omitted from
+the listener's server-time extrapolation, so slow host requests made followers
+start behind the still-playing host.
+
+**Why:** The event carried server time but no bounded timestamp for when the
+browser observed its playback position. A server-generated timestamp cannot
+recover latency that occurred before the request reached the server.
+
+**Prevention:** Carry the browser observation time for active Play/Seek events,
+advance the received position by a bounded nonnegative age at server receipt,
+and clear that client-only timestamp before storing or forwarding the event.
+Keep Pause positions exact and test with a delayed request to the actual server.
