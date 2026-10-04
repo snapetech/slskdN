@@ -11,6 +11,7 @@ using System.Threading;
 using MessagePack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using MonoTorrent;
 using slskd.DhtRendezvous;
 using slskd.Mesh.Overlay;
 using Xunit;
@@ -59,7 +60,12 @@ public class SharedMeshUdpListenerTests
         using var client = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
 
         var dhtReceived = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
-        listener.MessageReceived += (payload, _) => dhtReceived.TrySetResult(payload.ToArray());
+        var dhtRemoteEndpoint = new TaskCompletionSource<CompactEndPoint>(TaskCreationOptions.RunContinuationsAsynchronously);
+        listener.MessageReceived += (payload, endpoint) =>
+        {
+            dhtRemoteEndpoint.TrySetResult(endpoint);
+            dhtReceived.TrySetResult(payload.ToArray());
+        };
         listener.Start();
 
         var publicEndpoint = listener.LocalEndPoint;
@@ -67,6 +73,12 @@ public class SharedMeshUdpListenerTests
         await client.SendAsync(dhtPacket, publicEndpoint);
 
         Assert.Equal(dhtPacket, await dhtReceived.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+
+        var dhtResponse = new byte[] { 0x64, 0x31, 0x3a, 0x72 };
+        await listener.SendAsync(dhtResponse, await dhtRemoteEndpoint.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+        var dhtClientResult = await client.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(dhtResponse, dhtClientResult.Buffer);
+        Assert.Equal(publicEndpoint, dhtClientResult.RemoteEndPoint);
 
         var quicPacket = CreateQuicInitialPacket();
         await client.SendAsync(quicPacket, publicEndpoint);
@@ -209,9 +221,9 @@ public class SharedMeshUdpListenerTests
             pollIntervalMs: 50);
 
         var logEntries = logger.Entries.ToArray();
-        var information = Assert.Single(logEntries.Where(entry =>
+        var information = Assert.Single(logEntries, entry =>
             entry.Level == LogLevel.Information &&
-            entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal)));
+            entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal));
         Assert.Contains("Dropped malformed overlay datagram", information.Message, StringComparison.Ordinal);
         Assert.Null(information.Exception);
         Assert.Contains(logEntries, entry => entry.Level == LogLevel.Debug && entry.Exception is not null);

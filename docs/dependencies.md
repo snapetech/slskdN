@@ -32,17 +32,17 @@ rg "MonoTorrent|AWSSDK|dotNetRDF|Zeroconf|MathNet|Microsoft.CodeAnalysis|Microso
 | TagLibSharp | HashDb media attribute probing (`HashDbService`) and audio/library surfaces | required-feature | Keep because active share/media probing call sites exist; ensure slow/remote storage opt-out remains documented. |
 | FluentFTP | FTP integration | experimental-feature | Gate integration and document credentials/egress. |
 | Mono.Nat | NAT/port mapping | experimental-feature | Gate under mesh/VPN/network features. |
-| MonoTorrent | Public BitTorrent DHT rendezvous and BitTorrent-backed swarm experiments | experimental-feature | Gated by DHT/multi-source surfaces; the public DHT layer discovers mesh endpoints and does not carry slskdN file data. Confirm public bootstrap policy in runtime docs. |
+| MonoTorrent 3.9.0-alpha.unstable.rev0000 | Public BitTorrent DHT rendezvous and BitTorrent-backed swarm experiments | experimental-feature | Targets .NET 8 and is compatible with .NET 10; gated by DHT/multi-source surfaces. PrivateOnly removes tracker/web-seed metadata and disables torrent DHT/PEX; engine-wide local peer discovery is disabled. The public DHT layer discovers mesh endpoints and does not carry slskdN file data. |
 | NSec.Cryptography | Mesh transport signing and ActivityPub key/signature work | experimental-feature | Keep with mesh/social federation gates; expand protocol tests before stable claims. |
 | MathNet.Numerics | MediaCore perceptual hashing (`PerceptualHasher`) | experimental-feature | Keep while MediaCore hashing uses MathNet vectors; gate MediaCore/SongID claims until tests cover this path. |
 | AWSSDK.S3 | VirtualSoulfind v2 S3 backend | experimental-feature | Gated by VirtualSoulfind; document credential/egress behavior before stable claims. |
-| Zeroconf | Identity/Friends LAN discovery (`LanDiscoveryService`) | experimental-feature | Gate via identity/friends or discovery posture; document multicast behavior. |
+| Zeroconf | User-triggered nearby-peer browsing and opt-in LAN advertising (`LanDiscoveryService`) | experimental-feature | Nearby browsing is behind Identity/Friends APIs; startup advertising separately requires `lan_discovery.advertise: true` and emits multicast traffic. |
 | dotNetRDF | Solid/WebID resolver (`SolidWebIdResolver`) | experimental-feature | Keep while Solid WebID parsing uses `VDS.RDF`; gate social/Solid surfaces and document network behavior. |
 | Dapper | VirtualSoulfind v2 SQLite catalogue store | experimental-feature | Gated by VirtualSoulfind; acceptable while catalogue store remains active. |
 | MessagePack | Mesh/protocol serialization | experimental-feature | Gate under protocol features. |
 | System.Reactive | VirtualSoulfind disaster-mode transfer progress subjects | experimental-feature | Gated by VirtualSoulfind; keep while `MeshTransferService` uses `Subject<T>`. |
 | Microsoft.Build.* | Custom build tasks | build-only | Moved to `tools/slskd.BuildTasks`; keep out of the runtime app project. |
-| Microsoft.CodeAnalysis.* | Static analysis/build tooling | build-only / runtime-adjacent | Still used by `BuildTimeAnalyzer` / `SlskdnAnalyzer`; split further if runtime CodeQuality helpers are removed. |
+| Microsoft.CodeAnalysis.* | Build-time source inspection | build-only | `BuildTimeAnalyzer` runs from `tools/slskd.BuildTasks`; unit tests reference that project directly. The unused, unregistered `SlskdnAnalyzer` was removed. `Microsoft.CodeAnalysis.NetAnalyzers` remains private to the app build, and runtime output is asserted free of Roslyn assembly references. |
 
 ## Release rule
 

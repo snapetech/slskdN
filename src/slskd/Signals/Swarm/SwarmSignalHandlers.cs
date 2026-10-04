@@ -7,13 +7,12 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using slskd.Signals;
 using slskd.Swarm;
-using slskd.Security;
+using SecurityPolicyContext = slskd.Security.SecurityContext;
+using SecurityPolicyEngine = slskd.Security.ISecurityPolicyEngine;
 
 public class StubBitTorrentBackend : IBitTorrentBackend
 {
     public bool IsSupported() => false;
-    public Task<string> PreparePrivateTorrentAsync(SwarmJob job, string variantId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(string.Empty);
     public Task<string?> FetchByInfoHashOrMagnetAsync(string backendRef, string destDirectory, CancellationToken ct = default) =>
         Task.FromResult<string?>(null);
 }
@@ -26,7 +25,7 @@ public class SwarmSignalHandlers
     private readonly ILogger<SwarmSignalHandlers> logger;
     private readonly ISignalBus signalBus;
     private readonly ISwarmJobStore swarmJobStore;
-    private readonly ISecurityPolicyEngine securityPolicyEngine;
+    private readonly SecurityPolicyEngine securityPolicyEngine;
     private readonly IBitTorrentBackend bitTorrentBackend;
     private readonly string localPeerId;
 
@@ -34,7 +33,7 @@ public class SwarmSignalHandlers
         ILogger<SwarmSignalHandlers> logger,
         ISignalBus signalBus,
         ISwarmJobStore swarmJobStore,
-        ISecurityPolicyEngine securityPolicyEngine,
+        SecurityPolicyEngine securityPolicyEngine,
         IBitTorrentBackend bitTorrentBackend,
         string localPeerId)
     {
@@ -93,10 +92,8 @@ public class SwarmSignalHandlers
         {
             signal.Body.TryGetValue("jobId", out var jobIdObj);
             signal.Body.TryGetValue("variantId", out var variantIdObj);
-            signal.Body.TryGetValue("reason", out var reasonObj);
             var jobId = jobIdObj?.ToString();
             var variantId = variantIdObj?.ToString();
-            var reason = reasonObj?.ToString();
 
             if (string.IsNullOrWhiteSpace(jobId) || string.IsNullOrWhiteSpace(variantId))
             {
@@ -114,10 +111,7 @@ public class SwarmSignalHandlers
 
             // Evaluate security / trust
             var decision = await securityPolicyEngine.EvaluateAsync(
-                SecurityContext.ForBtFallback(
-                    fromPeerId: signal.FromPeerId,
-                    jobId: jobId,
-                    variantId: variantId),
+                new SecurityPolicyContext(signal.FromPeerId, job.File.ContentId, "bt-fallback"),
                 cancellationToken);
 
             if (!decision.Allowed)
@@ -132,12 +126,13 @@ public class SwarmSignalHandlers
                 return;
             }
 
-            // Accept the fallback
-            var btFallbackId = await bitTorrentBackend.PreparePrivateTorrentAsync(job, variantId, cancellationToken);
-
-            await SendBtFallbackAckAsync(signal, accepted: true, reason: "ok", cancellationToken, btFallbackId);
-
-            logger.LogInformation("Accepted BT fallback request for job {JobId}, variant {VariantId}", jobId, variantId);
+            // The receiving half is not useful until the requesting peer can activate and cancel
+            // the corresponding transfer. Reject without creating a manager in the meantime.
+            await SendBtFallbackAckAsync(signal, accepted: false, reason: "fallback-lifecycle-unavailable", cancellationToken, null);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -175,11 +170,10 @@ public class SwarmSignalHandlers
             // Requires: ISwarmJobStore lookup, ISwarmCore integration for BT fallback activation
             if (accepted)
             {
-                logger.LogInformation("BT fallback accepted for job {JobId}, variant {VariantId}, btFallbackId: {BtFallbackId}",
-                    jobId, variantId, btFallbackId);
-
-                // Deferred: Enable BT fallback in SwarmCore
-                // See memory-bank/triage-todo-fixme.md (defer section)
+                logger.LogWarning(
+                    "Ignoring accepted BT fallback acknowledgement for job {JobId}, variant {VariantId}; sender lifecycle is unavailable",
+                    jobId,
+                    variantId);
             }
             else
             {
@@ -234,6 +228,8 @@ public class SwarmSignalHandlers
         CancellationToken cancellationToken,
         string? btFallbackId = null)
     {
+        requestSignal.Body.TryGetValue("jobId", out var jobIdValue);
+        requestSignal.Body.TryGetValue("variantId", out var variantIdValue);
         var ack = new Signal(
             signalId: Guid.NewGuid().ToString("N"),
             fromPeerId: localPeerId,
@@ -242,8 +238,8 @@ public class SwarmSignalHandlers
             type: "Swarm.RequestBtFallbackAck",
             body: new Dictionary<string, object>
             {
-                ["jobId"] = requestSignal.Body["jobId"] ?? string.Empty,
-                ["variantId"] = requestSignal.Body["variantId"] ?? string.Empty,
+                ["jobId"] = jobIdValue?.ToString() ?? string.Empty,
+                ["variantId"] = variantIdValue?.ToString() ?? string.Empty,
                 ["accepted"] = accepted,
                 ["reason"] = reason ?? string.Empty,
                 ["btFallbackId"] = btFallbackId ?? string.Empty
@@ -260,17 +256,6 @@ public class SwarmSignalHandlers
 }
 
 /// <summary>
-/// Security policy engine stub for testing.
-/// </summary>
-public class StubSecurityPolicyEngine : ISecurityPolicyEngine
-{
-    public Task<SecurityDecision> EvaluateAsync(SecurityContext context, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(new SecurityDecision { Allowed = true, Reason = "Stub allows all" });
-    }
-}
-
-/// <summary>
 /// Extension methods for SwarmJob to check variant membership.
 /// </summary>
 public static class SwarmJobExtensions
@@ -283,49 +268,11 @@ public static class SwarmJobExtensions
 }
 
 /// <summary>
-/// Interface for security policy evaluation.
-/// </summary>
-public interface ISecurityPolicyEngine
-{
-    Task<SecurityDecision> EvaluateAsync(SecurityContext context, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Security context for BT fallback evaluation.
-/// </summary>
-public class SecurityContext
-{
-    public string FromPeerId { get; set; } = string.Empty;
-    public string? JobId { get; set; }
-    public string? VariantId { get; set; }
-
-    public static SecurityContext ForBtFallback(string fromPeerId, string jobId, string variantId)
-    {
-        return new SecurityContext
-        {
-            FromPeerId = fromPeerId,
-            JobId = jobId,
-            VariantId = variantId
-        };
-    }
-}
-
-/// <summary>
-/// Security policy decision result.
-/// </summary>
-public class SecurityDecision
-{
-    public bool Allowed { get; set; }
-    public string? Reason { get; set; }
-}
-
-/// <summary>
 /// Interface for BitTorrent backend operations.
 /// </summary>
 public interface IBitTorrentBackend
 {
     bool IsSupported();
-    Task<string> PreparePrivateTorrentAsync(SwarmJob job, string variantId, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     Fetches content by infohash or magnet URI. Used by the VirtualSoulfind resolver for

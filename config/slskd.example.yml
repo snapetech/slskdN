@@ -188,6 +188,7 @@
 #                  # socket also carries the mesh overlay control channel and QUIC control/data planes -- see `overlay` and
 #                  # `overlay_data` below. Forward/allow-list this port (UDP) if rendezvous is enabled.
 #  bootstrap_routers:
+#    # Router hostnames use MonoTorrent's standard bootstrap port (6881).
 #    - router.bittorrent.com
 #    - router.utorrent.com
 #    - dht.transmissionbt.com
@@ -311,6 +312,8 @@
 #    jaeger_endpoint: http://localhost:4317  # Jaeger OTLP collector endpoint (default: unset)
 #    jaeger_port: 4317           # Jaeger OTLP collector port when endpoint is a host only (default: 4317)
 #    otlp_endpoint: http://localhost:4317  # OTLP collector endpoint (default: http://localhost:4317)
+#lan_discovery:
+#  advertise: false              # Advertise identity on the local network at startup (default: false)
 #song_id:
 #  max_concurrent_runs: 2        # Process SongID jobs in the background with a fixed worker pool while allowing unbounded queueing
 #player:
@@ -339,6 +342,15 @@
 #    recoveryHealthyChecksRequired: 3
 #virtualSoulfindV2:
 #  enabled: true
+#  backends:
+#    torrent:
+#      enabled: false             # Explicit opt-in; remains disabled by default.
+#      min_seeders: 3
+#      private_only: true         # No trackers, web seeds, public DHT, PEX, or local peer discovery.
+#      disable_dht: true          # PrivateOnly always disables DHT regardless of this value.
+#      disable_pex: true          # PrivateOnly always disables PEX regardless of this value.
+#      allowed_peer_sources: both # overlay, invite_list, or both
+#      invite_list: []            # Manual TCP peers as host:port; used by private resolver fetches.
 #signalSystem:
 #  enabled: true
 #  meshChannel:
@@ -369,7 +381,7 @@
 #  StreamingRelayFallback: true  # Enable relay streaming fallback (controller proxies to agent) (default: true)
 #  MeshParallelSearch: true   # Mesh overlay search alongside Soulseek (default: true)
 #  MeshPublishAvailability: true  # Availability publication to the slskdN mesh DHT (default: true)
-#  IdentityFriends: true      # Identity/Friends APIs and mDNS friend-code advertising (default: true)
+#  IdentityFriends: true      # Identity/Friends APIs (default: true); startup mDNS advertising is separately controlled and off by default
 #  ScenePodBridge: false       # Opt in to experimental Scene ↔ Pod Bridging (default: false).
 #                               # When enabled, search results from both Pod/Mesh and Soulseek Scene are merged and deduplicated.
 #                               # Keep disabled if you want the proven upstream-compatible Soulseek search path.

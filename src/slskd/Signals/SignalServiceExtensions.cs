@@ -112,7 +112,8 @@ public static class SignalServiceExtensions
         }
 
         // Initialize Swarm signal handlers
-        var swarmHandlers = serviceProvider.GetRequiredService<SwarmSignalHandlers>();
+        var swarmHandlers = serviceProvider.GetService<SwarmSignalHandlers>()
+            ?? ActivatorUtilities.CreateInstance<SwarmSignalHandlers>(serviceProvider, localPeerId);
         await swarmHandlers.InitializeAsync(cancellationToken);
     }
 }

@@ -1639,9 +1639,20 @@ metrics:
 The slskdN-specific `feature.Mesh`, `feature.Dht`, `feature.Pods`,
 `feature.SocialFederation`, `feature.VirtualSoulfind`, and
 `feature.MultiSourceDownloads` values gate their controllers/APIs and related
-hosted-service activation. `feature.IdentityFriends` also controls startup mDNS
-advertising. These networked experimental flags default to true and can be
-disabled independently.
+hosted-service activation. `feature.IdentityFriends` gates Identity/Friends
+APIs. These networked experimental flags default to true and can be disabled
+independently. Automatic LAN advertising has its own default-off setting,
+separate from the Identity/Friends API gate:
+
+```yaml
+lan_discovery:
+  advertise: false # Set true to advertise the local profile over mDNS at startup
+```
+
+Nearby-peer browsing remains user-triggered. Metrics and OpenTelemetry tracing
+also remain disabled by default. When the metrics endpoint is enabled,
+authentication stays on by default; `metrics.authentication.disabled: true`
+is an explicit unauthenticated override.
 
 There is no `mesh.enabled` option. Use the actual independent settings such as
 `mesh.enable_dht`, `mesh.enable_overlay`, `dht.enabled`, `overlay.enable`, and
@@ -1657,6 +1668,33 @@ These settings expose separate layers: public BitTorrent DHT rendezvous finds
 mesh overlay endpoints, the slskdN mesh DHT stores bounded metadata, and the
 mesh overlay carries control messages and file bytes. See [DHT and Mesh
 Architecture](DHT_MESH_ARCHITECTURE.md) for the complete boundary.
+
+### VirtualSoulfind v2 BitTorrent
+
+Torrent acquisition is off by default. To enable it, set
+`virtualSoulfindV2.backends.torrent.enabled: true`. The default
+`private_only: true` mode removes tracker and web-seed URLs from magnets,
+disables BitTorrent DHT and PEX, and admits only peers from the configured
+source policy. `allowed_peer_sources` accepts `overlay`, `invite_list`, or
+`both`; `invite_list` entries use `host:port`. The standalone resolver fetch
+uses invite-list peers because its source records do not carry overlay peer
+endpoints. Cross-peer Swarm fallback is currently rejected until sender-side
+activation and job cancellation are connected; it does not start a torrent
+manager. `private_only` also disables local peer discovery engine-wide, which
+affects public-mode torrent transfers in the same process.
+
+```yaml
+virtualSoulfindV2:
+  backends:
+    torrent:
+      enabled: false
+      min_seeders: 3
+      private_only: true
+      disable_dht: true
+      disable_pex: true
+      allowed_peer_sources: both
+      invite_list: []
+```
 
 Several features have been added that aid in the application's development, debugging, and operation but are generally not valuable for most users.
 

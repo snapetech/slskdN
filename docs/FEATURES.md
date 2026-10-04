@@ -175,6 +175,10 @@ DHT, and the mesh overlay transfer path, see [DHT and Mesh Architecture](DHT_MES
 - Chunked downloads from multiple sources
 - Rescue mode for failed downloads
 - Source fallback and retry logic
+- Experimental BitTorrent acquisition is disabled by default. When enabled,
+  `PrivateOnly` removes tracker and web-seed URLs and disables BitTorrent DHT
+  and PEX; peer connections come only from the configured overlay and invite
+  list. See [VirtualSoulfind v2 BitTorrent](config.md#virtualsoulfind-v2-bittorrent).
 - **Chunk Reassignment**: Automatic reassignment of chunks from degraded peers to better-performing peers. When a peer's performance degrades (high error rate, slow throughput), the system automatically identifies all chunks assigned to that peer and re-queues them for reassignment to better peers. Integrated with cost-based and content-aware scheduling for optimal download performance.
 
 ### Security & Privacy
@@ -479,16 +483,19 @@ Human-friendly peer addressing and discovery system enabling the "befriend → g
 - **Contact Management**: Local contact list with nicknames and verification status
 - **Friend Codes**: Short, shareable codes (e.g., `ABCD-EFGH-IJKL-MNOP`) for easy addressing
 - **Invite Links**: `slskdn://invite/...` links with QR code support for adding friends
-- **mDNS LAN Discovery**: Automatic peer discovery on local networks
+- **mDNS LAN Discovery**: Browse nearby peers on demand; automatic startup advertising is separately opt-in
 - **API Integration**: Full REST API for profile and contact management
 
 #### Configuration
 ```yaml
 Feature:
-  IdentityFriends: false # Opt in to identity/friends APIs and LAN mDNS advertising
+  IdentityFriends: true
+lan_discovery:
+  advertise: false # Set true to publish this peer's identity over mDNS at startup
 ```
 
-**Default**: Disabled (opt-in)
+Identity/Friends APIs are enabled by default. Automatic mDNS advertising is
+disabled by default; nearby-peer browsing remains user-triggered.
 
 #### Use Cases
 

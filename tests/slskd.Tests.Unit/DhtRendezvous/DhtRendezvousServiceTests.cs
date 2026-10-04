@@ -21,6 +21,16 @@ using Xunit;
 
 public class DhtRendezvousServiceTests
 {
+    [Fact]
+    public void CreateBootstrapRouters_UsesConfiguredHostsAndDefaultBittorrentPort()
+    {
+        var routers = DhtRendezvousService.CreateBootstrapRouters(
+            new[] { " router.bittorrent.com ", "", "router.utorrent.com" });
+
+        Assert.Equal(new[] { "router.bittorrent.com", "router.utorrent.com" }, routers.Select(router => router.Host));
+        Assert.All(routers, router => Assert.Equal(6881, router.Port));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

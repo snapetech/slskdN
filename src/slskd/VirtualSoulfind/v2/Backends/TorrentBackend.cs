@@ -16,11 +16,8 @@ namespace slskd.VirtualSoulfind.v2.Backends
     ///     Backend for BitTorrent content discovery.
     /// </summary>
     /// <remarks>
-    ///     Phase 2 implementation: Query source registry for torrent candidates.
-    ///     Future integration points:
-    ///     - ITorrentClient for DHT queries
-    ///     - Tracker announces
-    ///     - Swarm health checking
+    ///     Queries the source registry for torrent candidates. Fetching is delegated to
+    ///     <see cref="slskd.Signals.Swarm.IBitTorrentBackend"/> by the resolver.
     /// </remarks>
     public sealed class TorrentBackend : IContentBackend
     {
@@ -42,10 +39,6 @@ namespace slskd.VirtualSoulfind.v2.Backends
         /// <summary>
         ///     Find torrent candidates from source registry.
         /// </summary>
-        /// <remarks>
-        ///     Current: Registry lookup only.
-        ///     Future: Active DHT/tracker queries when torrent client is integrated.
-        /// </remarks>
         public async Task<IReadOnlyList<SourceCandidate>> FindCandidatesAsync(
             ContentItemId itemId,
             CancellationToken cancellationToken = default)
@@ -101,6 +94,11 @@ namespace slskd.VirtualSoulfind.v2.Backends
                 return Task.FromResult(SourceCandidateValidationResult.Invalid("Torrent backend disabled"));
             }
 
+            if (opts.PrivateMode?.PrivateOnly == true && !candidate.IsFromPrivateSource)
+            {
+                return Task.FromResult(SourceCandidateValidationResult.Invalid("Torrent candidate is not from an allowed private source"));
+            }
+
             // Validate BackendRef format (should be infohash or magnet link)
             if (string.IsNullOrWhiteSpace(candidate.BackendRef))
             {
@@ -111,7 +109,7 @@ namespace slskd.VirtualSoulfind.v2.Backends
             var refLower = candidate.BackendRef.ToLowerInvariant();
             bool isInfohash = (refLower.Length == 40 || refLower.Length == 64) &&
                               refLower.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'));
-            bool isMagnet = refLower.StartsWith("magnet:", StringComparison.Ordinal);
+            bool isMagnet = MonoTorrent.MagnetLink.TryParse(candidate.BackendRef, out _);
 
             if (!isInfohash && !isMagnet)
             {
@@ -157,9 +155,8 @@ namespace slskd.VirtualSoulfind.v2.Backends
         public int QueryTimeoutSeconds { get; init; } = 30;
 
         /// <summary>
-        ///     Private swarm mode (invite-only or overlay-only; no public DHT). When set,
-        ///     TorrentBackend and IBitTorrentBackend impls should disable DHT/PEX and use
-        ///     only overlay or invite-list peers. See T-908 and docs/research/T-908-private-bittorrent-backend-design.md.
+        ///     Private swarm policy. PrivateOnly filters candidates by source provenance; the
+        ///     MonoTorrent backend also removes tracker/web-seed metadata and limits peers.
         /// </summary>
         public PrivateTorrentModeOptions? PrivateMode { get; init; }
     }
@@ -168,9 +165,10 @@ namespace slskd.VirtualSoulfind.v2.Backends
     ///     Options for private BitTorrent swarms (T-908). Used when TorrentBackendOptions.PrivateMode is set.
     /// </summary>
     /// <remarks>
-    ///     Private swarms: no public DHT; peers from overlay or invite list only. Real IBitTorrentBackend
-    ///     impl (replacing StubBitTorrentBackend) should respect DisableDht, DisablePex and only add
-    ///     peers from allowed sources.
+    ///     PrivateOnly disables DHT, PEX, trackers, web seeds, and local peer discovery for
+    ///     private fetches. The MonoTorrent engine disables local peer discovery engine-wide;
+    ///     this also affects public-mode torrent managers. Manual peers come only from the
+    ///     configured overlay and/or invite list. See the T-908 implementation notes.
     /// </remarks>
     public sealed class PrivateTorrentModeOptions
     {

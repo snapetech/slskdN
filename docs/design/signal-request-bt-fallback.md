@@ -1,5 +1,9 @@
 # Signal: Swarm.RequestBtFallback
 
+> **Runtime status:** The current implementation rejects these requests with
+> `fallback-lifecycle-unavailable`. The pseudocode below records the intended
+> protocol only; sender activation and job-owned cleanup are not implemented.
+
 ## End-to-End Example (Mesh + BT Extension)
 
 > File: docs/design/signal-request-bt-fallback.md
@@ -478,4 +482,3 @@ This example establishes a repeatable pattern:
    * Fallback between channels.
 
 Copy this structure for any future signals (e.g. `Swarm.JobCancel`, `Pod.MembershipUpdate`, `Pod.VariantOpinionUpdate`), keeping the same multi-channel, dedup, and optional ack pattern.
-

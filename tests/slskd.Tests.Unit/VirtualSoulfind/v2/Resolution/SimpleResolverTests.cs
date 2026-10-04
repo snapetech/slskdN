@@ -63,6 +63,58 @@ public class SimpleResolverTests
     }
 
     [Fact]
+    public async Task ExecutePlanAsync_WhenBackendObservesCallerCancellation_ReturnsCancelled()
+    {
+        var validationStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var backend = new Mock<IContentBackend>();
+        backend.SetupGet(value => value.Type).Returns(ContentBackendType.Http);
+        backend
+            .Setup(value => value.ValidateCandidateAsync(It.IsAny<SourceCandidate>(), It.IsAny<CancellationToken>()))
+            .Returns(async (SourceCandidate _, CancellationToken cancellationToken) =>
+            {
+                validationStarted.SetResult();
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return SourceCandidateValidationResult.Valid(0, 0);
+            });
+
+        var resolver = new SimpleResolver(
+            CreateOptionsMonitor(),
+            new[] { backend.Object },
+            CreateDownloadOptionsMonitor());
+        var plan = new TrackAcquisitionPlan
+        {
+            TrackId = Guid.NewGuid().ToString(),
+            Steps = new[]
+            {
+                new PlanStep
+                {
+                    Backend = ContentBackendType.Http,
+                    Candidates = new[]
+                    {
+                        new SourceCandidate
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            ItemId = ContentItemId.NewId(),
+                            Backend = ContentBackendType.Http,
+                            BackendRef = "https://allowed.example/file.flac",
+                        },
+                    },
+                },
+            },
+        };
+
+        using var cancellation = new CancellationTokenSource();
+        var execution = resolver.ExecutePlanAsync(plan, cancellation.Token);
+        await validationStarted.Task;
+        cancellation.Cancel();
+
+        var result = await execution;
+
+        Assert.Equal(PlanExecutionStatus.Cancelled, result.Status);
+        Assert.Equal("Execution cancelled", result.ErrorMessage);
+    }
+
+    [Fact]
     public async Task ExecutePlanAsync_NormalizesRelativeDownloadDirectory_AndCreatesIt()
     {
         var originalAppDirectory = Program.AppDirectory;

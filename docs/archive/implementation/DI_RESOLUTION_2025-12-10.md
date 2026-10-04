@@ -82,7 +82,7 @@ Successfully resolved all Dependency Injection issues preventing server startup.
 
 ### 12. ISecurityPolicyEngine Not Registered (Signals.Swarm namespace)
 **Error**: `Unable to resolve service for type 'slskd.Signals.Swarm.ISecurityPolicyEngine'`  
-**Fix**: Created `StubSecurityPolicyEngine` stub that allows all operations  
+**Historical fix**: Created a `StubSecurityPolicyEngine` stub that allowed all operations. On 2026-10-04, swarm signal handlers were moved to the application's composite security engine and the permissive stub was removed.
 **Locations**:
 - `Signals/Swarm/SwarmSignalHandlers.cs:240-246` (stub class)
 - `Program.cs:726` (registration)

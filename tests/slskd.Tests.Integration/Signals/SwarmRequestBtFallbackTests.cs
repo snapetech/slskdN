@@ -4,90 +4,136 @@
 namespace slskd.Tests.Integration.Signals;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using slskd.Security;
 using slskd.Signals;
 using slskd.Signals.Swarm;
+using slskd.Swarm;
 using Xunit;
 
-public class SwarmRequestBtFallbackTests : IClassFixture<SignalSystemTestFixture>
+public class SwarmRequestBtFallbackTests
 {
-    private readonly SignalSystemTestFixture fixture;
-
-    public SwarmRequestBtFallbackTests(SignalSystemTestFixture fixture)
-    {
-        this.fixture = fixture;
-    }
-
     [Fact]
-    public async Task RequestBtFallback_ShouldSendSignal_WhenTransferFails()
+    public async Task SignalBus_SendsFallbackRequestOverMeshWhenChannelIsAvailable()
     {
-        // Arrange
+        using var fixture = new SignalSystemTestFixture();
         var signalBus = fixture.ServiceProvider.GetRequiredService<ISignalBus>();
-        var receivedSignals = new List<Signal>();
+        var signal = CreateRequest("peer-bob");
 
-        await signalBus.SubscribeAsync((signal, ct) =>
-        {
-            if (signal.Type == "Swarm.RequestBtFallback")
-            {
-                receivedSignals.Add(signal);
-            }
-            return Task.CompletedTask;
-        });
-
-        var signal = new Signal(
-            signalId: Guid.NewGuid().ToString("N"),
-            fromPeerId: "peer-alice",
-            toPeerId: "peer-bob",
-            sentAt: DateTimeOffset.UtcNow,
-            type: "Swarm.RequestBtFallback",
-            body: new Dictionary<string, object>
-            {
-                ["jobId"] = "job-123",
-                ["variantId"] = "variant-abc",
-                ["contentIdType"] = "AudioRecording",
-                ["contentIdValue"] = "mb:recording:xyz",
-                ["reason"] = "mesh-failures"
-            },
-            ttl: TimeSpan.FromMinutes(5),
-            preferredChannels: new[] { SignalChannel.Mesh }
-        );
-
-        // Act
         await signalBus.SendAsync(signal);
 
-        // Assert: SendAsync completes; delivery via mesh/channel is infra-dependent
-        Assert.True(true);
+        var sentSignal = Assert.Single(fixture.SentSignals);
+        Assert.Equal("Swarm.RequestBtFallback", sentSignal.Type);
+        Assert.Equal("peer-bob", sentSignal.ToPeerId);
+        Assert.Equal("job-123", sentSignal.Body["jobId"]);
     }
 
     [Fact]
-    public async Task RequestBtFallbackAck_ShouldBeReceived_WhenFallbackAccepted()
+    public async Task RequestBtFallback_WhenJobIsUnknown_RejectsWithAcknowledgement()
     {
-        // Arrange
-        var signalBus = fixture.ServiceProvider.GetRequiredService<ISignalBus>();
-        var swarmHandlers = fixture.ServiceProvider.GetRequiredService<SwarmSignalHandlers>();
-        var receivedAcks = new List<Signal>();
+        using var fixture = new SignalSystemTestFixture();
+        var signalBus = Assert.IsType<SignalBus>(fixture.ServiceProvider.GetRequiredService<ISignalBus>());
+        fixture.JobStoreMock
+            .Setup(store => store.TryGetJobAsync("job-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SwarmJob?)null);
 
-        await signalBus.SubscribeAsync((signal, ct) =>
-        {
-            if (signal.Type == "Swarm.RequestBtFallbackAck")
-            {
-                receivedAcks.Add(signal);
-            }
-            return Task.CompletedTask;
-        });
+        await signalBus.OnSignalReceivedAsync(CreateRequest(fixture.LocalPeerId), CancellationToken.None);
 
-        var requestSignal = new Signal(
+        var ack = Assert.Single(fixture.SentSignals);
+        Assert.Equal("Swarm.RequestBtFallbackAck", ack.Type);
+        Assert.Equal("peer-alice", ack.ToPeerId);
+        Assert.Equal("job-123", ack.Body["jobId"]);
+        Assert.Equal("variant-abc", ack.Body["variantId"]);
+        Assert.False(Assert.IsType<bool>(ack.Body["accepted"]));
+        Assert.Equal("unknown-job-or-variant", ack.Body["reason"]);
+    }
+
+    [Fact]
+    public async Task RequestBtFallback_WhenBodyIsMalformed_SendsSafeRejectionAcknowledgement()
+    {
+        using var fixture = new SignalSystemTestFixture();
+        var signalBus = Assert.IsType<SignalBus>(fixture.ServiceProvider.GetRequiredService<ISignalBus>());
+
+        await signalBus.OnSignalReceivedAsync(
+            CreateRequest(fixture.LocalPeerId, new Dictionary<string, object>()),
+            CancellationToken.None);
+
+        var ack = Assert.Single(fixture.SentSignals);
+        Assert.Equal("Swarm.RequestBtFallbackAck", ack.Type);
+        Assert.Equal(string.Empty, ack.Body["jobId"]);
+        Assert.Equal(string.Empty, ack.Body["variantId"]);
+        Assert.False(Assert.IsType<bool>(ack.Body["accepted"]));
+        Assert.Equal("missing-job-id-or-variant-id", ack.Body["reason"]);
+    }
+
+    [Fact]
+    public async Task RequestBtFallback_WhenPolicyAllows_StillRejectsUntilLifecycleExists()
+    {
+        using var fixture = new SignalSystemTestFixture();
+        var signalBus = Assert.IsType<SignalBus>(fixture.ServiceProvider.GetRequiredService<ISignalBus>());
+        fixture.JobStoreMock
+            .Setup(store => store.TryGetJobAsync("job-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SwarmJob(
+                "job-123",
+                new SwarmFile("content-123", "0123456789abcdef0123456789abcdef01234567", 1),
+                Array.Empty<SwarmSource>()));
+        fixture.SecurityPolicyEngineMock
+            .Setup(engine => engine.EvaluateAsync(It.IsAny<SecurityContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SecurityDecision(true));
+        fixture.BitTorrentBackendMock.Setup(backend => backend.IsSupported()).Returns(true);
+
+        await signalBus.OnSignalReceivedAsync(CreateRequest(fixture.LocalPeerId), CancellationToken.None);
+
+        var ack = Assert.Single(fixture.SentSignals);
+        Assert.Equal("fallback-lifecycle-unavailable", ack.Body["reason"]);
+        Assert.False(Assert.IsType<bool>(ack.Body["accepted"]));
+        fixture.SecurityPolicyEngineMock.Verify(engine => engine.EvaluateAsync(
+            It.Is<SecurityContext>(context =>
+                context.PeerId == "peer-alice" &&
+                context.ContentId == "content-123" &&
+                context.Operation == "bt-fallback"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        fixture.BitTorrentBackendMock.Verify(backend => backend.IsSupported(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RequestBtFallback_WhenPolicyDenies_DoesNotCheckTorrentBackend()
+    {
+        using var fixture = new SignalSystemTestFixture();
+        var signalBus = Assert.IsType<SignalBus>(fixture.ServiceProvider.GetRequiredService<ISignalBus>());
+        fixture.JobStoreMock
+            .Setup(store => store.TryGetJobAsync("job-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SwarmJob(
+                "job-123",
+                new SwarmFile("content-123", "0123456789abcdef0123456789abcdef01234567", 1),
+                Array.Empty<SwarmSource>()));
+        fixture.SecurityPolicyEngineMock
+            .Setup(engine => engine.EvaluateAsync(It.IsAny<SecurityContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SecurityDecision(false, "policy denied"));
+
+        await signalBus.OnSignalReceivedAsync(CreateRequest(fixture.LocalPeerId), CancellationToken.None);
+
+        var ack = Assert.Single(fixture.SentSignals);
+        Assert.Equal("security-denied", ack.Body["reason"]);
+        Assert.False(Assert.IsType<bool>(ack.Body["accepted"]));
+        fixture.BitTorrentBackendMock.Verify(backend => backend.IsSupported(), Times.Never);
+    }
+
+    private static Signal CreateRequest(string toPeerId, IReadOnlyDictionary<string, object>? body = null)
+    {
+        return new Signal(
             signalId: Guid.NewGuid().ToString("N"),
             fromPeerId: "peer-alice",
-            toPeerId: fixture.LocalPeerId, // Address to us
+            toPeerId: toPeerId,
             sentAt: DateTimeOffset.UtcNow,
             type: "Swarm.RequestBtFallback",
-            body: new Dictionary<string, object>
+            body: body ?? new Dictionary<string, object>
             {
                 ["jobId"] = "job-123",
                 ["variantId"] = "variant-abc",
@@ -96,72 +142,56 @@ public class SwarmRequestBtFallbackTests : IClassFixture<SignalSystemTestFixture
                 ["reason"] = "mesh-failures"
             },
             ttl: TimeSpan.FromMinutes(5),
-            preferredChannels: new[] { SignalChannel.Mesh }
-        );
-
-        // Act - Simulate receiving the request signal (cast to SignalBus for testing)
-        if (signalBus is SignalBus concreteBus)
-        {
-            await concreteBus.OnSignalReceivedAsync(requestSignal, CancellationToken.None);
-        }
-
-        // Assert: OnSignalReceivedAsync completes without throwing; ack delivery is infra-dependent
-        Assert.True(true);
+            preferredChannels: new[] { SignalChannel.Mesh });
     }
 }
 
 /// <summary>
 /// Test fixture for signal system integration tests.
 /// </summary>
-public class SignalSystemTestFixture : IDisposable
+public sealed class SignalSystemTestFixture : IDisposable
 {
     public IServiceProvider ServiceProvider { get; }
     public string LocalPeerId { get; } = "test-peer-local";
+    public ConcurrentQueue<Signal> SentSignals { get; } = new();
+    public Mock<ISwarmJobStore> JobStoreMock { get; } = new();
+    public Mock<slskd.Security.ISecurityPolicyEngine> SecurityPolicyEngineMock { get; } = new();
+    public Mock<IBitTorrentBackend> BitTorrentBackendMock { get; } = new();
 
     public SignalSystemTestFixture()
     {
         var services = new ServiceCollection();
-
-        // Add logging
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
-
-        // Add signal system
         services.AddSignalSystem();
-
-        // Add stub implementations for SwarmSignalHandlers dependencies
-        services.AddSingleton<ISwarmJobStore>(_ => Mock.Of<ISwarmJobStore>());
-        services.AddSingleton<ISecurityPolicyEngine>(_ => Mock.Of<ISecurityPolicyEngine>());
-        services.AddSingleton<IBitTorrentBackend>(_ => Mock.Of<IBitTorrentBackend>());
-
-        // Configure SwarmSignalHandlers with local peer ID
-        services.AddSingleton<SwarmSignalHandlers>(sp =>
-        {
-            var logger = sp.GetRequiredService<ILogger<SwarmSignalHandlers>>();
-            var signalBus = sp.GetRequiredService<ISignalBus>();
-            var jobStore = sp.GetRequiredService<ISwarmJobStore>();
-            var securityEngine = sp.GetRequiredService<ISecurityPolicyEngine>();
-            var btBackend = sp.GetRequiredService<IBitTorrentBackend>();
-            return new SwarmSignalHandlers(logger, signalBus, jobStore, securityEngine, btBackend, LocalPeerId);
-        });
+        services.AddSingleton<ISwarmJobStore>(JobStoreMock.Object);
+        services.AddSingleton<slskd.Security.ISecurityPolicyEngine>(SecurityPolicyEngineMock.Object);
+        services.AddSingleton<IBitTorrentBackend>(BitTorrentBackendMock.Object);
+        services.AddSingleton<SwarmSignalHandlers>(serviceProvider => new SwarmSignalHandlers(
+            serviceProvider.GetRequiredService<ILogger<SwarmSignalHandlers>>(),
+            serviceProvider.GetRequiredService<ISignalBus>(),
+            serviceProvider.GetRequiredService<ISwarmJobStore>(),
+            serviceProvider.GetRequiredService<slskd.Security.ISecurityPolicyEngine>(),
+            serviceProvider.GetRequiredService<IBitTorrentBackend>(),
+            LocalPeerId));
 
         ServiceProvider = services.BuildServiceProvider();
+        SignalServiceExtensions.InitializeSignalSystemAsync(ServiceProvider, LocalPeerId).GetAwaiter().GetResult();
 
-        // Initialize signal system
-        try
-        {
-            SignalServiceExtensions.InitializeSignalSystemAsync(ServiceProvider, LocalPeerId).GetAwaiter().GetResult();
-        }
-        catch
-        {
-            // Ignore initialization errors in test fixture - tests will handle them
-        }
+        var channelHandler = new Mock<ISignalChannelHandler>();
+        channelHandler.Setup(handler => handler.CanSendTo(It.IsAny<string>())).Returns(true);
+        channelHandler.Setup(handler => handler.SendAsync(It.IsAny<Signal>(), It.IsAny<CancellationToken>()))
+            .Callback<Signal, CancellationToken>((signal, _) => SentSignals.Enqueue(signal))
+            .Returns(Task.CompletedTask);
+        channelHandler.Setup(handler => handler.StartReceivingAsync(
+                It.IsAny<Func<Signal, CancellationToken, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        ServiceProvider.GetRequiredService<ISignalBus>().RegisterChannelHandler(SignalChannel.Mesh, channelHandler.Object);
     }
 
     public void Dispose()
     {
         if (ServiceProvider is IDisposable disposable)
-        {
             disposable.Dispose();
-        }
     }
 }

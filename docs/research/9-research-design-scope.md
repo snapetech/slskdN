@@ -55,7 +55,7 @@ These 9 tasks are **research / future-enhancement** items. Implementation is opt
 **Dependencies**: T-901 (node identity = Ed25519 or NodeId derived) helpful.  
 **Open**: Reuse BT DHT vs. clean-slate slskdn DHT. Overlap with `DhtRendezvous` responsibilities.
 
-**Implemented (2026-01-25):** `docs/research/T-902-dht-node-design.md`. KademliaRoutingTable: 160-bit NodeIds, k=20, bucket splitting, XOR, Touch, GetClosest; selfId = SHA1(Ed25519 publicKey) from IKeyStore (Program). Mesh-DHT node role: DhtMeshService responds to FindNode, FindValue, Store, Ping; registered with MeshServiceRouter. KademliaRpcClient: FindNode, FindValue, Store, Ping. GET_PEERS/ANNOUNCE_PEER are public BEP 5 operations; the mesh DHT has its own FindValue/Store equivalents over the mesh overlay. DhtRendezvous remains a BEP 5 client for endpoint rendezvous.
+**Implemented (2026-01-25; identity detail corrected 2026-10-04):** `docs/research/T-902-dht-node-design.md`. KademliaRoutingTable: 160-bit NodeIds, k=20, bucket splitting, XOR, Touch, GetClosest; production `selfId` is the first 20 bytes of SHA-256 over the Ed25519 public key from IKeyStore. Mesh-DHT node role: DhtMeshService responds to FindNode, FindValue, Store, Ping; registered with MeshServiceRouter. KademliaRpcClient: FindNode, FindValue, Store, Ping. GET_PEERS/ANNOUNCE_PEER are public BEP 5 operations; the mesh DHT has its own FindValue/Store equivalents over the mesh overlay. DhtRendezvous remains a BEP 5 client for endpoint rendezvous.
 
 ---
 
@@ -121,21 +121,15 @@ These 9 tasks are **research / future-enhancement** items. Implementation is opt
 
 ## T-908: Private BitTorrent Backend
 
-**One-line**: Real BitTorrent-based `IContentBackend` with private (invite-only or VPN-only) swarm support.
+**One-line**: Use a gated MonoTorrent backend for torrent candidate fetching and private swarm fallback.
 
-**Current state**:
-- `StubBitTorrentBackend` in `Signals.Swarm`; `IBitTorrentBackend` used by swarm/fallback. BitTorrent DHT used for **rendezvous** (T-201), not full torrent transfer.
-- `MeshTorrentBackend` uses DHT + torrent for content.
+**Implemented:** `MonoTorrentBitTorrentBackend` handles fetch-by-infohash/magnet and prepares private fallback managers. `TorrentBackend` filters by private provenance and validates magnet syntax. `PrivateOnly` strips tracker/web-seed URLs, disables DHT/PEX, and limits manual peers to configured overlay/invite sources. Torrent settings are exposed under `virtualSoulfindV2.backends.torrent` and default to disabled.
 
-**Proposed scope**:
-- **Real BT engine**: Replace stub with actual BT: .torrent parse, piece downloads, have/bitfield, unchoke. Use MonoTorrent, libtorrent bindings, or custom. Focus on “fetch by info_hash” and report to `IContentBackend` contract.
-- **Private swarm**: No public DHT; only peers from invite list or from overlay. Private flag in .torrent; DHT/PEX disabled. Optional: keyed swarm (passphrase) for extra privacy.
-- **Integration**: `IContentBackend` that finds .torrent (from DHT, index, or URL), joins swarm, downloads; or delegate to existing `MeshTorrentBackend` and add “private” mode there.
+**Library:** MonoTorrent `3.9.0-alpha.unstable.rev0000` targets `net8.0`, which NuGet considers compatible with this application's `net10.0` target. The dependency is a prerelease and introduced API changes migrated in the DHT and socket listener paths.
 
-**Dependencies**: T-902 useful if we use DHT for .torrent discovery.  
-**Open**: Which BT library. Legal risk of public torrent use; private-only reduces.
+**Boundaries:** Engine-wide local peer discovery is disabled for privacy and therefore also affects public-mode torrent managers. The standalone resolver fetch has invite-list endpoints but no overlay endpoint list; swarm fallback receives overlay sources through `SwarmJob`. MonoTorrent rejects manually adding peers after BEP 27 private metadata has loaded, so the backend disables magnet metadata cache load/save and fails closed if private metadata is already present.
 
-**Implemented (2026-01-25):** Design: `docs/research/T-908-private-bittorrent-backend-design.md`. `TorrentBackendOptions.PrivateMode` (`PrivateTorrentModeOptions`: PrivateOnly, DisableDht, DisablePex, `AllowedPeerSources`); `PrivatePeerSource` enum (Overlay, InviteList, Both). StubBitTorrentBackend replacement (MonoTorrent, piece transfer, fetch by info_hash) and TorrentBackend private-mode filtering: follow-up.
+**Remaining:** Connect fallback acknowledgements to the sender's active swarm job; implement `Swarm.JobCancel` and release prepared managers when jobs end. Keyed swarms remain deferred until a peer-auth/key exchange protocol is designed.
 
 ---
 

@@ -150,6 +150,53 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Backends
         }
 
         [Fact]
+        public async Task ValidateCandidate_PrivateOnlyRejectsCandidateWithoutPrivateProvenance()
+        {
+            var options = new TorrentBackendOptions
+            {
+                Enabled = true,
+                MinimumSeeders = 1,
+                PrivateMode = new PrivateTorrentModeOptions { PrivateOnly = true },
+            };
+            var backend = CreateTorrentBackend(options);
+            var candidate = new SourceCandidate
+            {
+                Id = Guid.NewGuid().ToString(),
+                ItemId = ContentItemId.NewId(),
+                Backend = ContentBackendType.Torrent,
+                BackendRef = "1234567890abcdef1234567890abcdef12345678",
+                TrustScore = 0.8f,
+                ExpectedQuality = 10,
+            };
+
+            var result = await backend.ValidateCandidateAsync(candidate, CancellationToken.None);
+
+            Assert.False(result.IsValid);
+            Assert.Contains("private source", result.InvalidityReason, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ValidateCandidate_RejectsMalformedMagnetLink()
+        {
+            var options = new TorrentBackendOptions { Enabled = true, MinimumSeeders = 1 };
+            var backend = CreateTorrentBackend(options);
+            var candidate = new SourceCandidate
+            {
+                Id = Guid.NewGuid().ToString(),
+                ItemId = ContentItemId.NewId(),
+                Backend = ContentBackendType.Torrent,
+                BackendRef = "magnet:not-a-magnet",
+                TrustScore = 0.8f,
+                ExpectedQuality = 5,
+            };
+
+            var result = await backend.ValidateCandidateAsync(candidate, CancellationToken.None);
+
+            Assert.False(result.IsValid);
+            Assert.Contains("Invalid infohash or magnet link", result.InvalidityReason);
+        }
+
+        [Fact]
         public async Task ValidateCandidate_RejectsInvalidInfohash()
         {
             var backend = CreateTorrentBackend();

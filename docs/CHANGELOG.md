@@ -22,6 +22,25 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### BitTorrent acquisition
+
+- Keep torrent acquisition disabled by default and expose its private peer
+  policy through `virtualSoulfindV2.backends.torrent`; private mode removes
+  trackers and web seeds and disables BitTorrent DHT/PEX. Cross-peer swarm
+  fallback requests are rejected until sender activation and job cancellation
+  are integrated.
+
+### Dependency compatibility
+
+- Upgrade MonoTorrent to 3.9.0-alpha.unstable.rev0000 and migrate the shared
+  DHT listener to its newer API; the package targets .NET 8 and is compatible
+  with the application's .NET 10 target.
+
+### Request cancellation
+
+- Preserve resolver cancellation as a canceled execution and release active
+  torrent managers before returning from canceled fetches.
+
 ### Player accessibility
 
 - Coalesce rapid playback-state updates before changing the Player's screen

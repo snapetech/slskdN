@@ -180,6 +180,13 @@ public static class VirtualSoulfindServiceCollectionExtensions
             return new Common.Moderation.WrappedOptionsMonitor<VirtualSoulfind.v2.Processing.IntentQueueProcessorOptions>(wrapped);
         });
 
+        services.AddSingleton<IOptionsMonitor<VirtualSoulfind.v2.Backends.TorrentBackendOptions>>(sp =>
+        {
+            var root = sp.GetRequiredService<IOptionsMonitor<slskd.Options>>().CurrentValue.VirtualSoulfindV2;
+            var wrapped = Microsoft.Extensions.Options.Options.Create(BuildTorrentBackendOptions(root));
+            return new Common.Moderation.WrappedOptionsMonitor<VirtualSoulfind.v2.Backends.TorrentBackendOptions>(wrapped);
+        });
+
         services.AddSingleton<IOptionsMonitor<VirtualSoulfind.v2.Backends.SoulseekBackendOptions>>(sp =>
         {
             var root = sp.GetRequiredService<IOptionsMonitor<slskd.Options>>().CurrentValue.VirtualSoulfindV2;
@@ -233,5 +240,24 @@ public static class VirtualSoulfindServiceCollectionExtensions
         services.AddSingleton<VirtualSoulfind.v2.Backends.IContentBackend, VirtualSoulfind.v2.Backends.SoulseekBackend>();
 
         return services;
+    }
+
+    internal static VirtualSoulfind.v2.Backends.TorrentBackendOptions BuildTorrentBackendOptions(
+        VirtualSoulfind.v2.Configuration.VirtualSoulfindOptions root)
+    {
+        var config = root.Backends.Torrent;
+        return new VirtualSoulfind.v2.Backends.TorrentBackendOptions
+        {
+            Enabled = root.Enabled && config.Enabled,
+            MinimumSeeders = Math.Max(0, config.MinSeeders),
+            PrivateMode = new VirtualSoulfind.v2.Backends.PrivateTorrentModeOptions
+            {
+                PrivateOnly = config.PrivateOnly,
+                DisableDht = config.DisableDht,
+                DisablePex = config.DisablePex,
+                AllowedPeerSources = config.AllowedPeerSources,
+                InviteList = config.InviteList,
+            },
+        };
     }
 }

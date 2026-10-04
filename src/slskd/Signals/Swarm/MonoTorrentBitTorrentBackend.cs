@@ -37,18 +37,7 @@ public sealed class MonoTorrentBitTorrentBackend : IBitTorrentBackend, IDisposab
         Directory.CreateDirectory(_cacheDir);
 
         var pm = _options.CurrentValue.PrivateMode;
-        var builder = new EngineSettingsBuilder
-        {
-            CacheDirectory = _cacheDir,
-            AllowLocalPeerDiscovery = pm?.DisablePex != false,
-        };
-
-        // Disable DHT at engine level when PrivateMode wants it
-        if (pm?.DisableDht == true)
-            builder.DhtEndPoint = null;
-
-        var settings = builder.ToSettings();
-        _engine = new ClientEngine(settings);
+        _engine = new ClientEngine(BuildEngineSettings(_cacheDir, pm));
     }
 
     public bool IsSupported()
@@ -56,50 +45,10 @@ public sealed class MonoTorrentBitTorrentBackend : IBitTorrentBackend, IDisposab
         return _options.CurrentValue.Enabled;
     }
 
-    public async Task<string> PreparePrivateTorrentAsync(SwarmJob job, string variantId, CancellationToken cancellationToken = default)
-    {
-        var hash = job.File?.Hash;
-        if (string.IsNullOrWhiteSpace(hash))
-            return string.Empty;
-
-        var infohash = ParseInfohash(hash);
-        if (infohash == null)
-            return string.Empty;
-
-        var magnet = new MagnetLink(infohash);
-        var savePath = Path.Combine(_cacheDir, "prepare", infohash.ToHex());
-        Directory.CreateDirectory(savePath);
-
-        TorrentManager? manager = null;
-        try
-        {
-            manager = await _engine.AddAsync(magnet, savePath).WaitAsync(cancellationToken);
-            ApplyPrivateSettings(manager);
-            await AddManualPeersAsync(manager, PeersFromSources(job.Sources)).WaitAsync(cancellationToken);
-            await manager.StartAsync().WaitAsync(cancellationToken);
-            return infohash.ToHex();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "PreparePrivateTorrentAsync failed for job {JobId}", job.JobId);
-            if (manager != null)
-            {
-                try
-                {
-                    await _engine.RemoveAsync(manager).WaitAsync(cancellationToken);
-                }
-                catch (Exception cleanupEx)
-                {
-                    _logger.LogDebug(cleanupEx, "Failed to remove manager during PreparePrivateTorrentAsync cleanup for job {JobId}", job.JobId);
-                }
-            }
-
-            return string.Empty;
-        }
-    }
-
     public async Task<string?> FetchByInfoHashOrMagnetAsync(string backendRef, string destDirectory, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         MagnetLink? magnet = null;
         if (backendRef.TrimStart().StartsWith("magnet:", StringComparison.OrdinalIgnoreCase))
         {
@@ -113,18 +62,46 @@ public sealed class MonoTorrentBitTorrentBackend : IBitTorrentBackend, IDisposab
             magnet = new MagnetLink(ih);
         }
 
-        Directory.CreateDirectory(destDirectory);
+        var privateMode = _options.CurrentValue.PrivateMode;
+        var enforcePrivateOnly = privateMode?.PrivateOnly == true;
+        magnet = ApplyPrivateMagnetPolicy(magnet, enforcePrivateOnly);
+        var manualPeers = BuildManualPeers(privateMode, sources: null, includeInviteList: true);
+        if (enforcePrivateOnly && manualPeers.Count == 0)
+        {
+            _logger.LogWarning("Private torrent fetch has no allowed manual peers");
+            return null;
+        }
+
         TorrentManager? manager = null;
         try
         {
-            manager = await _engine.AddAsync(magnet, destDirectory);
-            ApplyPrivateSettings(manager);
-            var invitePeers = _options.CurrentValue.PrivateMode?.InviteList ?? Array.Empty<string>();
-            await AddManualPeersAsync(manager, invitePeers);
+            Directory.CreateDirectory(destDirectory);
+            manager = await _engine.AddAsync(magnet, destDirectory, BuildTorrentSettings(privateMode, forcePrivateOnly: false));
+            ct.ThrowIfCancellationRequested();
+            if (enforcePrivateOnly && !CanAddManualPeers(manager, "FetchByInfoHashOrMagnetAsync"))
+            {
+                await CleanupManagerAsync(manager, "FetchByInfoHashOrMagnetAsync");
+                manager = null;
+                return null;
+            }
+
+            var addedPeers = manualPeers.Count == 0 ? 0 : await manager.AddPeersAsync(manualPeers);
+            ct.ThrowIfCancellationRequested();
+            if (enforcePrivateOnly && addedPeers == 0)
+            {
+                _logger.LogWarning("Private torrent fetch could not add an allowed manual peer");
+                await CleanupManagerAsync(manager, "FetchByInfoHashOrMagnetAsync");
+                manager = null;
+                return null;
+            }
+
+            if (addedPeers > 0)
+                _logger.LogDebug("Added {PeerCount} allowed invite peers for private torrent fetch", addedPeers);
 
             await manager.StartAsync();
+            ct.ThrowIfCancellationRequested();
             if (!manager.HasMetadata)
-                await WaitForMetadataAsync(manager, ct);
+                await manager.WaitForMetadataAsync(ct);
 
             // Wait for completion (with timeout)
             var timeout = TimeSpan.FromMinutes(60);
@@ -134,10 +111,13 @@ public sealed class MonoTorrentBitTorrentBackend : IBitTorrentBackend, IDisposab
                 await Task.Delay(1000, ct);
             }
 
+            ct.ThrowIfCancellationRequested();
+
             if (manager.Progress < 100.0)
             {
                 _logger.LogWarning("FetchByInfoHashOrMagnetAsync did not complete: {Progress}%", manager.Progress);
-                await _engine.RemoveAsync(manager);
+                await CleanupManagerAsync(manager, "FetchByInfoHashOrMagnetAsync");
+                manager = null;
                 return null;
             }
 
@@ -147,63 +127,187 @@ public sealed class MonoTorrentBitTorrentBackend : IBitTorrentBackend, IDisposab
             else
                 path = Path.Combine(manager.ContainingDirectory!, manager.Torrent.Files[0].Path);
 
-            await manager.StopAsync();
-            await _engine.RemoveAsync(manager);
+            await CleanupManagerAsync(manager, "FetchByInfoHashOrMagnetAsync");
+            manager = null;
             return File.Exists(path) ? path : null;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            if (manager != null)
+                await CleanupManagerAsync(manager, "FetchByInfoHashOrMagnetAsync");
+
+            throw;
         }
         catch (Exception ex)
         {
-            var refPreview = backendRef.Length > 60 ? backendRef.Substring(0, 60) + "..." : backendRef;
-            _logger.LogWarning(ex, "FetchByInfoHashOrMagnetAsync failed for {Ref}", refPreview);
+            _logger.LogWarning(ex, "FetchByInfoHashOrMagnetAsync failed after validating the backend reference");
             if (manager != null)
-            {
-                try
-                {
-                    await manager.StopAsync();
-                    await _engine.RemoveAsync(manager);
-                }
-                catch (Exception cleanupEx)
-                {
-                    _logger.LogDebug(cleanupEx, "Failed to cleanup manager during FetchByInfoHashOrMagnetAsync failure for {Ref}", refPreview);
-                }
-            }
+                await CleanupManagerAsync(manager, "FetchByInfoHashOrMagnetAsync");
 
             return null;
         }
     }
 
-    private void ApplyPrivateSettings(TorrentManager manager)
+    internal static EngineSettings BuildEngineSettings(string cacheDirectory, PrivateTorrentModeOptions? privateMode)
     {
-        // TorrentSettings.AllowDht / AllowPeerExchange are read-only; engine-level
-        // DhtEndPoint=null and AllowLocalPeerDiscovery are set in ctor. Per-torrent
-        // DHT/PEX would require passing TorrentSettings into AddAsync if supported.
+        var builder = new EngineSettingsBuilder
+        {
+            CacheDirectory = cacheDirectory,
+
+            // Local peer discovery is engine-wide, so keep it off for all managers.
+            // Private transfers use only explicit overlay/invite peer sources.
+            AllowLocalPeerDiscovery = false,
+            AutoSaveLoadMagnetLinkMetadata = false,
+        };
+
+        if (privateMode?.PrivateOnly == true || privateMode?.DisableDht == true)
+            builder.DhtEndPoint = null;
+
+        return builder.ToSettings();
     }
 
-    private static IReadOnlyList<string> PeersFromSources(IReadOnlyList<SwarmSource>? sources)
+    internal static TorrentSettings BuildTorrentSettings(PrivateTorrentModeOptions? privateMode, bool forcePrivateOnly)
     {
-        if (sources == null || sources.Count == 0) return Array.Empty<string>();
-        var list = new List<string>();
-        foreach (var s in sources)
+        var privateOnly = forcePrivateOnly || privateMode?.PrivateOnly == true;
+        return new TorrentSettingsBuilder
         {
-            if (!string.IsNullOrEmpty(s.Address) && s.Port.HasValue)
-                list.Add($"{s.Address}:{s.Port.Value}");
+            AllowDht = !privateOnly && privateMode?.DisableDht != true,
+            AllowPeerExchange = !privateOnly && privateMode?.DisablePex != true,
+        }.ToSettings();
+    }
+
+    internal static MagnetLink ApplyPrivateMagnetPolicy(MagnetLink magnet, bool privateOnly)
+    {
+        if (!privateOnly)
+            return magnet;
+
+        return new MagnetLink(
+            magnet.InfoHashes,
+            magnet.Name,
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            magnet.Size);
+    }
+
+    internal static IReadOnlyList<PeerInfo> BuildManualPeers(
+        PrivateTorrentModeOptions? privateMode,
+        IReadOnlyList<SwarmSource>? sources,
+        bool includeInviteList)
+    {
+        var peerSources = privateMode?.AllowedPeerSources ?? PrivatePeerSource.Overlay;
+        var allowOverlay = peerSources is PrivatePeerSource.Overlay or PrivatePeerSource.Both;
+        var allowInviteList = includeInviteList &&
+                              privateMode is not null &&
+                              (peerSources is PrivatePeerSource.InviteList or PrivatePeerSource.Both);
+        var peers = new List<PeerInfo>();
+        var endpoints = new HashSet<Uri>();
+
+        if (allowOverlay && sources is not null)
+        {
+            foreach (var source in sources)
+            {
+                if (!string.Equals(source.Transport, "mesh", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(source.Transport, "overlay", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var peer = CreatePeerInfo(source.Address, source.Port);
+                if (peer is not null && endpoints.Add(peer.ConnectionUri))
+                    peers.Add(peer);
+            }
         }
 
-        return list;
+        if (allowInviteList)
+        {
+            foreach (var endpoint in privateMode!.InviteList ?? Array.Empty<string>())
+            {
+                var peer = ParseInvitePeer(endpoint);
+                if (peer is not null && endpoints.Add(peer.ConnectionUri))
+                    peers.Add(peer);
+            }
+        }
+
+        return peers;
     }
 
-    private static Task AddManualPeersAsync(TorrentManager manager, IReadOnlyList<string> peers)
+    private static PeerInfo? CreatePeerInfo(string? host, int? port)
     {
-        // Deferred: MonoTorrent PeerInfo/AddPeersAsync API for manual peers (InviteList, job.Sources)
-        // See memory-bank/triage-todo-fixme.md (defer section) for details
-        // Engine-level DhtEndPoint=null and AllowLocalPeerDiscovery avoid DHT/PEX when PrivateMode.
-        // Manual peer addition requires MonoTorrent API integration for private torrents.
-        return Task.CompletedTask;
+        if (string.IsNullOrWhiteSpace(host) || !port.HasValue || port.Value is < 1 or > 65535)
+            return null;
+
+        var normalizedHost = host.Trim();
+        if (normalizedHost.StartsWith('[') && normalizedHost.EndsWith(']'))
+            normalizedHost = normalizedHost[1..^1];
+
+        if (Uri.CheckHostName(normalizedHost) == UriHostNameType.Unknown)
+            return null;
+
+        try
+        {
+            return new PeerInfo(new UriBuilder("tcp", normalizedHost, port.Value).Uri);
+        }
+        catch (UriFormatException)
+        {
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
     }
 
-    private static Task WaitForMetadataAsync(TorrentManager manager, CancellationToken cancellationToken)
+    private static PeerInfo? ParseInvitePeer(string endpoint)
     {
-        return manager.WaitForMetadataAsync(CancellationToken.None).WaitAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(endpoint) ||
+            !Uri.TryCreate($"tcp://{endpoint.Trim()}", UriKind.Absolute, out var uri) ||
+            !string.IsNullOrEmpty(uri.UserInfo) ||
+            uri.AbsolutePath != "/" ||
+            !string.IsNullOrEmpty(uri.Query) ||
+            !string.IsNullOrEmpty(uri.Fragment) ||
+            uri.Port is < 1 or > 65535 ||
+            Uri.CheckHostName(uri.Host) == UriHostNameType.Unknown)
+        {
+            return null;
+        }
+
+        return CreatePeerInfo(uri.Host, uri.Port);
+    }
+
+    private async Task CleanupManagerAsync(TorrentManager manager, string operation)
+    {
+        try
+        {
+            if (manager.State != TorrentState.Stopped)
+                await manager.StopAsync();
+        }
+        catch (Exception cleanupEx)
+        {
+            _logger.LogDebug(cleanupEx, "Failed to stop manager during {Operation} cleanup", operation);
+        }
+
+        if (manager.State == TorrentState.Stopped)
+        {
+            try
+            {
+                await _engine.RemoveAsync(manager);
+            }
+            catch (Exception cleanupEx)
+            {
+                _logger.LogDebug(cleanupEx, "Failed to remove manager during {Operation} cleanup", operation);
+            }
+        }
+    }
+
+    private bool CanAddManualPeers(TorrentManager manager, string operation)
+    {
+        if (!manager.HasMetadata || manager.Torrent?.IsPrivate != true)
+            return true;
+
+        _logger.LogWarning(
+            "{Operation} cannot add configured peers because MonoTorrent loaded private torrent metadata before peer registration",
+            operation);
+        return false;
     }
 
     private static InfoHash? ParseInfohash(string value)

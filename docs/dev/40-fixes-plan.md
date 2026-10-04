@@ -120,6 +120,9 @@ Items left out of completed PRs or not yet assigned to a ticket. **Must be sched
 |--------|------|--------|
 | **slskd.Tests.Integration** | **Build: OK.** **184 pass, 0 skip.** See `docs/archive/dev-audits/slskd-tests-integration-audit.md`. | — |
 | **slskd.Tests** | **46 pass, 0 skip.** `Enforce_invalid_config_host_startup` un-skipped: runtime skip when mutex held; run `dotnet slskd.dll` (not `dotnet run --project`) to avoid host holding mutex; if subprocess exits 0 with "already running", treat as skip. | — |
+| Whole-product remediation | Retained frontend startup interruption | Diagnose the original `ERR_NETWORK_CHANGED` resource failure from 2026-09-28. An accessible static startup shell with a manual reload action now prevents a blank root when React does not mount; the network cause is still unknown and is not claimed fixed. |
+| T-908 | Cross-peer BitTorrent fallback lifecycle | Connect fallback signals to a real sender job, transfer activation, cancellation, and manager cleanup; re-enable requests only after end-to-end coverage exists. Runtime currently rejects them without starting a manager. |
+| **§9** | Semantic static-analysis baseline | Replace remaining name/syntax-only warnings with semantic or flow-aware checks, then review and baseline the findings before allowing `TreatWarningsAsErrors` to gate builds. The 2026-10-04 opt-in report analyzes 6,896 application types and completes with 78 advisory warnings and zero errors: 14 syntactically identified Task/ValueTask blocking-call findings, 3 dangerous-API call-site findings, and 61 empty-catch findings. Source findings report project-relative paths, preserving directory context when files share a basename. Removed 23 declaration-name-only dangerous-method findings, filtered MVC `Result` properties and zero-timeout `Wait(0)` calls, and excluded empty catches with explicit exception filters. The blocking-call rule excludes generic task-producing `Wait<T>` helpers; keyword-only SQL interpolation and sensitive-property name heuristics remain disabled. Review of the current matches found the blocking calls at synchronous API/disposal boundaries, the SQL calls parameterized or fixed DDL, and empty catches limited to expected cleanup, compatibility, shutdown, and fallback paths; no source defect was confirmed by these diagnostics. Semantic/flow-aware rule work remains open; analysis remains diagnostic-only. |
 
 
 ---
@@ -683,7 +686,7 @@ PR numbers (see Implementation Ticket Index) can be batched for review; order be
 
 ### Phase 1
 
-- **CodeQuality** (`Common\CodeQuality\**`): AsyncRulesTests, BuildTimeAnalyzerTests, HotspotAnalysisTests, ModerationCoverageAuditTests, RegressionHarnessTests, StaticAnalysisTests, TestCoverageTests. *(Depend on slskd.Common.CodeQuality excluded from slskd build.)*
+- **CodeQuality** (`Common\CodeQuality\**`): AsyncRulesTests, BuildTimeAnalyzerTests, HotspotAnalysisTests, ModerationCoverageAuditTests, RegressionHarnessTests, StaticAnalysisTests, TestCoverageTests. `BuildTimeAnalyzerTests` reference `tools/slskd.BuildTasks` directly; runtime CodeQuality helpers remain in the app where used.
 - **Common:** LocalPortForwarderTests.
 - **MediaCore:** ContentDescriptorPublisherModerationTests.
 - **Relay:** RelayControllerModerationTests.

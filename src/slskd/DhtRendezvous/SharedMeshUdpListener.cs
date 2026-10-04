@@ -7,9 +7,11 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using MonoTorrent;
 using MonoTorrent.Connections;
 using MonoTorrent.Connections.Dht;
 using Microsoft.Extensions.Options;
+using ReusableTasks;
 using slskd.Mesh;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Transport;
@@ -62,7 +64,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
         _maxRemotePayload = meshOptions?.Value?.Security?.GetEffectiveMaxPayloadSize() ?? SecurityUtils.MaxRemotePayloadSize;
     }
 
-    public event Action<ReadOnlyMemory<byte>, IPEndPoint>? MessageReceived;
+    public event Action<ReadOnlyMemory<byte>, CompactEndPoint>? MessageReceived;
     public event EventHandler<EventArgs>? StatusChanged;
 
     public IPEndPoint LocalEndPoint => (IPEndPoint?)_defaultPublicUdp?.Client.LocalEndPoint ?? _listenEndPoint;
@@ -125,10 +127,10 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
         SetStatus(ListenerStatus.NotListening);
     }
 
-    public async Task SendAsync(ReadOnlyMemory<byte> buffer, IPEndPoint endpoint)
+    public async ReusableTask SendAsync(ReadOnlyMemory<byte> buffer, CompactEndPoint endpoint)
     {
         var udp = _defaultPublicUdp ?? throw new InvalidOperationException("Shared UDP listener is not started.");
-        await udp.SendAsync(buffer.ToArray(), endpoint).ConfigureAwait(false);
+        await udp.SendAsync(buffer.ToArray(), new IPEndPoint(new IPAddress(endpoint.Address), endpoint.Port)).ConfigureAwait(false);
     }
 
     public void Dispose()
@@ -177,7 +179,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
 
                 if (IsDhtPacket(result.Buffer))
                 {
-                    MessageReceived?.Invoke(result.Buffer, result.RemoteEndPoint);
+                    MessageReceived?.Invoke(result.Buffer, new CompactEndPoint(result.RemoteEndPoint.Address, result.RemoteEndPoint.Port));
                     continue;
                 }
 
@@ -231,7 +233,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
                     continue;
                 }
 
-                MessageReceived?.Invoke(result.Buffer, result.RemoteEndPoint);
+                MessageReceived?.Invoke(result.Buffer, new CompactEndPoint(result.RemoteEndPoint.Address, result.RemoteEndPoint.Port));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

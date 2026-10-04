@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.VirtualSoulfind.v2.Configuration
 {
+    using slskd.VirtualSoulfind.v2.Backends;
     using slskd.VirtualSoulfind.v2.Configuration;
     using slskd.VirtualSoulfind.v2.Planning;
     using Xunit;
@@ -61,8 +62,12 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Configuration
             var limits = new TorrentBackendLimits();
 
             // Assert
-            Assert.Equal(20, limits.MaxDhtQueriesPerMinute);
             Assert.Equal(3, limits.MinSeeders);
+            Assert.False(limits.Enabled);
+            Assert.True(limits.PrivateOnly);
+            Assert.True(limits.DisableDht);
+            Assert.True(limits.DisablePex);
+            Assert.Equal(PrivatePeerSource.Both, limits.AllowedPeerSources);
         }
 
         [Fact]

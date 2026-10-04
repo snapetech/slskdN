@@ -3,6 +3,8 @@
 // </copyright>
 namespace slskd.VirtualSoulfind.v2.Configuration
 {
+    using System.Collections.Generic;
+    using slskd.VirtualSoulfind.v2.Backends;
     using slskd.VirtualSoulfind.v2.Planning;
 
     /// <summary>
@@ -213,19 +215,14 @@ namespace slskd.VirtualSoulfind.v2.Configuration
     }
 
     /// <summary>
-    ///     Torrent backend limits.
+    ///     Torrent backend enablement, discovery policy, and limits.
     /// </summary>
     public sealed class TorrentBackendLimits
     {
         /// <summary>
-        ///     Gets or initializes the maximum number of DHT queries per minute.
+        ///     Gets or initializes whether torrent discovery and fetching are enabled.
         /// </summary>
-        /// <remarks>
-        ///     <para>
-        ///         Default: 20 queries/minute
-        ///     </para>
-        /// </remarks>
-        public int MaxDhtQueriesPerMinute { get; init; } = 20;
+        public bool Enabled { get; init; }
 
         /// <summary>
         ///     Gets or initializes the minimum number of seeders for trust scoring.
@@ -239,6 +236,31 @@ namespace slskd.VirtualSoulfind.v2.Configuration
         ///     </para>
         /// </remarks>
         public int MinSeeders { get; init; } = 3;
+
+        /// <summary>
+        ///     Gets or initializes whether to require private peer discovery.
+        /// </summary>
+        public bool PrivateOnly { get; init; } = true;
+
+        /// <summary>
+        ///     Gets or initializes whether BitTorrent DHT discovery is disabled.
+        /// </summary>
+        public bool DisableDht { get; init; } = true;
+
+        /// <summary>
+        ///     Gets or initializes whether peer exchange is disabled.
+        /// </summary>
+        public bool DisablePex { get; init; } = true;
+
+        /// <summary>
+        ///     Gets or initializes the permitted sources for private torrent peers.
+        /// </summary>
+        public PrivatePeerSource AllowedPeerSources { get; init; } = PrivatePeerSource.Both;
+
+        /// <summary>
+        ///     Gets or initializes manually permitted private peer endpoints in host:port form.
+        /// </summary>
+        public IReadOnlyList<string> InviteList { get; init; } = new List<string>();
     }
 
     /// <summary>

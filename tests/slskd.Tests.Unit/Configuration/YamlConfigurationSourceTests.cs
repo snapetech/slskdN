@@ -80,6 +80,17 @@ public class YamlConfigurationSourceTests
     }
 
     [Fact]
+    public void AddYamlFile_BindsLanDiscoveryAdvertisingSetting()
+    {
+        var options = ReadOptions("""
+            lan_discovery:
+              advertise: true
+            """);
+
+        Assert.True(options.LanDiscovery.Advertise);
+    }
+
+    [Fact]
     public void AddYamlFile_BindsTransfersAliasToGlobalOptions()
     {
         var options = ReadOptions("""

@@ -150,7 +150,7 @@ namespace slskd.VirtualSoulfind.v2.Resolution
                 });
                 return state;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 state = UpdateState(new PlanExecutionState
                 {
@@ -162,6 +162,21 @@ namespace slskd.VirtualSoulfind.v2.Resolution
                     StartedAt = state.StartedAt,
                     CompletedAt = DateTimeOffset.UtcNow,
                     ErrorMessage = "Execution cancelled",
+                });
+                return state;
+            }
+            catch (OperationCanceledException)
+            {
+                state = UpdateState(new PlanExecutionState
+                {
+                    ExecutionId = state.ExecutionId,
+                    TrackId = state.TrackId,
+                    Status = PlanExecutionStatus.Failed,
+                    CurrentStepIndex = state.CurrentStepIndex,
+                    TotalSteps = state.TotalSteps,
+                    StartedAt = state.StartedAt,
+                    CompletedAt = DateTimeOffset.UtcNow,
+                    ErrorMessage = "A resolution step timed out",
                 });
                 return state;
             }
@@ -222,12 +237,12 @@ namespace slskd.VirtualSoulfind.v2.Resolution
 
             var stepCancellationToken = stepTimeoutCts.Token;
 
-            if (step.FallbackMode == PlanStepFallbackMode.FanOut)
-            {
-                return await ExecuteFanOutStepAsync(stepTrackId, step, backend, downloadDir, stepCancellationToken);
-            }
+            var result = step.FallbackMode == PlanStepFallbackMode.FanOut
+                ? await ExecuteFanOutStepAsync(stepTrackId, step, backend, downloadDir, stepCancellationToken)
+                : await ExecuteCascadeStepAsync(stepTrackId, step, backend, downloadDir, stepCancellationToken);
 
-            return await ExecuteCascadeStepAsync(stepTrackId, step, backend, downloadDir, stepCancellationToken);
+            stepCancellationToken.ThrowIfCancellationRequested();
+            return result;
         }
 
         private async Task<StepResult> ExecuteCascadeStepAsync(
@@ -319,6 +334,10 @@ namespace slskd.VirtualSoulfind.v2.Resolution
                 await File.WriteAllBytesAsync(tmpPath, reply.Payload, cancellationToken);
                 return StepResult.Success(tmpPath);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger?.LogError(
@@ -381,6 +400,10 @@ namespace slskd.VirtualSoulfind.v2.Resolution
                 }
 
                 return StepResult.Failure($"Backend {backendType} has no fetch implementation");
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {

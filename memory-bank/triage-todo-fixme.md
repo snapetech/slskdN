@@ -48,15 +48,13 @@ Incremental improvements, refactors, or follow-ups to be scheduled later.
 - **Mesh/ServiceFabric/MeshServiceClient.cs**, **MeshServiceDescriptorValidator.cs**: various
 - **Mesh/MeshCircuit.cs**, **Mesh/ServiceFabric/Services/MeshIntrospectionService.cs**
 - **DhtRendezvous/MeshNeighborRegistry.cs**: "Add PeerVersion to MeshOverlayConnection"
-- **Signals/Swarm/SwarmSignalHandlers.cs**: Look up fallback ack; Enable BT fallback; Cancel job; "Implement actual variant check"
+- **Signals/Swarm/SwarmSignalHandlers.cs**: Cross-peer torrent fallback stays disabled until sender-job activation, transfer ownership, and cancellation/cleanup are implemented end to end. Requests now fail closed without starting a MonoTorrent manager.
 - **Signals/MeshSignalChannelHandler.cs**: "Check if Mesh has route to peer"
-- **Signals/SignalServiceExtensions.cs**: SwarmSignalHandlers localPeerId / factory
 - **SocialFederation**: ActivityPubController inbox/activity processing; WebFingerController library/user actors; FederationService user actor, actor discovery; VirtualSoulfindFederationIntegration tombstone
 - **PodCore**: PodDhtPublisher "placeholder implementation" / "return true as placeholder"; PodMessageBackfill avgDuration, placeholder; PodOpinionAggregator opinion count, recent activity; PodOpinionService contentIds, opinion signing; PodDiscoveryService GetPodFromPublisher "placeholder"; PodAffinityScorer reputation, verified/trusted, banned "placeholder"; PodMessageBackfillController; ContentLinkService
 - **Security/Policies.cs**: PeerId→IP; mesh consensus; NAT abuse
 - **Program.cs**: enableCostBasedScheduling from config
 - **Search/SearchService.cs**: "MusicBrainz API for proper query resolution"
-- **Signals/Swarm/MonoTorrentBitTorrentBackend.cs**: "AddPeersAsync for manual peers (InviteList)"
 - **VirtualSoulfind/v2/Backends/TorrentBackend.cs**: "T-V2-P4-04 - actual torrent health check"
 - **VirtualSoulfind/v2/Backends/LanBackend.cs**: "T-V2-P4-06 - SMB/NFS reachability"
 - **VirtualSoulfind/v2/Backends/MeshDhtBackend.cs**: "T-V2-P4-03 - mesh node reachability"

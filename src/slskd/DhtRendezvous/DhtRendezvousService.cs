@@ -35,7 +35,10 @@ using slskd.Mesh.Transport;
 /// </summary>
 public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousService
 {
+    private const int DefaultBootstrapRouterPort = 6881;
     private readonly object _lifecycleSync = new();
+    private readonly object _peerDiscoverySync = new();
+    private readonly SemaphoreSlim _announceLock = new(1, 1);
     private readonly ILogger<DhtRendezvousService> _logger;
     private readonly IMeshOverlayServer _overlayServer;
     private readonly IMeshOverlayConnector _overlayConnector;
@@ -49,6 +52,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
     private readonly IOptions<OverlayOptions>? _overlayOptionsMonitor;
     private readonly IOptions<MeshOptions>? _meshOptions;
     private readonly DataOverlayOptions _dataOverlayOptions;
+    private Task? _activePeerDiscoveryTask;
     private volatile int _vpnAdvertisedOverlayPort = 0;
 
     // MonoTorrent DHT components
@@ -136,7 +140,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                         _logger.LogInformation(
                             "VPN primary forwarded port changed: {Prev} -> {New}; re-announcing to DHT",
                             prev, port);
-                        _ = AnnounceAsync();
+                        QueueAnnounceAfterVpnPortChange();
                     }
                 };
             }
@@ -162,7 +166,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                         _logger.LogInformation(
                             "VPN port forward for overlay port {Local} changed: {Prev} -> {New}; re-announcing to DHT",
                             _options.OverlayPort, prev, forward.PublicPort);
-                        _ = AnnounceAsync();
+                        QueueAnnounceAfterVpnPortChange();
                     }
                 };
             }
@@ -266,14 +270,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
 
         if (backgroundInitializationTask != null)
         {
-            try
-            {
-                await backgroundInitializationTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected during shutdown.
-            }
+            await backgroundInitializationTask.ConfigureAwait(false);
         }
 
         backgroundInitializationCts?.Dispose();
@@ -521,15 +518,16 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                 }
             }
 
-            var bootstrapRouters = _options.BootstrapRouters?.Where(router => !string.IsNullOrWhiteSpace(router)).ToArray() ?? Array.Empty<string>();
+            var bootstrapRouters = CreateBootstrapRouters(_options.BootstrapRouters);
+            await dhtEngine.SetBootstrapRoutersAsync(bootstrapRouters);
 
             if (initialNodes.Length > 0)
             {
-                await dhtEngine.StartAsync(initialNodes, bootstrapRouters);
+                await dhtEngine.StartAsync(initialNodes);
             }
             else
             {
-                await dhtEngine.StartAsync(bootstrapRouters);
+                await dhtEngine.StartAsync();
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -612,6 +610,15 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                overlayOptions.Enable &&
                (overlayOptions.ListenPort == dhtOptions.DhtPort ||
                 ShouldProxyQuicOnSharedDhtPort(dhtOptions, overlayOptions));
+    }
+
+    internal static IReadOnlyList<BootstrapRouter> CreateBootstrapRouters(IEnumerable<string>? configuredRouters)
+    {
+        return configuredRouters?
+            .Where(router => !string.IsNullOrWhiteSpace(router))
+            .Select(router => new BootstrapRouter(router.Trim(), DefaultBootstrapRouterPort))
+            .Distinct()
+            .ToArray() ?? Array.Empty<BootstrapRouter>();
     }
 
     internal static bool ShouldProxyQuicOnSharedDhtPort(DhtRendezvousOptions dhtOptions, OverlayOptions overlayOptions)
@@ -901,29 +908,32 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             return 0;
         }
 
-        if (_dhtEngine is null || _dhtEngine.State != DhtState.Ready)
+        var dhtEngine = _dhtEngine;
+        if (dhtEngine is null || dhtEngine.State != DhtState.Ready)
         {
-            _logger.LogWarning("Cannot discover peers - DHT not ready (state: {State})", _dhtEngine?.State);
+            _logger.LogWarning("Cannot discover peers - DHT not ready (state: {State})", dhtEngine?.State);
             return 0;
         }
 
         _logger.LogInformation("Running DHT peer discovery (get_peers) - DHT state: {State}, nodes: {NodeCount}",
-            _dhtEngine.State, _dhtEngine.NodeCount);
+            dhtEngine.State, dhtEngine.NodeCount);
         _lastDiscoveryTime = DateTimeOffset.UtcNow;
 
         var beforeCount = _totalPeersDiscovered;
 
-        // Query all rendezvous infohashes
-        // GetPeers is non-blocking; results come via PeersFound event
-        _logger.LogInformation("Querying DHT for rendezvous infohash 1: {Hash}", MainInfohash);
-        _dhtEngine.GetPeers(MainInfohash);
-        _logger.LogInformation("Querying DHT for rendezvous infohash 2: {Hash}", BackupInfohash1);
-        _dhtEngine.GetPeers(BackupInfohash1);
-        _logger.LogInformation("Querying DHT for rendezvous infohash 3: {Hash}", BackupInfohash2);
-        _dhtEngine.GetPeers(BackupInfohash2);
+        // Query all rendezvous infohashes. MonoTorrent 3.9 exposes these as
+        // asynchronous operations; keep one bounded batch in flight so repeated
+        // discovery requests do not pile up while the DHT is slow.
+        var lookupTask = StartPeerDiscoveryTask(dhtEngine);
 
-        // Wait a bit for responses
-        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+        try
+        {
+            await lookupTask.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogDebug("DHT peer discovery is still in progress after the 5 second observation window");
+        }
 
         var newPeers = (int)(_totalPeersDiscovered - beforeCount);
         _logger.LogInformation("DHT discovery found {Count} new peers (total: {Total})", newPeers, _totalPeersDiscovered);
@@ -931,23 +941,24 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         return newPeers;
     }
 
-    public Task AnnounceAsync(CancellationToken cancellationToken = default)
+    public async Task AnnounceAsync(CancellationToken cancellationToken = default)
     {
         if (_options.LanOnly)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         if (!IsBeaconCapable)
         {
             _logger.LogWarning("Cannot announce - not beacon capable");
-            return Task.CompletedTask;
+            return;
         }
 
-        if (_dhtEngine is null || _dhtEngine.State != DhtState.Ready)
+        var dhtEngine = _dhtEngine;
+        if (dhtEngine is null || dhtEngine.State != DhtState.Ready)
         {
-            _logger.LogInformation("DHT announce deferred until ready (state: {State})", _dhtEngine?.State);
-            return Task.CompletedTask;
+            _logger.LogInformation("DHT announce deferred until ready (state: {State})", dhtEngine?.State);
+            return;
         }
 
         var advertisedOverlayPort = _vpnAdvertisedOverlayPort > 0
@@ -957,15 +968,82 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         _logger.LogDebug("Announcing to DHT (announce_peer) with overlay port {Port}", advertisedOverlayPort);
         _lastAnnounceTime = DateTimeOffset.UtcNow;
 
-        // Announce on all rendezvous infohashes
-        _dhtEngine.Announce(MainInfohash, advertisedOverlayPort);
-        _dhtEngine.Announce(BackupInfohash1, advertisedOverlayPort);
-        _dhtEngine.Announce(BackupInfohash2, advertisedOverlayPort);
+        await _announceLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // Announce sequentially to avoid issuing concurrent DHT traversals.
+            foreach (var infoHash in new[] { MainInfohash, BackupInfohash1, BackupInfohash2 })
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await dhtEngine.AnnounceAsync(infoHash, advertisedOverlayPort).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _announceLock.Release();
+        }
 
         _logger.LogInformation("Announced overlay port {Port} to DHT on {Count} infohashes",
             advertisedOverlayPort, 3);
+    }
 
-        return Task.CompletedTask;
+    private Task StartPeerDiscoveryTask(DhtEngine dhtEngine)
+    {
+        lock (_peerDiscoverySync)
+        {
+            if (_activePeerDiscoveryTask is { IsCompleted: false })
+            {
+                return _activePeerDiscoveryTask;
+            }
+
+            _activePeerDiscoveryTask = QueryRendezvousInfohashesAsync(dhtEngine);
+            return _activePeerDiscoveryTask;
+        }
+    }
+
+    private async Task QueryRendezvousInfohashesAsync(DhtEngine dhtEngine)
+    {
+        var infoHashes = new[] { MainInfohash, BackupInfohash1, BackupInfohash2 };
+        for (var index = 0; index < infoHashes.Length; index++)
+        {
+            if (dhtEngine.Disposed)
+            {
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("Querying DHT for rendezvous infohash {Index}: {Hash}", index + 1, infoHashes[index]);
+                await dhtEngine.GetPeersAsync(infoHashes[index]).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                if (dhtEngine.Disposed)
+                {
+                    _logger.LogDebug(ex, "DHT peer discovery stopped because the engine was disposed");
+                    return;
+                }
+
+                _logger.LogWarning(ex, "DHT peer discovery failed for rendezvous infohash {Hash}", infoHashes[index]);
+            }
+        }
+    }
+
+    private void QueueAnnounceAfterVpnPortChange()
+    {
+        _ = AnnounceAfterVpnPortChangeAsync();
+    }
+
+    private async Task AnnounceAfterVpnPortChangeAsync()
+    {
+        try
+        {
+            await AnnounceAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "DHT re-announce failed after VPN forwarded-port change");
+        }
     }
 
     public IReadOnlyList<IPEndPoint> GetDiscoveredPeers()
