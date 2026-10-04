@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1497. Ignore Only Already-Applied SQLite Schema Changes (2026-10-04)
+
+**What went wrong:** `UserDataServiceCollectionExtensions` treated every
+`ALTER TABLE` failure as a duplicate-column result. Database read-only, locking,
+corruption, and missing-table errors were also swallowed, allowing startup to
+continue with columns required by collection and share services absent.
+
+**Why:** Best-effort migration catches conflated the expected idempotency case
+with genuine schema and storage failures.
+
+**Prevention:** Inspect the current SQLite schema before applying a missing
+column migration. Ignore only an already-present column; propagate real DDL
+failures so startup reports the problem at the migration boundary.
+
 ### 0z1496. Preserve Discovery Cancellation Around Per-Peer Verification (2026-10-04)
 
 **What went wrong:** `SourceDiscoveryService.VerifyFlacHashesAsync` caught every
