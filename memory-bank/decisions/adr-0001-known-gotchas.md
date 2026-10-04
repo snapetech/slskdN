@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1552. Qualify Same-Named Configuration Types In Tests (2026-10-04)
+
+**What went wrong:** A bootstrap test imported both the core and VirtualSoulfind
+v2 configuration namespaces, each of which defines `VirtualSoulfindOptions`.
+The new test code did not compile because its references were ambiguous.
+
+**Why:** The tests use the short type name even though configuration types are
+split across product and feature namespaces.
+
+**Prevention:** When a test imports multiple option namespaces with repeated
+type names, use an explicit namespace alias or fully qualified type name.
+
 ### 0z1550. Match Build-Task Packages To The Repository TFM (2026-10-04)
 
 **What went wrong:** Updating the build-task project to Microsoft.Build
