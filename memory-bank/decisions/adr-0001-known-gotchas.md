@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1496. Preserve Discovery Cancellation Around Per-Peer Verification (2026-10-04)
+
+**What went wrong:** `SourceDiscoveryService.VerifyFlacHashesAsync` caught every
+exception from `GetContentHashAsync`, including cancellation requested by the
+discovery worker. That let the batch keep unwinding as an ordinary peer failure
+instead of promptly returning control to the worker's cancellation boundary.
+
+**Why:** A broad per-peer error handler intended to isolate remote-peer failures
+did not distinguish expected peer errors from cancellation owned by the service.
+
+**Prevention:** Rethrow `OperationCanceledException` when the method's token is
+cancelled before handling other per-peer failures. Test cancellation at the
+service boundary and confirm the loop exits promptly.
+
 ### 0z1495. Qualify System.IO Directory Calls In Soulseek Tests (2026-10-04)
 
 **What went wrong:** A test fixture importing `Soulseek` used unqualified
