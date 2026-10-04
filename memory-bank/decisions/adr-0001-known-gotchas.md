@@ -36083,3 +36083,33 @@ MSBuild could load the custom task against its own runtime assemblies.
 major/minor line bundled by the pinned SDK and verify the package target
 framework matches the task project's target. Build and invoke the task with
 the pinned SDK after changing either version.
+
+### 0z1451. Use MSBuild Task Success Instead Of A Missing ExitCode Output (2026-10-03)
+
+**What went wrong:** The app's static-analysis, coverage, and regression
+targets requested an `ExitCode` output from custom MSBuild tasks that expose
+no such property. Invoking the static-analysis target therefore ended with
+`MSB4131` after task execution, obscuring the task's real success/failure
+result.
+
+**Why:** A process-style exit-code output was assumed for in-process MSBuild
+tasks. Their contract is the Boolean returned by `Execute()`; task errors and
+that Boolean already determine target success.
+
+**Prevention:** Bind `<Output TaskParameter=...>` only to a public task output
+property marked for MSBuild output. For ordinary custom tasks, let `Execute()`
+and logged errors determine target success and test the target by invoking it.
+
+### 0z1452. Use Composite Format Tokens In MSBuild Task Logs (2026-10-03)
+
+**What went wrong:** A custom MSBuild task passed named placeholders such as
+`{Assembly}` and `{Message}` to `Log.LogWarning` with separate arguments.
+MSBuild attempted composite formatting, rejected the named tokens, and threw
+`FormatException` while reporting the original analysis failure.
+
+**Why:** Structured-logger placeholder syntax was used with the MSBuild task
+logging API, whose formatted overload expects numeric composite tokens.
+
+**Prevention:** Use an interpolated string with the single-string logging
+overload, or use numeric composite tokens with matching arguments. Exercise
+error-reporting paths so diagnostics do not throw while reporting failures.
