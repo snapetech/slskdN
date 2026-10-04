@@ -26,7 +26,7 @@
 
 ## Active Development
 
-### Post-.336 reliability and analyzer follow-up — 2026-10-04
+### Post-.336 reliability, .337 release, and analyzer follow-up — 2026-10-04
 
 - [x] Fix redirected process stream deadlocks and child cleanup in SongID,
   AudioSketch, Chromaprint fingerprints, perceptual hashing, Soulfind bridge,
@@ -49,11 +49,27 @@
   `LanOnly_StartIsIdempotentAndStopReleasesTransport`: the test's shared
   five-second budget expired under full-suite load, while it passed in 74 ms
   alone. The bounded startup/shutdown test budget is now 30 seconds, and the
-  full Release unit suite passes 5,542/5,542. The `.337` release gate must rerun.
+  full Release unit suite passes 5,542/5,542. The guarded `.337` release gate
+  then passed on the immutable tag.
 - [x] Verify exact .336 Launchpad publication. The source and amd64 build
   succeeded; the GitHub job timed out after its 5,400-second wait, then the
   exact Jammy binary appeared as Published shortly afterward. The shared wait
   default is now three hours to cover that observed publication delay.
+- [x] Resolve the MonoTorrent framework question. Every first-party project
+  under `src`, `tests`, and `tools` targets `net10.0`; MonoTorrent
+  `3.9.0-alpha.unstable.rev0000` provides a compatible `net8.0` asset, and no
+  active `.NET 6` project target or package asset remains.
+- [x] Fix Player transcode cancellation cleanup. FFmpeg stderr now drains
+  independently of request cancellation, and the process tree is stopped and
+  reaped before stream slots are released. A Linux process-backed regression
+  writes beyond pipe capacity before starting the response stream, then
+  cancels and checks process exit. Focused coverage passes 1/1; full `dotnet
+  test` passes 5,906 tests (74 application, 5,543 unit, 289 integration), and
+  `./bin/lint` passes.
+- [x] Cut stable `.337` through the guarded release helper. Its hosted Release
+  Gate passed, and `scripts/verify-release-artifacts.sh` verified all six
+  archives, support assets, checksums, Linux version output, VPN helper, and
+  bundled Web marker. Docker and PPA publisher jobs are still running.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings; T-908 fallback lifecycle and distributed evidence
   requirements remain open.

@@ -1,4 +1,39 @@
-## Current state — Post-.336 reliability fixes and .337 release prep — 2026-10-04 20:55 UTC
+## Current state — Verify .337; prepare .338 transcode cleanup — 2026-10-04 21:22 UTC
+
+Stable release `.337` is tagged as
+[`2026100420-slskdn.337`](https://github.com/snapetech/slskdN/releases/tag/2026100420-slskdn.337)
+from validated commit `e4c7ab4fa`. Its hosted Release Gate passed, and the
+release assets are published. `scripts/verify-release-artifacts.sh` verified
+all six archives, support assets, checksums, Linux version output, VPN helper,
+and bundled Web marker. Docker and PPA publisher jobs are still running.
+
+The MonoTorrent question is resolved by the active project files: every
+first-party project under `src`, `tests`, and `tools` targets `net10.0`.
+MonoTorrent `3.9.0-alpha.unstable.rev0000` supplies a compatible `net8.0`
+package asset. No active `.NET 6` project target or package asset remains, so
+there is no framework upgrade to make.
+
+The next release change fixes Player transcode cleanup. FFmpeg stderr now
+drains with `CancellationToken.None`; a `finally` path kills the process tree
+when needed and awaits both process exit and stderr completion before the
+stream-slot limiters are released. A Linux process-backed test writes 65,536
+diagnostic lines before streaming, then cancels and verifies the process has
+exited. Focused coverage passes 1/1. Full `dotnet test` passes 5,906 tests
+(74 application, 5,543 unit, 289 integration), and `./bin/lint` passes.
+
+The `.338` release fragment and exact changelog section are prepared and
+validated with one meaningful highlight. Next: commit and push the transcode
+fix and records, wait for the `.337` Docker publisher to finish, run the
+guarded `.338` release gate, then verify its published assets.
+
+The broader remediation remains open: T-908 cross-peer fallback sender and
+receiver lifecycle; global Party ID claims across disjoint DHT views; actual
+background-tab timer throttling; WebKit Orca and physical assistive-technology
+speech; representative WAN and sustained-resource measurements; the original
+frontend `ERR_NETWORK_CHANGED` cause; and broad bug-council candidate queues.
+Do not claim these are solved by local, browser, or release checks.
+
+## Previous state — Post-.336 reliability fixes and .337 release prep — 2026-10-04 20:55 UTC
 
 The guarded stable release is published as
 [`2026100417-slskdn.336`](https://github.com/snapetech/slskdN/releases/tag/2026100417-slskdn.336),
@@ -61,7 +96,7 @@ load-tolerant 30-second bound. Next: push the timeout correction and rerun the
 guarded release gate; cut `.337` only after it passes. Continue remaining
 code-backed remediation and evidence work after this release batch.
 
-## Current state — Continue whole-product remediation — 2026-10-04 14:12 UTC
+## Previous state — Continue whole-product remediation — 2026-10-04 14:12 UTC
 
 The web document now retains an accessible loading status and manual reload
 link inside `#root` until React mounts. The production build includes this

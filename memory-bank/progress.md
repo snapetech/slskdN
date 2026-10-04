@@ -17489,3 +17489,29 @@ Documented the scheduler-sensitive deadline gotcha and raised this test's
 bounded budget to 30 seconds. The complete Release unit suite then passed
 5,542/5,542. No tag was created; the guarded release gate must be rerun after
 pushing the test correction and records.
+
+## Update 2026-10-04 21:25 UTC — Verify .337 and fix transcode cancellation
+
+The `.337` guarded hosted Release Gate passed. The release artifact verifier
+confirmed all six archives, checksums, support assets, Linux version output,
+VPN helper, and bundled Web marker. Docker Main and PPA publication jobs are
+still running; wait for Docker Main to finish before starting another stable
+image publication.
+
+Confirmed every first-party project under `src`, `tests`, and `tools` targets
+`net10.0`. MonoTorrent `3.9.0-alpha.unstable.rev0000` supplies a compatible
+`net8.0` asset; there is no active `.NET 6` project target or asset to upgrade.
+
+Fixed Player transcode cancellation cleanup: stderr drains independently of
+the request token, and a `finally` path kills and reaps the process tree and
+observes the stderr drain before releasing stream limiters. A Linux
+process-backed test emits 65,536 stderr lines before streaming, then cancels
+and verifies the process exited. The focused regression passes 1/1; full
+`dotnet test` passes 5,906 (74 application, 5,543 unit, 289 integration), and
+`./bin/lint` passes. The `.338` release fragment and changelog highlight are
+prepared; release-note validation passes with one bullet.
+
+T-908 fallback job lifecycle, global DHT Party ID ownership, actual
+background-tab throttling, WebKit Orca and physical assistive-technology
+speech, representative WAN and sustained-resource measurements, the original
+frontend `ERR_NETWORK_CHANGED` cause, and broad bug-council queues remain open.
