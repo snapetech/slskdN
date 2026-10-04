@@ -4,6 +4,24 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1557. Count Immediate Rate-Limiter Callbacks Against The Concurrency Limit (2026-10-04)
+
+**What went wrong:** `RateLimiter.Invoke` ran its first callback directly without
+acquiring the configured concurrency slot. If that callback ran longer than the
+interval, a timer callback could execute a staged callback concurrently even
+with `concurrencyLimit: 1`. The staged delegate was also read and cleared
+separately from concurrent writes, so an invocation could be lost at a timer
+boundary.
+
+**Why:** The immediate path was treated as separate from timer-driven execution,
+and the latest-value staging field had no synchronization shared by its readers
+and writers.
+
+**Prevention:** Apply the same execution gate to immediate, timer, and
+flush-on-dispose callbacks. Synchronize replacement and extraction of the
+staged delegate, and cover a blocked first callback plus an invocation racing a
+timer tick.
+
 ### 0z1556. Give Background Initialization Tests A Load-Tolerant Deadline (2026-10-04)
 
 **What went wrong:** The LAN-only DHT startup regression used one five-second
