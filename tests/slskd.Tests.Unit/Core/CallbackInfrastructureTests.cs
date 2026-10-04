@@ -5,6 +5,8 @@ namespace slskd.Tests.Unit.Core;
 
 using System;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Serilog.Events;
 using Xunit;
 
@@ -56,6 +58,77 @@ public class CallbackInfrastructureTests
 
         Assert.Equal(1, attempts);
         Assert.Equal(1, successfulTicks);
+    }
+
+    [Fact]
+    public void RateLimiter_ConcurrencyLimit_IncludesImmediateAndStagedCallbacks()
+    {
+        using var rateLimiter = new RateLimiter(interval: 60_000, concurrencyLimit: 1);
+        using var firstStarted = new ManualResetEventSlim();
+        using var releaseFirst = new ManualResetEventSlim();
+        using var secondStarted = new ManualResetEventSlim();
+        var activeCallbacks = 0;
+        var maximumConcurrentCallbacks = 0;
+
+        void EnterCallback()
+        {
+            var active = Interlocked.Increment(ref activeCallbacks);
+            int previousMaximum;
+            while (active > (previousMaximum = Volatile.Read(ref maximumConcurrentCallbacks)) &&
+                Interlocked.CompareExchange(ref maximumConcurrentCallbacks, active, previousMaximum) != previousMaximum)
+            {
+            }
+        }
+
+        var elapsedMethod = typeof(RateLimiter).GetMethod(
+            "Timer_Elapsed",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("RateLimiter.Timer_Elapsed method was not found.");
+
+        var firstTask = Task.Run(() => rateLimiter.Invoke(() =>
+        {
+            EnterCallback();
+            firstStarted.Set();
+            try
+            {
+                releaseFirst.Wait();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref activeCallbacks);
+            }
+        }));
+
+        try
+        {
+            Assert.True(firstStarted.Wait(TimeSpan.FromSeconds(2)));
+            rateLimiter.Invoke(() =>
+            {
+                EnterCallback();
+                try
+                {
+                    secondStarted.Set();
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref activeCallbacks);
+                }
+            });
+
+            elapsedMethod.Invoke(rateLimiter, [null, EventArgs.Empty]);
+
+            Assert.False(secondStarted.IsSet);
+        }
+        finally
+        {
+            releaseFirst.Set();
+        }
+
+        Assert.True(firstTask.Wait(TimeSpan.FromSeconds(2)));
+        elapsedMethod.Invoke(rateLimiter, [null, EventArgs.Empty]);
+
+        Assert.True(secondStarted.IsSet);
+        Assert.Equal(1, maximumConcurrentCallbacks);
     }
 
     [Fact]

@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Rate-limited transfer and search updates now honor their concurrency limit
+  from the first callback and retain staged updates across timer ticks.
 - Resolver cancellation now reports a canceled execution instead of a failed
   candidate, and canceled torrent fetches stop and remove their active manager.
 - Experimental swarm downloads now keep caller job IDs out of filesystem

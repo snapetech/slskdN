@@ -30,6 +30,10 @@ namespace slskd
     /// </summary>
     public class RateLimiter : IDisposable
     {
+        private readonly object _sync = new();
+        private readonly SemaphoreSlim? _executionGate;
+        private readonly ThreadLocal<int> _executionDepth = new(() => 0);
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="RateLimiter"/> class.
         /// </summary>
@@ -56,7 +60,7 @@ namespace slskd
                     throw new ArgumentOutOfRangeException(nameof(concurrencyLimit));
                 }
 
-                ConcurrentExecutionLimit = concurrencyLimit.Value;
+                _executionGate = new SemaphoreSlim(concurrencyLimit.Value, concurrencyLimit.Value);
             }
         }
 
@@ -66,7 +70,6 @@ namespace slskd
         private Action? Staged { get; set; }
         private System.Timers.Timer Timer { get; set; }
         private int _activeExecutions;
-        private int? ConcurrentExecutionLimit { get; }
 
         /// <summary>
         ///     Releases all resources used by the <see cref="Component"/>.
@@ -84,15 +87,56 @@ namespace slskd
         /// <param name="action">The delegate to invoke.</param>
         public void Invoke(Action action)
         {
-            if (!Init)
+            var executeImmediately = false;
+            lock (_sync)
             {
-                Init = true;
-                Timer.Start();
-                action();
-                return;
+                if (Disposed)
+                {
+                    throw new ObjectDisposedException(nameof(RateLimiter));
+                }
+
+                if (!Init)
+                {
+                    executeImmediately = TryAcquireExecutionSlot();
+                    if (!executeImmediately)
+                    {
+                        Staged = action;
+                    }
+
+                    try
+                    {
+                        Timer.Start();
+                    }
+                    catch
+                    {
+                        Init = false;
+                        if (executeImmediately)
+                        {
+                            ReleaseExecutionSlot();
+                        }
+
+                        throw;
+                    }
+
+                    Init = true;
+                }
+                else
+                {
+                    Staged = action;
+                }
             }
 
-            Staged = action;
+            if (executeImmediately)
+            {
+                try
+                {
+                    Execute(action);
+                }
+                finally
+                {
+                    ReleaseExecutionSlot();
+                }
+            }
         }
 
         /// <summary>
@@ -100,39 +144,47 @@ namespace slskd
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (!Disposed)
+            Action? staged;
+            lock (_sync)
             {
-                if (disposing)
+                if (Disposed)
                 {
-                    Exception? flushException = null;
-
-                    try
-                    {
-                        // if an action is staged, invoke it to 'flush'
-                        if (FlushOnDispose)
-                        {
-                            var staged = Staged;
-                            Staged = null;
-                            staged?.Invoke();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        flushException = ex;
-                    }
-                    finally
-                    {
-                        Timer.Elapsed -= Timer_Elapsed;
-                        Common.TimerDisposer.DisposeWithWait(Timer);
-                    }
-
-                    if (flushException is not null)
-                    {
-                        throw flushException;
-                    }
+                    return;
                 }
 
                 Disposed = true;
+                staged = disposing && FlushOnDispose ? Staged : null;
+                Staged = null;
+                if (disposing)
+                {
+                    Timer.Elapsed -= Timer_Elapsed;
+                }
+            }
+
+            if (disposing)
+            {
+                Common.TimerDisposer.DisposeWithWait(Timer);
+
+                if (staged is not null)
+                {
+                    var acquiredExecutionSlot = _executionDepth.Value == 0;
+                    if (acquiredExecutionSlot)
+                    {
+                        AcquireExecutionSlot();
+                    }
+
+                    try
+                    {
+                        Execute(staged);
+                    }
+                    finally
+                    {
+                        if (acquiredExecutionSlot)
+                        {
+                            ReleaseExecutionSlot();
+                        }
+                    }
+                }
             }
         }
 
@@ -140,13 +192,27 @@ namespace slskd
         {
             if (TryAcquireExecutionSlot())
             {
+                Action? staged;
+                lock (_sync)
+                {
+                    if (Disposed)
+                    {
+                        ReleaseExecutionSlot();
+                        return;
+                    }
+
+                    staged = Staged;
+                    Staged = null;
+                }
+
                 try
                 {
-                    var staged = Staged;
-                    Staged = null;
                     try
                     {
-                        staged?.Invoke();
+                        if (staged is not null)
+                        {
+                            Execute(staged);
+                        }
                     }
                     catch (OperationCanceledException ex)
                     {
@@ -166,26 +232,40 @@ namespace slskd
 
         private bool TryAcquireExecutionSlot()
         {
-            if (!ConcurrentExecutionLimit.HasValue)
+            if (_executionGate is not null && !_executionGate.Wait(0))
             {
-                return true;
+                return false;
             }
 
-            var active = Interlocked.Increment(ref _activeExecutions);
-            if (active <= ConcurrentExecutionLimit.Value)
-            {
-                return true;
-            }
+            Interlocked.Increment(ref _activeExecutions);
+            return true;
+        }
 
-            Interlocked.Decrement(ref _activeExecutions);
-            return false;
+        private void AcquireExecutionSlot()
+        {
+            _executionGate?.Wait();
+            Interlocked.Increment(ref _activeExecutions);
         }
 
         private void ReleaseExecutionSlot()
         {
-            if (ConcurrentExecutionLimit.HasValue)
+            Interlocked.Decrement(ref _activeExecutions);
+            if (_executionGate is not null)
             {
-                Interlocked.Decrement(ref _activeExecutions);
+                _executionGate.Release();
+            }
+        }
+
+        private void Execute(Action action)
+        {
+            _executionDepth.Value++;
+            try
+            {
+                action();
+            }
+            finally
+            {
+                _executionDepth.Value--;
             }
         }
     }

@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Transfer updates
+
+- Rate-limited transfer and search updates now honor their concurrency limit
+  from the first callback and retain staged updates across timer ticks.
+
 ## [2026100421-slskdn.338] — 2026-10-04
 
 ### Player streaming
