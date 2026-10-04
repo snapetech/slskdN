@@ -54,6 +54,20 @@ from its existing path after the task project has rebuilt that file.
 configuration, rerun the opt-in target with `--disable-build-servers` and
 confirm the reported finding count reflects the current task assembly.
 
+### 0z1474. Check Async Naming Tokens At Identifier Boundaries (2026-10-04)
+
+**What went wrong:** The analyzer reported valid Task-returning names such as
+`SynchronizeAsync` and `TrySyncWithPeerAsync` as suspicious because it searched
+for the substring `Sync` anywhere in the method name.
+
+**Why:** A substring match does not distinguish the action “synchronize” or a
+`Sync` verb followed by the `Async` suffix from a method whose name ends in
+`Sync` while returning a task.
+
+**Prevention:** Check the actual naming boundary the rule is intended to
+enforce. For this rule, report Task-returning methods whose names end in
+`Sync`; do not flag an internal substring or an `Async`-suffixed action name.
+
 ### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
 
 **What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
