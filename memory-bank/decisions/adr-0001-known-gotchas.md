@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1522. Fence Port-Forwarder Startup And Tunnel Registration Against Disposal (2026-10-04)
+
+**What went wrong:** `LocalPortForwarder.Dispose` set its disposed flag after
+clearing the active listeners and connections, while `StartForwardingAsync`
+never checked that flag. A new listener or late tunnel response could therefore
+become active after shutdown had passed its cleanup snapshot.
+
+**Why:** Startup, tunnel registration, and the disposal snapshot were treated
+as independent operations even though they share the same service lifetime.
+
+**Prevention:** Use one lifecycle gate for starting listeners, registering
+completed tunnel opens, and taking the disposal snapshot. Reject startup after
+disposal, and close a tunnel that finishes opening after the parent is closed.
+Cover start-after-dispose and concurrent startup/disposal.
+
 ### 0z1521. Make Stream-Release Disposal Atomic Across Sync And Async Paths (2026-10-04)
 
 **What went wrong:** `ReleaseOnDisposeStream` guarded both synchronous and
