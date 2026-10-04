@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1555. Use The Release Fragment Audience Vocabulary (2026-10-04)
+
+**What went wrong:** A security-related release fragment used
+`audience: admins`, but the repository validator only accepts `users`,
+`operators`, or both.
+
+**Why:** The fragment used an intuitive product role instead of the release
+schema's fixed vocabulary, so generation succeeded but validation rejected the
+release notes.
+
+**Prevention:** Copy the audience values from a validated fragment or the
+release-note schema, and run the parser and release-note validator before
+committing a new fragment.
+
 ### 0z1554. Search Existing Release Fragments Before Adding A Note (2026-10-04)
 
 **What went wrong:** Preparing the release added a second user-facing fragment
