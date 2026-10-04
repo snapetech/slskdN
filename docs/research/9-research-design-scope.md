@@ -5,9 +5,9 @@
 > separate slskdN mesh DHT over the overlay. See [DHT and Mesh
 > Architecture](../DHT_MESH_ARCHITECTURE.md).
 
-> **✅ Research (9) order complete.**  
-> **Tasks**: T-901, T-902, T-903, T-906, T-907, T-908, T-911, T-912, T-913  
-> **Design/scope:** this document. **Order:** T-912 → T-911 → T-913 → T-901 → T-902 → T-903 → T-906 → T-907 → T-908. **All implemented.**  
+> **✅ Research (9) design order complete.**
+> **Tasks**: T-901, T-902, T-903, T-906, T-907, T-908, T-911, T-912, T-913
+> **Design/scope:** this document. **Order:** T-912 → T-911 → T-913 → T-901 → T-902 → T-903 → T-906 → T-907 → T-908. T-908's private resolver fetch and policy are implemented; its cross-peer fallback lifecycle remains deferred.
 > See `memory-bank/tasks.md` § Medium Priority (Research implementation).
 
 ---
@@ -123,7 +123,7 @@ These 9 tasks are **research / future-enhancement** items. Implementation is opt
 
 **One-line**: Use a gated MonoTorrent backend for torrent candidate fetching and private swarm fallback.
 
-**Implemented:** `MonoTorrentBitTorrentBackend` handles fetch-by-infohash/magnet and prepares private fallback managers. `TorrentBackend` filters by private provenance and validates magnet syntax. `PrivateOnly` strips tracker/web-seed URLs, disables DHT/PEX, and limits manual peers to configured overlay/invite sources. Torrent settings are exposed under `virtualSoulfindV2.backends.torrent` and default to disabled.
+**Implemented:** `MonoTorrentBitTorrentBackend` handles fetch-by-infohash/magnet. `TorrentBackend` filters by private provenance and validates magnet syntax. `PrivateOnly` strips tracker/web-seed URLs, disables DHT/PEX, and limits manual peers to configured overlay/invite sources. Torrent settings are exposed under `virtualSoulfindV2.backends.torrent` and default to disabled. The signal handler rejects cross-peer fallback requests without starting a manager because the sender/job lifecycle is not connected.
 
 **Library:** MonoTorrent `3.9.0-alpha.unstable.rev0000` targets `net8.0`, which NuGet considers compatible with this application's `net10.0` target. The dependency is a prerelease and introduced API changes migrated in the DHT and socket listener paths.
 

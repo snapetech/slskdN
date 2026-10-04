@@ -82,7 +82,8 @@ public class SwarmRequestBtFallbackTests
             .ReturnsAsync(new SwarmJob(
                 "job-123",
                 new SwarmFile("content-123", "0123456789abcdef0123456789abcdef01234567", 1),
-                Array.Empty<SwarmSource>()));
+                Array.Empty<SwarmSource>(),
+                "variant-abc"));
         fixture.SecurityPolicyEngineMock
             .Setup(engine => engine.EvaluateAsync(It.IsAny<SecurityContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SecurityDecision(true));
@@ -112,7 +113,8 @@ public class SwarmRequestBtFallbackTests
             .ReturnsAsync(new SwarmJob(
                 "job-123",
                 new SwarmFile("content-123", "0123456789abcdef0123456789abcdef01234567", 1),
-                Array.Empty<SwarmSource>()));
+                Array.Empty<SwarmSource>(),
+                "variant-abc"));
         fixture.SecurityPolicyEngineMock
             .Setup(engine => engine.EvaluateAsync(It.IsAny<SecurityContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SecurityDecision(false, "policy denied"));
@@ -122,6 +124,29 @@ public class SwarmRequestBtFallbackTests
         var ack = Assert.Single(fixture.SentSignals);
         Assert.Equal("security-denied", ack.Body["reason"]);
         Assert.False(Assert.IsType<bool>(ack.Body["accepted"]));
+        fixture.BitTorrentBackendMock.Verify(backend => backend.IsSupported(), Times.Never);
+    }
+
+    [Fact]
+    public async Task RequestBtFallback_WhenVariantDoesNotBelongToJob_RejectsBeforePolicyEvaluation()
+    {
+        using var fixture = new SignalSystemTestFixture();
+        var signalBus = Assert.IsType<SignalBus>(fixture.ServiceProvider.GetRequiredService<ISignalBus>());
+        fixture.JobStoreMock
+            .Setup(store => store.TryGetJobAsync("job-123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SwarmJob(
+                "job-123",
+                new SwarmFile("content-123", "0123456789abcdef0123456789abcdef01234567", 1),
+                Array.Empty<SwarmSource>(),
+                "another-variant"));
+
+        await signalBus.OnSignalReceivedAsync(CreateRequest(fixture.LocalPeerId), CancellationToken.None);
+
+        var ack = Assert.Single(fixture.SentSignals);
+        Assert.Equal("unknown-job-or-variant", ack.Body["reason"]);
+        Assert.False(Assert.IsType<bool>(ack.Body["accepted"]));
+        fixture.SecurityPolicyEngineMock.Verify(engine => engine.EvaluateAsync(
+            It.IsAny<SecurityContext>(), It.IsAny<CancellationToken>()), Times.Never);
         fixture.BitTorrentBackendMock.Verify(backend => backend.IsSupported(), Times.Never);
     }
 

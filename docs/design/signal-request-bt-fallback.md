@@ -1,7 +1,8 @@
 # Signal: Swarm.RequestBtFallback
 
 > **Runtime status:** The current implementation rejects these requests with
-> `fallback-lifecycle-unavailable`. The pseudocode below records the intended
+> `fallback-lifecycle-unavailable` after checking that the referenced job binds
+> the exact requested variant. The pseudocode below records the intended
 > protocol only; sender activation and job-owned cleanup are not implemented.
 
 ## End-to-End Example (Mesh + BT Extension)

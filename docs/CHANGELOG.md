@@ -28,7 +28,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   policy through `virtualSoulfindV2.backends.torrent`; private mode removes
   trackers and web seeds and disables BitTorrent DHT/PEX. Cross-peer swarm
   fallback requests are rejected until sender activation and job cancellation
-  are integrated.
+  are integrated. A fallback signal must also name the exact variant bound to
+  its job; mismatches are rejected before policy evaluation or manager startup.
 
 ### Dependency compatibility
 

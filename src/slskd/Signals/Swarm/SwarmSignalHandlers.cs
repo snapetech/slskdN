@@ -256,18 +256,6 @@ public class SwarmSignalHandlers
 }
 
 /// <summary>
-/// Extension methods for SwarmJob to check variant membership.
-/// </summary>
-public static class SwarmJobExtensions
-{
-    public static bool HasVariant(this SwarmJob job, string variantId)
-    {
-        // SwarmJob does not currently model variant membership; treat handler jobs as variant-compatible.
-        return true;
-    }
-}
-
-/// <summary>
 /// Interface for BitTorrent backend operations.
 /// </summary>
 public interface IBitTorrentBackend

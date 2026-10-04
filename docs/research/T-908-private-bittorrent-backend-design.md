@@ -12,7 +12,8 @@
   validates infohashes and parsed magnet links.
 - `MonoTorrentBitTorrentBackend` performs fetch-by-infohash/magnet. The
   incomplete swarm fallback path is explicitly rejected by its signal handler
-  and does not start managers or report a successful fallback id.
+  unless the job binds the exact requested variant; it does not start managers
+  or report a successful fallback id.
 - `PrivateOnly` removes announce URLs and web seeds from magnets; disables
   DHT and peer exchange; and uses only allowed peer sources. It overrides
   contradictory `DisableDht`/`DisablePex` values.
