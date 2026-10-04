@@ -18,6 +18,23 @@ the same method name.
 task-producing `Wait<T>` helpers from the blocking-call heuristic. Keep a
 regression for custom task waiters so analyzer output reflects actual blocking.
 
+### 0z1469. Do Not Classify SQL Interpolation By Keyword Presence Alone (2026-10-04)
+
+**What went wrong:** The source analyzer reported every interpolated string
+containing a SQL keyword, including queries that interpolate generated
+parameter placeholders. It also did not inspect whether dynamic SQL
+identifiers were constrained or which API executed the string.
+
+**Why:** Searching the interpolated string text for `SELECT`, `INSERT`,
+`UPDATE`, or `DELETE` does not distinguish SQL values, safe placeholder lists,
+trusted identifiers, or actual execution sinks. The heuristic creates noise
+without proving that a value reaches executable SQL.
+
+**Prevention:** Keep this rule diagnostic-only until it resolves SQL execution
+sinks and evaluates interpolated expressions with semantic context. Retain
+examples for both parameterized placeholder construction and unsafe dynamic
+values; do not treat keyword-only matches as confirmed injection findings.
+
 ### 0z1467. Check Visibility Emulation Against The Pinned Chromium Protocol (2026-10-04)
 
 **What went wrong:** A local Playwright probe called
