@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1532. Carry Cancellation Through Every Content-Safety Call Site (2026-10-04)
+
+**What went wrong:** After multi-source final verification was fixed to use its
+caller token, pod downloads, share backfill, and mesh transfers still passed
+`CancellationToken.None` to the same safety scan. Canceled scans could keep
+reading staged files and continue toward publication; some request paths also
+left the staged file behind on cancellation.
+
+**Why:** The safety helper supported cancellation, but its many independent
+download entry points were updated inconsistently.
+
+**Prevention:** Search every `InspectAndApplyPolicyAsync` call when changing
+verification behavior. Pass each flow's owning token, propagate its
+cancellation, and remove or preserve staged data according to that flow's
+contract before exiting. Cover every entry point with a canceled-scan test.
+
 ### 0z1531. Keep Caller Cancellation Separate From STUN Timeouts (2026-10-04)
 
 **What went wrong:** STUN DNS resolution and response waits converted caller
