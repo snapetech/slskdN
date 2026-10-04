@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1510. Keep Cancellation State Alive Until A Timed-Out Worker Stops (2026-10-04)
+
+**What went wrong:** `ScenePubSubService.Dispose` ignored the Boolean result of
+its bounded worker wait, disposed the cancellation source, and returned even
+when the poll loop had not stopped.
+
+**Why:** The timeout path was treated like successful worker completion, so a
+non-cooperative DHT call could leave a live worker behind with its cancellation
+resources already disposed.
+
+**Prevention:** Check whether the worker actually stopped. If it timed out,
+keep cancellation state alive until completion, observe and log any late fault,
+and cover the timeout path with a non-cooperative worker regression.
+
 ### 0z1509. Import Task Explicitly In Non-Implicit-Usings Tests (2026-10-04)
 
 **What went wrong:** Converting an `async void` test to `async Task` introduced
