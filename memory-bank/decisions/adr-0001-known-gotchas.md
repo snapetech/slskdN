@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1512. Drain Speed-Monitor Tasks On Every Chunk-Download Exit (2026-10-04)
+
+**What went wrong:** The low-throughput cancellation branch returned before
+joining its speed-monitor task, and unexpected transfer errors could also
+leave the monitor undrained. Caller cancellation was converted into a failed
+chunk result by the broad exception handler.
+
+**Why:** Monitor cleanup followed the ordinary success path instead of being
+owned by a `finally`, while transfer cancellation and internal peer timeout
+were handled by the same catch-all path.
+
+**Prevention:** Put monitor cancellation and observation in a `finally` that
+covers success, timeout, caller cancellation, and transfer faults. Rethrow
+caller cancellation separately from the per-chunk timeout, and test both
+early-return and caller-cancel paths.
+
 ### 0z1511. Allow Cancellation Tests To Run Under Concurrent Suite Load (2026-10-04)
 
 **What went wrong:** The swarm cancellation regression required job cleanup to
