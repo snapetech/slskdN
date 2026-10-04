@@ -39,6 +39,21 @@ analysis profile until they use an explicit sensitivity contract or
 flow-aware analysis. Preserve focused detector tests, but do not present their
 matches as confirmed exposures.
 
+### 0z1473. Reload Custom MSBuild Tasks After Changing Their Assembly (2026-10-04)
+
+**What went wrong:** An opt-in analyzer build reported the old 335-finding
+baseline after the task configuration had been changed to disable a
+name-only rule. Running the same target with build servers disabled loaded the
+current task assembly and reported 218 findings with no sensitive-name
+matches.
+
+**Why:** A reused MSBuild server can retain the custom task assembly loaded
+from its existing path after the task project has rebuilt that file.
+
+**Prevention:** When validating a change to a custom MSBuild task or its
+configuration, rerun the opt-in target with `--disable-build-servers` and
+confirm the reported finding count reflects the current task assembly.
+
 ### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
 
 **What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
