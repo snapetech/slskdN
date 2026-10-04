@@ -31,10 +31,22 @@ write_section() {
   local pattern="$2"
   shift 2
 
+  local file
+  local -a files=() existing_files=()
+  mapfile -d '' -t files < <(
+    git ls-files -z -- "$@" "${excluded_dependency_paths[@]}"
+  )
+  for file in "${files[@]}"; do
+    if [[ -f "$file" ]]; then
+      existing_files+=("$file")
+    fi
+  done
+
   {
     printf '\n## %s\n' "$title"
-    git ls-files -z -- "$@" "${excluded_dependency_paths[@]}" |
-      xargs -0 -r rg -n -U --with-filename --pcre2 -- "$pattern" || true
+    if ((${#existing_files[@]})); then
+      rg -n -U --with-filename --pcre2 -- "$pattern" "${existing_files[@]}" || true
+    fi
   } >>"$report"
 }
 

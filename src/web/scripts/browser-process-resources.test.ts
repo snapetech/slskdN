@@ -58,6 +58,69 @@ describe('owned browser process resources', () => {
     expect(snapshot.processes.map((entry) => entry.pid).sort()).toEqual([10, 11, 12]);
     expect(snapshot.processes.reduce((sum, entry) => sum + entry.pssMiB!, 0)).toBe(6);
     expect(snapshot.enumerationReadsUnavailable).toBe(0);
+    expect(snapshot.enumerationReadsRetried).toBe(0);
+    expect(snapshot.enumerationReadsRecovered).toBe(0);
+  });
+
+  it('recovers a process stat read interrupted once and reports the retry', async () => {
+    const directory = await fixture();
+    await writeProcess(directory, 10, 0, 1024);
+    const real = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');
+    let interrupted = false;
+    vi.mocked(fs.readFile).mockImplementation(async (file, options) => {
+      if (!interrupted && String(file).endsWith('/10/stat')) {
+        interrupted = true;
+        throw Object.assign(new Error('interrupted process stat read'), { code: 'EINTR' });
+      }
+      return real.readFile(file, options);
+    });
+
+    const snapshot = await collectBrowserProcessSnapshot(10, directory);
+
+    expect(snapshot.processes[0].pssMiB).toBe(1);
+    expect(snapshot.enumerationReadsRetried).toBe(1);
+    expect(snapshot.enumerationReadsRecovered).toBe(1);
+    expect(snapshot.enumerationReadsUnavailable).toBe(0);
+  });
+
+  it('recovers a temporary PSS read failure without reporting the sample as missing', async () => {
+    const directory = await fixture();
+    await writeProcess(directory, 10, 0, 1024);
+    const real = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');
+    let unavailable = false;
+    vi.mocked(fs.readFile).mockImplementation(async (file, options) => {
+      if (!unavailable && String(file).endsWith('/10/smaps_rollup')) {
+        unavailable = true;
+        throw Object.assign(new Error('temporarily unavailable process memory'), { code: 'EAGAIN' });
+      }
+      return real.readFile(file, options);
+    });
+
+    const snapshot = await collectBrowserProcessSnapshot(10, directory);
+
+    expect(snapshot.processes[0].pssMiB).toBe(1);
+    expect(snapshot.memoryReadsRetried).toBe(1);
+    expect(snapshot.memoryReadsRecovered).toBe(1);
+  });
+
+  it('bounds transient proc retries and leaves a repeated failure unavailable', async () => {
+    const directory = await fixture();
+    await writeProcess(directory, 10, 0, 1024);
+    await writeProcess(directory, 11, 10, 2048);
+    vi.mocked(fs.readFile).mockImplementation(async (file) => {
+      if (String(file).endsWith('/11/stat')) {
+        throw Object.assign(new Error('interrupted process stat read'), { code: 'EINTR' });
+      }
+      const real = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');
+      return real.readFile(file, 'utf8');
+    });
+
+    const snapshot = await collectBrowserProcessSnapshot(10, directory);
+
+    expect(snapshot.enumerationReadsRetried).toBe(1);
+    expect(snapshot.enumerationReadsRecovered).toBe(0);
+    expect(snapshot.enumerationReadsUnavailable).toBe(1);
+    expect(snapshot.processes.map((entry) => entry.pid)).toEqual([10]);
   });
 
   it('discloses missing stat and memory reads without reporting missing memory as zero', async () => {
@@ -94,8 +157,15 @@ describe('owned browser process resources', () => {
   it('excludes reused PIDs from CPU deltas and reports process churn', () => {
     const root = { pid: 10, parentPid: 0, startTimeTicks: 100, cpuTicks: 5, pssMiB: 1 };
     const child = { pid: 11, parentPid: 10, startTimeTicks: 101, cpuTicks: 10, pssMiB: 2 };
-    const before = { timestampSeconds: 1, enumerationReadsUnavailable: 0, processes: [root, child] };
-    const after = { timestampSeconds: 3, enumerationReadsUnavailable: 0, processes: [
+    const emptyReadCounts = {
+      enumerationReadsUnavailable: 0,
+      enumerationReadsRetried: 0,
+      enumerationReadsRecovered: 0,
+      memoryReadsRetried: 0,
+      memoryReadsRecovered: 0,
+    };
+    const before = { timestampSeconds: 1, ...emptyReadCounts, processes: [root, child] };
+    const after = { timestampSeconds: 3, ...emptyReadCounts, processes: [
       { ...root, cpuTicks: 15 }, { ...child, startTimeTicks: 222, cpuTicks: 99 },
       { ...child, pid: 12, startTimeTicks: 102, cpuTicks: 200 },
     ] };
@@ -106,7 +176,15 @@ describe('owned browser process resources', () => {
   });
 
   it.each([0, -1, 0.5])('rejects an invalid tick frequency: %s', (ticks) => {
-    const snapshot = { timestampSeconds: 1, enumerationReadsUnavailable: 0, processes: [] };
+    const snapshot = {
+      timestampSeconds: 1,
+      enumerationReadsUnavailable: 0,
+      enumerationReadsRetried: 0,
+      enumerationReadsRecovered: 0,
+      memoryReadsRetried: 0,
+      memoryReadsRecovered: 0,
+      processes: [],
+    };
     expect(() => compareBrowserProcessSnapshots(snapshot, { ...snapshot, timestampSeconds: 2 }, ticks)).toThrow();
   });
 });

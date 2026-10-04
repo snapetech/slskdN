@@ -180,11 +180,17 @@ Acceptance criteria:
 
 ## 7. Split Program.cs service registration
 
-Status: in progress. SongID service registration moved into
+Status: complete for the planned service-registration decomposition. SongID
+service registration moved into
 `Bootstrap/SongIdServiceCollectionExtensions.cs`, and the large experimental
 feature graph (multi-source, VirtualSoulfind, MediaCore, pods, mesh/DHT,
 wishlist/source feeds, relay, FTP, AudioCore metadata, notifications) moved out
 of `Program.cs` into `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions.cs`.
+The composed experimental graph also had duplicate single-owner registrations
+for `TransportPolicyManager`, `INatTraversalService`, `IIpldMapper`, and
+`IFuzzyMatcher`. Redundant descriptors were removed, and
+`ExperimentalFeatureGraphServiceCollectionExtensionsTests` now asserts each
+service has exactly one descriptor (`BUG-20261003-184`).
 User notes, collections/sharing, identity/friends, and Solid/WebID registration
 also moved into `Bootstrap/UserDataServiceCollectionExtensions.cs`.
 Core database context setup, event/telemetry registration, app-owned
@@ -495,18 +501,24 @@ Acceptance criteria:
 
 ## 8a. Dependency ownership inventory
 
-Status: first pass complete. `docs/dependencies.md` now classifies active runtime call sites for TagLibSharp, AWSSDK.S3, Zeroconf, Dapper, System.Reactive, MonoTorrent, NSec, MessagePack, telemetry, and build-only tooling.
+Status: first-pass dependency classifications remain in place; Roslyn
+ownership is resolved. `docs/dependencies.md` classifies active runtime call
+sites for TagLibSharp, AWSSDK.S3, Zeroconf, Dapper, System.Reactive,
+MonoTorrent, NSec, MessagePack, telemetry, and build-only tooling. Roslyn
+source inspection is isolated in `tools/slskd.BuildTasks`; regression coverage
+confirms the runtime assembly has no Roslyn references.
 
 Remaining follow-up:
 
 - Revisit `dotNetRDF` only if Solid/WebID moves out of this app.
 - Revisit `MathNet.Numerics` only if MediaCore hashing changes implementation.
-- Decide whether the remaining Microsoft.CodeAnalysis helpers belong in runtime or a tooling project.
-- Decide whether telemetry/metrics and LAN discovery need explicit feature gates beyond existing options.
+- Metrics and OpenTelemetry tracing default off. Metrics authentication defaults on when the endpoint is enabled, with an explicit option to disable it. Startup LAN advertising has its own default-off `lan_discovery.advertise` option, while nearby-peer browsing remains manual.
 
 ## 9. Move custom MSBuild tasks out of the app assembly
 
-Status: build task relocation complete. Analyzer suppression audit documented.
+Status: complete. Build tasks and Roslyn source inspection are isolated in
+`tools/slskd.BuildTasks`; analyzer suppression audit is documented. The
+runtime assembly and published output contain no Roslyn compiler references.
 `CodeAnalysisBuildTask`, `TestCoverageBuildTask`, and `RegressionBuildTask` now
 compile from linked CodeQuality sources in `tools/slskd.BuildTasks`, while the
 runtime app excludes those task classes and no longer references
@@ -517,7 +529,8 @@ Acceptance criteria:
 - `src/slskd/slskd.csproj` no longer loads MSBuild tasks from `slskd.dll`. Done.
 - Build tasks live in a separate project or are removed. Done.
 - Runtime package dependencies for MSBuild are removed. Done.
-- Runtime Roslyn dependencies remain because `BuildTimeAnalyzer` and `SlskdnAnalyzer` still compile in the app; split them later if those helpers leave runtime.
+- Roslyn source inspection and MSBuild tasks compile in `tools/slskd.BuildTasks`; the runtime project excludes those sources and has no direct `Microsoft.CodeAnalysis.CSharp` or `Microsoft.CodeAnalysis.Analyzers` package reference. `Microsoft.CodeAnalysis.NetAnalyzers` remains private to the build. Unit coverage asserts the build-tools assembly owns `BuildTimeAnalyzer` and the app assembly has no Roslyn references.
+- The optional static-analysis target now uses the MSBuild task's Boolean execution result, and its error-reporting path is covered. The current clean run loads 6,865 application types and reports 131 advisory findings with zero errors. The blocking-call rule limits `.Result`, `.Wait()`, and `.GetAwaiter().GetResult()` to syntax-recognizable Task/ValueTask receivers and excludes zero-timeout waits; it no longer flags MVC `Result` properties. Empty catches with explicit exception filters are excluded because the filter makes the handler conditional. Name-only reflection checks no longer classify generated `Deserialize` formatters and inherited `DangerousGetHandle` as dangerous APIs. Keyword-only SQL interpolation detection and sensitive-property name heuristics remain disabled pending semantic/data-flow analysis; remaining findings need semantic review before this diagnostic-only target can become a build gate. Use `--disable-build-servers` when validating changed custom build-task code so an old task assembly is not reused.
 - `docs/analyzer-suppressions.md` stays in sync with project-wide `NoWarn` entries.
 
 ## 10. Add DownloadService regression tests

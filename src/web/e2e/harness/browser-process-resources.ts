@@ -10,9 +10,31 @@ export type ProcessStat = {
 export type BrowserProcessSnapshot = {
   timestampSeconds: number;
   enumerationReadsUnavailable: number;
+  enumerationReadsRetried: number;
+  enumerationReadsRecovered: number;
+  memoryReadsRetried: number;
+  memoryReadsRecovered: number;
   processes: (ProcessStat & { pssMiB: number | null })[];
 };
 export type ProcessPssSample = { type: string; pssMiB: number | null };
+
+type ProcFileRead = { content: string; retried: boolean };
+
+function isTransientProcReadError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = Reflect.get(error, 'code');
+  return code === 'EINTR' || code === 'EAGAIN';
+}
+
+async function readProcFile(file: string, onRetry: () => void): Promise<ProcFileRead> {
+  try {
+    return { content: await fs.readFile(file, 'utf8'), retried: false };
+  } catch (error) {
+    if (!isTransientProcReadError(error)) throw error;
+    onRetry();
+    return { content: await fs.readFile(file, 'utf8'), retried: true };
+  }
+}
 
 export function summarizePssByType(processes: ProcessPssSample[]) {
   const pssByType = new Map<string, { processCount: number; pssMiB: number }>();
@@ -44,11 +66,21 @@ export async function collectBrowserProcessSnapshot(rootPid: number, procDirecto
   const pids = (await fs.readdir(procDirectory)).filter((entry) => /^\d+$/u.test(entry));
   const stats: ProcessStat[] = [];
   let enumerationReadsUnavailable = 0;
+  let enumerationReadsRetried = 0;
+  let enumerationReadsRecovered = 0;
+  let memoryReadsRetried = 0;
+  let memoryReadsRecovered = 0;
   // Bound filesystem concurrency instead of opening a descriptor for every
   // process on the host. Failed reads remain visible in the coverage report.
   for (let index = 0; index < pids.length; index += 32) {
-    const batch = await Promise.allSettled(pids.slice(index, index + 32).map(async (pid) =>
-      parseProcessStat(await fs.readFile(path.join(procDirectory, pid, 'stat'), 'utf8'))));
+    const batch = await Promise.allSettled(pids.slice(index, index + 32).map(async (pid) => {
+      const result = await readProcFile(path.join(procDirectory, pid, 'stat'), () => {
+        enumerationReadsRetried += 1;
+      });
+      const stat = parseProcessStat(result.content);
+      if (result.retried) enumerationReadsRecovered += 1;
+      return stat;
+    }));
     for (const result of batch) {
       if (result.status === 'fulfilled') stats.push(result.value);
       else enumerationReadsUnavailable += 1;
@@ -66,17 +98,25 @@ export async function collectBrowserProcessSnapshot(rootPid: number, procDirecto
   for (let index = 0; index < descendants.length; index += 32) {
     memory.push(...await Promise.allSettled(descendants.slice(index, index + 32).map(async (stat) => {
       const directory = path.join(procDirectory, String(stat.pid));
-      const rollup = await fs.readFile(path.join(directory, 'smaps_rollup'), 'utf8');
-      const pss = rollup.match(/^Pss:\s+(\d+) kB$/mu);
+      const rollupRead = await readProcFile(path.join(directory, 'smaps_rollup'), () => {
+        memoryReadsRetried += 1;
+      });
+      const pss = rollupRead.content.match(/^Pss:\s+(\d+) kB$/mu);
       if (!pss) throw new Error('Process PSS is unavailable');
-      const current = parseProcessStat(await fs.readFile(path.join(directory, 'stat'), 'utf8'));
+      const currentRead = await readProcFile(path.join(directory, 'stat'), () => {
+        memoryReadsRetried += 1;
+      });
+      const current = parseProcessStat(currentRead.content);
       if (current.pid !== stat.pid || current.startTimeTicks !== stat.startTimeTicks) {
         throw new Error('Process identity changed during memory sampling');
       }
+      if (rollupRead.retried) memoryReadsRecovered += 1;
+      if (currentRead.retried) memoryReadsRecovered += 1;
       return Number(pss[1]) / 1024;
     })));
   }
-  return { timestampSeconds, enumerationReadsUnavailable,
+  return { timestampSeconds, enumerationReadsUnavailable, enumerationReadsRetried,
+    enumerationReadsRecovered, memoryReadsRetried, memoryReadsRecovered,
     processes: descendants.map((stat, index) => {
       const reading = memory[index];
       return { ...stat, pssMiB: reading.status === 'fulfilled' ? reading.value : null };
@@ -102,6 +142,14 @@ export function compareBrowserProcessSnapshots(before: BrowserProcessSnapshot, a
     processesRemoved: before.processes.filter((stat) => !current.has(identity(stat))).length,
     enumerationReadsUnavailableBefore: before.enumerationReadsUnavailable,
     enumerationReadsUnavailableAfter: after.enumerationReadsUnavailable,
+    enumerationReadsRetriedBefore: before.enumerationReadsRetried,
+    enumerationReadsRetriedAfter: after.enumerationReadsRetried,
+    enumerationReadsRecoveredBefore: before.enumerationReadsRecovered,
+    enumerationReadsRecoveredAfter: after.enumerationReadsRecovered,
+    memoryReadsRetriedBefore: before.memoryReadsRetried,
+    memoryReadsRetriedAfter: after.memoryReadsRetried,
+    memoryReadsRecoveredBefore: before.memoryReadsRecovered,
+    memoryReadsRecoveredAfter: after.memoryReadsRecovered,
     pssMiB: memory.length ? memory.reduce((sum, stat) => sum + stat.pssMiB!, 0) : null,
     memoryProcessesMeasured: memory.length,
     memoryProcessesUnavailable: after.processes.length - memory.length,

@@ -12,8 +12,7 @@ for executable in docker node pnpm python3; do
   fi
 done
 
-node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types \
-  --test src/web/e2e/harness/soulseekPrivateMessageIdMapper.node-test.mjs
+pnpm --filter @slskdn/web exec vitest run scripts/soulseekPrivateMessageIdMapper.test.ts
 
 if ! docker image inspect "$image" >/dev/null 2>&1; then
   echo "The pinned loopback test image is unavailable: $image" >&2

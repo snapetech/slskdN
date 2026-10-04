@@ -78,7 +78,10 @@ export default defineConfig({
   build: {
     outDir: 'build',
     emptyOutDir: true,
-    chunkSizeWarningLimit: 600,
+    // check-bundle-size.mjs enforces 600 KiB for normal assets and explicitly
+    // allows the larger MilkDrop preset pack because it loads on activation.
+    // Keep Vite's advisory threshold above that documented lazy-only exception.
+    chunkSizeWarningLimit: 700,
     // Vite 8 defaults to lightningcss for CSS minification, which rejects some
     // valid-but-unusual CSS emitted by semantic-ui-less (e.g. 0.0px dimensions).
     // Use esbuild CSS minifier instead, which is tolerant of this output.

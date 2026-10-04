@@ -30,7 +30,7 @@ export default [
       'public/**',
       'scripts/**',
       'test-results/**',
-      'vite.config.js',
+      'vite.config.mjs',
       '**/*.css',
     ],
     linterOptions: {
