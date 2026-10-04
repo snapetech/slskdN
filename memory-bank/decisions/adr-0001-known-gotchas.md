@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
+
+**What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
+which contains the raw path and full query string. Other middleware diagnostics
+logged decoded request paths without escaping log-breaking control characters.
+
+**Why:** Debug logging reused the full request target even though it can contain
+query credentials, and path values were treated as trusted diagnostic text.
+
+**Prevention:** Keep `RawTarget` for request validation only. Omit it from logs,
+log only the request path, and escape that path with the existing logging
+sanitizer before emitting it.
+
 ### 0z1559. Keep Retry Notifications Outside The Operation Failure Handler (2026-10-04)
 
 **What went wrong:** `Retry.Do` invoked `onRetry` inside the same `try` block
