@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1524. Propagate Port-Forwarder Connection Cancellation Into Mesh Calls (2026-10-04)
+
+**What went wrong:** Tunnel open, send, and receive calls used
+`CancellationToken.None`, and catch-all handlers converted cancellation into
+ordinary service failures. A stopped local connection could therefore leave
+mesh work running or keep polling after its owner had closed.
+
+**Why:** The mesh calls were treated as independent best-effort operations even
+though their lifetime is bounded by the forwarding connection.
+
+**Prevention:** Pass the connection token into open/send/receive calls and
+rethrow cancellation requested by that token. Keep explicit tunnel close
+best-effort and uncanceled so cancellation does not prevent cleanup. Test that
+a pre-canceled operation never contacts the mesh client.
+
 ### 0z1523. Preserve Faulted-Task Semantics When A Task API Completes Synchronously (2026-10-04)
 
 **What went wrong:** Replacing the synchronous body of `StartForwardingAsync`
