@@ -36208,3 +36208,19 @@ changes from browser controls to direct requests.
 send its current `X-Listen-Along-Host-Session` fence and the accepted Party ID.
 When a test is specifically exercising legacy hostless publication, stop the
 browser-owned session first and assert that Stop was acknowledged.
+
+### 0z1459. Extrapolate Active Seek Snapshots On The Listener (2026-10-04)
+
+**What went wrong:** The listener extrapolated a Play snapshot from its server
+timestamp but applied an active Seek snapshot at the event's original position.
+Slow delivery therefore made a listener start behind a host that continued
+playing after the seek.
+
+**Why:** Active seeks are reported as `seek`, while a seek made when the host is
+paused is reported as `pause`. The receiver only advanced `play` actions and
+silently omitted the elapsed-time correction for the active `seek` case.
+
+**Prevention:** Extrapolate both `play` and active `seek` snapshots using their
+server timestamp; keep `pause` positions exact. Test the receiver after an
+injected delay, rather than only asserting that the host sent the requested
+seek position.
