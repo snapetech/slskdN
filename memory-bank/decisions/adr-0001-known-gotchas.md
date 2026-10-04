@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1507. Report Full Swarm Queue Rejection Truthfully (2026-10-04)
+
+**What went wrong:** The bounded swarm job channel used `DropWrite`. When full,
+`TryWrite` discards the incoming job but returns `true`, so `Enqueue` reported
+success for a job that would never run.
+
+**Why:** The queue selected a lossy channel mode even though its public API uses
+the write result as the caller's acceptance signal.
+
+**Prevention:** Use the channel's wait/full mode with nonblocking `TryWrite`, so
+a saturated queue returns `false` and the caller can retry or report the
+rejection. Test the exactly-full boundary.
+
 ### 0z1506. Build Swarm Fixtures With The Production Chunk Size (2026-10-04)
 
 **What went wrong:** The multi-chunk swarm regression used a 768-byte file and
