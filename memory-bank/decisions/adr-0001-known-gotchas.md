@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1535. Anchor Repeated Test Helper Calls To Their Owning Test (2026-10-04)
+
+**What went wrong:** While adding a service-aware overload to a transfer-test
+polling helper, a broad patch changed the first existing call site instead of
+the new test's call site.
+
+**Why:** The same helper invocation appeared multiple times and the edit
+matched only the repeated line, not the surrounding test context.
+
+**Prevention:** When changing one of several identical test helper calls,
+include the owning test name or nearby setup in the patch context and inspect
+all call sites immediately afterward.
+
 ### 0z1534. Poll The Same Service Instance In Transfer Tests (2026-10-04)
 
 **What went wrong:** A new mesh-transfer test created a service with a
