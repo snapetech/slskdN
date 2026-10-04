@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1511. Allow Cancellation Tests To Run Under Concurrent Suite Load (2026-10-04)
+
+**What went wrong:** The swarm cancellation regression required job cleanup to
+finish within five seconds. A full `dotnet test` run executes the unit and
+integration hosts concurrently, and one loaded run timed out even though the
+same test passed alone and the complete unit assembly passed on rerun.
+
+**Why:** The test's hard upper bound was sized for an isolated test process,
+not the repository's concurrent full-suite workload.
+
+**Prevention:** Keep deterministic start/cancel signals and cleanup assertions,
+but give asynchronous lifecycle regressions a load-tolerant timeout. Do not
+remove the timeout or weaken the expected cancellation behavior.
+
 ### 0z1510. Keep Cancellation State Alive Until A Timed-Out Worker Stops (2026-10-04)
 
 **What went wrong:** `ScenePubSubService.Dispose` ignored the Boolean result of
