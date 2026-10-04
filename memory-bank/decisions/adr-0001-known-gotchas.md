@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1538. Preserve Relative Paths In Static-Analysis Findings (2026-10-04)
+
+**What went wrong:** The opt-in analyzer reduced each source location to its
+filename. When different directories contain the same filename, findings such
+as `ContentSafety.cs:240` cannot be tied to one source file reliably.
+
+**Why:** The report formatted locations with `Path.GetFileName` even though the
+analysis walks the full application source tree.
+
+**Prevention:** Include the path relative to the analyzed project in every
+finding location. Add a regression with same-named files in separate
+directories and assert that their reported paths remain distinct.
+
 ### 0z1537. Expect Hosted Worker Tasks To Cancel During Shutdown Delay (2026-10-04)
 
 **What went wrong:** A hosted-worker regression test asserted that its
