@@ -37609,3 +37609,19 @@ callers, or actual input flow.
 rules that infer long-running work or untrusted-input boundaries disabled until
 they analyze relevant method behavior. Verify rule counts against a whole-app
 run before enabling a reflection heuristic by default.
+
+### 0z1466. Keep Predicate Assertions Compatible With xUnit Analyzers (2026-10-04)
+
+**What went wrong:** Upgrading xUnit surfaced analyzer warnings for tests that
+filtered a collection with `Where` before calling `Assert.Single` or
+`Assert.Empty`. The focused test run passed, but its output was noisy and the
+new package introduced warning debt across existing tests.
+
+**Why:** The older assertion form materializes or re-enumerates a filtered
+sequence when xUnit provides predicate overloads that express the same
+assertion directly.
+
+**Prevention:** Use `Assert.Single(collection, predicate)` and
+`Assert.DoesNotContain(collection, predicate)` for cardinality and absence
+checks. Run the upgraded test project with analyzer output visible and clear
+all newly introduced warnings before treating package upgrades as complete.
