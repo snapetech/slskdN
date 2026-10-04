@@ -8,14 +8,18 @@
 
 **What went wrong:** Multi-source final-output safety inspection always received
 `CancellationToken.None`, so canceling during a long scan could not stop it; the
-download could then publish the output after cancellation.
+download could then publish the output after cancellation. The shared content
+verifier also caught `OperationCanceledException` as an ordinary read failure,
+turning canceled safety scans into warning results.
 
 **Why:** The safety helper treated its scan as an independent best-effort step
-instead of part of the request-owned download operation.
+instead of part of the request-owned download operation, and its broad IO error
+handler obscured cooperative cancellation.
 
-**Prevention:** Forward the request token to final safety inspection and check
-it again immediately before publishing the staged file. Test canceled safety
-inspection without exposing the final output.
+**Prevention:** Forward the request token to final safety inspection, rethrow
+`OperationCanceledException` when that token is canceled, and check it again
+immediately before publishing the staged file. Test canceled safety inspection
+without exposing the final output.
 
 ### 0z1514. Rethrow Caller Cancellation From Optional Fingerprint Verification (2026-10-04)
 
