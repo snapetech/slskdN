@@ -4,6 +4,31 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1550. Match Build-Task Packages To The Repository TFM (2026-10-04)
+
+**What went wrong:** Updating the build-task project to Microsoft.Build
+18.10.1 introduced support warnings because that package version targets
+`net11.0`, while the repository build task targets `net10.0`.
+
+**Why:** The package was selected as the newest release without checking the
+target framework it ships. A numerically newer package can be for a newer .NET
+release than the consuming project.
+
+**Prevention:** Check the package's included target frameworks, not only its
+version or compatibility label. Keep build-task dependencies on the newest
+release that ships a native asset for this repository's target framework.
+
+### 0z1551. Keep XML Documentation Comments Balanced (2026-10-04)
+
+**What went wrong:** An options edit left a duplicate `<summary>` tag in XML
+documentation, producing compiler warning CS1570.
+
+**Why:** A replacement patch inserted a new documentation block without
+removing the old opening tag.
+
+**Prevention:** Inspect adjacent XML comments after editing option properties,
+and require a warning-free build before moving on.
+
 ### 0z1549. Recheck Private Torrent Provenance During Validation (2026-10-04)
 
 **What went wrong:** Torrent candidate discovery filtered out sources without
