@@ -20,18 +20,21 @@ focus change when the goal is to exercise browser background behavior.
 ### 0z1466. Verify A Playwright Page Is Actually Hidden Before Testing Visibility Recovery (2026-10-04)
 
 **What went wrong:** The Player E2E opened a second blank page and assumed the
-original host page had become hidden. In this headless run,
-`document.visibilityState` remained `visible`, so the test timed out before it
-exercised the hidden-to-visible recovery path.
+original host page had become hidden. `document.visibilityState` remained
+`visible` in both headless Chromium and headed Chromium under Xvfb, even after
+`bringToFront()`, so the test timed out before it exercised the hidden-to-visible
+recovery path.
 
 **Why:** Creating another Playwright page did not change the original page's
 reported visibility in this runner. Page creation and browser visibility are
-separate state; the test inferred one from the other.
+separate state; this Xvfb setup also lacks a window manager that produces real
+tab-focus transitions.
 
 **Prevention:** Assert the document's actual visibility state before claiming a
-background-tab test. Use browser visibility emulation or a verified foreground
-tab switch, and record the measured hidden interval alongside synchronization
-results.
+background-tab test. A synthesized visibility event can cover the resume
+handler but does not prove timer throttling. Only claim actual background-tab
+coverage when a managed browser desktop reports the page hidden and the hidden
+interval is measured.
 
 ### 0z1339. Use Fomantic Button Toggle Mode For Pressed State
 
