@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1528. Report Failed Cleanup Of Partial Pod Downloads (2026-10-04)
+
+**What went wrong:** The pod-download cleanup helper swallowed every exception
+while deleting a failed transfer's staged file. If deletion failed, partial
+content could remain under `.partial` with no operator-visible error.
+
+**Why:** Cleanup was treated as best-effort, but its failure was neither
+classified nor reported, hiding stale data and unexpected path or filesystem
+errors.
+
+**Prevention:** Catch only expected filesystem cleanup failures, log them while
+preserving the original transfer response, and let unexpected defects surface.
+Cover cleanup failure reporting without exposing peer error details to clients.
+
 ### 0z1527. Start The Mocked Operation Before Testing Its Cancellation Race (2026-10-04)
 
 **What went wrong:** The port-mapping timeout regression closed its local
