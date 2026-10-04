@@ -17928,3 +17928,35 @@ the report captured only the first six seconds with diagnostics disabled.
 Next measurement must sample baseline, one search, and expiry through at least
 120 seconds before lifecycle behavior is changed. Continue other code-backed
 remediation while that live-network evidence is unavailable.
+
+## Current state — Publish `.338` and continue remediation — 2026-10-04 22:07 UTC
+
+Stable release `.338` is published as
+[`2026100421-slskdn.338`](https://github.com/snapetech/slskdN/releases/tag/2026100421-slskdn.338).
+The hosted Release Gate passed on attempt 2 after one unrelated TLS overlay
+test returned no connection on attempt 1; the exact test passed locally. The
+release artifact verifier passed for all six archives, checksums, support
+files, VPN helper, and bundled Web marker. Automated stable package metadata is
+on `main`. Docker Main is still publishing and Launchpad is pending for `.338`;
+the `.337` PPA job is also still in progress.
+
+Confirmed the MonoTorrent framework question again: all first-party projects
+under `src`, `tests`, and `tools` target `net10.0`, and MonoTorrent supplies a
+compatible `net8.0` asset. No `.NET 6` project or selected package asset is
+active, so no target-framework change is needed.
+
+Ran the opt-in static-analysis target against the current Release compilation:
+6,880 application types, 88 advisory findings, complete analysis, zero errors.
+The 11 blocking calls, 17 process/SQL call sites, and 60 empty catches have
+been classified in source context; review confirmed intentional sync
+boundaries, configured process invocation, parameterized or fixed SQL, and
+best-effort fallback/cleanup/telemetry paths. No source defect was confirmed.
+The empty-catch rule remains syntax-only and the analyzer stays non-gating.
+
+Next: verify the `.338` Docker manifest and complete Cloudron stable-image
+metadata after Docker publication, monitor both PPA jobs, then continue the
+whole-product work. Open items remain the T-908 sender/receiver fallback job
+lifecycle, global Party ID claim semantics across disjoint DHT views, actual
+background-tab throttling, WebKit Orca/physical assistive-technology evidence,
+representative WAN and sustained-resource measurements, the originating
+frontend `ERR_NETWORK_CHANGED` failure, and broad bug-council discovery queues.

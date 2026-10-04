@@ -26,7 +26,7 @@
 
 ## Active Development
 
-### Post-.336 reliability, .337 release, and analyzer follow-up — 2026-10-04
+### Post-.336 reliability, .338 release, and analyzer follow-up — 2026-10-04
 
 - [x] Fix redirected process stream deadlocks and child cleanup in SongID,
   AudioSketch, Chromaprint fingerprints, perceptual hashing, Soulfind bridge,
@@ -34,10 +34,11 @@
   both pipe buffers, cancellation, and startup cleanup.
 - [x] Bind build-time blocking-call and dangerous-API diagnostics to Roslyn
   symbols from the actual application compilation. The opt-in report now
-  analyzes 6,902 application types with 88 advisory findings (11 blocking,
-  17 dangerous API, 60 empty catch); review did not confirm a source defect.
-  Analysis remains diagnostic-only pending flow review and candidate
-  classification. The combined focused process/analyzer regression batch
+  analyzes 6,880 application types with 88 advisory findings (11 blocking,
+  17 dangerous API, 60 empty catch); source review classified the current
+  candidates without confirming a defect. Empty-catch detection remains
+  syntax-based, so analysis stays diagnostic-only and non-gating. The combined
+  focused process/analyzer regression batch
   passes 107/107 tests without compiler warnings. Full `dotnet test` now passes
   5,905 tests: 74 application, 5,542 unit, and 289 integration; `./bin/lint`,
   release-note preview, changelog validation, and release identity checks pass.
@@ -69,7 +70,13 @@
 - [x] Cut stable `.337` through the guarded release helper. Its hosted Release
   Gate passed, and `scripts/verify-release-artifacts.sh` verified all six
   archives, support assets, checksums, Linux version output, VPN helper, and
-  bundled Web marker. Docker and PPA publisher jobs are still running.
+  bundled Web marker. Docker Main and Omnibus Testers completed; only the
+  Launchpad PPA publisher remains in progress.
+- [x] Cut stable `.338` through the guarded release helper after the hosted
+  gate retry passed on the immutable tag. The published release verifier
+  checked all six archives and checksums, support assets, Linux version output,
+  VPN helper, and bundled Web marker. Docker Main is still building; the PPA
+  job is pending.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings; T-908 fallback lifecycle and distributed evidence
   requirements remain open.

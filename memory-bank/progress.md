@@ -17515,3 +17515,32 @@ T-908 fallback job lifecycle, global DHT Party ID ownership, actual
 background-tab throttling, WebKit Orca and physical assistive-technology
 speech, representative WAN and sustained-resource measurements, the original
 frontend `ERR_NETWORK_CHANGED` cause, and broad bug-council queues remain open.
+
+## Update 2026-10-04 22:07 UTC — Publish `.338` and classify analyzer candidates
+
+The `.338` hosted Release Gate passed on its same-tag retry after one
+non-repeating TLS overlay connection failure. Release
+`2026100421-slskdn.338` is published; artifact verification passed for all six
+archives, checksums, support files, VPN helper, and bundled Web marker. The
+workflow committed stable package metadata to `main`. Docker Main is still
+publishing and the `.338` Launchpad job is pending; `.337`'s Launchpad job is
+also still in progress.
+
+Rechecked framework compatibility: every first-party project targets
+`net10.0`, and the current MonoTorrent package contributes a compatible
+`net8.0` asset. No `.NET 6` target or selected package asset remains active.
+
+Ran `RunStaticAnalysis` on the current Release compilation: 6,880 application
+types, complete analysis, 88 advisory findings, and zero errors. Source review
+classified the 11 blocking-call, 17 dangerous-API, and 60 empty-catch findings.
+SQL candidates use parameters or fixed DDL; the remaining calls are intentional
+sync boundaries, configured process launches, or best-effort cleanup,
+telemetry, transport, and fallback behavior. No source defect was confirmed.
+The syntax-based empty-catch rule remains diagnostic-only.
+
+Next: verify the published `.338` Docker image, update Cloudron stable metadata,
+and monitor both Launchpad jobs. Continue T-908 fallback job lifecycle,
+distributed Party ID ownership semantics, actual hidden-tab timer throttling,
+WebKit/physical assistive-technology evidence, WAN and sustained-resource
+measurements, the original frontend bootstrap interruption, and broad
+bug-council discovery queues as their required environments and designs allow.
