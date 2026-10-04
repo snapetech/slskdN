@@ -36241,3 +36241,22 @@ recover latency that occurred before the request reached the server.
 advance the received position by a bounded nonnegative age at server receipt,
 and clear that client-only timestamp before storing or forwarding the event.
 Keep Pause positions exact and test with a delayed request to the actual server.
+
+### 0z1461. Do Not Gate Builds On Uncalibrated Static Analysis (2026-10-04)
+
+**What went wrong:** The opt-in `RunStaticAnalysis=true` build reported 7,252
+source/reflection findings, failed its 100-finding limit, and emitted thousands
+of repeated type-load warnings because its MSBuild host could not resolve
+ASP.NET shared-framework dependencies from the application assembly.
+
+**Why:** The task loads the application into the MSBuild process's default
+assembly context, then applies syntax-only heuristics that cannot reliably
+classify nullable types, `Result` properties, or loop string operations.
+Incomplete reflection loading and uncalibrated source rules therefore produce
+noise that looks like actionable build failures.
+
+**Prevention:** Resolve application dependencies in the correct runtime
+context, report loader failures once with clear incomplete-analysis status,
+and calibrate or disable heuristics that lack semantic evidence before using
+their output as a build gate. Keep the analyzer opt-in until its reported
+findings are reviewed and actionable.
