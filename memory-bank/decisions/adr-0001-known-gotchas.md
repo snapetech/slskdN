@@ -37673,3 +37673,18 @@ but initialization still used `GetRequiredService` as if it had been.
 one; otherwise construct it at signal initialization with `ActivatorUtilities`
 and the runtime peer id. Keep its remaining dependencies in the service
 container and avoid a second production-only registration path.
+
+### 0z1470. Assert Signal Delivery And Decisions, Not Test Completion (2026-10-04)
+
+**What went wrong:** Swarm fallback integration tests ended with `Assert.True(true)`
+and a fixture that swallowed signal initialization exceptions. They passed
+without proving request delivery, acknowledgement content, security evaluation,
+or even that the handler had subscribed.
+
+**Why:** The tests treated a method returning without throwing as evidence that
+the signal protocol worked, while suppressing setup failures hid missing
+dependency registrations.
+
+**Prevention:** Capture channel sends and assert the signal type, target, body,
+and policy decision. Let fixture initialization failures fail the test, and
+exercise malformed inputs through the real SignalBus dispatch path.
