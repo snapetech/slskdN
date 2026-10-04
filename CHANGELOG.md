@@ -90,6 +90,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Player playback-status announcements now coalesce rapid state changes so
   screen readers can speak track-start, pause/resume, and stop updates in
   Firefox as well as Chromium.
+- Canceled Player transcodes now keep draining FFmpeg diagnostics, stop the
+  decoder process tree, and wait for it to exit before releasing stream slots.
 - Equalizer gain sliders expose their vertical orientation and use consistent
   Up/Right increase and Down/Left decrease keys across browsers.
 - Player keyboard focus rings now maintain at least 3:1 contrast across every

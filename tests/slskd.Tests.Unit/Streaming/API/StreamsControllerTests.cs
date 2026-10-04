@@ -5,6 +5,8 @@ namespace slskd.Tests.Unit.Streaming.API;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
@@ -126,6 +128,81 @@ public class StreamsControllerTests
 
         Assert.IsType<BadRequestObjectResult>(result);
         _locatorMock.Verify(x => x.Resolve(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Transcode_CancellationStopsAndReapsFfmpegProcessTree()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), $"slskdn-transcode-cancel-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var filePath = Path.Combine(directory, "audio.flac");
+        var scriptPath = Path.Combine(directory, "fake-ffmpeg.sh");
+        var pidPath = Path.Combine(directory, "pid");
+        var readyPath = Path.Combine(directory, "ready");
+        File.WriteAllText(filePath, "audio fixture");
+        File.WriteAllText(
+            scriptPath,
+            "#!/bin/sh\nprintf '%s' \"$$\" > '" + pidPath + "'\ni=0\nwhile [ \"$i\" -lt 65536 ]; do printf 'ffmpeg diagnostic output %s\\n' \"$i\" >&2; i=$((i + 1)); done\nprintf ready > '" + readyPath + "'\nprintf 'audio-data'\nsleep 30\n");
+        File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        _options = new TestOptionsMonitor(new slskd.Options
+        {
+            Feature = new slskd.Options.FeatureOptions { Streaming = true },
+            Soulseek = new slskd.Options.SoulseekOptions { Username = "alice" },
+            Integration = new slskd.Options.IntegrationOptions
+            {
+                Chromaprint = new slskd.Options.IntegrationOptions.ChromaprintOptions { FfmpegPath = scriptPath },
+            },
+        });
+
+        var controller = CreateController();
+        SetContext(controller);
+        _ticketsServiceMock.Setup(x => x.Validate("ticket", "c1"))
+            .Returns(new StreamTicketClaims("c1", "user:alice", DateTimeOffset.UtcNow.AddMinutes(1)));
+        _locatorMock.Setup(x => x.Resolve("c1", It.IsAny<CancellationToken>()))
+            .Returns(new ResolvedContent(filePath, 100, "audio/flac"));
+        _limiterMock.Setup(x => x.TryAcquire(It.IsAny<string>(), It.IsAny<int>())).Returns(true);
+
+        int? processId = null;
+        using var cancellation = new CancellationTokenSource();
+        try
+        {
+            var transcode = controller.Transcode("c1", "ticket", 0, cancellation.Token);
+            var startupDeadline = Stopwatch.StartNew();
+            while (!File.Exists(readyPath) && startupDeadline.Elapsed < TimeSpan.FromSeconds(5))
+            {
+                await Task.Delay(10);
+            }
+
+            Assert.True(File.Exists(readyPath), "FFmpeg did not drain its diagnostic output and begin streaming.");
+            processId = int.Parse(File.ReadAllText(pidPath), CultureInfo.InvariantCulture);
+            await Task.Delay(25);
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => transcode.WaitAsync(TimeSpan.FromSeconds(5)));
+
+            Assert.False(IsProcessRunning(processId.Value));
+            _limiterMock.Verify(x => x.Release(It.IsAny<string>()), Times.Exactly(2));
+        }
+        finally
+        {
+            if (processId is null && File.Exists(pidPath))
+            {
+                processId = int.Parse(File.ReadAllText(pidPath), CultureInfo.InvariantCulture);
+            }
+
+            if (processId is not null)
+            {
+                StopProcessTreeIfRunning(processId.Value);
+            }
+
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]
@@ -425,5 +502,36 @@ public class StreamsControllerTests
 
         Assert.IsType<NotFoundResult>(r);
         _ticketsServiceMock.Verify(x => x.Create(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>()), Times.Never);
+    }
+
+    private static bool IsProcessRunning(int processId)
+    {
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.Id == processId)
+                {
+                    return !process.HasExited;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static void StopProcessTreeIfRunning(int processId)
+    {
+        foreach (var process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                if (process.Id == processId && !process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(5000);
+                }
+            }
+        }
     }
 }

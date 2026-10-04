@@ -168,32 +168,49 @@ public class StreamsController : ControllerBase
                 return StatusCode(503, "FFmpeg is unavailable on this server.");
             }
 
-            using var registration = ct.Register(() =>
+            Task stderr = Task.CompletedTask;
+            try
             {
-                if (!process.HasExited) process.Kill(entireProcessTree: true);
-            });
-            var stderr = process.StandardError.BaseStream.CopyToAsync(Stream.Null, ct);
-            var stdout = process.StandardOutput.BaseStream;
-            var firstChunk = new byte[16 * 1024];
-            var firstChunkLength = await stdout.ReadAsync(firstChunk.AsMemory(), ct);
-            if (firstChunkLength == 0)
-            {
+                stderr = process.StandardError.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None);
+                var stdout = process.StandardOutput.BaseStream;
+                var firstChunk = new byte[16 * 1024];
+                var firstChunkLength = await stdout.ReadAsync(firstChunk.AsMemory(), ct);
+                if (firstChunkLength == 0)
+                {
+                    await process.WaitForExitAsync(ct);
+                    await stderr;
+                    var failureReason = process.ExitCode == 0
+                        ? "FFmpeg produced no audio output."
+                        : "FFmpeg could not decode this audio.";
+                    return StatusCode(503, failureReason);
+                }
+
+                Response.ContentType = "audio/mpeg";
+                Response.Headers.CacheControl = "no-store";
+                await Response.Body.WriteAsync(firstChunk.AsMemory(0, firstChunkLength), ct);
+                await stdout.CopyToAsync(Response.Body, ct);
                 await process.WaitForExitAsync(ct);
                 await stderr;
-                var failureReason = process.ExitCode == 0
-                    ? "FFmpeg produced no audio output."
-                    : "FFmpeg could not decode this audio.";
-                return StatusCode(503, failureReason);
+                if (process.ExitCode != 0) HttpContext.Abort();
+                return new EmptyResult();
             }
+            finally
+            {
+                if (!process.HasExited)
+                {
+                    try
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+                    catch (InvalidOperationException) when (process.HasExited)
+                    {
+                        // The process exited between the check and Kill.
+                    }
+                }
 
-            Response.ContentType = "audio/mpeg";
-            Response.Headers.CacheControl = "no-store";
-            await Response.Body.WriteAsync(firstChunk.AsMemory(0, firstChunkLength), ct);
-            await stdout.CopyToAsync(Response.Body, ct);
-            await process.WaitForExitAsync(ct);
-            await stderr;
-            if (process.ExitCode != 0) HttpContext.Abort();
-            return new EmptyResult();
+                await process.WaitForExitAsync(CancellationToken.None);
+                await stderr;
+            }
         }
         finally
         {
