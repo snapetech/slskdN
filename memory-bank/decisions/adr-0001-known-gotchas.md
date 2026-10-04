@@ -21,6 +21,19 @@ conservative opt-in. Keep user-triggered discovery available independently,
 and cover both gates with tests so broad API flags cannot silently enable
 startup broadcasts.
 
+### 0z1480. Filter Deleted Tracked Paths Before Running Source Scans (2026-10-04)
+
+**What went wrong:** The active bughunt runner passed every `git ls-files`
+result directly to `rg`. Deleted-but-still-tracked files produced repeated
+missing-path errors during the scan and obscured the candidate counts.
+
+**Why:** The Git index retains deleted paths until staging or commit, while
+the scanner assumed every listed path still existed in the working tree.
+
+**Prevention:** Filter tracked path lists to existing files before passing them
+to source scanners. Keep generated-candidate counts based on the current
+working tree and verify the scan remains quiet when tracked files are deleted.
+
 ### 0z1471. Cross-Check DHT Identity Documentation Against Production Derivation (2026-10-04)
 
 **What went wrong:** The T-902 research note said the production Kademlia
