@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1530. Match Background Shutdown Catches To Their Owning Token (2026-10-04)
+
+**What went wrong:** Several worker shutdown paths treated every
+`OperationCanceledException` as expected shutdown, even when the worker's own
+cancellation token had not been canceled. An unrelated canceled dependency
+could therefore stop or skip work without reaching the normal failure path.
+
+**Why:** The exception type was treated as evidence that the owner requested
+cancellation, although unrelated operations can also throw it.
+
+**Prevention:** Filter shutdown-only catches against the worker's owning token.
+Let cancellation from another source continue through the existing error path,
+and test that unexpected cancellation is not silently accepted.
+
 ### 0z1529. Report Cleanup Failures Across Every Staged Download Path (2026-10-04)
 
 **What went wrong:** After the pod-download cleanup issue was fixed, review found
