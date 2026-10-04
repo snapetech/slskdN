@@ -1,6 +1,6 @@
 ---
 category: fixed
-audience: admins
+audience: operators
 area: swarm
 action: none
 breaking: false
