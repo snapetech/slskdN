@@ -48,6 +48,23 @@ bounded cancellation-and-join lifecycle that already existed.
 If a bounded wait expires, keep resources alive until the worker finishes and
 observe any late fault. Test disposal while a send is deliberately held open.
 
+### 0z1482. Cancel Active Async Enumerators Before Disposing Their Resources (2026-10-04)
+
+**What went wrong:** `Mesh.Privacy.PrivacyLayer.UpdateConfiguration()` replaced
+and disposed the old cover-traffic generator while an existing
+`GenerateCoverTrafficAsync()` iterator could still be waiting to create its
+next message. That iterator retained access to the generator's disposed random
+number source and failed later with `ObjectDisposedException`.
+
+**Why:** The async iterator accepted only the caller's cancellation token, but
+the generator's disposal and configuration-replacement lifecycle were not
+connected to that token.
+
+**Prevention:** Give resource-owning async iterators an internal disposal
+cancellation signal and link it to the caller token. Ensure generator disposal
+cancels active enumerators before releasing owned resources, and cover both
+explicit disposal and live configuration replacement with regression tests.
+
 ### 0z1471. Cross-Check DHT Identity Documentation Against Production Derivation (2026-10-04)
 
 **What went wrong:** The T-902 research note said the production Kademlia
