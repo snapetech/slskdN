@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1499. Remove Per-Job Swarm Chunk Directories (2026-10-04)
+
+**What went wrong:** `SwarmDownloadOrchestrator.ProcessJob` created a temporary
+directory for chunk files and left it on disk after successful, failed, and
+canceled jobs. Partial-file cleanup did not remove completed chunks or the
+job directory.
+
+**Why:** Cleanup was limited to individual failed chunk files; the job lifecycle
+did not own the temporary directory through final completion or cancellation.
+
+**Prevention:** Drain all chunk workers and recursively remove the job-owned
+temporary directory in `ProcessJob`'s `finally` path. Verify the directory is
+removed after success, failure, and cancellation.
+
 ### 0z1498. Keep Swarm Shutdown Cancellation Out Of Chunk Failure Handling (2026-10-04)
 
 **What went wrong:** `SwarmDownloadOrchestrator` caught cancellation from a
