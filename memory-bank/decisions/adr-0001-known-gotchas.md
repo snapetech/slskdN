@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1506. Build Swarm Fixtures With The Production Chunk Size (2026-10-04)
+
+**What went wrong:** The multi-chunk swarm regression used a 768-byte file and
+assumed it would produce two chunks. The orchestrator's production chunk size
+is 512 KiB, so the fixture actually produced one 768-byte chunk and the peer
+mock wrote only 512 bytes.
+
+**Why:** The test encoded an imagined small chunk size instead of following the
+orchestrator's actual chunk calculation.
+
+**Prevention:** Derive multi-chunk fixture sizes from the production chunk size
+and have the peer mock write the full first chunk plus the exact final
+remainder. Assert each verifier call's byte count and the assembled file bytes.
+
 ### 0z1505. Release Verified Chunk Buffers Before Assembling Large Files (2026-10-04)
 
 **What went wrong:** `SwarmDownloadOrchestrator` retained every verified chunk's
