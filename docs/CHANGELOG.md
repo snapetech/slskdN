@@ -26,6 +26,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Rate-limited transfer and search updates now honor their concurrency limit
   from the first callback and retain staged updates across timer ticks.
+- Download retry status callback failures no longer consume a transfer attempt
+  or get reported as failures of the underlying download operation.
 
 ## [2026100421-slskdn.338] — 2026-10-04
 

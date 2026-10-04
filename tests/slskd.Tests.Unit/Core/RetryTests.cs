@@ -69,4 +69,27 @@ public class RetryTests
         Assert.Equal(2, retryAttempt);
         Assert.Equal(0, retryDelay);
     }
+
+    [Fact]
+    public async Task Do_WhenOnRetryThrows_DoesNotConsumeOperationAttemptOrCallFailureCallback()
+    {
+        var operationAttempts = 0;
+        var failureCallbackAttempts = 0;
+
+        var exception = await Assert.ThrowsAsync<ApplicationException>(() => Retry.Do(
+            task: () =>
+            {
+                operationAttempts++;
+                throw new InvalidOperationException("operation failure");
+            },
+            onRetry: (_, _) => throw new ApplicationException("retry callback failure"),
+            onFailure: (_, _) => failureCallbackAttempts++,
+            maxAttempts: 2,
+            baseDelayInMilliseconds: 0,
+            maxDelayInMilliseconds: 0));
+
+        Assert.Equal("retry callback failure", exception.Message);
+        Assert.Equal(1, operationAttempts);
+        Assert.Equal(1, failureCallbackAttempts);
+    }
 }

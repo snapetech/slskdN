@@ -98,17 +98,18 @@ namespace slskd
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                var pause = 0;
+                if (attempt > 1)
+                {
+                    pause = GetRetryDelay(attempt - 1, baseDelayInMilliseconds, maxDelayInMilliseconds);
+                    onRetry?.Invoke(attempt, pause);
+                }
+
                 try
                 {
-                    if (attempt > 1)
+                    if (pause > 0)
                     {
-                        var pause = GetRetryDelay(attempt - 1, baseDelayInMilliseconds, maxDelayInMilliseconds);
-                        onRetry?.Invoke(attempt, pause);
-
-                        if (pause > 0)
-                        {
-                            await Task.Delay(pause, cancellationToken);
-                        }
+                        await Task.Delay(pause, cancellationToken);
                     }
 
                     return await task();
