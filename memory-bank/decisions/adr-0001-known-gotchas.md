@@ -37658,3 +37658,18 @@ for validating were always present in an untrusted signal body.
 **Prevention:** Read optional signal fields with `TryGetValue` and serialize
 empty/default response values when malformed input must still receive an
 acknowledgement. Keep response construction safe for every validation branch.
+
+### 0z1469. Resolve Peer-ID-Dependent Signal Handlers At Initialization (2026-10-04)
+
+**What went wrong:** Signal initialization required `SwarmSignalHandlers` from
+dependency injection even though its registration was commented out. The
+handler needs the local peer id, which is only known when signal initialization
+runs, so enabling the signal system failed with an unresolved-service error.
+
+**Why:** The service was intentionally not registered as an ordinary singleton,
+but initialization still used `GetRequiredService` as if it had been.
+
+**Prevention:** Resolve an existing handler when the host explicitly registered
+one; otherwise construct it at signal initialization with `ActivatorUtilities`
+and the runtime peer id. Keep its remaining dependencies in the service
+container and avoid a second production-only registration path.
