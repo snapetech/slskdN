@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1491. Query Nested Files In Library Browser Regressions (2026-10-04)
+
+**What went wrong:** A cancellation regression placed `song.mp3` under the
+`Music` virtual directory, then called `BrowseItems()` at the root without a
+query. Root browsing lists immediate files and child directories, so conversion
+and hashing never ran and the test incorrectly passed through without seeing
+the expected cancellation.
+
+**Why:** The test treated the browser endpoint as a recursive file search even
+though recursion is only used when a query is supplied (or the virtual path is
+advanced into the directory).
+
+**Prevention:** For tests of nested-file conversion, call `BrowseItems` with a
+filename query or browse the matching virtual path. Verify the candidate list
+is non-empty before asserting behavior inside hash enrichment.
+
 ### 0z1490. Qualify Filesystem File Calls In Soulseek Tests (2026-10-04)
 
 **What went wrong:** A library-controller regression test imported both
