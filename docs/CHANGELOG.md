@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Support links
+
+- Remove Ko-fi and PayPal links from the README and application footer.
+
 ### Player accessibility
 
 - Coalesce rapid playback-state updates before changing the Player's screen
