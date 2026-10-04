@@ -18000,3 +18000,20 @@ fallback lifecycle, global Party ID ownership across disjoint DHT views, real
 background-tab timer throttling, WebKit Orca/physical assistive-technology
 validation, representative WAN/resource measurements, and the original
 frontend `ERR_NETWORK_CHANGED` cause.
+
+## Current state — Retry notification boundary and `.339` preparation — 2026-10-04 22:54 UTC
+
+Fixed the second confirmed callback defect: `Retry.Do` now invokes `onRetry`
+outside the operation failure handler, so a notification exception is not
+counted as an operation failure or attempt. Gotcha `0z1559` is committed and
+pushed. `RetryTests` passes 4/4, the full .NET suite passes 5,908 tests (74
+application, 5,545 unit, 289 integration), and `./bin/lint` passes. Its release
+fragment and changelog bullet are ready with the limiter fix.
+
+Stable `.338` has published its core artifacts and both Docker images; its
+Launchpad PPA job is the only release job still running. Keep `.339` untagged
+until that source publication completes. Recheck GitHub target and branch sync,
+move only the two shipped bullets into a dated `.339` section, validate the
+release note range, and then run the guarded tag helper. Continue the open
+whole-product backlog after release; the 210 callback and 12,213 red-team
+candidates are discovery queues, not closed inventories.

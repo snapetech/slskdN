@@ -79,12 +79,14 @@
   `linux/amd64` and `linux/arm64` manifests; Cloudron now tracks it as
   `2026.10.0421`, and packaging metadata validation passes. The workflow is
   still waiting on Launchpad PPA publication.
-- [x] Enforce `RateLimiter` concurrency from the first callback, serialize
-  staged-action replacement and extraction, and apply the same slot to
-  flush-on-dispose callbacks. The focused callback suite passes 8/8; full
-  `dotnet test` passes 5,907 tests (74 application, 5,544 unit, 289
-  integration), and `./bin/lint` passes. Release fragment and changelog entry
-  are prepared for the next stable release.
+- [x] Fix callback boundaries in `RateLimiter` and `Retry.Do`. The limiter
+  enforces its concurrency gate for immediate, timer, and disposal-flush
+  callbacks while synchronizing staged updates. `Retry.Do` no longer counts
+  an `onRetry` notification exception as an operation failure or attempt.
+  Focused callback tests pass 8/8 and Retry tests pass 4/4; full `dotnet test`
+  passes 5,908 tests (74 application, 5,545 unit, 289 integration), and
+  `./bin/lint` passes. Two release fragments and changelog bullets are ready
+  for the next stable release.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings; T-908 fallback lifecycle and distributed evidence
   requirements remain open.

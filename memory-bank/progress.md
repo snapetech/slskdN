@@ -17574,3 +17574,15 @@ Refreshed active bug-council counts to 210 callback/event candidates and
 Omnibus Testers job has completed, while Launchpad PPA publication is still
 in progress. Continue independent whole-product remediation while that
 publication drains, then validate and cut the next stable release.
+
+## Update 2026-10-04 22:54 UTC — Isolate retry notification failures
+
+Moved `Retry.Do`'s `onRetry` callback outside the operation failure boundary.
+A status-notification exception now propagates directly instead of being
+recorded as a failed operation attempt or sent to `onFailure`. Retry coverage
+passes 4/4; full `dotnet test` passes 5,908 tests (74 application, 5,545 unit,
+289 integration), and `./bin/lint` passes. Gotcha `0z1559` was committed
+separately before the fix, and a second release fragment covers download retry
+state reporting. The active callback queue remains open at 210 candidates.
+Stable `.338` now has only its Launchpad PPA job outstanding; `.339` remains
+untagged until that publication finishes.
