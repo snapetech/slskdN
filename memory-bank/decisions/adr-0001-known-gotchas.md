@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1466. Verify A Playwright Page Is Actually Hidden Before Testing Visibility Recovery (2026-10-04)
+
+**What went wrong:** The Player E2E opened a second blank page and assumed the
+original host page had become hidden. In this headless run,
+`document.visibilityState` remained `visible`, so the test timed out before it
+exercised the hidden-to-visible recovery path.
+
+**Why:** Creating another Playwright page did not change the original page's
+reported visibility in this runner. Page creation and browser visibility are
+separate state; the test inferred one from the other.
+
+**Prevention:** Assert the document's actual visibility state before claiming a
+background-tab test. Use browser visibility emulation or a verified foreground
+tab switch, and record the measured hidden interval alongside synchronization
+results.
+
 ### 0z1339. Use Fomantic Button Toggle Mode For Pressed State
 
 **What went wrong:** The Logs severity filters supplied `aria-pressed` directly
