@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1504. Dispose Chunk Output Before Reopening It (2026-10-04)
+
+**What went wrong:** `SwarmDownloadOrchestrator.DownloadChunkAsync` kept its
+chunk `FileStream` open while trying to read the just-downloaded file back into
+memory. The exclusive create handle made `ReadAllBytesAsync` fail, so every
+otherwise complete peer transfer was classified as a failed chunk.
+
+**Why:** A `using var` local remained in scope through the subsequent read; the
+code assumed disposal happened at the end of the transfer call rather than at
+the end of its enclosing block.
+
+**Prevention:** Use an explicit scope to dispose the output and limiting
+streams before reopening the file. Exercise the actual file-backed download
+path in regression tests, not only a memory-backed stream helper.
+
 ### 0z1503. Check File-Scoped Type Boundaries Before Qualifying Helpers (2026-10-04)
 
 **What went wrong:** A regression test qualified `LimitedWriteStream` as a
