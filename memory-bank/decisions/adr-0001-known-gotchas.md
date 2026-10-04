@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1517. Keep Private-Gateway Caller Cancellation Out Of Service Errors (2026-10-04)
+
+**What went wrong:** Private-gateway request handlers caught cancellation from
+pod lookup, DNS validation, tunnel connect, and data I/O as ordinary service
+failures, returning `UnknownError` or `ServiceUnavailable` after the caller
+had canceled.
+
+**Why:** Broad error-to-reply conversion did not distinguish caller
+cancellation from internal dial timeouts and recoverable tunnel failures.
+
+**Prevention:** Rethrow cancellation when the request token is canceled at the
+dispatcher and request I/O boundaries. Preserve tunnel cleanup when a canceled
+read or write leaves the stream unusable; keep internal timeout failures as
+service replies. Test cancellation during a real request-bound async operation.
+
 ### 0z1516. Preserve Caller Cancellation Through Optional Planner Backends (2026-10-04)
 
 **What went wrong:** `MultiSourcePlanner` caught every backend exception and
