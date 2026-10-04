@@ -99,6 +99,22 @@ from metadata. Detect risky API call sites in source syntax or semantic
 operation data, and report findings only when the API and relevant input flow
 are known. Treat deserialization review as format- and trust-boundary-specific.
 
+### 0z1477. Distinguish Task Results And Blocking Waits From Same-Named APIs (2026-10-04)
+
+**What went wrong:** The syntax-only blocking-call rule reported ordinary
+MVC `context.Result` assignments and zero-timeout semaphore calls such as
+`SearchRequestLimiter.Wait(0)` as blocking asynchronous operations.
+
+**Why:** The rule matched member names without resolving their receiver types
+or overloads. `Result` is also a common MVC property, and `Wait(0)` is a
+nonblocking try-acquire pattern.
+
+**Prevention:** Resolve the called symbol and receiver type before reporting a
+blocking call. If semantic information is unavailable, narrowly recognize
+task-like results and blocking overloads, and explicitly exclude zero-timeout
+waits. Keep regressions for `Task<T>.Result`, `Task.Wait()`, `context.Result`,
+and `SemaphoreSlim.Wait(0)`.
+
 ### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
 
 **What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
