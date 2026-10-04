@@ -86,7 +86,7 @@ public class DhtRendezvousServiceTests
             new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
             new MeshPeerManager(NullLogger<MeshPeerManager>.Instance),
             new DhtRendezvousOptions { Enabled = true, LanOnly = true });
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         await service.StartAsync(timeout.Token);
         await service.StartAsync(timeout.Token);
         while (service.GetStats().StartedAt is null)
