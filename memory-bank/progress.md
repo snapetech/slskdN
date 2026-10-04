@@ -17477,3 +17477,15 @@ and public mutable ownership count to 820. The active-backlog check passes;
 these broad queues remain open and are not treated as confirmed defects or
 closed work. No release tag was created by the stopped attempt. The guarded
 gate must be rerun after pushing this documentation update.
+
+## Update 2026-10-04 20:55 UTC — Stabilize rendezvous startup regression
+
+The next `.337` gate passed the active remediation baseline, all 1,232 Web
+tests, frontend production build, bundle-budget check, built-output check, and
+subpath smoke test. Its Release unit run failed only
+`LanOnly_StartIsIdempotentAndStopReleasesTransport` at the test's shared
+five-second cancellation deadline. The same test passed in isolation in 74 ms.
+Documented the scheduler-sensitive deadline gotcha and raised this test's
+bounded budget to 30 seconds. The complete Release unit suite then passed
+5,542/5,542. No tag was created; the guarded release gate must be rerun after
+pushing the test correction and records.

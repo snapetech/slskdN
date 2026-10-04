@@ -45,6 +45,11 @@
   stale active bug-council counts; the refreshed report matches the backlog
   (208 callback/event, 12,197 red-team, 820 public mutable ownership), and its
   check now passes. These discovery queues remain open.
+- [x] Reproduce and fix the Release-only timeout in
+  `LanOnly_StartIsIdempotentAndStopReleasesTransport`: the test's shared
+  five-second budget expired under full-suite load, while it passed in 74 ms
+  alone. The bounded startup/shutdown test budget is now 30 seconds, and the
+  full Release unit suite passes 5,542/5,542. The `.337` release gate must rerun.
 - [x] Verify exact .336 Launchpad publication. The source and amd64 build
   succeeded; the GitHub job timed out after its 5,400-second wait, then the
   exact Jammy binary appeared as Published shortly afterward. The shared wait
