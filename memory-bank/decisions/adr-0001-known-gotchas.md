@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1529. Report Cleanup Failures Across Every Staged Download Path (2026-10-04)
+
+**What went wrong:** After the pod-download cleanup issue was fixed, review found
+the same catch-all around staged backfill-file deletion. A failed HTTP backfill
+could also leave partial content in `.partial` without a warning.
+
+**Why:** Cleanup behavior was implemented separately in adjacent download
+flows, so the first fix did not cover every owner of staged files.
+
+**Prevention:** Search all `DeleteStagedFile` cleanup helpers when changing a
+staged-download path. Preserve the original download outcome, catch only
+expected filesystem failures, and log cleanup failures for both peer and
+backfill downloads.
+
 ### 0z1528. Report Failed Cleanup Of Partial Pod Downloads (2026-10-04)
 
 **What went wrong:** The pod-download cleanup helper swallowed every exception
