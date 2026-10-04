@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1503. Check File-Scoped Type Boundaries Before Qualifying Helpers (2026-10-04)
+
+**What went wrong:** A regression test qualified `LimitedWriteStream` as a
+nested type of `ContentVerificationService`, but the helper is a sibling type
+in the same namespace. The unit-test project failed to compile.
+
+**Why:** The source file visually grouped the helper next to the service, but
+the service class had already closed before the helper declaration.
+
+**Prevention:** Check the declaration and closing-brace boundaries before
+qualifying helper types in tests. Prefer the direct type name when it is in the
+test namespace's imported project namespace.
+
 ### 0z1502. Implement Bounded Async Writes On LimitedWriteStream (2026-10-04)
 
 **What went wrong:** `LimitedWriteStream` bounded only synchronous `Write`
