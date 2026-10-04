@@ -5380,9 +5380,11 @@ installer.
 ### 0z1556. Drain Both Redirected Process Streams Concurrently (2026-10-04)
 
 **What went wrong:** `SongIdService.RunToolAsync` awaited the child process's
-stdout to EOF before starting to read stderr. A tool that writes more than the
-pipe capacity to stderr can then block before closing stdout, leaving SongID
-analysis stuck while the parent waits for stdout.
+stdout to EOF before starting to read stderr. `AudioSketchService` did the same
+for ffmpeg, while the Soulfind bridge redirected both streams without draining
+either and the obfs4 version check waited for exit without reading its pipes.
+Noisy children can fill a bounded pipe, block before exit, and leave the parent
+waiting indefinitely.
 
 **Why:** Redirected stdout and stderr use separate bounded pipes. Making each
 read asynchronous does not prevent deadlock when the reads themselves are
@@ -5395,6 +5397,9 @@ tool, terminate its process tree and observe the outstanding drain tasks.
 **Files affected:**
 - `src/slskd/SongID/SongIdService.cs`
 - `tests/slskd.Tests.Unit/SongID/SongIdServiceTests.cs`
+- `src/slskd/Audio/AudioSketchService.cs`
+- `src/slskd/VirtualSoulfind/Bridge/SoulfindBridgeService.cs`
+- `src/slskd/Common/Security/Obfs4VersionChecker.cs`
 
 ### 0z853. Project Lidarr GET Resources Into Manual-Import Command Files
 
