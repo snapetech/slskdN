@@ -4,6 +4,23 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1471. Cross-Check DHT Identity Documentation Against Production Derivation (2026-10-04)
+
+**What went wrong:** The T-902 research note said the production Kademlia
+identity used SHA-1, while the production registration, DHT store signature
+validation, and tests consistently use the first 20 bytes of SHA-256. This
+created a false report that authenticated DHT writes used mismatched IDs and
+could have led to changing a working identity contract.
+
+**Why:** The design note drifted from the implementation, and an initial review
+trusted its description before tracing the identity from key storage through
+routing and signed-store verification.
+
+**Prevention:** For DHT identity changes, verify the production registration,
+`Ed25519Signer.DerivePeerId`, `DhtStoreMessage.VerifySignature`, and their
+regressions together. Keep research documents aligned with that end-to-end
+contract; treat a research note as a hypothesis when it conflicts with code.
+
 ### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
 
 **What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
