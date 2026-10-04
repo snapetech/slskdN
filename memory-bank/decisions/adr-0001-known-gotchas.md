@@ -36175,3 +36175,20 @@ complete expression.
 
 **Prevention:** Compile the touched backend slice after changing nested
 ownership predicates before continuing to unrelated edits.
+
+### 0z1457. Expire The Room State With Its Host Lease (2026-10-04)
+
+**What went wrong:** Expiring a host-session lease removed only the ownership
+fence. The room's local playing state and its DHT directory/index projection
+could remain after the browser stopped renewing, leaving stale room and radio
+state behind.
+
+**Why:** Lease pruning was implemented as dictionary cleanup and was only
+triggered during a later host start. It did not run the room's serialized Stop
+transition, so subscribers, mesh peers, and directory ownership never received
+the corresponding cleanup.
+
+**Prevention:** Make lease expiry enter the same room-serialized cleanup path as
+Stop, including local subscribers, peer delivery, DHT announcement withdrawal,
+and index update. Verify expiry after both a document close and a silent lease
+timeout; avoid a general idle polling loop.
