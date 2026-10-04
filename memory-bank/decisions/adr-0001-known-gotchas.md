@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1518. Do Not Turn Profile-Load Cancellation Into Profile Regeneration (2026-10-04)
+
+**What went wrong:** `GetMyProfileAsync` caught cancellation from the profile
+file read as a recoverable file error and continued generating a replacement
+profile. Its optional hostname fallback also performed synchronous DNS work
+without observing the method's cancellation token.
+
+**Why:** The corrupt/unreadable-file fallback treated all exceptions alike,
+while an older synchronous endpoint-discovery helper was reused by a
+cancellation-aware async API.
+
+**Prevention:** Rethrow `OperationCanceledException` when the request token is
+canceled before applying the file fallback. Make optional DNS discovery async,
+pass its token to the DNS API, and preserve ordinary DNS failure as the
+existing no-endpoint fallback. Test pre-canceled file loads and token-aware DNS.
+
 ### 0z1517. Keep Private-Gateway Caller Cancellation Out Of Service Errors (2026-10-04)
 
 **What went wrong:** Private-gateway request handlers caught cancellation from
