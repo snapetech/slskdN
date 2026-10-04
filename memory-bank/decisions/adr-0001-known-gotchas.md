@@ -68,6 +68,20 @@ for the substring `Sync` anywhere in the method name.
 enforce. For this rule, report Task-returning methods whose names end in
 `Sync`; do not flag an internal substring or an `Async`-suffixed action name.
 
+### 0z1475. Exclude The Async Suffix Before Checking A Sync Suffix (2026-10-04)
+
+**What went wrong:** The first suffix-based correction used
+`EndsWith("Sync", OrdinalIgnoreCase)`, which also matches the final letters
+of the conventional `Async` suffix. It incorrectly classified ordinary
+Task-returning `...Async` methods as suspicious.
+
+**Why:** The check ignored case and did not account for the fact that
+`Async` ends with the same letters as `Sync` when compared case-insensitively.
+
+**Prevention:** Explicitly exclude the `Async` suffix before checking for a
+`Sync` suffix, and keep regressions for ordinary `Async`, action names such as
+`SynchronizeAsync`, and genuinely Task-returning names ending in `Sync`.
+
 ### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
 
 **What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
