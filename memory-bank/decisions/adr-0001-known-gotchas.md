@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1513. Balance Multi-Source Download Resources On Every Exit (2026-10-04)
+
+**What went wrong:** The multi-source active-download gauge was incremented
+before output-path validation but decremented only on successful parallel
+downloads. Sequential, failed, canceled, and rejected jobs could leave it
+incorrect. Parallel chunk files were also removed only on success.
+
+**Why:** Resource bookkeeping and temp cleanup lived on the success path while
+the method had several early returns and a broad failure handler.
+
+**Prevention:** Validate before acquiring/counting active work, balance active
+metrics from the outer `finally`, and keep the per-job temp directory in scope
+for cleanup from that same all-exit path. Cover rejected, canceled, and failed
+downloads.
+
 ### 0z1512. Drain Speed-Monitor Tasks On Every Chunk-Download Exit (2026-10-04)
 
 **What went wrong:** The low-throughput cancellation branch returned before
