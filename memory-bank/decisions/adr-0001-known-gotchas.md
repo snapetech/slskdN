@@ -34,6 +34,20 @@ the scanner assumed every listed path still existed in the working tree.
 to source scanners. Keep generated-candidate counts based on the current
 working tree and verify the scan remains quiet when tracked files are deleted.
 
+### 0z1481. Join Background Workers Before Disposing Their Cancellation Source (2026-10-04)
+
+**What went wrong:** `CoverTrafficGenerator.Dispose()` cancelled the generation
+token and immediately disposed it and dropped the worker task reference. The
+worker can still be inside an asynchronous send, so it could outlive the owner
+and access its state after disposal.
+
+**Why:** `Dispose()` duplicated only part of `StopAsync()` instead of using the
+bounded cancellation-and-join lifecycle that already existed.
+
+**Prevention:** Route synchronous disposal through the same stop/join path.
+If a bounded wait expires, keep resources alive until the worker finishes and
+observe any late fault. Test disposal while a send is deliberately held open.
+
 ### 0z1471. Cross-Check DHT Identity Documentation Against Production Derivation (2026-10-04)
 
 **What went wrong:** The T-902 research note said the production Kademlia
