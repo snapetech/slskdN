@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1541. Keep Browser Storage Values Out Of Failure Logs (2026-10-04)
+
+**What went wrong:** When login failed to find its token, the Playwright helper
+logged the first 50 characters of every localStorage and sessionStorage value.
+That could expose auth material or private user settings in retained test logs.
+
+**Why:** The failure diagnostic treated browser storage as ordinary debug
+text instead of credential-bearing and user-specific state.
+
+**Prevention:** Log only storage counts and presence of the expected token key.
+Never print stored values in test diagnostics, even truncated; keep enough
+state metadata to distinguish an empty store from a missing token.
+
 ### 0z1540. Include Sanitized Resource Details In Browser Failure Logs (2026-10-04)
 
 **What went wrong:** The login helper retained generic browser console errors
