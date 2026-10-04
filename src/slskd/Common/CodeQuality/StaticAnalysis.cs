@@ -28,7 +28,8 @@ namespace slskd.Common.CodeQuality
         {
             var violations = new List<AnalysisViolation>();
 
-            foreach (var type in assembly.GetTypes())
+            var types = assembly.GetTypes();
+            foreach (var type in types)
             {
                 violations.AddRange(AnalyzeType(type, logger));
             }
@@ -36,7 +37,7 @@ namespace slskd.Common.CodeQuality
             var result = new StaticAnalysisResult
             {
                 AssemblyName = assembly.GetName().Name ?? "Unknown",
-                TotalTypesAnalyzed = assembly.GetTypes().Length,
+                TotalTypesAnalyzed = types.Length,
                 Violations = violations,
                 AnalysisTimestamp = DateTimeOffset.UtcNow
             };
@@ -188,20 +189,6 @@ namespace slskd.Common.CodeQuality
             var violations = new List<AnalysisViolation>();
             var location = type.FullName ?? "Unknown";
 
-            // Check for missing XML documentation
-            if (string.IsNullOrEmpty(type.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>()?.Description) &&
-                !type.Name.Contains('<') && !type.IsNested)
-            {
-                violations.Add(new AnalysisViolation
-                {
-                    Location = location,
-                    Rule = "MissingDocumentation",
-                    Severity = ViolationSeverity.Info,
-                    Message = "Public type lacks XML documentation",
-                    Recommendation = "Add XML documentation comments to public types"
-                });
-            }
-
             // Check for large classes (maintainability issue)
             var methodCount = type.GetMethods(BindingFlags.Public | BindingFlags.Instance).Length;
             if (methodCount > 20)
@@ -225,19 +212,6 @@ namespace slskd.Common.CodeQuality
         private static IEnumerable<AnalysisViolation> AnalyzeMethodSecurity(MethodInfo method, string location, ILogger? logger)
         {
             var violations = new List<AnalysisViolation>();
-
-            // Check for dangerous method patterns
-            if (SecurityRules.IsDangerousMethod(method))
-            {
-                violations.Add(new AnalysisViolation
-                {
-                    Location = location,
-                    Rule = "DangerousMethod",
-                    Severity = ViolationSeverity.Error,
-                    Message = $"Method uses dangerous pattern: {method.Name}",
-                    Recommendation = "Review method for security implications and consider safer alternatives"
-                });
-            }
 
             // Check for proper parameter validation
             var parameters = method.GetParameters();
@@ -319,25 +293,12 @@ namespace slskd.Common.CodeQuality
     /// </summary>
     internal static class SecurityRules
     {
-        private static readonly string[] DangerousMethodNames = new[]
-        {
-            "ExecuteSqlRaw", "FromSqlRaw", "ExecuteSql", "FromSql",
-            "DangerousGet", "ProcessStart", "ExecuteCommand",
-            "Deserialize", "FromBase64String"
-        };
-
         private static readonly Type[] SensitiveTypes = new[]
         {
             typeof(string), // Could contain passwords, tokens, etc.
             typeof(byte[]), // Could contain keys, encrypted data
             typeof(System.Security.SecureString)
         };
-
-        public static bool IsDangerousMethod(MethodInfo method)
-        {
-            return DangerousMethodNames.Any(name =>
-                method.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
-        }
 
         public static bool ParameterNeedsValidation(ParameterInfo param)
         {
@@ -402,6 +363,16 @@ namespace slskd.Common.CodeQuality
         ///     Gets the total number of types analyzed.
         /// </summary>
         public int TotalTypesAnalyzed { get; init; }
+
+        /// <summary>
+        ///     Gets a value indicating whether all configured analysis stages completed.
+        /// </summary>
+        public bool AnalysisComplete { get; init; } = true;
+
+        /// <summary>
+        ///     Gets the reason the analysis was incomplete, if any.
+        /// </summary>
+        public string? IncompleteReason { get; init; }
 
         /// <summary>
         ///     Gets the list of violations found.

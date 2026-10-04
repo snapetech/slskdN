@@ -62,7 +62,7 @@ public class SourceProvidersControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<SourceProviderCatalogResponse>(ok.Value);
-        var meshPreferred = Assert.Single(response.ProfilePolicies.Where(policy => policy.ProfileId == "mesh-preferred"));
+        var meshPreferred = Assert.Single(response.ProfilePolicies, policy => policy.ProfileId == "mesh-preferred");
         Assert.Equal(new[] { "LocalLibrary", "NativeMesh", "MeshDht", "Soulseek" }, meshPreferred.ProviderPriority);
         Assert.False(meshPreferred.AutoDownloadEnabled);
         Assert.All(response.ProfilePolicies, policy => Assert.False(policy.AutoDownloadEnabled));
@@ -126,6 +126,6 @@ public class SourceProvidersControllerTests
 
     private static SourceProviderResponse AssertProvider(SourceProviderCatalogResponse response, string id)
     {
-        return Assert.Single(response.Providers.Where(provider => provider.Id == id));
+        return Assert.Single(response.Providers, provider => provider.Id == id);
     }
 }

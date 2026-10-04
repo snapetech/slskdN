@@ -39,8 +39,7 @@ namespace slskd.Tests.Unit.Common.CodeQuality
 
             // Assert
             Assert.NotNull(violations);
-            // Should find missing documentation violation for the class
-            Assert.Contains(violations, v => v.Rule == "MissingDocumentation");
+            Assert.DoesNotContain(violations, v => v.Rule == "MissingDocumentation");
         }
 
         [Fact]
@@ -57,6 +56,20 @@ namespace slskd.Tests.Unit.Common.CodeQuality
             Assert.NotNull(violations);
             // Should find too many parameters violation
             Assert.Contains(violations, v => v.Rule == "TooManyParameters");
+        }
+
+        [Fact]
+        public void AnalyzeMethod_DoesNotClassifyRiskyLookingNamesAsDangerousApis()
+        {
+            var methods = typeof(RiskyLookingMethodNames).GetMethods()
+                .Where(method => method.DeclaringType == typeof(RiskyLookingMethodNames));
+
+            foreach (var method in methods)
+            {
+                var violations = StaticAnalysis.AnalyzeMethod(method).ToList();
+
+                Assert.DoesNotContain(violations, violation => violation.Rule == "DangerousMethod");
+            }
         }
 
         [Fact]
@@ -91,6 +104,21 @@ namespace slskd.Tests.Unit.Common.CodeQuality
             if (methodCount > 20)
             {
                 Assert.Contains(violations, v => v.Rule == "LargeClass");
+            }
+        }
+
+        private sealed class RiskyLookingMethodNames
+        {
+            public void Deserialize()
+            {
+            }
+
+            public void FromBase64String()
+            {
+            }
+
+            public void DangerousGetHandle()
+            {
             }
         }
     }

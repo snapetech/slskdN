@@ -43,9 +43,6 @@ namespace slskd.Common.CodeQuality
                 // Analyze for insecure string operations
                 violations.AddRange(AnalyzeInsecureStringOperations(root, filePath));
 
-                // Analyze for missing null checks
-                violations.AddRange(AnalyzeMissingNullChecks(root, filePath));
-
                 // Analyze for improper exception handling
                 violations.AddRange(AnalyzeExceptionHandling(root, filePath));
 
@@ -65,10 +62,11 @@ namespace slskd.Common.CodeQuality
         {
             var violations = new List<CodeAnalysisViolation>();
 
-            // Find .Result calls (the .Result MemberAccess is the node we want)
+            // A property named Result is common in MVC and binding APIs. Only
+            // report it when source syntax identifies the receiver as Task-like.
             var resultCalls = root.DescendantNodes()
                 .OfType<MemberAccessExpressionSyntax>()
-                .Where(m => m.Name.Identifier.Text == "Result");
+                .Where(m => m.Name.Identifier.Text == "Result" && IsTaskLikeExpression(m.Expression, root));
 
             foreach (var call in resultCalls)
             {
@@ -88,7 +86,10 @@ namespace slskd.Common.CodeQuality
             var waitCalls = root.DescendantNodes()
                 .OfType<InvocationExpressionSyntax>()
                 .Where(i => i.Expression is MemberAccessExpressionSyntax m &&
-                           m.Name.Identifier.Text == "Wait");
+                           m.Name.Identifier.Text == "Wait" &&
+                           m.Name is not GenericNameSyntax &&
+                           IsTaskLikeExpression(m.Expression, root) &&
+                           !HasZeroTimeout(i));
 
             foreach (var call in waitCalls)
             {
@@ -111,7 +112,8 @@ namespace slskd.Common.CodeQuality
                            m.Name.Identifier.Text == "GetResult" &&
                            m.Expression is InvocationExpressionSyntax inner &&
                            inner.Expression is MemberAccessExpressionSyntax innerMember &&
-                           innerMember.Name.Identifier.Text == "GetAwaiter");
+                           innerMember.Name.Identifier.Text == "GetAwaiter" &&
+                           IsTaskLikeExpression(innerMember.Expression, root));
 
             foreach (var call in getAwaiterCalls)
             {
@@ -128,6 +130,191 @@ namespace slskd.Common.CodeQuality
             }
 
             return violations;
+        }
+
+        private static bool IsTaskLikeExpression(ExpressionSyntax expression, SyntaxNode root)
+        {
+            if (expression is ParenthesizedExpressionSyntax parenthesized)
+            {
+                return IsTaskLikeExpression(parenthesized.Expression, root);
+            }
+
+            if (expression is ObjectCreationExpressionSyntax objectCreation)
+            {
+                return IsTaskLikeType(objectCreation.Type);
+            }
+
+            if (expression is InvocationExpressionSyntax invocation)
+            {
+                if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
+                {
+                    var methodName = invocation.Expression is IdentifierNameSyntax identifier
+                        ? identifier.Identifier.ValueText
+                        : null;
+                    return IsDeclaredTaskLikeMethod(methodName, root);
+                }
+
+                var memberName = memberAccess.Name.Identifier.ValueText;
+                if (memberName == "ConfigureAwait")
+                {
+                    return IsTaskLikeExpression(memberAccess.Expression, root);
+                }
+
+                if ((memberName is "FromResult" or "Run" or "Delay" or "WhenAll" or "WhenAny") &&
+                    IsTaskTypeExpression(memberAccess.Expression))
+                {
+                    return true;
+                }
+
+                return IsDeclaredTaskLikeMethod(memberName, root);
+            }
+
+            if (expression is MemberAccessExpressionSyntax propertyAccess)
+            {
+                if (propertyAccess.Name.Identifier.ValueText == "CompletedTask" &&
+                    IsTaskTypeExpression(propertyAccess.Expression))
+                {
+                    return true;
+                }
+
+                if (propertyAccess.Expression is ThisExpressionSyntax)
+                {
+                    return IsTaskLikeMember(propertyAccess.Name.Identifier.ValueText, expression, root);
+                }
+
+                return false;
+            }
+
+            if (expression is IdentifierNameSyntax name)
+            {
+                return IsTaskLikeMember(name.Identifier.ValueText, expression, root);
+            }
+
+            return false;
+        }
+
+        private static bool IsDeclaredTaskLikeMethod(string? methodName, SyntaxNode root)
+        {
+            if (string.IsNullOrWhiteSpace(methodName))
+            {
+                return false;
+            }
+
+            var declarations = root.DescendantNodes()
+                .OfType<MethodDeclarationSyntax>()
+                .Where(method => method.Identifier.ValueText == methodName)
+                .ToArray();
+
+            return declarations.Length > 0 && declarations.All(method => IsTaskLikeType(method.ReturnType));
+        }
+
+        private static bool IsTaskLikeMember(string memberName, ExpressionSyntax expression, SyntaxNode root)
+        {
+            var method = expression.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+            if (method is not null)
+            {
+                if (method.ParameterList.Parameters.Any(parameter =>
+                    parameter.Identifier.ValueText == memberName &&
+                    parameter.Type is not null &&
+                    IsTaskLikeType(parameter.Type)))
+                {
+                    return true;
+                }
+
+                foreach (var variable in method.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+                {
+                    if (variable.Identifier.ValueText != memberName || variable.Parent is not VariableDeclarationSyntax declaration)
+                    {
+                        continue;
+                    }
+
+                    if (IsTaskLikeType(declaration.Type))
+                    {
+                        return true;
+                    }
+
+                    if (declaration.Type is IdentifierNameSyntax { Identifier.ValueText: "var" } &&
+                        variable.Initializer?.Value is InvocationExpressionSyntax initializer &&
+                        IsTaskLikeExpression(initializer, root))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            var containingType = expression.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
+            if (containingType is null)
+            {
+                return false;
+            }
+
+            foreach (var field in containingType.Members.OfType<FieldDeclarationSyntax>())
+            {
+                if (IsTaskLikeType(field.Declaration.Type) &&
+                    field.Declaration.Variables.Any(variable => variable.Identifier.ValueText == memberName))
+                {
+                    return true;
+                }
+            }
+
+            return containingType.Members.OfType<PropertyDeclarationSyntax>().Any(property =>
+                property.Identifier.ValueText == memberName && IsTaskLikeType(property.Type));
+        }
+
+        private static bool IsTaskLikeType(TypeSyntax type)
+        {
+            var simpleName = type switch
+            {
+                GenericNameSyntax genericName => genericName.Identifier.ValueText,
+                IdentifierNameSyntax identifierName => identifierName.Identifier.ValueText,
+                QualifiedNameSyntax qualifiedName => qualifiedName.Right.Identifier.ValueText,
+                AliasQualifiedNameSyntax aliasQualifiedName => aliasQualifiedName.Name.Identifier.ValueText,
+                NullableTypeSyntax nullableType => GetSimpleTypeName(nullableType.ElementType),
+                _ => null
+            };
+
+            return simpleName is "Task" or "ValueTask";
+        }
+
+        private static string? GetSimpleTypeName(TypeSyntax type) => type switch
+        {
+            GenericNameSyntax genericName => genericName.Identifier.ValueText,
+            IdentifierNameSyntax identifierName => identifierName.Identifier.ValueText,
+            QualifiedNameSyntax qualifiedName => qualifiedName.Right.Identifier.ValueText,
+            AliasQualifiedNameSyntax aliasQualifiedName => aliasQualifiedName.Name.Identifier.ValueText,
+            _ => null
+        };
+
+        private static bool IsTaskTypeExpression(ExpressionSyntax expression) => expression switch
+        {
+            IdentifierNameSyntax identifierName => identifierName.Identifier.ValueText is "Task" or "ValueTask",
+            MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.ValueText is "Task" or "ValueTask",
+            _ => false
+        };
+
+        private static bool HasZeroTimeout(InvocationExpressionSyntax invocation)
+        {
+            if (invocation.ArgumentList.Arguments.Count == 0)
+            {
+                return false;
+            }
+
+            var timeout = invocation.ArgumentList.Arguments[0].Expression;
+            if (timeout is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.NumericLiteralExpression))
+            {
+                return literal.Token.Value switch
+                {
+                    int value => value == 0,
+                    long value => value == 0,
+                    uint value => value == 0,
+                    ulong value => value == 0,
+                    _ => false
+                };
+            }
+
+            return timeout is MemberAccessExpressionSyntax memberAccess &&
+                memberAccess.Name.Identifier.ValueText == "Zero" &&
+                memberAccess.Expression.ToString().EndsWith("TimeSpan", StringComparison.Ordinal);
         }
 
         private static IEnumerable<CodeAnalysisViolation> AnalyzeInsecureStringOperations(SyntaxNode root, string filePath)
@@ -159,51 +346,6 @@ namespace slskd.Common.CodeQuality
             return violations;
         }
 
-        private static IEnumerable<CodeAnalysisViolation> AnalyzeMissingNullChecks(SyntaxNode root, string filePath)
-        {
-            var violations = new List<CodeAnalysisViolation>();
-
-            // Find method parameters that should be null-checked
-            var methodDeclarations = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
-
-            foreach (var method in methodDeclarations)
-            {
-                var parameters = method.ParameterList.Parameters;
-
-                foreach (var param in parameters)
-                {
-                    var paramName = param.Identifier.Text;
-                    var paramType = param.Type?.ToString();
-
-                    // Check if reference type parameter is used without null check
-                    if (IsReferenceType(paramType) && ShouldBeNullChecked(paramName))
-                    {
-                        var methodBody = method.Body;
-                        if (methodBody != null)
-                        {
-                            var hasNullCheck = HasNullCheck(methodBody, paramName);
-
-                            if (!hasNullCheck)
-                            {
-                                violations.Add(new CodeAnalysisViolation
-                                {
-                                    FilePath = filePath,
-                                    LineNumber = param.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
-                                    Rule = "MissingNullCheck",
-                                    Severity = ViolationSeverity.Warning,
-                                    Message = $"Parameter '{paramName}' should be null-checked",
-                                    CodeSnippet = param.ToString(),
-                                    Recommendation = "Add null check at method start: if (param == null) throw new ArgumentNullException(nameof(param));"
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-
-            return violations;
-        }
-
         private static IEnumerable<CodeAnalysisViolation> AnalyzeExceptionHandling(SyntaxNode root, string filePath)
         {
             var violations = new List<CodeAnalysisViolation>();
@@ -214,7 +356,8 @@ namespace slskd.Common.CodeQuality
             foreach (var catchClause in catchClauses)
             {
                 var block = catchClause.Block;
-                if (block?.Statements.Count == 0)
+                // A filter is an explicit condition, so this is not an unconditional swallow.
+                if (block?.Statements.Count == 0 && catchClause.Filter is null)
                 {
                     violations.Add(new CodeAnalysisViolation
                     {
@@ -307,37 +450,6 @@ namespace slskd.Common.CodeQuality
             return violations;
         }
 
-        private static bool IsReferenceType(string? typeName)
-        {
-            if (string.IsNullOrEmpty(typeName))
-            {
-                return false;
-            }
-
-            // Simple check for reference types (not comprehensive)
-            return !typeName.Contains("int") && !typeName.Contains("bool") &&
-                   !typeName.Contains("long") && !typeName.Contains("short") &&
-                   !typeName.Contains("byte") && !typeName.Contains("char") &&
-                   !typeName.Contains("float") && !typeName.Contains("double") &&
-                   !typeName.Contains("decimal");
-        }
-
-        private static bool ShouldBeNullChecked(string paramName)
-        {
-            return !paramName.Contains("cancellationToken", StringComparison.OrdinalIgnoreCase) &&
-                   !paramName.Contains("ct", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool HasNullCheck(BlockSyntax methodBody, string paramName)
-        {
-            return methodBody.DescendantNodes()
-                .OfType<BinaryExpressionSyntax>()
-                .Any(b => b.OperatorToken.Text == "!=" &&
-                         ((b.Left is IdentifierNameSyntax left && left.Identifier.Text == paramName) ||
-                          (b.Right is IdentifierNameSyntax right && right.Identifier.Text == paramName)) &&
-                         ((b.Left is LiteralExpressionSyntax leftLit && leftLit.Token.Text == "null") ||
-                          (b.Right is LiteralExpressionSyntax rightLit && rightLit.Token.Text == "null")));
-        }
     }
 
     /// <summary>

@@ -48,6 +48,45 @@ namespace slskd.Tests.Unit.Common.CodeQuality
         }
 
         [Fact]
+        public async Task ValidateCancellationHandlingAsync_WhenOperationCompletesBeforeCancellation_ReturnsFalse()
+        {
+            var result = await AsyncRules.ValidateCancellationHandlingAsync(
+                _ => Task.CompletedTask,
+                TimeSpan.FromMilliseconds(10));
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task ValidateCancellationHandlingAsync_WhenCancellationCausesUnrelatedFault_ReturnsFalse()
+        {
+            Task TestOperationAsync(CancellationToken cancellationToken)
+            {
+                var completion = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+                cancellationToken.Register(static state =>
+                {
+                    var completionSource = (TaskCompletionSource<object?>)state!;
+                    completionSource.TrySetException(new InvalidOperationException("operation faulted"));
+                }, completion);
+                return completion.Task;
+            }
+
+            var result = await AsyncRules.ValidateCancellationHandlingAsync(TestOperationAsync, TimeSpan.FromMilliseconds(10));
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task ValidateCancellationHandlingAsync_WhenOperationThrowsSynchronously_ReturnsFalse()
+        {
+            var result = await AsyncRules.ValidateCancellationHandlingAsync(
+                _ => throw new InvalidOperationException("operation failed to start"),
+                TimeSpan.FromMilliseconds(10));
+
+            Assert.False(result);
+        }
+
+        [Fact]
         public void HasCancellationPropagation_WithCancellationToken_ReturnsTrue()
         {
             // Arrange
@@ -74,10 +113,39 @@ namespace slskd.Tests.Unit.Common.CodeQuality
         }
 
         [Fact]
+        public void HasSuspiciousAsyncNaming_DoesNotTreatAsyncSuffixAsSyncToken()
+        {
+            var method = typeof(TestClass).GetMethod(nameof(TestClass.MethodWithCancellationAsync));
+
+            Assert.False(AsyncRules.HasSuspiciousAsyncNaming(method));
+        }
+
+        [Theory]
+        [InlineData(nameof(TestClass.MethodWithCancellationAsync))]
+        [InlineData(nameof(TestClass.SynchronizeAsync))]
+        [InlineData(nameof(TestClass.TrySyncWithPeerAsync))]
+        [InlineData(nameof(TestClass.SyncOnRejoinAsync))]
+        [InlineData(nameof(TestClass.MethodSyncAsync))]
+        public void HasSuspiciousAsyncNaming_DoesNotTreatAsyncActionsAsSyncMethods(string methodName)
+        {
+            var method = typeof(TestClass).GetMethod(methodName);
+
+            Assert.False(AsyncRules.HasSuspiciousAsyncNaming(method));
+        }
+
+        [Fact]
+        public void HasSuspiciousAsyncNaming_FlagsTaskMethodEndingInSync()
+        {
+            var method = typeof(TestClass).GetMethod(nameof(TestClass.MethodSync));
+
+            Assert.True(AsyncRules.HasSuspiciousAsyncNaming(method));
+        }
+
+        [Fact]
         public void ScanMethod_WithSuspiciousNaming_ReturnsViolation()
         {
             // Arrange
-            var method = typeof(TestClass).GetMethod(nameof(TestClass.AsyncMethodWithSyncName));
+            var method = typeof(TestClass).GetMethod(nameof(TestClass.MethodSync));
 
             // Act
             var violations = AsyncRules.ScanMethod(method).ToList();
@@ -102,6 +170,21 @@ namespace slskd.Tests.Unit.Common.CodeQuality
             Assert.Contains(violations, v => v.ViolationType == AsyncViolationType.SuspiciousNaming);
         }
 
+        [Fact]
+        public void AnalyzerConfiguration_DisablesNameOnlyHeuristics()
+        {
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("MissingParameterValidation"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("MissingCancellationToken"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("InefficientStringConcatenation"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("MutablePublicProperty"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("LargeClass"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("TooManyParameters"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("ExpensiveOperation"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("LoggingOnlyCatch"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("PotentialSqlInjection"));
+            Assert.False(AnalyzerConfiguration.IsRuleEnabled("ExposesSensitiveData"));
+        }
+
         /// <summary>
         ///     Test class with various method signatures for testing.
         /// </summary>
@@ -117,10 +200,15 @@ namespace slskd.Tests.Unit.Common.CodeQuality
                 await Task.Delay(1);
             }
 
-            public async Task AsyncMethodWithSyncName()
-            {
-                await Task.Delay(1);
-            }
+            public Task SynchronizeAsync() => Task.CompletedTask;
+
+            public Task TrySyncWithPeerAsync() => Task.CompletedTask;
+
+            public Task SyncOnRejoinAsync() => Task.CompletedTask;
+
+            public Task MethodSyncAsync() => Task.CompletedTask;
+
+            public Task MethodSync() => Task.CompletedTask;
         }
     }
 }

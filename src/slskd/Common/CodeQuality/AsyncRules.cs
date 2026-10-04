@@ -7,7 +7,6 @@ namespace slskd.Common.CodeQuality
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -72,18 +71,9 @@ namespace slskd.Common.CodeQuality
                 return violations;
             }
 
-            // Get method body as IL or source (simplified check using method name and attributes)
-            var hasAsyncAttribute = method.GetCustomAttribute<AsyncStateMachineAttribute>() != null;
-            var returnsTask = typeof(Task).IsAssignableFrom(method.ReturnType) ||
-                             (method.ReturnType.IsGenericType &&
-                              method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
-
-            // Check for violations in method name/attributes (simplified analysis)
-            // In a real implementation, this would analyze IL or source code
             var methodSignature = $"{method.DeclaringType?.FullName}.{method.Name}";
 
-            // Flag methods that return Task but have suspicious names
-            if (returnsTask && method.Name.Contains("Sync"))
+            if (HasSuspiciousAsyncNaming(method))
             {
                 violations.Add(new AsyncRuleViolation
                 {
@@ -121,8 +111,28 @@ namespace slskd.Common.CodeQuality
             var gracePeriod = TimeSpan.FromMilliseconds(Math.Max(effectiveTimeout.TotalMilliseconds * 5, 2000));
 
             using var cts = new CancellationTokenSource();
-            var operationTask = operation(cts.Token);
+            Task operationTask;
+            try
+            {
+                operationTask = operation(cts.Token);
+            }
+            catch
+            {
+                return false;
+            }
+
             await Task.Delay(effectiveTimeout, CancellationToken.None).ConfigureAwait(false);
+
+            if (operationTask.IsCompleted)
+            {
+                if (operationTask.IsFaulted)
+                {
+                    _ = operationTask.Exception;
+                }
+
+                return false;
+            }
+
             cts.Cancel();
             var delayTask = Task.Delay(gracePeriod, CancellationToken.None);
 
@@ -136,17 +146,17 @@ namespace slskd.Common.CodeQuality
             try
             {
                 await operationTask.ConfigureAwait(false);
+                return true;
             }
             catch (OperationCanceledException) when (cts.IsCancellationRequested)
             {
                 // Expected path for a cancellation-aware operation.
+                return true;
             }
             catch
             {
-                // The validator only cares that the operation stopped promptly once cancelled.
+                return false;
             }
-
-            return true;
         }
 
         /// <summary>
@@ -167,13 +177,15 @@ namespace slskd.Common.CodeQuality
         }
 
         /// <summary>
-        ///     Checks if a method has suspicious async naming (returns Task but name contains 'Sync').
+        ///     Checks if a Task-returning method name ends with 'Sync'.
         /// </summary>
         public static bool HasSuspiciousAsyncNaming(MethodInfo method)
         {
             var returnsTask = typeof(Task).IsAssignableFrom(method.ReturnType) ||
                 (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
-            return returnsTask && method.Name.Contains("Sync", StringComparison.OrdinalIgnoreCase);
+            var hasAsyncSuffix = method.Name.EndsWith("Async", StringComparison.OrdinalIgnoreCase);
+            var hasSyncSuffix = method.Name.EndsWith("Sync", StringComparison.OrdinalIgnoreCase);
+            return returnsTask && hasSyncSuffix && !hasAsyncSuffix;
         }
 
         /// <summary>

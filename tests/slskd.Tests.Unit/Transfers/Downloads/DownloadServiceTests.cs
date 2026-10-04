@@ -1135,7 +1135,7 @@ public class DownloadServiceTests
 
         Assert.Equal(10, plan.Count);
         Assert.DoesNotContain(plan, t => t.Username == "carol");
-        Assert.Single(plan.Where(t => t.Username == "alice"));
+        Assert.Single(plan, t => t.Username == "alice");
         Assert.All(
             plan.GroupBy(t => t.Username, StringComparer.OrdinalIgnoreCase),
             group => Assert.True(group.Count() <= opts.MaxFilesPerPeerPerCycle));

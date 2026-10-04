@@ -18,8 +18,8 @@ public sealed class SongIdServiceCollectionExtensionsTests
 
         services.AddSlskdSongId();
 
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ISongIdRunStore)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ISongIdCapabilityReporter)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ISongIdService)));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ISongIdRunStore));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ISongIdCapabilityReporter));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ISongIdService));
     }
 }

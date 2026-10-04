@@ -47,6 +47,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
   reader status, so Firefox with Orca reliably announces track start,
   pause/resume, and stop.
 
+### Developer tooling
+
+- Improve the opt-in build analyzer's dependency loading and source context,
+  and remove name-only rules that produced non-actionable diagnostics.
+
 ## [2026100314-slskdn.335] — 2026-10-03
 
 ### Linux installation

@@ -18,12 +18,12 @@ public class MeshStreamingServiceCollectionExtensionsTests
 
         services.AddSlskdMeshStreamingServices();
 
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IContentLocator)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IStreamSessionLimiter)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IStreamTicketService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IPeerStreamTicketService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IPeerStreamService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IMeshStreamTicketService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IMeshStreamService)));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IContentLocator));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IStreamSessionLimiter));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IStreamTicketService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IPeerStreamTicketService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IPeerStreamService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IMeshStreamTicketService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IMeshStreamService));
     }
 }

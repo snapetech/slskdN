@@ -397,7 +397,7 @@ public sealed class LibraryBloomDiffServiceTests
         });
 
         Assert.Equal(1, result.CreatedCount);
-        Assert.Empty(result.CreatedItemIds.Where(id => id == Guid.Empty));
+        Assert.DoesNotContain(result.CreatedItemIds, id => id == Guid.Empty);
         wishlist.Verify(service => service.CreateManyAsync(
             It.Is<IEnumerable<WishlistItem>>(items => items.Count() == 1 &&
                 items.Single().SearchText == "Remote Artist Missing Track" &&

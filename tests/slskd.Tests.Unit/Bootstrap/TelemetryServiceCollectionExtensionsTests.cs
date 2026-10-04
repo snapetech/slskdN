@@ -18,8 +18,8 @@ public class TelemetryServiceCollectionExtensionsTests
 
         services.AddSlskdTelemetry();
 
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(PrometheusService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ReportsService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(TelemetryService)));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(PrometheusService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ReportsService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(TelemetryService));
     }
 }

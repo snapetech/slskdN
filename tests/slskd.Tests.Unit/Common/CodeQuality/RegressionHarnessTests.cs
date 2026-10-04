@@ -17,7 +17,7 @@ namespace slskd.Tests.Unit.Common.CodeQuality
     public class RegressionHarnessTests
     {
         [Fact]
-        public async void RunPerformanceBenchmarksAsync_WithValidIterations_ReturnsResults()
+        public async Task RunPerformanceBenchmarksAsync_WithValidIterations_ReturnsResults()
         {
             // Arrange
             const int iterations = 100;

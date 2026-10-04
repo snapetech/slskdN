@@ -30,16 +30,16 @@ namespace slskd.Common.CodeQuality
                 // Async/IO Rules (from H-CODE01)
                 ["BlockingAsyncCall"] = new RuleConfig
                 {
-                    Severity = ViolationSeverity.Error,
+                    Severity = ViolationSeverity.Warning,
                     Category = "Async",
-                    Description = "Blocking calls on async operations (.Result, .Wait(), .GetAwaiter().GetResult())",
+                    Description = "Syntactically identifiable blocking Task/ValueTask operations",
                     IsEnabled = true
                 },
 
                 // Security Rules
                 ["DangerousApiUsage"] = new RuleConfig
                 {
-                    Severity = ViolationSeverity.Error,
+                    Severity = ViolationSeverity.Warning,
                     Category = "Security",
                     Description = "Usage of potentially dangerous APIs (ExecuteSqlRaw, Process.Start, etc.)",
                     IsEnabled = true
@@ -47,26 +47,26 @@ namespace slskd.Common.CodeQuality
 
                 ["PotentialSqlInjection"] = new RuleConfig
                 {
-                    Severity = ViolationSeverity.Error,
+                    Severity = ViolationSeverity.Warning,
                     Category = "Security",
-                    Description = "Potential SQL injection vulnerabilities",
-                    IsEnabled = true
+                    Description = "SQL interpolation heuristic pending semantic execution-sink analysis",
+                    IsEnabled = false
                 },
 
                 ["ExposesSensitiveData"] = new RuleConfig
                 {
                     Severity = ViolationSeverity.Warning,
                     Category = "Security",
-                    Description = "Properties that expose sensitive data types",
-                    IsEnabled = true
+                    Description = "Property name/type heuristic pending explicit sensitivity or data-flow analysis",
+                    IsEnabled = false
                 },
 
                 ["MissingParameterValidation"] = new RuleConfig
                 {
                     Severity = ViolationSeverity.Warning,
                     Category = "Security",
-                    Description = "Parameters that should be validated for security",
-                    IsEnabled = true
+                    Description = "String parameter names that may indicate an input boundary",
+                    IsEnabled = false
                 },
 
                 // Code Quality Rules
@@ -74,7 +74,7 @@ namespace slskd.Common.CodeQuality
                 {
                     Severity = ViolationSeverity.Warning,
                     Category = "Naming",
-                    Description = "Async methods with 'Sync' in name or sync methods with 'Async'",
+                    Description = "Task-returning methods whose names end with 'Sync'",
                     IsEnabled = true
                 },
 
@@ -82,8 +82,8 @@ namespace slskd.Common.CodeQuality
                 {
                     Severity = ViolationSeverity.Warning,
                     Category = "Async",
-                    Description = "Long-running methods missing CancellationToken parameter",
-                    IsEnabled = true
+                    Description = "Task-returning methods missing CancellationToken parameters",
+                    IsEnabled = false
                 },
 
                 ["MutablePublicProperty"] = new RuleConfig
@@ -91,15 +91,7 @@ namespace slskd.Common.CodeQuality
                     Severity = ViolationSeverity.Info,
                     Category = "Design",
                     Description = "Public mutable properties (encapsulation violation)",
-                    IsEnabled = true
-                },
-
-                ["MissingDocumentation"] = new RuleConfig
-                {
-                    Severity = ViolationSeverity.Info,
-                    Category = "Documentation",
-                    Description = "Public types/methods lacking XML documentation",
-                    IsEnabled = true
+                    IsEnabled = false
                 },
 
                 ["LargeClass"] = new RuleConfig
@@ -107,7 +99,7 @@ namespace slskd.Common.CodeQuality
                     Severity = ViolationSeverity.Info,
                     Category = "Design",
                     Description = "Classes with too many public methods",
-                    IsEnabled = true
+                    IsEnabled = false
                 },
 
                 ["TooManyParameters"] = new RuleConfig
@@ -115,7 +107,7 @@ namespace slskd.Common.CodeQuality
                     Severity = ViolationSeverity.Info,
                     Category = "Design",
                     Description = "Methods with too many parameters",
-                    IsEnabled = true
+                    IsEnabled = false
                 },
 
                 // Performance Rules
@@ -124,15 +116,15 @@ namespace slskd.Common.CodeQuality
                     Severity = ViolationSeverity.Info,
                     Category = "Performance",
                     Description = "Potentially expensive operations in hot paths",
-                    IsEnabled = true
+                    IsEnabled = false
                 },
 
                 ["InefficientStringConcatenation"] = new RuleConfig
                 {
                     Severity = ViolationSeverity.Warning,
                     Category = "Performance",
-                    Description = "Inefficient string concatenation in loops",
-                    IsEnabled = true
+                    Description = "String concatenation syntax inside loops, without type information",
+                    IsEnabled = false
                 },
 
                 // Exception Handling Rules
@@ -140,7 +132,7 @@ namespace slskd.Common.CodeQuality
                 {
                     Severity = ViolationSeverity.Warning,
                     Category = "Exception",
-                    Description = "Empty catch blocks that swallow exceptions",
+                    Description = "Unfiltered empty catch blocks that swallow exceptions",
                     IsEnabled = true
                 },
 
@@ -149,35 +141,9 @@ namespace slskd.Common.CodeQuality
                     Severity = ViolationSeverity.Info,
                     Category = "Exception",
                     Description = "Catch blocks that only log and rethrow",
-                    IsEnabled = true
+                    IsEnabled = false
                 },
 
-                // Null Safety Rules
-                ["MissingNullCheck"] = new RuleConfig
-                {
-                    Severity = ViolationSeverity.Warning,
-                    Category = "NullSafety",
-                    Description = "Missing null checks for reference type parameters",
-                    IsEnabled = true
-                },
-
-                // Identity Separation (from H-ID01)
-                ["IdentityCrossContamination"] = new RuleConfig
-                {
-                    Severity = ViolationSeverity.Error,
-                    Category = "Identity",
-                    Description = "Identity types that match forbidden patterns",
-                    IsEnabled = true
-                },
-
-                // Logging Hygiene (from H-GLOBAL01)
-                ["UnsafeLogging"] = new RuleConfig
-                {
-                    Severity = ViolationSeverity.Warning,
-                    Category = "Logging",
-                    Description = "Logging of sensitive data without sanitization",
-                    IsEnabled = true
-                }
             };
 
             return new AnalyzerConfig

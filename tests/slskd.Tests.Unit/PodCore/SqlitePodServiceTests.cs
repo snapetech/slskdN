@@ -104,9 +104,9 @@ public sealed class SqlitePodServiceTests
         Assert.True(await service.LeaveAsync(podId, "other"));
         Assert.True(await service.LeaveAsync(secondPodId, "listener"));
         var history = await service.GetMembershipHistoryAsync(podId);
-        Assert.Equal(timestamp + 5_001, Assert.Single(history.Where(record => record.PeerId == "listener" && record.Action == "leave")).TimestampUnixMs);
-        Assert.Equal(timestamp + 80_001, Assert.Single(history.Where(record => record.PeerId == "other" && record.Action == "leave")).TimestampUnixMs);
-        Assert.Equal(timestamp + 20_001, Assert.Single((await service.GetMembershipHistoryAsync(secondPodId)).Where(record => record.Action == "leave")).TimestampUnixMs);
+        Assert.Equal(timestamp + 5_001, Assert.Single(history, record => record.PeerId == "listener" && record.Action == "leave").TimestampUnixMs);
+        Assert.Equal(timestamp + 80_001, Assert.Single(history, record => record.PeerId == "other" && record.Action == "leave").TimestampUnixMs);
+        Assert.Equal(timestamp + 20_001, Assert.Single((await service.GetMembershipHistoryAsync(secondPodId)), record => record.Action == "leave").TimestampUnixMs);
     }
 
     [Fact]

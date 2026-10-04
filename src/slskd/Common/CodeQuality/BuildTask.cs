@@ -8,6 +8,8 @@ namespace slskd.Common.CodeQuality
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.InteropServices;
+    using System.Runtime.Loader;
     using Microsoft.Build.Framework;
     using Microsoft.Build.Utilities;
     using Microsoft.Extensions.Logging;
@@ -49,6 +51,11 @@ namespace slskd.Common.CodeQuality
         public string[]? ExcludedPaths { get; set; }
 
         /// <summary>
+        ///     Gets or sets the analysis rules to exclude.
+        /// </summary>
+        public string[]? ExcludedRules { get; set; }
+
+        /// <summary>
         ///     Executes the build task.
         /// </summary>
         /// <returns>True if the task succeeded.</returns>
@@ -65,7 +72,7 @@ namespace slskd.Common.CodeQuality
                     TreatWarningsAsErrors = TreatWarningsAsErrors,
                     MaxViolationsPerFile = defaultConfig.MaxViolationsPerFile,
                     ExcludedPaths = (ExcludedPaths != null && ExcludedPaths.Length > 0) ? ExcludedPaths : defaultConfig.ExcludedPaths,
-                    ExcludedRules = defaultConfig.ExcludedRules
+                    ExcludedRules = (ExcludedRules != null && ExcludedRules.Length > 0) ? ExcludedRules : defaultConfig.ExcludedRules
                 };
 
                 var result = RunAnalysis(config);
@@ -94,19 +101,38 @@ namespace slskd.Common.CodeQuality
         private StaticAnalysisResult RunAnalysis(AnalyzerConfig config)
         {
             var violations = new List<AnalysisViolation>();
+            var totalTypesAnalyzed = 0;
+            var analysisComplete = true;
+            var incompleteReasons = new List<string>();
 
             // Analyze the built assembly
             if (!string.IsNullOrEmpty(AssemblyPath) && File.Exists(AssemblyPath))
             {
+                ApplicationAssemblyLoadContext? loadContext = null;
                 try
                 {
-                    var assembly = Assembly.LoadFrom(AssemblyPath);
-                    violations.AddRange(StaticAnalysis.AnalyzeAssembly(assembly).Violations);
+                    loadContext = new ApplicationAssemblyLoadContext(AssemblyPath);
+                    var assembly = loadContext.LoadFromAssemblyPath(Path.GetFullPath(AssemblyPath));
+                    var assemblyResult = StaticAnalysis.AnalyzeAssembly(assembly);
+                    totalTypesAnalyzed = assemblyResult.TotalTypesAnalyzed;
+                    violations.AddRange(ApplyConfiguredRules(assemblyResult.Violations, config));
                 }
                 catch (Exception ex)
                 {
-                    Log.LogWarning("Failed to analyze assembly {Assembly}: {Message}", AssemblyPath, ex.Message);
+                    analysisComplete = false;
+                    var reason = GetExceptionSummary(ex);
+                    incompleteReasons.Add(reason);
+                    Log.LogWarning($"Failed to analyze assembly {Path.GetFileName(AssemblyPath)}: {reason}");
                 }
+                finally
+                {
+                    loadContext?.Unload();
+                }
+            }
+            else
+            {
+                analysisComplete = false;
+                incompleteReasons.Add("the built application assembly was not found");
             }
 
             // Analyze source files
@@ -114,11 +140,18 @@ namespace slskd.Common.CodeQuality
             {
                 violations.AddRange(AnalyzeSourceFiles(ProjectDirectory, config));
             }
+            else
+            {
+                analysisComplete = false;
+                incompleteReasons.Add("the project source directory was not found");
+            }
 
             return new StaticAnalysisResult
             {
                 AssemblyName = Path.GetFileNameWithoutExtension(AssemblyPath),
-                TotalTypesAnalyzed = 0, // Would need reflection analysis
+                TotalTypesAnalyzed = totalTypesAnalyzed,
+                AnalysisComplete = analysisComplete,
+                IncompleteReason = incompleteReasons.Count == 0 ? null : string.Join("; ", incompleteReasons),
                 Violations = violations,
                 AnalysisTimestamp = DateTimeOffset.UtcNow
             };
@@ -140,17 +173,19 @@ namespace slskd.Common.CodeQuality
                 try
                 {
                     var sourceCode = File.ReadAllText(csFile);
-                    var fileViolations = BuildTimeAnalyzer.AnalyzeSourceCode(sourceCode, csFile);
+                    var fileViolations = BuildTimeAnalyzer.AnalyzeSourceCode(sourceCode, csFile)
+                        .Where(violation => IsRuleEnabled(violation.Rule, config))
+                        .Take(config.MaxViolationsPerFile);
 
                     foreach (var violation in fileViolations)
                     {
-                        if (AnalyzerConfiguration.IsRuleEnabled(violation.Rule ?? string.Empty))
+                        if (TryGetRuleConfiguration(violation.Rule, config, out var rule))
                         {
                             violations.Add(new AnalysisViolation
                             {
-                                Location = $"{Path.GetFileName(csFile)}:{violation.LineNumber}",
+                                Location = $"{GetRelativePath(csFile, projectDirectory)}:{violation.LineNumber}",
                                 Rule = violation.Rule,
-                                Severity = violation.Severity,
+                                Severity = rule.Severity,
                                 Message = violation.Message,
                                 Recommendation = violation.Recommendation
                             });
@@ -159,7 +194,7 @@ namespace slskd.Common.CodeQuality
                 }
                 catch (Exception ex)
                 {
-                    Log.LogWarning("Failed to analyze file {File}: {Message}", csFile, ex.Message);
+                    Log.LogWarning($"Failed to analyze file {csFile}: {ex.Message}");
                 }
             }
 
@@ -192,6 +227,8 @@ namespace slskd.Common.CodeQuality
             var violationsBySeverity = result.ViolationsBySeverity;
 
             Log.LogMessage(MessageImportance.Normal, "Analysis Results:");
+            Log.LogMessage(MessageImportance.Normal, $"  Types Analyzed: {result.TotalTypesAnalyzed}");
+            Log.LogMessage(MessageImportance.Normal, $"  Analysis Complete: {result.AnalysisComplete}");
             Log.LogMessage(MessageImportance.Normal, $"  Total Violations: {result.Violations.Count}");
 
             foreach (var kvp in violationsBySeverity.OrderByDescending(v => v.Key))
@@ -224,15 +261,24 @@ namespace slskd.Common.CodeQuality
 
         private bool ShouldFailBuild(StaticAnalysisResult result, AnalyzerConfig config)
         {
-            // Check total violations
-            if (result.Violations.Count > MaxViolations)
+            if (!result.AnalysisComplete)
             {
-                Log.LogError($"Too many violations: {result.Violations.Count} > {MaxViolations}");
+                Log.LogError($"Static analysis was incomplete: {result.IncompleteReason}");
+                return true;
+            }
+
+            var errorCount = result.Violations.Count(v => v.Severity == ViolationSeverity.Error);
+            var warningCount = result.Violations.Count(v => v.Severity == ViolationSeverity.Warning);
+            var gatedViolationCount = errorCount + (config.TreatWarningsAsErrors ? warningCount : 0);
+
+            // Check total violations
+            if (gatedViolationCount > MaxViolations)
+            {
+                Log.LogError($"Too many build-blocking violations: {gatedViolationCount} > {MaxViolations}");
                 return true;
             }
 
             // Check for errors
-            var errorCount = result.Violations.Count(v => v.Severity == ViolationSeverity.Error);
             if (errorCount > 0)
             {
                 Log.LogError($"Found {errorCount} error-level violations");
@@ -242,7 +288,6 @@ namespace slskd.Common.CodeQuality
             // Check warnings as errors
             if (config.TreatWarningsAsErrors)
             {
-                var warningCount = result.Violations.Count(v => v.Severity == ViolationSeverity.Warning);
                 if (warningCount > 0)
                 {
                     Log.LogError($"Found {warningCount} warning-level violations (treated as errors)");
@@ -251,6 +296,116 @@ namespace slskd.Common.CodeQuality
             }
 
             return false;
+        }
+
+        private static bool IsRuleEnabled(string? ruleName, AnalyzerConfig config)
+        {
+            return TryGetRuleConfiguration(ruleName, config, out _);
+        }
+
+        private static IEnumerable<AnalysisViolation> ApplyConfiguredRules(
+            IEnumerable<AnalysisViolation> violations,
+            AnalyzerConfig config)
+        {
+            foreach (var violation in violations)
+            {
+                if (TryGetRuleConfiguration(violation.Rule, config, out var rule))
+                {
+                    yield return new AnalysisViolation
+                    {
+                        Location = violation.Location,
+                        Rule = violation.Rule,
+                        Severity = rule.Severity,
+                        Message = violation.Message,
+                        Recommendation = violation.Recommendation
+                    };
+                }
+            }
+        }
+
+        private static bool TryGetRuleConfiguration(string? ruleName, AnalyzerConfig config, out RuleConfig rule)
+        {
+            if (!string.IsNullOrWhiteSpace(ruleName) &&
+                !config.ExcludedRules.Contains(ruleName, StringComparer.OrdinalIgnoreCase) &&
+                config.Rules.TryGetValue(ruleName, out var found) &&
+                found.IsEnabled)
+            {
+                rule = found;
+                return true;
+            }
+
+            rule = null!;
+            return false;
+        }
+
+        private static string GetExceptionSummary(Exception exception)
+        {
+            if (exception is ReflectionTypeLoadException typeLoadException)
+            {
+                var loaderErrors = typeLoadException.LoaderExceptions
+                    .OfType<Exception>()
+                    .Select(loaderException => loaderException.Message)
+                    .Where(message => !string.IsNullOrWhiteSpace(message))
+                    .Distinct(StringComparer.Ordinal)
+                    .Take(5)
+                    .ToList();
+
+                if (loaderErrors.Count > 0)
+                {
+                    return string.Join("; ", loaderErrors);
+                }
+            }
+
+            return exception.Message;
+        }
+
+        private sealed class ApplicationAssemblyLoadContext : AssemblyLoadContext
+        {
+            private readonly AssemblyDependencyResolver _dependencyResolver;
+            private readonly string _aspNetCoreFrameworkDirectory;
+
+            public ApplicationAssemblyLoadContext(string applicationAssemblyPath)
+                : base("slskd-static-analysis", isCollectible: true)
+            {
+                _dependencyResolver = new AssemblyDependencyResolver(Path.GetFullPath(applicationAssemblyPath));
+                _aspNetCoreFrameworkDirectory = GetAspNetCoreFrameworkDirectory();
+            }
+
+            protected override Assembly? Load(AssemblyName assemblyName)
+            {
+                var resolvedPath = _dependencyResolver.ResolveAssemblyToPath(assemblyName);
+                if (resolvedPath != null)
+                {
+                    return LoadFromAssemblyPath(resolvedPath);
+                }
+
+                if (!string.IsNullOrWhiteSpace(assemblyName.Name))
+                {
+                    var sharedFrameworkPath = Path.Combine(_aspNetCoreFrameworkDirectory, $"{assemblyName.Name}.dll");
+                    if (File.Exists(sharedFrameworkPath))
+                    {
+                        return LoadFromAssemblyPath(sharedFrameworkPath);
+                    }
+                }
+
+                return null;
+            }
+
+            private static string GetAspNetCoreFrameworkDirectory()
+            {
+                var runtimeDirectory = Path.TrimEndingDirectorySeparator(RuntimeEnvironment.GetRuntimeDirectory());
+                var runtimeFrameworkDirectory = Directory.GetParent(runtimeDirectory);
+                var sharedFrameworkRoot = runtimeFrameworkDirectory?.Parent;
+                if (sharedFrameworkRoot == null)
+                {
+                    return string.Empty;
+                }
+
+                return Path.Combine(
+                    sharedFrameworkRoot.FullName,
+                    "Microsoft.AspNetCore.App",
+                    Path.GetFileName(runtimeDirectory));
+            }
         }
     }
 }

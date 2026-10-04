@@ -22,10 +22,10 @@ public class TransfersServiceCollectionExtensionsTests
         services.AddSlskdTransfers();
         services.AddSlskdTransferHostedServices();
 
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IDownloadService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IUploadService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ITransferService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IAutoReplaceService)));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IDownloadService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IUploadService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ITransferService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IAutoReplaceService));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class TransfersServiceCollectionExtensionsTests
 
         services.AddSlskdTransferHostedServices();
 
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(AutoReplaceBackgroundService)));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(AutoReplaceBackgroundService));
         Assert.Equal(2, services.Count(descriptor => descriptor.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)));
     }
 }

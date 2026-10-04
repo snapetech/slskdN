@@ -23,16 +23,16 @@ public class IntegrationsServiceCollectionExtensionsTests
 
         services.AddSlskdIntegrations();
 
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(VPNService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ILidarrClient)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(LidarrSyncService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ILidarrSyncService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(LidarrImportService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ILidarrImportService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ScriptService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(WebhookService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(global::slskd.NowPlaying.NowPlayingService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IListeningPartyService)));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(VPNService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ILidarrClient));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(LidarrSyncService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ILidarrSyncService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(LidarrImportService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ILidarrImportService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ScriptService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(WebhookService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(global::slskd.NowPlaying.NowPlayingService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IListeningPartyService));
         Assert.Equal(2, services.Count(descriptor => descriptor.ServiceType == typeof(IHostedService)));
     }
 }

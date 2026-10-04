@@ -43,15 +43,45 @@ public class SharesControllerTests
             .Returns(new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }));
     }
 
-    private SharesController CreateController(string? identity = "alice")
+    private SharesController CreateController(string? identity = "alice", Mock<ILogger<SharesController>>? logger = null)
     {
-        var loggerMock = new Mock<ILogger<SharesController>>();
+        var loggerMock = logger ?? new Mock<ILogger<SharesController>>();
         var c = new SharesController(_sharingMock.Object, _tokensMock.Object, loggerMock.Object, _options, _httpClientFactoryMock.Object, soulseekClient: null, shareService: null, downloadService: null);
         c.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         c.HttpContext.User = identity is null
             ? new ClaimsPrincipal()
             : new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, identity) }, "Test"));
         return c;
+    }
+
+    [Fact]
+    public void TryDeletePartialBackfillFile_WhenCleanupFails_LogsAndPreservesUnexpectedFailures()
+    {
+        var downloadsDirectory = Path.Combine(Path.GetTempPath(), "slskdn-backfill-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(downloadsDirectory);
+        var logger = new Mock<ILogger<SharesController>>();
+        var controller = CreateController(logger: logger);
+        var method = typeof(SharesController).GetMethod("TryDeletePartialBackfillFile", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        try
+        {
+            method!.Invoke(controller, new object[] { Path.Combine(downloadsDirectory, "outside.flac"), downloadsDirectory });
+
+            logger.Verify(x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Failed to remove staged download", StringComparison.Ordinal)),
+                It.IsAny<IOException>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+
+            var unexpected = Assert.Throws<System.Reflection.TargetInvocationException>(() => method.Invoke(controller, new object[] { "", null! }));
+            Assert.IsType<ArgumentNullException>(unexpected.InnerException);
+        }
+        finally
+        {
+            Directory.Delete(downloadsDirectory, recursive: true);
+        }
     }
 
     [Fact]
@@ -701,7 +731,7 @@ public class SharesControllerTests
             Assert.True(File.GetAttributes(destinationLink).HasFlag(FileAttributes.ReparsePoint));
             Assert.Equal(1, response.Enqueued);
             Assert.Equal(0, response.Failed);
-            var downloadedFile = Assert.Single(Directory.GetFiles(downloadsDirectory).Where(path => path != destinationLink));
+            var downloadedFile = Assert.Single(Directory.GetFiles(downloadsDirectory), path => path != destinationLink);
             Assert.Equal(new byte[] { 0x49, 0x44, 0x33, 0x04 }, await File.ReadAllBytesAsync(downloadedFile));
         }
         finally
@@ -784,6 +814,75 @@ public class SharesControllerTests
         }
     }
 
+    [Fact]
+    public async Task Backfill_WhenCancelledAfterHttpCopy_CleansStagingFileAndPropagatesCancellation()
+    {
+        var grantId = Guid.NewGuid();
+        var collectionId = Guid.NewGuid();
+        var downloadsDirectory = Path.Combine(Path.GetTempPath(), $"slskdn-backfill-cancel-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(downloadsDirectory);
+        using var cancellation = new CancellationTokenSource();
+
+        try
+        {
+            _options = new TestOptionsMonitor(new slskd.Options
+            {
+                Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true, Streaming = true },
+                Sharing = new slskd.Options.SharingOptions
+                {
+                    TrustedPrivateOwnerOrigins = new[] { "http://127.0.0.1:5030" }
+                },
+                Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" },
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = downloadsDirectory }
+            });
+            _sharingMock
+                .Setup(service => service.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareGrant
+                {
+                    Id = grantId,
+                    CollectionId = collectionId,
+                    AllowDownload = true,
+                    ShareToken = "secret-token",
+                    OwnerEndpoint = "http://127.0.0.1:5030"
+                });
+            _sharingMock
+                .Setup(service => service.GetCollectionAsync(collectionId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Collection { Id = collectionId, OwnerUserId = "remote" });
+            _sharingMock
+                .Setup(service => service.GetManifestAsync(grantId, "secret-token", "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareManifestDto
+                {
+                    Items = new List<ShareManifestItemDto>
+                    {
+                        new()
+                        {
+                            ContentId = "sha256:trusted",
+                            MediaKind = "audio",
+                            FileName = "song.mp3",
+                            StreamUrl = "http://127.0.0.1:5030/api/v0/streams/sha256:trusted?token=secret-token"
+                        }
+                    }
+                });
+            _httpClientFactoryMock
+                .Setup(factory => factory.CreateClient(slskd.Common.Security.OutboundUriGuard.LocalNoRedirectHttpClientName))
+                .Returns(() => new HttpClient(new BackfillCancellationResponseHandler(
+                    new byte[] { 0x49, 0x44, 0x33, 0x04 },
+                    cancellation)));
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => CreateController().Backfill(grantId, cancellation.Token));
+
+            Assert.Empty(Directory.Exists(Path.Combine(downloadsDirectory, ".partial"))
+                ? Directory.GetFiles(Path.Combine(downloadsDirectory, ".partial"), "*", SearchOption.AllDirectories)
+                : Array.Empty<string>());
+            Assert.Empty(Directory.GetFiles(downloadsDirectory, "song.mp3", SearchOption.TopDirectoryOnly));
+        }
+        finally
+        {
+            Directory.Delete(downloadsDirectory, recursive: true);
+        }
+    }
+
     private sealed class BackfillResponseHandler : HttpMessageHandler
     {
         private readonly byte[] _content;
@@ -803,6 +902,105 @@ public class SharesControllerTests
             {
                 Content = new ByteArrayContent(_content),
             });
+        }
+    }
+
+    private sealed class BackfillCancellationResponseHandler : HttpMessageHandler
+    {
+        private readonly byte[] _content;
+        private readonly CancellationTokenSource _cancellation;
+
+        public BackfillCancellationResponseHandler(byte[] content, CancellationTokenSource cancellation)
+        {
+            _content = content;
+            _cancellation = cancellation;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StreamContent(new CancellationOnEofStream(_content, _cancellation)),
+            });
+        }
+    }
+
+    private sealed class CancellationOnEofStream : Stream
+    {
+        private readonly MemoryStream _inner;
+        private readonly CancellationTokenSource _cancellation;
+
+        public CancellationOnEofStream(byte[] content, CancellationTokenSource cancellation)
+        {
+            _inner = new MemoryStream(content, writable: false);
+            _cancellation = cancellation;
+        }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => _inner.Length;
+
+        public override long Position
+        {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => throw new NotSupportedException();
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var read = _inner.Read(buffer, offset, count);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            => ReadAsyncMemory(buffer, cancellationToken);
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            => ReadAsyncArray(buffer, offset, count, cancellationToken);
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private async ValueTask<int> ReadAsyncMemory(Memory<byte> buffer, CancellationToken cancellationToken)
+        {
+            var read = await _inner.ReadAsync(buffer, cancellationToken);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        private async Task<int> ReadAsyncArray(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            var read = await _inner.ReadAsync(buffer, offset, count, cancellationToken);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        private void CancelAtEndOfStream(int read)
+        {
+            if (read == 0)
+            {
+                _cancellation.Cancel();
+            }
         }
     }
 }

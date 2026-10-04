@@ -110,8 +110,8 @@ public class ShareGrantAnnouncementServiceTests
             .OrderBy(item => item.Ordinal)
             .ToListAsync();
         Assert.Equal(new[] { "new:1", "new:2" }, items.Select(item => item.ContentId));
-        Assert.Single(ingestCommands.Where(command =>
-            command.TrimStart().StartsWith("DELETE FROM \"CollectionItems\"", StringComparison.OrdinalIgnoreCase)));
+        Assert.Single(ingestCommands, command =>
+            command.TrimStart().StartsWith("DELETE FROM \"CollectionItems\"", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(ingestCommands, command =>
             command.Contains("SELECT", StringComparison.OrdinalIgnoreCase) &&
             command.Contains("CollectionItems", StringComparison.Ordinal));

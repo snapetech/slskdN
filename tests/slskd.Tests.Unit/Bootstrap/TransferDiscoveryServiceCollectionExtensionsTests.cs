@@ -32,12 +32,12 @@ public sealed class TransferDiscoveryServiceCollectionExtensionsTests
 
         services.AddSlskdTransferDiscoveryServices(options);
 
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IBackfillSchedulerService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IMeshSyncService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(ISourceDiscoveryService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IMultiSourceDownloadService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IContentVerificationService)));
-        Assert.Single(services.Where(descriptor => descriptor.ServiceType == typeof(IChunkScheduler)));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IBackfillSchedulerService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IMeshSyncService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(ISourceDiscoveryService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IMultiSourceDownloadService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IContentVerificationService));
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IChunkScheduler));
         Assert.Equal(expectedRescueHostedServiceCount, services.Count(descriptor =>
             descriptor.ServiceType == typeof(IHostedService) &&
             descriptor.ImplementationType == typeof(UnderperformanceDetectorHostedService)));

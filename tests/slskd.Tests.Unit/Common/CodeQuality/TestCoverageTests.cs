@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Common.CodeQuality
 {
     using System.Linq;
     using System.Reflection;
+    using System.Threading.Tasks;
     using slskd.Common.CodeQuality;
     using Xunit;
 
@@ -64,7 +65,7 @@ namespace slskd.Tests.Unit.Common.CodeQuality
         }
 
         [Fact]
-        public async void RunRegressionTestsAsync_WithTestAssemblies_ReturnsResults()
+        public async Task RunRegressionTestsAsync_WithTestAssemblies_ReturnsResults()
         {
             // Arrange
             var testAssembly = typeof(TestCoverageTests).Assembly;

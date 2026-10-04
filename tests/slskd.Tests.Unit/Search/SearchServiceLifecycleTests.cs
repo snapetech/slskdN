@@ -584,7 +584,7 @@ public class SearchServiceLifecycleTests
         Assert.NotNull(capturedOptions);
         responseHandler(firstResponse);
         capturedOptions.ResponseReceived((inProgress, firstResponse));
-        Assert.Single(updates.Where(update => update.ResponseCount == 1));
+        Assert.Single(updates, update => update.ResponseCount == 1);
 
         responseHandler(secondResponse);
         capturedOptions.ResponseReceived((inProgress, secondResponse));
