@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1509. Import Task Explicitly In Non-Implicit-Usings Tests (2026-10-04)
+
+**What went wrong:** Converting an `async void` test to `async Task` introduced
+a named `Task` type into a test project that does not enable implicit global
+usings; its test file had no `System.Threading.Tasks` import.
+
+**Why:** The other unit-test project files often rely on their own explicit
+imports, while only some neighboring test projects enable implicit usings.
+
+**Prevention:** Check the target project's `ImplicitUsings` setting and the
+test file imports when changing an async test's return type. Add the explicit
+namespace import when required.
+
 ### 0z1508. Return Task From Awaiting xUnit Tests (2026-10-04)
 
 **What went wrong:** Two `[Fact]` methods returned `async void`. The test runner
