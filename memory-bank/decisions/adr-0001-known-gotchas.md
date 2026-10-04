@@ -21,6 +21,24 @@ routing and signed-store verification.
 regressions together. Keep research documents aligned with that end-to-end
 contract; treat a research note as a hypothesis when it conflicts with code.
 
+### 0z1472. Do Not Infer Secret Exposure From Key-Shaped Property Names (2026-10-04)
+
+**What went wrong:** The opt-in analyzer marked public keys and identifiers
+such as `PublicKey`, `DhtKey`, and `SemanticKey` as sensitive-data exposure
+findings because they are strings or byte arrays and contain `key` in the
+property name. Some are public identities or lookup values; the analyzer did
+not inspect whether the value was secret or where it flowed.
+
+**Why:** A property-name and primitive-type heuristic cannot distinguish a
+private credential from a public key, routing identifier, semantic key, or
+other public metadata. The warning therefore overstates what the analyzer
+proved and makes real credential findings harder to review.
+
+**Prevention:** Keep name-only sensitive-data rules disabled in the default
+analysis profile until they use an explicit sensitivity contract or
+flow-aware analysis. Preserve focused detector tests, but do not present their
+matches as confirmed exposures.
+
 ### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
 
 **What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
