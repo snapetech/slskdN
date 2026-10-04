@@ -30,6 +30,19 @@ of checking every raw-target consumer for logging behavior.
 logging. Keep raw targets for parsing or security decisions, never for log
 fields, and audit neighboring middleware paths at the same time.
 
+### 0z1562. Sanitize Security Event Messages At The Logging Boundary (2026-10-04)
+
+**What went wrong:** Path-traversal events retained a decoded request path in
+their message. `SecurityEventAggregator` later logged that message directly,
+bypassing the middleware's sanitized diagnostic field.
+
+**Why:** Event payloads serve the security event feed and were assumed to be
+safe when the central aggregator wrote them to runtime logs.
+
+**Prevention:** Sanitize event message text at the central logging boundary.
+Keep the event payload intact when the event feed needs the original value, and
+do not assume a value is log-safe because it has already crossed an event API.
+
 ### 0z1559. Keep Retry Notifications Outside The Operation Failure Handler (2026-10-04)
 
 **What went wrong:** `Retry.Do` invoked `onRetry` inside the same `try` block
