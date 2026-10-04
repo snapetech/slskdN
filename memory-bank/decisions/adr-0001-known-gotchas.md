@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1519. Keep Signal-Bus Cleanup State Alive After Its Bounded Join Times Out (2026-10-04)
+
+**What went wrong:** `SignalBus.Dispose` ignored the result of its one-second
+cleanup-worker wait, then disposed the worker's cancellation source while the
+task could still be running.
+
+**Why:** Shutdown assumed `Cancel()` made the worker finish inside the bound
+and did not retain ownership of resources when that assumption failed.
+
+**Prevention:** Check whether the worker joined. Dispose immediately only after
+completion; otherwise observe its eventual fault and release its cancellation
+source and related synchronization state from a completion continuation. Test
+with a deliberately non-cooperative cleanup task.
+
 ### 0z1518. Do Not Turn Profile-Load Cancellation Into Profile Regeneration (2026-10-04)
 
 **What went wrong:** `GetMyProfileAsync` caught cancellation from the profile
