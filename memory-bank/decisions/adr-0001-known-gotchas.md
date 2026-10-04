@@ -37645,3 +37645,16 @@ activation and job cancellation were not integrated.
 cleanup are connected end to end, return an explicit rejected acknowledgement
 and do not start a torrent manager. Never report success without a usable
 backend id and a lifecycle owner.
+
+### 0z1468. Build Rejection Acknowledgements From Validated Signal Fields (2026-10-04)
+
+**What went wrong:** The fallback handler detected requests missing `jobId` or
+`variantId`, but its rejection helper indexed those fields directly. The
+rejection then threw while trying to report the original validation failure.
+
+**Why:** The response builder assumed the same fields that it was responsible
+for validating were always present in an untrusted signal body.
+
+**Prevention:** Read optional signal fields with `TryGetValue` and serialize
+empty/default response values when malformed input must still receive an
+acknowledgement. Keep response construction safe for every validation branch.
