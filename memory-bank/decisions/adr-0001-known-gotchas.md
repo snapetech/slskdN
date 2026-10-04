@@ -115,6 +115,21 @@ task-like results and blocking overloads, and explicitly exclude zero-timeout
 waits. Keep regressions for `Task<T>.Result`, `Task.Wait()`, `context.Result`,
 and `SemaphoreSlim.Wait(0)`.
 
+### 0z1478. Do Not Treat Filtered Exception Catches As Empty (2026-10-04)
+
+**What went wrong:** The source analyzer reported comment-only catch blocks
+even when a `when` filter explicitly constrained them to an expected condition,
+such as cancellation after a bounded stream had received enough bytes.
+
+**Why:** The rule counted executable statements but ignored the catch filter,
+which can make an otherwise empty handler a narrow and intentional control
+flow branch rather than an unconditional exception swallow.
+
+**Prevention:** Do not report empty catches with an explicit filter as
+unconditional swallowed-exception findings. Keep regressions for both an
+unfiltered empty catch and a filtered catch that handles its documented
+condition.
+
 ### 0z1468. Do Not Treat Every Method Named Wait As A Blocking Task Wait (2026-10-04)
 
 **What went wrong:** The source analyzer reported `Waiter.Wait<T>(...)` as a
