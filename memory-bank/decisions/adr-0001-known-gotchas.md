@@ -25,6 +25,23 @@ intentionally skipped, catch only around their conversion and log the item
 failure; do not turn a failed batch read into a successful empty result. Cover
 provider exceptions and cancellation with regressions.
 
+### 0z1487. Preserve Cancellation And Avoid Blocking DNS In Peer Resolution (2026-10-04)
+
+**What went wrong:** Both asynchronous peer-resolution methods caught
+`OperationCanceledException` and returned a fallback username or `null`. Their
+hostname endpoint parser also called synchronous `Dns.GetHostAddresses()` from
+those async paths, so slow DHT-provided hostnames could block a request thread
+and could not respond promptly to cancellation.
+
+**Why:** Catch-all recovery treated caller cancellation like a missing or
+invalid peer, and endpoint parsing was implemented as a synchronous helper
+even though its callers already carried cancellation tokens.
+
+**Prevention:** Preserve `OperationCanceledException` at async service
+boundaries. Resolve advertised hostnames asynchronously with the caller token,
+and convert only expected DNS/format failures to a missing endpoint. Cover
+cancellation in both peer-resolution operations and hostname parsing.
+
 ### 0z1479. Do Not Couple API Availability To Automatic Network Advertising (2026-10-04)
 
 **What went wrong:** Enabling the broad Identity/Friends feature also started
