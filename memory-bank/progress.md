@@ -17440,3 +17440,30 @@ background-tab throttling, WebKit Orca/physical assistive-technology evidence,
 representative WAN and sustained-resource measurements, original frontend
 `ERR_NETWORK_CHANGED` cause, and bug-council candidate classification remain
 open. The release does not close those follow-ups.
+
+## Update 2026-10-04 20:35 UTC — Prepare subprocess and analyzer fixes for .337
+
+Fixed full-pipe subprocess hangs and child cleanup across SongID, audio
+sketching, Chromaprint fingerprinting, perceptual hashing, Soulfind bridge, and
+obfs4 startup/check paths. Added process-backed regressions for large output,
+cancellation, and startup failure. Bound the opt-in blocking-call and
+dangerous-API diagnostics to Roslyn symbols from the actual app compilation;
+the report contains 88 advisory findings and remains non-gating. Increased
+Launchpad's binary-publication wait to three hours after the `.336` binary
+appeared shortly after the previous 90-minute wait expired. `.336`'s exact
+Jammy amd64 binary is confirmed Published.
+
+Full `dotnet test` passed 5,905 tests (74 application, 5,542 unit, 289
+integration). `./bin/lint`, release-note preview, changelog-range validation,
+shell syntax, whitespace, and release-facing identity checks passed. The
+release preview contains the two user-facing fragments for subprocess and
+Launchpad reliability. Every first-party project remains `net10.0`; the
+MonoTorrent package resolves its compatible `net8.0` asset, so no framework
+upgrade is needed. Commits `56df91973`, `46791f8e8`, and `dbcec3797` contain the
+implementation batch; guarded release validation and publication remain next.
+
+The cross-peer fallback lifecycle, global DHT Party ID ownership, real
+background-tab throttling, WebKit Orca/physical assistive-technology evidence,
+representative WAN and sustained-resource measurements, original frontend
+`ERR_NETWORK_CHANGED` cause, and broad bug-council candidate classification
+remain open and are not claimed fixed by this batch.

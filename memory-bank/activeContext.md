@@ -1,4 +1,4 @@
-## Current state — Publish and verify .336 release — 2026-10-04 18:50 UTC
+## Current state — Post-.336 reliability fixes and .337 release prep — 2026-10-04 20:35 UTC
 
 The guarded stable release is published as
 [`2026100417-slskdn.336`](https://github.com/snapetech/slskdN/releases/tag/2026100417-slskdn.336),
@@ -8,15 +8,26 @@ platform archives and support files were published, and
 `scripts/verify-release-artifacts.sh` verified the checksums and release
 contents. The GitHub release workflow has passed its build, archive, Docker,
 Chocolatey, AUR, COPR, Nix metadata, Homebrew, and announcement jobs. Nix
-automation advanced `main` to `295798647`; local `main` is synchronized with
-`origin/main` and the working tree is clean.
+automation advanced `main` to `295798647`; this checkout has since accumulated
+the post-release reliability fixes described below.
 
-Launchpad accepted and published source version
-`2026100417.slskdn.336-1ppa202610041807~jammy`; its amd64 build succeeded, but
-the exact published-binary query still returned no binary at 18:50 UTC. The
-GitHub `Publish to PPA (Main)` job remains polling for publication. Recheck the
-job and exact Launchpad binary state before recording that package as
-published.
+Launchpad published source version
+`2026100417.slskdn.336-1ppa202610041807~jammy`; its exact Jammy amd64 binary is
+now Published. The GitHub PPA job timed out at 19:42 UTC after the original
+5,400-second wait, roughly two minutes before the package appeared. The shared
+publication wait now allows three hours so the workflow does not report this
+observed late publication as a PPA failure.
+
+Post-release work fixes redirected subprocess output handling in SongID,
+AudioSketch, Chromaprint fingerprints, perceptual hashing, the Soulfind bridge,
+and obfs4 startup/check paths. Both pipes are drained concurrently; canceled
+or failed operations terminate the child process tree, with process-backed
+regressions for full pipes and cancellation. The optional Roslyn analyzer now
+binds blocking-call and
+dangerous-API checks to the actual application compilation; 6,902 app types
+produce 88 advisory findings (11 blocking, 17 dangerous API, 60 empty catch),
+and source review has not confirmed a defect. Analyzer findings remain
+non-gating.
 
 Every first-party project under `src`, `tests`, and `tools` targets `net10.0`.
 MonoTorrent `3.9.0-alpha.unstable.rev0000` supplies a compatible `net8.0`
@@ -25,12 +36,13 @@ opt-in and private. Cross-peer fallback checks exact variant ownership and
 remains fail-closed because there is no production sender/receiver job path
 that owns acknowledgement activation, cancellation, and manager cleanup.
 
-The full release gate passed: Web 1,232 tests; .NET 74 application, 5,530
+The `.336` release gate passed: Web 1,232 tests; .NET 74 application, 5,530
 unit, and 289 integration tests; focused fallback integration; lint, builds,
 release-note validation, and release-facing identity checks. One allocation
 assertion failed on the first full gate attempt, passed in isolation, then
 passed on the unchanged full rerun; no source change was made for that
-transient result.
+transient result. The current full `dotnet test` run passes 74 application,
+5,542 unit, and 289 integration tests (5,905 total).
 
 Outstanding remediation remains open: T-908 cross-peer fallback sender and
 receiver lifecycle; atomic global Party ID claims across disjoint DHT views;
@@ -38,8 +50,13 @@ actual background-tab timer throttling; WebKit Orca and physical
 assistive-technology speech; representative WAN and sustained-resource
 measurements; the original frontend `ERR_NETWORK_CHANGED` cause; and the broad
 bug-council candidate queues. Do not claim these are solved by the current
-local, browser, or release checks. Next: confirm PPA binary publication, then
-continue the remaining code-backed remediation and required evidence work.
+local, browser, or release checks. Current full `dotnet test` passes 5,905
+tests; `./bin/lint`, shell syntax, whitespace, changelog range validation,
+release-note preview, and release-facing identity checks pass. Three scoped
+implementation commits are ready, with memory-bank records still being updated.
+Next: commit those records, push `main`, run the guarded release gate and cut
+`.337`; continue the remaining code-backed remediation and required evidence
+work after this release batch.
 
 ## Current state — Continue whole-product remediation — 2026-10-04 14:12 UTC
 

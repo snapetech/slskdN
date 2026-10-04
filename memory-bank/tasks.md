@@ -26,6 +26,29 @@
 
 ## Active Development
 
+### Post-.336 reliability and analyzer follow-up — 2026-10-04
+
+- [x] Fix redirected process stream deadlocks and child cleanup in SongID,
+  AudioSketch, Chromaprint fingerprints, perceptual hashing, Soulfind bridge,
+  and obfs4 startup/check paths. Process-backed regressions cover output beyond
+  both pipe buffers, cancellation, and startup cleanup.
+- [x] Bind build-time blocking-call and dangerous-API diagnostics to Roslyn
+  symbols from the actual application compilation. The opt-in report now
+  analyzes 6,902 application types with 88 advisory findings (11 blocking,
+  17 dangerous API, 60 empty catch); review did not confirm a source defect.
+  Analysis remains diagnostic-only pending flow review and candidate
+  classification. The combined focused process/analyzer regression batch
+  passes 107/107 tests without compiler warnings. Full `dotnet test` now passes
+  5,905 tests: 74 application, 5,542 unit, and 289 integration; `./bin/lint`,
+  release-note preview, changelog validation, and release identity checks pass.
+- [x] Verify exact .336 Launchpad publication. The source and amd64 build
+  succeeded; the GitHub job timed out after its 5,400-second wait, then the
+  exact Jammy binary appeared as Published shortly afterward. The shared wait
+  default is now three hours to cover that observed publication delay.
+- [ ] Continue the active whole-product remediation and classify remaining
+  code-backed findings; T-908 fallback lifecycle and distributed evidence
+  requirements remain open.
+
 ### Stable release `.335` — 2026-10-03
 
 - [x] Fix [issue #348](https://github.com/snapetech/slskdN/issues/348): keep
@@ -58,9 +81,10 @@
   stale hard-coded fingerprint after key import). Both PPA workflows now use
   the imported primary fingerprint after an unattended sign/verify preflight;
   the isolated-key smoke test passes and is part of the remediation baseline.
-- [ ] Verify Launchpad accepts the corrected source package on the next
-  explicitly authorized stable release. The `.335` artifact is immutable and
-  was not rebuilt or republished.
+- [x] Verify Launchpad accepts the corrected source package on the next
+  explicitly authorized stable release. The immutable `.335` artifact was not
+  rebuilt; the subsequent `.336` source package and exact Jammy amd64 binary
+  were both Published, confirming the corrected signing path.
 
 ### High Priority
 
