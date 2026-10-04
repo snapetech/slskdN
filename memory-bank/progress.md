@@ -17600,3 +17600,14 @@ changelog entry. The broader remote-text diagnostic queue remains open. Stable
 remains on hold. Full `dotnet test -c Release --no-restore` passes 5,909 tests
 (74 application, 5,546 unit, 289 integration), `./bin/lint` passes, and the
 refreshed active-backlog, local-identity, and whitespace checks pass.
+
+## Update 2026-10-04 23:37 UTC — Sanitize security event log fields
+
+`SecurityEventAggregator` now escapes untrusted event messages, IP addresses,
+and usernames before runtime logging, while retaining the original event for
+the security feed. A regression confirms both escaped log output and unchanged
+event payload. Focused aggregator tests pass 3/3; the full Release suite passes
+5,910 tests (74 application, 5,547 unit, 289 integration), and `./bin/lint`
+passes. Stable `.338` core artifacts, Docker manifests, and Launchpad PPA
+publication are complete. Prepare the next stable release after pushing this
+change.

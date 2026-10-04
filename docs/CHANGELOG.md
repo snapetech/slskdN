@@ -32,7 +32,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ### Security and diagnostics
 
 - Request diagnostics no longer log raw request targets or query strings, and
-  request paths are escaped before they are written to logs.
+  request paths and security-event text are escaped before they are written to
+  logs.
 
 ## [2026100421-slskdn.338] — 2026-10-04
 

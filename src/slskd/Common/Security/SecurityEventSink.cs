@@ -104,35 +104,39 @@ public sealed class SecurityEventAggregator : ISecurityEventSink, IDisposable
         _eventCountsByType.AddOrUpdate(typeKey, 1, (_, count) => count + 1);
         _lastEventByType[typeKey] = evt.Timestamp;
 
+        var message = LoggingSanitizer.SanitizeQueryText(evt.Message);
+        var ipAddress = evt.IpAddress == null ? "(unknown)" : LoggingSanitizer.SanitizeIpAddress(evt.IpAddress);
+        var username = evt.Username == null ? "(none)" : LoggingSanitizer.SanitizeExternalIdentifier(evt.Username);
+
         // Log based on severity
         switch (evt.Severity)
         {
             case SecuritySeverity.Critical:
                 _logger.LogCritical(
                     "[SECURITY:{Type}] {Message} - IP:{Ip} User:{User}",
-                    evt.Type, evt.Message, evt.IpAddress, evt.Username ?? "(none)");
+                    evt.Type, message, ipAddress, username);
                 RaiseHighSeverityEvent(evt);
                 break;
             case SecuritySeverity.High:
                 _logger.LogError(
                     "[SECURITY:{Type}] {Message} - IP:{Ip} User:{User}",
-                    evt.Type, evt.Message, evt.IpAddress, evt.Username ?? "(none)");
+                    evt.Type, message, ipAddress, username);
                 RaiseHighSeverityEvent(evt);
                 break;
             case SecuritySeverity.Medium:
                 _logger.LogWarning(
                     "[SECURITY:{Type}] {Message} - IP:{Ip} User:{User}",
-                    evt.Type, evt.Message, evt.IpAddress, evt.Username ?? "(none)");
+                    evt.Type, message, ipAddress, username);
                 break;
             case SecuritySeverity.Low:
                 _logger.LogInformation(
                     "[SECURITY:{Type}] {Message}",
-                    evt.Type, evt.Message);
+                    evt.Type, message);
                 break;
             default:
                 _logger.LogDebug(
                     "[SECURITY:{Type}] {Message}",
-                    evt.Type, evt.Message);
+                    evt.Type, message);
                 break;
         }
     }

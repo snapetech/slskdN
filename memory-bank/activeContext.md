@@ -18018,15 +18018,15 @@ release note range, and then run the guarded tag helper. Continue the open
 whole-product backlog after release; the 210 callback and 12,222 red-team
 candidates are discovery queues, not closed inventories.
 
-## Current state — Sanitize request diagnostics — 2026-10-04 23:24 UTC
+## Current state — Sanitize request and security-event diagnostics — 2026-10-04 23:37 UTC
 
 Removed query-bearing `RawTarget` from static-file and security-middleware
-logging, and escaped request paths at web diagnostic call sites. Raw targets
-remain available to request parsing and security checks. Updated sanitizer
-coverage, the security release note/changelog, task/progress state, and the
-remote-text diagnostic backlog classification. The full .NET and lint gates
-pass: 5,909 .NET tests, repository lint, active-backlog counts, local-identity
-scan, and whitespace validation. Remaining broad discovery queues are open at
-210 callback/event, 487 remote-text, 12,222 red-team, and 821 mutable-ownership
-candidates. Stable `.338` Launchpad PPA publication remains outstanding;
-publish `.339` only after it completes.
+logging, escaped request paths at web diagnostic call sites, and sanitized
+security-event message/IP/user fields at the logging boundary while retaining
+the original event for the feed. The full .NET suite passes 5,910 tests and
+`./bin/lint`, active-backlog, local-identity, and whitespace checks pass.
+Remaining broad discovery queues are open at 210 callback/event, 487
+remote-text, 12,222 red-team, and 821 mutable-ownership candidates. Stable
+`.338` core artifacts, Docker images, and Launchpad PPA publication are all
+complete. Prepare `.339` from the three post-`.338` release notes after pushing
+the validated security-event log change.
