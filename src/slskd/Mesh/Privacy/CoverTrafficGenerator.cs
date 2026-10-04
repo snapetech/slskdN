@@ -13,13 +13,14 @@ namespace slskd.Mesh.Privacy;
 public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
 {
     private readonly ILogger<CoverTrafficGenerator> _logger;
-    private readonly RandomNumberGenerator _rng;
     private readonly TimeSpan _interval;
     private readonly TimeSpan _jitterRange;
     private readonly int _messageSize;
+    private readonly object _lifecycleLock = new();
+    private readonly CancellationTokenSource _disposeCts = new();
     private DateTimeOffset _lastActivity;
     private DateTimeOffset _lastCoverTraffic;
-    private bool _disposed;
+    private int _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CoverTrafficGenerator"/> class.
@@ -35,7 +36,6 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
         int messageSize = 64)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _rng = RandomNumberGenerator.Create();
 
         if (intervalSeconds <= 0)
         {
@@ -69,36 +69,46 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
     /// <returns>An enumerable of cover traffic messages to send.</returns>
     public async IAsyncEnumerable<byte[]> GenerateCoverTrafficAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        ThrowIfDisposed();
-        _logger.LogDebug("Starting cover traffic generation");
-
-        while (!cancellationToken.IsCancellationRequested)
+        CancellationTokenSource linkedCts;
+        lock (_lifecycleLock)
         {
-            var now = DateTimeOffset.UtcNow;
-            var timeSinceLastCover = now - _lastCoverTraffic;
-            var timeSinceLastActivity = now - _lastActivity;
-
-            // Generate cover traffic if enough time has passed and no recent activity
-            if (timeSinceLastCover >= GetNextInterval() && timeSinceLastActivity >= _interval)
-            {
-                var coverMessage = GenerateCoverMessage();
-                _lastCoverTraffic = now;
-
-                _logger.LogTrace("Generated cover traffic message ({Size} bytes)", coverMessage.Length);
-                yield return coverMessage;
-
-                // Wait a bit before checking again to avoid busy looping
-                await Task.Delay(100, cancellationToken);
-            }
-            else
-            {
-                // Wait until it's time to check again
-                var waitTime = Math.Min(1000, (int)GetNextInterval().TotalMilliseconds / 4);
-                await Task.Delay(waitTime, cancellationToken);
-            }
+            ThrowIfDisposed();
+            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _disposeCts.Token);
         }
 
-        _logger.LogDebug("Cover traffic generation stopped");
+        using (linkedCts)
+        {
+            var generationToken = linkedCts.Token;
+            _logger.LogDebug("Starting cover traffic generation");
+
+            while (!generationToken.IsCancellationRequested)
+            {
+                var now = DateTimeOffset.UtcNow;
+                var timeSinceLastCover = now - _lastCoverTraffic;
+                var timeSinceLastActivity = now - _lastActivity;
+
+                // Generate cover traffic if enough time has passed and no recent activity
+                if (timeSinceLastCover >= GetNextInterval() && timeSinceLastActivity >= _interval)
+                {
+                    var coverMessage = GenerateCoverMessage();
+                    _lastCoverTraffic = now;
+
+                    _logger.LogTrace("Generated cover traffic message ({Size} bytes)", coverMessage.Length);
+                    yield return coverMessage;
+
+                    // Wait a bit before checking again to avoid busy looping
+                    await Task.Delay(100, generationToken);
+                }
+                else
+                {
+                    // Wait until it's time to check again
+                    var waitTime = Math.Min(1000, (int)GetNextInterval().TotalMilliseconds / 4);
+                    await Task.Delay(waitTime, generationToken);
+                }
+            }
+
+            _logger.LogDebug("Cover traffic generation stopped");
+        }
     }
 
     /// <summary>
@@ -156,7 +166,7 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
     {
         // Add random jitter to prevent predictable patterns
         var jitterBytes = new byte[4];
-        _rng.GetBytes(jitterBytes);
+        RandomNumberGenerator.Fill(jitterBytes);
         var jitterValue = BitConverter.ToUInt32(jitterBytes, 0) / (double)uint.MaxValue;
 
         var jitterOffset = _jitterRange.TotalMilliseconds * (2 * jitterValue - 1); // -jitterRange to +jitterRange
@@ -168,7 +178,7 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
     private byte[] GenerateCoverMessage()
     {
         var message = new byte[_messageSize];
-        _rng.GetBytes(message);
+        RandomNumberGenerator.Fill(message);
 
         // Mark as cover traffic (optional - for debugging/analysis)
         // First byte indicates this is cover traffic
@@ -219,18 +229,22 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
+        lock (_lifecycleLock)
         {
-            return;
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
+            _disposeCts.Cancel();
+            _disposeCts.Dispose();
         }
 
-        _disposed = true;
-        _rng.Dispose();
         GC.SuppressFinalize(this);
     }
 
     private void ThrowIfDisposed()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
     }
 }

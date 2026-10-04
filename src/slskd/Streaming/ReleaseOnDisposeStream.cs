@@ -5,6 +5,7 @@ namespace slskd.Streaming;
 
 using System;
 using System.IO;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,7 +14,7 @@ public sealed class ReleaseOnDisposeStream : Stream
 {
     private readonly Stream _inner;
     private readonly Action _onDispose;
-    private bool _disposed;
+    private int _disposed;
 
     public ReleaseOnDisposeStream(Stream inner, Action onDispose)
     {
@@ -66,34 +67,98 @@ public sealed class ReleaseOnDisposeStream : Stream
             return;
         }
 
-        DisposeCore();
-        base.Dispose(disposing);
+        try
+        {
+            DisposeCore();
+        }
+        finally
+        {
+            base.Dispose(disposing);
+        }
     }
 
     public override async ValueTask DisposeAsync()
     {
-        if (_disposed)
+        Exception? releaseException = null;
+        Exception? innerException = null;
+
+        try
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                try
+                {
+                    _onDispose();
+                }
+                catch (Exception exception)
+                {
+                    releaseException = exception;
+                }
+
+                try
+                {
+                    await _inner.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    innerException = exception;
+                }
+            }
+        }
+        finally
         {
             await base.DisposeAsync().ConfigureAwait(false);
-            return;
         }
 
-        _disposed = true;
-
-        try { _onDispose(); } catch { /* best-effort */ }
-        await _inner.DisposeAsync().ConfigureAwait(false);
-        await base.DisposeAsync().ConfigureAwait(false);
+        ThrowDisposalExceptions(releaseException, innerException);
     }
 
     private void DisposeCore()
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
 
-        _disposed = true;
-        try { _onDispose(); } catch { /* best-effort */ }
-        _inner.Dispose();
+        Exception? releaseException = null;
+        Exception? innerException = null;
+
+        try
+        {
+            _onDispose();
+        }
+        catch (Exception exception)
+        {
+            releaseException = exception;
+        }
+
+        try
+        {
+            _inner.Dispose();
+        }
+        catch (Exception exception)
+        {
+            innerException = exception;
+        }
+
+        ThrowDisposalExceptions(releaseException, innerException);
+    }
+
+    private static void ThrowDisposalExceptions(Exception? releaseException, Exception? innerException)
+    {
+        if (releaseException is not null && innerException is not null)
+        {
+            throw new AggregateException("The release callback and wrapped stream both failed during disposal.", releaseException, innerException);
+        }
+
+        if (releaseException is not null)
+        {
+            ExceptionDispatchInfo.Capture(releaseException).Throw();
+        }
+
+        if (innerException is not null)
+        {
+            ExceptionDispatchInfo.Capture(innerException).Throw();
+        }
     }
 }

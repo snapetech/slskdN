@@ -123,6 +123,19 @@ public class CoverTrafficGeneratorTests : IDisposable
     }
 
     [Fact]
+    public async Task Dispose_CancelsAnActiveEnumeration()
+    {
+        using var generator = new CoverTrafficGenerator(_loggerMock.Object, 60.0, 0, 64);
+        await using var enumerator = generator.GenerateCoverTrafficAsync(CancellationToken.None).GetAsyncEnumerator();
+        var moveNextTask = enumerator.MoveNextAsync().AsTask();
+
+        generator.Dispose();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => moveNextTask.WaitAsync(TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
     public void IsCoverTraffic_WithCoverTrafficMessage_ReturnsTrue()
     {
         // Arrange

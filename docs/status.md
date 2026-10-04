@@ -67,8 +67,8 @@ Candidates requiring classification:
 - `HashFromAudioFileEnabled` is known-unavailable by startup validation and has no public command-line or environment toggle; any future re-exposure needs a real PCM extraction capability check.
 - Experimental feature gates now exist for high-risk surfaces. SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs are gated and remain enabled by default through their `feature.*` switches.
 - SongID now exposes `/api/v0/songid/capabilities` so optional provider lanes are reported from runtime config/tool availability instead of implied by docs.
-- Dependency ownership has an initial call-site-backed inventory in `docs/dependencies.md`; `dotNetRDF` and `MathNet.Numerics` remain active for Solid/WebID and MediaCore hashing, while Roslyn CodeQuality helpers still need a runtime-vs-tooling decision.
-- Custom build quality tasks now live in `tools/slskd.BuildTasks`; remaining build-quality cleanup should target broad suppressions and runtime-adjacent Roslyn helpers.
+- Dependency ownership has a call-site-backed inventory in `docs/dependencies.md`; `dotNetRDF` and `MathNet.Numerics` remain active for Solid/WebID and MediaCore hashing, while Roslyn source inspection is build-only and excluded from runtime output.
+- Custom build quality tasks and Roslyn source inspection live in `tools/slskd.BuildTasks`; remaining build-quality cleanup should target broad suppressions.
 - Analyzer suppressions now have a first-pass audit in `docs/analyzer-suppressions.md`; the app build is warning-clean, but broad project suppressions still need reduction or targeting over time.
 - Download flow now has focused regression coverage for in-progress duplicate protection, completed-transfer supersession, terminal failed cleanup, and per-user enqueue semaphore behavior; CTS cleanup remains the main targeted follow-up before deeper rescue/swarm/ranking refactors.
 

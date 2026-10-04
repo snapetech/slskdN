@@ -75,16 +75,10 @@ namespace slskd.Mesh
                     {
                         if (string.IsNullOrEmpty(localPath))
                             continue;
-                        try
-                        {
-                            var key = HashDbEntry.GenerateFlacKey(localPath, size);
-                            if (!string.IsNullOrEmpty(key))
-                                next[key] = localPath;
-                        }
-                        catch
-                        {
-                            // Skip entries that fail key generation
-                        }
+
+                        var key = HashDbEntry.GenerateFlacKey(localPath, size);
+                        if (!string.IsNullOrEmpty(key))
+                            next[key] = localPath;
                     }
 
                     // Only replace if we got a result; on exception leave old cache

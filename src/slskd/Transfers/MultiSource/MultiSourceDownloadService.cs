@@ -48,6 +48,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
     private const double DefaultMinQualityImprovement = 0.1;
     private const double DefaultLocalQualityThreshold = 0.85;
+    private const string LowThroughputChunkError = "Chunk download timed out due to low throughput";
 
     private readonly ILogger<MultiSourceDownloadService> _logger;
     private readonly ISoulseekClient _client;
@@ -116,7 +117,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
     /// <inheritdoc/>
     public ConcurrentDictionary<Guid, MultiSourceDownloadStatus> ActiveDownloads { get; } = new();
 
-    private async Task<ContentSafetyDisposition> InspectOutputContentAsync(string outputPath, string quarantineFilename)
+    private async Task<ContentSafetyDisposition> InspectOutputContentAsync(
+        string outputPath,
+        string quarantineFilename,
+        CancellationToken cancellationToken)
     {
         var options = optionsMonitor?.CurrentValue;
         if (options == null)
@@ -131,7 +135,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             outputRoot,
             options.Directories.Downloads,
             options.Security,
-            CancellationToken.None,
+            cancellationToken,
             _logger,
             quarantineFilename).ConfigureAwait(false);
     }
@@ -388,6 +392,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                         contentVariants.Variants.Count, filename);
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[MediaCore] Failed to discover content variants for {Filename}", filename);
@@ -418,6 +426,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 responseHandler: (response) => searchResults.Add(response),
                 options: searchOptions,
                 cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -549,22 +561,18 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             };
         }
 
-        Activity? activity = MultiSourceActivitySource.Source.StartActivity("swarm.download");
-        activity?.SetTag("swarm.download.id", request.Id);
-        activity?.SetTag("swarm.download.filename", request.Filename);
-        activity?.SetTag("swarm.download.size", request.FileSize);
-        activity?.SetTag("swarm.download.sources", request.Sources.Count);
-
-        // Update Prometheus metrics
-        Telemetry.SwarmMetrics.SwarmDownloadsActive.Inc();
-        Telemetry.SwarmMetrics.SwarmDownloadsTotal.WithLabels("started").Inc();
-
         if (!IsAllowedOutputPath(request.OutputPath))
         {
             result.Success = false;
             result.Error = "Output path is outside allowed download or temporary directories";
             return result;
         }
+
+        Activity? activity = MultiSourceActivitySource.Source.StartActivity("swarm.download");
+        activity?.SetTag("swarm.download.id", request.Id);
+        activity?.SetTag("swarm.download.filename", request.Filename);
+        activity?.SetTag("swarm.download.size", request.FileSize);
+        activity?.SetTag("swarm.download.sources", request.Sources.Count);
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -578,12 +586,18 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         status.TargetMusicBrainzRecordingId = request.TargetMusicBrainzRecordingId;
         status.TargetFingerprint = request.TargetFingerprint;
         status.TargetSemanticKey = request.TargetSemanticKey;
-        ActiveDownloads[request.Id] = status;
         string? stagingOutputPath = null;
         string? outputRoot = null;
+        string? tempDir = null;
 
         try
         {
+            Telemetry.SwarmMetrics.SwarmDownloadsActive.Inc();
+            Telemetry.SwarmMetrics.SwarmDownloadsTotal.WithLabels("started").Inc();
+            ActiveDownloads[request.Id] = status;
+
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (request.Sources.Count == 0)
             {
                 result.Error = "No verified sources provided";
@@ -633,8 +647,9 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 request.Sources.Count);
 
             // Create temp directory for chunks
-            var tempDir = IOPath.Combine(IOPath.GetTempPath(), "slskdn-multidownload", request.Id.ToString());
-            IODirectory.CreateDirectory(tempDir);
+            var chunkTempDir = IOPath.Combine(IOPath.GetTempPath(), "slskdn-multidownload", request.Id.ToString());
+            tempDir = chunkTempDir;
+            IODirectory.CreateDirectory(chunkTempDir);
 
             // SWARM MODE: Shared work queue (priority-aware if playback feedback available)
             var chunkQueue = new ConcurrentQueue<ChunkInfo>();
@@ -711,7 +726,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                             completedChunks,
                             sourceStats,
                             failedUsers,
-                            tempDir,
+                            chunkTempDir,
                             status,
                             request.Id,
                             cancellationToken);
@@ -725,6 +740,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
             // Wait for all workers (they exit when queue is empty or all chunks complete)
             await Task.WhenAll(workerTasks);
+            cancellationToken.ThrowIfCancellationRequested();
 
             // Check results after first pass
             var failedCount = chunks.Count - completedChunks.Count;
@@ -837,7 +853,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                                     completedChunks,
                                     sourceStats,
                                     failedUsers,
-                                    tempDir,
+                                    chunkTempDir,
                                     status,
                                     request.Id,
                                     cancellationToken);
@@ -851,6 +867,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 }
 
                 await Task.WhenAll(retryTasks);
+                cancellationToken.ThrowIfCancellationRequested();
                 var newFailedCount = chunks.Count - completedChunks.Count;
 
                 // Track progress - if no chunks completed this round, we're stuck
@@ -894,7 +911,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             status.State = MultiSourceDownloadState.Assembling;
             _logger.LogInformation("Assembling {Count} chunks into final file", chunks.Count);
 
-            await AssembleChunksAsync(tempDir, chunks.Count, stagingOutputPath, cancellationToken);
+            await AssembleChunksAsync(chunkTempDir, chunks.Count, stagingOutputPath, cancellationToken);
 
             // Verify final file
             status.State = MultiSourceDownloadState.VerifyingFinal;
@@ -903,7 +920,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
             var contentSafetyDisposition = await InspectOutputContentAsync(
                 stagingOutputPath,
-                IOPath.GetFileName(request.OutputPath));
+                IOPath.GetFileName(request.OutputPath),
+                cancellationToken);
             if (contentSafetyDisposition.Rejected)
             {
                 result.Error = $"Content safety rejected final output: {contentSafetyDisposition.Verification?.Message ?? "configured safety check failed"}";
@@ -943,17 +961,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             status.FingerprintVerified = verification.Verified;
             status.ResolvedRecordingId = verification.ResolvedRecordingId;
 
+            cancellationToken.ThrowIfCancellationRequested();
             ContentSafety.PublishStagedFile(stagingOutputPath, request.OutputPath, outputRoot, overwrite: true);
-
-            // Cleanup temp files
-            try
-            {
-                IODirectory.Delete(tempDir, true);
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
 
             stopwatch.Stop();
             result.TotalTimeMs = stopwatch.ElapsedMilliseconds;
@@ -974,8 +983,6 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             SwarmDownloadSourcesUsed.Observe(result.SourcesUsed);
             SwarmBytesDownloadedTotal.Inc(request.FileSize);
             SwarmDownloadsTotal.WithLabels("success").Inc();
-            SwarmDownloadsActive.Dec();
-
             _logger.LogInformation(
                 "SWARM SUCCESS: {Filename} in {Time}ms ({Speed:F2} MB/s) from {Sources} sources",
                 request.Filename,
@@ -987,6 +994,11 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             await PublishDownloadedHashAsync(request.Filename, request.FileSize, finalHash, cancellationToken);
 
             return result;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            activity?.SetTag("swarm.download.cancelled", true);
+            throw;
         }
         catch (Exception ex)
         {
@@ -1001,13 +1013,34 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         }
         finally
         {
-            if (stagingOutputPath != null && outputRoot != null)
+            if (tempDir != null)
             {
-                ContentSafety.DeleteStagedFile(stagingOutputPath, outputRoot);
+                try
+                {
+                    if (IODirectory.Exists(tempDir))
+                    {
+                        IODirectory.Delete(tempDir, recursive: true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to remove temporary chunks for multi-source download {DownloadId}", request.Id);
+                }
             }
 
-            activity?.Dispose();
-            ActiveDownloads.TryRemove(request.Id, out _);
+            try
+            {
+                if (stagingOutputPath != null && outputRoot != null)
+                {
+                    ContentSafety.DeleteStagedFile(stagingOutputPath, outputRoot);
+                }
+            }
+            finally
+            {
+                Telemetry.SwarmMetrics.SwarmDownloadsActive.Dec();
+                activity?.Dispose();
+                ActiveDownloads.TryRemove(request.Id, out _);
+            }
         }
     }
 
@@ -1152,8 +1185,26 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             }
             finally
             {
-                try { attemptCts.Cancel(); } catch { /* ignore */ }
-                try { await speedMonitorTask.ConfigureAwait(false); } catch { /* ignore */ }
+                try
+                {
+                    attemptCts.Cancel();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to stop sequential speed monitor for {Username}", source.Username);
+                }
+
+                try
+                {
+                    await speedMonitorTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (attemptCts.IsCancellationRequested)
+                {
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Sequential speed monitor failed for {Username}", source.Username);
+                }
             }
 
             status.BytesDownloaded = bytesReceived;
@@ -1203,7 +1254,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
         var contentSafetyDisposition = await InspectOutputContentAsync(
             stagingOutputPath,
-            IOPath.GetFileName(finalOutputPath)).ConfigureAwait(false);
+            IOPath.GetFileName(finalOutputPath),
+            cancellationToken).ConfigureAwait(false);
         if (contentSafetyDisposition.Rejected)
         {
             result.Error = $"Content safety rejected final output: {contentSafetyDisposition.Verification?.Message ?? "configured safety check failed"}";
@@ -1244,6 +1296,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         status.FingerprintVerified = verification.Verified;
         status.ResolvedRecordingId = verification.ResolvedRecordingId;
 
+        cancellationToken.ThrowIfCancellationRequested();
         ContentSafety.PublishStagedFile(stagingOutputPath, finalOutputPath, outputRoot, overwrite: true);
 
         result.Success = true;
@@ -1417,7 +1470,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                             chunk.EndOffset,
                             workerTempPath,  // Write to worker-specific temp file
                             status,
-                            chunkCts.Token);
+                            chunkCts.Token,
+                            cancellationToken);
                     }
 
                     result.MusicBrainzRecordingId = source.MusicBrainzRecordingId ?? status.TargetMusicBrainzRecordingId;
@@ -1497,7 +1551,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                         }
 
                         // Don't count "Too slow" as a hard failure that kills the worker
-                        var isSpeedFailure = result.Error?.Contains("Too slow") == true;
+                        var isSpeedFailure = string.Equals(result.Error, LowThroughputChunkError, StringComparison.Ordinal);
                         if (!isSpeedFailure)
                         {
                             consecutiveFailures++;
@@ -1684,7 +1738,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         long endOffset,
         string outputPath,
         MultiSourceDownloadStatus status,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        CancellationToken callerCancellationToken)
     {
         const int absoluteMinSpeedBps = 5 * 1024;  // 5 KB/s absolute floor
         const double minSpeedPercent = 0.15;       // 15% of best speed
@@ -1719,7 +1774,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             var outputRoot = GetAllowedOutputRoot(outputPath)
                 ?? throw new InvalidOperationException("Chunk output path is outside allowed roots");
             using var fileStream = SecureFileWriter.Open(outputPath, outputRoot);
-            var limitedStream = new LimitedWriteStream(fileStream, chunkSize, cts);
+            using var limitedStream = new LimitedWriteStream(fileStream, chunkSize, cts);
 
             // Timing metrics
             var firstByteTime = (long?)null;  // Time to first byte (connection overhead)
@@ -1775,7 +1830,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                             {
                                 _logger.LogWarning("[SWARM] {Username} too slow ({Speed:F1} KB/s < {Threshold:F1} KB/s for {Duration:F0}s) - timeout {Timeout}s",
                                     username, speedBps / 1024.0, dynamicMinSpeed / 1024.0, slowDuration / 1000.0, peerTimeoutSeconds);
-                                result.Error = "Chunk download timed out due to low throughput";
+                                result.Error = LowThroughputChunkError;
 
                                 // Set timeout instead of blacklist - peer can retry later
                                 status.SetPeerTimeout(username, TimeSpan.FromSeconds(peerTimeoutSeconds));
@@ -1799,47 +1854,58 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
             try
             {
-                // Pass the file size (required when startOffset > 0)
-                // The limited stream will cancel after we get our chunk
-                await _client.DownloadAsync(
-                    username: username,
-                    remoteFilename: filename,
-                    outputStreamFactory: () => Task.FromResult<Stream>(limitedStream),
-                    size: fileSize,
-                    startOffset: startOffset,
-                    cancellationToken: cts.Token,
-                    options: new TransferOptions(
-                        maximumLingerTime: 3000,
-                        disposeOutputStreamOnCompletion: false));
+                try
+                {
+                    // Pass the file size (required when startOffset > 0)
+                    // The limited stream will cancel after we get our chunk
+                    await _client.DownloadAsync(
+                        username: username,
+                        remoteFilename: filename,
+                        outputStreamFactory: () => Task.FromResult<Stream>(limitedStream),
+                        size: fileSize,
+                        startOffset: startOffset,
+                        cancellationToken: cts.Token,
+                        options: new TransferOptions(
+                            maximumLingerTime: 3000,
+                            disposeOutputStreamOnCompletion: false));
+                }
+                catch (OperationCanceledException) when (callerCancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (OperationCanceledException) when (limitedStream.LimitReached)
+                {
+                    // Expected - we cancelled after getting our chunk
+                    _logger.LogDebug("Chunk complete (cancelled remaining) from {Username}", username);
+                }
+                catch (OperationCanceledException) when (string.Equals(result.Error, LowThroughputChunkError, StringComparison.Ordinal))
+                {
+                    // Speed monitor cancelled us
+                    return result;
+                }
             }
-            catch (OperationCanceledException) when (limitedStream.LimitReached)
+            finally
             {
-                // Expected - we cancelled after getting our chunk
-                _logger.LogDebug("Chunk complete (cancelled remaining) from {Username}", username);
-            }
-            catch (OperationCanceledException) when (result.Error?.Contains("Too slow") == true)
-            {
-                // Speed monitor cancelled us
-                return result;
-            }
+                try
+                {
+                    cts.Cancel();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to cancel chunk speed monitor for {Username}", username);
+                }
 
-            // Stop speed monitor
-            try
-            {
-                cts.Cancel();
-            }
-            catch
-            {
-                // Ignore
-            }
-
-            try
-            {
-                await speedMonitorTask.ConfigureAwait(false);
-            }
-            catch
-            {
-                // Ignore
+                try
+                {
+                    await speedMonitorTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cts.IsCancellationRequested)
+                {
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Chunk speed monitor failed for {Username}", username);
+                }
             }
 
             stopwatch.Stop();
@@ -1872,10 +1938,14 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             }
             else
             {
-                result.Error = "Incomplete chunk download";
+                result.Error ??= "Incomplete chunk download";
             }
 
             return result;
+        }
+        catch (OperationCanceledException) when (callerCancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -2063,6 +2133,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             }
 
             return new FingerprintVerificationResult(fingerprint, verified, resolvedRecordingId);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

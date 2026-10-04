@@ -16,6 +16,17 @@ public class FeatureOptionsTests
     }
 
     [Fact]
+    public void Defaults_KeepMetricsTracingAndLanAdvertisingOptIn()
+    {
+        var options = new slskd.Options();
+
+        Assert.False(options.Metrics.Enabled);
+        Assert.False(options.Metrics.Authentication.Disabled);
+        Assert.False(options.Telemetry.Tracing.Enabled);
+        Assert.False(options.LanDiscovery.Advertise);
+    }
+
+    [Fact]
     public void Defaults_KeepNetworkedExperimentalFeatureGatesEnabled()
     {
         var options = new slskd.Options();

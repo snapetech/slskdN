@@ -142,7 +142,9 @@ public class QuicDataServer : BackgroundService
 
                     TrackConnectionTask(HandleConnectionAsync(connection, stoppingToken));
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    stoppingToken.IsCancellationRequested &&
+                    ex.CancellationToken == stoppingToken)
                 {
                     break;
                 }
@@ -190,7 +192,9 @@ public class QuicDataServer : BackgroundService
 
                         TrackStreamTask(HandleStreamAsync(stream, remoteEndPoint, ct));
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException ex) when (
+                        ct.IsCancellationRequested &&
+                        ex.CancellationToken == ct)
                     {
                         break;
                     }
@@ -210,7 +214,9 @@ public class QuicDataServer : BackgroundService
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex) when (
+            ct.IsCancellationRequested &&
+            ex.CancellationToken == ct)
         {
             // Expected on shutdown
         }
@@ -536,7 +542,9 @@ public class QuicDataServer : BackgroundService
         {
             await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex) when (
+            cancellationToken.IsCancellationRequested &&
+            ex.CancellationToken == cancellationToken)
         {
             // Host shutdown timeout should not surface as a second failure here.
         }
@@ -558,7 +566,9 @@ public class QuicDataServer : BackgroundService
         {
             await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex) when (
+            cancellationToken.IsCancellationRequested &&
+            ex.CancellationToken == cancellationToken)
         {
             // Host shutdown timeout should not surface as a second failure here.
         }

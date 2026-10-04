@@ -82,7 +82,9 @@ namespace slskd.VirtualSoulfind.v2.Processing
                         }
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    stoppingToken.IsCancellationRequested &&
+                    ex.CancellationToken == stoppingToken)
                 {
                     // Expected during shutdown
                     break;
@@ -97,7 +99,9 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 {
                     await Task.Delay(TimeSpan.FromSeconds(opts.ProcessingIntervalSeconds), stoppingToken);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    stoppingToken.IsCancellationRequested &&
+                    ex.CancellationToken == stoppingToken)
                 {
                     // Expected during shutdown
                     break;

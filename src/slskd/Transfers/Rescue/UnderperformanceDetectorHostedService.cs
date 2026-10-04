@@ -64,7 +64,8 @@ namespace slskd.Transfers.Rescue
         /// <inheritdoc />
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            loopCts?.Cancel();
+            var currentCts = loopCts;
+            currentCts?.Cancel();
 
             if (loopTask != null)
             {
@@ -72,7 +73,9 @@ namespace slskd.Transfers.Rescue
                 {
                     await loopTask.ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    currentCts is { IsCancellationRequested: true } &&
+                    ex.CancellationToken == currentCts.Token)
                 {
                     // Expected during shutdown.
                 }
@@ -179,7 +182,9 @@ namespace slskd.Transfers.Rescue
 
                     await Task.Delay(TimeSpan.FromSeconds(rescue.CheckIntervalSeconds), ct).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    ct.IsCancellationRequested &&
+                    ex.CancellationToken == ct)
                 {
                     break;
                 }

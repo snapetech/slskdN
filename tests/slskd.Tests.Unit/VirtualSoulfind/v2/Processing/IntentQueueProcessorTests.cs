@@ -323,6 +323,57 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Processing
         }
 
         [Fact]
+        public async Task ProcessIntent_WhenDependencyCancelsWithoutCallerCancellation_MarksFailed()
+        {
+            var trackId = ContentItemId.NewId();
+            var intent = new DesiredTrack
+            {
+                Domain = ContentDomain.Music,
+                DesiredTrackId = "intent-cancelled-dependency",
+                TrackId = trackId.ToString(),
+                Status = IntentStatus.Pending,
+                Priority = IntentPriority.Normal,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            };
+            _mockIntentQueue
+                .Setup(queue => queue.GetTrackIntentAsync(intent.DesiredTrackId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(intent);
+            var now = DateTimeOffset.UtcNow;
+            _mockCatalogueStore
+                .Setup(store => store.FindTrackByIdAsync(trackId.ToString(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Track
+                {
+                    TrackId = trackId.ToString(),
+                    ReleaseId = "release-1",
+                    TrackNumber = 1,
+                    Title = "Test track",
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            _mockPlanner
+                .Setup(planner => planner.CreatePlanAsync(intent, It.IsAny<PlanningMode?>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new OperationCanceledException("dependency timeout"));
+
+            var processor = new IntentQueueProcessor(
+                _mockIntentQueue.Object,
+                _mockCatalogueStore.Object,
+                _mockPlanner.Object,
+                _mockResolver.Object,
+                _mockLogger.Object);
+
+            var result = await processor.ProcessIntentAsync(intent.DesiredTrackId, CancellationToken.None);
+
+            Assert.False(result);
+            _mockIntentQueue.Verify(
+                queue => queue.UpdateTrackStatusAsync(intent.DesiredTrackId, IntentStatus.Failed, It.IsAny<CancellationToken>()),
+                Times.Once);
+            _mockIntentQueue.Verify(
+                queue => queue.UpdateTrackStatusAsync(intent.DesiredTrackId, IntentStatus.Pending, It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
         public async Task ProcessIntent_WithNonPendingStatus_SkipsProcessing()
         {
             // Arrange

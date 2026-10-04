@@ -378,6 +378,32 @@ public class SignalBusTests
         Assert.True(cleanupTask.Wait(TimeSpan.FromSeconds(30)));
     }
 
+    [Fact]
+    public async Task Dispose_WhenCleanupTaskOutlastsTimeout_DefersCancellationSourceDisposal()
+    {
+        var signalBus = new SignalBus(loggerMock.Object, optionsMonitorMock.Object);
+        var cleanupTaskField = typeof(SignalBus).GetField("cleanupTask", BindingFlags.Instance | BindingFlags.NonPublic);
+        var cleanupCancellationField = typeof(SignalBus).GetField("cleanupCancellationTokenSource", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(cleanupTaskField);
+        Assert.NotNull(cleanupCancellationField);
+
+        var blockedCleanup = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        cleanupTaskField!.SetValue(signalBus, blockedCleanup.Task);
+        var cancellationSource = Assert.IsType<CancellationTokenSource>(cleanupCancellationField!.GetValue(signalBus));
+
+        await Task.Run(signalBus.Dispose).WaitAsync(TimeSpan.FromSeconds(3));
+
+        Assert.True(cancellationSource.IsCancellationRequested);
+        var cancellationWaitHandle = cancellationSource.Token.WaitHandle;
+        Assert.False(cancellationWaitHandle.SafeWaitHandle.IsClosed);
+
+        blockedCleanup.SetResult(true);
+
+        Assert.True(await Task.Run(() => SpinWait.SpinUntil(
+            () => cancellationWaitHandle.SafeWaitHandle.IsClosed,
+            TimeSpan.FromSeconds(5))));
+    }
+
     private static Signal CreateTestSignal(params SignalChannel[] channels)
     {
         return new Signal(

@@ -43,6 +43,8 @@ public class StunNatDetector : INatDetector
             return NatType.Unknown;
         }
 
+        ct.ThrowIfCancellationRequested();
+
         logger.LogDebug("[NAT] Starting STUN detection with servers: {Servers}", string.Join(", ", options.StunServers));
 
         // Strategy:
@@ -127,6 +129,10 @@ public class StunNatDetector : INatDetector
             lastDetectedType = NatType.Restricted;
             return NatType.Restricted;
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogDebug(ex, "[NAT] STUN detection failed");
@@ -137,6 +143,8 @@ public class StunNatDetector : INatDetector
 
     private async Task<MappingResult?> ProbeServer(string server, CancellationToken ct, bool forceNewLocal = false)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (!TryParseHostAndPort(server, out var host, out var port))
         {
             return null;
@@ -183,8 +191,7 @@ public class StunNatDetector : INatDetector
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            logger.LogDebug("[NAT] STUN probe canceled for {Server}", server);
-            return null;
+            throw;
         }
     }
 
@@ -244,6 +251,10 @@ public class StunNatDetector : INatDetector
             var addresses = await Dns.GetHostAddressesAsync(host, resolveTimeout.Token);
             return addresses.FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork) ??
                 addresses.FirstOrDefault();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (OperationCanceledException)
         {

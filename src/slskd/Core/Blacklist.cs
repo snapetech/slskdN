@@ -159,43 +159,25 @@ public class Blacklist
 
     private static bool TryDetectFormatLine(string line, out BlacklistFormat format)
     {
-        try
+        // CIDR format: 1.2.4.0/24
+        if (IPAddressRange.TryParse(line, out _))
         {
-            // CIDR format: 1.2.4.0/24
-            if (IPAddressRange.TryParse(line, out _))
-            {
-                format = BlacklistFormat.CIDR;
-                return true;
-            }
-        }
-        catch
-        {
+            format = BlacklistFormat.CIDR;
+            return true;
         }
 
-        try
+        // P2P format: China Internet Information Center (CNNIC):1.2.4.0-1.2.4.255
+        if (TryGetP2PRange(line, out var p2pRange) && IPAddressRange.TryParse(p2pRange, out _))
         {
-            // P2P format: China Internet Information Center (CNNIC):1.2.4.0-1.2.4.255
-            if (TryGetP2PRange(line, out var p2pRange) && IPAddressRange.TryParse(p2pRange, out _))
-            {
-                format = BlacklistFormat.P2P;
-                return true;
-            }
-        }
-        catch
-        {
+            format = BlacklistFormat.P2P;
+            return true;
         }
 
-        try
+        // DAT format: 001.002.004.000 - 001.002.004.255 , 000 , China Internet Information Center (CNNIC)
+        if (IPAddressRange.TryParse(line.Split(",")[0], out _))
         {
-            // DAT format: 001.002.004.000 - 001.002.004.255 , 000 , China Internet Information Center (CNNIC)
-            if (IPAddressRange.TryParse(line.Split(",")[0], out _))
-            {
-                format = BlacklistFormat.DAT;
-                return true;
-            }
-        }
-        catch
-        {
+            format = BlacklistFormat.DAT;
+            return true;
         }
 
         format = BlacklistFormat.AutoDetect;

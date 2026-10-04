@@ -9,13 +9,11 @@ namespace slskd.Transfers.MultiSource
     using System.IO;
     using System.Linq;
     using System.Security.Cryptography;
-    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Options;
     using Serilog;
     using Soulseek;
-    using slskd.Common.IO;
     using slskd.HashDb;
     using slskd.HashDb.Models;
     using slskd.Mesh;
@@ -44,80 +42,9 @@ namespace slskd.Transfers.MultiSource
         /// </summary>
         public const int MaxConcurrentVerificationProbes = 4;
 
-        private static readonly object ProbeBudgetSyncRoot = new();
-        private static readonly Dictionary<string, ProbeBudgetEntry> ProbeBudget = new(StringComparer.OrdinalIgnoreCase);
-        private static bool probeBudgetLoaded;
-
-        private static bool TryConsumeProbeBudget(string username)
-        {
-            lock (ProbeBudgetSyncRoot)
-            {
-                EnsureProbeBudgetLoaded();
-
-                var today = DateTime.UtcNow.Date;
-                if (!ProbeBudget.TryGetValue(username, out var current) || current.Day != today)
-                {
-                    current = new ProbeBudgetEntry { Day = today, Count = 0 };
-                }
-
-                if (current.Count >= MaxProbesPerPeerPerDay)
-                {
-                    return false;
-                }
-
-                ProbeBudget[username] = new ProbeBudgetEntry { Day = today, Count = current.Count + 1 };
-                SaveProbeBudget();
-                return true;
-            }
-        }
-
-        private static void EnsureProbeBudgetLoaded()
-        {
-            if (probeBudgetLoaded)
-            {
-                return;
-            }
-
-            probeBudgetLoaded = true;
-
-            try
-            {
-                var path = GetProbeBudgetPath();
-                if (!System.IO.File.Exists(path))
-                {
-                    return;
-                }
-
-                var entries = JsonSerializer.Deserialize<Dictionary<string, ProbeBudgetEntry>>(System.IO.File.ReadAllText(path));
-                if (entries == null)
-                {
-                    return;
-                }
-
-                var today = DateTime.UtcNow.Date;
-                foreach (var entry in entries.Where(entry => entry.Value.Day == today))
-                {
-                    ProbeBudget[entry.Key] = entry.Value;
-                }
-            }
-            catch
-            {
-                // Probe budgets are best-effort; if the file is unreadable, start a fresh daily budget.
-            }
-        }
-
-        private static void SaveProbeBudget()
-        {
-            try
-            {
-                var path = GetProbeBudgetPath();
-                AtomicFileWriter.WriteAllText(path, JsonSerializer.Serialize(ProbeBudget));
-            }
-            catch
-            {
-                // Probe budgets remain enforced in-process if persistence fails.
-            }
-        }
+        private static readonly object DefaultProbeBudgetSyncRoot = new();
+        private static PeerProbeBudget? defaultProbeBudget;
+        private readonly PeerProbeBudget _probeBudget;
 
         private static string GetProbeBudgetPath()
         {
@@ -126,13 +53,6 @@ namespace slskd.Transfers.MultiSource
                 : Program.AppDirectory;
 
             return Path.Combine(appDirectory, "verification-probe-budget.json");
-        }
-
-        private sealed class ProbeBudgetEntry
-        {
-            public DateTime Day { get; set; }
-
-            public int Count { get; set; }
         }
 
         /// <summary>
@@ -147,11 +67,22 @@ namespace slskd.Transfers.MultiSource
             IHashDbService? hashDb = null,
             IMeshSyncService? meshSync = null,
             IOptionsMonitor<slskd.Options>? optionsMonitor = null)
+            : this(soulseekClient, hashDb, meshSync, optionsMonitor, GetDefaultProbeBudget())
+        {
+        }
+
+        internal ContentVerificationService(
+            ISoulseekClient soulseekClient,
+            IHashDbService? hashDb,
+            IMeshSyncService? meshSync,
+            IOptionsMonitor<slskd.Options>? optionsMonitor,
+            PeerProbeBudget probeBudget)
         {
             Client = soulseekClient;
             HashDb = hashDb;
             MeshSync = meshSync;
             OptionsMonitor = optionsMonitor;
+            _probeBudget = probeBudget;
         }
 
         private ISoulseekClient Client { get; }
@@ -159,6 +90,14 @@ namespace slskd.Transfers.MultiSource
         private IMeshSyncService? MeshSync { get; }
         private IOptionsMonitor<slskd.Options>? OptionsMonitor { get; }
         private ILogger Log { get; } = Serilog.Log.ForContext<ContentVerificationService>();
+
+        private static PeerProbeBudget GetDefaultProbeBudget()
+        {
+            lock (DefaultProbeBudgetSyncRoot)
+            {
+                return defaultProbeBudget ??= new PeerProbeBudget(GetProbeBudgetPath(), MaxProbesPerPeerPerDay);
+            }
+        }
 
         /// <summary>
         ///     Attempts to look up a known hash from the local database.
@@ -169,6 +108,8 @@ namespace slskd.Transfers.MultiSource
         /// <returns>The known hash, or null if not found.</returns>
         public async Task<string?> TryGetKnownHashAsync(string filename, long fileSize, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (HashDb == null)
             {
                 return default;
@@ -191,6 +132,10 @@ namespace slskd.Transfers.MultiSource
 
                 Log.Debug("[HASHDB] Cache miss for {Filename} ({Size} bytes)", filename, fileSize);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Log.Warning(ex, "[HASHDB] Error looking up hash for {Filename}", filename);
@@ -208,6 +153,8 @@ namespace slskd.Transfers.MultiSource
         /// <param name="cancellationToken">Cancellation token.</param>
         public async Task StoreVerifiedHashAsync(string filename, long fileSize, string hash, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (string.IsNullOrEmpty(hash))
             {
                 return;
@@ -229,6 +176,10 @@ namespace slskd.Transfers.MultiSource
                     await MeshSync.PublishHashAsync(flacKey, hash, fileSize, cancellationToken: cancellationToken);
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Log.Warning(ex, "[HASHDB] Error storing hash for {Filename}", filename);
@@ -240,6 +191,8 @@ namespace slskd.Transfers.MultiSource
             ContentVerificationRequest request,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var result = new ContentVerificationResult
             {
                 Filename = request.Filename,
@@ -259,6 +212,7 @@ namespace slskd.Transfers.MultiSource
 
             // Phase 5 Integration: Try to get known hash from database first
             var knownHash = await TryGetKnownHashAsync(request.Filename, request.FileSize, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             if (knownHash != null)
             {
                 Log.Information("[HASHDB] Using cached hash for {Filename}, will verify {Count} sources against it",
@@ -280,6 +234,7 @@ namespace slskd.Transfers.MultiSource
                     "[VERIFY] Skipping {Count} Soulseek probes; {MeshCount} mesh-overlay sources already verified",
                     sourcesToVerify.Count,
                     request.MeshOverlaySourceCount);
+                cancellationToken.ThrowIfCancellationRequested();
                 SetBestSemanticKey(result);
                 return result;
             }
@@ -290,17 +245,13 @@ namespace slskd.Transfers.MultiSource
 
             foreach (var kvp in sourcesToVerify)
             {
-                if (!TryConsumeProbeBudget(kvp.Key))
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!TryConsumeProbeBudget(kvp.Key, out var budgetFailureReason))
                 {
-                    Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "skipped_budget").Inc();
-                    Log.Information(
-                        "[VERIFY] Skipping probe for {Username}: per-peer-per-day budget exhausted ({Cap})",
-                        kvp.Key,
-                        MaxProbesPerPeerPerDay);
                     result.FailedSources.Add(new FailedSource
                     {
                         Username = kvp.Key,
-                        Reason = $"Verification probe budget exhausted ({MaxProbesPerPeerPerDay}/day)",
+                        Reason = budgetFailureReason,
                     });
                     continue;
                 }
@@ -315,10 +266,13 @@ namespace slskd.Transfers.MultiSource
             }
 
             var verificationResults = await Task.WhenAll(verificationTasks);
+            cancellationToken.ThrowIfCancellationRequested();
 
             // Group results by hash
             foreach (var (username, hash, method, timeMs, error) in verificationResults)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (error != null || hash == null)
                 {
                     result.FailedSources.Add(new FailedSource
@@ -366,6 +320,7 @@ namespace slskd.Transfers.MultiSource
             }
 
             SetBestSemanticKey(result);
+            cancellationToken.ThrowIfCancellationRequested();
             return result;
         }
 
@@ -430,13 +385,10 @@ namespace slskd.Transfers.MultiSource
             long fileSize,
             CancellationToken cancellationToken = default)
         {
-            if (!TryConsumeProbeBudget(username))
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!TryConsumeProbeBudget(username, out _))
             {
-                Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "skipped_budget").Inc();
-                Log.Information(
-                    "[VERIFY] Skipping probe for {Username}: per-peer-per-day budget exhausted ({Cap})",
-                    username,
-                    MaxProbesPerPeerPerDay);
                 return null;
             }
 
@@ -457,6 +409,8 @@ namespace slskd.Transfers.MultiSource
             int timeoutMs,
             CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var stopwatch = Stopwatch.StartNew();
 
             var policyExclusion = DownloadFilter.GetMatchingExclusion(
@@ -507,11 +461,15 @@ namespace slskd.Transfers.MultiSource
                             maximumLingerTime: 1000,
                             disposeOutputStreamOnCompletion: false));
                 }
-                catch (OperationCanceledException) when (limitedStream.LimitReached)
+                catch (OperationCanceledException) when (limitedStream.LimitReached && !cancellationToken.IsCancellationRequested)
                 {
                     // Expected - we cancelled after getting enough bytes
                     Telemetry.SwarmMetrics.SwarmMidStreamCancellationsTotal.WithLabels("soulseek", "verification_probe").Inc();
                     Log.Debug("Got {Bytes} bytes from {Username}, cancelled remaining transfer", bytesNeeded, username);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
 
                 var data = memoryStream.ToArray();
@@ -547,6 +505,10 @@ namespace slskd.Transfers.MultiSource
                 Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "hashed").Inc();
                 return (username, hash, method, stopwatch.ElapsedMilliseconds, null);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (OperationCanceledException)
             {
                 stopwatch.Stop();
@@ -565,6 +527,8 @@ namespace slskd.Transfers.MultiSource
 
         private async Task<HashDbEntry?> LookupHashDbEntryAsync(string filename, long fileSize, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (HashDb == null)
             {
                 return null;
@@ -575,10 +539,40 @@ namespace slskd.Transfers.MultiSource
                 var flacKey = HashDbEntry.GenerateFlacKey(filename, fileSize);
                 return await HashDb.LookupHashAsync(flacKey, cancellationToken).ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Log.Warning(ex, "[HASHDB] Unable to lookup entry for {Filename}", filename);
                 return null;
+            }
+        }
+
+        private bool TryConsumeProbeBudget(string username, out string failureReason)
+        {
+            var decision = _probeBudget.TryConsume(username, out var failure);
+            switch (decision)
+            {
+                case PeerProbeBudgetDecision.Allowed:
+                    failureReason = string.Empty;
+                    return true;
+
+                case PeerProbeBudgetDecision.Exhausted:
+                    Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "skipped_budget").Inc();
+                    Log.Information(
+                        "[VERIFY] Skipping probe for {Username}: per-peer-per-day budget exhausted ({Cap})",
+                        username,
+                        MaxProbesPerPeerPerDay);
+                    failureReason = $"Verification probe budget exhausted ({MaxProbesPerPeerPerDay}/day)";
+                    return false;
+
+                default:
+                    Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "skipped_budget_unavailable").Inc();
+                    Log.Warning(failure, "[VERIFY] Skipping probe for {Username}: per-peer-per-day budget state is unavailable", username);
+                    failureReason = "Verification probe budget unavailable; probe skipped";
+                    return false;
             }
         }
     }
@@ -627,6 +621,33 @@ namespace slskd.Transfers.MultiSource
             if (toWrite > 0)
             {
                 innerStream.Write(buffer, offset, toWrite);
+                totalBytesWritten += toWrite;
+            }
+
+            if (totalBytesWritten >= limit)
+            {
+                LimitReached = true;
+                cts.Cancel(); // Cancel the download - we have enough
+            }
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            => WriteAsync(new ReadOnlyMemory<byte>(buffer, offset, count), cancellationToken).AsTask();
+
+        public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            if (LimitReached)
+            {
+                return;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var remaining = limit - totalBytesWritten;
+            var toWrite = (int)Math.Min(buffer.Length, remaining);
+            if (toWrite > 0)
+            {
+                await innerStream.WriteAsync(buffer[..toWrite], cancellationToken).ConfigureAwait(false);
                 totalBytesWritten += toWrite;
             }
 

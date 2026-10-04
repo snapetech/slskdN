@@ -321,6 +321,8 @@ namespace slskd.Mesh
                 return (null, false);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             var req = new MeshReqChunkMessage { FlacKey = flacKey, Offset = offset, Length = length };
             var key = $"{peer}:{flacKey}:{offset}";
             var tcs = new TaskCompletionSource<MeshRespChunkMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -345,6 +347,11 @@ namespace slskd.Mesh
                 timeoutCts.CancelAfter(TimeSpan.FromSeconds(15));
                 var resp = await tcs.Task.WaitAsync(timeoutCts.Token);
                 return (resp?.DataBase64, resp?.Success ?? false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                pendingChunkRequests.TryRemove(key, out _);
+                throw;
             }
             catch (OperationCanceledException)
             {
@@ -772,6 +779,8 @@ namespace slskd.Mesh
                 return null;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Create request message
             var request = new MeshReqKeyMessage
             {
@@ -821,6 +830,15 @@ namespace slskd.Mesh
                     log.Debug("[MESH] Peer {Peer} did not have key {Key}", username, flacKey);
                     return null;
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                if (createdRequest)
+                {
+                    pendingRequests.TryRemove(requestId, out _);
+                }
+
+                throw;
             }
             catch (OperationCanceledException)
             {

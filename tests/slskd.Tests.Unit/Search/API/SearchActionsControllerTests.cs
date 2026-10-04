@@ -6,7 +6,10 @@ namespace slskd.Tests.Unit.Search.API;
 using System;
 using System.IO;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -464,6 +467,90 @@ public class SearchActionsControllerTests
     }
 
     [Fact]
+    public async Task HandlePodDownloadAsync_WhenCancelledAfterFetch_CleansStagingFileAndPropagatesCancellation()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "slskdn-search-actions-cancel-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        using var cancellation = new CancellationTokenSource();
+        var meshFetcher = new Mock<IMeshContentFetcher>();
+        meshFetcher
+            .Setup(fetcher => fetcher.FetchAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<long?>(),
+                It.IsAny<string?>(),
+                It.IsAny<long>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MeshContentFetchResult
+            {
+                Data = new CancellationOnEofStream(new byte[] { 0x66, 0x4C, 0x61, 0x43, 0x00 }, cancellation),
+                Size = 5,
+                SizeValid = true,
+                HashValid = true,
+            });
+
+        try
+        {
+            var controller = CreateController(meshFetcher: meshFetcher, incompleteDir: tempDir);
+            var method = typeof(SearchActionsController).GetMethod("HandlePodDownloadAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(method);
+
+            var task = (Task<IActionResult>)method!.Invoke(
+                controller,
+                new object[]
+                {
+                    "sha256:test",
+                    new slskd.Search.File { Filename = "song.flac", Size = 5 },
+                    "peer-1",
+                    null!,
+                    cancellation.Token
+                })!;
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+
+            Assert.False(System.IO.File.Exists(Path.Combine(tempDir, "song.flac")));
+            Assert.Empty(Directory.Exists(Path.Combine(tempDir, ".partial"))
+                ? Directory.GetFiles(Path.Combine(tempDir, ".partial"), "*", SearchOption.AllDirectories)
+                : Array.Empty<string>());
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void TryDeletePartialPodDownload_WhenCleanupFails_LogsAndPreservesUnexpectedFailures()
+    {
+        var trustedRoot = Path.Combine(Path.GetTempPath(), "slskdn-search-actions-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(trustedRoot);
+        var logger = new Mock<ILogger<SearchActionsController>>();
+        var controller = CreateController(logger: logger.Object);
+        var method = typeof(SearchActionsController).GetMethod("TryDeletePartialPodDownload", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        try
+        {
+            method!.Invoke(controller, new object[] { Path.Combine(trustedRoot, "outside.flac"), trustedRoot });
+
+            logger.Verify(x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) => state.ToString()!.Contains("Failed to remove staged pod download", StringComparison.Ordinal)),
+                It.IsAny<IOException>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+
+            var unexpected = Assert.Throws<TargetInvocationException>(() => method.Invoke(controller, new object[] { "", null! }));
+            Assert.IsType<ArgumentNullException>(unexpected.InnerException);
+        }
+        finally
+        {
+            Directory.Delete(trustedRoot, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task HandlePodDownloadAsync_RejectsDestinationSymlinkBeforeFetching()
     {
         if (OperatingSystem.IsWindows())
@@ -641,7 +728,9 @@ public class SearchActionsControllerTests
         Mock<IMeshContentFetcher>? meshFetcher = null,
         Mock<IDownloadService>? downloadService = null,
         Mock<IMeshDirectory>? meshDirectory = null,
-        string? incompleteDir = null)
+        string? incompleteDir = null,
+        ILogger<SearchActionsController>? logger = null,
+        slskd.Common.Security.SecurityOptions? security = null)
     {
         var options = new Mock<IOptionsMonitor<slskd.Options>>();
         options.SetupGet(x => x.CurrentValue).Returns(new slskd.Options
@@ -650,7 +739,8 @@ public class SearchActionsControllerTests
             {
                 Downloads = incompleteDir ?? "/tmp",
                 Incomplete = incompleteDir ?? "/tmp",
-            }
+            },
+            Security = security ?? new slskd.Common.Security.SecurityOptions()
         });
 
         return new SearchActionsController(
@@ -661,6 +751,85 @@ public class SearchActionsControllerTests
             Mock.Of<IMeshStreamTicketService>(),
             (meshDirectory ?? new Mock<IMeshDirectory>()).Object,
             options.Object,
-            NullLogger<SearchActionsController>.Instance);
+            logger ?? NullLogger<SearchActionsController>.Instance);
+    }
+
+    private sealed class CancellationOnEofStream : Stream
+    {
+        private readonly MemoryStream _inner;
+        private readonly CancellationTokenSource _cancellation;
+
+        public CancellationOnEofStream(byte[] content, CancellationTokenSource cancellation)
+        {
+            _inner = new MemoryStream(content, writable: false);
+            _cancellation = cancellation;
+        }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => _inner.Length;
+
+        public override long Position
+        {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => throw new NotSupportedException();
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var read = _inner.Read(buffer, offset, count);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            => ReadAsyncMemory(buffer, cancellationToken);
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            => ReadAsyncArray(buffer, offset, count, cancellationToken);
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private async ValueTask<int> ReadAsyncMemory(Memory<byte> buffer, CancellationToken cancellationToken)
+        {
+            var read = await _inner.ReadAsync(buffer, cancellationToken);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        private async Task<int> ReadAsyncArray(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            var read = await _inner.ReadAsync(buffer, offset, count, cancellationToken);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        private void CancelAtEndOfStream(int read)
+        {
+            if (read == 0)
+            {
+                _cancellation.Cancel();
+            }
+        }
     }
 }

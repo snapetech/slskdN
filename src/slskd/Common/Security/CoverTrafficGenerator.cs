@@ -3,6 +3,8 @@
 // </copyright>
 namespace slskd.Common.Security;
 
+using slskd.Common.CodeQuality;
+
 /// <summary>
 /// Cover traffic generator that sends dummy messages when idle to maintain constant traffic patterns.
 /// </summary>
@@ -74,29 +76,79 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
             return Task.CompletedTask;
         }
 
-        _generationCts?.Cancel();
-
-        if (_generationTask != null)
+        if (StopGeneration())
         {
-            try
-            {
-                if (!_generationTask.Wait(TimeSpan.FromSeconds(5)))
-                    _logger.LogWarning("Cover traffic generation did not stop cleanly within timeout");
-            }
-            catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is OperationCanceledException))
-            {
-                // Expected on cancellation
-            }
-            finally
-            {
-                _generationTask = null;
-                _generationCts?.Dispose();
-                _generationCts = null;
-            }
+            _logger.LogInformation("Cover traffic generation stopped");
         }
 
-        _logger.LogInformation("Cover traffic generation stopped");
         return Task.CompletedTask;
+    }
+
+    private bool StopGeneration()
+    {
+        var generationTask = _generationTask;
+        var generationCts = _generationCts;
+
+        generationCts?.Cancel();
+
+        if (generationTask == null)
+        {
+            ClearGeneration(generationTask, generationCts);
+            return true;
+        }
+
+        bool stopped;
+        try
+        {
+            stopped = generationTask.Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is OperationCanceledException))
+        {
+            stopped = true;
+        }
+        catch
+        {
+            ClearGeneration(generationTask, generationCts);
+            throw;
+        }
+
+        if (stopped)
+        {
+            ClearGeneration(generationTask, generationCts);
+            return true;
+        }
+
+        _logger.LogWarning("Cover traffic generation did not stop cleanly within timeout");
+        var cleanupTask = generationTask.ContinueWith(
+            completedTask =>
+            {
+                ClearGeneration(generationTask, generationCts);
+                if (completedTask.IsFaulted && completedTask.Exception is { } exception)
+                {
+                    _logger.LogError(exception, "Cover traffic generation failed after stop timed out");
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+        _ = TaskObservation.Observe(
+            cleanupTask,
+            exception => _logger.LogError(exception, "Cover traffic cleanup failed after stop timed out"));
+        return false;
+    }
+
+    private void ClearGeneration(Task? generationTask, CancellationTokenSource? generationCts)
+    {
+        if (generationTask != null)
+        {
+            Interlocked.CompareExchange(ref _generationTask, null, generationTask);
+        }
+
+        if (generationCts != null &&
+            ReferenceEquals(Interlocked.CompareExchange(ref _generationCts, null, generationCts), generationCts))
+        {
+            generationCts.Dispose();
+        }
     }
 
     /// <summary>
@@ -133,12 +185,19 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
             return;
         }
 
-        _generationCts?.Cancel();
-        _generationCts?.Dispose();
-        _generationTask = null;
-        _generationCts = null;
-        _disposed = true;
-        GC.SuppressFinalize(this);
+        try
+        {
+            StopGeneration();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error stopping cover traffic generation during disposal");
+        }
+        finally
+        {
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
     }
 
     /// <summary>
@@ -182,9 +241,13 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
 
                     _logger.LogDebug("Sent cover traffic message ({Total} total)", _coverMessagesSent);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     break;
+                }
+                catch (OperationCanceledException ex)
+                {
+                    _logger.LogWarning(ex, "Cover traffic send was cancelled unexpectedly");
                 }
                 catch (Exception ex)
                 {

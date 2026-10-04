@@ -132,6 +132,29 @@ public class CircuitMaintenanceServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteAsync_DoesNotTreatUnexpectedCancellationAsShutdown()
+    {
+        var maintenanceAttempted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var circuitBuilder = new Mock<IMeshCircuitBuilder>();
+        circuitBuilder.Setup(builder => builder.PerformMaintenance()).Callback(() =>
+        {
+            maintenanceAttempted.TrySetResult();
+            throw new OperationCanceledException("unexpected dependency cancellation");
+        });
+        circuitBuilder.Setup(builder => builder.GetStatistics()).Returns(new CircuitStatistics());
+
+        var service = new CircuitMaintenanceService(_loggerMock.Object, circuitBuilder.Object, _peerManagerMock.Object);
+        using var cancellation = new CancellationTokenSource();
+        await service.StartAsync(cancellation.Token);
+
+        await maintenanceAttempted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.False(service.ExecuteTask!.IsCompleted);
+
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.ExecuteTask);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_DoesNotProbeCircuitBuildingDuringMaintenance()
     {
         var circuitStats = new CircuitStatistics { ActiveCircuits = 0 };

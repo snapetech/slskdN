@@ -3,20 +3,21 @@
 // </copyright>
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Common.Security;
 using slskd.Transfers.Downloads;
 using slskd.Transfers.MultiSource;
 using slskd.Transfers.MultiSource.Scheduling;
-using System.Collections.Generic;
 using IODirectory = System.IO.Directory;
 using IOFile = System.IO.File;
 using IOPath = System.IO.Path;
@@ -34,9 +35,10 @@ public class SwarmDownloadOrchestrator : BackgroundService
     private readonly IChunkScheduler chunkScheduler;
     private readonly ISoulseekClient soulseekClient;
     private readonly IOptionsMonitor<slskd.Options>? optionsMonitor;
+    private readonly string _tempRoot;
     private readonly Channel<SwarmJob> jobs = Channel.CreateBounded<SwarmJob>(new BoundedChannelOptions(1024)
     {
-        FullMode = BoundedChannelFullMode.DropWrite,
+        FullMode = BoundedChannelFullMode.Wait,
         SingleReader = true,
         SingleWriter = false,
     });
@@ -48,12 +50,24 @@ public class SwarmDownloadOrchestrator : BackgroundService
         IChunkScheduler chunkScheduler,
         ISoulseekClient soulseekClient,
         IOptionsMonitor<slskd.Options>? optionsMonitor = null)
+        : this(logger, verifier, chunkScheduler, soulseekClient, optionsMonitor, IOPath.GetTempPath())
+    {
+    }
+
+    internal SwarmDownloadOrchestrator(
+        ILogger<SwarmDownloadOrchestrator> logger,
+        IVerificationEngine verifier,
+        IChunkScheduler chunkScheduler,
+        ISoulseekClient soulseekClient,
+        IOptionsMonitor<slskd.Options>? optionsMonitor,
+        string tempRoot)
     {
         this.logger = logger;
         this.verifier = verifier;
         this.chunkScheduler = chunkScheduler;
         this.soulseekClient = soulseekClient;
         this.optionsMonitor = optionsMonitor;
+        _tempRoot = tempRoot;
     }
 
     public bool Enqueue(SwarmJob job)
@@ -75,7 +89,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 await ProcessJob(job, stoppingToken);
                 logger.LogInformation("[SwarmOrchestrator] Completed {JobId}", job.JobId);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 // shutdown
             }
@@ -120,6 +134,13 @@ public class SwarmDownloadOrchestrator : BackgroundService
             TotalChunks = 0,
             CompletedChunks = 0,
         };
+        var storageId = Guid.NewGuid().ToString("N");
+        var tempRoot = IOPath.Combine(_tempRoot, "slskdn-swarm");
+        var tempDir = PathGuard.NormalizeAbsolutePathWithinRoots(
+            IOPath.GetFullPath(IOPath.Combine(tempRoot, storageId)),
+            new[] { tempRoot })
+            ?? throw new IOException("Swarm temporary directory escaped its root");
+        var downloadTasks = new List<Task>();
         activeJobs[job.JobId] = status;
 
         try
@@ -133,7 +154,6 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 job.JobId, chunks.Count, chunkSize);
 
             // Create temp directory for chunks
-            var tempDir = IOPath.Combine(IOPath.GetTempPath(), "slskdn-swarm", job.JobId);
             IODirectory.CreateDirectory(tempDir);
 
             // Convert SwarmSource to peer usernames for chunk scheduler
@@ -160,14 +180,35 @@ public class SwarmDownloadOrchestrator : BackgroundService
             var completedChunks = new ConcurrentDictionary<int, ChunkResult>();
             var chunkAssignments = new ConcurrentDictionary<int, ChunkAssignment>();
             var activeDownloadTasks = new ConcurrentDictionary<int, Task>(); // Track active downloads by chunk index
+            var chunkAttempts = new ConcurrentDictionary<int, int>();
+            var failedChunks = new ConcurrentDictionary<int, string>();
+            const int maxAttemptsPerChunk = 3;
+
+            void RetryOrFail(ChunkInfo failedChunk, string reason)
+            {
+                var attempts = chunkAttempts.GetValueOrDefault(failedChunk.Index);
+                if (attempts < maxAttemptsPerChunk)
+                {
+                    chunkQueue.Enqueue(failedChunk);
+                    return;
+                }
+
+                failedChunks[failedChunk.Index] = reason;
+                logger.LogWarning(
+                    "[SwarmOrchestrator] Job {JobId}: Chunk {ChunkIndex} exhausted {Attempts} attempts: {Reason}",
+                    job.JobId,
+                    failedChunk.Index,
+                    attempts,
+                    reason);
+            }
 
             // T-1405: Subscribe to peer degradation events for reassignment
             var degradedPeers = new ConcurrentDictionary<string, bool>();
 
             // Process chunks using chunk scheduler
-            var downloadTasks = new List<Task>();
-
-            while (!chunkQueue.IsEmpty || completedChunks.Count < chunks.Count || activeDownloadTasks.Count > 0)
+            while (!chunkQueue.IsEmpty
+                || completedChunks.Count + failedChunks.Count < chunks.Count
+                || downloadTasks.Any(task => !task.IsCompleted))
             {
                 // T-1405: Check for peer degradation and reassign chunks
                 foreach (var degradedPeer in degradedPeers.Keys.ToList())
@@ -210,6 +251,8 @@ public class SwarmDownloadOrchestrator : BackgroundService
 
                 if (chunkQueue.TryDequeue(out var chunk))
                 {
+                    chunkAttempts.AddOrUpdate(chunk.Index, 1, (_, attempts) => attempts + 1);
+
                     // Get chunk assignment from scheduler
                     var assignment = await chunkScheduler.AssignChunkAsync(
                         new ChunkRequest
@@ -247,6 +290,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
 
                                     if (verified)
                                     {
+                                        chunkResult.Data = null;
                                         completedChunks[chunk.Index] = chunkResult;
                                         chunkScheduler.UnregisterAssignment(chunk.Index);
                                         var completed = Interlocked.Increment(ref status.CompletedChunks);
@@ -259,8 +303,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
                                             job.JobId, chunk.Index);
                                         chunkScheduler.UnregisterAssignment(chunk.Index);
 
-                                        // Re-enqueue for retry
-                                        chunkQueue.Enqueue(chunk);
+                                        RetryOrFail(chunk, "Chunk verification failed");
                                     }
                                 }
                                 else
@@ -269,9 +312,12 @@ public class SwarmDownloadOrchestrator : BackgroundService
                                         job.JobId, chunk.Index, chunkResult.Error);
                                     chunkScheduler.UnregisterAssignment(chunk.Index);
 
-                                    // Re-enqueue for retry
-                                    chunkQueue.Enqueue(chunk);
+                                    RetryOrFail(chunk, chunkResult.Error ?? "Chunk download failed");
                                 }
+                            }
+                            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                            {
+                                throw;
                             }
                             catch (Exception ex)
                             {
@@ -279,8 +325,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
                                     job.JobId, chunk.Index);
                                 chunkScheduler.UnregisterAssignment(chunk.Index);
 
-                                // Re-enqueue for retry
-                                chunkQueue.Enqueue(chunk);
+                                RetryOrFail(chunk, "Chunk processing failed");
                             }
                             finally
                             {
@@ -296,8 +341,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
                         logger.LogWarning("[SwarmOrchestrator] Job {JobId}: Failed to assign chunk {ChunkIndex}: {Reason}",
                             job.JobId, chunk.Index, assignment.Reason);
 
-                        // Re-enqueue for retry
-                        chunkQueue.Enqueue(chunk);
+                        RetryOrFail(chunk, assignment.Reason ?? "Peer assignment failed");
                     }
                 }
 
@@ -326,24 +370,56 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 logger.LogWarning("[SwarmOrchestrator] Job {JobId}: Incomplete - {Completed}/{Total} chunks",
                     job.JobId, completedChunks.Count, chunks.Count);
                 status.State = SwarmJobState.Failed;
-                status.Error = $"Only {completedChunks.Count}/{chunks.Count} chunks completed";
+                status.Error = $"Only {completedChunks.Count}/{chunks.Count} chunks completed after up to {maxAttemptsPerChunk} attempts per chunk";
                 return;
             }
 
             // Assemble final file
-            var outputPath = IOPath.Combine(IOPath.GetTempPath(), "slskdn-swarm-output", $"{job.JobId}_{IOPath.GetFileName(job.File.ContentId)}");
+            var outputRoot = IOPath.Combine(_tempRoot, "slskdn-swarm-output");
+            var outputFilename = PathGuard.SanitizeFilename($"{storageId}_{IOPath.GetFileName(job.File.ContentId)}");
+            var outputPath = PathGuard.NormalizeAbsolutePathWithinRoots(
+                IOPath.GetFullPath(IOPath.Combine(outputRoot, outputFilename)),
+                new[] { outputRoot })
+                ?? throw new IOException("Swarm output path escaped its root");
             var outputDirectory = IOPath.GetDirectoryName(outputPath);
             if (!string.IsNullOrEmpty(outputDirectory))
             {
                 IODirectory.CreateDirectory(outputDirectory);
             }
 
-            await AssembleFileAsync(chunks, completedChunks, tempDir, outputPath, ct);
+            var stagingPath = ContentSafety.CreateStagingPath(outputPath, outputRoot);
+            var stagingDirectory = IOPath.GetDirectoryName(stagingPath)
+                ?? throw new IOException("Swarm staging path has no parent directory");
+            IODirectory.CreateDirectory(stagingDirectory);
+            try
+            {
+                await AssembleFileAsync(chunks, completedChunks, tempDir, stagingPath, ct);
+                ContentSafety.PublishStagedFile(stagingPath, outputPath, outputRoot);
+            }
+            finally
+            {
+                try
+                {
+                    ContentSafety.DeleteStagedFile(stagingPath, outputRoot);
+                }
+                catch (IOException ex)
+                {
+                    logger.LogWarning(ex, "[SwarmOrchestrator] Failed to remove partial output for job {JobId}", job.JobId);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    logger.LogWarning(ex, "[SwarmOrchestrator] Failed to remove partial output for job {JobId}", job.JobId);
+                }
+            }
 
             status.State = SwarmJobState.Completed;
             status.OutputPath = outputPath;
             logger.LogInformation("[SwarmOrchestrator] Job {JobId}: Completed successfully - {OutputPath}",
                 job.JobId, outputPath);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -353,6 +429,31 @@ public class SwarmDownloadOrchestrator : BackgroundService
         }
         finally
         {
+            try
+            {
+                await Task.WhenAll(downloadTasks).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Active chunk workers observe the job cancellation before temporary files are removed.
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "[SwarmOrchestrator] Failed while draining chunks for job {JobId}", job.JobId);
+            }
+
+            try
+            {
+                if (IODirectory.Exists(tempDir))
+                {
+                    IODirectory.Delete(tempDir, recursive: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "[SwarmOrchestrator] Failed to remove temporary chunk directory for job {JobId}", job.JobId);
+            }
+
             activeJobs.TryRemove(job.JobId, out _);
         }
     }
@@ -429,34 +530,37 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 cts.CancelAfter(TimeSpan.FromSeconds(30)); // 30s timeout per chunk
 
-                using var fileStream = IOFile.Create(tempFile);
-                using var limitedStream = new LimitedWriteStream(fileStream, chunkSize, cts);
+                long bytesDownloaded;
+                using (var fileStream = IOFile.Create(tempFile))
+                using (var limitedStream = new LimitedWriteStream(fileStream, chunkSize, cts))
+                {
+                    try
+                    {
+                        // Download from the start offset, limited stream will stop after chunkSize bytes
+                        // Use ContentId as filename if source doesn't have a specific path
+                        await soulseekClient.DownloadAsync(
+                            username: peerId,
+                            remoteFilename: remoteFilename,
+                            outputStreamFactory: () => Task.FromResult<System.IO.Stream>(limitedStream),
+                            size: job.File.SizeBytes,
+                            startOffset: chunk.StartOffset,
+                            cancellationToken: cts.Token,
+                            options: new Soulseek.TransferOptions(
+                                maximumLingerTime: 3000,
+                                disposeOutputStreamOnCompletion: false));
+                    }
+                    catch (OperationCanceledException) when (limitedStream.LimitReached && !ct.IsCancellationRequested)
+                    {
+                        // Expected - we cancelled after getting our chunk
+                        logger.LogDebug("[SwarmOrchestrator] Chunk {ChunkIndex} complete (cancelled remaining) from {PeerId}",
+                            chunk.Index, peerId);
+                    }
 
-                try
-                {
-                    // Download from the start offset, limited stream will stop after chunkSize bytes
-                    // Use ContentId as filename if source doesn't have a specific path
-                    await soulseekClient.DownloadAsync(
-                        username: peerId,
-                        remoteFilename: remoteFilename,
-                        outputStreamFactory: () => Task.FromResult<System.IO.Stream>(limitedStream),
-                        size: job.File.SizeBytes,
-                        startOffset: chunk.StartOffset,
-                        cancellationToken: cts.Token,
-                        options: new Soulseek.TransferOptions(
-                            maximumLingerTime: 3000,
-                            disposeOutputStreamOnCompletion: false));
-                }
-                catch (OperationCanceledException) when (limitedStream.LimitReached)
-                {
-                    // Expected - we cancelled after getting our chunk
-                    logger.LogDebug("[SwarmOrchestrator] Chunk {ChunkIndex} complete (cancelled remaining) from {PeerId}",
-                        chunk.Index, peerId);
+                    bytesDownloaded = limitedStream.BytesWritten;
                 }
 
                 stopwatch.Stop();
 
-                var bytesDownloaded = limitedStream.BytesWritten;
                 var success = bytesDownloaded >= chunkSize;
 
                 if (success)
@@ -516,6 +620,11 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 };
             }
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            stopwatch.Stop();
+            throw;
+        }
         catch (Exception ex)
         {
             stopwatch.Stop();
@@ -551,14 +660,30 @@ public class SwarmDownloadOrchestrator : BackgroundService
         string outputPath,
         CancellationToken ct)
     {
-        using var outputStream = IOFile.Create(outputPath);
+        await using var outputStream = new FileStream(
+            outputPath,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 81920,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
 
         foreach (var chunk in chunks.OrderBy(c => c.Index))
         {
-            if (completedChunks.TryGetValue(chunk.Index, out var chunkResult) && chunkResult.Success && chunkResult.Data != null)
+            if (completedChunks.TryGetValue(chunk.Index, out var chunkResult) && chunkResult.Success)
             {
-                // Write chunk data directly from memory
-                await outputStream.WriteAsync(chunkResult.Data, 0, chunkResult.Data.Length, ct);
+                var chunkPath = PathGuard.NormalizeAbsolutePathWithinRoots(
+                    IOPath.Combine(tempDir, $"chunk_{chunk.Index}.tmp"),
+                    new[] { tempDir })
+                    ?? throw new IOException($"Chunk {chunk.Index} path escaped its temporary directory");
+                await using var chunkStream = new FileStream(
+                    chunkPath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    bufferSize: 81920,
+                    FileOptions.Asynchronous | FileOptions.SequentialScan);
+                await chunkStream.CopyToAsync(outputStream, 81920, ct);
             }
             else
             {

@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -260,6 +261,35 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
             _hashDbMock.Verify(h => h.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()), Times.Never);
             _hashDbMock.Verify(h => h.GetAlbumTracksAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
             _hashDbMock.Verify(h => h.LookupHashesByRecordingIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetRecentItemsAsync_PropagatesHashDbFailure()
+        {
+            var expected = new InvalidOperationException("HashDb unavailable");
+            _hashDbMock
+                .Setup(h => h.GetRecentAlbumTracksAsync(1, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(expected);
+            var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
+
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => provider.GetRecentItemsAsync(1));
+
+            Assert.Same(expected, actual);
+        }
+
+        [Fact]
+        public async Task GetRecentItemsAsync_PropagatesHashDbCancellation()
+        {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            _hashDbMock
+                .Setup(h => h.GetRecentAlbumTracksAsync(1, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromCanceled<IEnumerable<AlbumTargetTrackEntry>>(cancellation.Token));
+            var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => provider.GetRecentItemsAsync(1, cancellation.Token));
         }
 
         [Fact]

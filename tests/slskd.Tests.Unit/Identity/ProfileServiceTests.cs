@@ -87,6 +87,23 @@ public class ProfileServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetMyProfile_WhenCallerIsAlreadyCanceled_DoesNotCreateProfileOrKey()
+    {
+        var profileFile = GetProfileFilePath();
+        var keyFile = Path.ChangeExtension(profileFile, ".key");
+        if (File.Exists(profileFile)) File.Delete(profileFile);
+        if (File.Exists(keyFile)) File.Delete(keyFile);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => CreateService().GetMyProfileAsync(cancellation.Token));
+
+        Assert.False(File.Exists(profileFile));
+        Assert.False(File.Exists(keyFile));
+    }
+
+    [Fact]
     public async Task GetMyProfile_FirstCall_SetsRestrictiveKeyPermissionsOnUnix()
     {
         if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
@@ -210,12 +227,23 @@ public class ProfileServiceTests : IDisposable
     }
 
     [Fact]
-    public void DecodeFriendCode_ReturnsNull()
+    public async Task DecodeFriendCodeAsync_ReturnsNullForUnknownCode()
     {
         var svc = CreateService();
-        var decoded = svc.DecodeFriendCode("ABCD-EFGH-IJKL-MNOP");
+        var decoded = await svc.DecodeFriendCodeAsync("ABCD-EFGH-IJKL-MNOP", CancellationToken.None);
 
         Assert.Null(decoded);
+    }
+
+    [Fact]
+    public async Task DecodeFriendCodeAsync_ResolvesOwnProfile()
+    {
+        var svc = CreateService();
+        var profile = await svc.GetMyProfileAsync(CancellationToken.None);
+
+        var decoded = await svc.DecodeFriendCodeAsync(svc.GetFriendCode(profile.PeerId), CancellationToken.None);
+
+        Assert.Equal(profile.PeerId, decoded);
     }
 
     // HARDENING-2026-04-20 H10: operator submits a mix of public and leaky endpoints; only the

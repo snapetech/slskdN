@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.CodeQuality;
 
 namespace slskd.VirtualSoulfind.Scenes;
 
@@ -59,12 +60,13 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
     private readonly ConcurrentDictionary<string, DateTimeOffset> seenMessages = new();
     private readonly CancellationTokenSource pollLoopCancellationTokenSource = new();
     private readonly Task pollLoopTask;
-    private bool disposed;
+    private readonly TimeSpan pollLoopStopTimeout;
+    private int disposed;
 
     public ScenePubSubService(
         ILogger<ScenePubSubService> logger,
         VirtualSoulfind.ShadowIndex.IDhtClient dht)
-        : this(logger, dht, TimeSpan.FromSeconds(30))
+        : this(logger, dht, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(5))
     {
     }
 
@@ -72,9 +74,19 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
         ILogger<ScenePubSubService> logger,
         VirtualSoulfind.ShadowIndex.IDhtClient dht,
         TimeSpan pollInterval)
+        : this(logger, dht, pollInterval, TimeSpan.FromSeconds(5))
+    {
+    }
+
+    internal ScenePubSubService(
+        ILogger<ScenePubSubService> logger,
+        VirtualSoulfind.ShadowIndex.IDhtClient dht,
+        TimeSpan pollInterval,
+        TimeSpan pollLoopStopTimeout)
     {
         this.logger = logger;
         this.dht = dht;
+        this.pollLoopStopTimeout = pollLoopStopTimeout;
 
         pollLoopTask = Task.Factory.StartNew(() => RunPollLoopAsync(pollInterval, pollLoopCancellationTokenSource.Token), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
     }
@@ -126,7 +138,7 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposed)
+        if (Interlocked.Exchange(ref disposed, 1) != 0)
         {
             return;
         }
@@ -135,18 +147,47 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
         {
             pollLoopCancellationTokenSource.Cancel();
 
+            bool stopped;
             try
             {
-                pollLoopTask.Wait(TimeSpan.FromSeconds(5));
+                stopped = pollLoopTask.Wait(pollLoopStopTimeout);
             }
             catch (AggregateException ex) when (ex.InnerExceptions.All(inner => inner is OperationCanceledException))
             {
+                stopped = true;
+            }
+            catch (AggregateException ex)
+            {
+                stopped = true;
+                logger.LogWarning(ex.Flatten(), "[VSF-PUBSUB] Poll loop failed during disposal");
             }
 
-            pollLoopCancellationTokenSource.Dispose();
+            if (stopped)
+            {
+                pollLoopCancellationTokenSource.Dispose();
+            }
+            else
+            {
+                logger.LogWarning(
+                    "[VSF-PUBSUB] Poll loop did not stop within {Timeout} during disposal",
+                    pollLoopStopTimeout);
+                var completionTask = pollLoopTask.ContinueWith(
+                    completedTask =>
+                    {
+                        pollLoopCancellationTokenSource.Dispose();
+                        if (completedTask.IsFaulted && completedTask.Exception is { } exception)
+                        {
+                            logger.LogError(exception, "[VSF-PUBSUB] Poll loop failed after disposal timed out");
+                        }
+                    },
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+                _ = TaskObservation.Observe(
+                    completionTask,
+                    exception => logger.LogError(exception, "[VSF-PUBSUB] Poll loop completion handler failed"));
+            }
         }
-
-        disposed = true;
     }
 
     private async Task RunPollLoopAsync(TimeSpan pollInterval, CancellationToken cancellationToken)

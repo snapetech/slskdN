@@ -47,16 +47,24 @@ public sealed class LanDiscoveryService : ILanDiscoveryService, IDisposable
     {
         if (_advertising) return;
 
-        if (!_options.CurrentValue.Feature.IdentityFriends)
+        var options = _options.CurrentValue;
+
+        if (!options.Feature.IdentityFriends)
         {
             _log.LogDebug("[LanDiscovery] Identity and Friends disabled; skipping mDNS advertising");
+            return;
+        }
+
+        if (!options.LanDiscovery.Advertise)
+        {
+            _log.LogDebug("[LanDiscovery] Startup advertising is disabled; skipping mDNS advertising");
             return;
         }
 
         try
         {
             var profile = await _profile.GetMyProfileAsync(ct).ConfigureAwait(false);
-            var webOpts = _options.CurrentValue.Web;
+            var webOpts = options.Web;
             if (webOpts.Port <= 0)
             {
                 _log.LogWarning("[LanDiscovery] Cannot advertise: Web.Port not configured");

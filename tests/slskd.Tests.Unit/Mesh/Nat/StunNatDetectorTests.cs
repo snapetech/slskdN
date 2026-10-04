@@ -4,7 +4,11 @@
 namespace slskd.Tests.Unit.Mesh.Nat;
 
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Mesh;
@@ -12,6 +16,32 @@ using Xunit;
 
 public sealed class StunNatDetectorTests
 {
+    [Fact]
+    public async Task DetectAsync_WhenAlreadyCancelled_DoesNotStartStunProbe()
+    {
+        var detector = CreateDetector("127.0.0.1:3478");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => detector.DetectAsync(cancellation.Token));
+        Assert.Equal(NatType.Unknown, detector.LastDetectedType);
+    }
+
+    [Fact]
+    public async Task DetectAsync_WhenCancelledDuringProbe_PropagatesCancellation()
+    {
+        using var stunServer = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        var port = ((IPEndPoint)stunServer.Client.LocalEndPoint!).Port;
+        var detector = CreateDetector($"127.0.0.1:{port}");
+        using var cancellation = new CancellationTokenSource();
+
+        var detection = detector.DetectAsync(cancellation.Token);
+        await stunServer.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => detection);
+    }
+
     [Fact]
     public void TryParseHostAndPort_TrimsEndpoint()
     {
@@ -80,4 +110,12 @@ public sealed class StunNatDetectorTests
         Assert.Equal(IPAddress.Parse("192.0.2.10"), endpoint!.Address);
         Assert.Equal(5000, endpoint.Port);
     }
+
+    private static StunNatDetector CreateDetector(string server) => new(
+        NullLogger<StunNatDetector>.Instance,
+        Options.Create(new MeshOptions
+        {
+            EnableStun = true,
+            StunServers = new() { server },
+        }));
 }

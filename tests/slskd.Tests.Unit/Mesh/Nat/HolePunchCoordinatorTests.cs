@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Mesh;
 using slskd.Mesh.Nat;
@@ -11,6 +12,19 @@ namespace slskd.Tests.Unit.Mesh.Nat;
 
 public class HolePunchCoordinatorTests
 {
+    [Fact]
+    public async Task UdpHolePuncher_PreCancelledOperationPropagatesWithoutOpeningSocket()
+    {
+        var puncher = new UdpHolePuncher(NullLogger<UdpHolePuncher>.Instance);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => puncher.TryPunchAsync(
+            new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0),
+            new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 1),
+            cancellation.Token));
+    }
+
     [Fact]
     public async Task RequestHolePunchAsync_WhenMeshReplyFails_ReturnsSanitizedError()
     {

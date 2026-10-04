@@ -294,7 +294,6 @@ public static class ExperimentalMeshServiceCollectionExtensions
         services.AddSingleton<Mesh.ServiceFabric.Services.MeshContentMeshService>();
         services.AddSingleton<Mesh.ServiceFabric.Services.ListedRadioMeshService>();
         services.AddSingleton<Mesh.Nat.IHolePunchCoordinator, Mesh.Nat.HolePunchCoordinator>();
-        services.AddSingleton<Mesh.Nat.INatTraversalService, Mesh.Nat.NatTraversalService>();
 
         // Private gateway service for VPN functionality (Phase 14)
         services.AddSingleton<DnsSecurityService>();
@@ -358,9 +357,6 @@ public static class ExperimentalMeshServiceCollectionExtensions
             var logger = sp.GetRequiredService<ILogger<Mesh.Transport.I2pSocksDialer>>();
             return new Mesh.Transport.I2pSocksDialer(options.Value, logger);
         });
-
-        // Transport policy manager for per-peer/per-pod policies
-        services.AddSingleton<Mesh.Transport.TransportPolicyManager>();
 
         // Transport downgrade protection
         services.AddSingleton<Mesh.Transport.TransportDowngradeProtector>();

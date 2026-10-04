@@ -180,7 +180,9 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
 
                         TrackConnectionTask(HandleConnectionAsync(connection, stoppingToken));
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException ex) when (
+                        stoppingToken.IsCancellationRequested &&
+                        ex.CancellationToken == stoppingToken)
                     {
                         break;
                     }
@@ -232,7 +234,9 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
 
                         TrackStreamTask(HandleStreamAsync(stream, remoteEndPoint, ct));
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException ex) when (
+                        ct.IsCancellationRequested &&
+                        ex.CancellationToken == ct)
                     {
                         break;
                     }
@@ -252,7 +256,9 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex) when (
+            ct.IsCancellationRequested &&
+            ex.CancellationToken == ct)
         {
             // Expected on shutdown
         }
@@ -389,7 +395,9 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
         {
             await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex) when (
+            cancellationToken.IsCancellationRequested &&
+            ex.CancellationToken == cancellationToken)
         {
             // Host shutdown timeout should not surface as a second failure here.
         }
@@ -411,7 +419,9 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
         {
             await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex) when (
+            cancellationToken.IsCancellationRequested &&
+            ex.CancellationToken == cancellationToken)
         {
             // Host shutdown timeout should not surface as a second failure here.
         }

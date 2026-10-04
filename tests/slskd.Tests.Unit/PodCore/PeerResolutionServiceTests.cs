@@ -4,6 +4,8 @@
 namespace slskd.Tests.Unit.PodCore;
 
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Mesh.Dht;
@@ -141,5 +143,51 @@ public class PeerResolutionServiceTests
         Assert.NotNull(aliasEndpoint);
         Assert.Equal(2239, aliasEndpoint!.Port);
         dht.Verify(x => x.GetAsync<PeerMetadata>(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolvePeerIdToUsernameAsync_PropagatesDhtCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(x => x.GetAsync<PeerMetadata>("peer:metadata:peer-1", cancellation.Token))
+            .Returns(Task.FromCanceled<PeerMetadata?>(cancellation.Token));
+        var service = new PeerResolutionService(dht.Object, NullLogger<PeerResolutionService>.Instance);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.ResolvePeerIdToUsernameAsync("peer-1", cancellation.Token));
+    }
+
+    [Fact]
+    public async Task ResolvePeerIdToEndpointAsync_PropagatesDhtCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(x => x.GetAsync<PeerMetadata>("peer:metadata:peer-1", cancellation.Token))
+            .Returns(Task.FromCanceled<PeerMetadata?>(cancellation.Token));
+        var service = new PeerResolutionService(dht.Object, NullLogger<PeerResolutionService>.Instance);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.ResolvePeerIdToEndpointAsync("peer-1", cancellation.Token));
+    }
+
+    [Fact]
+    public async Task ResolvePeerIdToEndpointAsync_HostnameResolutionObservesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(x => x.GetAsync<PeerMetadata>("peer:metadata:peer-1", cancellation.Token))
+            .ReturnsAsync(new PeerMetadata
+            {
+                PeerId = "peer-1",
+                Endpoint = "slow.invalid:2240",
+            });
+        var service = new PeerResolutionService(dht.Object, NullLogger<PeerResolutionService>.Instance);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.ResolvePeerIdToEndpointAsync("peer-1", cancellation.Token));
     }
 }

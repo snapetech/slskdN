@@ -314,6 +314,69 @@ namespace slskd.Tests.Unit.Mesh
         }
 
         [Fact]
+        public async Task RequestChunkAsync_CallerCancellationPropagatesAndRemovesItsPendingWaiter()
+        {
+            var sendStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            mockSoulseekClient
+                .Setup(client => client.SendPrivateMessageAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken?>()))
+                .Callback(() => sendStarted.TrySetResult())
+                .Returns(Task.CompletedTask);
+
+            using var cancellation = new CancellationTokenSource();
+            var request = meshSyncService.RequestChunkAsync("mesh-peer", "cancel-key", 0, 4, cancellation.Token);
+            await sendStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+
+            var pending = (ConcurrentDictionary<string, TaskCompletionSource<MeshRespChunkMessage>>)typeof(MeshSyncService)
+                .GetField("pendingChunkRequests", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(meshSyncService)!;
+            Assert.False(pending.ContainsKey("mesh-peer:cancel-key:0"));
+        }
+
+        [Fact]
+        public async Task QueryPeerForHashAsync_CallerCancellationPropagatesAndRemovesItsPendingWaiter()
+        {
+            var sendStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            mockCapabilities
+                .Setup(service => service.GetPeerCapabilities("mesh-peer"))
+                .Returns(new PeerCapabilities
+                {
+                    ClientVersion = "1.0.0-test",
+                    Flags = PeerCapabilityFlags.SupportsMeshSync,
+                });
+            mockSoulseekClient
+                .Setup(client => client.SendPrivateMessageAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken?>()))
+                .Callback(() => sendStarted.TrySetResult())
+                .Returns(Task.CompletedTask);
+
+            using var cancellation = new CancellationTokenSource();
+            var method = typeof(MeshSyncService).GetMethod(
+                "QueryPeerForHashAsync",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(method);
+            var request = (Task<MeshHashEntry?>)method!.Invoke(
+                meshSyncService,
+                new object[] { "mesh-peer", "cancel-key", cancellation.Token })!;
+            await sendStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+
+            var pending = (ConcurrentDictionary<string, TaskCompletionSource<MeshRespKeyMessage>>)typeof(MeshSyncService)
+                .GetField("pendingRequests", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(meshSyncService)!;
+            Assert.False(pending.ContainsKey("mesh-peer:cancel-key"));
+        }
+
+        [Fact]
         public async Task HandleMessageAsync_TrimsSenderUsernameBeforeValidation()
         {
             var message = new MeshHelloMessage

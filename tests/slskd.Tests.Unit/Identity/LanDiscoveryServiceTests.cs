@@ -23,7 +23,8 @@ public class LanDiscoveryServiceTests : IDisposable
     private IOptionsMonitor<slskd.Options> _options = new TestOptionsMonitor(new slskd.Options
     {
         Web = new slskd.Options.WebOptions { Port = 8080 },
-        Feature = new slskd.Options.FeatureOptions { IdentityFriends = true }
+        Feature = new slskd.Options.FeatureOptions { IdentityFriends = true },
+        LanDiscovery = new slskd.Options.LanDiscoveryOptions { Advertise = true }
     });
 
     public LanDiscoveryServiceTests()
@@ -48,7 +49,8 @@ public class LanDiscoveryServiceTests : IDisposable
         _options = new TestOptionsMonitor(new slskd.Options
         {
             Web = new slskd.Options.WebOptions { Port = 0 },
-            Feature = new slskd.Options.FeatureOptions { IdentityFriends = true }
+            Feature = new slskd.Options.FeatureOptions { IdentityFriends = true },
+            LanDiscovery = new slskd.Options.LanDiscoveryOptions { Advertise = true }
         });
         var svc = CreateService();
 
@@ -69,6 +71,22 @@ public class LanDiscoveryServiceTests : IDisposable
         {
             Web = new slskd.Options.WebOptions { Port = 8080 },
             Feature = new slskd.Options.FeatureOptions { IdentityFriends = false }
+        });
+        var svc = CreateService();
+
+        await svc.StartAdvertisingAsync(CancellationToken.None);
+
+        _profileMock.Verify(x => x.GetMyProfileAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StartAdvertisingAsync_WhenAdvertisingDisabled_DoesNotReadProfile()
+    {
+        _options = new TestOptionsMonitor(new slskd.Options
+        {
+            Web = new slskd.Options.WebOptions { Port = 8080 },
+            Feature = new slskd.Options.FeatureOptions { IdentityFriends = true },
+            LanDiscovery = new slskd.Options.LanDiscoveryOptions { Advertise = false }
         });
         var svc = CreateService();
 

@@ -96,7 +96,7 @@ public class ShardPublisher : BackgroundService, IShardPublisher
             {
                 await PublishShardsAsync(stoppingToken);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 // Shutdown requested
                 break;

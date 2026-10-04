@@ -12,6 +12,24 @@ using Xunit;
 public class PeerVerificationServiceTests
 {
     [Fact]
+    public async Task VerifyPeerAsync_PropagatesCallerCancellation()
+    {
+        var client = new Mock<ISoulseekClient>();
+        client
+            .Setup(c => c.GetUserInfoAsync("alice", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var service = new PeerVerificationService(
+            Mock.Of<ILogger<PeerVerificationService>>(),
+            client.Object);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.VerifyPeerAsync("alice", "challenge", cancellation.Token));
+    }
+
+    [Fact]
     public async Task VerifyPeerAsync_WhenSoulseekThrows_ReturnsSanitizedFailure()
     {
         var client = new Mock<ISoulseekClient>();

@@ -136,7 +136,7 @@ public static class SwarmMetrics
         "Verification probes issued to peers (soulseek/mesh)",
         new CounterConfiguration
         {
-            LabelNames = new[] { "peer_kind", "outcome" }, // outcome: hashed, skipped_budget, skipped_mesh, failed
+            LabelNames = new[] { "peer_kind", "outcome" }, // outcome: hashed, skipped_budget, skipped_budget_unavailable, skipped_mesh, failed
         });
 
     /// <summary>

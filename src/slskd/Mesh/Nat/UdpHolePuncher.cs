@@ -72,6 +72,7 @@ public class UdpHolePuncher : IUdpHolePuncher
         NatType remoteNatType,
         CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var startTime = DateTimeOffset.UtcNow;
 
         using var udp = new UdpClient(localEp);
@@ -115,6 +116,10 @@ public class UdpHolePuncher : IUdpHolePuncher
                 duration.TotalMilliseconds, success ? "SUCCESS" : "FAILED", bound);
 
             return new UdpHolePunchResult(success, bound, duration);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -217,9 +222,9 @@ public class UdpHolePuncher : IUdpHolePuncher
             logger.LogDebug("[HolePunch] No response received within timeout");
             return false;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            return false;
+            throw;
         }
         catch (Exception ex)
         {

@@ -652,6 +652,7 @@ namespace slskd.Relay
             }
 
             Log.Information("Relay controller sent a download notification for {Filename} ({Token})", filename, GetRelayTokenLogId(token));
+            var cancellationToken = StartCancellationTokenSource?.Token ?? CancellationToken.None;
 
             _ = TaskObservation.Observe(
                 Task.Run(async () =>
@@ -690,7 +691,7 @@ namespace slskd.Relay
                                 request.Headers.Add("X-Relay-Filename-Base64", filename.ToBase64());
 
                                 using var client = CreateHttpClient();
-                                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                                 response.EnsureSuccessStatusCode();
                                 if (response.Content.Headers.ContentLength is long contentLength && contentLength > MaxRelayDownloadBytes)
@@ -698,14 +699,14 @@ namespace slskd.Relay
                                     throw new InvalidOperationException("Relay download exceeds the maximum allowed size.");
                                 }
 
-                                using var remoteStream = await response.Content.ReadAsStreamAsync();
+                                using var remoteStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 
                                 var stagingFile = ContentSafety.CreateStagingPath(destinationFile, downloadsDirectory);
                                 try
                                 {
                                     using (var localStream = SecureFileWriter.Open(stagingFile, downloadsDirectory))
                                     {
-                                        await CopyWithLimitAsync(remoteStream, localStream, MaxRelayDownloadBytes);
+                                        await CopyWithLimitAsync(remoteStream, localStream, MaxRelayDownloadBytes, cancellationToken);
                                     }
 
                                     var contentSafetyDisposition = await ContentSafety.InspectAndApplyPolicyAsync(
@@ -713,7 +714,7 @@ namespace slskd.Relay
                                         downloadsDirectory,
                                         downloadsDirectory,
                                         OptionsMonitor.CurrentValue.Security,
-                                        CancellationToken.None,
+                                        cancellationToken,
                                         quarantineFilename: Path.GetFileName(destinationFile)).ConfigureAwait(false);
                                     if (contentSafetyDisposition.Verification is { } contentVerification &&
                                         (contentVerification.IsWarning || !contentVerification.IsValid))
@@ -732,6 +733,7 @@ namespace slskd.Relay
                                             ?? "Relay content failed configured safety checks");
                                     }
 
+                                    cancellationToken.ThrowIfCancellationRequested();
                                     ContentSafety.PublishStagedFile(stagingFile, destinationFile, downloadsDirectory, overwrite: true);
                                 }
                                 catch
@@ -743,9 +745,14 @@ namespace slskd.Relay
                             isRetryable: (_, ex) => ex is not ContentSafetyRejectedException,
                             onFailure: (_, ex) => Log.Error(ex, "Failed to handle file download notification for {Filename} ({Token})", filename, GetRelayTokenLogId(token)),
                             maxAttempts: 3,
-                            maxDelayInMilliseconds: 60000);
+                            maxDelayInMilliseconds: 60000,
+                            cancellationToken: cancellationToken);
 
                             Log.Information("File {Filename} successfully downloaded to {Destination}", filename, destinationFile);
+                        }
+                        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                        {
+                            Log.Debug("Relay download notification handling cancelled for {Filename} ({Token})", filename, GetRelayTokenLogId(token));
                         }
                         catch (Exception ex)
                         {
@@ -757,12 +764,12 @@ namespace slskd.Relay
             return Task.CompletedTask;
         }
 
-        private static async Task CopyWithLimitAsync(Stream source, Stream destination, long maxBytes)
+        private static async Task CopyWithLimitAsync(Stream source, Stream destination, long maxBytes, CancellationToken cancellationToken)
         {
             var buffer = new byte[81920];
             long total = 0;
             int read;
-            while ((read = await source.ReadAsync(buffer)) > 0)
+            while ((read = await source.ReadAsync(buffer.AsMemory(), cancellationToken)) > 0)
             {
                 total += read;
                 if (total > maxBytes)
@@ -770,7 +777,7 @@ namespace slskd.Relay
                     throw new InvalidOperationException("Relay download exceeds the maximum allowed size.");
                 }
 
-                await destination.WriteAsync(buffer.AsMemory(0, read));
+                await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
             }
         }
 

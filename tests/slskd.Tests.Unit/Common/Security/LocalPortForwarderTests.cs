@@ -278,6 +278,56 @@ public class LocalPortForwarderTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateTunnelConnectionAsync_WhenCallerIsCanceled_DoesNotCallMesh()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _portForwarder.CreateTunnelConnectionAsync("pod-123", "example.com", 80, null, cancellationTokenSource.Token));
+
+        _meshClientMock.Verify(x => x.CallServiceAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<ReadOnlyMemory<byte>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateTunnelConnectionAsync_WhenTunnelOpensAfterDispose_ClosesLateTunnel()
+    {
+        var openReply = new TaskCompletionSource<ServiceReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _meshClientMock.Setup(x => x.CallServiceAsync(
+                "private-gateway",
+                "OpenTunnel",
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(openReply.Task);
+        _meshClientMock.Setup(x => x.CallServiceAsync(
+                "private-gateway",
+                "CloseTunnel",
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ServiceReply { StatusCode = ServiceStatusCodes.OK });
+        using var forwarder = new LocalPortForwarder(_loggerMock.Object, _meshClientMock.Object);
+
+        var createTask = forwarder.CreateTunnelConnectionAsync("pod-123", "example.com", 80, null);
+        forwarder.Dispose();
+        openReply.SetResult(new ServiceReply
+        {
+            StatusCode = ServiceStatusCodes.OK,
+            Payload = JsonSerializer.SerializeToUtf8Bytes(new { TunnelId = "late-tunnel", Accepted = true })
+        });
+
+        Assert.Null(await createTask);
+        _meshClientMock.Verify(x => x.CallServiceAsync(
+            "private-gateway",
+            "CloseTunnel",
+            It.IsAny<ReadOnlyMemory<byte>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task CreateTunnelConnectionAsync_TunnelRejected_ReturnsNull()
     {
         // Arrange
@@ -333,6 +383,22 @@ public class LocalPortForwarderTests : IDisposable
     }
 
     [Fact]
+    public async Task SendTunnelDataAsync_WhenCallerIsCanceled_DoesNotCallMesh()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _portForwarder.SendTunnelDataAsync("tunnel-123", new byte[] { 1 }, cancellationTokenSource.Token));
+
+        _meshClientMock.Verify(x => x.CallServiceAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<ReadOnlyMemory<byte>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task ReceiveTunnelDataAsync_ValidResponse_ReturnsData()
     {
         var testData = new byte[] { 5, 6, 7, 8 };
@@ -351,6 +417,22 @@ public class LocalPortForwarderTests : IDisposable
         Assert.NotNull(result);
         Assert.Equal(testData, result);
         Assert.Contains(client.Invocations, i => i.ServiceName == "private-gateway" && i.Method == "GetTunnelData");
+    }
+
+    [Fact]
+    public async Task ReceiveTunnelDataAsync_WhenCallerIsCanceled_DoesNotCallMesh()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _portForwarder.ReceiveTunnelDataAsync("tunnel-123", cancellationTokenSource.Token));
+
+        _meshClientMock.Verify(x => x.CallServiceAsync(
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<ReadOnlyMemory<byte>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -449,6 +531,73 @@ public class LocalPortForwarderTests : IDisposable
     }
 
     [Fact]
+    public async Task ForwarderConnection_CloseAsync_WhenMappingOutlastsTimeout_RetainsWorkerStateUntilCompletion()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+
+        using var client = new TcpClient();
+        var connectTask = client.ConnectAsync(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndpoint).Port);
+        using var acceptedClient = await listener.AcceptTcpClientAsync().ConfigureAwait(true);
+        await connectTask.ConfigureAwait(true);
+
+        var receiveReply = new TaskCompletionSource<ServiceReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var receiveStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _meshClientMock.Setup(x => x.CallServiceAsync(
+                "private-gateway",
+                "GetTunnelData",
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string serviceName, string method, ReadOnlyMemory<byte> payload, CancellationToken cancellationToken) =>
+            {
+                receiveStarted.TrySetResult();
+                return receiveReply.Task;
+            });
+        _meshClientMock.Setup(x => x.CallServiceAsync(
+                "private-gateway",
+                "CloseTunnel",
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ServiceReply { StatusCode = ServiceStatusCodes.OK });
+        using var forwarder = new LocalPortForwarder(_loggerMock.Object, _meshClientMock.Object);
+        using var connection = new ForwarderConnection(
+            "tunnel-123",
+            "pod-123",
+            "example.com",
+            80,
+            forwarder,
+            Mock.Of<ILogger>());
+
+        connection.MapToStream(acceptedClient.GetStream(), CancellationToken.None);
+        await receiveStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        client.Dispose();
+        await connection.CloseAsync().WaitAsync(TimeSpan.FromSeconds(4));
+
+        var completionField = typeof(ForwarderConnection).GetField("_streamMappingCompletion", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("ForwarderConnection._streamMappingCompletion field was not found.");
+        var completion = (TaskCompletionSource)completionField.GetValue(connection)!;
+        var cancellationSourceField = typeof(ForwarderConnection).GetField("_streamMappingCts", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("ForwarderConnection._streamMappingCts field was not found.");
+        var cancellationSource = (CancellationTokenSource)cancellationSourceField.GetValue(connection)!;
+
+        Assert.False(completion.Task.IsCompleted);
+        Assert.True(cancellationSource.IsCancellationRequested);
+        _ = cancellationSource.Token;
+
+        receiveReply.SetResult(new ServiceReply
+        {
+            StatusCode = ServiceStatusCodes.OK,
+            Payload = JsonSerializer.SerializeToUtf8Bytes(new { Data = Array.Empty<byte>() })
+        });
+        using var waitTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        await connection.WaitForStreamMappingAsync(waitTimeout.Token).ConfigureAwait(true);
+
+        Assert.True(completion.Task.IsCompleted);
+        Assert.Null(cancellationSourceField.GetValue(connection));
+        Assert.Throws<ObjectDisposedException>(() => _ = cancellationSource.Token);
+    }
+
+    [Fact]
     public async Task Dispose_CleansUpAllResources()
     {
         // Arrange
@@ -475,6 +624,91 @@ public class LocalPortForwarderTests : IDisposable
         // Assert
         var status = _portForwarder.GetForwardingStatus();
         Assert.Empty(status);
+    }
+
+    [Fact]
+    public async Task StartForwardingAsync_AfterDispose_ThrowsObjectDisposedException()
+    {
+        using var forwarder = new LocalPortForwarder(_loggerMock.Object, _meshClientMock.Object);
+        forwarder.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            forwarder.StartForwardingAsync(GetFreeLocalPort(), "pod-123", "example.com", 80));
+    }
+
+    [Fact]
+    public async Task Dispose_ConcurrentWithStart_DoesNotLeaveListenerActive()
+    {
+        using var forwarder = new LocalPortForwarder(_loggerMock.Object, _meshClientMock.Object);
+        using var barrier = new Barrier(2);
+        var localPort = GetFreeLocalPort();
+
+        var startTask = Task.Run(async () =>
+        {
+            barrier.SignalAndWait();
+            try
+            {
+                await forwarder.StartForwardingAsync(localPort, "pod-123", "example.com", 80);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Disposal may acquire the lifecycle gate first.
+            }
+        });
+
+        var disposeTask = Task.Run(() =>
+        {
+            barrier.SignalAndWait();
+            forwarder.Dispose();
+        });
+
+        await Task.WhenAll(startTask, disposeTask);
+
+        Assert.Empty(forwarder.GetForwardingStatus());
+        using var listener = new TcpListener(IPAddress.Loopback, localPort);
+        listener.Start();
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WaitsForActiveTunnelCleanup()
+    {
+        var closeReply = new TaskCompletionSource<ServiceReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var closeCallStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _meshClientMock.Setup(x => x.CallServiceAsync(
+                "private-gateway",
+                "OpenTunnel",
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ServiceReply
+            {
+                StatusCode = ServiceStatusCodes.OK,
+                Payload = JsonSerializer.SerializeToUtf8Bytes(new { TunnelId = "tunnel-123", Accepted = true })
+            });
+        _meshClientMock.Setup(x => x.CallServiceAsync(
+                "private-gateway",
+                "CloseTunnel",
+                It.IsAny<ReadOnlyMemory<byte>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string serviceName, string method, ReadOnlyMemory<byte> payload, CancellationToken cancellationToken) =>
+            {
+                closeCallStarted.TrySetResult();
+                return closeReply.Task;
+            });
+        await using var forwarder = new LocalPortForwarder(_loggerMock.Object, _meshClientMock.Object);
+        _ = await forwarder.CreateTunnelConnectionAsync("pod-123", "example.com", 80, null).ConfigureAwait(true);
+
+        var disposeTask = forwarder.DisposeAsync().AsTask();
+        try
+        {
+            await closeCallStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.False(disposeTask.IsCompleted);
+        }
+        finally
+        {
+            closeReply.TrySetResult(new ServiceReply { StatusCode = ServiceStatusCodes.OK });
+        }
+
+        await disposeTask.ConfigureAwait(true);
     }
 
     [Fact]

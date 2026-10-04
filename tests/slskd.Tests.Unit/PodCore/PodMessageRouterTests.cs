@@ -1,6 +1,7 @@
 // <copyright file="PodMessageRouterTests.cs" company="slskdN Team">
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
@@ -258,6 +259,58 @@ public class PodMessageRouterTests
         Assert.False(result.Success);
         Assert.Equal("Failed to route message", result.ErrorMessage);
         Assert.DoesNotContain("sensitive detail", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task RouteMessageAsync_WhenCancelledDuringFanOut_PropagatesAndAllowsRetry()
+    {
+        var podService = new Mock<IPodService>();
+        var overlayClient = new Mock<IOverlayClient>();
+        var peerResolution = new Mock<IPeerResolutionService>();
+        var resolvedEndpoint = new IPEndPoint(IPAddress.Loopback, 9001);
+        var sendStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        podService.Setup(service => service.GetChannelAsync("pod1", "general", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PodChannel { ChannelId = "general" });
+        podService.Setup(service => service.GetMembersAsync("pod1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PodMember> { new() { PeerId = "peer-recipient" } });
+        peerResolution.Setup(service => service.ResolvePeerIdToEndpointAsync("peer-recipient", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resolvedEndpoint);
+        overlayClient.Setup(client => client.SendAsync(It.IsAny<ControlEnvelope>(), It.IsAny<IPEndPoint>(), It.IsAny<CancellationToken>()))
+            .Callback<ControlEnvelope, IPEndPoint, CancellationToken>((_, _, _) => sendStarted.TrySetResult(true))
+            .Returns((ControlEnvelope _, IPEndPoint _, CancellationToken token) => WaitForOverlayCancellationAsync(token));
+        var router = new PodMessageRouter(
+            Mock.Of<ILogger<PodMessageRouter>>(), podService.Object, overlayClient.Object,
+            Mock.Of<IControlSigner>(), peerResolution.Object);
+        var message = new PodMessage
+        {
+            MessageId = "msg-cancelled-route",
+            PodId = "pod1",
+            ChannelId = "general",
+            SenderPeerId = "peer-sender",
+            Body = "hi",
+            TimestampUnixMs = 1,
+        };
+
+        using var cancellation = new CancellationTokenSource();
+        var route = router.RouteMessageAsync(message, cancellation.Token);
+        await sendStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => route);
+        Assert.False(router.IsMessageSeen(message.MessageId, message.PodId));
+
+        overlayClient.Setup(client => client.SendAsync(It.IsAny<ControlEnvelope>(), It.IsAny<IPEndPoint>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var retry = await router.RouteMessageAsync(message);
+
+        Assert.True(retry.Success);
+        Assert.True(router.IsMessageSeen(message.MessageId, message.PodId));
+    }
+
+    private static async Task<bool> WaitForOverlayCancellationAsync(CancellationToken cancellationToken)
+    {
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+        return true;
     }
 
     [Fact]

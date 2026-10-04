@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Concurrent;
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -125,6 +126,47 @@ public class SceneServicesTests
     }
 
     [Fact]
+    public async Task ScenePubSubService_DisposeTimeout_KeepsCancellationSourceUntilPollLoopCompletes()
+    {
+        using var dht = new CancellationIgnoringDhtClient();
+        using var service = new ScenePubSubService(
+            NullLogger<ScenePubSubService>.Instance,
+            dht,
+            TimeSpan.FromMilliseconds(10),
+            TimeSpan.FromMilliseconds(50));
+
+        await service.SubscribeAsync("scene:test", CancellationToken.None);
+        await dht.FirstCallStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var cancellationSourceField = typeof(ScenePubSubService).GetField(
+            "pollLoopCancellationTokenSource",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        var pollLoopTaskField = typeof(ScenePubSubService).GetField(
+            "pollLoopTask",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(cancellationSourceField);
+        Assert.NotNull(pollLoopTaskField);
+        var cancellationSource = Assert.IsType<CancellationTokenSource>(
+            cancellationSourceField!.GetValue(service));
+        var pollLoopTask = Assert.IsAssignableFrom<Task>(pollLoopTaskField!.GetValue(service));
+
+        try
+        {
+            service.Dispose();
+
+            Assert.True(cancellationSource.IsCancellationRequested);
+            Assert.True(cancellationSource.Token.IsCancellationRequested);
+        }
+        finally
+        {
+            dht.AllowCallsToComplete.Set();
+        }
+
+        await pollLoopTask.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Throws<ObjectDisposedException>(() => _ = cancellationSource.Token);
+    }
+
+    [Fact]
     public void ScenePubSubService_WhenOneSubscriberThrows_ContinuesInvokingRemainingSubscribers()
     {
         using var service = new TestScenePubSubService(
@@ -227,6 +269,30 @@ public class SceneServicesTests
             {
                 Interlocked.Decrement(ref _activeCalls);
             }
+        }
+
+        public Task PutAsync(byte[] key, byte[] value, int ttlSeconds, CancellationToken ct = default) => Task.CompletedTask;
+
+        public void Dispose()
+        {
+            AllowCallsToComplete.Set();
+            AllowCallsToComplete.Dispose();
+        }
+    }
+
+    private sealed class CancellationIgnoringDhtClient : IDhtClient, IDisposable
+    {
+        public ManualResetEventSlim AllowCallsToComplete { get; } = new(false);
+
+        public TaskCompletionSource<bool> FirstCallStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<byte[]?> GetAsync(byte[] key, CancellationToken ct = default) => Task.FromResult<byte[]?>(null);
+
+        public Task<List<byte[]>> GetMultipleAsync(byte[] key, CancellationToken ct = default)
+        {
+            FirstCallStarted.TrySetResult(true);
+            AllowCallsToComplete.Wait(CancellationToken.None);
+            return Task.FromResult(new List<byte[]>());
         }
 
         public Task PutAsync(byte[] key, byte[] value, int ttlSeconds, CancellationToken ct = default) => Task.CompletedTask;

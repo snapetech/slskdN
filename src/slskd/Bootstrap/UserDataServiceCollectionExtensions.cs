@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Bootstrap;
 
+using System.Data;
 using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,8 +12,13 @@ public static class UserDataServiceCollectionExtensions
 {
     public static IServiceCollection AddSlskdUserData(this IServiceCollection services)
     {
+        return AddSlskdUserData(services, Program.AppDirectory);
+    }
+
+    internal static IServiceCollection AddSlskdUserData(IServiceCollection services, string appDirectory)
+    {
         // User Notes services
-        var userNotesDbPath = Path.Combine(Program.AppDirectory, "user_notes.db");
+        var userNotesDbPath = Path.Combine(appDirectory, "user_notes.db");
         services.AddDbContextFactory<Users.Notes.UserNotesDbContext>(options =>
         {
             options.UseSqlite($"Data Source={userNotesDbPath}");
@@ -32,7 +38,7 @@ public static class UserDataServiceCollectionExtensions
         services.AddSingleton<Users.Notes.IUserBlockService, Users.Notes.UserBlockService>();
 
         // Collections / sharing (ShareGroup, Collection, ShareGrant) — behind Feature.CollectionsSharing
-        var collectionsDbPath = Path.Combine(Program.AppDirectory, "collections.db");
+        var collectionsDbPath = Path.Combine(appDirectory, "collections.db");
         services.AddDbContextFactory<Sharing.CollectionsDbContext>(options =>
         {
             options.UseSqlite($"Data Source={collectionsDbPath}");
@@ -43,6 +49,16 @@ public static class UserDataServiceCollectionExtensions
                 .Options))
         {
             collectionsContext.Database.EnsureCreated();
+
+            // EnsureCreated does not update tables in an existing database. Check the
+            // schema first so an already-applied migration is the only ignored case.
+            EnsureColumnExists(collectionsContext, "ShareGrants", "OwnerEndpoint", "TEXT");
+            EnsureColumnExists(collectionsContext, "ShareGrants", "ShareToken", "TEXT");
+            EnsureColumnExists(collectionsContext, "CollectionItems", "FileName", "TEXT");
+            EnsureColumnExists(collectionsContext, "CollectionItems", "Title", "TEXT");
+            EnsureColumnExists(collectionsContext, "CollectionItems", "Artist", "TEXT");
+            EnsureColumnExists(collectionsContext, "CollectionItems", "Album", "TEXT");
+            collectionsContext.Database.ExecuteSqlRaw(Sharing.CollectionsDbContext.ContentLookupIndexSql);
         }
 
         services.AddSingleton<Sharing.IShareGroupRepository, Sharing.ShareGroupRepository>();
@@ -51,64 +67,8 @@ public static class UserDataServiceCollectionExtensions
         services.AddSingleton<Sharing.ISharingService, Sharing.SharingService>();
         services.AddSingleton<Sharing.ShareGrantAnnouncementService>();
 
-        // Best-effort schema upgrade for sharing db (EnsureCreated does not apply schema changes)
-        try
-        {
-            using (var collectionsContext = new Sharing.CollectionsDbContext(
-                new DbContextOptionsBuilder<Sharing.CollectionsDbContext>()
-                    .UseSqlite($"Data Source={collectionsDbPath}")
-                    .Options))
-            {
-                collectionsContext.Database.ExecuteSqlRaw("ALTER TABLE ShareGrants ADD COLUMN OwnerEndpoint TEXT");
-            }
-        }
-        catch
-        {
-            // Column already exists or DB is read-only; ignore.
-        }
-
-        try
-        {
-            using (var collectionsContext = new Sharing.CollectionsDbContext(
-                new DbContextOptionsBuilder<Sharing.CollectionsDbContext>()
-                    .UseSqlite($"Data Source={collectionsDbPath}")
-                    .Options))
-            {
-                collectionsContext.Database.ExecuteSqlRaw("ALTER TABLE ShareGrants ADD COLUMN ShareToken TEXT");
-            }
-        }
-        catch
-        {
-            // Column already exists or DB is read-only; ignore.
-        }
-
-        foreach (var sql in new[]
-        {
-            "ALTER TABLE CollectionItems ADD COLUMN FileName TEXT",
-            "ALTER TABLE CollectionItems ADD COLUMN Title TEXT",
-            "ALTER TABLE CollectionItems ADD COLUMN Artist TEXT",
-            "ALTER TABLE CollectionItems ADD COLUMN Album TEXT",
-            Sharing.CollectionsDbContext.ContentLookupIndexSql,
-        })
-        {
-            try
-            {
-                using (var collectionsContext = new Sharing.CollectionsDbContext(
-                    new DbContextOptionsBuilder<Sharing.CollectionsDbContext>()
-                        .UseSqlite($"Data Source={collectionsDbPath}")
-                        .Options))
-                {
-                    collectionsContext.Database.ExecuteSqlRaw(sql);
-                }
-            }
-            catch
-            {
-                // Column already exists or DB is read-only; ignore.
-            }
-        }
-
         // Identity / friends (PeerProfile, Contact) — behind Feature.IdentityFriends
-        var identityDbPath = Path.Combine(Program.AppDirectory, "identity.db");
+        var identityDbPath = Path.Combine(appDirectory, "identity.db");
         services.AddDbContextFactory<Identity.IdentityDbContext>(options =>
         {
             options.UseSqlite($"Data Source={identityDbPath}");
@@ -132,5 +92,46 @@ public static class UserDataServiceCollectionExtensions
         services.AddSingleton<slskd.Solid.ISolidFetchPolicy, slskd.Solid.SolidFetchPolicy>();
 
         return services;
+    }
+
+    private static void EnsureColumnExists(DbContext context, string tableName, string columnName, string columnType)
+    {
+        var connection = context.Database.GetDbConnection();
+        var closeConnection = connection.State != ConnectionState.Open;
+        if (closeConnection)
+        {
+            context.Database.OpenConnection();
+        }
+
+        try
+        {
+            using var schemaCommand = connection.CreateCommand();
+            schemaCommand.CommandText = $"PRAGMA table_info(\"{tableName}\")";
+            using var reader = schemaCommand.ExecuteReader();
+            var columnExists = false;
+            while (reader.Read())
+            {
+                if (string.Equals(reader.GetString(1), columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    columnExists = true;
+                    break;
+                }
+            }
+
+            reader.Close();
+            if (!columnExists)
+            {
+                using var migrationCommand = connection.CreateCommand();
+                migrationCommand.CommandText = $"ALTER TABLE \"{tableName}\" ADD COLUMN \"{columnName}\" {columnType}";
+                migrationCommand.ExecuteNonQuery();
+            }
+        }
+        finally
+        {
+            if (closeConnection)
+            {
+                context.Database.CloseConnection();
+            }
+        }
     }
 }

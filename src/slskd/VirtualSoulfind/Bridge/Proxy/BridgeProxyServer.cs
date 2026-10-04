@@ -225,7 +225,9 @@ public class BridgeProxyServer : BackgroundService
                             break;
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    ct.IsCancellationRequested &&
+                    ex.CancellationToken == ct)
                 {
                     // Shutdown requested
                     break;
@@ -673,7 +675,9 @@ public class BridgeProxyServer : BackgroundService
                 await Task.Delay(TimeSpan.FromSeconds(1), ct);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex) when (
+            ct.IsCancellationRequested &&
+            ex.CancellationToken == ct)
         {
             // Shutdown
         }

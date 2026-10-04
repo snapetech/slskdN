@@ -113,7 +113,8 @@ public static class ApplicationRunExtensions
 
     private static void StartLanDiscoveryIfEnabled(WebApplication app, OptionsAtStartup optionsAtStartup)
     {
-        if (!optionsAtStartup.Feature.IdentityFriends)
+        if (!optionsAtStartup.Feature.IdentityFriends ||
+            !optionsAtStartup.LanDiscovery.Advertise)
         {
             return;
         }

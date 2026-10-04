@@ -378,6 +378,13 @@ namespace slskd
         public TelemetryOptions Telemetry { get; init; } = new TelemetryOptions();
 
         /// <summary>
+        ///     Gets LAN discovery advertising options.
+        /// </summary>
+        [Validate]
+        [RequiresRestart]
+        public LanDiscoveryOptions LanDiscovery { get; init; } = new LanDiscoveryOptions();
+
+        /// <summary>
         ///     Gets feature options.
         /// </summary>
         [Validate]
@@ -1756,7 +1763,10 @@ namespace slskd
             /// <summary>Publish availability to mesh/DHT. Defer.</summary>
             public bool MeshPublishAvailability { get; init; } = true;
 
-            /// <summary>Identity and friends (profiles, contacts, LAN discovery, invites). When false, related APIs return 404.</summary>
+            /// <summary>
+            /// Identity and friends (profiles, contacts, nearby-peer browsing, invites). When false, related APIs return 404;
+            /// startup advertising is configured separately.
+            /// </summary>
             public bool IdentityFriends { get; init; } = true;
 
             /// <summary>
@@ -4961,6 +4971,19 @@ namespace slskd
                 [RequiresRestart]
                 public string? OtlpEndpoint { get; init; }
             }
+        }
+
+        /// <summary>
+        ///     LAN discovery advertising options.
+        /// </summary>
+        public class LanDiscoveryOptions
+        {
+            /// <summary>
+            ///     Gets a value indicating whether this instance advertises its identity on the local network.
+            /// </summary>
+            [Description("advertise peer identity on the local network")]
+            [RequiresRestart]
+            public bool Advertise { get; init; } = false;
         }
     }
 }

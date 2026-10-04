@@ -78,8 +78,6 @@ public static class MediaCorePodServiceCollectionExtensions
         services.AddSingleton<IMediaCoreSwarmIntelligence, MediaCoreSwarmIntelligence>();
         services.AddSingleton<IMediaCoreSwarmService, MediaCoreSwarmService>();
         services.AddSingleton<slskd.Transfers.MultiSource.Scheduling.IChunkScheduler, slskd.Transfers.MultiSource.Scheduling.MediaCoreChunkScheduler>();
-        services.AddSingleton<MediaCore.IIpldMapper, MediaCore.IpldMapper>();
-        services.AddSingleton<MediaCore.IFuzzyMatcher, MediaCore.FuzzyMatcher>();
         services.AddSingleton<MediaCore.IContentDescriptorSource, MediaCore.ShadowIndexDescriptorSource>();
 
         // PodCore (Phase 10 - SQLite persistence)

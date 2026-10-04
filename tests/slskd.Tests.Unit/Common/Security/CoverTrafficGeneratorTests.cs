@@ -37,6 +37,80 @@ public class CoverTrafficGeneratorTests
     }
 
     [Fact]
+    public async Task Dispose_WaitsForAnInFlightCoverMessageSend()
+    {
+        var logger = Mock.Of<ILogger<CoverTrafficGenerator>>();
+        var sendStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseSend = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var generator = new CoverTrafficGenerator(
+            new CoverTrafficOptions
+            {
+                Enabled = true,
+                IntervalSeconds = 1,
+                OnlyWhenIdle = true,
+            },
+            () => new byte[] { 0x01 },
+            () =>
+            {
+                sendStarted.TrySetResult(true);
+                return releaseSend.Task;
+            },
+            logger);
+
+        await generator.StartAsync();
+        await sendStarted.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+        var disposeTask = Task.Run(generator.Dispose);
+        var disposeBeforeSendFinished = await Task.WhenAny(disposeTask, Task.Delay(TimeSpan.FromMilliseconds(100)));
+
+        Assert.NotSame(disposeTask, disposeBeforeSendFinished);
+
+        releaseSend.TrySetResult(true);
+        await disposeTask.WaitAsync(TimeSpan.FromSeconds(3));
+
+        Assert.False(generator.GetStats().IsActive);
+    }
+
+    [Fact]
+    public async Task Dispose_WhenSendOutlastsStopTimeout_DefersCancellationSourceDisposal()
+    {
+        var logger = Mock.Of<ILogger<CoverTrafficGenerator>>();
+        var sendStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseSend = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var generator = new CoverTrafficGenerator(
+            new CoverTrafficOptions
+            {
+                Enabled = true,
+                IntervalSeconds = 1,
+                OnlyWhenIdle = true,
+            },
+            () => new byte[] { 0x01 },
+            () =>
+            {
+                sendStarted.TrySetResult(true);
+                return releaseSend.Task;
+            },
+            logger);
+
+        await generator.StartAsync();
+        await sendStarted.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+        var generationCts = Assert.IsType<CancellationTokenSource>(GetPrivateField(generator, "_generationCts"));
+        var generationTask = Assert.IsAssignableFrom<Task>(GetPrivateField(generator, "_generationTask"));
+
+        await Task.Run(generator.Dispose).WaitAsync(TimeSpan.FromSeconds(7));
+
+        Assert.True(generationCts.IsCancellationRequested);
+        _ = generationCts.Token;
+
+        releaseSend.TrySetResult(true);
+        await generationTask.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(await Task.Run(() => SpinWait.SpinUntil(
+            () => GetPrivateField(generator, "_generationCts") is null,
+            TimeSpan.FromSeconds(2))));
+    }
+
+    [Fact]
     public async Task StartAsync_AfterStop_RestartsGeneration()
     {
         var logger = Mock.Of<ILogger<CoverTrafficGenerator>>();
@@ -90,5 +164,13 @@ public class CoverTrafficGeneratorTests
             ?? throw new InvalidOperationException($"Field '{fieldName}' was not found on {instance.GetType().Name}.");
 
         field.SetValue(instance, value);
+    }
+
+    private static object? GetPrivateField(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"Field '{fieldName}' was not found on {instance.GetType().Name}.");
+
+        return field.GetValue(instance);
     }
 }

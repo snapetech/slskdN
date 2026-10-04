@@ -459,6 +459,90 @@ public class LibraryItemsControllerTests
         Assert.Equal("Audio", item.GetType().GetProperty("MediaKind")!.GetValue(item));
     }
 
+    [Fact]
+    public async Task BrowseItems_WhenHashLookupIsCancelled_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        shareServiceMock.Setup(service => service.BrowseAsync(It.IsAny<Share>()))
+            .ReturnsAsync(new[] { new Soulseek.Directory("Music", new[]
+            {
+                new Soulseek.File(1, "song.mp3", 16, ".mp3"),
+            }) });
+        shareServiceMock.Setup(service => service.ResolveFileAsync(It.IsAny<string>()))
+            .ReturnsAsync((string filename) => ("local", filename, 16L));
+        hashDbServiceMock.Setup(service => service.LookupHashesByFlacKeysAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((IEnumerable<string> _, CancellationToken _) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<List<HashDbEntry>>(cancellation.Token);
+            });
+
+        var browse = controller.BrowseItems(query: "song", cancellationToken: cancellation.Token);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => browse);
+    }
+
+    [Fact]
+    public async Task GetItem_WhenHashLookupIsCancelled_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        shareServiceMock.Setup(service => service.BrowseAsync(It.IsAny<Share>()))
+            .ReturnsAsync(new[] { new Soulseek.Directory("Music", new[]
+            {
+                new Soulseek.File(1, "song.mp3", 16, ".mp3"),
+            }) });
+        shareServiceMock.Setup(service => service.ResolveFileAsync(It.IsAny<string>()))
+            .ReturnsAsync((string filename) => ("local", filename, 16L));
+        hashDbServiceMock.Setup(service => service.LookupHashAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string _, CancellationToken _) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<HashDbEntry?>(cancellation.Token);
+            });
+
+        var lookup = controller.GetItem("sha256:expected", cancellation.Token);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => lookup);
+    }
+
+    [Fact]
+    public async Task BrowseItems_WhenFileHashIsCancelled_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var filePath = Path.Combine(Path.GetTempPath(), $"library-item-{Guid.NewGuid():N}.mp3");
+        try
+        {
+            System.IO.File.WriteAllBytes(filePath, new byte[16]);
+            shareServiceMock.Setup(service => service.BrowseAsync(It.IsAny<Share>()))
+                .ReturnsAsync(new[] { new Soulseek.Directory("Music", new[]
+                {
+                    new Soulseek.File(1, "song.mp3", 16, ".mp3"),
+                }) });
+            shareServiceMock.Setup(service => service.ResolveFileAsync(It.IsAny<string>()))
+                .ReturnsAsync((string _) => ("local", filePath, 16L));
+            hashDbServiceMock.Setup(service => service.LookupHashesByFlacKeysAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((IEnumerable<string> _, CancellationToken _) =>
+                {
+                    cancellation.Cancel();
+                    return Task.FromResult(new List<HashDbEntry>());
+                });
+
+            var browse = controller.BrowseItems(query: "song", cancellationToken: cancellation.Token);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => browse);
+        }
+        finally
+        {
+            System.IO.File.Delete(filePath);
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

@@ -408,7 +408,7 @@ namespace slskd.Shares
 
                         Log.Debug("DirectoryChannel filled");
                     }
-                    catch (OperationCanceledException)
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         Log.Warning("Shared file scan cancellation requested");
                         Log.Debug("DirectoryChannel fill aborted");
@@ -443,7 +443,7 @@ namespace slskd.Shares
                         Log.Warning("Share database WAL checkpoint was blocked by an active reader");
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     // important! don't try to delete stale files in this case; unscanned records will have a stale timestamp
                     Log.Warning("Shared file scan cancelled successfully");

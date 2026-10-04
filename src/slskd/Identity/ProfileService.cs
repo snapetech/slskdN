@@ -96,6 +96,8 @@ public sealed class ProfileService : IProfileService
             if (_cachedMyProfile != null) return _cachedMyProfile;
         }
 
+        ct.ThrowIfCancellationRequested();
+
         if (File.Exists(ProfileFilePath))
         {
             try
@@ -126,6 +128,10 @@ public sealed class ProfileService : IProfileService
                     return profile;
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _log.LogWarning(ex, "[ProfileService] Failed to load profile from file");
@@ -139,7 +145,7 @@ public sealed class ProfileService : IProfileService
         if (webOpts.Port > 0)
         {
             var scheme = webOpts.Https?.Disabled != true ? "https" : "http";
-            var host = DetectHostname();
+            var host = await DetectHostnameAsync(ct).ConfigureAwait(false);
             if (!string.IsNullOrEmpty(host))
             {
                 var candidate = new PeerEndpoint { Type = "Direct", Address = $"{scheme}://{host}:{webOpts.Port}", Priority = 1 };
@@ -351,36 +357,29 @@ public sealed class ProfileService : IProfileService
         return $"{code[..5]}-{code[5..9]}-{code[9..13]}-{code[13..16]}";
     }
 
-    public string? DecodeFriendCode(string code)
+    public async Task<string?> DecodeFriendCodeAsync(string code, CancellationToken ct = default)
     {
         var clean = code.Replace("-", string.Empty).ToUpperInvariant();
         if (clean.Length < 16) return null;
 
-        try
+        var myProfile = await GetMyProfileAsync(ct).ConfigureAwait(false);
+        if (string.Equals(GetFriendCode(myProfile.PeerId).Replace("-", string.Empty), clean, StringComparison.OrdinalIgnoreCase))
         {
-            var myProfile = GetMyProfileAsync().GetAwaiter().GetResult();
-            if (string.Equals(GetFriendCode(myProfile.PeerId).Replace("-", string.Empty), clean, StringComparison.OrdinalIgnoreCase))
-            {
-                return myProfile.PeerId;
-            }
-
-            if (_contacts == null)
-            {
-                return null;
-            }
-
-            var contacts = _contacts.GetAllAsync().GetAwaiter().GetResult();
-            foreach (var contact in contacts)
-            {
-                if (string.Equals(GetFriendCode(contact.PeerId).Replace("-", string.Empty), clean, StringComparison.OrdinalIgnoreCase))
-                {
-                    return contact.PeerId;
-                }
-            }
+            return myProfile.PeerId;
         }
-        catch (Exception ex)
+
+        if (_contacts == null)
         {
-            _log.LogWarning(ex, "[ProfileService] Failed to decode friend code");
+            return null;
+        }
+
+        var contacts = await _contacts.GetAllAsync(ct).ConfigureAwait(false);
+        foreach (var contact in contacts)
+        {
+            if (string.Equals(GetFriendCode(contact.PeerId).Replace("-", string.Empty), clean, StringComparison.OrdinalIgnoreCase))
+            {
+                return contact.PeerId;
+            }
         }
 
         return null;
@@ -391,8 +390,10 @@ public sealed class ProfileService : IProfileService
     // anonymously-served PeerProfile as a Direct endpoint. Now we only return addresses that
     // pass PeerEndpointPolicy (public-routable). If nothing qualifies, return null and let the
     // caller skip the Direct endpoint entirely; the operator can add a routable hostname later.
-    private string? DetectHostname()
+    private async Task<string?> DetectHostnameAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             var networkInterfaces = NetworkInterface.GetAllNetworkInterfaces()
@@ -415,11 +416,13 @@ public sealed class ProfileService : IProfileService
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var hostname = Dns.GetHostName();
-                var hostEntry = Dns.GetHostEntry(hostname);
-                var ipv4 = hostEntry.AddressList.FirstOrDefault(ip =>
+                var addresses = await Dns.GetHostAddressesAsync(hostname, cancellationToken).ConfigureAwait(false);
+                var ipv4 = addresses.FirstOrDefault(ip =>
                     ip.AddressFamily == AddressFamily.InterNetwork &&
                     !IPAddress.IsLoopback(ip) &&
                     !IpRangeClassifier.IsPrivate(ip) &&
@@ -429,10 +432,18 @@ public sealed class ProfileService : IProfileService
                     return ipv4.ToString();
                 }
             }
-            catch
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is SocketException or ArgumentException)
             {
                 // Ignore DNS resolution errors
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

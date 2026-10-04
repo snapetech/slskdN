@@ -132,14 +132,7 @@ namespace slskd.Transfers.MultiSource.Discovery
 
             if (discoveryTask != null)
             {
-                try
-                {
-                    await discoveryTask;
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected
-                }
+                await discoveryTask;
             }
 
             discoveryTask = null;
@@ -401,7 +394,9 @@ namespace slskd.Transfers.MultiSource.Discovery
                     // Small pause before next cycle
                     await Task.Delay(CyclePauseMs, cancellationToken);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    cancellationToken.IsCancellationRequested &&
+                    ex.CancellationToken == cancellationToken)
                 {
                     break;
                 }
@@ -584,6 +579,10 @@ namespace slskd.Transfers.MultiSource.Discovery
                         log.Debug("[Discovery] Verified hash for {Filename} from {Username}: {Hash}",
                             filename, username, hash);
                     }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {

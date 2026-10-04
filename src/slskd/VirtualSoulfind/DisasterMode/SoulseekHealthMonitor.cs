@@ -185,14 +185,7 @@ public sealed class SoulseekHealthMonitor : ISoulseekHealthMonitor, IHostedServi
 
         if (monitoringTask != null)
         {
-            try
-            {
-                await monitoringTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected during shutdown.
-            }
+            await monitoringTask.ConfigureAwait(false);
         }
 
         monitoringTask = null;

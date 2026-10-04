@@ -215,6 +215,28 @@ public class PrivacyLayerIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateConfiguration_CancelsAnActiveCoverTrafficEnumeration()
+    {
+        var enabledOptions = new PrivacyLayerOptions
+        {
+            Enabled = true,
+            CoverTraffic = new CoverTrafficOptions { Enabled = true, IntervalSeconds = 60 }
+        };
+        using var privacyLayer = new PrivacyLayer(_loggerMock.Object, _loggerFactoryMock.Object, enabledOptions);
+        await using var enumerator = privacyLayer.GetCoverTrafficAsync(CancellationToken.None).GetAsyncEnumerator();
+        var moveNextTask = enumerator.MoveNextAsync().AsTask();
+
+        privacyLayer.UpdateConfiguration(new PrivacyLayerOptions
+        {
+            Enabled = true,
+            CoverTraffic = new CoverTrafficOptions { Enabled = false }
+        });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => moveNextTask.WaitAsync(TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
     public void RecordActivity_UpdatesCoverTrafficTiming()
     {
         // Arrange

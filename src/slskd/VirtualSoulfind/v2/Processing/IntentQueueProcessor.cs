@@ -204,7 +204,7 @@ namespace slskd.VirtualSoulfind.v2.Processing
                     return false;
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Processing of intent {IntentId} was cancelled", desiredTrackId);
 

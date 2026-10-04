@@ -75,11 +75,13 @@ public class LibraryItemsController : ControllerBase
         query = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
         kinds = string.IsNullOrWhiteSpace(kinds) ? null : kinds.Trim();
         limit = Math.Clamp(limit, 1, 100);
+        cancellationToken.ThrowIfCancellationRequested();
         logger?.LogInformation("Library items search: query={Query}, kinds={Kinds}, limit={Limit}", query, kinds, limit);
 
         try
         {
             var directories = await shareService.BrowseAsync();
+            cancellationToken.ThrowIfCancellationRequested();
             var results = BuildSearchFilePage(directories, query, kinds, limit);
 
             var items = await ConvertToLibraryItemsAsync(results, cancellationToken).ConfigureAwait(false);
@@ -95,6 +97,10 @@ public class LibraryItemsController : ControllerBase
             }
 
             return Ok(new { items });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -128,10 +134,12 @@ public class LibraryItemsController : ControllerBase
         kinds = string.IsNullOrWhiteSpace(kinds) ? null : kinds.Trim();
         limit = Math.Clamp(limit, 1, 100);
         offset = Math.Max(0, offset);
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
             var directories = (await shareService.BrowseAsync()).ToList();
+            cancellationToken.ThrowIfCancellationRequested();
             var directoryEntries = query == null
                 ? BuildDirectoryEntries(directories, browserPath)
                 : new List<LibraryDirectoryResponse>();
@@ -174,6 +182,10 @@ public class LibraryItemsController : ControllerBase
                 hasMore = (long)offset + limit < totalFiles,
                 duplicatesRemoved,
             });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -329,16 +341,19 @@ public class LibraryItemsController : ControllerBase
             return BadRequest(new { error = "ContentId is required" });
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         logger?.LogInformation("Get library item: contentId={ContentId}", contentId);
 
         try
         {
             // Search all files to find one matching the contentId
             var directories = (await shareService.BrowseAsync()).ToList();
+            cancellationToken.ThrowIfCancellationRequested();
             foreach (var directory in directories)
             {
                 foreach (var file in directory.Files)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var item = await ConvertToLibraryItemAsync(
                         file, GetMaskedFilename(directory.Name, file), cancellationToken);
                     if (item?.ContentId == contentId) return Ok(item);
@@ -346,6 +361,10 @@ public class LibraryItemsController : ControllerBase
             }
 
             return NotFound(new { error = "Item not found" });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -382,6 +401,10 @@ public class LibraryItemsController : ControllerBase
                     var flacKey = HashDb.Models.HashDbEntry.GenerateFlacKey(filename, size);
                     hashEntry = await hashDbService.LookupHashAsync(flacKey, cancellationToken);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch
                 {
                     // HashDb lookup failed, will compute on-demand if needed
@@ -392,6 +415,10 @@ public class LibraryItemsController : ControllerBase
                 new ResolvedLibraryItem(file, maskedFilename, displayPath, DuplicateCount: 1, filename, size),
                 hashEntry,
                 cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -407,6 +434,7 @@ public class LibraryItemsController : ControllerBase
         var resolved = new List<ResolvedLibraryItem>();
         foreach (var candidate in candidates)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 var (_, filename, size) = await shareService
@@ -420,6 +448,10 @@ public class LibraryItemsController : ControllerBase
                     filename,
                     size));
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 logger?.LogWarning(ex, "Failed to resolve file: {Filename}", candidate.File.Filename);
@@ -429,6 +461,7 @@ public class LibraryItemsController : ControllerBase
         var hashesByFlacKey = new Dictionary<string, HashDb.Models.HashDbEntry>(StringComparer.Ordinal);
         if (hashDbService != null && resolved.Count > 0)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 hashesByFlacKey = (await hashDbService
@@ -436,7 +469,11 @@ public class LibraryItemsController : ControllerBase
                             resolved.Select(item => HashDb.Models.HashDbEntry.GenerateFlacKey(item.Filename, item.Size)),
                             cancellationToken)
                         .ConfigureAwait(false))
-                    .ToDictionary(entry => entry.FlacKey, StringComparer.Ordinal);
+                        .ToDictionary(entry => entry.FlacKey, StringComparer.Ordinal);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -447,6 +484,7 @@ public class LibraryItemsController : ControllerBase
         var items = new List<LibraryItemResponse>(resolved.Count);
         foreach (var item in resolved)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var flacKey = HashDb.Models.HashDbEntry.GenerateFlacKey(item.Filename, item.Size);
             var converted = await ConvertResolvedLibraryItemAsync(
                 item,
@@ -481,6 +519,10 @@ public class LibraryItemsController : ControllerBase
                 try
                 {
                     sha256 = await ComputeSha256Async(filename, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch
                 {
@@ -524,6 +566,10 @@ public class LibraryItemsController : ControllerBase
                 MediaKind = mediaKind,
                 Sha256 = sha256,
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

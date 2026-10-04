@@ -343,7 +343,9 @@ public class PodPublisherBackgroundService : BackgroundService
                 await Task.Delay(TimeSpan.FromMinutes(RefreshIntervalMinutes), stoppingToken);
                 await RefreshOnceAsync(stoppingToken);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex) when (
+                stoppingToken.IsCancellationRequested &&
+                ex.CancellationToken == stoppingToken)
             {
                 // Shutdown requested
                 break;

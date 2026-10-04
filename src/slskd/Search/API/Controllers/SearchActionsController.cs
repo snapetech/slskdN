@@ -351,6 +351,9 @@ public class SearchActionsController : ControllerBase
 
         _logger.LogInformation("[SearchActions] Pod download: contentId={ContentId}, filename={Filename}, peerId={PeerId}", contentId, file.Filename, peerId);
 
+        string? completedRoot = null;
+        string? stagingFilename = null;
+
         try
         {
             // Check if content is available locally (in our share library)
@@ -405,7 +408,7 @@ public class SearchActionsController : ControllerBase
                 });
             }
 
-            var completedRoot = destination ?? DownloadDestinationResolver.GetDefaultPath(_optionsMonitor.CurrentValue);
+            completedRoot = destination ?? DownloadDestinationResolver.GetDefaultPath(_optionsMonitor.CurrentValue);
             var candidateFilename = file.Filename.ToLocalFilename(baseDirectory: completedRoot);
             var localFilename = PathGuard.NormalizeAbsolutePathWithinRoots(candidateFilename, new[] { completedRoot });
             if (localFilename == null)
@@ -418,7 +421,7 @@ public class SearchActionsController : ControllerBase
                 });
             }
 
-            var stagingFilename = ContentSafety.CreateStagingPath(localFilename, completedRoot);
+            stagingFilename = ContentSafety.CreateStagingPath(localFilename, completedRoot);
             IActionResult? fetchFailure = null;
             using (var fileStream = SecureFileWriter.Open(stagingFilename, completedRoot))
             {
@@ -467,11 +470,12 @@ public class SearchActionsController : ControllerBase
                 completedRoot,
                 options.Directories.Downloads,
                 options.Security,
-                CancellationToken.None,
+                ct,
                 _logger,
                 Path.GetFileName(localFilename));
             if (contentSafetyDisposition.Rejected)
             {
+                TryDeletePartialPodDownload(stagingFilename, completedRoot);
                 return UnprocessableEntity(new ProblemDetails
                 {
                     Type = "pod_content_safety_rejected",
@@ -482,6 +486,7 @@ public class SearchActionsController : ControllerBase
 
             try
             {
+                ct.ThrowIfCancellationRequested();
                 ContentSafety.PublishStagedFile(stagingFilename, localFilename, completedRoot, overwrite: true);
             }
             catch
@@ -503,8 +508,22 @@ public class SearchActionsController : ControllerBase
                 message = "Content downloaded from pod peer"
             });
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            if (stagingFilename != null && completedRoot != null)
+            {
+                TryDeletePartialPodDownload(stagingFilename, completedRoot);
+            }
+
+            throw;
+        }
         catch (Exception ex)
         {
+            if (stagingFilename != null && completedRoot != null)
+            {
+                TryDeletePartialPodDownload(stagingFilename, completedRoot);
+            }
+
             _logger.LogError(ex, "[SearchActions] Pod download failed");
             return StatusCode(500, new ProblemDetails
             {
@@ -520,14 +539,15 @@ public class SearchActionsController : ControllerBase
         return User.FindFirstValue(ClaimTypes.Name) ?? _optionsMonitor.CurrentValue.Soulseek.Username ?? string.Empty;
     }
 
-    private static void TryDeletePartialPodDownload(string localFilename, string trustedRoot)
+    private void TryDeletePartialPodDownload(string localFilename, string trustedRoot)
     {
         try
         {
             ContentSafety.DeleteStagedFile(localFilename, trustedRoot);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
+            _logger.LogWarning(ex, "[SearchActions] Failed to remove staged pod download at {StagingPath}", localFilename);
         }
     }
 

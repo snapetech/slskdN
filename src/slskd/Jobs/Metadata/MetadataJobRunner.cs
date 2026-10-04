@@ -47,7 +47,9 @@ public class MetadataJobRunner : BackgroundService
                 await job.ExecuteAsync(stoppingToken);
                 logger.LogInformation("[MetadataJobRunner] Completed {JobId}", job.JobId);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex) when (
+                stoppingToken.IsCancellationRequested &&
+                ex.CancellationToken == stoppingToken)
             {
                 // shutdown
             }

@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.CodeQuality;
 
 /// <summary>
 /// Central signal routing and deduplication service.
@@ -21,7 +22,7 @@ public class SignalBus : ISignalBus, IDisposable
     private readonly List<Func<Signal, CancellationToken, Task>> subscribers = new();
     private readonly SemaphoreSlim subscribersLock = new(1, 1);
     private readonly Task cleanupTask;
-    private bool disposed;
+    private int disposed;
 
     // Statistics
     private long signalsSent;
@@ -286,7 +287,7 @@ public class SignalBus : ISignalBus, IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposed)
+        if (Interlocked.Exchange(ref disposed, 1) != 0)
         {
             return;
         }
@@ -301,18 +302,49 @@ public class SignalBus : ISignalBus, IDisposable
             channelHandlers.Clear();
             cleanupCancellationTokenSource.Cancel();
 
+            bool stopped;
             try
             {
-                cleanupTask.Wait(TimeSpan.FromSeconds(1));
+                stopped = cleanupTask.Wait(TimeSpan.FromSeconds(1));
             }
             catch (AggregateException ex) when (ex.InnerExceptions.All(inner => inner is OperationCanceledException))
             {
+                stopped = true;
+            }
+            catch (AggregateException)
+            {
+                stopped = true;
             }
 
-            cleanupCancellationTokenSource.Dispose();
-            subscribersLock.Dispose();
+            if (stopped)
+            {
+                DisposeCleanupCancellationTokenSource(cleanupTask);
+            }
+            else
+            {
+                logger.LogWarning("Signal ID cleanup task did not stop within one second during disposal");
+                var completionTask = cleanupTask.ContinueWith(
+                    completedTask => DisposeCleanupCancellationTokenSource(completedTask),
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+                _ = TaskObservation.Observe(
+                    completionTask,
+                    ex => logger.LogError(ex, "Signal ID cleanup completion handler failed"));
+            }
+
+            // Subscribers and receive callbacks can still be unwinding through this
+            // managed semaphore, so leave it to garbage collection.
+        }
+    }
+
+    private void DisposeCleanupCancellationTokenSource(Task completedTask)
+    {
+        if (completedTask.IsFaulted && completedTask.Exception is { } exception)
+        {
+            logger.LogError(exception, "Signal ID cleanup task failed after disposal");
         }
 
-        disposed = true;
+        cleanupCancellationTokenSource.Dispose();
     }
 }

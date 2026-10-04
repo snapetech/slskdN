@@ -193,23 +193,15 @@ namespace slskd.VirtualSoulfind.Core.Music
                 return Array.Empty<MusicItem>();
             }
 
-            try
-            {
-                var tracks = (await _hashDb.GetRecentAlbumTracksAsync(count, cancellationToken).ConfigureAwait(false)).ToList();
-                var presentRecordingIds = await _hashDb
-                    .GetRecordingIdsWithHashesAsync(tracks.Select(track => track.RecordingId), cancellationToken)
-                    .ConfigureAwait(false);
-                return tracks
-                    .Select(track => MusicItem.FromTrackEntry(
-                        track,
-                        presentRecordingIds.Contains(track.RecordingId)))
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to retrieve recent music items");
-                return Array.Empty<MusicItem>();
-            }
+            var tracks = (await _hashDb.GetRecentAlbumTracksAsync(count, cancellationToken).ConfigureAwait(false)).ToList();
+            var presentRecordingIds = await _hashDb
+                .GetRecordingIdsWithHashesAsync(tracks.Select(track => track.RecordingId), cancellationToken)
+                .ConfigureAwait(false);
+            return tracks
+                .Select(track => MusicItem.FromTrackEntry(
+                    track,
+                    presentRecordingIds.Contains(track.RecordingId)))
+                .ToList();
         }
 
         /// <summary>

@@ -134,6 +134,10 @@ namespace slskd.VirtualSoulfind.v2.Backends
             {
                 return SourceCandidateValidationResult.Invalid("Object not found");
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (OperationCanceledException)
             {
                 return SourceCandidateValidationResult.Invalid("Timeout");

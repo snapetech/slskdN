@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Streaming;
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using slskd.Streaming;
 using Xunit;
@@ -57,6 +58,54 @@ public class ReleaseOnDisposeStreamTests
         wrapped.Dispose();
         wrapped.Dispose();
         Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task DisposeAndDisposeAsync_ConcurrentCallsInvokeOnDisposeOnce()
+    {
+        using var callbackEntered = new ManualResetEventSlim();
+        using var continueDisposal = new ManualResetEventSlim();
+        var count = 0;
+        var inner = new MemoryStream(new byte[] { 1 });
+        var wrapped = new ReleaseOnDisposeStream(inner, () =>
+        {
+            Interlocked.Increment(ref count);
+            callbackEntered.Set();
+            Assert.True(continueDisposal.Wait(TimeSpan.FromSeconds(5)));
+        });
+
+        var synchronousDisposal = Task.Run(wrapped.Dispose);
+        Assert.True(callbackEntered.Wait(TimeSpan.FromSeconds(5)));
+        await wrapped.DisposeAsync();
+        continueDisposal.Set();
+        await synchronousDisposal;
+
+        Assert.Equal(1, count);
+        Assert.Throws<ObjectDisposedException>(() => inner.ReadByte());
+    }
+
+    [Fact]
+    public void Dispose_WhenReleaseCallbackThrows_StillDisposesInnerAndSurfacesFailure()
+    {
+        var inner = new MemoryStream(new byte[] { 1 });
+        var wrapped = new ReleaseOnDisposeStream(inner, () => throw new InvalidOperationException("release failed"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => wrapped.Dispose());
+
+        Assert.Equal("release failed", exception.Message);
+        Assert.Throws<ObjectDisposedException>(() => inner.ReadByte());
+    }
+
+    [Fact]
+    public async Task DisposeAsync_WhenReleaseCallbackThrows_StillDisposesInnerAndSurfacesFailure()
+    {
+        var inner = new MemoryStream(new byte[] { 1 });
+        var wrapped = new ReleaseOnDisposeStream(inner, () => throw new InvalidOperationException("release failed"));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await wrapped.DisposeAsync());
+
+        Assert.Equal("release failed", exception.Message);
+        Assert.Throws<ObjectDisposedException>(() => inner.ReadByte());
     }
 
     [Fact]

@@ -82,14 +82,7 @@ namespace slskd.Mesh.Realm
 
             if (_initializationTask != null)
             {
-                try
-                {
-                    await _initializationTask.ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected during shutdown.
-                }
+                await _initializationTask.ConfigureAwait(false);
             }
 
             _initializationTask = null;

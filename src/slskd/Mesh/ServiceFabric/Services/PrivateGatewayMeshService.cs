@@ -5,6 +5,7 @@ using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.CodeQuality;
 using slskd.Common.Security;
 using slskd.Identity;
 using slskd.Mesh;
@@ -40,7 +41,7 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
     private readonly int _maxPayload;
     private readonly CancellationTokenSource _cleanupCancellationTokenSource = new();
     private readonly Task _cleanupTask;
-    private bool _disposed;
+    private int _disposed;
 
     // Active tunnels: tunnelId -> TunnelSession
     private readonly ConcurrentDictionary<string, TunnelSession> _activeTunnels = new();
@@ -105,6 +106,10 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
                     ErrorMessage = "Unknown method"
                 }
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -479,6 +484,10 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
                 Payload = Encoding.UTF8.GetBytes(response)
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
@@ -582,6 +591,11 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
                 StatusCode = ServiceStatusCodes.OK,
                 Payload = Encoding.UTF8.GetBytes(response)
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await CloseTunnelAsync(request.TunnelId);
+            throw;
         }
         catch (Exception ex)
         {
@@ -688,6 +702,11 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
                 StatusCode = ServiceStatusCodes.OK,
                 Payload = Encoding.UTF8.GetBytes(noDataResponse)
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await CloseTunnelAsync(request.TunnelId);
+            throw;
         }
         catch (Exception ex)
         {
@@ -888,23 +907,52 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
 
         _cleanupCancellationTokenSource.Cancel();
 
+        bool stopped;
         try
         {
-            _cleanupTask.Wait(TimeSpan.FromSeconds(1));
+            stopped = _cleanupTask.Wait(TimeSpan.FromSeconds(1));
         }
         catch (AggregateException ex) when (ex.InnerExceptions.All(inner => inner is OperationCanceledException))
         {
+            stopped = true;
+        }
+        catch (AggregateException ex)
+        {
+            stopped = true;
+            _logger.LogWarning(ex.Flatten(), "[PrivateGateway] Cleanup worker failed during disposal");
         }
 
-        _cleanupCancellationTokenSource.Dispose();
-        _disposed = true;
+        if (stopped)
+        {
+            _cleanupCancellationTokenSource.Dispose();
+        }
+        else
+        {
+            _logger.LogWarning("[PrivateGateway] Cleanup worker did not stop within the disposal timeout");
+            var cleanupTask = _cleanupTask.ContinueWith(
+                completedTask =>
+                {
+                    _cleanupCancellationTokenSource.Dispose();
+                    if (completedTask.IsFaulted && completedTask.Exception is { } exception)
+                    {
+                        _logger.LogError(exception, "[PrivateGateway] Cleanup worker failed after disposal timed out");
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+            _ = TaskObservation.Observe(
+                cleanupTask,
+                exception => _logger.LogError(exception, "[PrivateGateway] Cleanup completion handler failed"));
+        }
+
         GC.SuppressFinalize(this);
     }
 
@@ -1066,46 +1114,6 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
         return (true, string.Empty);
     }
 
-    private bool IsBlockedAddress(string ipString)
-    {
-        try
-        {
-            if (!IPAddress.TryParse(ipString, out var ip))
-                return false;
-
-            // Always block cloud metadata services
-            if (ip.AddressFamily == AddressFamily.InterNetwork)
-            {
-                var bytes = ip.GetAddressBytes();
-
-                // AWS: 169.254.169.254
-                if (bytes[0] == 169 && bytes[1] == 254 && bytes[2] == 169 && bytes[3] == 254)
-                    return true;
-
-                // Azure: 169.254.169.254 (same as AWS)
-                // GCP: metadata.google.internal (but we check IPs, so block 169.254.169.254)
-                // DigitalOcean: same
-            }
-
-            // Block link-local addresses that shouldn't be reachable externally
-            if (ip.AddressFamily == AddressFamily.InterNetworkV6 && ip.IsIPv6LinkLocal)
-                return true;
-
-            // Block multicast addresses
-            if (ip.AddressFamily == AddressFamily.InterNetwork)
-            {
-                var bytes = ip.GetAddressBytes();
-                if (bytes[0] >= 224 && bytes[0] <= 239) // 224.0.0.0/4
-                    return true;
-            }
-        }
-        catch
-        {
-            // If parsing fails, assume not blocked
-        }
-
-        return false;
-    }
 }
 
 // Request/Response DTOs

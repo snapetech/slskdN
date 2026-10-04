@@ -43,7 +43,7 @@ slskdN addresses both by:
 
 Mitigations for the cost of those probes (each one is itself a mid-stream cancel, visible to the candidate as a failed transfer):
 
-- **Persistent per-peer-per-day probe budget** — each Soulseek peer can be probed at most `MaxProbesPerPeerPerDay` times per UTC day (currently 10). The budget is stored in `verification-probe-budget.json`, so a restart does not reset it. Over-budget candidates are skipped, not probed; this caps the visible noise we cause on any individual uploader.
+- **Persistent per-peer-per-day probe budget** — each Soulseek peer can be probed at most `MaxProbesPerPeerPerDay` times per UTC day (currently 10). The budget is stored in `verification-probe-budget.json`, so a restart does not reset it. A corrupt, unreadable, or unwritable budget skips the probe until its state can be trusted; a failed write never authorizes a network request. Over-budget candidates are also skipped, not probed; this caps the visible noise we cause on any individual uploader.
 - **Shared discovery budget** — discovery hash probes use the same budget as verification probes. A peer cannot be probed extra times just because the hash came from the discovery path instead of the verification path.
 - **Mesh-source skip** — when a request supplies `MeshOverlaySourceCount >= 2`, all Soulseek-side probes are skipped entirely. The mesh sources are trusted and probing public peers wouldn't change the outcome.
 - **HashDb cache** — when `TryGetKnownHashAsync` finds a previously-verified hash for `(filename, fileSize)`, it's reused as the expected hash and propagated to the mesh.
@@ -77,7 +77,7 @@ When all sources are `VerificationMethod.MeshOverlay`, `DownloadAsync` keeps the
 | Metric | What it tells you |
 |--------|-------------------|
 | `slskd_swarm_midstream_cancellations_total{peer_kind, reason}` | Mid-stream cancellation events. `peer_kind=soulseek` cancels are the ones that show on official-client UIs as failed transfers. Goal: keep low. |
-| `slskd_swarm_verification_probes_total{peer_kind, outcome}` | Probe outcomes per peer kind. `outcome=skipped_budget` and `skipped_mesh` track when we declined to probe. |
+| `slskd_swarm_verification_probes_total{peer_kind, outcome}` | Probe outcomes per peer kind. `outcome=skipped_budget`, `skipped_budget_unavailable`, and `skipped_mesh` track when we declined to probe. |
 | `slskd_swarm_hard_floor_fallbacks_total{reason}` | How often the hard floor declined multi-source and let the caller fall back to single-source. |
 | `slskd_swarm_sequential_failover_total{reason}` | Switches between Soulseek peers in the sequential path (`stalled`, `errored`, `queue_too_deep`). |
 

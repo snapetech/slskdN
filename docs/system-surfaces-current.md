@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-09-30T01:43:53Z
+Generated: 2026-10-04T05:11:38Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -191,9 +191,9 @@ None found.
   - 57:    [HttpGet]
   - 67:    [HttpGet("{podId}/{channelId}")]
   - 81:    [HttpPost("{podId}/{channelId}")]
-  - 144:    [HttpPost("{podId}/{channelId}/renew")]
-  - 189:    [HttpGet("radio/{partyId}/{contentId}")]
-  - 190:    [AllowAnonymous]
+  - 153:    [HttpPost("{podId}/{channelId}/renew")]
+  - 198:    [HttpGet("radio/{partyId}/{contentId}")]
+  - 199:    [AllowAnonymous]
 - src/slskd/PodCore/API/Controllers/PodDhtController.cs
   - 49:    [HttpPost("publish")]
   - 98:    [HttpPost("update")]

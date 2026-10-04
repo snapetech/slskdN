@@ -182,6 +182,45 @@ public class DestinationAllowlistTests
     }
 
     [Fact]
+    public async Task OpenTunnel_WhenCallerCancelsConnect_PropagatesCancellation()
+    {
+        var connectStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tunnelConnectivity = new Mock<ITunnelConnectivity>();
+        tunnelConnectivity
+            .Setup(connectivity => connectivity.ConnectAsync(
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(async (string _, int _, IReadOnlyList<string> _, CancellationToken cancellationToken) =>
+            {
+                connectStarted.TrySetResult(true);
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return (null!, (string?)null);
+            });
+        var dns = new Mock<IDnsSecurityService>();
+        dns.Setup(service => service.ResolveAndValidateAsync(
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DnsResolutionResult.Success(["93.184.216.34"]));
+        using var service = CreateService(tunnelConnectivity.Object, dns.Object);
+        var policy = CreatePolicyWithAllowlist("example.com");
+        SetupPodAndMembers(CreatePodWithPolicy(policy), policy);
+        using var cancellation = new CancellationTokenSource();
+
+        var request = service.HandleCallAsync(
+            Call(Req(PodId, "example.com", 80)),
+            new MeshServiceContext { RemotePeerId = RemotePeerId },
+            cancellation.Token);
+        await connectStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request.WaitAsync(TimeSpan.FromSeconds(10)));
+    }
+
+    [Fact]
     public async Task OpenTunnel_RegisteredServiceMatch_Allowed()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);

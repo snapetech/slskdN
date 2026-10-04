@@ -305,7 +305,7 @@ public sealed class MeshTransferService : IMeshTransferService
                 targetRoot,
                 options.Directories.Downloads,
                 options.Security,
-                CancellationToken.None,
+                ct,
                 logger,
                 Path.GetFileName(status.TargetPath)).ConfigureAwait(false);
             if (contentSafetyDisposition.Rejected)
@@ -314,6 +314,7 @@ public sealed class MeshTransferService : IMeshTransferService
                     contentSafetyDisposition.Verification?.Message ?? "Mesh transfer failed configured safety checks");
             }
 
+            ct.ThrowIfCancellationRequested();
             ContentSafety.PublishStagedFile(stagingTargetPath, status.TargetPath, targetRoot, overwrite: true);
 
             // Phase 4: Complete
@@ -324,7 +325,7 @@ public sealed class MeshTransferService : IMeshTransferService
             logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: Transfer completed in {Duration}s",
                 transferId, (status.CompletedAt.Value - status.StartedAt).TotalSeconds);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: Transfer cancelled", transferId);
 

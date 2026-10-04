@@ -30,5 +30,5 @@ public interface IProfileService
     string GetFriendCode(string peerId);
 
     /// <summary>Decode a friend code back to PeerId (fuzzy match if needed).</summary>
-    string? DecodeFriendCode(string code);
+    Task<string?> DecodeFriendCodeAsync(string code, CancellationToken ct = default);
 }

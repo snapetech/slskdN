@@ -41,7 +41,11 @@ start DHT rendezvous, and does not start VirtualSoulfind or pod workers.
 
 `feature.MeshPublishAvailability` and `feature.MeshParallelSearch` separately
 gate availability publication and parallel mesh search. `feature.IdentityFriends`
-gates Identity/Friends APIs and startup mDNS friend-code advertising.
+gates Identity/Friends APIs. Startup mDNS advertising is separately controlled
+by `lan_discovery.advertise`, which defaults to `false`; set it to `true` to
+publish the peer ID, friend code, display name, API port, and capabilities on
+the local network. The Nearby peers browse action remains user-triggered and
+works while automatic advertising is off.
 
 ## Explicit reduction profile
 
@@ -59,6 +63,9 @@ feature:
   MeshPublishAvailability: false
   MeshParallelSearch: false
   IdentityFriends: false
+
+lan_discovery:
+  advertise: false
 
 dht:
   enabled: false

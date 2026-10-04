@@ -252,6 +252,26 @@ public class RateLimitTimeoutTests
     }
 
     [Fact]
+    public async Task Dispose_WhenCleanupWorkerOutlastsTimeout_DefersCancellationSourceDisposal()
+    {
+        var blockedCleanup = new TaskCompletionSource<bool>();
+        var cleanupTaskField = typeof(PrivateGatewayMeshService).GetField("_cleanupTask", BindingFlags.NonPublic | BindingFlags.Instance);
+        cleanupTaskField!.SetValue(_service, blockedCleanup.Task);
+        var cancellationSourceField = typeof(PrivateGatewayMeshService).GetField("_cleanupCancellationTokenSource", BindingFlags.NonPublic | BindingFlags.Instance);
+        var cancellationSource = (CancellationTokenSource)cancellationSourceField!.GetValue(_service)!;
+
+        await Task.Run(_service.Dispose).WaitAsync(TimeSpan.FromSeconds(3));
+
+        Assert.True(cancellationSource.IsCancellationRequested);
+        var cancellationWaitHandle = cancellationSource.Token.WaitHandle;
+        Assert.False(cancellationWaitHandle.SafeWaitHandle.IsClosed);
+
+        blockedCleanup.SetResult(true);
+
+        Assert.True(cancellationWaitHandle.SafeWaitHandle.IsClosed);
+    }
+
+    [Fact]
     public async Task CleanupExpiredTunnels_RemovesIdleTunnels()
     {
         var idle = CreateTunnelSession("idle-tunnel", "peer1", "192.168.1.100", 80);

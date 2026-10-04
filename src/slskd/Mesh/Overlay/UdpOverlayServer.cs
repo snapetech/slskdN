@@ -128,7 +128,9 @@ public class UdpOverlayServer : BackgroundService
 
                     await dispatcher.HandleAsync(envelope, stoppingToken);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    stoppingToken.IsCancellationRequested &&
+                    ex.CancellationToken == stoppingToken)
                 {
                     // shutdown
                 }
@@ -138,7 +140,9 @@ public class UdpOverlayServer : BackgroundService
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex) when (
+            stoppingToken.IsCancellationRequested &&
+            ex.CancellationToken == stoppingToken)
         {
             // Normal shutdown
         }

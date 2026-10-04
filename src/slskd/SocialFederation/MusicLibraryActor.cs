@@ -24,6 +24,7 @@ namespace slskd.SocialFederation
     {
         private readonly IMusicContentDomainProvider _musicProvider;
         private readonly IOptionsMonitor<SocialFederationOptions> _federationOptions;
+        private readonly ILogger<MusicLibraryActor> _logger;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="MusicLibraryActor"/> class.
@@ -41,6 +42,7 @@ namespace slskd.SocialFederation
         {
             _musicProvider = musicProvider ?? throw new ArgumentNullException(nameof(musicProvider));
             _federationOptions = federationOptions ?? throw new ArgumentNullException(nameof(federationOptions));
+            _logger = logger;
         }
 
         /// <inheritdoc/>
@@ -69,32 +71,22 @@ namespace slskd.SocialFederation
             CancellationToken cancellationToken = default)
         {
             var workRefs = new List<WorkRef>();
+            var musicItems = await _musicProvider.GetRecentItemsAsync(maxItems, cancellationToken).ConfigureAwait(false);
 
-            try
+            foreach (var item in musicItems)
             {
-                // Get recent music items from the content domain
-                var musicItems = await _musicProvider.GetRecentItemsAsync(maxItems, cancellationToken);
-
-                foreach (var item in musicItems)
+                try
                 {
-                    try
+                    var workRef = WorkRef.FromMusicItem(item, BaseUrl);
+                    if (workRef.ValidateSecurity())
                     {
-                        var workRef = WorkRef.FromMusicItem(item, BaseUrl);
-                        if (workRef.ValidateSecurity())
-                        {
-                            workRefs.Add(workRef);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Log warning - we can't access base logger directly
-                        // This will be handled by the base class error handling
+                        workRefs.Add(workRef);
                     }
                 }
-            }
-            catch (Exception)
-            {
-                // Log error - handled by base class
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "Failed to map a music item for the ActivityPub library outbox; skipping it");
+                }
             }
 
             return workRefs;

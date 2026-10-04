@@ -152,6 +152,10 @@ namespace slskd.VirtualSoulfind.v2.Planning
                         cancellationToken);
                     backendCandidates.AddRange(candidates);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch
                 {
                     // Backend query failed; skip

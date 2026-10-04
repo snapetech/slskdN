@@ -478,6 +478,8 @@ public class SharesController : ControllerBase
 
             foreach (var item in manifest.Items)
             {
+                ct.ThrowIfCancellationRequested();
+
                 if (string.IsNullOrWhiteSpace(item.ContentId) || string.IsNullOrWhiteSpace(item.StreamUrl))
                 {
                     failed++;
@@ -485,6 +487,7 @@ public class SharesController : ControllerBase
                     continue;
                 }
 
+                string? stagingPath = null;
                 try
                 {
                     if (!TryBuildBackfillUri(item.StreamUrl, ownerEndpoint, out var streamUri))
@@ -556,7 +559,7 @@ public class SharesController : ControllerBase
                     }
 
                     // Save to a private staging path until content-safety policy accepts the bytes.
-                    var stagingPath = ContentSafety.CreateStagingPath(filePath, downloadsDir);
+                    stagingPath = ContentSafety.CreateStagingPath(filePath, downloadsDir);
                     System.IO.FileStream? fileStream = null;
                     try
                     {
@@ -582,7 +585,7 @@ public class SharesController : ControllerBase
                         downloadsDir,
                         downloadsDir,
                         _options.CurrentValue.Security,
-                        CancellationToken.None,
+                        ct,
                         _log,
                         Path.GetFileName(filePath)).ConfigureAwait(false);
                     if (contentSafetyDisposition.Rejected)
@@ -594,6 +597,7 @@ public class SharesController : ControllerBase
 
                     try
                     {
+                        ct.ThrowIfCancellationRequested();
                         ContentSafety.PublishStagedFile(stagingPath, filePath, downloadsDir);
                     }
                     catch
@@ -605,8 +609,22 @@ public class SharesController : ControllerBase
                     enqueued++;
                     _log.LogInformation("[Backfill] Downloaded {ContentId} to {Path}", item.ContentId, filePath);
                 }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    if (stagingPath != null)
+                    {
+                        TryDeletePartialBackfillFile(stagingPath, downloadsDir);
+                    }
+
+                    throw;
+                }
                 catch (Exception ex)
                 {
+                    if (stagingPath != null)
+                    {
+                        TryDeletePartialBackfillFile(stagingPath, downloadsDir);
+                    }
+
                     _log.LogWarning(ex, "[Backfill] Failed to download {ContentId}", item.ContentId);
                     failed++;
                     errors.Add($"Failed to download {item.ContentId.Substring(0, Math.Min(16, item.ContentId.Length))}...");
@@ -794,15 +812,15 @@ public class SharesController : ControllerBase
         return false;
     }
 
-    private static void TryDeletePartialBackfillFile(string filePath, string downloadsDirectory)
+    private void TryDeletePartialBackfillFile(string filePath, string downloadsDirectory)
     {
         try
         {
             ContentSafety.DeleteStagedFile(filePath, downloadsDirectory);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Best effort cleanup after a failed download.
+            _log.LogWarning(ex, "[Backfill] Failed to remove staged download at {StagingPath}", filePath);
         }
     }
 }

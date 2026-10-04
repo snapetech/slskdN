@@ -917,7 +917,8 @@ namespace slskd
             ShuttingDown = true;
             Log.Information("Application is shutting down");
 
-            _startupInitializationCts?.Cancel();
+            var startupInitializationCts = _startupInitializationCts;
+            startupInitializationCts?.Cancel();
 
             if (_startupInitializationTask != null)
             {
@@ -925,7 +926,9 @@ namespace slskd
                 {
                     await _startupInitializationTask.ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex) when (
+                    startupInitializationCts is { IsCancellationRequested: true } &&
+                    ex.CancellationToken == startupInitializationCts.Token)
                 {
                     // Expected during shutdown.
                 }

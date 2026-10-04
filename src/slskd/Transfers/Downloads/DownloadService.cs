@@ -1794,7 +1794,8 @@ namespace slskd.Transfers.Downloads
                     options.Directories.Incomplete,
                     options.Directories.Downloads,
                     options.Security,
-                    CancellationToken.None);
+                    cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (contentSafetyDisposition.Verification is { } contentVerification &&
                     (contentVerification.IsWarning || !contentVerification.IsValid))
                 {
@@ -1831,6 +1832,7 @@ namespace slskd.Transfers.Downloads
                     transfer.Filename,
                     "Destination");
 
+                cancellationToken.ThrowIfCancellationRequested();
                 var finalFilename = Files.MoveFile(
                     sourceFilename: incompleteFilename,
                     destinationDirectory: destinationDirectory,

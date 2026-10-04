@@ -117,6 +117,7 @@ public static class ContentSafety
         var safeFilePath = PathGuard.NormalizeAbsolutePathWithinRoots(filePath, new[] { fileRoot })
             ?? throw new IOException("Completed download path resolves outside its configured directory");
         var verification = await VerifyFileAsync(safeFilePath, cancellationToken, logger).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         var executableBlocked = verification.ThreatLevel == ContentThreatLevel.Dangerous
             || (verification.ThreatLevel == ContentThreatLevel.Executable && options.BlockExecutables);
         var magicBytesRejected = options.VerifyMagicBytes && !verification.IsValid;
@@ -324,6 +325,8 @@ public static class ContentSafety
         CancellationToken cancellationToken = default,
         ILogger? logger = null)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (!File.Exists(filePath))
         {
             return ContentVerificationResult.Fail("File not found", ContentThreatLevel.Unknown);
@@ -342,6 +345,10 @@ public static class ContentSafety
             await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             header = new byte[Math.Min(stream.Length, MinHeaderSize)];
             await stream.ReadExactlyAsync(header, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -3,9 +3,12 @@
 // </copyright>
 namespace slskd.Tests.Unit.Transfers.MultiSource;
 
+using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Common.Security;
+using slskd.Integrations.Chromaprint;
+using slskd.MediaCore;
 using slskd.Transfers.MultiSource;
 using Soulseek;
 using Xunit;
@@ -178,5 +181,235 @@ public class MultiSourceDownloadServiceSanitizationTests
                 It.IsAny<SearchOptions>(),
                 It.IsAny<CancellationToken?>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task FindVerifiedSourcesAsync_WhenCallerCancelsMediaCoreDiscovery_PropagatesCancellation()
+    {
+        var discoveryStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mediaCore = new Mock<IMediaCoreSwarmService>();
+        mediaCore
+            .Setup(service => service.DiscoverContentVariantsAsync(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(async (string filename, long fileSize, CancellationToken cancellationToken) =>
+            {
+                discoveryStarted.TrySetResult();
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return new ContentVariantsResult(
+                    filename,
+                    fileSize,
+                    Array.Empty<ContentVariant>(),
+                    new Dictionary<string, double>());
+            });
+        var service = new MultiSourceDownloadService(
+            NullLogger<MultiSourceDownloadService>.Instance,
+            Mock.Of<ISoulseekClient>(),
+            Mock.Of<IContentVerificationService>(),
+            mediaCoreSwarmService: mediaCore.Object);
+        using var cancellation = new CancellationTokenSource();
+
+        var discovery = service.FindVerifiedSourcesAsync("song.flac", 512, cancellationToken: cancellation.Token);
+        await discoveryStarted.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => discovery.WaitAsync(TimeSpan.FromSeconds(30)));
+    }
+
+    [Fact]
+    public async Task FindVerifiedSourcesAsync_WhenCallerCancelsSoulseekSearch_PropagatesCancellation()
+    {
+        var searchStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new Mock<ISoulseekClient>();
+        client
+            .Setup(soulseekClient => soulseekClient.SearchAsync(
+                It.IsAny<SearchQuery>(),
+                It.IsAny<Action<SearchResponse>>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<int?>(),
+                It.IsAny<SearchOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                SearchQuery _,
+                Action<SearchResponse> _,
+                SearchScope _,
+                int? _,
+                SearchOptions _,
+                CancellationToken? cancellationToken) =>
+            {
+                searchStarted.TrySetResult();
+                await Task.Delay(Timeout.Infinite, cancellationToken ?? CancellationToken.None);
+                return null!;
+            });
+        var service = new MultiSourceDownloadService(
+            NullLogger<MultiSourceDownloadService>.Instance,
+            client.Object,
+            Mock.Of<IContentVerificationService>());
+        using var cancellation = new CancellationTokenSource();
+
+        var search = service.FindVerifiedSourcesAsync("song.flac", 512, cancellationToken: cancellation.Token);
+        await searchStarted.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => search.WaitAsync(TimeSpan.FromSeconds(30)));
+    }
+
+    [Fact]
+    public async Task DownloadAsync_WhenCallerCancelsChunkDownload_PropagatesCancellationAndCleansUp()
+    {
+        var downloadStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new Mock<ISoulseekClient>();
+        client
+            .Setup(soulseekClient => soulseekClient.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                string username,
+                string remoteFilename,
+                Func<Task<Stream>> outputStreamFactory,
+                long? size,
+                long startOffset,
+                int? token,
+                TransferOptions transferOptions,
+                CancellationToken? cancellationToken) =>
+            {
+                downloadStarted.TrySetResult();
+                await Task.Delay(Timeout.Infinite, cancellationToken ?? CancellationToken.None);
+                return new Transfer(
+                    TransferDirection.Download,
+                    username,
+                    remoteFilename,
+                    token ?? 1,
+                    TransferStates.Completed | TransferStates.Succeeded,
+                    size ?? 512,
+                    startOffset,
+                    512);
+            });
+        var service = new MultiSourceDownloadService(
+            NullLogger<MultiSourceDownloadService>.Instance,
+            client.Object,
+            Mock.Of<IContentVerificationService>());
+        var requestId = Guid.NewGuid();
+        var request = new MultiSourceDownloadRequest
+        {
+            Id = requestId,
+            Filename = "song.flac",
+            FileSize = 512,
+            ChunkSize = 512,
+            OutputPath = Path.Combine(Path.GetTempPath(), $"{requestId:N}.flac"),
+            Sources =
+            [
+                new VerifiedSource
+                {
+                    Username = "mesh-peer",
+                    FullPath = "mesh://song.flac",
+                    Method = VerificationMethod.MeshOverlay,
+                },
+            ],
+        };
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "slskdn-multidownload", requestId.ToString());
+        using var cancellation = new CancellationTokenSource();
+
+        var download = service.DownloadAsync(request, cancellation.Token);
+        await downloadStarted.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => download.WaitAsync(TimeSpan.FromSeconds(30)));
+        Assert.False(System.IO.Directory.Exists(tempDirectory));
+        Assert.False(service.ActiveDownloads.ContainsKey(requestId));
+    }
+
+    [Fact]
+    public async Task DownloadAsync_WhenCallerCancelsFingerprintVerification_PropagatesAndCleansUp()
+    {
+        var verificationStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fingerprintService = new Mock<IFingerprintExtractionService>();
+        fingerprintService
+            .Setup(service => service.ExtractFingerprintAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(async (string _, CancellationToken cancellationToken) =>
+            {
+                verificationStarted.TrySetResult();
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return "fingerprint";
+            });
+
+        var bytes = new byte[] { 1, 2, 3, 4 };
+        var client = new Mock<ISoulseekClient>();
+        client
+            .Setup(soulseekClient => soulseekClient.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                string username,
+                string remoteFilename,
+                Func<Task<Stream>> outputStreamFactory,
+                long? size,
+                long startOffset,
+                int? token,
+                TransferOptions transferOptions,
+                CancellationToken? cancellationToken) =>
+            {
+                var stream = await outputStreamFactory().ConfigureAwait(false);
+                await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+                return new Transfer(
+                    TransferDirection.Download,
+                    username,
+                    remoteFilename,
+                    token ?? 1,
+                    TransferStates.Completed | TransferStates.Succeeded,
+                    size ?? bytes.Length,
+                    startOffset,
+                    bytes.Length);
+            });
+
+        var service = new MultiSourceDownloadService(
+            NullLogger<MultiSourceDownloadService>.Instance,
+            client.Object,
+            Mock.Of<IContentVerificationService>(),
+            fingerprintExtractionService: fingerprintService.Object);
+        var requestId = Guid.NewGuid();
+        var outputPath = Path.Combine(Path.GetTempPath(), $"{requestId:N}.flac");
+        var request = new MultiSourceDownloadRequest
+        {
+            Id = requestId,
+            Filename = "song.flac",
+            FileSize = bytes.Length,
+            ChunkSize = bytes.Length,
+            OutputPath = outputPath,
+            TargetFingerprint = "expected-fingerprint",
+            Sources =
+            [
+                new VerifiedSource
+                {
+                    Username = "mesh-peer",
+                    FullPath = "mesh://song.flac",
+                    Method = VerificationMethod.MeshOverlay,
+                },
+            ],
+        };
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "slskdn-multidownload", requestId.ToString());
+        using var cancellation = new CancellationTokenSource();
+
+        var download = service.DownloadAsync(request, cancellation.Token);
+        await verificationStarted.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => download.WaitAsync(TimeSpan.FromSeconds(30)));
+        Assert.False(System.IO.File.Exists(outputPath));
+        Assert.False(System.IO.Directory.Exists(tempDirectory));
+        Assert.False(service.ActiveDownloads.ContainsKey(requestId));
     }
 }

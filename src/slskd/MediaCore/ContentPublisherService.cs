@@ -75,7 +75,9 @@ public class ContentPublisherService : BackgroundService
                 await Task.Delay(interval, stoppingToken);
                 await PublishOnce(stoppingToken);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex) when (
+                stoppingToken.IsCancellationRequested &&
+                ex.CancellationToken == stoppingToken)
             {
                 // shutdown
             }

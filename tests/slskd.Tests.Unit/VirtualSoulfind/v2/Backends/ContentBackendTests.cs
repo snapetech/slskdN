@@ -3,8 +3,11 @@
 // </copyright>
 namespace slskd.Tests.Unit.VirtualSoulfind.v2.Backends
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Moq;
+    using slskd.Tests.Unit;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.v2.Backends;
     using slskd.VirtualSoulfind.v2.Sources;
@@ -88,6 +91,34 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Backends
             // Assert
             Assert.False(result.IsValid);
             Assert.Equal("noop_backend", result.InvalidityReason);
+        }
+
+        [Fact]
+        public async Task S3Backend_ValidationPropagatesCallerCancellation()
+        {
+            var backend = new S3Backend(
+                new TestOptionsMonitor<S3BackendOptions>(new S3BackendOptions
+                {
+                    Enabled = true,
+                    Endpoint = "http://127.0.0.1:1",
+                    AccessKey = "test-access-key",
+                    SecretKey = "test-secret-key",
+                }),
+                Mock.Of<ISourceRegistry>());
+            var candidate = new SourceCandidate
+            {
+                Id = Guid.NewGuid().ToString(),
+                ItemId = ContentItemId.NewId(),
+                Backend = ContentBackendType.S3,
+                BackendRef = "s3://test-bucket/test-object",
+                TrustScore = 0.8f,
+                ExpectedQuality = 0.9f,
+            };
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => backend.ValidateCandidateAsync(candidate, cancellation.Token));
         }
 
         [Fact]

@@ -12,6 +12,28 @@ using Xunit;
 
 public class ContentSafetyTests
 {
+    [Fact]
+    public async Task VerifyFileAsync_PropagatesCallerCancellation()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"slskdn-content-safety-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        var filePath = Path.Combine(root, "cancelled.flac");
+        await File.WriteAllBytesAsync(filePath, new byte[] { 0x66, 0x4C, 0x61, 0x43 });
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        try
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => ContentSafety.VerifyFileAsync(filePath, cancellation.Token));
+            Assert.True(File.Exists(filePath));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData(".flac", new byte[] { 0x66, 0x4C, 0x61, 0x43, 0x00 }, "FLAC audio")]
     [InlineData(".mp3", new byte[] { 0x49, 0x44, 0x33, 0x04, 0x00 }, "MP3 ID3v2 tag")]

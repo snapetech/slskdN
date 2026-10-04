@@ -4,6 +4,9 @@
 namespace slskd.Tests.Unit.SocialFederation
 {
     using System;
+    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
@@ -22,6 +25,7 @@ namespace slskd.Tests.Unit.SocialFederation
         private readonly Mock<IActivityPubKeyStore> _keyStoreMock = new();
         private readonly Mock<ILogger<LibraryActorService>> _loggerMock = new();
         private readonly ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
+        private readonly Mock<IMusicContentDomainProvider> _musicProviderMock = new();
         private readonly MusicLibraryActor _musicActor;
 
         public LibraryActorServiceTests()
@@ -34,11 +38,10 @@ namespace slskd.Tests.Unit.SocialFederation
                 BaseUrl = "https://example.com"
             });
 
-            var musicProviderMock = new Mock<IMusicContentDomainProvider>();
             _musicActor = new MusicLibraryActor(
                 _federationOptionsMock.Object,
                 _keyStoreMock.Object,
-                musicProviderMock.Object,
+                _musicProviderMock.Object,
                 _loggerFactory.CreateLogger<MusicLibraryActor>());
         }
 
@@ -160,6 +163,33 @@ namespace slskd.Tests.Unit.SocialFederation
             var availableActors = service.AvailableActors;
             Assert.DoesNotContain("music", availableActors.Keys);
             Assert.Empty(availableActors);
+        }
+
+        [Fact]
+        public async Task GetRecentActivitiesAsync_PropagatesMusicProviderFailure()
+        {
+            var expected = new InvalidOperationException("HashDb unavailable");
+            _musicProviderMock
+                .Setup(provider => provider.GetRecentItemsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(expected);
+
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _musicActor.GetRecentActivitiesAsync());
+
+            Assert.Same(expected, actual);
+        }
+
+        [Fact]
+        public async Task GetRecentActivitiesAsync_PropagatesMusicProviderCancellation()
+        {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            _musicProviderMock
+                .Setup(provider => provider.GetRecentItemsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromCanceled<IReadOnlyList<MusicItem>>(cancellation.Token));
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => _musicActor.GetRecentActivitiesAsync(cancellationToken: cancellation.Token));
         }
     }
 }

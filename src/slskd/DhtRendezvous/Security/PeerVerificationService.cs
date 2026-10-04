@@ -133,6 +133,10 @@ public sealed class PeerVerificationService
             _logger.LogWarning("Verification timed out for {Username}", OverlayLogSanitizer.Username(claimedUsername));
             return VerificationResult.Failed("Verification timed out");
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("Verification timed out for {Username}", OverlayLogSanitizer.Username(claimedUsername));

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -81,7 +82,9 @@ public class PeerResolutionService : IPeerResolutionService
             {
                 var normalizedUsername = metadata.Username.Trim();
                 var metadataPeerId = string.IsNullOrWhiteSpace(metadata.PeerId) ? normalizedPeerId : metadata.PeerId.Trim();
-                var parsedEndpoint = metadata.Endpoint != null ? ParseEndpoint(metadata.Endpoint) : null;
+                var parsedEndpoint = metadata.Endpoint != null
+                    ? await ParseEndpointAsync(metadata.Endpoint, ct).ConfigureAwait(false)
+                    : null;
 
                 // Cache the mapping
                 lock (mappingsLock)
@@ -105,7 +108,7 @@ public class PeerResolutionService : IPeerResolutionService
             logger.LogDebug("[PeerResolution] No mapping found for peer {PeerId}, using peer ID as username", normalizedPeerId);
             return normalizedPeerId;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "[PeerResolution] Error resolving peer {PeerId} to username", normalizedPeerId);
 
@@ -151,7 +154,7 @@ public class PeerResolutionService : IPeerResolutionService
 
             if (metadata != null && !string.IsNullOrWhiteSpace(metadata.Endpoint))
             {
-                var endpoint = ParseEndpoint(metadata.Endpoint);
+                var endpoint = await ParseEndpointAsync(metadata.Endpoint, ct).ConfigureAwait(false);
                 if (endpoint != null)
                 {
                     var metadataPeerId = string.IsNullOrWhiteSpace(metadata.PeerId) ? normalizedPeerId : metadata.PeerId.Trim();
@@ -184,7 +187,7 @@ public class PeerResolutionService : IPeerResolutionService
             logger.LogDebug("[PeerResolution] No endpoint found for peer {PeerId}", normalizedPeerId);
             return null;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "[PeerResolution] Error resolving peer {PeerId} to endpoint", normalizedPeerId);
             return null;
@@ -217,76 +220,84 @@ public class PeerResolutionService : IPeerResolutionService
             normalizedPeerId, normalizedUsername, endpoint?.ToString() ?? "none");
     }
 
-    private static IPEndPoint? ParseEndpoint(string endpointString)
+    private static async Task<IPEndPoint?> ParseEndpointAsync(string endpointString, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(endpointString))
         {
             return null;
         }
 
+        // Support formats: "ip:port", "[ipv6]:port", "udp://ip:port", "tcp://ip:port"
+        var normalized = endpointString.Trim();
+        if (normalized.StartsWith("udp://", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized["udp://".Length..];
+        }
+        else if (normalized.StartsWith("tcp://", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized["tcp://".Length..];
+        }
+
+        string hostPart;
+        string portPart;
+        if (normalized.StartsWith("[", StringComparison.Ordinal))
+        {
+            var closingBracketIndex = normalized.IndexOf(']');
+            if (closingBracketIndex <= 1 ||
+                closingBracketIndex + 2 >= normalized.Length ||
+                normalized[closingBracketIndex + 1] != ':')
+            {
+                return null;
+            }
+
+            hostPart = normalized[1..closingBracketIndex];
+            portPart = normalized[(closingBracketIndex + 2)..];
+        }
+        else
+        {
+            var separatorIndex = normalized.LastIndexOf(':');
+            if (separatorIndex <= 0 || separatorIndex == normalized.Length - 1)
+            {
+                return null;
+            }
+
+            hostPart = normalized[..separatorIndex];
+            portPart = normalized[(separatorIndex + 1)..];
+        }
+
+        if (!int.TryParse(portPart, out var port) || port is <= 0 or > ushort.MaxValue)
+        {
+            return null;
+        }
+
+        if (IPAddress.TryParse(hostPart, out var ip))
+        {
+            return new IPEndPoint(ip, port);
+        }
+
+        var hostname = hostPart.Trim();
+        if (string.IsNullOrWhiteSpace(hostname))
+        {
+            return null;
+        }
+
+        IPAddress[] addresses;
         try
         {
-            // Support formats: "ip:port", "[ipv6]:port", "udp://ip:port", "tcp://ip:port"
-            var normalized = endpointString.Trim();
-            if (normalized.StartsWith("udp://", StringComparison.OrdinalIgnoreCase))
-            {
-                normalized = normalized["udp://".Length..];
-            }
-            else if (normalized.StartsWith("tcp://", StringComparison.OrdinalIgnoreCase))
-            {
-                normalized = normalized["tcp://".Length..];
-            }
-
-            string hostPart;
-            string portPart;
-            if (normalized.StartsWith("[", StringComparison.Ordinal))
-            {
-                var closingBracketIndex = normalized.IndexOf(']');
-                if (closingBracketIndex <= 1 ||
-                    closingBracketIndex + 2 >= normalized.Length ||
-                    normalized[closingBracketIndex + 1] != ':')
-                {
-                    return null;
-                }
-
-                hostPart = normalized[1..closingBracketIndex];
-                portPart = normalized[(closingBracketIndex + 2)..];
-            }
-            else
-            {
-                var separatorIndex = normalized.LastIndexOf(':');
-                if (separatorIndex <= 0 || separatorIndex == normalized.Length - 1)
-                {
-                    return null;
-                }
-
-                hostPart = normalized[..separatorIndex];
-                portPart = normalized[(separatorIndex + 1)..];
-            }
-
-            if (IPAddress.TryParse(hostPart, out var ip) &&
-                int.TryParse(portPart, out var port) &&
-                port is > 0 and <= ushort.MaxValue)
-            {
-                return new IPEndPoint(ip, port);
-            }
-
-            if (int.TryParse(portPart, out port) && port is > 0 and <= ushort.MaxValue)
-            {
-                var resolved = Dns.GetHostAddresses(hostPart.Trim())
-                    .FirstOrDefault(address => address.AddressFamily is System.Net.Sockets.AddressFamily.InterNetwork or System.Net.Sockets.AddressFamily.InterNetworkV6);
-                if (resolved != null)
-                {
-                    return new IPEndPoint(resolved, port);
-                }
-            }
+            addresses = await Dns.GetHostAddressesAsync(hostname, cancellationToken).ConfigureAwait(false);
         }
-        catch
+        catch (SocketException)
         {
-            // Invalid format
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            return null;
         }
 
-        return null;
+        var resolved = addresses.FirstOrDefault(address =>
+            address.AddressFamily is AddressFamily.InterNetwork or AddressFamily.InterNetworkV6);
+        return resolved == null ? null : new IPEndPoint(resolved, port);
     }
 
     private class PeerMapping

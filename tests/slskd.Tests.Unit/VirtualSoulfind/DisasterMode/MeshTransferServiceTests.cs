@@ -9,6 +9,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.HashDb;
@@ -87,6 +88,59 @@ public class MeshTransferServiceTests : IDisposable
         Assert.False(File.Exists(targetPath));
         var quarantinedPath = Assert.Single(Directory.GetFiles(Path.Combine(_tempRoot, ".quarantine")));
         Assert.Equal(1024, new FileInfo(quarantinedPath).Length);
+    }
+
+    [Fact]
+    public async Task StartTransferAsync_WhenCancelledAfterContentScan_DoesNotPublishStagedOutput()
+    {
+        string? transferId = null;
+        MeshTransferService? service = null;
+        var logger = new CallbackLogger<MeshTransferService>((level, message) =>
+        {
+            if (level == LogLevel.Warning && message.Contains("Content verification", StringComparison.Ordinal) && transferId != null)
+            {
+                service!.CancelTransferAsync(transferId, CancellationToken.None).GetAwaiter().GetResult();
+            }
+        });
+        service = new MeshTransferService(
+            logger,
+            new global::slskd.Tests.Unit.TestOptionsMonitor<global::slskd.Options>(new global::slskd.Options
+            {
+                Directories = new global::slskd.Options.DirectoriesOptions
+                {
+                    Downloads = _tempRoot
+                },
+                Security = new global::slskd.Common.Security.SecurityOptions
+                {
+                    ContentSafety = new global::slskd.Common.Security.ContentSafetyOptions
+                    {
+                        VerifyMagicBytes = true,
+                        QuarantineSuspicious = false,
+                    }
+                }
+            }),
+            _shadowIndex.Object,
+            _scenePeerDiscovery.Object,
+            _hashDb.Object);
+        var targetPath = Path.Combine(_tempRoot, "cancelled.mp3");
+
+        transferId = await service.StartTransferAsync(
+            peerId: "peer-a",
+            fileHash: string.Empty,
+            fileSize: 1024,
+            targetPath: targetPath,
+            ct: CancellationToken.None);
+
+        var status = await WaitForTerminalStatusAsync(service, transferId);
+
+        Assert.NotNull(status);
+        Assert.Equal(MeshTransferState.Cancelled, status!.State);
+        Assert.False(File.Exists(targetPath));
+        await WaitForStagedCleanupAsync();
+        Assert.Empty(Directory.Exists(Path.Combine(_tempRoot, ".partial"))
+            ? Directory.GetFiles(Path.Combine(_tempRoot, ".partial"), "*", SearchOption.AllDirectories)
+            : Array.Empty<string>());
+        service.Dispose();
     }
 
     [Fact]
@@ -184,12 +238,15 @@ public class MeshTransferServiceTests : IDisposable
     }
 
     private async Task<MeshTransferStatus?> WaitForTerminalStatusAsync(string transferId)
+        => await WaitForTerminalStatusAsync(_service, transferId);
+
+    private static async Task<MeshTransferStatus?> WaitForTerminalStatusAsync(MeshTransferService service, string transferId)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
 
         while (DateTimeOffset.UtcNow < deadline)
         {
-            var status = await _service.GetTransferStatusAsync(transferId, CancellationToken.None);
+            var status = await service.GetTransferStatusAsync(transferId, CancellationToken.None);
             if (status is { State: MeshTransferState.Completed or MeshTransferState.Failed or MeshTransferState.Cancelled })
             {
                 return status;
@@ -201,9 +258,44 @@ public class MeshTransferServiceTests : IDisposable
         throw new TimeoutException($"Transfer {transferId} did not reach a terminal state.");
     }
 
+    private async Task WaitForStagedCleanupAsync()
+    {
+        var partialRoot = Path.Combine(_tempRoot, ".partial");
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+
+        while (Directory.Exists(partialRoot) && Directory.GetFiles(partialRoot, "*", SearchOption.AllDirectories).Length > 0)
+        {
+            if (DateTimeOffset.UtcNow >= deadline)
+            {
+                throw new TimeoutException("Mesh transfer did not remove its staged file.");
+            }
+
+            await Task.Delay(10);
+        }
+    }
+
     private static string ComputeZeroFileHash(int fileSize)
     {
         var bytes = new byte[fileSize];
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    }
+
+    private sealed class CallbackLogger<T> : ILogger<T>
+    {
+        private readonly Action<LogLevel, string> _callback;
+
+        public CallbackLogger(Action<LogLevel, string> callback)
+        {
+            _callback = callback;
+        }
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => NullLogger.Instance.BeginScope(state);
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            => _callback(logLevel, formatter(state, exception));
     }
 }

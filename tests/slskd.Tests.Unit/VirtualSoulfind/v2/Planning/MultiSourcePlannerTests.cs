@@ -506,5 +506,68 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Planning
                 provider => provider.CheckContentIdAsync(trackId, It.IsAny<CancellationToken>()),
                 Times.Once);
         }
+
+        [Fact]
+        public async Task CreatePlan_WhenCallerCancelsBackendQuery_PropagatesAndSkipsLaterBackends()
+        {
+            using var catalogueStore = new InMemoryCatalogueStore();
+            var trackId = ContentItemId.NewId().ToString();
+            var now = DateTimeOffset.UtcNow;
+            await catalogueStore.UpsertTrackAsync(new Track
+            {
+                TrackId = trackId,
+                ReleaseId = "release-1",
+                TrackNumber = 1,
+                Title = "Track",
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+
+            using var cancellation = new CancellationTokenSource();
+            var itemId = ContentItemId.Parse(trackId);
+            var canceledBackend = new Mock<IContentBackend>();
+            canceledBackend.SetupGet(backend => backend.SupportedDomain).Returns(ContentDomain.Music);
+            canceledBackend
+                .Setup(backend => backend.FindCandidatesAsync(itemId, It.IsAny<CancellationToken>()))
+                .Returns((ContentItemId _, CancellationToken _) =>
+                {
+                    cancellation.Cancel();
+                    return Task.FromCanceled<IReadOnlyList<SourceCandidate>>(cancellation.Token);
+                });
+
+            var laterBackend = new Mock<IContentBackend>();
+            laterBackend.SetupGet(backend => backend.SupportedDomain).Returns(ContentDomain.Music);
+            laterBackend
+                .Setup(backend => backend.FindCandidatesAsync(itemId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<SourceCandidate>());
+
+            var sourceRegistry = new InMemorySourceRegistry();
+            var reputationStore = new Mock<IPeerReputationStore>();
+            reputationStore
+                .Setup(store => store.IsPeerBannedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            var planner = new MultiSourcePlanner(
+                catalogueStore,
+                sourceRegistry,
+                [canceledBackend.Object, laterBackend.Object],
+                new NoopModerationProvider(),
+                new PeerReputationService(Mock.Of<ILogger<PeerReputationService>>(), reputationStore.Object));
+            var desiredTrack = new DesiredTrack
+            {
+                Domain = ContentDomain.Music,
+                DesiredTrackId = "desired-1",
+                TrackId = trackId,
+                Priority = IntentPriority.Normal,
+                Status = IntentStatus.Pending,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => planner.CreatePlanAsync(desiredTrack, cancellationToken: cancellation.Token));
+            laterBackend.Verify(
+                backend => backend.FindCandidatesAsync(itemId, It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
     }
 }

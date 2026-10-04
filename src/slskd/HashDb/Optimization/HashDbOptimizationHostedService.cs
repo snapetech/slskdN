@@ -84,14 +84,7 @@ public sealed class HashDbOptimizationHostedService : IHostedService, IDisposabl
 
         if (_startupOptimizationTask != null)
         {
-            try
-            {
-                await _startupOptimizationTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected during shutdown.
-            }
+            await _startupOptimizationTask.ConfigureAwait(false);
         }
 
         _startupOptimizationTask = null;

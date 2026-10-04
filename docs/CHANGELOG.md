@@ -57,6 +57,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Derive the PPA signing fingerprint from the imported key and verify
   unattended signing before building source packages.
 
+### Runtime reliability
+
+- Preserve cancellation and cleanup across library, mesh, Pod, stream, relay,
+  and multi-source transfer work; fail closed when probe budgets or schema
+  state cannot be trusted, and report bounded swarm queue rejection accurately.
+- Keep automatic LAN advertising off unless an operator enables it.
+
 ## [2026100314-slskdn.335] — 2026-10-03
 
 ### Linux installation

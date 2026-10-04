@@ -51,7 +51,7 @@ public class CircuitMaintenanceService : BackgroundService
                 await PerformMaintenanceAsync(stoppingToken);
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); // Run every 5 minutes
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 // Expected when stopping
                 break;

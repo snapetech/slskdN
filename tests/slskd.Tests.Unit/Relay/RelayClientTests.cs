@@ -157,6 +157,64 @@ public class RelayClientTests
         }
     }
 
+    [Fact]
+    public async Task HandleNotifyFileDownloadCompleted_WhenRelayStopsAfterCopy_DoesNotPublishStagedFile()
+    {
+        var downloadsRoot = Path.Combine(Path.GetTempPath(), $"slskdn-relay-cancel-{System.Guid.NewGuid():N}");
+        Directory.CreateDirectory(downloadsRoot);
+        var filename = "relay-cancelled.mp3";
+        var destinationPath = Path.Combine(downloadsRoot, filename);
+        using var relayLifetime = new CancellationTokenSource();
+        var handler = new RelayDownloadCancellationHandler(new byte[] { 0x49, 0x44, 0x33, 0x04 }, relayLifetime);
+        var httpClientFactory = new Mock<IHttpClientFactory>();
+        httpClientFactory
+            .Setup(factory => factory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName))
+            .Returns(() => new HttpClient(handler));
+
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options
+        {
+            Directories = new Options.DirectoriesOptions { Downloads = downloadsRoot },
+            Relay = new Options.RelayOptions
+            {
+                Mode = RelayMode.Agent.ToString().ToLowerInvariant(),
+                Controller = new Options.RelayOptions.RelayControllerConfigurationOptions
+                {
+                    Address = "http://relay.example",
+                    ApiKey = "1234567890abcdef",
+                    Secret = "1234567890abcdef",
+                    Downloads = true
+                }
+            }
+        });
+        var client = new RelayClient(Mock.Of<IShareService>(), new FileService(optionsMonitor), optionsMonitor, httpClientFactory.Object);
+        SetStartCancellationTokenSource(client, relayLifetime);
+
+        try
+        {
+            var method = typeof(RelayClient).GetMethod("HandleNotifyFileDownloadCompleted", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+            await (Task)method!.Invoke(client, new object[] { filename, System.Guid.NewGuid() })!;
+
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var partialRoot = Path.Combine(downloadsRoot, ".partial");
+            while (!relayLifetime.IsCancellationRequested ||
+                   (Directory.Exists(partialRoot) && Directory.GetFiles(partialRoot, "*", SearchOption.AllDirectories).Length > 0))
+            {
+                await Task.Delay(10, timeout.Token);
+            }
+
+            Assert.False(File.Exists(destinationPath));
+            Assert.Empty(Directory.Exists(partialRoot)
+                ? Directory.GetFiles(partialRoot, "*", SearchOption.AllDirectories)
+                : Array.Empty<string>());
+        }
+        finally
+        {
+            client.Dispose();
+            Directory.Delete(downloadsRoot, recursive: true);
+        }
+    }
+
     private sealed class RelayDownloadHandler : HttpMessageHandler
     {
         private readonly byte[] content;
@@ -172,6 +230,103 @@ public class RelayClientTests
             {
                 Content = new ByteArrayContent(content)
             });
+        }
+    }
+
+    private sealed class RelayDownloadCancellationHandler : HttpMessageHandler
+    {
+        private readonly byte[] _content;
+        private readonly CancellationTokenSource _cancellation;
+
+        public RelayDownloadCancellationHandler(byte[] content, CancellationTokenSource cancellation)
+        {
+            _content = content;
+            _cancellation = cancellation;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new System.Net.Http.StreamContent(new CancellationOnEofStream(_content, _cancellation))
+            });
+    }
+
+    private sealed class CancellationOnEofStream : Stream
+    {
+        private readonly MemoryStream _inner;
+        private readonly CancellationTokenSource _cancellation;
+
+        public CancellationOnEofStream(byte[] content, CancellationTokenSource cancellation)
+        {
+            _inner = new MemoryStream(content, writable: false);
+            _cancellation = cancellation;
+        }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => _inner.Length;
+
+        public override long Position
+        {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => throw new NotSupportedException();
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var read = _inner.Read(buffer, offset, count);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            => ReadAsyncMemory(buffer, cancellationToken);
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            => ReadAsyncArray(buffer, offset, count, cancellationToken);
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private async ValueTask<int> ReadAsyncMemory(Memory<byte> buffer, CancellationToken cancellationToken)
+        {
+            var read = await _inner.ReadAsync(buffer, cancellationToken);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        private async Task<int> ReadAsyncArray(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            var read = await _inner.ReadAsync(buffer, offset, count, cancellationToken);
+            CancelAtEndOfStream(read);
+            return read;
+        }
+
+        private void CancelAtEndOfStream(int read)
+        {
+            if (read == 0)
+            {
+                _cancellation.Cancel();
+            }
         }
     }
 

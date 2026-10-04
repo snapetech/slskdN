@@ -287,9 +287,6 @@ public class PodMessageRouter : IPodMessageRouter
                     ErrorMessage: "Message already routed (duplicate)");
             }
 
-            // Mark message as seen
-            RegisterMessageSeen(message.MessageId, podId);
-
             // Get pod members (excluding sender to avoid echo)
             var members = await _podService.GetMembersAsync(podId, cancellationToken);
             var targetPeerIds = members
@@ -299,6 +296,7 @@ public class PodMessageRouter : IPodMessageRouter
 
             if (!targetPeerIds.Any())
             {
+                RegisterMessageSeen(message.MessageId, podId);
                 _logger.LogDebug("[PodMessageRouter] No target peers for message {MessageId} in pod {PodId}", message.MessageId, podId);
                 return new PodMessageRoutingResult(
                     Success: true,
@@ -312,6 +310,10 @@ public class PodMessageRouter : IPodMessageRouter
 
             // Route to all target peers
             var routingResult = await RouteMessageToPeersAsync(message, targetPeerIds, cancellationToken);
+            if (routingResult.Success)
+            {
+                RegisterMessageSeen(message.MessageId, podId);
+            }
 
             // Update statistics
             var duration = DateTimeOffset.UtcNow - startTime;
@@ -331,6 +333,10 @@ public class PodMessageRouter : IPodMessageRouter
             {
                 RoutingDuration = duration
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -383,6 +389,10 @@ public class PodMessageRouter : IPodMessageRouter
                         failedPeers.Add(peerId);
                     }
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -536,6 +546,10 @@ public class PodMessageRouter : IPodMessageRouter
                 _logger.LogWarning("[PodMessageRouter] Failed to route message {MessageId} to peer {PeerId}", message.MessageId, peerId);
                 return false;
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
