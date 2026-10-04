@@ -36260,3 +36260,17 @@ context, report loader failures once with clear incomplete-analysis status,
 and calibrate or disable heuristics that lack semantic evidence before using
 their output as a build gate. Keep the analyzer opt-in until its reported
 findings are reviewed and actionable.
+
+### 0z1462. Compile Shared Analyzer Filtering Paths Before Testing (2026-10-04)
+
+**What went wrong:** The first analyzer repair routed reflection findings
+through a configured-rule filter before the shared filter helper had been
+implemented. The build failed with `CS0103` before the focused tests ran.
+
+**Why:** The source scanner and reflection scanner had separate filtering
+paths, and the refactor introduced a call site without verifying that the
+common helper existed in the build-tools project.
+
+**Prevention:** Keep one implemented rule-resolution helper for both analyzer
+sources, and compile the build-tools project before running its unit tests after
+changing analyzer task flow.
