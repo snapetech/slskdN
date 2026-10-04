@@ -5407,6 +5407,22 @@ process tree and observe the outstanding drain tasks.
 - `src/slskd/Common/Security/Obfs4Transport.cs`
 - `src/slskd/MediaCore/PerceptualHasher.cs`
 
+### 0z1557. Test Public Helpers Through Their Declaring Type (2026-10-04)
+
+**What went wrong:** A new process regression test called
+`ExtractPcmSamplesAsync` through `PerceptualHasher`, but the helper is declared
+on the adjacent `AudioUtilities` type. The focused test project failed to
+compile before the regression could run.
+
+**Why:** The helper's implementation shares `PerceptualHasher.cs`, but the file
+defines two separate top-level types. File proximity was mistaken for type
+ownership.
+
+**Prevention:** Check the declaration and containing type with `rg` or source
+navigation before adding tests for helpers, especially in files with multiple
+top-level types. Compile the focused test project immediately after adding a
+test.
+
 ### 0z853. Project Lidarr GET Resources Into Manual-Import Command Files
 
 **The Bug**: The Lidarr integration posted `ManualImportResource` objects from
