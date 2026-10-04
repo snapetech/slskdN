@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Automatic LAN mDNS advertising is now opt-in through
+  `lan_discovery.advertise: true` and defaults off. Nearby-peer browsing
+  remains user-triggered.
+- Torrent acquisition is configurable under `virtualSoulfindV2.backends.torrent`
+  and stays disabled by default. Private mode removes tracker/web-seed metadata,
+  disables DHT/PEX, and only admits configured overlay or invite-list peers.
+  Cross-peer fallback requests are rejected until the sender and job-cancellation
+  lifecycle is integrated. Signal requests are checked against the exact
+  variant bound to the referenced job before policy evaluation or manager
+  startup.
+- MonoTorrent now uses 3.9.0-alpha.unstable.rev0000 with its .NET 8 package
+  asset, which NuGet selects as compatible for this .NET 10 application.
+
 ### Added
 
 - Wishlist auto-download now validates Lidarr-synced candidates against the
@@ -19,6 +34,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Resolver cancellation now reports a canceled execution instead of a failed
+  candidate, and canceled torrent fetches stop and remove their active manager.
+- Experimental swarm downloads now keep caller job IDs out of filesystem
+  paths, stop after three failed chunk attempts, clean per-job chunk data, and
+  stream verified chunks into an atomically published output.
+- Full swarm job queues now report rejection to the caller instead of
+  returning success for a discarded job.
+- Cover-traffic workers now use the same bounded stop path during disposal and
+  keep their cancellation resources alive until an in-flight send finishes.
+- Mesh cover-traffic iterators now observe generator disposal, so configuration
+  replacement cancels pending reads before the old generator is released.
+- Private-gateway shutdown now retains cancellation resources until a cleanup
+  worker that exceeds its join timeout has finished.
+- Scene pubsub shutdown now retains cancellation resources when a DHT poll
+  exceeds its join timeout, then releases them and reports late worker faults
+  after polling stops.
+- Multi-source downloads now propagate caller cancellation, drain per-chunk
+  speed monitors, remove temporary chunks on failure, and balance active-work
+  metrics across all accepted-job outcomes.
+- Final fingerprint verification now propagates caller cancellation instead of
+  turning an interrupted verification into an unverified successful download.
+- Content-safety scans now propagate cancellation through pod, share-backfill,
+  mesh, relay, Soulseek, and multi-source download paths. Canceled staged files
+  are cleaned up instead of being published or reported as ordinary failures.
+- Optional source planning, private-gateway requests, and profile loading now
+  preserve caller cancellation instead of continuing fallback work or returning
+  a service error; profile hostname discovery is asynchronous and cancellable.
+- Signal-bus and stream-response cleanup now retain resources until active work
+  finishes, invoke stream release callbacks once across sync and async disposal,
+  and surface callback failures after wrapped-stream cleanup.
+- Local port forwarding now rejects starts after disposal, closes tunnel opens
+  that complete during shutdown, propagates connection cancellation through
+  mesh requests, and supports asynchronous cleanup that waits for real worker
+  completion.
+- Music ActivityPub outbox reads now report HashDb failures and cancellation
+  instead of returning a successful empty collection.
+- Peer endpoint resolution now preserves DHT and DNS cancellation and performs
+  hostname lookup asynchronously.
+- Pod message routing now propagates caller cancellation and leaves interrupted
+  fan-outs retryable instead of marking them as already delivered.
+- Library item lookup and hashing now stop cleanly when the request is canceled,
+  instead of returning partial metadata from fallback paths.
+- Soulseek verification now skips probes whenever the persisted per-peer budget
+  cannot be safely loaded or saved, and caller cancellation propagates through
+  HashDb lookups, probe downloads, and source discovery.
+- Collection database upgrades now check for missing columns explicitly and
+  stop startup on real schema errors instead of hiding them as already-applied
+  migrations.
 - Player file browsing and search now resolve each directory/filename instead
   of treating a Soulseek format code as a unique file ID. Explicit file-picker
   searches can play configured local downloads before indexing, with no file
@@ -27,6 +90,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Player playback-status announcements now coalesce rapid state changes so
   screen readers can speak track-start, pause/resume, and stop updates in
   Firefox as well as Chromium.
+- Equalizer gain sliders expose their vertical orientation and use consistent
+  Up/Right increase and Down/Left decrease keys across browsers.
+- Player keyboard focus rings now maintain at least 3:1 contrast across every
+  built-in dark palette and the four dark Player surfaces.
+- PPA source builds now derive and preflight the signing fingerprint from the
+  imported secret key, so key rotation cannot leave `debuild` using a stale
+  fingerprint.
+- Listening-party publication now rejects active Party ID collisions across
+  observed rooms and checks the DHT owner before a room first lists that ID.
+  A `party_id_in_use` conflict tells the browser to start again with a fresh ID.
+- Player document close now sends a best-effort fenced Stop, and the server
+  withdraws room state and the radio index when a host lease expires, retrying
+  transient cleanup failures without a periodic idle sweep.
+- Listening-party playback now catches up active Play and Seek positions for
+  time spent before server receipt and while updates are in transit; paused
+  positions remain exact, and the server correction is capped at ten seconds.
+- Returning to a visible Player tab now publishes one current Play/Pause
+  position for active room broadcasts, letting listeners resynchronize without
+  periodic host polling.
+- A static loading message and reload action remain available when the web
+  application fails before React mounts.
+- Application runtime packages no longer include the unused Roslyn compiler
+  assemblies; the optional source-analysis task stays in the dedicated tooling
+  project.
 - Collapse remains available while player tools are closed. Narrow compact
   layouts retain readable titles; expanded mobile controls have 44-pixel
   minimum touch targets.

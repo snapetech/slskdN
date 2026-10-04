@@ -54,9 +54,13 @@
 
 ### Stable release `.335` PPA follow-up — 2026-10-03
 
-- [ ] Diagnose the `.335` Launchpad signing failure (`debuild` reported no
-  secret key after the import step) and restore successful source publication
-  before the next stable release.
+- [x] Diagnose and fix the `.335` Launchpad signing failure (`debuild` used a
+  stale hard-coded fingerprint after key import). Both PPA workflows now use
+  the imported primary fingerprint after an unattended sign/verify preflight;
+  the isolated-key smoke test passes and is part of the remediation baseline.
+- [ ] Verify Launchpad accepts the corrected source package on the next
+  explicitly authorized stable release. The `.335` artifact is immutable and
+  was not rebuilt or republished.
 
 ### High Priority
 
@@ -231,11 +235,14 @@
     streaming; no duplicate umbrella wrapper was added. Descriptor-count
     coverage now checks transfer discovery and SongID registrations, preserves
     the documented Mesh/DHT defaults, and verifies the multi-source rescue
-    worker gate. `BUG-20261003-182` records the terminal-transfer cancellation
-    race fix; its release fragment and changelog entry are present.
-    Full validation passed: .NET 74 application, 5,404 unit, and 285
-    integration tests; focused registration tests (8/8), `./bin/lint`,
-    release-note tests and preview, and `git diff --check`.
+    worker gate. A composed-graph audit removed duplicate single-owner
+    descriptors for transport policy, NAT traversal, IPld mapping and fuzzy
+    matching; `BUG-20261003-184` covers the regression test.
+    `BUG-20261003-182` records the terminal-transfer cancellation race fix; its
+    release fragment and changelog entry are present.
+    Full validation passed: .NET 74 application, 5,405 unit, and 285
+    integration tests; focused experimental-graph registration test (1/1),
+    `./bin/lint`, release-note tests and preview, and `git diff --check`.
     The Player audit now has captured Linux Orca/Chromium and Orca/Firefox
     speech for playback status, 99% volume, and 1 dB equalizer changes. Both
     full profiles pass 2/2: Chromium captured 25 active PCM windows; Firefox
@@ -245,11 +252,45 @@
     now coalesces those transitions and lets transport-label updates settle.
     The runner preserves the host PulseAudio address across its private
     runtime-directory override, bounds its speech preflight, and applies a
-    suite-specific PCM floor. WebKit could not launch because this host lacks
-    its Playwright runtime dependencies. WebKit speech, other reader/browser
-    pairings, and physical assistive technology remain open. Release-note
-    fragment `20261003-player-accessible-playback-status.md` records the
-    user-facing change. The broad initiative remains active.
+    suite-specific PCM floor. Equalizer arrow keys now behave consistently in
+    Chromium, Firefox, and WebKit browser checks. WebKit runs in the pinned
+    Playwright container, but Orca receives a dead WebKitGTK page root and
+    produces no page speech. WebKit speech, other reader/browser pairings, and
+    physical assistive technology remain open. Fragments
+    `20261003-player-accessible-playback-status.md` and
+    `20261003-player-equalizer-keyboard.md` record the user-facing changes.
+    Palette-derived focus rings now meet 3:1 on all four Player surface levels
+    for all 21 dark palettes. The Chromium focus workflow covers Iris, Ember,
+    Classic Dark and Light; BUG-20261003-185 is verified, and
+    `20261003-player-focus-contrast.md` records the visible improvement.
+    Build-time Roslyn source inspection now belongs only to
+    `tools/slskd.BuildTasks`; tests use an aliased tooling reference, the
+    unused unregistered analyzer was removed, and the clean Release publish
+    contains no Roslyn compiler assemblies. ADR-0027 records the boundary and
+    `20261003-roslyn-build-tools.md` documents the smaller runtime package.
+    The MSBuild task packages now match the pinned SDK's 18.9 runtime line; the
+    task builds with 0 warnings. Static-analysis, coverage and regression
+    targets no longer bind a nonexistent `ExitCode`, and the analyzer's
+    warning path no longer throws while formatting. Ten focused tests pass.
+    The opt-in `RunStaticAnalysis=true` target now loads 6,865 application
+    types, completes without dependency warnings, and reports 131 advisory
+    warnings (0 errors): 16 syntactically identified Task/ValueTask blocking
+    calls, 5 dangerous-API call-site, and 110
+    empty-catch findings. Removed 23 name-only reflection findings that marked
+    generated `Deserialize` formatters and inherited `DangerousGetHandle` as
+    dangerous without inspecting call sites or input flow. The blocking-call
+    rule now filters MVC `Result` properties and zero-timeout waits, and
+    excludes generic task-producing `Wait<T>` helpers. Empty catches with
+    explicit exception filters are excluded. Keyword-only SQL
+    interpolation detection is disabled by default because it reports
+    parameter-placeholder composition without resolving SQL execution sinks
+    or value flow. The null-check,
+    cancellation-token, parameter-name, string-loop, and design-count
+    heuristics that lack semantic evidence are also disabled. Full `dotnet test`
+    passes (74 application, 5,430 unit, 285 integration) and `./bin/lint`
+    passes. This remains diagnostic-only; review of the remaining warnings is
+    tracked in `docs/dev/40-fixes-plan.md`.
+    The broad initiative remains active.
     The isolated Player radio runner now verifies a listed stream stays active
     during reciprocal 16 MiB Soulseek transfers, with both upload/download
     counters reaching 16 MiB on each node under 128 KiB/s caps. A repeated
@@ -257,10 +298,143 @@
     206 range after the active stream is released. The local workflow passes
     1/1; its first run exposed a test-ordering mistake against the deliberate
     one-stream cap, recorded as gotcha `0z1433` in docs-only commit
-    `c2f35dc01`. WAN behavior remains unverified.
+    `c2f35dc01`. WAN behavior remains unverified. The Vite config now has an
+    explicit `.mjs` extension so native config loading recognizes its ESM
+    syntax, and its advisory threshold matches the existing bundle guard's
+    lazy MilkDrop preset exception. Build, bundle guard, build-output check,
+    E2E types, Web lint, and all 1,232 Web tests pass without the config-loader
+    or large-preset warnings.
+    Startup mDNS now requires the separate default-off
+    `lan_discovery.advertise` option in addition to Identity/Friends API
+    availability; manual Nearby browsing remains user-triggered. Metrics and
+    tracing are confirmed default-off, with metrics authentication enabled by
+    default. ADR-0030 and gotcha `0z1479` record the boundary; focused backend
+    regressions pass 27/27; full .NET passes 74 application, 5,434 unit, and
+    285 integration tests, and `./bin/lint` passes. The release fragment
+    validates.
+  - [x] 2026-10-04 Filter deleted-but-tracked source paths in the active
+    council scan, refresh candidate counts, and pass the backlog/count/registry
+    checks. Gotcha `0z1480` records why the scanner must filter missing files.
+  - [x] 2026-10-04 Fix both cover-traffic disposal races. Common cover-traffic
+    disposal now follows the bounded worker-stop path and preserves resources
+    through late sends; Mesh async iterators link caller cancellation to
+    generator disposal so configuration replacement cancels pending reads.
+    Gotchas `0z1481` and `0z1482` record both lifecycle rules. Focused tests
+    pass 23/23; full .NET passes 74 application, 5,438 unit, and 285
+    integration tests; `./bin/lint` passes.
+  - [x] 2026-10-04 Preserve `PrivateGatewayMeshService` cleanup-worker state
+    after its bounded shutdown wait. If cleanup exceeds one second, the
+    cancellation source is released only after the worker finishes, with late
+    faults observed. Gotcha `0z1483` records the repeated lifecycle failure.
+    Full .NET passes 74 application, 5,439 unit, and 285 integration tests;
+    `./bin/lint`, release-fragment parsing, local-identity scanning, and
+    `git diff --check` pass.
+  - Analyzer review: current opt-in run loads 6,886 application types and
+    reports 126 advisory findings (14 blocking-call, 5 dangerous-API, and 107
+    empty-catch). The `ExecuteSqlRaw` schema changes and `FromSqlRaw` share
+    query are fixed schema or parameterized. Remaining call sites and catches
+    still need semantic review; the analyzer remains non-gating.
+  - [x] 2026-10-04 Correct `AsyncRules.ValidateCancellationHandlingAsync()` so
+    completed-before-cancel operations and unrelated/synchronous faults no
+    longer count as cancellation success. Gotcha `0z1484` records the false
+    positive. Focused tests pass 17/17; full .NET passes 74 application,
+    5,442 unit, and 285 integration; `./bin/lint` passes. The analyzer baseline
+    now reports 6,886 types and 129 advisory findings (15/5/109).
+  - [x] 2026-10-04 Replace blocking `DecodeFriendCode()` with
+    `DecodeFriendCodeAsync(CancellationToken)`. The new method propagates
+    cancellation and storage failures; only short or unmatched codes return
+    `null`. Gotcha `0z1485` records the sync-over-async and catch-all failure.
+    Focused identity tests pass 14/14; full .NET passes 74 application,
+    5,443 unit, and 285 integration; `./bin/lint` passes. The analyzer now
+    reports 6,887 types and 128 advisory findings (14/5/109).
+  - [x] 2026-10-04 Preserve music federation outbox failure semantics. HashDb
+    failures and cancellation now propagate through the music provider and
+    actor instead of returning a successful empty outbox; malformed individual
+    items are logged and skipped. Gotcha `0z1486` records the catch-and-empty
+    failure. Focused Social Federation/provider tests pass 20/20; full .NET
+    passes 74 application, 5,447 unit, and 285 integration; `./bin/lint`,
+    release-note tests, local-identity scanning, and `git diff --check` pass.
+    The analyzer reports 6,887 types and 126 advisory findings (14/5/107).
+  - [x] 2026-10-04 Preserve peer-resolution cancellation and remove blocking
+    hostname lookups. DHT and DNS cancellation now propagates through both
+    async resolution methods, and hostname parsing uses cancellation-aware
+    asynchronous DNS. Gotcha `0z1487` records the boundary rule. Focused peer
+    resolution tests pass 13/13; full .NET passes 74 application, 5,450 unit,
+    and 285 integration; `./bin/lint`, release-note tests, local-identity
+    scanning, and `git diff --check` pass. The latest analyzer report remains
+    at 6,887 types and 126 advisory findings (14/5/107).
+  - [x] 2026-10-04 Preserve PodCore message-routing cancellation and retries.
+    Caller cancellation now passes through the per-peer and route boundaries;
+    interrupted fan-outs no longer enter the completed-message deduplication
+    filter. Gotcha `0z1488` was committed separately as `22c981be5`. The
+    focused router suite passes 10/10; full .NET passes 74 application, 5,451
+    unit, and 285 integration; `./bin/lint`, release-note tests,
+    local-identity scanning, and `git diff --check` pass.
+  - [x] 2026-10-04 Fail closed when the persisted Soulseek probe budget cannot
+    be trusted. Missing first-run files remain valid; corrupt/unreadable state
+    or failed atomic writes skip the probe. Persisted usage is shared across
+    verification/discovery paths. Gotcha `0z1492` records the network-health
+    failure; restart, corrupt-state and failed-write regressions verify the
+    remote client is not contacted. Caller cancellation now propagates through
+    HashDb lookup/store, metadata lookup, probe downloads, and source discovery;
+    the expected 32 KB internal cancellation and timeout behavior remain
+    distinct. Gotchas `0z1493` and `0z1496` capture those boundaries; `0z1494`
+    corrects the download-failure regression so it reaches the actual mock.
+    Focused verification tests pass 11/11; full .NET passes 74 application,
+    5,461 unit, and 285 integration. `./bin/lint`, release-note validation,
+    local-identity scanning, and `git diff --check` pass.
+  - [x] 2026-10-04 Harden the orphaned `SwarmDownloadOrchestrator` chunk
+    lifecycle. Caller job IDs no longer shape paths; each chunk gets at most
+    three assignment/download/verification attempts; cancellation drains work;
+    job chunk files are removed; limited async writes are bounded; verified
+    chunk buffers are released and assembled from disk; final output is staged
+    and atomically published. Gotchas `0z1498`–`0z1506` document path,
+    cancellation, retry, stream, file lifetime, memory, and fixture pitfalls.
+    Focused swarm and stream tests pass 24/24; full .NET passes 74 application,
+    5,473 unit, and 285 integration. `./bin/lint`, the 19-fragment release
+    preview/check, release-note tests, local-identity scanning, and
+    `git diff --check` pass.
+  - [x] 2026-10-04 Finish bounded worker shutdown and multi-source transfer
+    cancellation cleanup. Scene pubsub keeps its cancellation state alive until
+    a timed-out DHT poll ends and observes late faults. Multi-source transfers
+    balance active metrics, drain chunk-speed monitors, remove per-job files,
+    propagate cancellation through discovery, fingerprinting and content
+    safety, and check cancellation before publishing staged outputs. Gotchas
+    `0z1510`–`0z1515` record the lifecycle boundaries. The focused safety and
+    transfer test slice passes 48/48; full .NET passes 74 application, 5,480
+    unit, and 285 integration tests. Release preview includes 19 new
+    fragments; release-note tests, identity scanning, async-void guard, council
+    backlog, and whitespace checks pass. `./bin/lint` passed with the known
+    excluded-vendor workspace warning.
+  - [x] 2026-10-04 Close cancellation and shutdown races in planning, profile,
+    gateway, signals, streaming, and local port forwarding. Caller cancellation
+    now survives optional backend fallback and profile/gateway operations;
+    signal-bus cleanup retains worker state after timeouts; response-stream
+    release is atomic across sync/async disposal; port-forwarder startup and
+    late tunnel registration are fenced against disposal, mesh operations take
+    the connection token, mapping completion reflects both worker tasks, and
+    async disposal awaits tunnel cleanup. Gotchas `0z1516`–`0z1527` were
+    recorded in ADR-only commits. Focused stream/forwarder tests pass 42/42;
+    full `dotnet test` passes 74 application, 5,495 unit, and 285 integration;
+    `./bin/lint`, release-note tests and preview (23 fragments), identity
+    scanning, async-void guard, council backlog, and `git diff --check` pass.
+    The latest diagnostic analyzer report covers 6,896 types with 109 findings
+    (14/3/92); semantic review remains open.
+  - [x] 2026-10-04 Make static-analysis findings traceable when source files
+    share a basename. Source diagnostics now report paths relative to the
+    analyzed project. The opt-in report still completes over 6,896 types with
+    78 advisory warnings (14 blocking-call, 3 dangerous-API, 61 empty-catch);
+    semantic review remains open and analysis remains non-gating. The focused
+    analyzer tests pass 16/16; full .NET passes 74 application, 5,512 unit,
+    and 285 integration tests; `./bin/lint` passes with the known excluded-
+    vendor workspace warning. This is internal tooling work; no release
+    fragment is required. Triage of all 78 diagnostics found expected sync
+    API/disposal calls, parameterized or fixed SQL, and cleanup/compatibility/
+    shutdown/fallback catches; none identified a confirmed source defect.
   - Next: continue populated multi-step journeys and the broader remediation.
-    Keep representative WAN radio behavior, physical-device accessibility,
-    and sustained resource measurements open.
+    Keep actual background-tab timer throttling, representative WAN radio
+    behavior, physical-device accessibility, and sustained resource measurements
+    open.
     Route inventory and maturity claims are reconciled; retain the current 51
     experimental classifications until evidence justifies a change. Keep the
     broad initiative active.
@@ -636,8 +810,17 @@
   - Notes: The report shows connections increasing from 13 to 2,259 after
     searches. Early stale-response dropping fixes unnecessary decompression
     and parsing, but does not explain or claim to fix this separate connection
-    metric. Measure connection creation, reuse, and expiry around searches
-    before changing connection lifecycle behavior.
+    metric. Static lifecycle review (2026-10-04) found the app passes its
+    configured peer inactivity timeout (default 60,000 ms) to outbound and
+    incoming peer connections; reads reset the timer, and disconnect handling
+    removes and disposes the cached connection. The manager already emits
+    Debug diagnostics for connection attempts, cache reuse, and disconnects.
+    The report sampled only through about six seconds after search start and
+    had diagnostics disabled, so it cannot establish whether the spike drains
+    after inactivity or indicates a leak. A transient response fan-out is
+    plausible, not confirmed. Measure baseline, one search, then connection
+    counts and Debug lifecycle events through at least 120 seconds before
+    changing connection lifetime or adding a global cap.
 
 - [x] Reassess React 19 compatibility and plan a fresh migration when the Web
   dependency stack has a supported path.
@@ -1067,10 +1250,12 @@
   - Status: completed (2026-08-01)
   - Priority: P1
   - Notes: Documented that most experimental `feature.*` values gate APIs
-    rather than hosted-service lifecycle, identified `feature.IdentityFriends`
-    as the mDNS-startup exception, replaced the nonexistent `mesh.enabled`
-    example, and disclosed independent mesh/DHT/overlay controls, Gold Star
-    enrollment behavior, and current default-on network-visible surfaces.
+    rather than hosted-service lifecycle, replaced the nonexistent
+    `mesh.enabled` example, and disclosed independent mesh/DHT/overlay
+    controls, Gold Star enrollment behavior, and current default-on network
+    surfaces. Follow-up 2026-10-04: Identity/Friends now gates its APIs, while
+    startup mDNS advertising has the independent default-off
+    `lan_discovery.advertise` setting; nearby browsing remains manual.
 
 - [x] Publish and verify stable self-hosted Tailscale relay release `.293`.
   - Status: completed (2026-07-31)
@@ -1196,18 +1381,16 @@
     (`74` application, `4964` unit, `284` integration); full Web passed (`900`
     with `4` skipped), together with the production build and zero-error lint.
 
-- [ ] Upgrade React Router after the server-action CSRF advisory is patched.
-  - Status: blocked on a compatible upstream patched DOM release (2026-08-05)
+- [x] Keep React Router on the patched v7 line for the server-action CSRF advisory.
+  - Status: complete (2026-10-04). The installed tree resolves both
+    `react-router-dom` and `react-router` to `7.18.4`; the advisory now lists
+    `7.18.2` as the first patched v7 release. The app uses client-side
+    `BrowserRouter` APIs and has no unstable RSC/server-action usage. No major
+    migration or lockfile override is needed.
   - Priority: P2
-  - Notes: `react-router-dom` `7.18.2` is the newest published DOM package and
-    the app uses only its client-side `BrowserRouter`/`Routes` APIs. The
-    transitive `react-router` package reports `GHSA-qwww-vcr4-c8h2` only for
-    unstable RSC/server-action mode. Patched core `react-router` `8.3.0`
-    requires React `19.2.7` and Node `22.22`, while a matching
-    `react-router-dom` 8.3.0 package is not published. The registry's suggested
-    downgrade to `7.11.0` restores several older high-severity advisories, so
-    no currently compatible version produces a clean audit. This is recorded
-    as a concrete upstream/migration blocker, not suppressed in the lockfile.
+  - Notes: [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)
+    identifies `7.18.2` as the patched v7 version and limits impact to unstable
+    RSC APIs. The locked `7.18.4` dependency satisfies that fix.
 
 - [x] Publish and verify the multiple-download-destinations release.
   - Status: completed in stable release `2026072416-slskdn.288` (2026-07-24)
@@ -3795,11 +3978,11 @@
 - [x] **T-911**: MediaVariant model and storage — `MediaVariant` (ContentDomain, domain-specific: Audio/Image/Video/GenericFile); `IMediaVariantStore` + `HashDbMediaVariantStore` (Music→HashDb, Image/Video/Generic in-memory); `IHashDbService.GetAudioVariantByFlacKeyAsync`; `ContentDomain` Image/Video; `FromAudioVariant`/`ToAudioVariant`.
 - [x] **T-913**: AudioCore domain module — `slskd.AudioCore` (API boundary doc); `AddAudioCore(IServiceCollection, appDirectory)` registers fingerprinting, HashDb, IMediaVariantStore, ICanonicalStatsService, IDedupeService, IAnalyzerMigrationService, ILibraryHealth, IMusicContentDomainProvider; wired in Program.
 - [x] **T-901**: Ed25519 signed identity system — Design: `docs/research/T-901-ed25519-identity-design.md` (unified model, key lifecycle, alignment); `Ed25519Signer.DerivePeerId` formalized (PeerId = Base32(First20(SHA256(pubkey)))).
-- [x] **T-902**: DHT node and routing table — Design: `docs/research/T-902-dht-node-design.md`. KademliaRoutingTable (160-bit, k-buckets, FIND_NODE); DhtMeshService responds to FindNode, FindValue, Store, Ping; KademliaRpcClient; NodeId from Ed25519 (SHA1); slskdn DHT (BEP 5 GET_PEERS/ANNOUNCE_PEER = FindValue/Store).
+- [x] **T-902**: DHT node and routing table — Design: `docs/research/T-902-dht-node-design.md`. KademliaRoutingTable (160-bit, k-buckets, FIND_NODE); DhtMeshService responds to FindNode, FindValue, Store, Ping; KademliaRpcClient; 160-bit NodeId is the first 20 bytes of SHA-256 over the Ed25519 public key; slskdn DHT (BEP 5 GET_PEERS/ANNOUNCE_PEER = FindValue/Store).
 - [x] **T-903**: DHT storage with TTL and signatures — Design: `docs/research/T-903-dht-storage-design.md`. IDhtClient PUT/GET/GetMultipleAsync, TTL (expiry on read); Store RPC requires Ed25519 (DhtStoreMessage); overlap with shadow index, pods, scenes.
 - [x] **T-906**: Native mesh protocol backend — `IContentBackend` via mesh/DHT only (no Soulseek, no BitTorrent); mesh “get content by ContentId” RPC.
 - [x] **T-907**: HTTP/WebDAV/S3 backend — `ContentBackendType.WebDav`, `WebDavBackend` (registry, domain allowlist, Basic/Bearer, HEAD); `ContentBackendType.S3`, `S3Backend` (registry, s3://bucket/key, HeadObject, AWSSDK.S3, MinIO/B2/AWS). Design: `docs/research/T-907-http-webdav-s3-backend-design.md`.
-- [x] **T-908**: Private BitTorrent backend — Design: `docs/research/T-908-private-bittorrent-backend-design.md`. `TorrentBackendOptions.PrivateMode` (`PrivateTorrentModeOptions`: PrivateOnly, DisableDht, DisablePex, AllowedPeerSources); `PrivatePeerSource` enum. StubBitTorrentBackend replacement and TorrentBackend private logic: follow-up.
+- [x] **T-908 core**: Private BitTorrent backend — `MonoTorrentBitTorrentBackend`, private policy enforcement, candidate validation, and resolver fetch are implemented. Design: `docs/research/T-908-private-bittorrent-backend-design.md`.
 
 ### Low Priority
 
@@ -3840,7 +4023,7 @@
 
 - [x] **T-906 Resolver fetch**: SimpleResolver calls `MeshContent.GetByContentId` via IMeshServiceClient for `mesh:{peerId}:{contentId}`; writes payload to temp file and returns path. Done.
 - [x] **T-907 Resolver fetch**: SimpleResolver uses `IContentFetchBackend`; `WebDavBackend`, `S3Backend`, `HttpBackend` implement it; fetch via `FetchToStreamAsync`. Done.
-- [x] **T-908 StubBitTorrentBackend / TorrentBackend**: `MonoTorrentBitTorrentBackend` registered in DI; respects `PrivateMode` (DisableDht, DisablePex, InviteList). `StubBitTorrentBackend` class remains in `SwarmSignalHandlers` but is not in DI. Done.
+- [ ] **T-908 fallback lifecycle**: Bind the exact variant to a real sender/receiver job, connect fallback acknowledgements to transfer activation and cancellation, implement `Swarm.JobCancel`, and clean up managers when their owning job ends. Re-enable only with end-to-end coverage. The runtime rejects mismatched variants and incomplete lifecycle requests without starting a manager. Details: `docs/research/T-908-private-bittorrent-backend-design.md`.
 - [x] **T-912 Soulseek adapter**: `IMetadataFacade.GetBySoulseekFilenameAsync(username, filename)` parses common patterns (Artist - Title, Album - NN - Title, NN. Title) and returns `MetadataResult` with `SourceSoulseek`. Done.
 
 ### Packaging (docs/archive/root/TODO.md)
@@ -3959,7 +4142,7 @@
 
 - [x] **T-901 (2026-01-25):** Ed25519 signed identity system — docs/research/T-901-ed25519-identity-design.md: unified identity model (Mesh+IKeyStore/FileKeyStore shared with Pods; ActivityPub separate); key lifecycle (FileKeyStore JSON/KeyPath/RotateDays, ActivityPubKeyStore IEd25519KeyPairGenerator PEM, RotateKeypairAsync); alignment. Ed25519Signer.DerivePeerId formalized: PeerId = Base32(First20(SHA256(publicKey))). Revocation, DID deferred.
 
-- [x] **T-902 (2026-01-25):** DHT node and routing table — docs/research/T-902-dht-node-design.md. KademliaRoutingTable (160-bit, k=20, bucket splitting, XOR, Touch, GetClosest); selfId=SHA1(Ed25519) from IKeyStore. DhtMeshService: FindNode, FindValue, Store, Ping; KademliaRpcClient; slskdn DHT wire (mesh overlay, JSON). GET_PEERS/ANNOUNCE_PEER mapped to FindValue/Store; DhtRendezvous remains BEP 5 client.
+- [x] **T-902 (2026-01-25; identity detail corrected 2026-10-04):** DHT node and routing table — docs/research/T-902-dht-node-design.md. KademliaRoutingTable (160-bit, k=20, bucket splitting, XOR, Touch, GetClosest); production selfId is the first 20 bytes of SHA-256 over the Ed25519 public key from IKeyStore. DhtMeshService: FindNode, FindValue, Store, Ping; KademliaRpcClient; slskdn DHT wire (mesh overlay, JSON). GET_PEERS/ANNOUNCE_PEER mapped to FindValue/Store; DhtRendezvous remains BEP 5 client.
 
 - [x] **T-903 (2026-01-25):** DHT storage with TTL and signatures — docs/research/T-903-dht-storage-design.md. IDhtClient PutAsync/GetAsync/GetMultipleAsync; TTL expiry on read; Store RPC requires Ed25519 (DhtStoreMessage.CreateSigned/VerifySignature, 5 min freshness); same store for shadow index, pods, scenes; _maxPayload; conflict last-write-wins, republish open.
 
@@ -3967,7 +4150,7 @@
 
 - [x] **T-907 (2026-01-25):** HTTP/WebDAV/S3 backend — ContentBackendType.WebDav, WebDavBackend (registry, domain allowlist, Basic/Bearer, HEAD); ContentBackendType.S3, S3Backend (registry, s3://bucket/key, HeadObject, AWSSDK.S3). Design: docs/research/T-907-http-webdav-s3-backend-design.md. Resolver fetch: follow-up.
 
-- [x] **T-908 (2026-01-25):** Private BitTorrent backend — TorrentBackendOptions.PrivateMode (PrivateTorrentModeOptions: PrivateOnly, DisableDht, DisablePex, AllowedPeerSources), PrivatePeerSource enum. Design: docs/research/T-908-private-bittorrent-backend-design.md (IBitTorrentBackend, MonoTorrent, private swarm, StubBitTorrentBackend replacement). Stub replacement and TorrentBackend private logic: follow-up.
+- [x] **T-908 (2026-01-25; core implementation updated 2026-10-04):** Private BitTorrent backend — MonoTorrent-based infohash/magnet fetching, private discovery settings, provenance filtering, config binding, and exact variant ownership validation for fallback signals. Remaining sender activation, cancellation, and manager cleanup are tracked in Research follow-ups; requests still fail closed.
 
 - [x] **chore (2026-01-25):** Research (9) **unpinned**; implementation started. T-901–T-913 moved to tasks.md § Medium Priority (Research implementation). Suggested order: T-912 → T-911 → T-913 → T-901 → T-902 → T-903 → T-906 → T-907 → T-908. Start: T-912 (Metadata facade).
 
@@ -5421,7 +5604,11 @@
 - [2026-05-15T22:35:00Z] Completed: clamp completed-transfer speed display to zero for immediate failed transfers so logs do not show impossible negative throughput.
 - [2026-05-15T22:48:00Z] Completed: deployed the all-tools manual Docker image for revision `b2ebabc43e` to the live Docker host, verified container health, optional tool presence, hardening flags, and the post-deploy headless route/API crawl.
 - [2026-05-15T23:35:00Z] Completed: add cached all-tools Docker image recipe so repeated local validation builds reuse apt package indexes/packages, Python wheels, Rust toolchain/crates/build targets, and Gradle artifacts instead of redownloading the heavyweight optional stack.
-- [ ] Review whether API-key deployments should expose read-only status for `/api/v0/player/external-visualizer` or keep it admin-only.
+- [x] Review whether API-key deployments should expose read-only status for
+  `/api/v0/player/external-visualizer` or keep it admin-only (2026-10-04).
+  Keep both status and launch administrator-only: status contains the resolved
+  executable path, working directory, and launch arguments, while launch starts
+  a local process. Read-only API keys remain denied; no auth behavior changed.
 - [2026-05-15T22:55:55Z] Completed: cap default `GET /api/v0/searches` responses when no `limit` query is provided.
 - [2026-05-15T22:55:55Z] Completed: reduce repeated mesh-health warnings when DHT/mesh is enabled but no healthy mesh peers are reachable.
 - [2026-05-15T22:55:55Z] Completed: downgrade expected Lidarr HTTP failure/timeout log noise while preserving concise unavailability messages.
@@ -5467,9 +5654,14 @@
 - [x] Create the pnpm workspace for the Web and E2E packages, remove the
   duplicate SignalR package and nested npm lockfiles, and lower the Vite chunk
   warning threshold to 600 KB.
-- [ ] Complete the full Vitest migration for legacy `node:test` files after
-  replacing their Node mock APIs; the current Node runner remains the default
-  because its shared SQLite fixtures and mock semantics are not Vitest-safe.
+- [x] Complete the full Vitest migration for legacy `node:test` files
+  (2026-10-04). The final Web Node-runner suite for the private-message ID
+  mapper now uses Vitest; the earlier Web script suites were already migrated.
+  Moved the mapper unit test under `src/web/scripts/` because Vitest excludes
+  `src/web/e2e/`, and updated the loopback journey runner and its README. No
+  `node:test`, `node:assert`, or `node --test` references remain in the Web
+  test paths. Full Web tests pass 1,232/1,232 across 187 files; Web lint and
+  strict E2E TypeScript pass.
 
 ## 2026-09-15 Performance Refactoring Follow-up
 
@@ -5522,7 +5714,13 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] 2026-09-28 Add reachable listed-radio picker and controlled stream/directory retry coverage.
 - [x] 2026-09-28 Add listen-along manual recovery controls, snapshot failure reporting and disposed-callback guards.
 - [x] 2026-09-28 Exclude custom radio URLs from local-library decode probes.
-- [ ] P1: verify sustained remote listed-radio playback, HTTP seeking and capability expiry across two browser/backend participants; host routing and ticket renewal implemented 2026-09-28. Verify dual-participant room recovery. See gotcha 0z1065 and the player quality audit.
+- [x] 2026-10-03 Verify sustained remote listed-radio playback, HTTP seeking,
+  ticket lifetime, and dual-participant room recovery. Two-backend Chromium
+  coverage plays 96 kHz stereo for more than 175 seconds, seeks beyond
+  read-ahead and receives HTTP 206 with one ticket admission; the two-node
+  renewal workflow verifies rotated host tickets and rejects stale host-session
+  writes. See the player quality audit. Representative WAN conditions remain
+  separate open work.
 
 ## Mesh playback completion prerequisites — 2026-09-28
 
@@ -5553,8 +5751,11 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Verify real cross-node directory, scoped ticket, decoded playback and interior seek with replacement 206 and subsequent time progression.
 - [x] 2026-09-28 Credit successful radio TLS payload writes and verify host/listener totals plus bidirectional transport accounting.
 - [x] 2026-09-28 Validate expired local radio-ticket denial and manual reselection; validate listed-host renewal after the 900-second service-clock advance and real two-node capability refresh/stale-tab fencing.
-- [ ] Verify repeated radio admissions and fairness behavior under sustained use.
-  - 2026-09-28 update: production Soulseek uploads now credit payload bytes confirmed written, including partial writes before failure. Real-node re-admission during an active/sustained Soulseek upload remains unverified and this task stays open.
+- [x] 2026-10-04 Verify repeated radio admissions and fairness under sustained
+  use. The isolated two-node loopback workflow keeps the listed stream active
+  during reciprocal 16 MiB Soulseek transfers, verifies a repeat ticket is
+  rejected with `radio_fairness_limited`, then obtains a fresh HTTP 206 range
+  after playback stops. WAN fairness remains unverified.
 - [x] 2026-09-28 Verify and enforce membership revocation after live join; two actual authenticated clients demonstrate stopped state delivery, notification and denied rejoin/snapshot.
 
 ## Radio accounting and recovery — 2026-09-28
@@ -5581,14 +5782,19 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Verify two real authenticated SignalR clients against actual service publication, leave/rejoin, disconnect/snapshot and live ban.
 - [x] 2026-09-28 Verify actual Chromium PlayerBar follow, then interrupt its real SignalR transport, restore it, and confirm automatic rejoin plus current-state snapshot catch-up.
 - [x] 2026-09-28 Establish authenticated cross-node room-state application; the two-node Playwright regression verifies snapshots, live Play/Pause/Seek/Stop, playback following and membership revocation.
-- [ ] Verify concurrent room publication ordering and elapsed radio ticket/capability renewal with useful fairness feedback.
+- [x] 2026-10-04 Verify concurrent room publication ordering and elapsed radio
+  ticket/capability renewal with useful fairness feedback. Service regressions
+  cover ordered publication and concurrent room directory updates; two-backend
+  browser coverage exercises ticket renewal, stale-tab fencing, and the
+  `radio_fairness_limited` response. Sustained WAN behavior remains open.
 
 ## Player publication and admission reliability — 2026-09-28
 
 - [x] Serialize complete room publication, bound room queues, and verify unrelated-room progress, cancellation, overload and failure cleanup.
 - [x] Explain fresh remote radio fairness limits before playback; preserve host permission priority, local playback and same-ticket admission.
 - [x] Verify elapsed local radio ticket expiry and successful manual reselection with actual HTTP and Chromium playback.
-- [ ] Explain the intermittent reverse-directory failure seen during the initial full runtime run; standalone and three repeated diagnostic runs passed. Retain logs on further full runs.
+- [x] Explain the intermittent reverse-directory failure seen during the initial full runtime run; standalone and three repeated diagnostic runs passed. Retain logs on further full runs.
+  - Verified 2026-10-04: retained logs tied the failure to a mesh message-rate disconnect. Outbound pacing was repaired without weakening the inbound quota; eleven actual TLS cases cover forward/reverse bursts and 10/11-frame boundaries, and the rebuilt 21-case radio suite passed with no message-rate disconnect.
 - [x] 2026-09-28 Implement authenticated mesh room application with transport-bound sender identity, active membership checks, ordered snapshot application and no re-routing loop. Notify local subscribers before the bounded mesh fan-out; parser wire casing and the two-second overall budget have regression coverage.
 - [x] 2026-09-28 Complete local ticket reselection coverage and long host capability renewal/fencing; controlled-clock and connected two-backend regressions pass.
 - [ ] Complete remaining player quality audit requirements, including repeated admissions, sustained throughput and device/accessibility coverage.
@@ -5602,7 +5808,8 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Count actual received mesh frames; verify ten-frame survival and eleven-frame denial through real TLS.
 - [x] Use actual room creation and verify accepted publication in runtime message storage.
 - [x] 2026-09-28 Repair and negatively verify mesh pod admission roles, private/approval checks and message-read authorization before distributed room delivery; adapter and direct service regressions establish this boundary.
-- [ ] Keep the intermittent reverse-directory investigation open until retained logs establish a cause.
+- [x] Keep the intermittent reverse-directory investigation open until retained logs establish a cause.
+  - Resolved 2026-10-04: retained logs establish the message-rate disconnect; the outbound pacing regression and final runtime gates pass.
 
 ## Remote room permission prerequisites — 2026-09-28
 
@@ -5622,9 +5829,14 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Reproduce and fix near-target Pause drift; verify actual audio and keyboard follow through automatic transport recovery.
 - [x] Verify remote identity/private admission/ban boundaries through two actual TLS endpoints; signed storage and replay remain separate.
 - [x] Correct offline fixture public DHT startup and assert configuration plus runtime logs.
-- [ ] Repair legitimate outgoing bursts behind retained reverse-directory message-rate disconnect, preserving inbound quota.
+- [x] Repair legitimate outgoing bursts behind retained reverse-directory message-rate disconnect, preserving inbound quota.
+  - Verified 2026-10-04: bounded outbound pacing passed eleven real TLS cases and the complete 21-case radio browser suite; inbound 10/11-frame quota behavior remains covered.
 - [x] 2026-09-28 Keep room-follow subscriptions alive across global-player navigation; real routed browser regression and connection reuse pass. See ADR-0017.
-- [ ] Publish ongoing host Pause/Seek/track changes under an explicit broadcast session.
+- [x] 2026-10-04 Publish ongoing host Play/Pause/Seek/track changes under an
+  explicit browser-owned broadcast session. The server fences updates by host
+  session ID; the rebuilt Player host E2E verifies delayed seeks, follower
+  synchronization, source replacement, and Stop. True background-tab
+  throttling remains open.
 
 - [x] 2026-09-28 Repair LAN-only DHT engine bootstrap: bypass the public engine, preserve known-peer transport, verify actual zero-node radio status and eliminate false network-health diagnostics. See ADR-0016.
 
@@ -5636,11 +5848,15 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Isolate full-instance integration fixtures; verify local interoperability and mesh workflows in the full backend suite.
 - [x] Verify actual radio playback/seek/revocation/reverse-directory and elapsed ticket expiry under repaired LAN-only mode.
 - [x] Reproduce false LAN-only network-health findings and cover both mode-field spellings.
-- [ ] Reproduce and repair legitimate mesh RPC bursts without weakening inbound quota, then complete host control publication; global follow ownership is complete in ADR-0017.
+- [x] Reproduce and repair legitimate mesh RPC bursts without weakening inbound quota, then complete host control publication; global follow ownership is complete in ADR-0017.
+  - Verified 2026-10-04: actual TLS burst/control-progress regressions and the rebuilt host E2E pass; host updates are fenced by broadcast-session ID. Actual hidden-tab throttling remains a separate open validation item.
 
 - [x] 2026-09-28 Await initialization before detaching owned network resources; final backend and complete 20-case runtime gates pass.
 - [x] 2026-09-28 Verify the actual connected LAN-only network-health page and retain public-mode engine warnings.
-- [ ] Diagnose the originating network change behind the retained blank pre-login bootstrap interruption; the immutable complete rerun passes but does not explain that event.
+- [x] 2026-10-04 Keep an accessible static loading screen and manual reload action visible when the frontend does not mount; React replaces it on successful startup.
+- [x] 2026-10-04 Extend shared browser-login diagnostics to record sanitized failed-request method, resource type, path and error before login submission; remove the listener at completion and distinguish the static shell from a React mount.
+- [x] 2026-10-04 Keep failed-login storage diagnostics to entry counts and expected-token presence; never print storage values.
+- [ ] Diagnose the originating network change behind the retained blank pre-login bootstrap interruption; the immutable complete rerun passes but does not explain that event. The fallback prevents the blank experience but does not establish or fix the cause.
 
 ## Persistent room follow ownership — 2026-09-28
 
@@ -5662,7 +5878,7 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] Preserve optional tools behind their existing toggle on touch layouts and cover keyboard rating without playback interference.
 - [x] 2026-09-28 Rebuilt complete 21-case browser gate passes; source publication follows exact-range release preview.
 
-- [ ] Verify focus-indicator contrast across supported themes and visual modes; outline-style checks establish presence only.
+- [x] 2026-10-03 Verify focus-indicator contrast across supported themes and visual modes. All 21 dark palettes meet 3:1 on all four Player surface levels; Chromium measures the opaque three-pixel focus ring in Iris, Ember, Classic Dark and Light. The full Web suite, lint, production build and strict E2E type check pass.
 
 ## Listed-radio mesh RPC pacing — 2026-09-28
 
@@ -5683,12 +5899,24 @@ Open priority work: remote directory announcements carry relative stream paths, 
 - [x] 2026-09-28 Verify the actual host/listener workflow and final complete 22-case runtime gate; publish after validated release preview and fork verification.
 - [x] 2026-09-28 Renew the host lease and listed capability every five minutes;
   fence updates, renewal and Stop to the latest explicit browser session.
-- [ ] Complete automatic room-state cleanup after document close/lease expiry,
-  then verify host media-error synchronization.
+- [x] 2026-10-04 Complete room-state cleanup after document close and lease
+  expiry. `pagehide` sends a fenced keepalive Stop; one server deadline timer
+  runs the serialized Stop path and retries transient cleanup failures. Verify
+  state removal, peer Stop routing, and DHT index withdrawal.
+- [x] 2026-10-04 Verify host media-error synchronization through the persistent
+  Player session. An active media error publishes Pause at the absolute playback
+  position, the follower pauses at that position, and explicit Play resumes.
+  The rebuilt `player-host.spec.ts` browser journey passes.
 
-- [ ] Verify and retract prior radio announcements when listing is disabled or a new host replaces the party identity. Backend directory reads currently filter expiry, while explicit removal is in the Stop path; reproduce local and remote directory behavior before fixing.
+- [x] 2026-10-04 Verify prior radio directory ownership is withdrawn on unlist,
+  Party ID replacement and Stop while preserving another room's listing. The
+  rebuilt Player host E2E and existing two-node TLS directory workflow pass.
+  The raw DHT announcement expires by its 900-second TTL; the shared index stops
+  listing it immediately, as documented in ADR-0020.
 
-- [ ] Measure host publication delay and listener position drift under slow responses and background-tab scheduling, alongside sustained CPU/memory/throughput work.
+- [x] 2026-10-04 Measure delayed host publication and listener position drift. Hook tests simulate a five-second late snapshot; backend coverage checks bounded client observation age; rebuilt Chromium E2E injects 500 ms request delay and verifies host/follower drift below 350 ms.
+- [x] 2026-10-04 Resynchronize active host position when the Player document reports visible again. Hook tests cover hidden/visible handling; the rebuilt browser/backend E2E confirms a published active position and follower drift below 350 ms.
+- [ ] Measure publication behavior under actual background-tab timer throttling; continue sustained CPU/memory/throughput work. Headless and Xvfb Playwright runs could not produce a real hidden document. A headed Chromium run under Weston also left `document.hidden` false and a 100 ms interval at about 100 ms after activating another page, so the visibility-event E2E is not timer-throttling evidence. The loopback delay test also does not model a WAN path.
 
 ## Room radio directory withdrawal — 2026-09-28
 
@@ -5723,8 +5951,15 @@ are required again before source publication.
 - [x] 2026-09-28: Complete room-owned radio directory withdrawal, retry/relist,
   stale-read suppression and same-server index ordering. Validate 13 added
   service cases and the final 22-case runtime suite; preserve neighboring listings.
-- [ ] Audit ownership of explicitly supplied listed party IDs across rooms and
-  nodes, including collision rejection and distributed index conflict handling.
+- [x] Reject active Party ID collisions across local and observed remote rooms;
+  reserve before message storage and preflight DHT ownership for new listings.
+  - Verified 2026-10-04: 48 focused service/controller tests pass; the complete
+    Web suite passes 1,221 tests and focused Player ESLint passes.
+- [ ] Define and implement a cross-node Party ID ownership claim with
+  authenticated publisher ownership. The current DHT has no compare-and-swap
+  primitive, and nodes can have disjoint routing views, so a per-replica CAS
+  would not provide a global winner. Specify the required shared authority or
+  quorum semantics before claiming that simultaneous first claims cannot race.
 
 ## Live browser-owned broadcast settings — 2026-09-28
 
@@ -5945,8 +6180,15 @@ resource completion.
   accessibility completion work. Cross-node room-state delivery is implemented
   and verified.
 
-- [ ] Improve census coverage for transient unreadable proc entries; retain honest
-  endpoint/churn limits and validate broader sustained player workloads.
+- [x] Improve census coverage for transient unreadable proc entries. `/proc`
+  reads now retry `EINTR`/`EAGAIN` once and report retry, recovery and final
+  unavailable counts; repeated failures, vanished PIDs and identity changes
+  remain unavailable. Focused collector tests pass 15/15. This internal-only
+  measurement update does not rewrite earlier captures or establish a lifetime
+  plateau.
+- [ ] Validate broader sustained Player workloads and retain honest
+  endpoint/churn limits; attribute the renderer PSS residual and establish a
+  multi-hour plateau before making lifetime resource claims.
 
 - [x] 2026-09-28: Commit and push native disk/OS resource reporting and active
   host media-error repairs with validated fragments and exact-range gates;
@@ -6078,10 +6320,17 @@ resource completion.
 
 - [x] Announce all ten equalizer gains in decibels while retaining the native
   -12 to +12 range and keyboard adjustment.
-- [x] Add component coverage for disabled/default and enabled/changed gain;
-  run the keyboard announcement regression in Chromium, Firefox and WebKit.
-  Browser engines map physical arrow keys differently for the vertical range,
-  so coverage checks the announced units against each browser's resulting value.
+- [x] Normalize vertical slider keys across engines: Up/Right increases and
+  Down/Left decreases, with bounds clamped to -12/+12 and explicit vertical
+  orientation exposed to assistive technology.
+- [x] Cover all four directions and both bounds in component and browser
+  regressions. Chromium, Firefox and headless WebKit browser checks pass; Orca
+  controls speech passes in Chromium and Firefox.
+- [ ] Verify WebKit Orca speech after its AT-SPI page root is available. The
+  2026-10-04 03:50 UTC retest passes browser interaction but Orca receives
+  `[DEAD]` page objects, emits no page speech, and cannot find the AT-SPI root.
+- [x] Update the append-only release note, Unreleased changelog, quality audit
+  and E2E runner documentation.
 - [x] Pass full Web/browser, type, lint and build gates and update audit/release
   records.
 - [x] Validate the exact release range, then commit and push as `35811a6f3`.

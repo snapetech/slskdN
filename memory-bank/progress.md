@@ -1,3 +1,61 @@
+## Update 2026-10-04 08:08 UTC — Fail closed on verification budget and cancellation
+
+The persisted Soulseek probe budget now allows a network probe only after its
+per-peer daily increment is atomically saved. A missing first-run file remains
+valid; malformed or inaccessible state, and failed writes, skip the probe.
+Budget state merges peer names case-insensitively and retries transient read
+failures without allowing a probe. Caller cancellation now propagates through
+HashDb lookup/store, active probe downloads, metadata enrichment, and source
+discovery, while the expected 32 KB probe cancellation and internal timeout
+remain handled separately.
+
+Added regressions for restart persistence, corrupt and unwritable state, caller
+cancellation at each async boundary, and ensured the download-failure test
+actually reaches `DownloadAsync`. Gotchas `0z1492`–`0z1496` were committed
+separately. The focused verification suite passes 11/11; full .NET passes 74
+application, 5,461 unit, and 285 integration. `./bin/lint`, release-note
+validation, local-identity scanning, and `git diff --check` pass. The release
+fragment and multipart verification/metrics documentation now describe the
+fail-closed result.
+
+The whole-product remediation remains active. Physical assistive technology,
+WebKit Player speech, representative WAN behavior, sustained resource
+measurements, global DHT Party ID ownership, and semantic analyzer review remain
+open. No tag, push, release, or deployment was created.
+
+## Update 2026-10-04 03:38:00Z — Normalize Vite ESM config and warning budgets
+
+Renamed `src/web/vite.config.js` to `vite.config.mjs` so Node's native config
+loader recognizes the file's ESM syntax, and updated ESLint's ignored config
+path. Raised Vite's advisory chunk threshold to 700 KB to account for the
+existing 630.4 KB lazy MilkDrop preset exception; `check-bundle-size.mjs`
+continues enforcing its 600 KB limit for normal chunks and passed.
+
+Validation passed: production Web build with neither prior Vite warning,
+bundle guard (98 assets, 3.87 MB), build-output check, strict E2E TypeScript,
+Web lint, all 1,232 Web tests, `./bin/lint`, and `git diff --check`. Product
+behavior did not change; no release fragment, tag, or deployment was added.
+
+## Update 2026-10-04 03:24:00Z — Revalidate core journeys and reconcile Player gates
+
+Reran `scripts/test-core-soulseek-journeys.sh`. The direct Soulseek message-ID
+mapper suite passes 3/3; the production Web build completes; and the rebuilt
+loopback browser suite passes both Search-to-download and two-way private
+messaging journeys across two local nodes. The recipient sees the sent message
+in the Messages UI at 320 px. The script's first attempt stopped before
+Playwright because an ignored test-results directory was root-owned; after
+repairing that generated artifact, the complete rerun passed and its fixture
+container was removed.
+
+Reconciled stale Player tasks against the retained final audit: the reverse-
+directory message-rate failure has a documented cause, bounded outbound mesh
+pacing is covered by eleven real TLS cases without weakening inbound limits,
+and the rebuilt 21-case radio suite has no message-rate disconnect. Host control
+publication is also covered by the current host-session E2E. WAN and background
+timer-throttling, physical-device and assistive-technology use, sustained
+resource plateaus, and the unexplained bootstrap interruption remain open.
+No tag, release, deployment, or product commit was created.
+
 ## Update 2026-10-03 07:23:00Z — Cross-node sharing and remediation gates
 
 Cross-node collection shares now advertise an owner-configured peer-reachable
@@ -15809,6 +15867,34 @@ React Router navigation link through Semantic UI Button, which changes its
 accessibility role. The product batch remains uncommitted and no release tag or
 deployment was created.
 
+## Update 2026-10-04 06:34 UTC — Remove blocking friend-code lookup
+
+Replaced `IProfileService.DecodeFriendCode()` with
+`DecodeFriendCodeAsync(string, CancellationToken)`. The method now awaits its
+profile/contact reads, propagates cancellation and storage failures, and keeps
+`null` for only short or unmatched codes. Updated the identity design contract
+and added self-profile plus unknown-code tests. Gotcha `0z1485` was committed
+separately. Focused identity tests pass 14/14; full .NET tests pass 74
+application, 5,443 unit, and 285 integration; `./bin/lint`, local-identity
+scanning, and `git diff --check` pass.
+
+The latest analyzer run loads 6,887 types and reports 128 advisory findings:
+14 blocking-call, 5 dangerous-API, and 109 empty-catch. Removing the synchronous
+friend-code read reduced blocking-call findings by one. Semantic review is
+still open; the analyzer remains non-gating. No release tag, push, or deployment
+was created.
+
+## Update 2026-10-04 02:41 UTC — Exclude task-producing Wait helpers from blocking-call warnings
+
+The whole-app analyzer had reported awaited `Waiter.Wait<T>` task factories as
+blocking because it matched every method named `Wait`. The syntax rule now
+excludes generic `Wait<T>` methods while preserving ordinary `.Wait()` checks;
+a dedicated regression captures both sides. Focused CodeQuality tests pass
+12/12. The real MSBuild target completes with 6,885 analyzed types, 412 advisory
+warnings (down from 414), zero errors and no loader warnings. These remaining
+warnings still need semantic/flow-aware review; the analyzer stays
+diagnostic-only. The full Web suite passes 1,229/1,229 and Web lint passes.
+
 ## 2026-10-03 05:23 UTC — Reconcile route and maturity checks
 
 The generated API route inventory is current. `audit-feature-coherence.sh`,
@@ -16741,3 +16827,573 @@ Homebrew publication succeeded. The PPA source-package job failed during
 signing: the import step passed, but `debuild` could not find the configured
 secret key. No PPA upload occurred. The `.335` GitHub release and live Docker
 deployment remain verified; the PPA signing issue is tracked for follow-up.
+
+## Update 2026-10-03 22:20 UTC — Normalize equalizer keyboard behavior
+
+An isolated native-range probe found different vertical-slider key mappings
+in Chromium, Firefox and WebKit. Equalizer gain sliders now expose
+`aria-orientation="vertical"` and consistently map Up/Right to +1 dB and
+Down/Left to -1 dB, clamped to their -12/+12 range. The component regression
+checks all four keys and both bounds; the tagged Playwright workflow checks the
+same sequence in Chromium, Firefox and WebKit.
+
+Actual Orca controls workflows pass in Chromium (84 active 100 ms speech
+windows over 13.0 seconds) and Firefox (44 windows over 8.9 seconds), including
+the `99%` volume and `1 dB` gain values. Headless WebKit browser assertions pass
+1/1. The pinned WebKit/Orca workflow passes its browser test but cannot resolve
+the AT-SPI page root, emits no page speech, and does not stop Orca cleanly; do
+not count it as WebKit speech evidence. The full Web suite passes 1,215/1,215,
+Web lint and strict E2E types pass. A first full Web run had one unrelated
+Messaging `/leave` failure; that case passed alone and the full rerun passed.
+
+Added release fragment `20261003-player-equalizer-keyboard.md`, updated the
+Unreleased changelog, Player audit, E2E README, task list and active context.
+No release tag or deployment was created. Continue WebKit Orca investigation
+and the broader open Player and whole-product remediation work.
+
+## Update 2026-10-03 22:49 UTC — Remove duplicate experimental service descriptors
+
+The composed experimental graph registered `TransportPolicyManager`,
+`INatTraversalService`, `IIpldMapper`, and `IFuzzyMatcher` more than once.
+Removed the extra descriptors and added a real-graph descriptor-count
+regression test (`BUG-20261003-184`). The focused test passes 1/1; full .NET
+validation passes with 74 application, 5,405 unit and 285 integration tests;
+`./bin/lint` passes. The duplicate-registration gotcha was committed before
+source edits. The whole-product initiative remains active; populated journeys,
+WebKit/Orca speech, other assistive-technology pairs, physical devices, WAN
+behavior, and long-session resources remain open.
+
+## Update 2026-10-03 23:10 UTC — Verify Player focus contrast across themes
+
+Measured the 21 custom dark palettes against all four derived Player surface
+levels. The old focus token fell below 3:1 in 20 palettes, with Ember at
+1.67:1. The shared token now uses the lightest primary shade; all combinations
+meet 3:1 with a minimum of 3.28:1. Removed redundant translucent component
+outlines and extended contrast coverage across Iris Dark, Ember, Classic Dark
+and Light. Web validation passes: 1,215 tests, Web lint, strict E2E types,
+production build/output, Chromium theme workflow 1/1, release fragment schema,
+identity scan, and repository lint. Added BUG-20261003-185 and updated the
+Player audit/task record. The broad initiative remains active.
+# 2026-10-03 23:21 UTC — Repair PPA signing fingerprint flow
+
+Read-only `.335` workflow evidence confirmed that Launchpad imported key ID
+`75F64BBBED90A914` while `debuild` still requested the stale `07E253…` key.
+Both PPA workflows now call a shared helper that imports the configured key,
+derives its primary fingerprint, signs and verifies a temporary payload, and
+passes that fingerprint to `debuild`. An isolated-key smoke test covers the
+successful and missing-secret paths and is registered in the remediation
+baseline. The smoke test initially exposed a missing executable bit; ADR-0001
+gotcha `0z1446` was committed before setting the script modes. Release notes,
+changelog, BUG-20261003-186 and the task record are updated. Shell syntax,
+ShellCheck and the isolated GPG smoke pass. Actual Launchpad acceptance remains
+pending a future explicitly authorized release; no tag, upload, or deployment
+was triggered.
+# 2026-10-03 23:34 UTC — Improve transient Player process-census reads
+
+The Linux browser-process collector now retries `/proc/<pid>/stat` and
+`smaps_rollup` once after `EINTR` or `EAGAIN`, recording attempts, recoveries
+and final unavailable reads separately. It does not retry vanished paths,
+permission failures or malformed data; it still validates PID start time before
+accepting PSS, so PID reuse cannot be treated as the sampled process. Added
+collector regressions for successful transient recovery and bounded repeated
+failure. All 15 focused tests pass. Updated the Player audit, E2E runner docs,
+tasks and active context. This is internal measurement tooling; it does not
+rewrite old resource captures or claim a lifetime memory plateau. Gotcha
+`0z1447` was committed before source changes.
+
+## Update 2026-10-03 23:54 UTC — Isolate Roslyn source inspection from runtime
+
+Moved `BuildTimeAnalyzer` ownership to `tools/slskd.BuildTasks`, removed its
+direct Roslyn package references from the runtime project, and deleted the
+unregistered `SlskdnAnalyzer`. The unit test project references build tools
+with an explicit C# alias because the tooling project links other CodeQuality
+types that also exist in the runtime assembly. Added a boundary regression:
+`BuildTimeAnalyzer` comes from `slskd.BuildTasks` and the app assembly has no
+`Microsoft.CodeAnalysis` references. The focused tests pass 9/9. A clean
+Release publish contains no Roslyn compiler DLLs and no CodeAnalysis entry in
+`slskd.deps.json`; previous compiler assemblies totaled about 10 MB. Updated
+the dependency inventory, coherence plan, status page, fixes plan, changelog,
+release fragment and ADR-0027. ADR-0001 gotchas `0z1448` and `0z1449` were
+committed before proceeding. The build-tools dependency emitted .NET 10
+support warnings from the current Microsoft.Build packages; investigate that
+separately. Full repository tests/lint remain due.
+
+## Update 2026-10-04 00:13 UTC — Align and repair custom MSBuild tasks
+
+Matched `Microsoft.Build.Framework` and `Microsoft.Build.Utilities.Core` to
+18.9.6 for the repository's .NET 10 SDK/MSBuild 18.9 host; the tooling project
+builds with zero warnings and errors. Removed nonexistent `ExitCode` output
+bindings from the static-analysis, coverage and regression task targets, and
+fixed named log placeholders that threw `FormatException` when the analyzer
+could not load an app assembly. A focused task regression verifies the warning
+is captured; CodeQuality tests pass 10/10. A direct `RunStaticAnalysis` target
+invocation no longer emits `MSB4131` or a logging `FormatException`, but still
+fails honestly at 7,240 findings and emits missing shared-framework loader
+warnings. This optional analyzer baseline is deferred in the fixes plan; do
+not treat it as a release gate. The Roslyn package split remains verified by a
+clean Release publish. Full tests/lint remain due.
+
+## Update 2026-10-04 00:44 UTC — Reserve listed Party IDs before publication
+
+Added listed-ID reservations shared across local publications and observed
+remote room snapshots. Collisions with a different active listed room or host
+are rejected before message storage; a new listing/relist checks its DHT
+announcement and returns a retryable 503 if ownership cannot be read. The API
+returns 409 `party_id_in_use` for observed conflicts, and the Player prompts a
+fresh generated ID. Private unlisted playback remains independent, stream lookup
+selects listed state only, and unlisting keeps the room's accepted identity.
+ADR-0028 records that DHT read-before-write cannot prevent simultaneous claims
+across separate nodes because the Mesh DHT has no compare-and-swap.
+
+Validation: 48 focused listening-party service/controller tests pass; the full
+Web suite passes 1,221/1,221; focused Player ESLint and `git diff --check` pass.
+Full repository tests/lint remain due. Gotchas `0z1454` through `0z1456` were
+committed before their corresponding implementation corrections.
+
+## Update 2026-10-04 01:11:00Z — Player host lease cleanup
+
+Added one cancellable deadline timer per active host session. Expiry now sends
+Stop through the serialized room publication path, withdrawing local state,
+connected listeners, mesh state, and the DHT directory index; transient failures
+retry after a bounded one-shot delay. Player `pagehide` also sends a fenced,
+authenticated keepalive Stop when an acknowledged host snapshot exists. Updated
+ADR-0019/0024, added ADR-0029, and tracked the implementation bug in gotcha
+0z1457 (commit `1119e6a75`). The focused host lease test passes, including
+expiry cleanup and retry; the Web suite passes 1,224/1,224, including pagehide
+and auth-header tests. Full `dotnet test` and `./bin/lint` remain due after the
+whole batch.
+
+## Update 2026-10-04 01:18:00Z — Host and directory journey verified
+
+The rebuilt `player-host.spec.ts` now passes end to end after correcting its
+legacy direct-API directory fixture to stop and acknowledge the browser-owned
+host lease first (gotcha 0z1458, commit `5ff7fd709`). The journey verifies active
+media-error Pause publication, follower position synchronization and recovery,
+then unlist/relist/Party ID replacement/Stop with a neighboring listing
+preserved. Existing two-node TLS directory evidence remains in the audit. The
+host cleanup and media-error/directory follow-ups are now checked off. The raw
+DHT announcement blob expires naturally after 900 seconds; the shared index
+withdrawal takes effect immediately per ADR-0020.
+
+## Update 2026-10-04 01:35:46Z — Delayed Player position synchronization
+
+Active Play/Seek events now carry their client observation time. The server
+applies positive observation age up to ten seconds before stamping the event,
+then strips the client-only timestamp; listeners extrapolate active positions
+from server time and preserve exact Pause positions. Hook tests cover five-second
+late snapshots, backend tests cover the age bound and future/exact cases, and
+the rebuilt Chromium E2E injects a 500 ms request delay and verifies host/follower
+drift below 350 ms. This is loopback delay evidence only; actual background-tab
+throttling, WAN conditions and sustained resources remain open.
+
+## Update 2026-10-04 02:14:36Z — Repair opt-in static-analysis diagnostics
+
+The analyzer's MSBuild load context now resolves app-local dependencies from
+the target `.deps.json` and ASP.NET shared-framework assemblies from the active
+runtime. The real opt-in target analyzes all 6,885 application types with no
+loader warnings. Removed the false syntax-only missing-null-check rule, fixed
+`Async`/`Sync` token detection, applied rule enablement/severity consistently
+to source and reflection results, and disabled default heuristics that guessed
+input trust, cancellation need, loop string types, or design problems from
+names/counts alone. The target now completes with 414 advisory warnings and
+zero errors; it is not a release gate. Focused analyzer tests pass 24/24.
+Semantic/flow-aware review remains in the §9 follow-up. No release tag or
+deployment was created.
+
+## Update 2026-10-04 02:32 UTC — Resynchronize the Player host on visibility resume
+
+The Player host now publishes its current Play/Pause position when the document
+reports visible again. This uses the existing serialized 250 ms writer and adds
+no periodic polling. Hook tests verify hidden documents are ignored and visible
+documents publish the current position. The full Web suite passes 1,228/1,228;
+the rebuilt Chromium host/backend journey passes and verifies follower drift
+below 350 ms. E2E types and focused Player lint pass.
+
+Headless Chromium and headed Chromium under Xvfb both kept the source page
+visible after a second page was opened; these runs do not prove actual hidden-tab
+timer throttling. That work, representative WAN behavior and sustained resource
+budgets remain open. Gotchas `0z1466` and `0z1467` record the browser harness
+limits. The user-facing change has a release fragment and changelog entry. Full
+`dotnet test` and `./bin/lint` remain due; no release tag or deployment was
+created.
+
+## Update 2026-10-04 03:00 UTC — Disable keyword-only SQL interpolation findings by default
+
+The static analyzer's SQL rule treated any interpolated string containing a
+SQL keyword as a potential injection, including code that composes generated
+parameter placeholders. It did not resolve SQL execution sinks or inspect
+value flow. Disabled that syntax-only heuristic by default while preserving the
+raw detector for focused tests; semantic SQL analysis remains follow-up work.
+Gotcha `0z1469` was committed separately before implementation. The real
+MSBuild run loads all 6,885 app types and completes with 335 advisory findings,
+zero errors and no loader failures. Focused analyzer tests pass 20/20. Full
+`dotnet test` passes 74 application, 5,421 unit and 285 integration tests;
+`./bin/lint` passes. No release tag or deployment was created.
+
+## Update 2026-10-04 03:11 UTC — Migrate the last Web Node test to Vitest
+
+Converted the final Web `node:test` suite, for the isolated Soulseek
+private-message ID mapper, to Vitest and moved it into the included `scripts/`
+test tree because Vitest excludes `e2e/`. Updated the core Soulseek journey
+runner and E2E README to invoke that focused Vitest test. A repository scan
+finds no remaining `node:test`, `node:assert`, `node --test`, or legacy
+`.node-test.mjs` references in the Web test paths. Focused mapper coverage
+passes 3/3; the full Web suite passes 1,232/1,232 across 187 files. Web lint
+and strict E2E TypeScript pass. Backend and repository lint gates passed in the
+preceding batch; no release tag or deployment was created.
+
+## Update 2026-10-04 03:12 UTC — Keep external visualizer status administrator-only
+
+Reviewed the open API-key access question for the Player external visualizer.
+The status endpoint returns the resolved executable path, working directory,
+and launch arguments; the companion endpoint starts a local process. Keep both
+routes administrator-only so read-only API keys cannot inspect host launch
+configuration or start a process. No code or authorization change was needed.
+
+## Update 2026-10-04 04:18 UTC — Remove name-only dangerous API findings
+
+The reflection analyzer treated method names containing `Deserialize`,
+`FromBase64String`, and `DangerousGet` as proof of dangerous API use. This
+reported generated MessagePack formatters and an inherited `SafeHandle`
+method without inspecting call sites or input flow. Removed that detector and
+its stale rule alias; source-level dangerous API call-site checks remain.
+Regression coverage ensures risky-looking method names do not create
+`DangerousMethod` findings. A clean opt-in analyzer build analyzes 6,865 app
+types and completes with 181 advisory findings, zero errors, and no loader
+warnings: 37 blocking-call, 5 dangerous-API call-site, and 139 empty-catch.
+The analyzer remains diagnostic-only pending semantic review.
+
+A 2026-10-04 03:50 UTC WebKit/Orca retest passes browser interaction but still
+shows `[DEAD]` WebKitGTK page objects, a missing AT-SPI root, and no Player
+speech. This is recorded as unverified, not as an accessibility pass. The
+Party ID global claim task remains open because per-node compare-and-swap
+cannot establish a global winner across disjoint DHT routing views without
+shared authority or quorum semantics. Full tests and lint remain due after
+this batch; no release tag or deployment was created.
+
+## Update 2026-10-04 04:40 UTC — Filter false blocking-call findings
+
+The syntax-only blocking-call rule treated MVC `.Result` properties as
+`Task.Result` and reported `Wait(0)` as a blocking wait. It now requires a
+syntax-recognizable Task/ValueTask receiver and excludes zero-timeout waits.
+Regressions cover `Task<T>.Result`, `Task.Wait()`, `GetAwaiter().GetResult()`,
+an MVC-style `context.Result`, and task/semaphore zero-timeout waits. Focused
+CodeQuality tests pass 52/52. The opt-in analyzer analyzes 6,865 application
+types and completes with 160 advisory warnings, zero errors, and no loader
+warnings: 16 blocking-call, 5 dangerous-API call-site, and 139 empty-catch
+findings. Full .NET tests pass: 74 application, 5,430 unit, 285 integration.
+`./bin/lint` exits zero; its `dotnet format` invocation reports a workspace
+loading warning, which remains under investigation. No release tag or
+deployment was created.
+
+## Update 2026-10-04 04:43 UTC — Complete the analyzer validation gate
+
+The latest full .NET run passes 74 application, 5,430 unit, and 285
+integration tests. Focused CodeQuality coverage passes 52/52. The latest clean
+opt-in analyzer build completes with 160 advisory findings and zero errors.
+`./bin/lint` passes with zero formatting diagnostics. Its verbose trace
+explains the workspace warning: the `Soulseek.csproj` project reference under
+the excluded vendor tree has no matching solution metadata. This does not
+change lint's successful result. No release tag or deployment was created.
+
+## Update 2026-10-04 05:22 UTC — Make LAN advertising explicitly opt-in
+
+Separated automatic mDNS publication from the broad Identity/Friends API
+gate. New `lan_discovery.advertise` defaults to false and must be enabled with
+`feature.IdentityFriends` before startup advertising begins; the Nearby peers
+browse action remains manual. Added the setting to the example config, runtime
+and feature docs, network privacy notes, config guide, dependencies inventory,
+and feature-coherence follow-up. Added ADR-0030, the changelog entry, and a
+validated release fragment marked as a breaking default change. YAML binding,
+default controls, and service guard regressions pass (27/27). Full .NET tests
+pass (74 application, 5,434 unit, 285 integration); `./bin/lint`, config
+option drift, generated route inventory, release identity scan, and
+`git diff --check` pass. Lint reports the known excluded-vendor workspace
+metadata warning but exits zero.
+
+The remediation baseline passed security, route, workflow, packaging, and
+installer checks and stopped at the expected release-branch guard because
+local `main` and `origin/main` have diverged; the baseline's trailing council
+checks were run separately. Its active-bughunt runner passed tracked-but-
+deleted files to `rg`, producing missing-path noise. The runner now filters
+paths to files present in the working tree, and the generated backlog counts
+were refreshed. Council backlog, sweep-count, negative-space, script-registry,
+and syntax checks now pass. Gotchas `0z1479` and `0z1480` were committed
+separately as `9f7df5f17` and `1b1a0f707`.
+
+Manual analyzer review confirms the current raw-SQL warnings are for a
+parameterized share query and static schema DDL. No runtime query code was
+changed; semantic analysis remains open. The Player WebKit/Orca speech and
+global DHT Party ID ownership findings also remain open pending real runtime
+evidence or shared authority. No release tag, push, or deployment was created.
+
+## Update 2026-10-04 05:47 UTC — Fix cover-traffic disposal races
+
+Common cover-traffic `Dispose()` now shares the bounded cancellation-and-join
+path used by `StopAsync()`. When a send outlasts the five-second wait, cleanup
+keeps its cancellation resources alive until the worker exits and observes any
+late fault. The Mesh generator now links active async enumerators to generator
+disposal; replacing privacy-layer configuration cancels a pending read before
+the old generator is released. Its random-byte calls no longer depend on a
+separately disposed RNG instance. Gotchas `0z1481` and `0z1482` were committed
+separately. Focused lifecycle coverage passes 23/23; full .NET tests pass 74
+application, 5,438 unit, and 285 integration; `./bin/lint` exits zero with the
+known excluded-vendor workspace metadata warning. The whole-product initiative
+remains active. No release tag, push, or deployment was created.
+
+## Update 2026-10-04 06:13 UTC — Retain private-gateway worker resources
+
+`PrivateGatewayMeshService.Dispose()` now checks whether its cleanup loop
+actually stopped within the one-second wait. If it is still working, disposal
+keeps the cancellation source alive until completion and observes any late
+fault. A held-task regression proves the resource remains open across the
+timeout and closes when the task finishes. Gotcha `0z1483` was committed
+separately. Full .NET tests pass 74 application, 5,439 unit, and 285
+integration; `./bin/lint`, local-identity scanning, release-fragment parsing,
+and `git diff --check` pass.
+
+The opt-in analyzer report now loads 6,886 application types and has 130
+advisory findings: 15 blocking-call, 5 dangerous-API, and 110 empty-catch.
+Manual inspection confirms the SQL findings are fixed schema DDL or a
+parameterized query. Remaining findings still need semantic review; the
+analyzer remains diagnostic-only. Player WebKit speech, global DHT Party ID
+ownership, WAN behavior, physical assistive technology, and sustained resource
+evidence remain open. No release tag, push, or deployment was created.
+
+## Update 2026-10-04 06:24 UTC — Correct cancellation validation results
+
+`AsyncRules.ValidateCancellationHandlingAsync()` no longer returns success
+when the operation finished before cancellation, threw synchronously, or
+faulted with an unrelated exception after cancellation. It now counts only a
+timely completion or cancellation exception after cancellation was requested.
+Regressions cover the pre-completed, synchronous-failure, and unrelated-fault
+cases. Gotcha `0z1484` was committed separately. Focused tests pass 17/17; full
+.NET tests pass 74 application, 5,442 unit, and 285 integration; `./bin/lint`,
+identity scanning, and `git diff --check` pass.
+
+The latest static-analysis run reports 129 advisory findings across 6,886
+types: 15 blocking-call, 5 dangerous-API, and 109 empty-catch. Removing the
+validator's empty catch lowered the previous count by one. Semantic review
+remains open and the analyzer stays non-gating. No release tag, push, or
+deployment was created.
+
+## Update 2026-10-04 06:50 UTC — Preserve music federation outbox failures
+
+`MusicContentDomainProvider.GetRecentItemsAsync()` and
+`MusicLibraryActor.GetRecentWorkRefsAsync()` no longer convert HashDb failures
+or cancellation into a successful empty ActivityPub outbox. Per-item mapping
+failures remain isolated, with a warning log. Gotcha `0z1486` was committed as
+`fc0ebeec4`. Focused Social Federation and provider tests pass 20/20; full
+.NET passes 74 application, 5,447 unit, and 285 integration. `./bin/lint`,
+release-note validation, local-identity scanning, and `git diff --check` pass.
+
+The opt-in analyzer now reports 6,887 types and 126 advisory findings (14
+blocking-call, 5 dangerous-API, 107 empty-catch). It remains diagnostic-only
+while semantic review continues. WebKit Player speech, global DHT Party ID
+ownership, representative WAN behavior, physical assistive technology, and
+sustained resource evidence remain open. No tag, push, or deployment was
+created.
+
+## Update 2026-10-04 07:06 UTC — Preserve peer-resolution cancellation
+
+`PeerResolutionService` no longer converts caller cancellation into fallback
+usernames or missing endpoints. Hostname endpoints resolve with
+`Dns.GetHostAddressesAsync` and the caller token instead of synchronously
+blocking async request paths. Tests cover cancellation in both DHT lookups and
+DNS resolution, while existing IPv4/IPv6 and hostname parsing still pass.
+Gotcha `0z1487` was committed as `c83b7776e`; the changelog and a new validated
+release fragment describe the operational fix. Focused peer-resolution tests
+pass 13/13; full .NET passes 74 application, 5,450 unit, and 285 integration.
+`./bin/lint`, release-note validation, local-identity scanning, and
+`git diff --check` pass. The latest analyzer report remains 6,887 types and
+126 advisory findings (14 blocking-call, 5 dangerous-API, 107 empty-catch).
+
+The broad audit remains active. Physical assistive technology, WebKit Player
+speech, representative WAN behavior, sustained resource measurements, global
+DHT Party ID ownership, and semantic analyzer review remain open. No tag, push,
+or deployment was created.
+
+## Update 2026-10-04 07:21 UTC — Preserve PodCore routing cancellation
+
+`PodMessageRouter` now rethrows caller cancellation from peer sends and the
+top-level route. It adds a completed-message deduplication marker only after a
+successful fan-out, so an interrupted delivery can be retried. Gotcha `0z1488`
+was committed separately as `22c981be5`. The focused router suite passes
+10/10; full .NET passes 74 application, 5,451 unit, and 285 integration tests.
+`./bin/lint`, release-note validation, local-identity scanning, and
+`git diff --check` pass. The analyzer baseline remains 6,887 types and 126
+advisory findings (14 blocking-call, 5 dangerous-API, 107 empty-catch).
+
+The whole-product audit remains active. WebKit Player speech, physical
+assistive technology, representative WAN behavior, sustained resource
+measurements, global DHT Party ID ownership, and semantic analyzer review
+remain open. No tag, push, or deployment was created.
+
+## Update 2026-10-04 09:04 UTC — Bound swarm chunk retries and lifecycle
+
+`SwarmDownloadOrchestrator` now keeps untrusted job IDs out of filesystem paths,
+limits each chunk to three assignment/download/verification attempts, and
+rethrows shutdown cancellation while draining workers before cleanup. Async
+limited-stream writes enforce the same byte cap as synchronous writes. The
+chunk output handle is closed before reading; verified buffers are released,
+and final assembly streams temporary chunk files to a private staging path
+before atomic publication. Successful, failed, and canceled jobs remove their
+chunk directories; assembly errors leave no partial final file.
+
+Regression tests exercise path containment, full two-chunk ordering, exact final
+remainder size, assignment/download/verification retry exhaustion, cancellation
+drain, async stream limits, file-backed writes, and partial-output cleanup.
+Focused swarm and stream tests pass 24/24. Full .NET passes 74 application,
+5,473 unit, and 285 integration tests. `./bin/lint`, release-note validation
+and preview across 19 fragments, release-note tests, local-identity scanning,
+and `git diff --check` pass. Gotchas `0z1498`–`0z1506` were committed
+separately.
+
+The whole-product remediation remains active. Physical assistive technology,
+WebKit Player speech, representative WAN behavior, sustained resource
+measurements, global DHT Party ID ownership, and semantic analyzer review remain
+open. No tag, push, release, or deployment was created.
+
+## Update 2026-10-04 10:20 UTC — Preserve cancellation through staged downloads
+
+Scene pubsub shutdown now retains its cancellation source after a bounded poll
+join timeout, logs the timeout, and observes late completion/faults. Multi-source
+downloads now propagate caller cancellation through discovery, chunk work,
+fingerprint verification, and content-safety inspection; shared content
+verification rethrows cancellation instead of reporting an ordinary read
+warning. Both parallel and sequential failover check cancellation immediately
+before staged publication. Active metrics, speed-monitor joins, and per-job
+temporary-file cleanup now cover success, failure, and cancellation.
+
+Gotchas `0z1510`–`0z1515` were recorded in ADR-only commits. Focused safety and
+transfer tests pass 48/48. Full `dotnet test` passes 74 application, 5,480
+unit, and 285 integration tests. `./bin/lint` completed with the known
+excluded-vendor workspace warning. Release-note parser tests pass; append-only
+preview covers 19 fragments; local-identity, async-void, council backlog, and
+`git diff --check` validations pass. No tag, push, release, or deployment was
+created.
+
+Continue the whole-product remediation. Physical assistive technology,
+WebKit Player speech, representative WAN behavior, sustained resource
+measurements, global DHT Party ID ownership, and semantic analyzer review remain
+open. These areas still require their stated evidence or further review.
+
+## Update 2026-10-04 11:26 UTC — Close cancellation and forwarding shutdown races
+
+Optional source planning, private-gateway requests, and profile loading now
+preserve caller cancellation. SignalBus retains cancellation state after a
+timed shutdown and does not dispose its subscriber gate while callbacks may
+still be unwinding. `ReleaseOnDisposeStream` uses one atomic sync/async dispose
+gate, attempts inner cleanup even when the release callback fails, and surfaces
+callback errors. Local port forwarding now fences startup and tunnel
+registration against disposal, passes connection cancellation through mesh
+open/send/receive calls, reports mapping completion only after both mapping and
+queue workers stop, and supports asynchronous disposal for active tunnels.
+
+Gotchas `0z1516`–`0z1527` were recorded in ADR-only commits. Focused
+stream/forwarder tests pass 42/42; full `dotnet test` passes 74 application,
+5,495 unit, and 285 integration tests. `./bin/lint` passed with the known
+excluded-vendor workspace warning. Release-note parser tests pass; append-only
+preview includes 23 fragments; identity, async-void, active-council-backlog,
+and whitespace checks pass. The latest diagnostic analyzer run analyzes 6,896
+types and reports 109 advisories (14 blocking calls, 3 dangerous-API matches,
+92 empty catches). Semantic review remains open and the analyzer stays
+non-gating. No tag, push, release, or deployment was created.
+
+## Update 2026-10-04 13:44 UTC — Preserve static-analysis source context
+
+Build-time source findings now report project-relative paths instead of only
+the basename, so duplicate names such as `Common/ContentSafety.cs` and
+`Mesh/ContentSafety.cs` remain distinguishable. The focused analyzer tests pass
+16/16; the opt-in run still analyzes 6,896 application types and reports 78
+advisory warnings (14 blocking-call, 3 dangerous-API, 61 empty-catch), with no
+rule-count change. Full `dotnet test` passes 74 application, 5,512 unit, and
+285 integration tests. `./bin/lint` passes with the known excluded-vendor
+workspace warning. This is internal tooling work, so no release fragment was
+added. A headed Chromium check through a Weston Wayland desktop also left the
+document visible and its 100 ms timer unthrottled after activating another
+page, so actual background-tab behavior remains unverified. Triage of all 78
+static-analysis diagnostics found expected synchronous API/disposal calls,
+parameterized or fixed SQL, and cleanup/compatibility/shutdown/fallback catches;
+none confirmed another source defect. Semantic rule refinement and the broader
+product remediation remain open; no tag, push, release, or deployment was
+created.
+
+## Update 2026-10-04 13:52 UTC — Keep frontend startup recoverable
+
+The frontend's static HTML now keeps an accessible loading message and manual
+reload link inside `#root` until React replaces it on successful mount. This
+provides a visible recovery action if an entry asset is interrupted before the
+SPA can render. The retained 2026-09-28 `ERR_NETWORK_CHANGED` incident still
+has no established root cause and is not claimed fixed. Gotcha `0z1539` was
+recorded in ADR-0001 before the product edit and committed alone. The production
+Vite build succeeds and retains the fallback in `build/index.html`; the
+user-facing behavior is recorded in
+`release-notes/20261004-frontend-startup-fallback.md`. No tag, push, release,
+or deployment was created.
+
+## Update 2026-10-04 14:05 UTC — Record failed startup resources
+
+The shared Playwright login helper now observes `requestfailed` before page
+navigation and logs method, resource type, origin/path and browser error.
+Queries and fragments are removed, non-HTTP URL payloads are redacted, and the
+listener is detached after login setup and stops collecting before credentials
+are submitted. Strict E2E type checking passes. This is internal-only runner
+diagnostics; no release fragment is required. The retained 2026-09-28 resource
+failure remains unexplained and is still open.
+
+## Update 2026-10-04 14:07 UTC — Remove storage values from failure logs
+
+The Playwright login helper no longer prints the first 50 characters of
+localStorage/sessionStorage values after token lookup fails. It reports storage
+entry counts and whether the expected token exists in each store, preserving
+useful failure context without exposing credentials or saved user settings.
+Gotcha `0z1541` was committed to ADR-0001 before the source edit. This is
+internal-only test-runner hardening and has no release fragment.
+
+## Update 2026-10-04 14:10 UTC — Preserve mount diagnostic accuracy
+
+The static startup fallback means `#root` can have children before React
+starts. The Playwright login diagnostic now reports a React mount only after
+the known `#app-startup` placeholder is gone. Gotcha `0z1542` was committed to
+ADR-0001 before correcting the helper. This keeps the improved failure screen
+from masking another incomplete bootstrap in runtime logs.
+
+## Update 2026-10-04 14:12 UTC — Close stale React Router advisory blocker
+
+The official GHSA now lists React Router `7.18.2` as patched for the v7 line;
+the installed dependency tree already resolves `react-router-dom` and
+`react-router` to `7.18.4`. The app uses client-side `BrowserRouter` APIs and
+contains no unstable RSC/server-action APIs. Updated the stale blocked task to
+complete; no dependency or source change was needed.
+
+## Update 2026-10-04 14:33 UTC — Bound the peer-connection spike diagnosis
+
+Issue #336's stale-response parser fix does not account for its separate
+13-to-2,259 socket count. Source review confirms the configured default peer
+inactivity timeout is 60 seconds, reads reset it, and disconnected message
+connections are removed and disposed. Existing Debug diagnostics report
+connection attempts, cache reuse and disconnects. The incident capture stopped
+six seconds after the search and diagnostics were disabled, so the spike's
+expiry behavior remains unmeasured. A response fan-out is plausible but not
+confirmed; the task now records a bounded 120-second measurement before any
+connection-lifecycle change. No peer behavior was changed.
+
+## Update 2026-10-04 17:31 UTC — Validate .NET 10 and remediation release candidate
+
+All first-party projects in `src`, `tests`, and `tools` target `net10.0`. The
+MonoTorrent package is upgraded to `3.9.0-alpha.unstable.rev0000`, whose
+compatible asset targets `net8.0`; the app itself remains `net10.0`. Its
+private resolver configuration stays disabled by default, and private mode
+removes trackers/web seeds and disables DHT/PEX. Cross-peer fallback requests
+remain fail-closed. An unconditional variant-membership stub was removed;
+fallback jobs now carry an exact optional variant ID, mismatches are rejected
+before policy evaluation or manager startup, and an integration regression
+passes.
+
+The local full gates pass: .NET 74 application, 5,530 unit, and 289 integration
+tests; Web 1,232 tests; Web lint, production build, strict E2E types,
+`./bin/lint`, release-note generation and validation, release-facing identity
+scan, and `git diff --check`. Release generation found 37 curated fragments
+and validated 49 bullets. `origin/main` donation-link removal is merged. The
+release tag and push remain pending the guarded release process.

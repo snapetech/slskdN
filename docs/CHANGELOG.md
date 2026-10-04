@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100417-slskdn.336] — 2026-10-04
+
 ### BitTorrent acquisition
 
 - Keep torrent acquisition disabled by default and expose its private peer
