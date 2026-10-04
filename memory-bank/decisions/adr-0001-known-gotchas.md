@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1549. Recheck Private Torrent Provenance During Validation (2026-10-04)
+
+**What went wrong:** Torrent candidate discovery filtered out sources without
+private provenance, but candidate validation only checked the reference format
+and seeder count. A candidate reaching validation through another path could
+therefore bypass the private-source rule.
+
+**Why:** The policy was applied to one retrieval method instead of the backend
+contract used by both discovery and resolution.
+
+**Prevention:** Enforce `PrivateOnly` provenance in both candidate discovery and
+candidate validation. Parse magnet references with the torrent library rather
+than accepting every string with a `magnet:` prefix.
+
 ### 0z1547. Preserve Cancellation Through Torrent Cleanup (2026-10-04)
 
 **What went wrong:** BitTorrent operations caught caller cancellation in broad
