@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1556. Give Background Initialization Tests A Load-Tolerant Deadline (2026-10-04)
+
+**What went wrong:** The LAN-only DHT startup regression used one five-second
+cancellation budget for background initialization, readiness polling, and
+shutdown. It expired in the Release unit suite under load, while the same test
+passed in isolation.
+
+**Why:** The test checks eventual hosted-service initialization, not a
+five-second product latency guarantee. A queued background task can be delayed
+by the concurrent suite without indicating a rendezvous or transport failure.
+
+**Prevention:** Keep readiness bounded and assert that startup and shutdown
+complete, but size test deadlines for the concurrent CI suite. Do not turn a
+scheduler-sensitive test timeout into a production behavior change without
+evidence that the service itself is stuck.
+
 ### 0z1555. Use The Release Fragment Audience Vocabulary (2026-10-04)
 
 **What went wrong:** A security-related release fragment used
