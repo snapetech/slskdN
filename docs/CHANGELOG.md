@@ -22,17 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-### Player streaming
-
-- Canceled transcodes keep draining FFmpeg diagnostics, terminate the decoder
-  process tree, and wait for it to exit before releasing stream slots.
-
 ## [2026100421-slskdn.338] — 2026-10-04
 
 ### Player streaming
 
-- Canceled transcodes keep draining FFmpeg diagnostics, terminate the decoder
-  process tree, and wait for it to exit before releasing stream slots.
+- Decoder shutdown now completes before per-user and global stream limits are
+  released, so a disconnected client cannot leave a transcode occupying server
+  capacity after its request has ended.
 
 ## [2026100420-slskdn.337] — 2026-10-04
 
