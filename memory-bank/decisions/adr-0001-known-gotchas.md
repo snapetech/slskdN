@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1502. Implement Bounded Async Writes On LimitedWriteStream (2026-10-04)
+
+**What went wrong:** `LimitedWriteStream` bounded only synchronous `Write`
+calls. Stream clients using `WriteAsync` could fail to write a chunk, so swarm
+downloads retried and eventually failed even when the peer supplied the bytes.
+
+**Why:** The wrapper relied on `Stream` base-class async behavior instead of
+implementing the same byte limit and completion signaling for both async
+overloads used by current network clients.
+
+**Prevention:** Override byte-array and `ReadOnlyMemory<byte>` async writes,
+write no more than the remaining limit, update the written-byte count after the
+inner write succeeds, and signal the limited transfer only after the final
+bytes are accepted. Test both async overloads.
+
 ### 0z1501. Bound Swarm Chunk Assignment And Download Retries (2026-10-04)
 
 **What went wrong:** `SwarmDownloadOrchestrator.ProcessJob` requeued chunks forever
