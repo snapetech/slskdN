@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1490. Qualify Filesystem File Calls In Soulseek Tests (2026-10-04)
+
+**What went wrong:** A library-controller regression test imported both
+`System.IO` and `Soulseek`, then used the unqualified `File` type for temporary
+fixture creation and cleanup. The compiler could not distinguish
+`System.IO.File` from `Soulseek.File`.
+
+**Why:** The test file needs both namespaces: one for filesystem helpers and
+one for Soulseek result types. The same short type name exists in both.
+
+**Prevention:** In tests that import `Soulseek`, qualify filesystem operations
+as `System.IO.File` (or use an explicit type alias) rather than relying on an
+unqualified `File` identifier. Compile the focused test project after adding
+filesystem fixtures.
+
 ### 0z1489. Preserve Cancellation During Optional Library Hash Enrichment (2026-10-04)
 
 **What went wrong:** `LibraryItemsController` caught every exception from the
