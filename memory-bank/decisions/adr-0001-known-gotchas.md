@@ -4,6 +4,23 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1479. Do Not Couple API Availability To Automatic Network Advertising (2026-10-04)
+
+**What went wrong:** Enabling the broad Identity/Friends feature also started
+automatic mDNS publication of the peer ID, friend code, display name, API
+port, and capabilities. Users had no setting to keep the profile/contact APIs
+available while preventing that startup broadcast.
+
+**Why:** API availability and automatic network publication were controlled
+by one feature flag even though they have different privacy and lifecycle
+semantics. A broad feature default therefore caused an unrelated multicast
+side effect.
+
+**Prevention:** Give automatic network publication its own explicit,
+conservative opt-in. Keep user-triggered discovery available independently,
+and cover both gates with tests so broad API flags cannot silently enable
+startup broadcasts.
+
 ### 0z1471. Cross-Check DHT Identity Documentation Against Production Derivation (2026-10-04)
 
 **What went wrong:** The T-902 research note said the production Kademlia
