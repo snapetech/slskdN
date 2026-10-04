@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1520. Do Not Dispose The Signal-Bus Semaphore While Calls May Still Release It (2026-10-04)
+
+**What went wrong:** `SignalBus.Dispose` disposed `subscribersLock` without
+joining or fencing concurrent `SubscribeAsync` and `OnSignalReceivedAsync`
+calls. A method that already acquired the semaphore could then throw from its
+`finally` release.
+
+**Why:** The semaphore was treated as an owned native handle even though it is
+only a short-lived managed gate and concurrent public calls were not tracked.
+
+**Prevention:** Do not dispose the semaphore until every operation that may
+release it has drained. Prefer leaving this managed gate for garbage collection
+when the service cannot safely prove all callers have stopped.
+
 ### 0z1519. Keep Signal-Bus Cleanup State Alive After Its Bounded Join Times Out (2026-10-04)
 
 **What went wrong:** `SignalBus.Dispose` ignored the result of its one-second
