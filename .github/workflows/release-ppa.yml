@@ -109,18 +109,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y devscripts debhelper gnupg build-essential patchelf
 
-      - name: Import GPG Key
+      - name: Import and verify PPA signing key
+        id: ppa-signing-key
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-        run: |
-          if [ -z "$GPG_PRIVATE_KEY" ]; then
-            echo "GPG_PRIVATE_KEY secret not set. Skipping PPA upload."
-            exit 0
-          fi
-          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          # Trust the key
-          KEY_ID=$(gpg --list-keys --keyid-format long | grep -A1 "^pub" | tail -1 | awk '{print $1}')
-          echo "$KEY_ID:6:" | gpg --import-ownertrust
+        run: scripts/import-ppa-signing-key.sh
 
       - name: Prepare Source Structure
         run: |
@@ -178,9 +171,12 @@ jobs:
           rm -f ../*.deb ../*.buildinfo ../*_*.changes
 
       - name: Build Source Package
+        if: steps.ppa-signing-key.outputs.fingerprint != ''
+        env:
+          GPG_SIGNING_FINGERPRINT: ${{ steps.ppa-signing-key.outputs.fingerprint }}
         run: |
           cd "slskdn-${{ steps.version.outputs.version }}"
-          debuild -S -sa -d -k07E2531E1F470F8008ACCFC996A07606FE65392F
+          debuild -S -sa -d -k"$GPG_SIGNING_FINGERPRINT"
 
       - name: Preflight Launchpad PPA Upload
         env:

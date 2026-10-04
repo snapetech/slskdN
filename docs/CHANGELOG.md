@@ -52,6 +52,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Improve the opt-in build analyzer's dependency loading and source context,
   and remove name-only rules that produced non-actionable diagnostics.
 
+### Linux packaging
+
+- Derive the PPA signing fingerprint from the imported key and verify
+  unattended signing before building source packages.
+
 ## [2026100314-slskdn.335] — 2026-10-03
 
 ### Linux installation
