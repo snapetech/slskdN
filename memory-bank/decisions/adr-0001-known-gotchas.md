@@ -37817,3 +37817,21 @@ also need to remain drained until the process has exited.
 `finally` path, terminate the process tree when it is still running, await its
 exit without the canceled request token, and observe the stderr drain before
 disposing the process. Cover disconnect cleanup with a process-backed test.
+
+### 0z1472. Check Cross-Repository Push Hooks Before Updating Main (2026-10-04)
+
+**What went wrong:** `git push origin main` ran the configured pre-push hook,
+which also attempted to sync the YunoHost package to its separate
+`YunoHost-Apps/slskdn_ynh` `testing` branch. That branch had newer commits, so
+the sync was rejected and the intended `snapetech/slskdN` push was aborted.
+The secondary repository was not changed.
+
+**Why:** The local hook couples pushes of `refs/heads/main` with a package
+mirror update, so pushing `origin` can invoke a write to a second GitHub
+repository even when that repository is not the requested target.
+
+**Prevention:** Inspect the configured pre-push hook and verify every target
+before publishing. If the task only authorizes `origin/main`, push
+`HEAD:refs/heads/main`; the secret scan still runs while the hook's separate
+YunoHost sync is skipped. Do not reconcile or push the external package branch
+without explicit authorization.
