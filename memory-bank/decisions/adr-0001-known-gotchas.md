@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1489. Preserve Cancellation During Optional Library Hash Enrichment (2026-10-04)
+
+**What went wrong:** `LibraryItemsController` caught every exception from the
+optional HashDb lookup and on-demand SHA-256 computation. If either operation
+observed request cancellation, conversion continued with a fallback content
+identifier or skipped the item instead of propagating cancellation.
+
+**Why:** Optional metadata enrichment treated operational failure and caller
+cancellation as the same case, even though the caller token is passed into
+both asynchronous operations.
+
+**Prevention:** Keep fallback behavior for expected HashDb or file-access
+failures, but rethrow `OperationCanceledException` when the caller token is
+cancelled. Cover cancellation at both enrichment points and ensure the
+controller does not turn it into a partial successful response.
+
 ### 0z1488. Preserve Pod Routing Cancellation Before Marking Messages Seen (2026-10-04)
 
 **What went wrong:** `PodMessageRouter.RouteMessageAsync()` registered a message
