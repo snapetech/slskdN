@@ -38502,3 +38502,17 @@ written as though those collections belonged exclusively to this app.
 unregistering it. Remove only cache names owned by the app, or leave caches
 alone when no app-specific cache is defined. Cover sibling-scope registrations
 and cache entries with regression tests.
+
+### 0z1598. Derive Browser Test URLs From The Test Origin (2026-10-05)
+
+**What went wrong:** A service-worker regression hard-coded `http://localhost`
+for a scope and script URL, but the Vitest browser origin includes its own
+port. The production matcher correctly rejected the fixture, so the test
+reported no unregister call.
+
+**Why:** The test copied an origin literal instead of deriving expected URLs
+from the environment that executes the URL resolution.
+
+**Prevention:** Build mocked registration scopes and script URLs from
+`window.location.origin` (or the app URL helper) so browser ports and base
+paths stay aligned with production URL resolution.
