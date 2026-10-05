@@ -95,6 +95,34 @@ public class SignalBusTests
     }
 
     [Fact]
+    public async Task SendAsync_WhenCallerCancelsDuringChannelSend_DoesNotTryNextChannel()
+    {
+        var signalBus = new SignalBus(loggerMock.Object, optionsMonitorMock.Object);
+        using var cancellationTokenSource = new CancellationTokenSource();
+
+        var canceledHandlerMock = new Mock<ISignalChannelHandler>();
+        canceledHandlerMock.Setup(x => x.CanSendTo(It.IsAny<string>())).Returns(true);
+        canceledHandlerMock
+            .Setup(x => x.SendAsync(It.IsAny<Signal>(), It.IsAny<CancellationToken>()))
+            .Callback<Signal, CancellationToken>((_, _) => cancellationTokenSource.Cancel())
+            .ThrowsAsync(new OperationCanceledException(cancellationTokenSource.Token));
+
+        var fallbackHandlerMock = new Mock<ISignalChannelHandler>();
+        fallbackHandlerMock.Setup(x => x.CanSendTo(It.IsAny<string>())).Returns(true);
+
+        signalBus.RegisterChannelHandler(SignalChannel.Mesh, canceledHandlerMock.Object);
+        signalBus.RegisterChannelHandler(SignalChannel.BtExtension, fallbackHandlerMock.Object);
+
+        var signal = CreateTestSignal(SignalChannel.Mesh, SignalChannel.BtExtension);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => signalBus.SendAsync(signal, cancellationTokenSource.Token));
+
+        canceledHandlerMock.Verify(x => x.SendAsync(signal, cancellationTokenSource.Token), Times.Once);
+        fallbackHandlerMock.Verify(x => x.SendAsync(It.IsAny<Signal>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task SendAsync_ShouldSkipChannel_WhenCannotSendTo()
     {
         // Arrange

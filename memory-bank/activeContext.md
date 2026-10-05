@@ -18411,3 +18411,26 @@ until their code or evidence exists. Final push/tag remains authorized by the
 user, but run the complete release gate on the final tree before publishing.
 
 ## Previous state — Commit remediation records; prepare `.340` release — 2026-10-05 05:43 UTC
+## Current state — Continue remediation after `.340`; preserve signal cancellation — 2026-10-05 07:55 UTC
+
+Stable `.340` completed its hosted workflow, including Launchpad publication.
+The current SignalBus change propagates caller-requested cancellation instead
+of logging it as a failed transport and attempting fallback. The focused
+SignalBus suite passes 18/18; the full Release .NET suite passes 5,953 (74
+application, 5,590 unit, 289 integration), and `./bin/lint` passes. The
+implementation, regression, release fragment, changelogs, and task/progress
+records are ready to commit; ADR-0001 gotcha `0z1613` is already committed.
+
+All first-party app, test, and build-tool projects target `net10.0`.
+MonoTorrent selects its compatible `lib/net8.0` package asset. Historical
+`.NET 6` references do not describe the current dependency graph.
+
+Continue the code-backed whole-product remediation. T-908 still lacks a
+production sender/job lifecycle and safe end-to-end cross-peer fallback;
+cross-node Party ID uniqueness lacks a shared atomic authority; hidden-tab
+throttling, WebKit/physical assistive-technology speech, representative
+WAN/resource behavior, the original frontend `ERR_NETWORK_CHANGED` cause,
+and broad discovery queues remain open. Next: inspect T-908's production
+registration and cancellation boundaries, then take the next confirmed fix.
+Push and cut the authorized next release after the remaining fix/evidence
+work and final release gate.

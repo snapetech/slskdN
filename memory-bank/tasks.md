@@ -211,6 +211,12 @@
   and whitespace checks pass. Gotchas `0z1603`, `0z1604`, `0z1610`, and
   `0z1611` record the timeout, discriminator, transport-diagnostic, and
   duplicate-DTO-type boundaries.
+- [x] Preserve caller cancellation in `SignalBus.SendAsync` — 2026-10-05.
+  Caller cancellation now escapes instead of being logged as a channel failure
+  and trying another transport. A regression confirms the fallback channel is
+  not invoked. The focused SignalBus suite passes 18/18 and the full Release
+  .NET suite passes 5,953 (74 application, 5,590 unit, 289 integration);
+  `./bin/lint` passes. ADR-0001 gotcha `0z1613` records the fallback boundary.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Latest discovery queues: 211 callback/event, 434
   remote-text, 12,261 red-team, and 827 mutable-ownership candidates. T-908

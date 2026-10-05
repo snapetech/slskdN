@@ -17910,3 +17910,19 @@ ownership. Hidden-tab throttling, physical assistive-technology and WebKit
 speech, representative WAN/resource evidence, the original frontend
 `ERR_NETWORK_CHANGED` cause, and broad discovery queues remain open. Keep the
 next stable release gated until code fixes and evidence are complete.
+## 2026-10-05 07:55 UTC — Preserve signal-send caller cancellation
+
+`SignalBus.SendAsync` no longer catches caller-requested cancellation as an
+ordinary channel failure and retries the next configured transport. A focused
+regression confirms the second channel is not invoked. The SignalBus unit
+suite passes 18/18, the full Release .NET suite passes 5,953 tests (74
+application, 5,590 unit, 289 integration), and `./bin/lint` passes. ADR-0001
+gotcha `0z1613` was committed before the implementation.
+
+Stable `.340` completed its hosted workflow, including Launchpad. The current
+signal change has a release fragment and matching root/docs changelog entries.
+The app, tests, and build tools remain on .NET 10; MonoTorrent resolves its
+compatible .NET 8 package asset and has no active .NET 6 asset. Continue with
+the remaining code-backed product fixes before the authorized push and next
+stable release; T-908 end-to-end transfer lifecycle, globally authoritative
+Party ID claims, and external browser/device/WAN evidence remain open.

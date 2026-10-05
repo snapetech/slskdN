@@ -120,6 +120,10 @@ public class SignalBus : ISignalBus, IDisposable
                     LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId), channel);
                 return; // Success, don't try other channels
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 logger.LogWarning(
