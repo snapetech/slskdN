@@ -268,6 +268,19 @@ a same-named utility, call `ToString()` for typed IDs only at the diagnostic
 boundary, and run the owning project build after changing imports and logging
 arguments.
 
+### 0z1584. Move Existing Using Aliases Instead Of Duplicating Them (2026-10-04)
+
+**What went wrong:** Reordering `LoggingSanitizer` in
+`SoulseekHealthMonitor` inserted the alias in the required location without
+removing its earlier declaration. C# then rejected the duplicate alias.
+
+**Why:** The import fix was applied as an insertion even though the same file
+already declared that alias.
+
+**Prevention:** Inspect the complete using block before moving aliases. Edit
+the existing declaration in place and verify there is only one declaration
+before rebuilding.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
