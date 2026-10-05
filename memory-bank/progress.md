@@ -18112,3 +18112,28 @@ matrix, remediation baseline, release gate, and release-note validation pass.
 Every first-party project targets .NET 10; MonoTorrent selects its compatible
 .NET 8 package asset, with no active .NET 6 target. Evidence-dependent backlog
 items remain tracked rather than being claimed complete.
+
+
+## 2026-10-05 13:38 UTC — Harden mesh identities and remote diagnostic boundaries
+
+`KNode.NodeId` now clones on initialization and read, preventing routing-table
+snapshots from mutating stored peer IDs. Shared and DHT rate-limit logs, control
+envelope validation, small-world neighbor diagnostics, and Byzantine consensus
+logs now escape caller-controlled identifiers, filenames, exception details,
+and hashes only at the log boundary; request/routing/consensus values remain
+unchanged. T-908 follow-up research now records the missing BitTorrent serving
+path and peer authentication in addition to job lifecycle ownership, so
+cross-peer fallback remains fail-closed.
+
+Focused mesh regressions pass 21/21. Full Release `dotnet test --no-restore`
+passes 6,023 tests (74 application, 289 integration, 5,660 unit), and
+`./bin/lint` passes. Four release-note fragments and the `.341`-based
+Unreleased changelog entries are prepared. The broad remote-text and mutable
+ownership discovery queues remain open for further classification.
+
+
+## 2026-10-05 14:20 UTC — Complete mesh and Pod reliability batch
+
+The post-`.341` batch closes ten confirmed findings: DHT node-ID mutation, remote-controlled mesh diagnostics, mutable peer-manager state, and cancellation/logging defects in Pod membership verification and HTTP actions. Added defensive snapshots, log-boundary escaping, cancellation propagation through the verifier and all thirteen controller actions, and focused regression coverage. T-908 remains fail-closed until the BitTorrent path has serving, peer authorization, and a production job owner.
+
+Full Release `dotnet test -c Release --no-restore` passes 6,043 tests (74 application, 289 integration, 5,680 unit). `./bin/lint`, the .NET runtime/package matrix, active-council backlog check, and `git diff --check` pass. The backlog now records 214 callback/event, 427 remote-text, 12,318 red-team, and 826 mutable-ownership candidates. Nine release-note fragments and the versioned `.342` changelog section are prepared; commit, push, release gate, and published-artifact verification remain.

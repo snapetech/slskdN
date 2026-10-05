@@ -3,7 +3,8 @@
 > **Status:** Private policy and resolver fetch are implemented behind the
 > VirtualSoulfind v2 torrent option. Torrent acquisition remains disabled by
 > default. Cross-peer swarm fallback is explicitly rejected until sender
-> activation and job cleanup are implemented.
+> activation and job cleanup are implemented. Fallback also lacks a defined
+> seeding/serving path and per-peer authentication for BitTorrent connections.
 
 ## Implemented behavior
 
@@ -57,16 +58,24 @@ for that torrent.
 
 ## Remaining work
 
-- Establish a production active-job owner before wiring protocol activation.
-  The current `InMemorySwarmJobStore` exposes lookup only, the application does
-  not create `SwarmJob` instances, and `SwarmDownloadOrchestrator` is not
-  registered as a hosted service. The signal handler therefore cannot bind an
-  incoming request to a real sender/receiver job today.
-- Connect fallback acknowledgements to the sender's active swarm job and route
-  the resulting torrent transfer through that job's lifecycle.
-- Implement actual `Swarm.JobCancel` handling and release any prepared torrent
-  manager when its owning job ends. Keep all requests fail-closed until this
-  integration has end-to-end activation, cancellation, and cleanup coverage.
+- Define the protocol roles and network trust boundary before adding a
+  production job owner. `MonoTorrentBitTorrentBackend` currently fetches data;
+  it does not create or seed a torrent for a shared file. The existing
+  BitTorrent connection path also has no peer-authentication mechanism, so a
+  private torrent hash alone cannot enforce that only the requesting mesh peer
+  can read the content.
+- Choose a production transfer owner that controls output, progress,
+  cancellation, and disposal. `InMemorySwarmJobStore` currently supports lookup
+  only, the application creates no `SwarmJob` instances, and
+  `SwarmDownloadOrchestrator` is not registered; that prototype writes into a
+  temporary output area and is not the existing download pipeline.
+- After those boundaries are designed, bind the exact content and variant to a
+  real job, connect acknowledgements to an authenticated sender and an active
+  torrent transfer, implement authorized `Swarm.JobCancel`, and release every
+  manager and temporary resource when its owning job ends.
+- Keep requests fail-closed until two-peer end-to-end tests cover peer
+  authorization, exact variant binding, activation, cancellation, rejection,
+  and manager cleanup.
 - Keep keyed swarms deferred until a concrete key exchange and peer-auth
   protocol is designed.
 

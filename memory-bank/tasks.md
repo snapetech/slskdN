@@ -26,6 +26,29 @@
 
 ## Active Development
 
+### Post-.341 mesh ownership and diagnostic safety — 2026-10-05
+
+- [x] Make `KNode.NodeId` defensive on both initialization and read so
+  returned routing snapshots cannot mutate stored DHT identities. Regression
+  coverage verifies input/output isolation and nearest-node order.
+- [x] Escape caller-controlled values at shared/DHT rate-limit, control
+  envelope, small-world neighbor, peer-manager, and Byzantine consensus log
+  boundaries while preserving the original keys, peer IDs, filenames, and vote
+  inputs.
+- [x] Copy mesh peer state on manager insertion and lookup so caller-owned
+  objects and returned snapshots cannot change stored trust or circuit
+  eligibility.
+- [x] Preserve caller cancellation through Pod verification services and all
+  13 verification/membership HTTP actions; escape peer, pod, message, service
+  result, and exception values at diagnostic boundaries. Focused regressions
+  and full validation pass.
+- [x] Pass the full Release .NET solution: 6,043 tests (74 application,
+  289 integration, 5,680 unit) and `./bin/lint`.
+- [x] Add nine release-note fragments and a versioned `.342` changelog entry
+  for the mesh integrity, diagnostic, cancellation, and Pod fixes.
+- [ ] Continue code-backed remediation; T-908's protocol/trust requirements
+  and other external/evidence-dependent work remain open below.
+
 ### Stable `.341` and post-.340 reliability audit — 2026-10-05
 
 - [x] Confirm framework alignment: every first-party project under `src`,
@@ -50,7 +73,9 @@
 - [ ] Keep evidence-dependent T-908 lifecycle, global Party ID authority,
   browser/device accessibility, WAN/resource measurements, and discovery
   queues open until the missing production integration or external evidence is
-  available.
+  available. T-908 additionally needs a torrent serving/seeding design and
+  per-peer authorization; the current backend only fetches and cannot
+  authenticate an allowed mesh peer at the BitTorrent layer.
 
 ### Post-.339 reliability, .NET 10 alignment, and product remediation — 2026-10-05
 
@@ -305,8 +330,8 @@
   The isolated regression and subsequent full unit suite pass. Gotcha `0z1616`
   records the collection requirement.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings. Latest discovery queues: 212 callback/event, 431
-  remote-text, 12,275 red-team, and 827 mutable-ownership candidates. T-908
+  code-backed findings. Latest discovery queues: 214 callback/event, 427
+  remote-text, 12,318 red-team, and 826 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.
@@ -4309,7 +4334,7 @@
 
 - [x] **T-906 Resolver fetch**: SimpleResolver calls `MeshContent.GetByContentId` via IMeshServiceClient for `mesh:{peerId}:{contentId}`; writes payload to temp file and returns path. Done.
 - [x] **T-907 Resolver fetch**: SimpleResolver uses `IContentFetchBackend`; `WebDavBackend`, `S3Backend`, `HttpBackend` implement it; fetch via `FetchToStreamAsync`. Done.
-- [ ] **T-908 fallback lifecycle**: Add a production active-job owner first: `InMemorySwarmJobStore` supports lookup only, the app creates no `SwarmJob`, and `SwarmDownloadOrchestrator` is unregistered. Then bind exact variants to real jobs, connect fallback acknowledgements to transfer activation/cancellation, implement `Swarm.JobCancel`, and clean up managers when their owning job ends. Keep requests fail-closed until end-to-end coverage exists. Details: `docs/research/T-908-private-bittorrent-backend-design.md`.
+- [ ] **T-908 fallback lifecycle**: First design the serving/seeding path and per-peer authorization; the current backend only fetches and a private torrent hash does not authenticate the requesting mesh peer. Then choose a production transfer owner (the app creates no `SwarmJob`, `InMemorySwarmJobStore` is lookup-only, and `SwarmDownloadOrchestrator` is an unregistered prototype), bind exact variants, connect acknowledgements to authorized activation/cancellation, implement `Swarm.JobCancel`, and release managers at job end. Keep requests fail-closed until two-peer end-to-end coverage exists. Details: `docs/research/T-908-private-bittorrent-backend-design.md`.
 - [x] **T-912 Soulseek adapter**: `IMetadataFacade.GetBySoulseekFilenameAsync(username, filename)` parses common patterns (Artist - Title, Album - NN - Title, NN. Title) and returns `MetadataResult` with `SourceSoulseek`. Done.
 
 ### Packaging (docs/archive/root/TODO.md)

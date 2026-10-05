@@ -129,7 +129,7 @@ These 9 tasks are **research / future-enhancement** items. Implementation is opt
 
 **Boundaries:** Engine-wide local peer discovery is disabled for privacy and therefore also affects public-mode torrent managers. The standalone resolver fetch has invite-list endpoints but no overlay endpoint list; swarm fallback receives overlay sources through `SwarmJob`. MonoTorrent rejects manually adding peers after BEP 27 private metadata has loaded, so the backend disables magnet metadata cache load/save and fails closed if private metadata is already present.
 
-**Remaining:** Connect fallback acknowledgements to the sender's active swarm job; implement `Swarm.JobCancel` and release prepared managers when jobs end. Keyed swarms remain deferred until a peer-auth/key exchange protocol is designed.
+**Remaining:** The current backend fetches torrents but does not create or seed them, and the BitTorrent connection path has no per-peer authentication; a private infohash alone does not constrain access to the requesting mesh peer. Design those protocol/trust boundaries and choose a production transfer owner before wiring acknowledgement, exact-variant activation, authorized `Swarm.JobCancel`, and manager cleanup. Keep requests fail-closed until two-peer end-to-end coverage proves the lifecycle. Keyed swarms remain deferred until a peer-auth/key exchange protocol is designed.
 
 ---
 

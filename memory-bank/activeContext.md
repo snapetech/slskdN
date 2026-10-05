@@ -1,4 +1,32 @@
-## Current state — Stable `.341` published and verified — 2026-10-05 12:57 UTC
+## Current state — Complete post-`.341` mesh and Pod fixes — 2026-10-05 14:20 UTC
+
+Stable `.341` is published and verified. The post-release batch now fixes ten
+confirmed mesh integrity, mutable-state, remote-log, and Pod cancellation
+findings. `KNode.NodeId` and mesh peer-manager data are isolated with defensive
+copies; remote-controlled mesh and Pod diagnostic values are escaped only at
+log boundaries; Pod verification and all thirteen membership/verification HTTP
+actions propagate caller cancellation.
+
+The full Release `dotnet test -c Release --no-restore` suite passes 6,043 tests
+(74 application, 289 integration, 5,680 unit). `./bin/lint`, the .NET runtime
+matrix, and `git diff --check` pass. The active council inventory is refreshed
+to 214 callback/event, 427 remote-text, 12,318 red-team, and 826 mutable-state
+candidates. Nine release-note fragments and the versioned `.342` changelog section cover
+the batch; the range preview, final release gate, push, and `.342` release
+remain.
+
+T-908 remains fail-closed: its backend fetches but does not seed, the
+BitTorrent path does not authenticate allowed peers, and the prototype
+orchestrator is not the production transfer owner. Keep activation deferred
+until the protocol, peer authorization, lifecycle owner, and two-peer end-to-end
+proof exist. Other external/evidence-dependent backlog items remain open.
+
+## Next steps
+
+Finish the issue ledger and memory records, validate the release-note range,
+commit the completed fixes, verify and push to `snapetech/slskdN`, run the
+release gate, then create and verify stable `.342` artifacts.
+ — 2026-10-05 12:57 UTC
 
 Stable `.341` is complete. Build tag
 `build-main-2026100511-slskdn.341` and release

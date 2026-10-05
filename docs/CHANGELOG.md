@@ -22,6 +22,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100514-slskdn.342] — 2026-10-05
 
 ### Fixed
 
@@ -41,7 +42,6 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Pod membership APIs and message/role verification now propagate caller
   cancellation and escape remote identifiers, service errors, and exception
   details in logs.
-
 
 ## [2026100511-slskdn.341] — 2026-10-05
 
