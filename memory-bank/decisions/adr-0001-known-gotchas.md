@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1620. Create Integration Download Roots In The Test Fixture (2026-10-05)
+
+**What went wrong:** Pod download integration tests relied on a previously
+created temporary `downloads` directory. Running the suite with an isolated
+`TMPDIR` exposed the missing setup: secure output correctly rejected the
+nonexistent trusted root and the controller returned HTTP 500.
+
+**Why:** The shared web application factory configured temporary download and
+incomplete paths but never created them. Existing machine state had hidden the
+fixture's dependency on an earlier test run.
+
+**Prevention:** Create all configured filesystem roots during fixture setup,
+and run filesystem integration tests with a fresh temporary directory to
+verify that they do not depend on stale machine state.
+
 ### 0z1619. Keep Mesh Caller Cancellation Out Of Handler Failure Responses (2026-10-05)
 
 **What went wrong:** `MeshServiceRouter` converted caller cancellation from a
