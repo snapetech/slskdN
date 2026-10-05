@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1628. Keep Cancellation Cleanup Variables In Scope (2026-10-05)
+
+**What went wrong:** Hole-punch cancellation cleanup referenced the parsed
+request from an outer `catch`, but the request was declared inside its
+`try` block, causing a compile failure.
+
+**Why:** C# variables declared inside a `try` block are not in scope from its
+associated `catch` clauses.
+
+**Prevention:** Keep cleanup next to the operation in a nested `try`/`catch`,
+or explicitly declare only the needed cleanup state before the outer `try`.
+Compile the focused project after editing exception cleanup paths.
+
 ### 0z1627. Clean Up Hole-Punch Sessions When Caller Cancels (2026-10-05)
 
 **What went wrong:** Hole-punch service catch blocks converted caller
