@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1616. Serialize Allocation-Bound Unit Test Classes (2026-10-05)
+
+**What went wrong:** A strict current-thread allocation regression passed
+alone but exceeded its 1 KiB budget during the full unit suite because its
+test class was not in the repository's non-parallel allocation collection.
+
+**Why:** The test was added to a file containing several test classes, and its
+class declaration did not inherit the collection attribute used by the other
+allocation-sensitive tests.
+
+**Prevention:** Put classes with tight allocation measurements in
+`AllocationTestCollection`, even when only one test in the class measures
+allocation. Confirm the regression alone and in the complete unit suite.
+
 ### 0z1615. Propagate Incoming Signal Callback Cancellation (2026-10-05)
 
 **What went wrong:** Mesh and BitTorrent signal receive handlers caught
