@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-10-05T20:09:11Z
+Generated: 2026-10-05T23:11:14Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -195,28 +195,28 @@ None found.
   - 198:    [HttpGet("radio/{partyId}/{contentId}")]
   - 199:    [AllowAnonymous]
 - src/slskd/PodCore/API/Controllers/PodDhtController.cs
-  - 49:    [HttpPost("publish")]
-  - 98:    [HttpPost("update")]
-  - 147:    [HttpDelete("unpublish/{*podId}")]
-  - 185:    [HttpGet("metadata/{*podId}")]
-  - 186:    [AllowAnonymous]
-  - 221:    [HttpPost("refresh/{*podId}")]
-  - 258:    [HttpGet("stats")]
+  - 50:    [HttpPost("publish")]
+  - 99:    [HttpPost("update")]
+  - 148:    [HttpDelete("unpublish/{*podId}")]
+  - 186:    [HttpGet("metadata/{*podId}")]
+  - 187:    [AllowAnonymous]
+  - 222:    [HttpPost("refresh/{*podId}")]
+  - 259:    [HttpGet("stats")]
 - src/slskd/PodCore/API/Controllers/PodDiscoveryController.cs
-  - 46:    [HttpPost("register")]
-  - 95:    [HttpDelete("unregister/{podId}")]
-  - 133:    [HttpPost("update")]
-  - 182:    [HttpGet("name/{name}")]
-  - 183:    [AllowAnonymous]
-  - 210:    [HttpGet("tag/{tag}")]
-  - 211:    [AllowAnonymous]
-  - 238:    [HttpGet("tags/{tags}")]
-  - 239:    [AllowAnonymous]
-  - 278:    [HttpGet("all")]
-  - 279:    [AllowAnonymous]
-  - 305:    [HttpGet("content/{*contentId}")]
-  - 331:    [HttpGet("stats")]
-  - 351:    [HttpPost("refresh")]
+  - 47:    [HttpPost("register")]
+  - 96:    [HttpDelete("unregister/{podId}")]
+  - 134:    [HttpPost("update")]
+  - 183:    [HttpGet("name/{name}")]
+  - 184:    [AllowAnonymous]
+  - 211:    [HttpGet("tag/{tag}")]
+  - 212:    [AllowAnonymous]
+  - 239:    [HttpGet("tags/{tags}")]
+  - 240:    [AllowAnonymous]
+  - 279:    [HttpGet("all")]
+  - 280:    [AllowAnonymous]
+  - 306:    [HttpGet("content/{*contentId}")]
+  - 332:    [HttpGet("stats")]
+  - 352:    [HttpPost("refresh")]
 - src/slskd/PodCore/API/Controllers/PodVerificationController.cs
   - 47:    [HttpGet("membership/{podId}/{peerId}")]
   - 48:    [AllowAnonymous]
