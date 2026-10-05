@@ -70,6 +70,21 @@ PodCore, including invalid-input and mismatch paths. When auditing a category,
 search all logging call sites in the owning subsystem and add a test that
 asserts the emitted log record contains escaped controls.
 
+### 0z1565. Escape Request Search Text Before Logging (2026-10-04)
+
+**What went wrong:** Compatibility and library-search endpoints logged raw
+queries and usernames from HTTP requests. Trimming or structured logging does
+not prevent embedded control characters from breaking log records.
+
+**Why:** Search and identity inputs were treated as harmless diagnostic text
+because they are normal product fields, even though callers control them.
+
+**Prevention:** Apply the logging sanitizer at every request-text log boundary,
+including success, rejection, and exception paths. Search neighboring
+compatibility and native endpoints when fixing one request logger, then verify
+that logs escape CR/LF while responses and actual search behavior retain the
+original input.
+
 ### 0z1559. Keep Retry Notifications Outside The Operation Failure Handler (2026-10-04)
 
 **What went wrong:** `Retry.Do` invoked `onRetry` inside the same `try` block
