@@ -39760,3 +39760,19 @@ received DNS-SD record.
 **Prevention:** Treat mDNS display names and TXT values like other peer-supplied
 text. Escape them only at diagnostic boundaries, preserve the original values
 for discovery behavior, and capture a malformed-peer log containing CR/LF.
+
+### 0z1682. Keep Federated Protocol Values At The Remote Log Boundary (2026-10-05)
+
+**What went wrong:** Social federation diagnostics logged remote inbox URLs,
+WebFinger resource and actor values, and inbound federated actor/title data as
+ordinary local strings. Some error paths also attached exception objects whose
+messages can contain those remote values.
+
+**Why:** These values cross a protocol boundary but look like normal application
+metadata after they enter the federation services.
+
+**Prevention:** Treat every federated URL, identifier, title, and remote
+exception detail as untrusted at the logger. Redact URL query/credential data,
+escape text and exception details, omit raw exception objects, and preserve the
+original protocol values for delivery and lookup. Cover both accepted and
+rejected requests with captured-log regressions.
