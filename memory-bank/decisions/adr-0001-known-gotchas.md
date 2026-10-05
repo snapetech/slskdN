@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1667. Preserve Pod Routing Cancellation And Escape Its Diagnostics (2026-10-05)
+
+**What went wrong:** PodCore routing actions logged caller or peer supplied
+message and pod identifiers, router error text, and raw exception objects.
+Their broad exception catches also converted caller cancellation into HTTP 500
+responses.
+
+**Why:** The controller kept legacy broad error handlers after cancellation
+tokens were added, and its log review covered response bodies without checking
+the independent diagnostic boundary.
+
+**Prevention:** Rethrow caller cancellation before generic error handling,
+escape external values at each controller log call, and log exception details
+as escaped text rather than exception metadata. Cover success, failure, and
+cancellation paths for every asynchronous action.
+
 ### 0z1666. Escape Rendered Messages In The Startup Logging Fallback (2026-10-05)
 
 **What went wrong:** When the startup log-record callback threw, the fallback
