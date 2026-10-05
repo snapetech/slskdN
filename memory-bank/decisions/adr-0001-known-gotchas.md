@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1660. Preserve Cancellation Around Synchronous Mesh Search (2026-10-05)
+
+**What went wrong:** `MeshSearchRpcHandler` created a linked caller/timeout
+token but never used it. A peer disconnect or expired five-second budget did
+not stop result sorting and mapping, and caller cancellation could be returned
+as an ordinary search failure.
+
+**Why:** The local share repository exposes a synchronous search operation
+through a `Task`-returning wrapper, so the handler treated creation of a token
+as if it made that operation cancellable.
+
+**Prevention:** Check cancellation before and after the synchronous repository
+search and throughout result processing. Rethrow cancellation caused by the
+caller before mapping other failures to a protocol error. Do not claim that a
+synchronous repository call itself can be interrupted by that token.
+
 ### 0z1659. Avoid Launchpad `exact_match` For Published Binary Queries (2026-10-05)
 
 **What went wrong:** The PPA publication waiter queried Launchpad
