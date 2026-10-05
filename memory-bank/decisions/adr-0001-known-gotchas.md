@@ -39730,3 +39730,18 @@ separate lifecycle boundary in the same class.
 startup, shutdown, timeout, and disposal paths. Reject exception objects at
 all log levels and sanitize their rendered text. Extend captured-log tests and
 the source gate to cover lifecycle failures as well as steady-state work.
+
+### 0z1680. Use Ripgrep Regex Flags Correctly In Safety Gates (2026-10-05)
+
+**What went wrong:** A new cover-traffic source check passed `-E` to `rg` as
+though it enabled extended regular expressions. In ripgrep, `-E` selects a
+regex engine, so the command reported an invalid engine name. The check treated
+that error as a non-match and incorrectly passed.
+
+**Why:** A familiar option spelling from another grep implementation was
+assumed to have the same meaning, and the shell conditional collapsed scanner
+errors together with ordinary no-match status.
+
+**Prevention:** Use ripgrep's default regex syntax or an explicitly supported
+`--engine`/`--pcre2` option. For negative-match gates, distinguish status 1
+(no match) from command errors and fail the gate on every other nonzero status.
