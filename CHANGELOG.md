@@ -49,6 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   treating it as a failed peer query.
 - Mesh service routing now propagates caller cancellation instead of converting
   it into a service failure response.
+- Mesh sync now preserves caller cancellation while waiting for synchronization
+  and serving peer chunk reads.
 - Rate-limited transfer and search updates now honor their concurrency limit
   from the first callback and retain staged updates across timer ticks.
 - Resolver cancellation now reports a canceled execution instead of a failed

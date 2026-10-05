@@ -355,6 +355,85 @@ namespace slskd.Tests.Unit.Mesh
         }
 
         [Fact]
+        public async Task TrySyncWithPeerAsync_CallerCancelsWhileWaitingForSyncLock_PropagatesCancellation()
+        {
+            mockCapabilities
+                .Setup(c => c.GetPeerCapabilities("mesh-peer"))
+                .Returns(new PeerCapabilities
+                {
+                    ClientVersion = "1.0.0",
+                    Flags = PeerCapabilityFlags.SupportsMeshSync,
+                });
+            var syncLock = (SemaphoreSlim)typeof(MeshSyncService)
+                .GetField("syncLock", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(meshSyncService)!;
+            await syncLock.WaitAsync();
+
+            try
+            {
+                using var cancellation = new CancellationTokenSource();
+                var sync = meshSyncService.TrySyncWithPeerAsync("mesh-peer", cancellation.Token);
+                cancellation.Cancel();
+
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sync);
+                Assert.Equal(0, meshSyncService.Stats.FailedSyncs);
+            }
+            finally
+            {
+                syncLock.Release();
+            }
+        }
+
+        [Fact]
+        public async Task HandleMessageAsync_CallerCancelsChunkRead_PropagatesCancellation()
+        {
+            var tempRoot = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "slskdn-mesh-chunk-cancel-" + Guid.NewGuid().ToString("N"));
+            var shareRoot = System.IO.Path.Combine(tempRoot, "share");
+            System.IO.Directory.CreateDirectory(shareRoot);
+            var filename = System.IO.Path.Combine(shareRoot, "track.flac");
+            await System.IO.File.WriteAllBytesAsync(filename, new byte[] { 1, 2, 3, 4 });
+
+            var pathResolver = new Mock<IFlacKeyToPathResolver>();
+            pathResolver.Setup(resolver => resolver.TryGetFilePathAsync("0123456789abcdef", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(filename);
+            var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+            optionsMonitor.SetupGet(options => options.CurrentValue).Returns(new slskd.Options
+            {
+                Shares = new slskd.Options.SharesOptions { Directories = new[] { shareRoot } },
+            });
+            var service = new MeshSyncService(
+                mockHashDb.Object,
+                mockCapabilities.Object,
+                mockSoulseekClient.Object,
+                mockMessageSigner.Object,
+                peerReputation,
+                pathResolver: pathResolver.Object,
+                optionsMonitor: optionsMonitor.Object,
+                logger: mockLogger.Object);
+            mockMessageSigner.Setup(signer => signer.VerifyMessage(It.IsAny<MeshMessage>())).Returns(true);
+
+            try
+            {
+                using var cancellation = new CancellationTokenSource();
+                cancellation.Cancel();
+
+                var handle = service.HandleMessageAsync("mesh-peer", new MeshReqChunkMessage
+                {
+                    FlacKey = "0123456789abcdef",
+                    Offset = 0,
+                    Length = 4,
+                }, cancellation.Token);
+
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => handle);
+            }
+            finally
+            {
+                service.Dispose();
+                System.IO.Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+
+        [Fact]
         public async Task RequestChunkAsync_WhenWaiterAlreadyExists_DoesNotSendDuplicateRequest()
         {
             var pendingChunkRequestsField = typeof(MeshSyncService).GetField("pendingChunkRequests", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);

@@ -18583,3 +18583,24 @@ physical/WebKit assistive-technology evidence, representative WAN/resource
 behavior, the original frontend `ERR_NETWORK_CHANGED` cause, and broad
 discovery queues remain open. Push and cut the authorized stable release only
 after remaining code fixes and final release gates.
+
+## Current state — Preserve cancellation through MeshSync boundaries — 2026-10-05
+
+`TrySyncWithPeerAsync` now propagates caller cancellation while waiting for
+the sync semaphore, rather than incrementing failed-sync stats and returning a
+normal failure result. `HandleReqChunkAsync` now propagates canceled file reads
+instead of reporting a peer miss. Both focused regressions pass; the full
+Release solution passes 5,962 tests (74 application, 5,599 unit, 289
+integration). Gotchas `0z1621` and `0z1622` preceded the fixes; `0z1623`
+records the explicit `System.IO` names needed in Soulseek-importing tests.
+
+The mesh-sync release note and changelog entries are ready. The .NET 10 target
+matrix remains confirmed; MonoTorrent's compatible `lib/net8.0` package is
+selected for the net10 application.
+
+Next: run repository lint and the full release gate, commit this batch, then
+continue the MeshSync/callback cancellation audit. T-908 active job ownership,
+globally authoritative Party IDs, real hidden-tab behavior, physical/WebKit
+accessibility, representative WAN/resource evidence, the original frontend
+network-change cause, and broad discovery queues remain open. Push and cut the
+authorized stable release only after remaining implementation and validation.

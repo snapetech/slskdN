@@ -18016,3 +18016,25 @@ projects target `net10.0`, and MonoTorrent resolves its compatible `net8.0`
 asset. Continue the MeshSync cancellation audit; T-908 lifecycle, distributed
 Party ID authority, and environment-dependent browser/device/WAN evidence
 remain open.
+
+## Update 2026-10-05 — Preserve MeshSync caller cancellation
+
+`TrySyncWithPeerAsync` now propagates caller cancellation while waiting for
+the sync semaphore instead of recording a failed peer sync. Inbound chunk
+reads in `HandleReqChunkAsync` now propagate request cancellation instead of
+returning a normal unsuccessful chunk response. Two focused regressions pass,
+including a held-semaphore cancellation and a canceled read against a file
+inside the configured share root.
+
+The full Release .NET suite passes 5,962 tests (74 application, 5,599 unit,
+289 integration). The new cancellation release fragment and matching
+changelog entries are present. Gotchas `0z1621` and `0z1622` were committed
+before implementation; a first test compile caught an ambiguous `File` /
+`Directory` import from `Soulseek`, which is fixed with explicit `System.IO`
+names and documented by `0z1623`.
+
+Repository lint and release gates are the remaining checks before commit.
+Continue the wider cancellation audit after this batch. T-908 active-job
+lifecycle, global Party ID authority, and external browser/device/WAN evidence
+remain tracked; the framework target is still .NET 10 and MonoTorrent selects
+its compatible .NET 8 package asset.

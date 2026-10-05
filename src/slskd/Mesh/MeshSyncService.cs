@@ -449,6 +449,10 @@ namespace slskd.Mesh
                     syncLock.Release();
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 result.Error = "Mesh sync failed";
@@ -1300,6 +1304,10 @@ namespace slskd.Mesh
 
                 var b64 = read < buf.Length ? Convert.ToBase64String(buf.AsSpan(0, read)) : Convert.ToBase64String(buf);
                 return new MeshRespChunkMessage { FlacKey = req.FlacKey, Offset = req.Offset, DataBase64 = b64, Success = true };
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {

@@ -252,6 +252,18 @@
   machine state. Search action integration coverage passes 13/13 and the full
   Release .NET solution passes. This is test-harness-only work; gotcha `0z1620`
   records the missing-root dependency.
+- [x] Propagate caller cancellation through mesh sync lock acquisition —
+  2026-10-05. `TrySyncWithPeerAsync` now rethrows caller cancellation instead
+  of recording an ordinary sync failure. A deterministic semaphore-held
+  regression confirms cancellation escapes without incrementing failed-sync
+  statistics. Focused coverage and the full Release suite pass; gotcha `0z1621`
+  records the boundary.
+- [x] Propagate cancellation from inbound mesh chunk reads — 2026-10-05.
+  `HandleReqChunkAsync` now rethrows caller cancellation instead of returning
+  an unsuccessful chunk response. Public message-handler coverage passes with
+  a pre-canceled token and an in-root file; the full Release suite passes.
+  Gotcha `0z1622` records the boundary; `0z1623` records explicit `System.IO`
+  qualification in test files importing `Soulseek`.
 - [x] Serialize the strict release-ID allocation regression — 2026-10-05.
   `MusicDomainMappingTests` now uses `AllocationTestCollection`, preventing its
   1 KiB current-thread allocation ceiling from racing other allocation tests.
@@ -259,7 +271,7 @@
   records the collection requirement.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Latest discovery queues: 211 callback/event, 431
-  remote-text, 12,267 red-team, and 827 mutable-ownership candidates. T-908
+  remote-text, 12,273 red-team, and 827 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.

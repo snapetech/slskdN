@@ -52,6 +52,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   treating it as a failed peer query.
 - Mesh service routing now propagates caller cancellation instead of converting
   it into a service failure response.
+- Mesh sync now preserves caller cancellation while waiting for synchronization
+  and serving peer chunk reads.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 
