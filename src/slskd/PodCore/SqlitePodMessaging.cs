@@ -10,6 +10,7 @@ namespace slskd.PodCore
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
+    using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     /// SQLite-backed pod messaging service.
@@ -60,7 +61,7 @@ namespace slskd.PodCore
             var (isValid, error) = PodValidation.ValidateMessage(message);
             if (!isValid)
             {
-                logger.LogWarning("Message validation failed: {Reason}", error);
+                logger.LogWarning("Message validation failed: {Reason}", LoggingSanitizer.SanitizeExternalIdentifier(error));
                 return false;
             }
 
@@ -117,8 +118,8 @@ namespace slskd.PodCore
                 {
                     logger.LogWarning(
                         "Message saved but routing failed for {MessageId}: {Error}",
-                        message.MessageId,
-                        routingResult.ErrorMessage ?? "Routing failed");
+                        LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(routingResult.ErrorMessage ?? "Routing failed"));
                     return true;
                 }
 
@@ -127,7 +128,7 @@ namespace slskd.PodCore
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error saving message");
+                logger.LogError("Error saving message: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 await transaction.RollbackAsync(ct);
                 return false;
             }
@@ -195,7 +196,7 @@ namespace slskd.PodCore
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error retrieving messages");
+                logger.LogError("Error retrieving messages: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return Array.Empty<PodMessage>();
             }
         }
@@ -229,8 +230,8 @@ namespace slskd.PodCore
             {
                 logger.LogWarning(
                     "Attempted to delete non-existent message in pod {PodId} channel {ChannelId}",
-                    podId,
-                    channelId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(channelId));
                 return false;
             }
 
@@ -239,9 +240,9 @@ namespace slskd.PodCore
 
             logger.LogInformation(
                 "Message from {PeerId} deleted from pod {PodId} channel {ChannelId}",
-                senderPeerId,
-                podId,
-                channelId);
+                LoggingSanitizer.SanitizeExternalIdentifier(senderPeerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId));
 
             return true;
         }
@@ -268,9 +269,9 @@ namespace slskd.PodCore
                 {
                     logger.LogDebug(
                         "Skipping duplicate message from {PeerId} in pod {PodId} channel {ChannelId}",
-                        message.SenderPeerId,
-                        podId,
-                        channelId);
+                        LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(channelId));
                     continue;
                 }
 
@@ -295,8 +296,8 @@ namespace slskd.PodCore
                 logger.LogInformation(
                     "Backfilled {Count} messages to pod {PodId} channel {ChannelId}",
                     accepted.Count,
-                    podId,
-                    channelId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(channelId));
             }
 
             return accepted;

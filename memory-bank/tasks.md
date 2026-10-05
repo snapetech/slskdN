@@ -144,9 +144,15 @@
   integration), `./bin/lint`, active-backlog, identity, and whitespace checks
   pass. Gotchas `0z1576` and `0z1577` document the message and membership
   boundaries.
+- [x] Escape Pod message identifiers, validation reasons, and full exceptions
+  in signing, SQLite message storage/search, and messaging operations —
+  2026-10-05. Regressions verify escaped CR/LF while preserving source IDs.
+  Full Release tests pass 5,923 (74 application, 5,560 unit, 289 integration);
+  `./bin/lint`, active-backlog, identity, and whitespace checks pass. Gotcha
+  `0z1578` records the cross-layer signer/storage boundary.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Discovery queues remain open at 210 callback/event,
-  471 remote-text, 12,236 red-team, and 823 mutable-ownership candidates;
+  461 remote-text, 12,236 red-team, and 823 mutable-ownership candidates;
   T-908 fallback lifecycle and distributed evidence requirements also remain
   open.
 

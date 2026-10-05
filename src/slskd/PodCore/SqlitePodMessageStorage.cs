@@ -71,13 +71,13 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         // Validate inputs
         if (!PodValidation.IsValidPodId(podId))
         {
-            logger.LogWarning("Invalid pod ID in StoreMessageAsync: {PodId}", podId);
+            logger.LogWarning("Invalid pod ID in StoreMessageAsync: {PodId}", LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return false;
         }
 
         if (!PodValidation.IsValidChannelId(channelId))
         {
-            logger.LogWarning("Invalid channel ID in StoreMessageAsync: {ChannelId}", channelId);
+            logger.LogWarning("Invalid channel ID in StoreMessageAsync: {ChannelId}", LoggingSanitizer.SanitizeExternalIdentifier(channelId));
             return false;
         }
 
@@ -87,7 +87,7 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         var (isValid, error) = PodValidation.ValidateMessage(message);
         if (!isValid)
         {
-            logger.LogWarning("Message validation failed: {Reason}", error);
+            logger.LogWarning("Message validation failed: {Reason}", LoggingSanitizer.SanitizeExternalIdentifier(error));
             return false;
         }
 
@@ -130,12 +130,15 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
             dbContext.Messages.Add(entity);
             await dbContext.SaveChangesAsync(ct);
 
-            logger.LogDebug("Message stored successfully in pod {PodId} channel {ChannelId}", podId, channelId);
+            logger.LogDebug("Message stored successfully in pod {PodId} channel {ChannelId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId));
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error storing message in pod {PodId} channel {ChannelId}", podId, channelId);
+            logger.LogError("Error storing message in pod {PodId} channel {ChannelId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -145,13 +148,13 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         // Validate inputs
         if (!PodValidation.IsValidPodId(podId))
         {
-            logger.LogWarning("Invalid pod ID in GetMessagesAsync: {PodId}", podId);
+            logger.LogWarning("Invalid pod ID in GetMessagesAsync: {PodId}", LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return Array.Empty<PodMessage>();
         }
 
         if (!PodValidation.IsValidChannelId(channelId))
         {
-            logger.LogWarning("Invalid channel ID in GetMessagesAsync: {ChannelId}", channelId);
+            logger.LogWarning("Invalid channel ID in GetMessagesAsync: {ChannelId}", LoggingSanitizer.SanitizeExternalIdentifier(channelId));
             return Array.Empty<PodMessage>();
         }
 
@@ -185,7 +188,9 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving messages from pod {PodId} channel {ChannelId}", podId, channelId);
+            logger.LogError("Error retrieving messages from pod {PodId} channel {ChannelId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Array.Empty<PodMessage>();
         }
     }
@@ -236,7 +241,8 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
             {
                 if (!PodValidation.IsValidChannelId(channelId))
                 {
-                    logger.LogWarning("Invalid channel ID in SearchMessagesAsync: {ChannelId}", channelId);
+                    logger.LogWarning("Invalid channel ID in SearchMessagesAsync: {ChannelId}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(channelId));
                     return Array.Empty<PodMessage>();
                 }
 
@@ -294,7 +300,8 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting messages older than {Timestamp}", olderThanTimestamp);
+            logger.LogError("Error deleting messages older than {Timestamp}: {Exception}", olderThanTimestamp,
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return 0;
         }
     }
@@ -304,13 +311,15 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         // Validate inputs
         if (!PodValidation.IsValidPodId(podId))
         {
-            logger.LogWarning("Invalid pod ID in DeleteMessagesInChannelOlderThanAsync: {PodId}", podId);
+            logger.LogWarning("Invalid pod ID in DeleteMessagesInChannelOlderThanAsync: {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return 0;
         }
 
         if (!PodValidation.IsValidChannelId(channelId))
         {
-            logger.LogWarning("Invalid channel ID in DeleteMessagesInChannelOlderThanAsync: {ChannelId}", channelId);
+            logger.LogWarning("Invalid channel ID in DeleteMessagesInChannelOlderThanAsync: {ChannelId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId));
             return 0;
         }
 
@@ -321,13 +330,15 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
                 .ExecuteDeleteAsync(ct);
 
             logger.LogInformation("Deleted {Count} messages in pod {PodId} channel {ChannelId} older than {Timestamp}",
-                deletedCount, podId, channelId, olderThanTimestamp);
+                deletedCount, LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId), olderThanTimestamp);
             return deletedCount;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting messages in pod {PodId} channel {ChannelId} older than {Timestamp}",
-                podId, channelId, olderThanTimestamp);
+            logger.LogError("Error deleting messages in pod {PodId} channel {ChannelId} older than {Timestamp}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                olderThanTimestamp, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return 0;
         }
     }
@@ -337,13 +348,13 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         // Validate inputs
         if (!PodValidation.IsValidPodId(podId))
         {
-            logger.LogWarning("Invalid pod ID in GetMessageCountAsync: {PodId}", podId);
+            logger.LogWarning("Invalid pod ID in GetMessageCountAsync: {PodId}", LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return 0;
         }
 
         if (!PodValidation.IsValidChannelId(channelId))
         {
-            logger.LogWarning("Invalid channel ID in GetMessageCountAsync: {ChannelId}", channelId);
+            logger.LogWarning("Invalid channel ID in GetMessageCountAsync: {ChannelId}", LoggingSanitizer.SanitizeExternalIdentifier(channelId));
             return 0;
         }
 
@@ -355,7 +366,9 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting message count for pod {PodId} channel {ChannelId}", podId, channelId);
+            logger.LogError("Error getting message count for pod {PodId} channel {ChannelId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return 0;
         }
     }
@@ -408,7 +421,7 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting storage statistics");
+            logger.LogError("Error getting storage statistics: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodMessageStorageStats(0, 0, null, null, new(), new());
         }
     }
@@ -435,7 +448,7 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error rebuilding search index");
+            logger.LogError("Error rebuilding search index: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -450,7 +463,7 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during database vacuum");
+            logger.LogError("Error during database vacuum: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }

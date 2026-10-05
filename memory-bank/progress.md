@@ -17709,3 +17709,18 @@ remote-text queue is 471; callback/event, red-team, and mutable-ownership
 queues are 210, 12,236, and 823. Gotchas `0z1576` and `0z1577` record the
 message-routing and membership-log boundaries. The Pod release note is ready;
 `.340` remains deferred while remediation continues.
+
+## Update 2026-10-05 02:27 UTC — Escape Pod signer and storage diagnostics
+
+Extended Pod log hygiene into `MessageSigner`, `SqlitePodMessageStorage`, and
+`SqlitePodMessaging`: message IDs, peer/pod/channel IDs, validation reasons,
+routing errors, and full exception details are escaped at log calls. FTS and
+database operations still receive the original query and identifiers. Added
+regressions for signature message IDs and invalid SQLite pod IDs. Full Release
+tests pass 5,923 (74 application, 5,560 unit, 289 integration),
+`./bin/lint`, active-backlog, local-identity, and whitespace checks pass. The
+remote-text queue is 461; callback/event, red-team, and mutable-ownership
+queues remain 210, 12,236, and 823. Gotcha `0z1578` records that Pod signing
+and persistence are separate logging boundaries. The release fragment and
+changelog entry are prepared; `.340` remains deferred until remediation is
+complete.

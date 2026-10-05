@@ -1,4 +1,33 @@
-## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:14 UTC
+## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:27 UTC
+
+Stable `.339` remains the latest published release. The transfer diagnostics
+batch is committed locally in `81af65cbd`, and Pod membership/message routing
+and chat bridge diagnostics are committed locally in `d3090faa1`. The current
+batch extends Pod log hygiene into message signing, SQLite message
+storage/search, and SQLite messaging: external IDs, validation reasons, route
+errors, and full exception text are sanitized only when logged. Regression
+tests verify escaped message and pod IDs while preserving their source values.
+Full Release tests pass 5,923 (74 application, 5,560 unit, 289 integration);
+`./bin/lint`, active-backlog, local-identity, and whitespace checks pass. The
+current implementation, two Pod tests, release note/changelog, and backlog
+refresh are validated but not yet committed or pushed. Gotcha `0z1578` is
+committed separately.
+
+All first-party projects under `src`, `tests`, and `tools` target `net10.0`.
+MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves to its compatible
+`lib/net8.0` asset; no project TFM or selected MonoTorrent asset targets
+`.NET 6`. No framework change is needed.
+
+Next: commit this Pod signer/storage batch, then continue auditing
+VirtualSoulfind search/download diagnostics and other remaining
+remote-text boundaries. Keep T-908 fallback lifecycle, global Party ID
+ownership across disjoint DHT views, actual background-tab timer throttling,
+WebKit/Orca and physical assistive-technology speech, representative
+WAN/resource evidence, the original frontend `ERR_NETWORK_CHANGED` cause, and
+broad discovery queues open until their required code or external evidence
+exists. Do not cut `.340` yet.
+
+## Previous state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:14 UTC
 
 Stable `.339` remains the latest published release. Transfer diagnostics are
 committed locally in `81af65cbd` with a regression that checks escaped peer

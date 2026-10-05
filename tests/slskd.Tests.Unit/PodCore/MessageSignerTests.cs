@@ -101,9 +101,20 @@ public class MessageSignerTests
         opts.Setup(o => o.CurrentValue).Returns(new PodMessageSignerOptions { SignatureMode = SignatureMode.Enforce });
 
         var ms = new MessageSigner(log.Object, pod.Object, ed, opts.Object);
-        var msg = new PodMessage { MessageId = "m", PodId = "p", ChannelId = "c", SenderPeerId = "s", Signature = "" };
+        var messageId = "message\r\nforged";
+        var msg = new PodMessage { MessageId = messageId, PodId = "p", ChannelId = "c", SenderPeerId = "s", Signature = "" };
 
         var ok = await ms.VerifyMessageAsync(msg);
+
         Assert.False(ok);
+        Assert.Equal(messageId, msg.MessageId);
+        log.Verify(candidate => candidate.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("message\\r\\nforged", StringComparison.Ordinal) &&
+                !state.ToString()!.Contains(messageId, StringComparison.Ordinal)),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 }

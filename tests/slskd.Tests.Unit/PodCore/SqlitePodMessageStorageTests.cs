@@ -118,6 +118,24 @@ public sealed class SqlitePodMessageStorageTests : IDisposable
     }
 
     [Fact]
+    public async Task StoreMessageAsync_EscapesInvalidPodIdInLogAndRetainsInput()
+    {
+        var podId = "pod\r\nforged";
+
+        var stored = await storage.StoreMessageAsync(podId, ValidChannelId, new PodMessage());
+
+        Assert.False(stored);
+        logger.Verify(candidate => candidate.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("pod\\r\\nforged", StringComparison.Ordinal) &&
+                !state.ToString()!.Contains(podId, StringComparison.Ordinal)),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
     public async Task SearchMessagesAsync_RecoversFromExistingFtsOnlyArtifact()
     {
         await using (var connection = new SqliteConnection($"Data Source={databasePath}"))

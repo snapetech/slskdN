@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Mesh.Transport;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Service for signing and verifying pod messages. PR-12: Ed25519, canonical payload, membership pubkey.
@@ -55,7 +56,8 @@ public class MessageSigner : IMessageSigner
 
         try
         {
-            _logger.LogDebug("[MessageSigner] Signing message {MessageId}", message.MessageId);
+            _logger.LogDebug("[MessageSigner] Signing message {MessageId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
 
             var data = CreateCanonicalPayload(message);
             var dataBytes = Encoding.UTF8.GetBytes(data);
@@ -94,14 +96,17 @@ public class MessageSigner : IMessageSigner
             Interlocked.Add(ref _totalSigningTimeMs, (long)duration.TotalMilliseconds);
             _lastSignatureOperation = DateTimeOffset.UtcNow;
 
-            _logger.LogTrace("[MessageSigner] Signed message {MessageId} in {Duration}ms", message.MessageId, duration.TotalMilliseconds);
+            _logger.LogTrace("[MessageSigner] Signed message {MessageId} in {Duration}ms",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId), duration.TotalMilliseconds);
 
             await Task.CompletedTask;
             return signedMessage;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MessageSigner] Error signing message {MessageId}", message.MessageId);
+            _logger.LogError("[MessageSigner] Error signing message {MessageId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
@@ -120,13 +125,18 @@ public class MessageSigner : IMessageSigner
             {
                 if (mode == SignatureMode.Enforce)
                 {
-                    _logger.LogWarning("[MessageSigner] Message {MessageId} has no signature (Enforce)", message.MessageId);
+                    _logger.LogWarning("[MessageSigner] Message {MessageId} has no signature (Enforce)",
+                        LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
                     Interlocked.Increment(ref _failedVerifications);
                     return false;
                 }
 
                 if (mode == SignatureMode.Warn)
-                    _logger.LogWarning("[MessageSigner] Message {MessageId} has no signature (Warn)", message.MessageId);
+                {
+                    _logger.LogWarning("[MessageSigner] Message {MessageId} has no signature (Warn)",
+                        LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
+                }
+
                 Interlocked.Increment(ref _successfulVerifications);
                 return true;
             }
@@ -140,7 +150,11 @@ public class MessageSigner : IMessageSigner
                 }
 
                 if (mode == SignatureMode.Warn)
-                    _logger.LogWarning("[MessageSigner] Message {MessageId} has non-ed25519 signature (Warn)", message.MessageId);
+                {
+                    _logger.LogWarning("[MessageSigner] Message {MessageId} has non-ed25519 signature (Warn)",
+                        LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
+                }
+
                 return true;
             }
 
@@ -152,14 +166,16 @@ public class MessageSigner : IMessageSigner
             }
             catch
             {
-                _logger.LogWarning("[MessageSigner] Message {MessageId} has invalid base64 in signature", message.MessageId);
+                _logger.LogWarning("[MessageSigner] Message {MessageId} has invalid base64 in signature",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
                 Interlocked.Increment(ref _failedVerifications);
                 return false;
             }
 
             if (sigBytes.Length != 64)
             {
-                _logger.LogWarning("[MessageSigner] Message {MessageId} signature length {Length} != 64", message.MessageId, sigBytes.Length);
+                _logger.LogWarning("[MessageSigner] Message {MessageId} signature length {Length} != 64",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId), sigBytes.Length);
                 Interlocked.Increment(ref _failedVerifications);
                 return false;
             }
@@ -167,7 +183,8 @@ public class MessageSigner : IMessageSigner
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             if (Math.Abs(now - message.TimestampUnixMs) > TimestampSkewMs)
             {
-                _logger.LogWarning("[MessageSigner] Message {MessageId} timestamp skew too large", message.MessageId);
+                _logger.LogWarning("[MessageSigner] Message {MessageId} timestamp skew too large",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
                 Interlocked.Increment(ref _failedVerifications);
                 return false;
             }
@@ -175,7 +192,8 @@ public class MessageSigner : IMessageSigner
             var podId = GetPodId(message);
             if (string.IsNullOrEmpty(podId))
             {
-                _logger.LogWarning("[MessageSigner] Message {MessageId} has no PodId", message.MessageId);
+                _logger.LogWarning("[MessageSigner] Message {MessageId} has no PodId",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
                 Interlocked.Increment(ref _failedVerifications);
                 return false;
             }
@@ -184,7 +202,9 @@ public class MessageSigner : IMessageSigner
             var sender = members.FirstOrDefault(m => m.PeerId == message.SenderPeerId);
             if (sender?.PublicKey == null || sender.PublicKey.Length == 0)
             {
-                _logger.LogWarning("[MessageSigner] Sender {PeerId} has no PublicKey in pod {PodId}", message.SenderPeerId, podId);
+                _logger.LogWarning("[MessageSigner] Sender {PeerId} has no PublicKey in pod {PodId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 Interlocked.Increment(ref _failedVerifications);
                 return false;
             }
@@ -196,14 +216,16 @@ public class MessageSigner : IMessageSigner
             }
             catch
             {
-                _logger.LogWarning("[MessageSigner] Sender {PeerId} has invalid PublicKey base64", message.SenderPeerId);
+                _logger.LogWarning("[MessageSigner] Sender {PeerId} has invalid PublicKey base64",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId));
                 Interlocked.Increment(ref _failedVerifications);
                 return false;
             }
 
             if (pubKey.Length != 32)
             {
-                _logger.LogWarning("[MessageSigner] Sender {PeerId} PublicKey length {Length} != 32", message.SenderPeerId, pubKey.Length);
+                _logger.LogWarning("[MessageSigner] Sender {PeerId} PublicKey length {Length} != 32",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId), pubKey.Length);
                 Interlocked.Increment(ref _failedVerifications);
                 return false;
             }
@@ -218,12 +240,14 @@ public class MessageSigner : IMessageSigner
             if (isValid)
             {
                 Interlocked.Increment(ref _successfulVerifications);
-                _logger.LogTrace("[MessageSigner] Verified message {MessageId} in {Duration}ms", message.MessageId, duration.TotalMilliseconds);
+                _logger.LogTrace("[MessageSigner] Verified message {MessageId} in {Duration}ms",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId), duration.TotalMilliseconds);
             }
             else
             {
                 Interlocked.Increment(ref _failedVerifications);
-                _logger.LogWarning("[MessageSigner] Invalid signature for message {MessageId}", message.MessageId);
+                _logger.LogWarning("[MessageSigner] Invalid signature for message {MessageId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
             }
 
             _lastSignatureOperation = DateTimeOffset.UtcNow;
@@ -231,7 +255,9 @@ public class MessageSigner : IMessageSigner
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MessageSigner] Error verifying message {MessageId}", message.MessageId);
+            _logger.LogError("[MessageSigner] Error verifying message {MessageId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             Interlocked.Increment(ref _failedVerifications);
             return false;
         }
@@ -255,7 +281,8 @@ public class MessageSigner : IMessageSigner
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MessageSigner] Error generating key pair");
+            _logger.LogError("[MessageSigner] Error generating key pair: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
