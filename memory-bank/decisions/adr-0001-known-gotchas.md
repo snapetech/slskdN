@@ -56,6 +56,20 @@ the values still came from peers, user-selected files, or remote filenames.
 `SanitizeExternalIdentifier` to external names at every log call site. Add
 regression coverage for CR/LF while preserving ordinary operator-visible text.
 
+### 0z1564. Sanitize Pod And Peer Identifiers In Diagnostics (2026-10-04)
+
+**What went wrong:** Pod backfill and peer resolution diagnostics logged peer,
+pod, channel, and username values after trimming them, but trimming does not
+escape embedded CR/LF or other log-breaking control characters.
+
+**Why:** Normalization was mistaken for log sanitization, and the first
+external-value logging pass did not cover the PodCore call sites.
+
+**Prevention:** Sanitize each external identifier at the log boundary in
+PodCore, including invalid-input and mismatch paths. When auditing a category,
+search all logging call sites in the owning subsystem and add a test that
+asserts the emitted log record contains escaped controls.
+
 ### 0z1559. Keep Retry Notifications Outside The Operation Failure Handler (2026-10-04)
 
 **What went wrong:** `Retry.Do` invoked `onRetry` inside the same `try` block
