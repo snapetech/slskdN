@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1671. Escape Exceptions From Mesh Signature Operations (2026-10-05)
+
+**What went wrong:** Mesh signing and verification attached raw exceptions to
+log events. Verification parses peer-controlled public keys and signatures,
+so failure metadata crosses a remote-input boundary.
+
+**Why:** The signer treated cryptographic exceptions as internal even though
+the verification path is invoked on decoded peer messages.
+
+**Prevention:** Preserve the existing return/throw behavior, but record full
+exception detail as an escaped structured string rather than exception
+metadata. Capture both malformed-peer verification and signing failures.
+
 ### 0z1670. Use Valid Pod IDs To Reach Backfill Operation Boundaries (2026-10-05)
 
 **What went wrong:** New backfill cancellation tests used `pod-1`, which the
