@@ -39,6 +39,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   connection directions.
 - Signal sends now propagate caller cancellation instead of treating it as a
   failed channel and trying another transport.
+- Mesh and BitTorrent signal senders now propagate caller cancellation without
+  logging it as a transport failure.
 - Rate-limited transfer and search updates now honor their concurrency limit
   from the first callback and retain staged updates across timer ticks.
 - Resolver cancellation now reports a canceled execution instead of a failed

@@ -91,6 +91,10 @@ public sealed class MeshSignalChannelHandler : ISignalChannelHandler
                 LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
                 LoggingSanitizer.SanitizeExternalIdentifier(signal.ToPeerId));
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to send signal {SignalId} via Mesh: {Exception}",

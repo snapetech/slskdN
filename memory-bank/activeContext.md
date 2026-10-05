@@ -18434,3 +18434,52 @@ and broad discovery queues remain open. Next: inspect T-908's production
 registration and cancellation boundaries, then take the next confirmed fix.
 Push and cut the authorized next release after the remaining fix/evidence
 work and final release gate.
+## Current state — Continue remediation; keep transport cancellation out of error logs — 2026-10-05 08:00 UTC
+
+Stable `.340` completed its hosted workflow, including Launchpad publication.
+SignalBus now propagates caller cancellation without trying a later transport.
+The Mesh and BitTorrent signal channel handlers now propagate the same
+cancellation without logging it as a send failure. Focused coverage passes:
+SignalBus 18/18, handler suite 10/10, and the full Release .NET suite for the
+first fix 5,953 (74 application, 5,590 unit, 289 integration); handler-change
+full-suite validation and lint remain to run. ADR-0001 gotcha `0z1614` is
+committed.
+
+All first-party app, test, and build-tool projects target `net10.0`.
+MonoTorrent selects its compatible `lib/net8.0` package asset. Historical
+`.NET 6` references do not describe the current dependency graph.
+
+Continue the code-backed whole-product remediation. T-908 still lacks a
+production sender/job lifecycle and safe end-to-end cross-peer fallback;
+cross-node Party ID uniqueness lacks a shared atomic authority; hidden-tab
+throttling, WebKit/physical assistive-technology speech, representative
+WAN/resource behavior, the original frontend `ERR_NETWORK_CHANGED` cause,
+and broad discovery queues remain open. Next: finish validation and commit
+the transport fix, then inspect the next confirmed code defect. Push and cut
+the authorized next release after remaining fix/evidence work and the final
+release gate.
+
+## Current state — Continue remediation after signal cancellation fixes — 2026-10-05 08:07 UTC
+
+The SignalBus fix and its Mesh/BitTorrent transport follow-up now preserve
+caller cancellation without falling through to another channel or logging
+ordinary cancellation as transport failure. SignalBus focused coverage passes
+18/18 and handler coverage passes 10/10. Full Release .NET tests pass 5,955
+(74 application, 5,592 unit, 289 integration); `./bin/lint` passes. The
+transport code, two regressions, changelog entries, release fragment, and
+task/progress updates are ready to commit; ADR-0001 gotcha `0z1614` is already
+committed.
+
+The .NET 10 check remains confirmed: first-party app, test, and build-tool
+projects target `net10.0`, and MonoTorrent selects its compatible `net8.0`
+asset. Stable `.340`'s hosted workflow completed, including Launchpad.
+
+Continue the code-backed whole-product remediation. T-908 sender/job
+lifecycle, globally atomic Party ID ownership, actual hidden-tab throttling,
+WebKit/physical assistive-technology speech, representative WAN/resource
+behavior, the original frontend `ERR_NETWORK_CHANGED` cause, and discovery
+queues remain open. The isolated desktop/browser tool family is unavailable
+in this session, so no new operating-system throttling evidence was produced.
+Next: commit this adapter fix and inspect the next confirmed code issue. Push
+and cut the authorized next stable release after remaining work and the final
+release gate.

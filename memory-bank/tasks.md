@@ -217,9 +217,15 @@
   not invoked. The focused SignalBus suite passes 18/18 and the full Release
   .NET suite passes 5,953 (74 application, 5,590 unit, 289 integration);
   `./bin/lint` passes. ADR-0001 gotcha `0z1613` records the fallback boundary.
+- [x] Keep caller cancellation out of Mesh and BitTorrent signal transport
+  error logs — 2026-10-05. The channel handlers now rethrow caller cancellation
+  before their transport-error logging path. Captured-log regressions pass
+  10/10 across the handler suite; full Release .NET tests pass 5,955 (74
+  application, 5,592 unit, 289 integration), and `./bin/lint` passes. ADR-0001
+  gotcha `0z1614` records the transport boundary.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings. Latest discovery queues: 211 callback/event, 434
-  remote-text, 12,261 red-team, and 827 mutable-ownership candidates. T-908
+  code-backed findings. Latest discovery queues: 211 callback/event, 431
+  remote-text, 12,263 red-team, and 827 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.

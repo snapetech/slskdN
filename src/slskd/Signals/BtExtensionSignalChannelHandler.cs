@@ -84,6 +84,10 @@ public sealed class BtExtensionSignalChannelHandler : ISignalChannelHandler
                 LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
                 LoggingSanitizer.SanitizeExternalIdentifier(signal.ToPeerId));
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to send signal {SignalId} via BT extension: {Exception}",

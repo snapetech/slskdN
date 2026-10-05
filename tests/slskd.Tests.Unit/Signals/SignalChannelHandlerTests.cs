@@ -16,6 +16,34 @@ using Xunit;
 public class SignalChannelHandlerTests
 {
     [Fact]
+    public async Task MeshSignalChannelHandler_SendAsync_CallerCancellationDoesNotLogTransportFailure()
+    {
+        var messages = new List<string>();
+        var sender = new TestMeshMessageSender();
+        using var handler = new MeshSignalChannelHandler(
+            new CapturingLogger<MeshSignalChannelHandler>(messages),
+            CreateOptions(),
+            sender,
+            "local-peer");
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+        var signal = new Signal(
+            "signal-mesh-cancel",
+            "local-peer",
+            "remote-peer",
+            DateTimeOffset.UtcNow,
+            "test",
+            new Dictionary<string, object>(),
+            TimeSpan.FromMinutes(1),
+            new[] { SignalChannel.Mesh });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => handler.SendAsync(signal, cancellationTokenSource.Token));
+
+        Assert.Empty(messages);
+    }
+
+    [Fact]
     public async Task MeshSignalChannelHandler_Dispose_DetachesSenderSubscription()
     {
         var sender = new TestMeshMessageSender();
@@ -129,6 +157,34 @@ public class SignalChannelHandlerTests
         });
 
         Assert.Equal(1, deliveries);
+    }
+
+    [Fact]
+    public async Task BtExtensionSignalChannelHandler_SendAsync_CallerCancellationDoesNotLogTransportFailure()
+    {
+        var messages = new List<string>();
+        var sender = new TestBtExtensionSender();
+        using var handler = new BtExtensionSignalChannelHandler(
+            new CapturingLogger<BtExtensionSignalChannelHandler>(messages),
+            CreateOptions(),
+            sender,
+            "local-peer");
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+        var signal = new Signal(
+            "signal-bt-cancel",
+            "local-peer",
+            "remote-peer",
+            DateTimeOffset.UtcNow,
+            "test",
+            new Dictionary<string, object>(),
+            TimeSpan.FromMinutes(1),
+            new[] { SignalChannel.BtExtension });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => handler.SendAsync(signal, cancellationTokenSource.Token));
+
+        Assert.Empty(messages);
     }
 
     [Fact]
@@ -290,7 +346,11 @@ public class SignalChannelHandlerTests
         public event Func<SlskdnSignalMessage, CancellationToken, Task>? OnSlskdnSignalReceived;
         public int SubscriptionCount => OnSlskdnSignalReceived?.GetInvocationList().Length ?? 0;
 
-        public Task SendToPeerAsync(string peerId, object message, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SendToPeerAsync(string peerId, object message, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
 
         public Task RaiseAsync(SlskdnSignalMessage message, CancellationToken cancellationToken = default)
         {
@@ -305,7 +365,11 @@ public class SignalChannelHandlerTests
 
         public bool HasActiveSession(string peerId) => true;
 
-        public Task SendExtensionMessageAsync(string peerId, SlskdnExtensionMessage message, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SendExtensionMessageAsync(string peerId, SlskdnExtensionMessage message, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
 
         public Task RaiseAsync(SlskdnExtensionMessage message, string fromPeerId, CancellationToken cancellationToken = default)
         {

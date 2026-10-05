@@ -17926,3 +17926,12 @@ compatible .NET 8 package asset and has no active .NET 6 asset. Continue with
 the remaining code-backed product fixes before the authorized push and next
 stable release; T-908 end-to-end transfer lifecycle, globally authoritative
 Party ID claims, and external browser/device/WAN evidence remain open.
+
+## 2026-10-05 08:00 UTC — Keep canceled signal sends out of transport error logs
+
+Mesh and BitTorrent-extension signal handlers now rethrow caller-requested
+cancellation before the ordinary send-failure logging path. Focused handler
+coverage passes 10/10. The full Release .NET suite passes 5,955 (74
+application, 5,592 unit, 289 integration), and `./bin/lint` passes. The
+SignalBus cancellation regression passes 18/18. ADR-0001 gotcha `0z1614` was
+committed before the code change.
