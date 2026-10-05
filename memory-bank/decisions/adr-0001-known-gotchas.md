@@ -1038,6 +1038,11 @@ authoritative path is not the conventional root filename.
 **Prevention:** Put shipped feature and fix bullets in `docs/CHANGELOG.md`,
 then run `scripts/validate-changelog-entry.sh staged` before committing.
 
+**Repeated on 2026-10-05:** A mesh cancellation batch again updated only the
+root `CHANGELOG.md`; the pre-commit hook rejected the source commit because
+`docs/CHANGELOG.md`'s Unreleased section was unchanged. Stage the canonical
+changelog entry with source changes before retrying.
+
 ### 0z1557. Count Immediate Rate-Limiter Callbacks Against The Concurrency Limit (2026-10-04)
 
 **What went wrong:** `RateLimiter.Invoke` ran its first callback directly without
