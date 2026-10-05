@@ -39832,3 +39832,21 @@ across layers.
 **Prevention:** Make source gates recognize the explicit aliases used by the
 owning source file, or inspect the alias declaration and verify its calls.
 Keep the regression test check alongside the source check.
+
+### 0z1687. Preserve Vendored Project Targets Unless The Sync Patch Changes Them (2026-10-05)
+
+**What went wrong:** Runnable test and sample projects under
+`vendor/slskNet.Runtime` were retargeted directly from .NET 8 to .NET 10 to
+match the main application's runtime. The remediation baseline rejected the
+change because the vendored tree must exactly match its pinned upstream source
+plus the declared local patch.
+
+**Why:** The vendored runtime is a provenance-checked mirror, not an ordinary
+slskdN project directory. Main-application runtime alignment does not authorize
+unrecorded edits to its independently maintained solution.
+
+**Prevention:** Keep vendored project files aligned with the pinned source and
+local patch. Make an intentional vendor change through the documented patch
+workflow and run `scripts/check-slsknet-runtime-sync.sh`. Do not retarget vendor
+tests or examples merely because compatible package assets use an older TFM;
+that metadata does not change the consuming application's .NET target.
