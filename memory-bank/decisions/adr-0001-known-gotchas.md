@@ -702,6 +702,12 @@ that consumes it, search for all implementations and call sites of changed
 interfaces, then run the focused tests for each affected subsystem. Do not
 infer library target compatibility from the application target framework alone.
 
+**Current status (2026-10-05):** This is a historical upgrade note. The
+application, tests, and build tools target `net10.0`; MonoTorrent
+`3.9.0-alpha.unstable.rev0000` supplies a compatible `net8.0` package asset.
+There is no active `net6.0` project target or selected MonoTorrent `net6.0`
+asset to upgrade.
+
 ### 0z1543. Keep Private Torrent Discovery Controls Separate (2026-10-04)
 
 **What went wrong:** The private torrent backend mapped `DisablePex` to
