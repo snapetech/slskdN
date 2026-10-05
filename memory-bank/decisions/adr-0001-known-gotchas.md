@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1662. Remove LINQ Closures When Converting To Imperative Loops (2026-10-05)
+
+**What went wrong:** Rewriting a LINQ projection as an imperative loop left the
+old lambda-closing `})` in place, producing invalid C# syntax.
+
+**Why:** The edit changed the control-flow structure but reviewed only the new
+loop body instead of the entire surrounding projection boundary.
+
+**Prevention:** When converting fluent projections to loops, remove the full
+lambda and pipeline delimiters, then inspect the enclosing method and compile
+the owning project before continuing.
+
 ### 0z1661. Escape Mesh Search Request Diagnostics (2026-10-05)
 
 **What went wrong:** `MeshSearchRpcHandler` logged the request's `RequestId`
