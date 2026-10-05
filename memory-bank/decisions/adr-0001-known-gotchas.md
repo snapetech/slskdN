@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1656. Keep Pod Membership Request Cancellation Out Of HTTP Failures (2026-10-05)
+
+**What went wrong:** Pod membership API actions caught cancellation from their
+request token and converted it to HTTP 500 while performing DHT and pod-service
+operations.
+
+**Why:** The controller's broad error mapping did not distinguish client
+disconnect/shutdown from a membership operation failure.
+
+**Prevention:** Rethrow `OperationCanceledException` when the action's
+`CancellationToken` is canceled before mapping other errors to HTTP 500. Cover
+the public action paths that own separate catch boundaries.
+
 ### 0z1655. Preserve Request Cancellation In Pod Verification Controllers (2026-10-05)
 
 **What went wrong:** Membership, message, and role verification controller
