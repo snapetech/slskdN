@@ -119,6 +119,10 @@ public class MeshSearchService : IMeshSearchService
                         var peerContent = await meshDirectory.FindContentByPeerAsync(peer.Username, ct);
                         return new { Peer = peer, Content = peerContent };
                     }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        throw;
+                    }
                     catch (Exception ex)
                     {
                         logger.LogDebug("[VSF-MESH-SEARCH] Failed to query peer {Peer}: {Exception}",
@@ -185,6 +189,10 @@ public class MeshSearchService : IMeshSearchService
                 result.SearchDuration.TotalMilliseconds);
 
             return result;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -253,6 +261,10 @@ public class MeshSearchService : IMeshSearchService
                         });
                     }
                 }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     logger.LogDebug("[VSF-MESH-SEARCH] Failed to get content from peer {Peer}: {Exception}",
@@ -272,6 +284,10 @@ public class MeshSearchService : IMeshSearchService
                 result.SearchDuration.TotalMilliseconds);
 
             return result;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -279,6 +279,73 @@ public class MeshTransferServiceTests : IDisposable
         _shadowIndex.Verify(index => index.QueryAsync("recording-1", It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task StartTransferAsync_WhenShadowIndexLookupIsCanceled_StopsDiscoveryAndMarksTransferCanceled()
+    {
+        const long fileSize = 1024;
+        const string fileHash = "expected-hash";
+        var queryStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queryResult = new TaskCompletionSource<ShadowIndexQueryResult?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cancellationObserved = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _hashDb
+            .Setup(db => db.LookupHashesBySizeAsync(fileSize, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new HashDbEntry
+                {
+                    Size = fileSize,
+                    FullFileHash = fileHash,
+                    MusicBrainzId = "recording-a",
+                },
+            });
+        _shadowIndex
+            .Setup(index => index.QueryAsync("recording-a", It.IsAny<CancellationToken>()))
+            .Returns((string _, CancellationToken ct) =>
+            {
+                queryStarted.TrySetResult(true);
+                ct.Register(() => queryResult.TrySetCanceled(ct));
+                return queryResult.Task;
+            });
+        _scenePeerDiscovery
+            .Setup(discovery => discovery.DiscoverPeersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string>());
+
+        using var service = new MeshTransferService(
+            new CallbackLogger<MeshTransferService>((level, message) =>
+            {
+                if (level == LogLevel.Information && message.Contains("Transfer cancelled", StringComparison.Ordinal))
+                {
+                    cancellationObserved.TrySetResult(true);
+                }
+            }),
+            new global::slskd.Tests.Unit.TestOptionsMonitor<global::slskd.Options>(new global::slskd.Options
+            {
+                Directories = new global::slskd.Options.DirectoriesOptions
+                {
+                    Downloads = _tempRoot
+                }
+            }),
+            _shadowIndex.Object,
+            _scenePeerDiscovery.Object,
+            _hashDb.Object);
+
+        var transferId = await service.StartTransferAsync(
+            peerId: "peer-a",
+            fileHash,
+            fileSize,
+            Path.Combine(_tempRoot, "cancelled-shadow-query.bin"),
+            CancellationToken.None);
+        await queryStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        await service.CancelTransferAsync(transferId, CancellationToken.None);
+        await cancellationObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var status = await service.GetTransferStatusAsync(transferId, CancellationToken.None);
+        Assert.NotNull(status);
+        Assert.Equal(MeshTransferState.Cancelled, status!.State);
+        _scenePeerDiscovery.Verify(discovery => discovery.DiscoverPeersAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempRoot))

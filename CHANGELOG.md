@@ -68,6 +68,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   result. Incomplete circuits release streams from established hops.
 - UDP and QUIC overlay sends now propagate caller cancellation instead of
   reporting a canceled send as a transport failure.
+- Mesh search, hash-backed peer discovery, and shadow-index discovery now
+  propagate caller cancellation instead of returning incomplete results or
+  continuing through another discovery source.
+- Swarm intelligence, performance analysis, and configuration prediction now
+  propagate cancellation instead of returning fallback recommendations.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
 - Mesh health checks and service publication now propagate caller cancellation

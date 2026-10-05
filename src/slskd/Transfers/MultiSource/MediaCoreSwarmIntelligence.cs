@@ -66,6 +66,10 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
 
             return intelligence;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(
@@ -124,6 +128,10 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
                 LoggingSanitizer.SanitizeExternalIdentifier(contentId), overallRating, issues.Count);
 
             return analysis;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -190,6 +198,10 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
                 LoggingSanitizer.SanitizeExternalIdentifier(contentId), recommendedStrategy, optimalPeerCount, predictedSpeed, predictedQuality);
 
             return prediction;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -607,6 +619,10 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
 
             var relatedContent = await _contentRegistry.FindByDomainAsync(domain, cancellationToken);
             return relatedContent.Take(5).ToList(); // Limit to prevent overwhelming
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch
         {

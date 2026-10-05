@@ -386,6 +386,10 @@ public sealed class MeshTransferService : IMeshTransferService
                     discoveredPeers.Add(peerId);
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 logger.LogWarning("[VSF-MESH-TRANSFER] Shadow index query failed for recording {RecordingId}: {Exception}",
@@ -405,6 +409,10 @@ public sealed class MeshTransferService : IMeshTransferService
                 {
                     discoveredPeers.Add(peer);
                 }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -444,6 +452,10 @@ public sealed class MeshTransferService : IMeshTransferService
                     recordingIds.Add(entry.MusicBrainzId.Trim());
                 }
             }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -17,6 +17,54 @@ using Xunit;
 public sealed class MediaCoreSwarmIntelligenceTests
 {
     [Fact]
+    public async Task GetAndPredictSwarmIntelligence_WhenDescriptorLookupIsCanceled_PropagateCancellation()
+    {
+        const string contentId = "content:audio:track:cancellation";
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var descriptorRetriever = new Mock<IDescriptorRetriever>();
+        descriptorRetriever
+            .Setup(retriever => retriever.RetrieveAsync(contentId, false, cancellation.Token))
+            .Returns(Task.FromCanceled<DescriptorRetrievalResult>(cancellation.Token));
+        var service = new MediaCoreSwarmIntelligence(
+            NullLogger<MediaCoreSwarmIntelligence>.Instance,
+            descriptorRetriever.Object,
+            Mock.Of<IContentIdRegistry>());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.GetSwarmIntelligenceAsync(contentId, Array.Empty<string>(), cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.PredictOptimalConfigurationAsync(contentId, Array.Empty<PeerCapability>(), cancellation.Token));
+    }
+
+    [Fact]
+    public async Task AnalyzeSwarmPerformance_WhenRelatedContentLookupIsCanceled_PropagatesCancellation()
+    {
+        const string contentId = "content:audio:track:cancellation";
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var contentRegistry = new Mock<IContentIdRegistry>();
+        contentRegistry
+            .Setup(registry => registry.FindByDomainAsync(It.IsAny<string>(), cancellation.Token))
+            .Returns(Task.FromCanceled<IReadOnlyList<string>>(cancellation.Token));
+        var service = new MediaCoreSwarmIntelligence(
+            NullLogger<MediaCoreSwarmIntelligence>.Instance,
+            Mock.Of<IDescriptorRetriever>(),
+            contentRegistry.Object);
+        var metrics = new SwarmMetrics(
+            CurrentSpeed: 1,
+            AveragePeerSpeed: 1,
+            ActivePeerCount: 1,
+            TotalPeerCount: 1,
+            QualityScore: 0.8,
+            ElapsedTime: TimeSpan.FromSeconds(1),
+            PeerPerformance: new Dictionary<string, double>());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.AnalyzeSwarmPerformanceAsync(contentId, metrics, cancellation.Token));
+    }
+
+    [Fact]
     public async Task PredictOptimalConfigurationAsync_EnumeratesPeersOnceAndPreservesCapabilityAnalysis()
     {
         const string ContentId = "content:audio:track:target";
