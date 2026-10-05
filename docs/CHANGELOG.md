@@ -74,6 +74,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   of returning a partial peer list.
 - Swarm intelligence, performance analysis, and configuration prediction now
   propagate cancellation instead of returning fallback recommendations.
+- Single descriptor retrieval and verification now propagate cancellation
+  instead of returning a failed lookup or invalid result; descriptor batch
+  retrieval keeps completed results when the caller cancels.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

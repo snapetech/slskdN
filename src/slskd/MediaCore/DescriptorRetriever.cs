@@ -50,6 +50,7 @@ public class DescriptorRetriever : IDescriptorRetriever
         if (string.IsNullOrWhiteSpace(contentId))
             throw new ArgumentException("ContentId cannot be empty", nameof(contentId));
 
+        cancellationToken.ThrowIfCancellationRequested();
         contentId = contentId.Trim();
         var startTime = DateTimeOffset.UtcNow;
         Interlocked.Increment(ref _totalRetrievals);
@@ -108,6 +109,10 @@ public class DescriptorRetriever : IDescriptorRetriever
                     _retrievalStats.AddOrUpdate(domain, 1, (_, count) => count + 1);
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 errorMessage = "Failed to retrieve descriptor from DHT";
@@ -136,6 +141,10 @@ public class DescriptorRetriever : IDescriptorRetriever
             }
 
             return result;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -220,6 +229,10 @@ public class DescriptorRetriever : IDescriptorRetriever
                 }
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Keep completed retrievals available; batch lookup is best-effort.
+        }
         catch (Exception ex)
         {
             _logger.LogError("[DescriptorRetriever] Error in batch retrieval: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
@@ -251,6 +264,7 @@ public class DescriptorRetriever : IDescriptorRetriever
         domain = ContentIdParser.NormalizeDomain(trimmedDomain, trimmedType ?? string.Empty);
         type = trimmedType == null ? null : ContentIdParser.NormalizeType(domain, trimmedType);
         maxResults = Math.Clamp(maxResults, 1, 500);
+        cancellationToken.ThrowIfCancellationRequested();
 
         var startTime = DateTimeOffset.UtcNow;
         var results = new List<ContentDescriptor>();
@@ -264,6 +278,7 @@ public class DescriptorRetriever : IDescriptorRetriever
 
             foreach (var entry in _cache)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var currentSequence = sequence++;
                 if (now > entry.Value.ExpiresAt)
                 {
@@ -316,6 +331,10 @@ public class DescriptorRetriever : IDescriptorRetriever
                 results.Add(ordered[index].Descriptor);
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError("[DescriptorRetriever] Error querying domain {Domain}: {Exception}",
@@ -339,6 +358,7 @@ public class DescriptorRetriever : IDescriptorRetriever
         if (descriptor == null)
             throw new ArgumentNullException(nameof(descriptor));
 
+        cancellationToken.ThrowIfCancellationRequested();
         var warnings = new List<string>();
         var age = DateTimeOffset.UtcNow - retrievedAt;
 
@@ -394,6 +414,10 @@ public class DescriptorRetriever : IDescriptorRetriever
                 Age: age,
                 Warnings: warnings);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError("[DescriptorRetriever] Error verifying descriptor {ContentId}: {Exception}",
@@ -412,6 +436,7 @@ public class DescriptorRetriever : IDescriptorRetriever
     {
         // Perform cache cleanup if needed
         await PerformCacheCleanupAsync(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
         var cacheMisses = _totalRetrievals - _cacheHits;
         var cacheHitRatio = _totalRetrievals > 0 ? (double)_cacheHits / _totalRetrievals : 0;
@@ -421,6 +446,7 @@ public class DescriptorRetriever : IDescriptorRetriever
         var now = DateTimeOffset.UtcNow;
         foreach (var entry in _cache)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (now <= entry.Value.ExpiresAt)
             {
                 activeEntries++;
@@ -444,6 +470,8 @@ public class DescriptorRetriever : IDescriptorRetriever
     /// <inheritdoc/>
     public Task<CacheOperationResult> ClearCacheAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var entriesCleared = 0;
         long bytesFreed = 0;
         foreach (var entry in _cache)
@@ -467,6 +495,8 @@ public class DescriptorRetriever : IDescriptorRetriever
 
     private Task<bool> VerifySignatureAsync(ContentDescriptor descriptor, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (descriptor.Signature == null)
             return Task.FromResult(false);
 
@@ -515,10 +545,13 @@ public class DescriptorRetriever : IDescriptorRetriever
 
     private Task PerformCacheCleanupAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var expiredCount = 0;
         var now = DateTimeOffset.UtcNow;
         foreach (var entry in _cache)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (now > entry.Value.ExpiresAt)
             {
                 expiredCount++;

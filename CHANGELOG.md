@@ -75,6 +75,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   of returning a partial peer list.
 - Swarm intelligence, performance analysis, and configuration prediction now
   propagate cancellation instead of returning fallback recommendations.
+- Single descriptor retrieval and verification now propagate cancellation
+  instead of returning a failed lookup or invalid result; descriptor batch
+  retrieval keeps completed results when the caller cancels.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
 - Mesh health checks and service publication now propagate caller cancellation

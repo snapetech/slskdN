@@ -146,6 +146,61 @@ public class DescriptorRetrieverTests
     }
 
     [Fact]
+    public async Task RetrieveAsync_WhenDhtLookupIsCanceled_PropagatesCallerCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var dht = new Mock<IMeshDhtClient>();
+        dht
+            .Setup(client => client.GetAsync<ContentDescriptor>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, CancellationToken _) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<ContentDescriptor?>(cancellation.Token);
+            });
+        var retriever = CreateRetriever(dht.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            retriever.RetrieveAsync("content:mb:recording:canceled", cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public async Task RetrieveBatchAsync_WhenCanceled_RetainsCompletedResultsWithoutReportingLookupFailure()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var dht = new Mock<IMeshDhtClient>();
+        dht
+            .Setup(client => client.GetAsync<ContentDescriptor>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, CancellationToken _) =>
+            {
+                cancellation.Cancel();
+                return Task.FromResult<ContentDescriptor?>(null);
+            });
+        var retriever = CreateRetriever(dht.Object);
+
+        var result = await retriever.RetrieveBatchAsync(
+            new[] { "content:mb:recording:completed" },
+            cancellation.Token);
+
+        Assert.Equal(1, result.Requested);
+        Assert.Equal(1, result.Results.Count);
+        Assert.Equal(0, result.Failed);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_WhenCallerIsCanceled_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var retriever = CreateRetriever();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            retriever.VerifyAsync(
+                new ContentDescriptor { ContentId = "content:a" },
+                DateTimeOffset.UtcNow,
+                cancellation.Token));
+    }
+
+    [Fact]
     public async Task VerifyAsync_WhenValidatorThrows_ReturnsSanitizedValidationError()
     {
         var validator = new Mock<IDescriptorValidator>();
