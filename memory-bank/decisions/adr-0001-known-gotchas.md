@@ -8,7 +8,8 @@
 
 **What went wrong:** A loopback integration regression imported both
 `slskd.DhtRendezvous.Messages` and `slskd.Mesh.Messages`; each namespace defines
-`MeshHelloMessage`, so the test project no longer compiled.
+`MeshHelloMessage`, so the test project no longer compiled. A later framing
+unit regression repeated the same imports and hit the same compiler ambiguity.
 
 **Why:** The similarly named DTOs represent different handshakes, but a broad
 namespace import made the new test's intended type ambiguous.
