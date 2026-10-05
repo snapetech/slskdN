@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1698. Alias LoggingSanitizer In Mesh Transport Files (2026-10-05)
+
+**What went wrong:** Adding `using slskd.Common.Security;` to Mesh transport
+files made unqualified `SecurityUtils` references ambiguous with
+`slskd.Mesh.Transport.SecurityUtils`, and the application failed to compile.
+
+**Why:** Both namespaces define a type with the same name, and the DHT files
+already import the mesh transport namespace.
+
+**Prevention:** In mesh transport and DHT files that need only log escaping,
+alias `slskd.Common.Security.LoggingSanitizer` as `LoggingSanitizer` instead of
+importing the full common-security namespace.
+
 ### 0z1697. Escape Remote DHT Data At Diagnostic Boundaries (2026-10-05)
 
 **What went wrong:** DHT peer records and mesh-directory descriptors could
