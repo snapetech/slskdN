@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1675. Escape Cover Traffic Send Exceptions In The Worker Log (2026-10-05)
+
+**What went wrong:** The cover-traffic worker attached raw exceptions from its
+send callback to warning logs, including unexpected cancellation exceptions.
+The callback sends overlay traffic and can surface peer-controlled details.
+
+**Why:** The worker treated callback exceptions as local background failures
+and passed them to the logging provider without escaping their rendered
+message or stack context.
+
+**Prevention:** Preserve the worker's continue/stop behavior, but log full
+exception text as an escaped string. Test the private worker through a bounded
+callback failure and cancel it after observing the warning.
+
 ### 0z1674. Escape User Block Names Only In Service Logs (2026-10-05)
 
 **What went wrong:** UserBlockService wrote the normalized username directly
