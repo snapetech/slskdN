@@ -263,6 +263,7 @@ public class MusicItemTests
     }
 }
 
+[Collection(AllocationTestCollection.Name)]
 public class MusicDomainMappingTests
 {
     [Fact]
