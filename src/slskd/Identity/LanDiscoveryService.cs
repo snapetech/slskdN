@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 using Zeroconf;
 
 /// <summary>mDNS implementation of ILanDiscoveryService using Zeroconf.</summary>
@@ -162,7 +163,7 @@ public sealed class LanDiscoveryService : ILanDiscoveryService, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    _log.LogWarning(ex, "[LanDiscovery] Failed to parse discovered peer {Name}", host.DisplayName);
+                    LogDiscoveredPeerParseFailure(host.DisplayName, ex);
                 }
             }
 
@@ -173,6 +174,14 @@ public sealed class LanDiscoveryService : ILanDiscoveryService, IDisposable
             _log.LogError(ex, "[LanDiscovery] Browse failed");
             return Array.Empty<DiscoveredPeer>();
         }
+    }
+
+    internal void LogDiscoveredPeerParseFailure(string displayName, Exception exception)
+    {
+        _log.LogWarning(
+            "[LanDiscovery] Failed to parse discovered peer {Name}: {Exception}",
+            LoggingSanitizer.SanitizeExternalIdentifier(displayName),
+            LoggingSanitizer.SanitizeExternalIdentifier(exception.ToString()));
     }
 
     public void Dispose()

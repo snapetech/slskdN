@@ -26,6 +26,30 @@
 
 ## Active Development
 
+### Post-.343 mDNS and federation diagnostic hardening — 2026-10-05
+
+- [x] Escape discovered mDNS names and exception details at the diagnostic
+  boundary while preserving discovery values; add captured-log coverage and a
+  remediation source gate.
+- [x] Redact remote URL paths and credentials and escape peer-controlled text
+  throughout ActivityPub delivery, key fetching, WebFinger, inbound activity,
+  recommendation, and federation publication diagnostics. Keep raw exception
+  objects out of these logs and preserve protocol values and behavior.
+- [x] Add captured-log regressions, a reusable remote-identifier sanitizer,
+  release-note fragments, and baseline checks for the confirmed log boundaries.
+- [x] Pass the full Release .NET solution: 6,085 tests (74 application,
+  289 integration, 5,722 unit) and `./bin/lint`.
+- [x] Refresh the active discovery inventory: 215 callback/event, 426
+  remote-text, 12,347 red-team, and 828 mutable-ownership candidates. These are
+  open review queues, not confirmed bug counts.
+- [ ] Run the complete remediation and release-note gates, then commit and push
+  the validated tree and cut stable `.344`. The `.343` workflow was cancelled
+  before release creation; its immutable tag will not be reused.
+- [ ] Continue code-backed remediation after release. T-908 lifecycle, global
+  Party ID authority, accessibility, WAN/resource measurements, hidden-tab
+  throttling, the original frontend network-change cause, and broad discovery
+  queues remain open or evidence-gated.
+
 ### Post-.341 mesh ownership and diagnostic safety — 2026-10-05
 
 - [x] Make `KNode.NodeId` defensive on both initialization and read so

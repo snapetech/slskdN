@@ -164,6 +164,28 @@ namespace slskd.Common.Security
         }
 
         /// <summary>
+        ///     Sanitizes a remote identifier for logging, removing URL paths and credentials while escaping text values.
+        /// </summary>
+        /// <param name="identifier">A remote identifier, commonly an HTTPS actor URL.</param>
+        /// <returns>The URL origin for HTTP(S) identifiers or the escaped identifier for other values.</returns>
+        public static string SanitizeExternalIdentifierOrUrl(string? identifier)
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                return "[empty]";
+            }
+
+            if (Uri.TryCreate(identifier, UriKind.Absolute, out var uri) &&
+                (string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+            {
+                return SanitizeUrl(identifier);
+            }
+
+            return SanitizeExternalIdentifier(identifier);
+        }
+
+        /// <summary>
         ///     Sanitizes arbitrary sensitive data by replacing it with a placeholder.
         /// </summary>
         /// <param name="data">The sensitive data.</param>

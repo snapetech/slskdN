@@ -21,6 +21,7 @@ namespace slskd.SocialFederation.API
     using slskd.Mesh;
     using slskd.Mesh.Transport;
     using slskd.SocialFederation;
+    using LogSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     ActivityPub protocol endpoints.
@@ -126,7 +127,7 @@ namespace slskd.SocialFederation.API
             var libraryActor = _libraryActorService.GetActor(actorName);
             if (libraryActor == null)
             {
-                _logger.LogDebug("[ActivityPub] Actor not found or not available: {ActorName}", actorName);
+                _logger.LogDebug("[ActivityPub] Actor not found or not available: {ActorName}", LogSanitizer.SanitizeExternalIdentifierOrUrl(actorName));
                 return NotFound();
             }
 
@@ -443,7 +444,7 @@ namespace slskd.SocialFederation.API
             var (published, error) = await _federationService.PublishOutboxActivityAsync(actorName, MapActivity(activity), cancellationToken).ConfigureAwait(false);
             if (published == null)
             {
-                _logger.LogWarning("[ActivityPub] Failed to publish outbox activity for {Actor}: {Error}", actorName, error ?? "Unknown error");
+                LogOutboxPublishFailure(_logger, actorName, error);
                 return BadRequest("Unable to publish activity");
             }
 
@@ -713,7 +714,7 @@ namespace slskd.SocialFederation.API
                         }
 
                         await _relationshipStore.UpsertFollowerAsync(actorName, remoteActorId, cancellationToken).ConfigureAwait(false);
-                        _logger.LogInformation("[ActivityPub] Recorded follower {RemoteActor} for actor {ActorName}", remoteActorId, actorName);
+                        LogRelationshipChange(_logger, "Recorded follower", remoteActorId, actorName);
                         return (true, null);
                     }
 
@@ -731,7 +732,7 @@ namespace slskd.SocialFederation.API
                         }
 
                         await _relationshipStore.RemoveFollowerAsync(actorName, remoteActorId, cancellationToken).ConfigureAwait(false);
-                        _logger.LogInformation("[ActivityPub] Removed follower {RemoteActor} for actor {ActorName}", remoteActorId, actorName);
+                        LogRelationshipChange(_logger, "Removed follower", remoteActorId, actorName);
                         return (true, null);
                     }
 
@@ -739,8 +740,7 @@ namespace slskd.SocialFederation.API
                     {
                         if (!string.Equals(TryGetObjectType(activity.Object), "Follow", StringComparison.OrdinalIgnoreCase))
                         {
-                            _logger.LogInformation("[ActivityPub] Stored inbound activity {Type} for actor {ActorName} from {Actor}",
-                                activity.Type, actorName, activity.Actor);
+                            LogInboundActivity(_logger, activity.Type, actorName, activity.Actor);
                             return (true, null);
                         }
 
@@ -750,7 +750,7 @@ namespace slskd.SocialFederation.API
                             await _relationshipStore.UpsertFollowingAsync(actorName, remoteActorId, cancellationToken).ConfigureAwait(false);
                         }
 
-                        _logger.LogInformation("[ActivityPub] Accepted follow relationship with {RemoteActor} for actor {ActorName}", remoteActorId, actorName);
+                        LogRelationshipChange(_logger, "Accepted follow", remoteActorId, actorName);
                         return (true, null);
                     }
 
@@ -758,8 +758,7 @@ namespace slskd.SocialFederation.API
                     {
                         if (!string.Equals(TryGetObjectType(activity.Object), "Follow", StringComparison.OrdinalIgnoreCase))
                         {
-                            _logger.LogInformation("[ActivityPub] Stored inbound activity {Type} for actor {ActorName} from {Actor}",
-                                activity.Type, actorName, activity.Actor);
+                            LogInboundActivity(_logger, activity.Type, actorName, activity.Actor);
                             return (true, null);
                         }
 
@@ -769,7 +768,7 @@ namespace slskd.SocialFederation.API
                             await _relationshipStore.RemoveFollowingAsync(actorName, remoteActorId, cancellationToken).ConfigureAwait(false);
                         }
 
-                        _logger.LogInformation("[ActivityPub] Rejected follow relationship with {RemoteActor} for actor {ActorName}", remoteActorId, actorName);
+                        LogRelationshipChange(_logger, "Rejected follow", remoteActorId, actorName);
                         return (true, null);
                     }
 
@@ -779,8 +778,7 @@ namespace slskd.SocialFederation.API
                 case "Announce":
                 case "Like":
                 case "Add":
-                    _logger.LogInformation("[ActivityPub] Stored inbound activity {Type} for actor {ActorName} from {Actor}",
-                        activity.Type, actorName, activity.Actor);
+                    LogInboundActivity(_logger, activity.Type, actorName, activity.Actor);
                     return (true, null);
 
                 case "Remove":
@@ -795,15 +793,46 @@ namespace slskd.SocialFederation.API
                             }
                         }
 
-                        _logger.LogInformation("[ActivityPub] Stored inbound activity {Type} for actor {ActorName} from {Actor}",
-                            activity.Type, actorName, activity.Actor);
+                        LogInboundActivity(_logger, activity.Type, actorName, activity.Actor);
                         return (true, null);
                     }
 
                 default:
-                    _logger.LogWarning("[ActivityPub] Stored unsupported activity type {Type} for actor {ActorName}", activity.Type, actorName);
+                    _logger.LogWarning("[ActivityPub] Stored unsupported activity type {Type} for actor {ActorName}",
+                        LogSanitizer.SanitizeExternalIdentifierOrUrl(activity.Type), LogSanitizer.SanitizeExternalIdentifierOrUrl(actorName));
                     return (false, $"Unsupported activity type '{activity.Type}'");
             }
+        }
+
+        internal static void LogInboundActivity(
+            ILogger<ActivityPubController> logger,
+            string activityType,
+            string actorName,
+            object? remoteActor)
+        {
+            logger.LogInformation("[ActivityPub] Stored inbound activity {Type} for actor {ActorName} from {Actor}",
+                LogSanitizer.SanitizeExternalIdentifierOrUrl(activityType),
+                LogSanitizer.SanitizeExternalIdentifier(actorName),
+                LogSanitizer.SanitizeExternalIdentifierOrUrl(remoteActor?.ToString()));
+        }
+
+        internal static void LogRelationshipChange(
+            ILogger<ActivityPubController> logger,
+            string action,
+            string remoteActorId,
+            string actorName)
+        {
+            logger.LogInformation("[ActivityPub] {Action} {RemoteActor} for actor {ActorName}",
+                LogSanitizer.SanitizeExternalIdentifier(action),
+                LogSanitizer.SanitizeExternalIdentifierOrUrl(remoteActorId),
+                LogSanitizer.SanitizeExternalIdentifier(actorName));
+        }
+
+        internal static void LogOutboxPublishFailure(ILogger<ActivityPubController> logger, string actorName, string? error)
+        {
+            logger.LogWarning("[ActivityPub] Failed to publish outbox activity for {Actor}: {Error}",
+                LogSanitizer.SanitizeExternalIdentifier(actorName),
+                LogSanitizer.SanitizeExternalIdentifier(error ?? "Unknown error"));
         }
 
         private static slskd.SocialFederation.ActivityPubActivity MapActivity(ActivityPubActivity activity)

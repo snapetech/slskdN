@@ -12,6 +12,7 @@ namespace slskd.SocialFederation
     using Microsoft.Extensions.Options;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.Core.Music;
+    using LogSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Integration service between VirtualSoulfind and federation publishing.
@@ -78,7 +79,8 @@ namespace slskd.SocialFederation
             // Check if we can publish this content
             if (!_federationService.CanPublishContent(contentItem.Domain.ToString(), isAdvertisable))
             {
-                _logger.LogDebug("[VSFederation] Skipping content {Id} - not publishable", contentItem.Id);
+                _logger.LogDebug("[VSFederation] Skipping content {Id} - not publishable",
+                    LogSanitizer.SanitizeExternalIdentifierOrUrl(contentItem.Id.ToString()));
                 return;
             }
 
@@ -90,16 +92,20 @@ namespace slskd.SocialFederation
                 if (workRef != null && workRef.ValidateSecurity())
                 {
                     await _federationService.PublishWorkRefAsync(workRef, cancellationToken);
-                    _logger.LogInformation("[VSFederation] Published content {Id} to federation", contentItem.Id);
+                    _logger.LogInformation("[VSFederation] Published content {Id} to federation",
+                        LogSanitizer.SanitizeExternalIdentifierOrUrl(contentItem.Id.ToString()));
                 }
                 else
                 {
-                    _logger.LogWarning("[VSFederation] Content {Id} failed validation or WorkRef creation", contentItem.Id);
+                    _logger.LogWarning("[VSFederation] Content {Id} failed validation or WorkRef creation",
+                        LogSanitizer.SanitizeExternalIdentifierOrUrl(contentItem.Id.ToString()));
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[VSFederation] Failed to publish content {Id}", contentItem.Id);
+                _logger.LogError("[VSFederation] Failed to publish content {Id} ({ExceptionType})",
+                    LogSanitizer.SanitizeExternalIdentifierOrUrl(contentItem.Id.ToString()),
+                    LogSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
             }
         }
 
@@ -135,7 +141,7 @@ namespace slskd.SocialFederation
             // Skip private lists
             if (string.Equals(visibility, "private", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogDebug("[VSFederation] Skipping private list {ListId}", listId);
+                _logger.LogDebug("[VSFederation] Skipping private list {ListId}", LogSanitizer.SanitizeExternalIdentifier(listId));
                 return;
             }
 
@@ -151,12 +157,15 @@ namespace slskd.SocialFederation
                 if (workRefs.Any())
                 {
                     await _federationService.PublishListAsync(listId, listName, visibility, workRefs, cancellationToken);
-                    _logger.LogInformation("[VSFederation] Published list {ListId} with {Count} items", listId, workRefs.Count);
+                    _logger.LogInformation("[VSFederation] Published list {ListId} with {Count} items",
+                        LogSanitizer.SanitizeExternalIdentifier(listId), workRefs.Count);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[VSFederation] Failed to publish list {ListId}", listId);
+                _logger.LogError("[VSFederation] Failed to publish list {ListId} ({ExceptionType})",
+                    LogSanitizer.SanitizeExternalIdentifier(listId),
+                    LogSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
             }
         }
 
@@ -183,7 +192,8 @@ namespace slskd.SocialFederation
             var actor = _libraryActorService.GetActor(domain);
             if (actor == null)
             {
-                _logger.LogDebug("[VSFederation] Skipping removal publish for {ContentId} - no actor for domain {Domain}", contentId, domain);
+                _logger.LogDebug("[VSFederation] Skipping removal publish for {ContentId} - no actor for domain {Domain}",
+                    LogSanitizer.SanitizeExternalIdentifierOrUrl(contentId), LogSanitizer.SanitizeExternalIdentifier(domain));
                 return;
             }
 
@@ -208,11 +218,13 @@ namespace slskd.SocialFederation
             var (_, error) = await _federationService.PublishOutboxActivityAsync(actor.ActorName, deleteActivity, cancellationToken).ConfigureAwait(false);
             if (error == null)
             {
-                _logger.LogInformation("[VSFederation] Published tombstone for removed content {ContentId} in domain {Domain}", contentId, domain);
+                _logger.LogInformation("[VSFederation] Published tombstone for removed content {ContentId} in domain {Domain}",
+                    LogSanitizer.SanitizeExternalIdentifierOrUrl(contentId), LogSanitizer.SanitizeExternalIdentifier(domain));
                 return;
             }
 
-            _logger.LogWarning("[VSFederation] Failed to publish tombstone for {ContentId}: {Error}", contentId, error);
+            _logger.LogWarning("[VSFederation] Failed to publish tombstone for {ContentId}: {Error}",
+                LogSanitizer.SanitizeExternalIdentifierOrUrl(contentId), LogSanitizer.SanitizeExternalIdentifier(error));
         }
 
         /// <summary>
@@ -260,7 +272,8 @@ namespace slskd.SocialFederation
 
                     default:
                         _logger.LogWarning("[VSFederation] Unknown domain {Domain} for content {Id}",
-                            contentItem.Domain, contentItem.Id);
+                            LogSanitizer.SanitizeExternalIdentifier(contentItem.Domain.ToString()),
+                            LogSanitizer.SanitizeExternalIdentifierOrUrl(contentItem.Id.ToString()));
                         return null;
                 }
 
@@ -272,7 +285,9 @@ namespace slskd.SocialFederation
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[VSFederation] Failed to create WorkRef for content {Id}", contentItem.Id);
+                _logger.LogError("[VSFederation] Failed to create WorkRef for content {Id} ({ExceptionType})",
+                    LogSanitizer.SanitizeExternalIdentifierOrUrl(contentItem.Id.ToString()),
+                    LogSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
                 return null;
             }
         }

@@ -18803,3 +18803,26 @@ behavior, physical/WebKit accessibility, representative WAN/resource
 evidence, frontend network-change root cause, and discovery queues remain
 open. Push and cut the authorized stable release after implementation and
 validation are complete.
+
+## Current state — Validate mDNS and federation diagnostic fixes — 2026-10-05 20:07 UTC
+
+LAN discovery and Social Federation now escape peer-controlled diagnostic text
+and redact URL paths/credentials at log boundaries. Raw exception objects were
+removed from the touched remote-facing log paths; protocol and discovery values
+remain unchanged. Captured-log regressions and two registered source checks
+cover these boundaries. The focused federation suite passes 95/95, sanitizer
+tests pass 18/18, the full .NET Release suite passes 6,085 (74 application,
+289 integration, 5,722 unit), and `./bin/lint` passes.
+
+The active discovery inventory is current at 25 async-void examples, 0 silent
+catches, 215 callback/event, 426 remote-text, 12,347 red-team, and 828
+mutable-ownership candidates. These counts describe review queues, not confirmed
+bugs. The `.343` tag workflow was cancelled before release creation; use a new
+stable `.344` tag after the complete baseline and release-note gates pass.
+
+Next: run `check-remediation-baseline.sh`, preview release notes, verify the
+GitHub target and local identity scan, commit and push every validated local
+change, then create and verify stable `.344` and all required hosted publisher
+jobs. Continue the evidence-gated T-908 sender lifecycle, global Party ID
+authority, accessibility, WAN/resource measurements, hidden-tab throttling,
+frontend network-change root cause, and the broad discovery queues afterward.

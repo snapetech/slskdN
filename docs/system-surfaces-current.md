@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-10-05T14:29:10Z
+Generated: 2026-10-05T20:09:11Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -226,21 +226,21 @@ None found.
   - 133:    [AllowAnonymous]
   - 167:    [HttpGet("stats")]
 - src/slskd/SocialFederation/API/ActivityPubController.cs
-  - 99:        [HttpGet("{actorName}")]
-  - 100:        [AllowAnonymous]
-  - 152:        [HttpGet("{actorName}/inbox")]
-  - 201:        [HttpPost("{actorName}/inbox")]
-  - 202:        [AllowAnonymous]
-  - 293:        [HttpGet("{actorName}/outbox")]
-  - 294:        [AllowAnonymous]
-  - 353:        [HttpGet("{actorName}/followers")]
-  - 354:        [AllowAnonymous]
-  - 380:        [HttpGet("{actorName}/following")]
-  - 381:        [AllowAnonymous]
-  - 418:        [HttpPost("{actorName}/outbox")]
+  - 100:        [HttpGet("{actorName}")]
+  - 101:        [AllowAnonymous]
+  - 153:        [HttpGet("{actorName}/inbox")]
+  - 202:        [HttpPost("{actorName}/inbox")]
+  - 203:        [AllowAnonymous]
+  - 294:        [HttpGet("{actorName}/outbox")]
+  - 295:        [AllowAnonymous]
+  - 354:        [HttpGet("{actorName}/followers")]
+  - 355:        [AllowAnonymous]
+  - 381:        [HttpGet("{actorName}/following")]
+  - 382:        [AllowAnonymous]
+  - 419:        [HttpPost("{actorName}/outbox")]
 - src/slskd/SocialFederation/API/WebFingerController.cs
-  - 61:        [HttpGet("webfinger")]
-  - 62:        [AllowAnonymous]
+  - 62:        [HttpGet("webfinger")]
+  - 63:        [AllowAnonymous]
 - src/slskd/SourceFeeds/API/SpotifyConnectionController.cs
   - 33:    [HttpGet("status")]
   - 41:    [HttpPost("authorize")]

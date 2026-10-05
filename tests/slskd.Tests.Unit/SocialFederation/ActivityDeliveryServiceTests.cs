@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using slskd.SocialFederation;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class ActivityDeliveryServiceTests
@@ -43,7 +44,30 @@ public class ActivityDeliveryServiceTests
         Assert.True(limited);
     }
 
-    private static (ActivityDeliveryService Service, HttpClient HttpClient) CreateService(int maxActivitiesPerHour)
+    [Fact]
+    public void LogDeliveryFailure_RedactsRemoteUrlAndDoesNotAttachException()
+    {
+        const string inboxUrl = "https://peer.example/inbox?token=secret";
+        var logger = new CapturingLogger<ActivityDeliveryService>();
+        var (service, httpClient) = CreateService(maxActivitiesPerHour: 2, logger);
+        using var serviceDisposable = service;
+        using var _ = httpClient;
+
+        service.LogDeliveryFailure(inboxUrl, new HttpRequestException("failed\r\nforged"), 1, 1, retrying: false);
+
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("https://peer.example", entry.Message);
+        Assert.DoesNotContain("/inbox", entry.Message);
+        Assert.DoesNotContain("token=secret", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Null(entry.Exception);
+        Assert.Equal("https://peer.example/inbox?token=secret", inboxUrl);
+    }
+
+    private static (ActivityDeliveryService Service, HttpClient HttpClient) CreateService(
+        int maxActivitiesPerHour,
+        ILogger<ActivityDeliveryService>? logger = null)
     {
         var federationOptions = CreateOptions(new SocialFederationOptions
         {
@@ -62,7 +86,7 @@ public class ActivityDeliveryServiceTests
             federationOptions,
             publishingOptions,
             Mock.Of<IActivityPubKeyStore>(),
-            Mock.Of<ILogger<ActivityDeliveryService>>()), httpClient);
+            logger ?? Mock.Of<ILogger<ActivityDeliveryService>>()), httpClient);
     }
 
     private static IOptionsMonitor<T> CreateOptions<T>(T value)

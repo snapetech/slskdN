@@ -9,8 +9,10 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using slskd.SocialFederation;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class HttpSignatureKeyFetcherTests
@@ -107,6 +109,28 @@ public class HttpSignatureKeyFetcherTests
         var result = await fetcher.FetchPublicKeyPkixAsync(keyId);
 
         Assert.Equal(new byte[] { 1, 2, 3 }, result);
+    }
+
+    [Fact]
+    public async Task FetchPublicKeyPkixAsync_FailureRedactsRemoteUrlAndDoesNotAttachException()
+    {
+        const string keyId = "https://93.184.216.34/users/alice?token=secret#main-key";
+        var logger = new CapturingLogger<HttpSignatureKeyFetcher>();
+        var handler = new StubHttpMessageHandler((_, _) => throw new HttpRequestException("failed\r\nforged"));
+        using var httpClient = new HttpClient(handler);
+        var fetcher = new HttpSignatureKeyFetcher(httpClient, logger);
+
+        var result = await fetcher.FetchPublicKeyPkixAsync(keyId);
+
+        Assert.Null(result);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("https://93.184.216.34", entry.Message);
+        Assert.DoesNotContain("/users/alice", entry.Message);
+        Assert.DoesNotContain("token=secret", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Null(entry.Exception);
+        Assert.Equal("https://93.184.216.34/users/alice?token=secret#main-key", keyId);
     }
 
     private sealed class StubHttpMessageHandler : HttpMessageHandler

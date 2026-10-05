@@ -11,6 +11,7 @@ namespace slskd.SocialFederation
     using Microsoft.AspNetCore.DataProtection;
     using Microsoft.Extensions.Logging;
     using NSec.Cryptography;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     ActivityPub keypair management implementation.
@@ -102,7 +103,7 @@ namespace slskd.SocialFederation
                     return;
                 }
 
-                _logger.LogInformation("[ActivityPub] Generating keypair for actor {ActorId}", actorId);
+                _logger.LogInformation("[ActivityPub] Generating keypair for actor {ActorId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(actorId));
 
                 var (publicKeyPem, privateKeyPem) = _keyPairGenerator.GenerateKeypair();
 
@@ -120,7 +121,7 @@ namespace slskd.SocialFederation
 
                 _keypairs[actorId] = keypairInfo;
 
-                _logger.LogInformation("[ActivityPub] Keypair generated for actor {ActorId}", actorId);
+                _logger.LogInformation("[ActivityPub] Keypair generated for actor {ActorId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(actorId));
             }
             finally
             {
@@ -136,7 +137,7 @@ namespace slskd.SocialFederation
                 throw new ArgumentException("Actor ID cannot be null or empty.", nameof(actorId));
             }
 
-            _logger.LogInformation("[ActivityPub] Rotating keypair for actor {ActorId}", actorId);
+            _logger.LogInformation("[ActivityPub] Rotating keypair for actor {ActorId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(actorId));
 
             // Remove existing keypair
             _keypairs.TryRemove(actorId, out _);
@@ -144,7 +145,7 @@ namespace slskd.SocialFederation
             // Generate new keypair
             await EnsureKeypairAsync(actorId, cancellationToken);
 
-            _logger.LogInformation("[ActivityPub] Keypair rotated for actor {ActorId}", actorId);
+            _logger.LogInformation("[ActivityPub] Keypair rotated for actor {ActorId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(actorId));
         }
 
         /// <inheritdoc/>
@@ -176,7 +177,9 @@ namespace slskd.SocialFederation
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[ActivityPub] Signature verification failed for actor {ActorId}", actorId);
+                _logger.LogWarning("[ActivityPub] Signature verification failed for actor {ActorId} ({ExceptionType})",
+                    LoggingSanitizer.SanitizeExternalIdentifierOrUrl(actorId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
                 return false;
             }
         }

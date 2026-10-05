@@ -151,6 +151,14 @@ namespace slskd.Tests.Unit.Common.Security
             Assert.Equal("https://[::1]", result);
         }
 
+        [Theory]
+        [InlineData("https://user:password@peer.example/actors/alice?token=secret", "https://peer.example")]
+        [InlineData("acct:alice@peer.example\r\nforged", "acct:alice@peer.example\\r\\nforged")]
+        public void SanitizeExternalIdentifierOrUrl_RemovesUrlDetailsAndEscapesText(string value, string expected)
+        {
+            Assert.Equal(expected, LoggingSanitizer.SanitizeExternalIdentifierOrUrl(value));
+        }
+
         [Fact]
         public void SanitizeSensitiveData_WithData_ReturnsRedactedPlaceholder()
         {

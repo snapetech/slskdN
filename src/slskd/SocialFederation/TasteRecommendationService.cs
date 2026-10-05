@@ -150,7 +150,8 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogInformation(ex, "[TasteRecommendations] Soulseek native recommendations unavailable");
+            _logger.LogInformation("[TasteRecommendations] Soulseek native recommendations unavailable ({ExceptionType})",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
             return Array.Empty<FederatedWorkRefObservation>();
         }
     }
@@ -496,7 +497,9 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
             }
             catch (JsonException ex)
             {
-                _logger.LogDebug(ex, "[TasteRecommendations] Ignored malformed inbound WorkRef from {RemoteActor}", entry.RemoteActor);
+                _logger.LogDebug("[TasteRecommendations] Ignored malformed inbound WorkRef ({ExceptionType}) from {RemoteActor}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name),
+                    LoggingSanitizer.SanitizeExternalIdentifierOrUrl(entry.RemoteActor));
                 continue;
             }
 
@@ -827,7 +830,9 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogDebug(ex, "[TasteRecommendations] Discovery Graph evidence unavailable for {Title}", recommendation.WorkRef.Title);
+                _logger.LogDebug("[TasteRecommendations] Discovery Graph evidence unavailable for {Title} ({ExceptionType})",
+                    LoggingSanitizer.SanitizeQueryText(recommendation.WorkRef.Title),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
             }
         }
     }

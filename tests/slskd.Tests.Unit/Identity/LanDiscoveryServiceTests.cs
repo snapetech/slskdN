@@ -153,6 +153,29 @@ public class LanDiscoveryServiceTests : IDisposable
     }
 
     [Fact]
+    public void LogDiscoveredPeerParseFailure_EscapesRemoteNameAndExceptionWithoutAttachingIt()
+    {
+        var svc = CreateService();
+        const string displayName = "peer name\r\nforged";
+        var exception = new InvalidOperationException("bad TXT record\r\nforged");
+
+        svc.LogDiscoveredPeerParseFailure(displayName, exception);
+
+        _logMock.Verify(x => x.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) =>
+                v.ToString()!.Contains("peer name\\r\\nforged") &&
+                v.ToString()!.Contains("bad TXT record\\r\\nforged") &&
+                !v.ToString()!.Contains('\r') &&
+                !v.ToString()!.Contains('\n')),
+            null,
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+        Assert.Equal("peer name\r\nforged", displayName);
+        Assert.Equal("bad TXT record\r\nforged", exception.Message);
+    }
+
+    [Fact]
     public void Dispose_WhenStarted_DisposesAdvertiser()
     {
         var svc = CreateService();

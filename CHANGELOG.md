@@ -34,6 +34,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- LAN discovery logs now escape peer names and parse exception details so
+  remote mDNS text cannot forge log entries.
+- Social federation logs now redact remote URL paths and credentials, escape
+  peer-controlled text, and omit raw remote exception objects.
 - Mesh overlay readers now dispatch the numeric mesh message types emitted by
   the message DTOs, so valid mesh sync requests reach the sync service in both
   connection directions.

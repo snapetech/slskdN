@@ -12,6 +12,7 @@ namespace slskd.SocialFederation
     using Microsoft.Extensions.Options;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.Core.Music;
+    using LogSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Music library actor for ActivityPub federation.
@@ -85,7 +86,8 @@ namespace slskd.SocialFederation
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    _logger.LogWarning(ex, "Failed to map a music item for the ActivityPub library outbox; skipping it");
+                    _logger.LogWarning("Failed to map a music item for the ActivityPub library outbox; skipping it ({ExceptionType})",
+                        LogSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
                 }
             }
 

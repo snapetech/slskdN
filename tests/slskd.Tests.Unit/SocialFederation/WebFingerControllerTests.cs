@@ -4,11 +4,39 @@
 namespace slskd.Tests.Unit.SocialFederation;
 
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using slskd.SocialFederation.API;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class WebFingerControllerTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WebFingerResourceLogs_RedactUrlSecretsAndEscapeMalformedResources(bool served)
+    {
+        var logger = new CapturingLogger<WebFingerController>();
+        const string resource = "https://peer.example/actors/alice?token=secret\r\nforged";
+
+        if (served)
+        {
+            WebFingerController.LogServedResource(logger, resource);
+        }
+        else
+        {
+            WebFingerController.LogRejectedResource(logger, resource);
+        }
+
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("https://peer.example", entry.Message);
+        Assert.DoesNotContain("/actors/alice", entry.Message);
+        Assert.DoesNotContain("token=secret", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Null(entry.Exception);
+    }
+
     [Theory]
     [InlineData("https://example.com/actors/music/extra")]
     [InlineData("https://example.com/@music/extra")]

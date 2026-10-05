@@ -11,6 +11,7 @@ namespace slskd.SocialFederation
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     SSRF-safe fetcher for ActivityPub HTTP Signature keyId URLs. PR-14.
@@ -40,14 +41,14 @@ namespace slskd.SocialFederation
 
             if (!Uri.TryCreate(keyId, UriKind.Absolute, out var uri) || !string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogDebug("[HttpSignatureKeyFetcher] keyId must be HTTPS: {KeyId}", keyId);
+                _logger.LogDebug("[HttpSignatureKeyFetcher] keyId must be HTTPS: {KeyId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(keyId));
                 return null;
             }
 
             // Resolve host to IP and reject forbidden ranges
             if (!await IsSafeHostAsync(uri, cancellationToken))
             {
-                _logger.LogDebug("[HttpSignatureKeyFetcher] keyId host resolves to forbidden or unreadable IP: {Host}", uri.Host);
+                _logger.LogDebug("[HttpSignatureKeyFetcher] keyId host resolves to forbidden or unreadable IP: {Host}", LoggingSanitizer.SanitizeExternalIdentifier(uri.Host));
                 return null;
             }
 
@@ -65,7 +66,7 @@ namespace slskd.SocialFederation
 
                 if (res.Content.Headers.ContentLength is long contentLength && contentLength > MaxResponseBytes)
                 {
-                    _logger.LogDebug("[HttpSignatureKeyFetcher] Response too large from {KeyId}", keyId);
+                    _logger.LogDebug("[HttpSignatureKeyFetcher] Response too large from {KeyId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(keyId));
                     return null;
                 }
 
@@ -73,13 +74,13 @@ namespace slskd.SocialFederation
                 if (finalUri == null ||
                     !string.Equals(finalUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogDebug("[HttpSignatureKeyFetcher] Final fetch URI was not HTTPS for {KeyId}", keyId);
+                    _logger.LogDebug("[HttpSignatureKeyFetcher] Final fetch URI was not HTTPS for {KeyId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(keyId));
                     return null;
                 }
 
                 if (!await IsSafeHostAsync(finalUri, cts.Token))
                 {
-                    _logger.LogDebug("[HttpSignatureKeyFetcher] Final fetch URI resolved to forbidden host for {KeyId}", keyId);
+                    _logger.LogDebug("[HttpSignatureKeyFetcher] Final fetch URI resolved to forbidden host for {KeyId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(keyId));
                     return null;
                 }
 
@@ -94,7 +95,7 @@ namespace slskd.SocialFederation
 
                 if (total >= MaxResponseBytes)
                 {
-                    _logger.LogDebug("[HttpSignatureKeyFetcher] Response too large from {KeyId}", keyId);
+                    _logger.LogDebug("[HttpSignatureKeyFetcher] Response too large from {KeyId}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(keyId));
                     return null;
                 }
 
@@ -103,7 +104,8 @@ namespace slskd.SocialFederation
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "[HttpSignatureKeyFetcher] Fetch failed for {KeyId}", keyId);
+                _logger.LogDebug("[HttpSignatureKeyFetcher] Fetch failed for {KeyId} ({ExceptionType})",
+                    LoggingSanitizer.SanitizeExternalIdentifierOrUrl(keyId), LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
                 return null;
             }
         }
@@ -141,7 +143,8 @@ namespace slskd.SocialFederation
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "[HttpSignatureKeyFetcher] DNS resolution failed for {Host}", uri.Host);
+                _logger.LogDebug("[HttpSignatureKeyFetcher] DNS resolution failed for {Host} ({ExceptionType})",
+                    LoggingSanitizer.SanitizeExternalIdentifier(uri.Host), LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
                 return false;
             }
         }

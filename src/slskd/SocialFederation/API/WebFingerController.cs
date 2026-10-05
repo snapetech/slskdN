@@ -11,6 +11,7 @@ namespace slskd.SocialFederation.API
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.Security;
     using slskd.Core.Security;
 
     /// <summary>
@@ -87,21 +88,22 @@ namespace slskd.SocialFederation.API
             // Parse the resource identifier
             if (!TryParseResource(resource, out var username, out var domain))
             {
-                _logger.LogDebug("[WebFinger] Invalid resource format: {Resource}", resource);
+                LogRejectedResource(_logger, resource);
                 return NotFound();
             }
 
             // Verify domain matches our federation domain
             if (!string.Equals(domain, opts.Domain, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogDebug("[WebFinger] Domain mismatch: {Domain} != {ExpectedDomain}", domain, opts.Domain);
+                _logger.LogDebug("[WebFinger] Domain mismatch: {Domain} != {ExpectedDomain}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(domain), LoggingSanitizer.SanitizeExternalIdentifier(opts.Domain));
                 return NotFound();
             }
 
             // Check if this is a valid actor/username
             if (!await IsValidActorAsync(username, cancellationToken))
             {
-                _logger.LogDebug("[WebFinger] Invalid actor: {Username}", username);
+                _logger.LogDebug("[WebFinger] Invalid actor: {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
                 return NotFound();
             }
 
@@ -132,8 +134,18 @@ namespace slskd.SocialFederation.API
                 jrd.Links = jrd.Links.Where(link => link.Rel == rel).ToArray();
             }
 
-            _logger.LogInformation("[WebFinger] Served WebFinger for {Resource}", resource);
+            LogServedResource(_logger, resource);
             return Ok(jrd);
+        }
+
+        internal static void LogRejectedResource(ILogger<WebFingerController> logger, string resource)
+        {
+            logger.LogDebug("[WebFinger] Invalid resource format: {Resource}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(resource));
+        }
+
+        internal static void LogServedResource(ILogger<WebFingerController> logger, string resource)
+        {
+            logger.LogInformation("[WebFinger] Served WebFinger for {Resource}", LoggingSanitizer.SanitizeExternalIdentifierOrUrl(resource));
         }
 
         private static bool TryParseResource(string resource, out string username, out string domain)

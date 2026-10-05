@@ -18300,3 +18300,22 @@ regression covers rejected replies and thrown peer calls across all four
 operations; the focused suite passes 19/19. A durable source check is
 registered in the remediation baseline, and the security fragment and
 Unreleased changelog entry are added.
+
+
+## 2026-10-05 20:07 UTC — Escape mDNS and federation diagnostic inputs
+
+LAN discovery now escapes discovered mDNS names and parse exception text only
+at the log boundary. Social federation now redacts remote URL paths and
+credentials, escapes remote actors, request resources, titles, and error text,
+and omits raw exception objects from remote-facing diagnostics. Protocol and
+discovery values remain unchanged. Captured-log regressions and remediation
+source checks cover the affected paths.
+
+The focused federation suite passes 95/95, sanitizer coverage passes 18/18,
+the complete .NET Release suite passes 6,085 (74 application, 289 integration,
+5,722 unit), `./bin/lint` passes, and the focused source checks pass. The active
+red-team discovery queue now has 12,347 candidates; it remains a review queue,
+not a confirmed bug count. ADR-0001 records the mDNS/federation trust boundary
+and several validation gotchas. The `.343` hosted workflow was cancelled before
+release creation. Next: run remaining baseline and release-note gates, push the
+validated tree, and cut/verify stable `.344`.

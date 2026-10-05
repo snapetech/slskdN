@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Security
+
+- LAN discovery now escapes mDNS peer names and parse exception details before
+  writing them to logs; peer values used by discovery remain unchanged.
+- Social federation now redacts remote URL details and escapes peer values at
+  log boundaries without changing delivery, lookup, or recommendation data.
+
 ## [2026100519-slskdn.343] — 2026-10-05
 
 ### Fixed

@@ -4,11 +4,13 @@
 namespace slskd.Tests.Unit.SocialFederation;
 
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.DiscoveryGraph;
 using slskd.Integrations.MusicBrainz.Radar;
 using slskd.SocialFederation;
+using slskd.Tests.Unit.TestHelpers;
 using slskd.Wishlist;
 
 [Collection(AllocationTestCollection.Name)]
@@ -81,6 +83,39 @@ public sealed class TasteRecommendationServiceTests
 
         Assert.Equal(1, result.CandidateCount);
         Assert.Empty(result.Recommendations);
+    }
+
+    [Fact]
+    public async Task GetRecommendationsAsync_MalformedRemoteWorkRefEscapesActorAndDoesNotAttachException()
+    {
+        const string remoteActor = "https://peer.example/actors/music?token=secret";
+        var logger = new CapturingLogger<TasteRecommendationService>();
+        var entry = new ActivityPubInboxEntry
+        {
+            ActorName = "music",
+            ActivityId = "activity-1",
+            ActivityType = "Create",
+            RemoteActor = remoteActor + "\r\nforged",
+            ReceivedAt = DateTimeOffset.UtcNow,
+            RawJson = "{\"object\":{\"type\":\"WorkRef\",\"domain\":\"music\",\"title\":7,\"creator\":\"artist\"}}",
+            Processed = true,
+        };
+        var service = CreateService(
+            trustedActors: new[] { entry.RemoteActor },
+            entries: new[] { entry },
+            logger: logger);
+
+        await service.GetRecommendationsAsync(new TasteRecommendationRequest());
+
+        var log = Assert.Single(logger.Entries);
+        Assert.Contains("https://peer.example", log.Message);
+        Assert.DoesNotContain("/actors/music", log.Message);
+        Assert.DoesNotContain("token=secret", log.Message);
+        Assert.DoesNotContain("forged", log.Message);
+        Assert.DoesNotContain('\r', log.Message);
+        Assert.DoesNotContain('\n', log.Message);
+        Assert.Null(log.Exception);
+        Assert.Equal(remoteActor + "\r\nforged", entry.RemoteActor);
     }
 
     [Fact]
@@ -553,7 +588,8 @@ public sealed class TasteRecommendationServiceTests
         IReadOnlyList<ActivityPubInboxEntry> entries,
         IDiscoveryGraphService? discoveryGraph = null,
         IWishlistService? wishlist = null,
-        IArtistReleaseRadarService? radar = null)
+        IArtistReleaseRadarService? radar = null,
+        ILogger<TasteRecommendationService>? logger = null)
     {
         _relationshipStore
             .Setup(store => store.GetFollowingAsync("music", It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -568,7 +604,7 @@ public sealed class TasteRecommendationServiceTests
             discoveryGraph,
             wishlist,
             radar,
-            NullLogger<TasteRecommendationService>.Instance);
+            logger ?? NullLogger<TasteRecommendationService>.Instance);
     }
 
     private static ActivityPubInboxEntry CreateEntry(string remoteActor, string title, string creator)

@@ -4,10 +4,48 @@
 namespace slskd.Tests.Unit.SocialFederation;
 
 using slskd.SocialFederation.API;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public sealed class ActivityPubFriendsOnlyAuthorizationTests
 {
+    [Fact]
+    public void LogInboundActivity_EscapesRemoteTextAndRedactsActorUrlDetails()
+    {
+        var logger = new CapturingLogger<ActivityPubController>();
+
+        ActivityPubController.LogInboundActivity(
+            logger,
+            "Create\r\nforged",
+            "music\r\nforged",
+            "https://remote.example/actors/alice?token=secret");
+
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("Create\\r\\nforged", entry.Message);
+        Assert.Contains("music\\r\\nforged", entry.Message);
+        Assert.Contains("https://remote.example", entry.Message);
+        Assert.DoesNotContain("/actors/alice", entry.Message);
+        Assert.DoesNotContain("token=secret", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Null(entry.Exception);
+    }
+
+    [Fact]
+    public void LogOutboxPublishFailure_EscapesUserAndServiceErrorText()
+    {
+        var logger = new CapturingLogger<ActivityPubController>();
+
+        ActivityPubController.LogOutboxPublishFailure(logger, "music\r\nforged", "invalid actor\r\nforged");
+
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("music\\r\\nforged", entry.Message);
+        Assert.Contains("invalid actor\\r\\nforged", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Null(entry.Exception);
+    }
+
     [Fact]
     public void IsFriendsOnlyIdentityAuthorized_ApprovedHostWithoutVerifiedSignature_IsDenied()
     {

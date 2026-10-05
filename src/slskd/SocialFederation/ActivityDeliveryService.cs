@@ -128,7 +128,7 @@ namespace slskd.SocialFederation
                     // Check rate limiting for this specific recipient
                     if (IsRateLimited(inboxUrl))
                     {
-                        _logger.LogDebug("[Delivery] Rate limited for {InboxUrl}, skipping", inboxUrl);
+                        _logger.LogDebug("[Delivery] Rate limited for {InboxUrl}, skipping", LoggingSanitizer.SanitizeUrl(inboxUrl));
                         return;
                     }
 
@@ -136,14 +136,15 @@ namespace slskd.SocialFederation
                     // hosts so a malicious remote follower cannot coerce us into probing internal services.
                     if (!Uri.TryCreate(inboxUrl, UriKind.Absolute, out var inboxUri))
                     {
-                        _logger.LogWarning("[Delivery] Inbox URL '{InboxUrl}' is not a valid absolute URI; skipping", inboxUrl);
+                        _logger.LogWarning("[Delivery] Inbox URL '{InboxUrl}' is not a valid absolute URI; skipping", LoggingSanitizer.SanitizeUrl(inboxUrl));
                         return;
                     }
 
                     var (safe, reason) = await OutboundUriGuard.CheckAsync(inboxUri, cancellationToken);
                     if (!safe)
                     {
-                        _logger.LogWarning("[Delivery] Inbox URL '{InboxUrl}' blocked by SSRF guard: {Reason}", inboxUrl, reason);
+                        _logger.LogWarning("[Delivery] Inbox URL '{InboxUrl}' blocked by SSRF guard: {Reason}",
+                            LoggingSanitizer.SanitizeUrl(inboxUrl), LoggingSanitizer.SanitizeExternalIdentifier(reason));
                         return;
                     }
 
@@ -155,7 +156,7 @@ namespace slskd.SocialFederation
                     response.EnsureSuccessStatusCode();
 
                     _logger.LogInformation("[Delivery] Successfully delivered activity {ActivityId} to {InboxUrl}",
-                        activity.Id, inboxUrl);
+                        LoggingSanitizer.SanitizeExternalIdentifierOrUrl(activity.Id), LoggingSanitizer.SanitizeUrl(inboxUrl));
 
                     // Record successful delivery for rate limiting
                     RecordDelivery(inboxUrl);
@@ -163,18 +164,31 @@ namespace slskd.SocialFederation
                 }
                 catch (Exception ex) when (attempt < maxRetries)
                 {
-                    _logger.LogWarning(ex, "[Delivery] Failed to deliver activity to {InboxUrl} (attempt {Attempt}/{MaxRetries})",
-                        inboxUrl, attempt + 1, maxRetries + 1);
+                    LogDeliveryFailure(inboxUrl, ex, attempt + 1, maxRetries + 1, retrying: true);
 
                     // Exponential backoff
                     await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), cancellationToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[Delivery] Permanently failed to deliver activity to {InboxUrl} after {MaxRetries} attempts",
-                        inboxUrl, maxRetries + 1);
+                    LogDeliveryFailure(inboxUrl, ex, attempt + 1, maxRetries + 1, retrying: false);
                 }
             }
+        }
+
+        internal void LogDeliveryFailure(string inboxUrl, Exception exception, int attempt, int maxRetries, bool retrying)
+        {
+            var safeInboxUrl = LoggingSanitizer.SanitizeUrl(inboxUrl);
+            var exceptionType = LoggingSanitizer.SanitizeExternalIdentifier(exception.GetType().Name);
+            if (retrying)
+            {
+                _logger.LogWarning("[Delivery] Failed to deliver activity to {InboxUrl} (attempt {Attempt}/{MaxRetries}, {ExceptionType})",
+                    safeInboxUrl, attempt, maxRetries, exceptionType);
+                return;
+            }
+
+            _logger.LogError("[Delivery] Permanently failed to deliver activity to {InboxUrl} after {MaxRetries} attempts ({ExceptionType})",
+                safeInboxUrl, maxRetries, exceptionType);
         }
 
         /// <summary>

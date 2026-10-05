@@ -11,6 +11,7 @@ namespace slskd.SocialFederation
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     Service for managing library actors.
@@ -127,11 +128,14 @@ namespace slskd.SocialFederation
                         _loggerFactory.CreateLogger<GenericLibraryActor>());
 
                     _actors[domain] = actor;
-                    _logger.LogDebug("[LibraryActorService] Registered generic actor for domain {Domain}", domain);
+                    _logger.LogDebug("[LibraryActorService] Registered generic actor for domain {Domain}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(domain));
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[LibraryActorService] Failed to register generic actor for domain {Domain}", domain);
+                    _logger.LogWarning("[LibraryActorService] Failed to register generic actor for domain {Domain} ({ExceptionType})",
+                        LoggingSanitizer.SanitizeExternalIdentifier(domain),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
                 }
             }
         }

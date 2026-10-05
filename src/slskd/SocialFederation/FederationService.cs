@@ -11,6 +11,7 @@ namespace slskd.SocialFederation
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     Service for publishing VirtualSoulfind content to ActivityPub federation.
@@ -108,7 +109,7 @@ namespace slskd.SocialFederation
             var actor = _libraryActorService.GetActor(localActorName);
             if (actor == null)
             {
-                return (null, $"Unknown actor '{localActorName}'");
+                return (null, "Unknown actor");
             }
 
             if (string.IsNullOrWhiteSpace(activity.Type))
@@ -131,7 +132,7 @@ namespace slskd.SocialFederation
                         var inboxUrl = await ResolveActorToInboxAsync(remoteActorId, cancellationToken).ConfigureAwait(false);
                         if (string.IsNullOrWhiteSpace(inboxUrl))
                         {
-                            return (null, $"Unable to resolve inbox for '{remoteActorId}'");
+                            return (null, "Unable to resolve inbox for remote actor");
                         }
 
                         normalized.Object = remoteActorId;
@@ -186,7 +187,7 @@ namespace slskd.SocialFederation
                     }
 
                 default:
-                    return (null, $"Unsupported outbox activity type '{normalized.Type}'");
+                    return (null, "Unsupported outbox activity type");
             }
         }
 
@@ -216,7 +217,8 @@ namespace slskd.SocialFederation
             // Check if this domain is publishable
             if (!pubOpts.PublishableDomains.Contains(workRef.Domain, StringComparer.OrdinalIgnoreCase))
             {
-                _logger.LogDebug("[Federation] Skipping WorkRef publish - domain '{Domain}' not publishable", workRef.Domain);
+                _logger.LogDebug("[Federation] Skipping WorkRef publish - domain '{Domain}' not publishable",
+                    LoggingSanitizer.SanitizeExternalIdentifier(workRef.Domain));
                 return;
             }
 
@@ -231,7 +233,8 @@ namespace slskd.SocialFederation
             var actor = _libraryActorService.GetActor(workRef.Domain);
             if (actor == null)
             {
-                _logger.LogWarning("[Federation] No actor available for domain '{Domain}'", workRef.Domain);
+                _logger.LogWarning("[Federation] No actor available for domain '{Domain}'",
+                    LoggingSanitizer.SanitizeExternalIdentifier(workRef.Domain));
                 return;
             }
 
@@ -252,11 +255,13 @@ namespace slskd.SocialFederation
                 await PublishActivityAsync(createActivity, cancellationToken);
 
                 _logger.LogInformation("[Federation] Published WorkRef for '{Title}' in domain '{Domain}'",
-                    workRef.Title, workRef.Domain);
+                    LoggingSanitizer.SanitizeQueryText(workRef.Title), LoggingSanitizer.SanitizeExternalIdentifier(workRef.Domain));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Federation] Failed to publish WorkRef '{WorkRefId}'", workRef.Id);
+                _logger.LogError("[Federation] Failed to publish WorkRef '{WorkRefId}' ({ExceptionType})",
+                    LoggingSanitizer.SanitizeExternalIdentifierOrUrl(workRef.Id),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
             }
         }
 
@@ -294,7 +299,7 @@ namespace slskd.SocialFederation
             var visibilityType = ParseVisibility(visibility);
             if (visibilityType == ListVisibility.Private)
             {
-                _logger.LogDebug("[Federation] Skipping private list '{ListId}'", listId);
+                _logger.LogDebug("[Federation] Skipping private list '{ListId}'", LoggingSanitizer.SanitizeExternalIdentifier(listId));
                 return;
             }
 
@@ -305,7 +310,7 @@ namespace slskd.SocialFederation
                 circleName = ExtractCircleName(visibility);
                 if (string.IsNullOrWhiteSpace(circleName))
                 {
-                    _logger.LogWarning("[Federation] Invalid circle visibility format: '{Visibility}'", visibility);
+                    _logger.LogWarning("[Federation] Invalid circle visibility format: '{Visibility}'", LoggingSanitizer.SanitizeExternalIdentifier(visibility));
                     return;
                 }
             }
@@ -318,11 +323,12 @@ namespace slskd.SocialFederation
                 await PublishActivityAsync(collectionActivity, cancellationToken);
 
                 _logger.LogInformation("[Federation] Published list '{ListName}' with {Count} items (visibility: {Visibility})",
-                    listName, workRefs.Count, visibility);
+                    LoggingSanitizer.SanitizeQueryText(listName), workRefs.Count, LoggingSanitizer.SanitizeExternalIdentifier(visibility));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Federation] Failed to publish list '{ListId}'", listId);
+                _logger.LogError("[Federation] Failed to publish list '{ListId}' ({ExceptionType})",
+                    LoggingSanitizer.SanitizeExternalIdentifier(listId), LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
             }
         }
 
@@ -409,7 +415,8 @@ namespace slskd.SocialFederation
 
             if (!recipients.Any())
             {
-                _logger.LogDebug("[Federation] No recipients for activity {ActivityId}", activity.Id);
+                _logger.LogDebug("[Federation] No recipients for activity {ActivityId}",
+                    LoggingSanitizer.SanitizeExternalIdentifierOrUrl(activity.Id));
                 return;
             }
 
@@ -421,7 +428,8 @@ namespace slskd.SocialFederation
 
                 if (!inboxUrls.Any())
                 {
-                    _logger.LogWarning("[Federation] No valid inbox URLs resolved for activity {ActivityId}", activity.Id);
+                    _logger.LogWarning("[Federation] No valid inbox URLs resolved for activity {ActivityId}",
+                        LoggingSanitizer.SanitizeExternalIdentifierOrUrl(activity.Id));
                     return;
                 }
 
@@ -429,11 +437,12 @@ namespace slskd.SocialFederation
                 await _deliveryService.DeliverActivityAsync(activity, inboxUrls, cancellationToken);
 
                 _logger.LogInformation("[Federation] Published activity {Type} to {Count} recipients",
-                    activity.Type, inboxUrls.Count);
+                    LoggingSanitizer.SanitizeExternalIdentifier(activity.Type), inboxUrls.Count);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Federation] Failed to publish activity {ActivityId}", activity.Id);
+                _logger.LogError("[Federation] Failed to publish activity {ActivityId} ({ExceptionType})",
+                    LoggingSanitizer.SanitizeExternalIdentifierOrUrl(activity.Id), LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
             }
         }
 
@@ -453,7 +462,8 @@ namespace slskd.SocialFederation
                     {
                         if (string.IsNullOrWhiteSpace(localActorName))
                         {
-                            _logger.LogDebug("[Federation] Public activity {ActivityId} has no local actor mapping", activity.Id);
+                            _logger.LogDebug("[Federation] Public activity {ActivityId} has no local actor mapping",
+                                LoggingSanitizer.SanitizeExternalIdentifierOrUrl(activity.Id));
                             continue;
                         }
 
@@ -486,7 +496,9 @@ namespace slskd.SocialFederation
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[Federation] Failed to resolve inbox for recipient {Recipient}", recipient);
+                    _logger.LogWarning("[Federation] Failed to resolve inbox for recipient {Recipient} ({ExceptionType})",
+                        LoggingSanitizer.SanitizeExternalIdentifierOrUrl(recipient),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.GetType().Name));
                 }
             }
 
