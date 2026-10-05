@@ -161,6 +161,18 @@ failures, but it did not distinguish the host stopping the health check.
 token is canceled before classifying reconnect failures. Keep its loop-level
 cancellation handler responsible for normal shutdown.
 
+### 0z1649. Qualify The Soulseek Client Interface In Health Tests (2026-10-05)
+
+**What went wrong:** A health-monitor test imported the `Soulseek` namespace,
+which made unqualified `ISoulseekClient` ambiguous with the project's own
+`DisasterMode.ISoulseekClient` interface.
+
+**Why:** Both APIs intentionally use the same interface name while describing
+different responsibilities.
+
+**Prevention:** Use the fully qualified `Soulseek.ISoulseekClient` type (and
+its `SoulseekClientStates`) in tests for `SoulseekHealthMonitor`.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
