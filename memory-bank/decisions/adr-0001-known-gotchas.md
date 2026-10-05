@@ -221,6 +221,23 @@ instead of being checked against the repository's release-note validator.
 `scripts/release_notes.py`, then run the release-note preview after writing a
 fragment and before considering the docs change validated.
 
+### 0z1581. Sanitize Scene And Bridge Diagnostics At Log Boundaries (2026-10-04)
+
+**What went wrong:** Bridge proxy, protocol parser, and capture-normalization
+logs emitted peer-controlled identifiers, exception text, and transfer
+metadata without escaping control characters. Parser exceptions could also
+carry raw protocol text into structured logs.
+
+**Why:** VirtualSoulfind logging is split across proxy, parser, observer, and
+normalization components, so auditing its public bridge APIs alone left these
+internal protocol boundaries uncovered.
+
+**Prevention:** Inspect every log call across each protocol boundary, including
+deferred task callbacks and exception handlers. Sanitize remote identifiers
+and full exception text only in log arguments; keep original values for
+protocol handling, peer routing, and persistence. Add a captured-log regression
+for CR/LF-bearing remote exception text.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
