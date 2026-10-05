@@ -18431,3 +18431,15 @@ binary reports the expected version. The VPN helper and Web footer marker are
 also present. The tag workflow's only remaining job is `Publish to PPA (Main)`,
 which is still waiting for Launchpad publication. Stable `.344` cannot be
 rewritten; post-tag fixes remain for stable `.345`.
+
+
+## 2026-10-05 22:49 UTC — Refresh the pushed active backlog inventory
+
+The validated product and release commits are pushed at `769d97da3`. The
+post-push remediation baseline passed its route, security, runtime, package,
+identity, and release branch-sync checks, then caught a stale active-bughunt
+backlog count. The refreshed report contains 12,362 red-team candidates rather
+than 12,358; other counts remain 215 callback/event, 426 remote-text, and 828
+mutable-ownership. The backlog documentation is updated locally and needs a
+small follow-up push before rerunning the baseline. Stable `.344` artifact
+verification passes; its PPA waiter remains in progress.

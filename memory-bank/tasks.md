@@ -48,7 +48,8 @@
 - [x] Commit the product fix, tests, release documentation, and memory records;
   preview `build-main-2026100520-slskdn.344` to `HEAD`. The preview validates
   the MusicBrainz fallback/cancellation note and the new Pod security note.
-- [ ] Push the validated commits to `snapetech/slskdN` and rerun the full
+- [x] Push the validated commits to `snapetech/slskdN` (`769d97da3`).
+- [ ] Refresh the red-team backlog to 12,362 candidates and rerun the full
   remediation baseline against the pushed branch.
 - [x] Verify `.344`'s six platform archives, published SHA256 checksums, and
   required support assets with `verify-release-artifacts.sh`.

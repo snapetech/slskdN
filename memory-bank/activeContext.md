@@ -1,4 +1,4 @@
-## Current state — Harden Pod storage and content API diagnostics — 2026-10-05 22:46 UTC
+## Current state — Harden Pod storage and content API diagnostics — 2026-10-05 22:50 UTC
 
 First-party application, test, and build-tool projects target `net10.0`.
 MonoTorrent supplies the compatible `lib/net8.0` package asset; no active
@@ -23,29 +23,29 @@ solution passes 6,101 tests (74 application, 5,738 unit, 289 integration),
 The first run had two load-sensitive background DHT test timeouts; both passed
 in isolation, and raising their test-only startup budgets made the full suite
 pass. Gotcha `0z1691` records that failure mode. The latest discovery queues
-are 215 callback/event, 426 remote-text, 12,358 red-team, and 828
+are 215 callback/event, 426 remote-text, 12,362 red-team, and 828
 mutable-ownership candidates; those are review queues, not confirmed bug
 counts. The first full run hit a full `/tmp`; the isolated `/dev/shm` rerun
 passed.
 
-All current product, test, release-note, and memory changes are committed
-locally. The post-`.344` release-note preview passes with three user-facing
-bullets. `.344`'s release and all platform assets are published; every hosted
-job except `Publish to PPA (Main)` has succeeded. PPA publication and release
-asset checksum verification are still pending. The local artifact verifier has
-now confirmed all six platform archives, published checksums, and required
-support files. New fixes and the current gotcha commits still need pushing;
-the published `.344` release is immutable.
+Product, test, changelog, and release-note commits are pushed to
+`snapetech/slskdN` at `769d97da3`. The full remediation baseline passed its
+substantive checks after push but found the active backlog count stale at
+12,358; the latest scanner reports 12,362. The post-`.344` release-note
+preview passes with three user-facing bullets. `.344`'s release and all
+platform assets are published; every hosted job except `Publish to PPA (Main)`
+has succeeded. The local artifact verifier confirmed all six archives,
+published checksums, and required support files. Stable `.344` is immutable.
 
 ## Next steps
 
-Verify `snapetech/slskdN`, push all local commits, and rerun the full
-remediation baseline against the pushed head. Verify `.344` assets and the
-remaining PPA job. Then run the release helper for stable `.345` and verify its
-hosted publishers and artifacts. Continue classifying confirmed code-backed
-findings. T-908 lifecycle, global Party ID authority, accessibility,
-WAN/resource measurements, hidden-tab throttling, frontend network-change
-root cause, and broad candidate queues remain open or evidence-gated.
+Commit and push the backlog count correction, rerun the full remediation
+baseline, and verify `.344` PPA publication. Then run the release helper for
+stable `.345` and verify its hosted publishers and artifacts. Continue
+classifying confirmed code-backed findings. T-908 lifecycle, global Party ID
+authority, accessibility, WAN/resource measurements, hidden-tab throttling,
+frontend network-change root cause, and broad candidate queues remain open or
+evidence-gated.
 
 ## Previous state — Preserve cancellation across Pod APIs — 2026-10-05 21:29 UTC
 
