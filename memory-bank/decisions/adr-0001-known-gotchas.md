@@ -4,6 +4,23 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1603. Escape Remote Capability Metadata Before Logging (2026-10-05)
+
+**What went wrong:** Capability discovery logged remote usernames, downloaded
+filenames, peer-supplied client/version metadata, and caught exceptions without
+escaping control characters. Capability tags can arrive through peer UserInfo,
+and capability files arrive through peer browse/download responses.
+
+**Why:** The service crosses several remote-input boundaries but its logs were
+treated as trusted diagnostics; one sanitized path would still leave the
+adjacent browse, parse, fallback, and service-level logs exposed.
+
+**Prevention:** Treat peer names, browse paths, capability-file fields, and
+exceptions as untrusted at every capability logging boundary. Escape full
+exception text while retaining stack context, preserve original values for
+requests and capability state, and verify both properties with captured-log
+regressions.
+
 ### 0z1581. Escape Exceptions From Remote Event Subscribers Before Logging (2026-10-05)
 
 **What went wrong:** The VirtualSoulfind room-message event wrapper logged a
