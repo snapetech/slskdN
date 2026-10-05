@@ -19,6 +19,19 @@ record.
 CR/LF characters. Join records only for positive checks that expected escaped
 sequences are present.
 
+### 0z1607. Keep Release-Note Fragments Append-Only (2026-10-05)
+
+**What went wrong:** New remediation text was added by editing a dated Pod
+release-note fragment that already documented an earlier batch. That would
+rewrite release history instead of recording the current change separately.
+
+**Why:** Release-note filenames can be reused by feature area across a day,
+but each tracked fragment is part of the immutable input to a release preview.
+
+**Prevention:** Never amend an existing fragment. Add a uniquely named,
+validated fragment for each new release-worthy batch, then preview the exact
+base-to-head range before release.
+
 ### 0z1606. Alias Logging Sanitizers Beside Mesh Privacy Types (2026-10-05)
 
 **What went wrong:** Importing the entire `slskd.Common.Security` namespace to
