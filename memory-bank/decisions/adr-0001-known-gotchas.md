@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1699. Account For UDP Retry Logs In Listener Regressions (2026-10-05)
+
+**What went wrong:** The malformed-overlay listener regression required exactly
+one matching debug entry, but its retry loop can send several datagrams before
+the rate-limited information entry is observed.
+
+**Why:** The informational summary is rate-limited; per-datagram debug
+diagnostics are intentionally not, so each retry can add another matching
+entry.
+
+**Prevention:** Assert that at least one matching debug entry exists, then
+verify escaped message text and absent exception metadata for every matching
+entry. Do not infer debug-log cardinality from the rate-limited summary count.
+
 ### 0z1698. Alias LoggingSanitizer In Mesh Transport Files (2026-10-05)
 
 **What went wrong:** Adding `using slskd.Common.Security;` to Mesh transport
