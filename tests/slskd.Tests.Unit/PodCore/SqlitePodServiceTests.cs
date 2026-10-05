@@ -8,13 +8,330 @@ using System.Data.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.PodCore;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public sealed class SqlitePodServiceTests
 {
+    [Fact]
+    public async Task CreateAsync_WhenStorageFails_EscapesExceptionInLogAndRollsBack()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var initializationOptions = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var initializationFactory = new TestDbContextFactory(initializationOptions);
+        await using (var initializationContext = await initializationFactory.CreateDbContextAsync())
+        {
+            await initializationContext.Database.EnsureCreatedAsync();
+        }
+
+        var interceptor = new FailingPodInsertInterceptor();
+        var options = new DbContextOptionsBuilder<PodDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(interceptor)
+            .Options;
+        var factory = new TestDbContextFactory(options);
+        var logger = new CapturingLogger<SqlitePodService>();
+        var service = new SqlitePodService(
+            factory,
+            Mock.Of<IPodPublisher>(),
+            Mock.Of<IPodMembershipSigner>(),
+            logger);
+
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() => service.CreateAsync(new Pod
+        {
+            PodId = podId,
+            Name = "Valid pod",
+            Visibility = PodVisibility.Private,
+        }));
+
+        Assert.Equal("injected storage failure\r\nforged log entry", exception.InnerException?.Message);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Error, entry.Level);
+        Assert.Null(entry.Exception);
+        Assert.Contains("injected storage failure\\r\\nforged log entry", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+
+        await using var verificationContext = await initializationFactory.CreateDbContextAsync();
+        Assert.False(await verificationContext.Pods.AnyAsync(pod => pod.PodId == podId));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenCallerCancelsDuringInsert_PropagatesAndRollsBack()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var initializationOptions = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var initializationFactory = new TestDbContextFactory(initializationOptions);
+        await using (var initializationContext = await initializationFactory.CreateDbContextAsync())
+        {
+            await initializationContext.Database.EnsureCreatedAsync();
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        var options = new DbContextOptionsBuilder<PodDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(new CancelPodInsertInterceptor(cancellation))
+            .Options;
+        var logger = new CapturingLogger<SqlitePodService>();
+        var service = new SqlitePodService(
+            new TestDbContextFactory(options),
+            Mock.Of<IPodPublisher>(),
+            Mock.Of<IPodMembershipSigner>(),
+            logger);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.CreateAsync(new Pod
+        {
+            PodId = podId,
+            Name = "Valid pod",
+            Visibility = PodVisibility.Private,
+        }, cancellation.Token));
+
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Empty(logger.Entries);
+        await using var verificationContext = await initializationFactory.CreateDbContextAsync();
+        Assert.False(await verificationContext.Pods.AnyAsync(pod => pod.PodId == podId));
+    }
+
+    [Fact]
+    public async Task GetPodAsync_WhenCallerCancels_PropagatesCancellation()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var factory = new TestDbContextFactory(options);
+        await using (var context = await factory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Private));
+            await context.SaveChangesAsync();
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var logger = new CapturingLogger<SqlitePodService>();
+        var service = new SqlitePodService(
+            factory,
+            Mock.Of<IPodPublisher>(),
+            Mock.Of<IPodMembershipSigner>(),
+            logger);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.GetPodAsync(podId, cancellation.Token));
+
+        Assert.Empty(logger.Entries);
+    }
+
+    [Fact]
+    public async Task JoinAsync_WhenCallerCancelsDuringRead_PropagatesCancellationAndRollsBack()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var initializationOptions = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var initializationFactory = new TestDbContextFactory(initializationOptions);
+        await using (var context = await initializationFactory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Private));
+            await context.SaveChangesAsync();
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        var options = new DbContextOptionsBuilder<PodDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(new CancelPodReadInterceptor(cancellation))
+            .Options;
+        var logger = new CapturingLogger<SqlitePodService>();
+        var service = new SqlitePodService(
+            new TestDbContextFactory(options),
+            Mock.Of<IPodPublisher>(),
+            Mock.Of<IPodMembershipSigner>(),
+            logger);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.JoinAsync(podId, new PodMember { PeerId = "listener" }, cancellation.Token));
+
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Empty(logger.Entries);
+        await using var verificationContext = await initializationFactory.CreateDbContextAsync();
+        Assert.Empty(await verificationContext.Members.ToListAsync());
+        Assert.Empty(await verificationContext.MembershipRecords.ToListAsync());
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenCallerCancelsDuringRead_PropagatesAndRollsBack()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var initializationOptions = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var initializationFactory = new TestDbContextFactory(initializationOptions);
+        await using (var context = await initializationFactory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Private));
+            await context.SaveChangesAsync();
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        var options = new DbContextOptionsBuilder<PodDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(new CancelPodReadInterceptor(cancellation))
+            .Options;
+        var publisher = new Mock<IPodPublisher>();
+        var logger = new CapturingLogger<SqlitePodService>();
+        var service = new SqlitePodService(
+            new TestDbContextFactory(options),
+            publisher.Object,
+            Mock.Of<IPodMembershipSigner>(),
+            logger);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.UpdateAsync(new Pod
+        {
+            PodId = podId,
+            Name = "Updated pod",
+            Visibility = PodVisibility.Private,
+        }, cancellation.Token));
+
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Empty(logger.Entries);
+        publisher.Verify(value => value.PublishAsync(It.IsAny<Pod>(), It.IsAny<CancellationToken>()), Times.Never);
+        await using var verificationContext = await initializationFactory.CreateDbContextAsync();
+        Assert.Equal(podId, (await verificationContext.Pods.SingleAsync()).Name);
+    }
+
+    [Fact]
+    public async Task DeletePodAsync_WhenCallerCancelsDuringRead_PropagatesAndKeepsPod()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var initializationOptions = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var initializationFactory = new TestDbContextFactory(initializationOptions);
+        await using (var context = await initializationFactory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Private));
+            await context.SaveChangesAsync();
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        var options = new DbContextOptionsBuilder<PodDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(new CancelPodReadInterceptor(cancellation))
+            .Options;
+        var logger = new CapturingLogger<SqlitePodService>();
+        var service = new SqlitePodService(
+            new TestDbContextFactory(options),
+            Mock.Of<IPodPublisher>(),
+            Mock.Of<IPodMembershipSigner>(),
+            logger);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.DeletePodAsync(podId, cancellation.Token));
+
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Empty(logger.Entries);
+        await using var verificationContext = await initializationFactory.CreateDbContextAsync();
+        Assert.True(await verificationContext.Pods.AnyAsync(pod => pod.PodId == podId));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenPublishIsCancelled_PropagatesAfterCommittedUpdate()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var factory = new TestDbContextFactory(options);
+        await using (var context = await factory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Private));
+            await context.SaveChangesAsync();
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        var publisher = new Mock<IPodPublisher>();
+        publisher
+            .Setup(value => value.PublishAsync(It.IsAny<Pod>(), cancellation.Token))
+            .Returns((Pod _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled(token);
+            });
+        var logger = new CapturingLogger<SqlitePodService>();
+        var service = new SqlitePodService(
+            factory,
+            publisher.Object,
+            Mock.Of<IPodMembershipSigner>(),
+            logger);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.UpdateAsync(new Pod
+        {
+            PodId = podId,
+            Name = "Updated pod",
+            Visibility = PodVisibility.Private,
+        }, cancellation.Token));
+
+        Assert.Empty(logger.Entries);
+        await using var verificationContext = await factory.CreateDbContextAsync();
+        Assert.Equal("Updated pod", (await verificationContext.Pods.SingleAsync()).Name);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenPublisherFails_EscapesExceptionAndKeepsCommittedUpdate()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PodDbContext>().UseSqlite(connection).Options;
+        var factory = new TestDbContextFactory(options);
+        await using (var context = await factory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.Add(PodEntity(podId, PodVisibility.Private));
+            await context.SaveChangesAsync();
+        }
+
+        var publisher = new Mock<IPodPublisher>();
+        publisher
+            .Setup(value => value.PublishAsync(It.IsAny<Pod>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("publish failure\r\nforged log entry"));
+        var logger = new CapturingLogger<SqlitePodService>();
+        var service = new SqlitePodService(
+            factory,
+            publisher.Object,
+            Mock.Of<IPodMembershipSigner>(),
+            logger);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(new Pod
+        {
+            PodId = podId,
+            Name = "Updated pod",
+            Visibility = PodVisibility.Private,
+        }));
+
+        Assert.Equal("publish failure\r\nforged log entry", exception.Message);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Error, entry.Level);
+        Assert.Null(entry.Exception);
+        Assert.Contains("publish failure\\r\\nforged log entry", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        await using var verificationContext = await factory.CreateDbContextAsync();
+        Assert.Equal("Updated pod", (await verificationContext.Pods.SingleAsync()).Name);
+    }
+
     [Fact]
     public async Task LeaveAsync_ActiveMemberCanLeaveAndRejoin()
     {
@@ -372,6 +689,89 @@ public sealed class SqlitePodServiceTests
             CancellationToken cancellationToken = default)
         {
             Commands.Add(command.CommandText);
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    private sealed class FailingPodInsertInterceptor : DbCommandInterceptor
+    {
+        private const string FailureMessage = "injected storage failure\r\nforged log entry";
+
+        public override InterceptionResult<DbDataReader> ReaderExecuting(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result)
+        {
+            ThrowForPodInsert(command);
+            return result;
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            ThrowForPodInsert(command);
+            return ValueTask.FromResult(result);
+        }
+
+        private static void ThrowForPodInsert(DbCommand command)
+        {
+            if (command.CommandText.Contains("INSERT INTO \"Pods\"", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(FailureMessage);
+            }
+        }
+    }
+
+    private sealed class CancelPodInsertInterceptor(CancellationTokenSource cancellation)
+        : DbCommandInterceptor
+    {
+        public override InterceptionResult<DbDataReader> ReaderExecuting(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result)
+        {
+            ThrowForPodInsert(command);
+            return result;
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            ThrowForPodInsert(command);
+            return ValueTask.FromResult(result);
+        }
+
+        private void ThrowForPodInsert(DbCommand command)
+        {
+            if (command.CommandText.Contains("INSERT INTO \"Pods\"", StringComparison.Ordinal))
+            {
+                cancellation.Cancel();
+                throw new OperationCanceledException(cancellation.Token);
+            }
+        }
+    }
+
+    private sealed class CancelPodReadInterceptor(CancellationTokenSource cancellation)
+        : DbCommandInterceptor
+    {
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("FROM \"Pods\"", StringComparison.OrdinalIgnoreCase))
+            {
+                cancellation.Cancel();
+                throw new OperationCanceledException(cancellation.Token);
+            }
+
             return ValueTask.FromResult(result);
         }
     }

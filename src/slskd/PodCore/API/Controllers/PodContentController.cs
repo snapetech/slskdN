@@ -236,7 +236,8 @@ public class PodContentController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid content-linked pod request");
+            _logger.LogWarning("Invalid content-linked pod request: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest("Invalid content-linked pod request");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -245,7 +246,8 @@ public class PodContentController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating content-linked pod");
+            _logger.LogError("Error creating content-linked pod: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while creating the pod");
         }
     }

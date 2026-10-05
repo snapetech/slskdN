@@ -7,10 +7,12 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.PodCore;
 using slskd.PodCore.API.Controllers;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class PodContentControllerTests
@@ -90,9 +92,10 @@ public class PodContentControllerTests
         var podService = new Mock<IPodService>();
         podService
             .Setup(service => service.CreateContentLinkedPodAsync(It.IsAny<Pod>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new ArgumentException("sensitive detail"));
+            .ThrowsAsync(new ArgumentException("sensitive detail\r\nforged log entry"));
+        var logger = new CapturingLogger<PodContentController>();
 
-        var controller = CreateController(Mock.Of<IContentLinkService>(), podService.Object);
+        var controller = CreateController(Mock.Of<IContentLinkService>(), podService.Object, logger);
 
         var result = await controller.CreateContentLinkedPod(
             new ContentLinkedPodRequest("pod-1", "Demo", PodVisibility.Listed, "content-1"),
@@ -100,16 +103,48 @@ public class PodContentControllerTests
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal("Invalid content-linked pod request", badRequest.Value);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Warning, entry.Level);
+        Assert.Null(entry.Exception);
+        Assert.Contains("sensitive detail\\r\\nforged log entry", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
     }
 
-    private static PodContentController CreateController(IContentLinkService contentLinkService, IPodService? podService = null)
+    [Fact]
+    public async Task CreateContentLinkedPod_WhenServiceFails_EscapesExceptionInLog()
+    {
+        var podService = new Mock<IPodService>();
+        podService
+            .Setup(service => service.CreateContentLinkedPodAsync(It.IsAny<Pod>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("storage failure\r\nforged log entry"));
+        var logger = new CapturingLogger<PodContentController>();
+        var controller = CreateController(Mock.Of<IContentLinkService>(), podService.Object, logger);
+
+        var result = await controller.CreateContentLinkedPod(
+            new ContentLinkedPodRequest("pod-1", "Demo", PodVisibility.Listed, "content-1"),
+            CancellationToken.None);
+
+        Assert.Equal(500, Assert.IsType<ObjectResult>(result).StatusCode);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Error, entry.Level);
+        Assert.Null(entry.Exception);
+        Assert.Contains("storage failure\\r\\nforged log entry", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+    }
+
+    private static PodContentController CreateController(
+        IContentLinkService contentLinkService,
+        IPodService? podService = null,
+        ILogger<PodContentController>? logger = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton(podService ?? Mock.Of<IPodService>());
 
         var controller = new PodContentController(
             contentLinkService,
-            NullLogger<PodContentController>.Instance)
+            logger ?? NullLogger<PodContentController>.Instance)
         {
             ControllerContext = new ControllerContext
             {

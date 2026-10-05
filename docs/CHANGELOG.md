@@ -29,6 +29,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Pod content lookup propagates caller cancellation and escapes MusicBrainz
   error details and unsupported-domain values in logs while preserving
   best-effort fallbacks for provider failures.
+- Pod storage now propagates caller cancellation through reads, creates,
+  updates, deletes, and joins. Active transactions roll back independently of
+  the canceled request; post-commit publication cancellation does not attempt
+  to roll back an already committed update.
+
+### Security
+
+- SQLite-backed Pod and content-linked API diagnostics now escape exception
+  details and caller-controlled Pod, peer, and channel identifiers without
+  attaching raw exception objects to log events.
 
 ## [2026100520-slskdn.344] — 2026-10-05
 

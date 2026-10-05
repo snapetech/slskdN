@@ -10,6 +10,7 @@ namespace slskd.PodCore
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
+    using slskd.Common.Security;
 
     /// <summary>
     /// SQLite-backed pod service with persistence.
@@ -106,18 +107,27 @@ namespace slskd.PodCore
                             }
                             catch (Exception ex)
                             {
-                                logger.LogWarning(ex, "Failed to publish pod to DHT");
+                                logger.LogWarning("Failed to publish pod to DHT: {Exception}",
+                                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                             }
                         }, CancellationToken.None),
-                        ex => logger.LogWarning(ex, "Unobserved publish pod to DHT failure for pod {PodId}", pod.PodId));
+                        ex => logger.LogWarning("Unobserved publish pod to DHT failure for pod {PodId}: {Exception}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
                 }
 
                 return pod;
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error creating pod");
-                await transaction.RollbackAsync(ct);
+                logger.LogError("Error creating pod: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
+                await transaction.RollbackAsync(CancellationToken.None);
                 throw;
             }
         }
@@ -167,17 +177,39 @@ namespace slskd.PodCore
                 await db.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
 
-                // Publish update
-                await podPublisher.PublishAsync(pod, ct);
-
-                return pod;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error updating pod {PodId}", pod.PodId);
-                await transaction.RollbackAsync(ct);
+                logger.LogError("Error updating pod {PodId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
+                await transaction.RollbackAsync(CancellationToken.None);
                 throw;
             }
+
+            // Publish after the database transaction completes so publish failures cannot trigger a rollback attempt.
+            try
+            {
+                await podPublisher.PublishAsync(pod, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError("Error publishing pod update {PodId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
+                throw;
+            }
+
+            return pod;
         }
 
         public async Task<IReadOnlyList<Pod>> ListAsync(CancellationToken ct = default)
@@ -212,9 +244,14 @@ namespace slskd.PodCore
                 var entity = await db.Pods.FindAsync(new object[] { podId }, ct);
                 return entity == null ? null : EntityToPod(entity);
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error retrieving pod");
+                logger.LogError("Error retrieving pod: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return null;
             }
         }
@@ -242,13 +279,20 @@ namespace slskd.PodCore
                 var deleted = await db.Pods.Where(pod => pod.PodId == podId).ExecuteDeleteAsync(ct);
                 await transaction.CommitAsync(ct);
 
-                logger.LogInformation("Pod {PodId} deleted", podId);
+                logger.LogInformation("Pod {PodId} deleted", LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return deleted == 1;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error deleting pod {PodId}", podId);
-                await transaction.RollbackAsync(ct);
+                logger.LogError("Error deleting pod {PodId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
+                await transaction.RollbackAsync(CancellationToken.None);
                 throw;
             }
         }
@@ -377,7 +421,8 @@ namespace slskd.PodCore
                     var memberCount = await db.Members.CountAsync(m => m.PodId == podId && !m.IsBanned, ct);
                     if (memberCount >= policy.MaxMembers)
                     {
-                        logger.LogWarning("Join rejected: VPN pod {PodId} at capacity ({Count} >= {Max})", podId, memberCount, policy.MaxMembers);
+                        logger.LogWarning("Join rejected: VPN pod {PodId} at capacity ({Count} >= {Max})",
+                            LoggingSanitizer.SanitizeExternalIdentifier(podId), memberCount, policy.MaxMembers);
                         return false;
                     }
                 }
@@ -410,10 +455,16 @@ namespace slskd.PodCore
                 logger.LogInformation("User joined pod successfully");
                 return true;
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error during pod join operation");
-                await transaction.RollbackAsync(ct);
+                logger.LogError("Error during pod join operation: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
+                await transaction.RollbackAsync(CancellationToken.None);
                 return false;
             }
         }
@@ -427,7 +478,9 @@ namespace slskd.PodCore
 
             if (member == null || member.IsBanned)
             {
-                logger.LogWarning("Attempted to remove non-member {PeerId} from pod {PodId}", peerId, podId);
+                logger.LogWarning("Attempted to remove non-member {PeerId} from pod {PodId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return false;
             }
 
@@ -447,7 +500,9 @@ namespace slskd.PodCore
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
 
-            logger.LogInformation("User {PeerId} left pod {PodId}", peerId, podId);
+            logger.LogInformation("User {PeerId} left pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return true;
         }
 
@@ -460,7 +515,9 @@ namespace slskd.PodCore
 
             if (member == null)
             {
-                logger.LogWarning("Attempted to ban non-member {PeerId} from pod {PodId}", peerId, podId);
+                logger.LogWarning("Attempted to ban non-member {PeerId} from pod {PodId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return false;
             }
 
@@ -480,7 +537,9 @@ namespace slskd.PodCore
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
 
-            logger.LogInformation("User {PeerId} banned from pod {PodId}", peerId, podId);
+            logger.LogInformation("User {PeerId} banned from pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return true;
         }
 
@@ -592,13 +651,18 @@ namespace slskd.PodCore
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, "Failed to publish pod update to DHT");
+                            logger.LogError("Failed to publish pod update to DHT: {Exception}",
+                                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                         }
                     }, CancellationToken.None),
-                    ex => logger.LogError(ex, "Unobserved pod update publish failure for pod {PodId}", pod.PodId));
+                    ex => logger.LogError("Unobserved pod update publish failure for pod {PodId}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
             }
 
-            logger.LogInformation("Created channel {ChannelId} in pod {PodId}", channel.ChannelId, podId);
+            logger.LogInformation("Created channel {ChannelId} in pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(channel.ChannelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return channel;
         }
 
@@ -651,13 +715,18 @@ namespace slskd.PodCore
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, "Failed to publish pod update to DHT");
+                            logger.LogError("Failed to publish pod update to DHT: {Exception}",
+                                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                         }
                     }, CancellationToken.None),
-                    ex => logger.LogError(ex, "Unobserved pod update publish failure for pod {PodId}", pod.PodId));
+                    ex => logger.LogError("Unobserved pod update publish failure for pod {PodId}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
             }
 
-            logger.LogInformation("Deleted channel {ChannelId} from pod {PodId}", channelId, podId);
+            logger.LogInformation("Deleted channel {ChannelId} from pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return true;
         }
 
@@ -730,13 +799,18 @@ namespace slskd.PodCore
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, "Failed to publish pod update to DHT");
+                            logger.LogError("Failed to publish pod update to DHT: {Exception}",
+                                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                         }
                     }, CancellationToken.None),
-                    ex => logger.LogError(ex, "Unobserved pod update publish failure for pod {PodId}", pod.PodId));
+                    ex => logger.LogError("Unobserved pod update publish failure for pod {PodId}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
             }
 
-            logger.LogInformation("Updated channel {ChannelId} in pod {PodId}", channel.ChannelId, podId);
+            logger.LogInformation("Updated channel {ChannelId} in pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(channel.ChannelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return true;
         }
 
