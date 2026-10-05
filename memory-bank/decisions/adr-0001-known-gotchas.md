@@ -44,6 +44,24 @@ constructor, so an options object with defaults is not constructible.
 **Prevention:** Supply a valid non-empty `FrontDomain` whenever tests
 instantiate `MeekTransport`, including tests that only exercise cancellation.
 
+### 0z1641. Preserve Cancellation Across Mesh Route Failover (2026-10-05)
+
+**What went wrong:** Mesh route selection caught canceled dial attempts and
+continued to another endpoint, Tor/I2P availability probes reported caller
+cancellation as unavailability, and circuit construction converted a canceled
+hop into an incomplete-circuit error while retaining earlier hop streams.
+Route diagnostics also returned an `unknown` result after cancellation.
+
+**Why:** Network availability failures are intentionally eligible for
+failover, but broad catches treated caller cancellation as another endpoint
+failure. Circuit construction additionally kept partial resources after
+turning a failed hop into a normal error state.
+
+**Prevention:** Check caller cancellation around every availability probe and
+failover boundary. Rethrow caller cancellation before ordinary failure
+handling, stop circuit construction immediately, and dispose established hops
+when a circuit cannot be completed.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
