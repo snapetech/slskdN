@@ -48,6 +48,21 @@ feature-specific handlers together. Sanitize the structured log arguments and
 full exception text only; preserve original signal fields for routing and
 policy evaluation, and assert captured log output for CR/LF input.
 
+### 0z1584. Treat Swarm Job Metadata As Remote Log Input (2026-10-05)
+
+**What went wrong:** Swarm orchestration logs emitted job IDs, content IDs,
+source peer IDs, filenames, paths, scheduler reasons, and download exceptions
+without escaping control characters.
+
+**Why:** The orchestrator's logs span enqueue, chunk scheduling, transfer, and
+cleanup paths, while source and job records may originate from remote peers or
+user-provided content metadata.
+
+**Prevention:** Sweep every orchestration log call and sanitize each dynamic
+identifier, path, reason, and full exception text at the log boundary. Keep the
+original job, peer, and path values for transfer and filesystem operations;
+add a captured-log regression with remote control characters.
+
 ### 0z1566. Disambiguate Existing Logging Sanitizers (2026-10-04)
 
 **What went wrong:** `LibraryItemsController` already imported the mesh
