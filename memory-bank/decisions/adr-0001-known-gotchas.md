@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1665. Escape Rescue Transfer And Peer Diagnostics At Their Log Boundary (2026-10-05)
+
+**What went wrong:** RescueService logged peer supplied filenames and propagated
+exception details directly, including raw exception objects. A filename or
+exception message containing line breaks could forge additional log records.
+
+**Why:** The rescue path was added outside the newer logging-sanitization
+conventions, and its structured logger arguments were treated as trusted
+because the service itself is internal.
+
+**Prevention:** Escape every caller or peer controlled value at the logger that
+emits it. Log exception text as a sanitized structured string rather than
+attaching the raw exception object, and cover both filename and exception paths
+with captured-log tests while preserving the original operational values.
+
 ### 0z1664. Apply I2P Availability Deadline To The SAM Handshake (2026-10-05)
 
 **What went wrong:** `I2PTransport.IsAvailableAsync` linked its five-second
