@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1633. Match Kademlia Test Mocks To Exact Interface And DTO Contracts (2026-10-05)
+
+**What went wrong:** A new Kademlia cancellation test configured
+`GetMultipleAsync` with an `Array.Empty<byte[]>()` return even though the
+interface returns `List<byte[]>`, and its `FindNodeResponse` omitted the
+required `TargetId` member.
+
+**Why:** The fixture assumed the interface used its broader result shape and
+that the response DTO shared optional fields with nearby protocol replies.
+
+**Prevention:** Check the exact interface return type and required DTO
+members before writing Moq setups or protocol fixtures. Build the focused test
+after adding them.
+
 ### 0z1632. Keep Caller Cancellation Out Of Kademlia Peer Misses (2026-10-05)
 
 **What went wrong:** Kademlia RPC methods caught cancellation from mesh calls
