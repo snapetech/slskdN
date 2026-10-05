@@ -134,6 +134,20 @@ lookups.
 errors to `null`. Cover release, title/artist, recording, and local-metadata
 lookups that have separate error boundaries.
 
+### 0z1647. Do Not Convert Scene Operation Cancellation Into Partial Results (2026-10-05)
+
+**What went wrong:** Scene search, metadata parsing, and periodic announcement
+refresh caught caller cancellation and continued with partial results or later
+scenes.
+
+**Why:** These loops tolerate an individual scene's ordinary failure, but their
+broad catches also treated cancellation as a scene-specific failure.
+
+**Prevention:** Rethrow cancellation when the caller or host token is canceled
+before retaining partial scene results, creating fallback metadata, or
+continuing to another announcement. Keep cancellation in the background
+pub/sub loop as normal shutdown behavior.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
