@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1681. Escape Content-Linked Pod Creation Exceptions (2026-10-05)
+
+**What went wrong:** Content-linked Pod creation logs raw exception objects in
+both its API controller and SQLite service. The request's pod fields flow into
+validation and persistence before failures reach these log boundaries.
+
+**Why:** The controller and storage service treated creation failures as
+internal diagnostics even though the operation is initiated with caller-owned
+content, tags, names, and pod fields; raw exception text can carry control
+characters or those values.
+
+**Prevention:** Log escaped exception text as a structured string at each
+remote-facing boundary and do not attach the raw exception object. Capture the
+controller and persistence logs with CR/LF-bearing failures while preserving
+the existing response, rollback, and rethrow behavior.
+
 ### 0z1680. Preserve Cancellation And Escape Content-Link Failures (2026-10-05)
 
 **What went wrong:** Content-link lookup catches exceptions from MusicBrainz
