@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1669. Preserve Pod Backfill Cancellation And Escape Peer Exceptions (2026-10-05)
+
+**What went wrong:** Pod backfill logged raw exceptions while processing peer
+responses and converted caller cancellation into ordinary failed results in
+its broad operation catches.
+
+**Why:** The service sanitized peer and pod identifiers but treated exception
+metadata as trusted; its existing cancellation handling covered the outbound
+request helper but not the enclosing sync and response-processing methods.
+
+**Prevention:** Rethrow caller cancellation before generic error mapping at
+each operation boundary. Log full exception detail only as escaped text, and
+test both remote response failure and caller cancellation.
+
 ### 0z1668. Escape Remote Kademlia Reply And Exception Diagnostics (2026-10-05)
 
 **What went wrong:** Kademlia FIND_NODE, FIND_VALUE, PING, and STORE paths
