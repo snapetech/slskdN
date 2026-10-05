@@ -38444,3 +38444,18 @@ miss during a transfer-service audit.
 Escape ticket-derived IDs and paths in logs, and log escaped full exception
 text instead of attaching a raw exception object. Keep the original claim
 values for content lookup and transfer calls.
+
+### 0z1594. Escape MediaCore API Identifiers And Exceptions (2026-10-05)
+
+**What went wrong:** MediaCore API controllers logged caller-supplied ContentIDs,
+external IDs, domains, and link names alongside raw exception objects. The
+corresponding service layer also attached exception metadata directly to logs.
+
+**Why:** MediaCore diagnostics are distributed across domain services and
+several controllers, so checking only the request validation and returned
+error response missed the separate log boundary.
+
+**Prevention:** Trace every caller-controlled identifier through controller
+and service logs. Escape IDs and full exception text only as logger arguments;
+keep request, validation, lookup, and response values intact. Cover the
+boundary with a captured-log test for control characters.
