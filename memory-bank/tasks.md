@@ -41,8 +41,12 @@
   packaging metadata validation, and active remediation checks.
 - [x] Preview release fragments from `.340` through the candidate; add the
   matching `.341` section to `docs/CHANGELOG.md`.
-- [ ] Push the backlog refresh, rerun the guarded `.341` release gate, create
-  the authorized stable tag, and verify published artifacts.
+- [x] Push the backlog refresh, pass the guarded `.341` release gate, create
+  `build-main-2026100511-slskdn.341`, and verify the published release assets.
+- [x] Confirm every hosted `.341` publisher job completed successfully. The six
+  platform ZIPs and support assets pass checksum/version verification; Docker
+  publishes an OCI index for linux/amd64 and linux/arm64; the exact Jammy PPA
+  binary reports `Published`. The release metadata commit is included on `main`.
 - [ ] Keep evidence-dependent T-908 lifecycle, global Party ID authority,
   browser/device accessibility, WAN/resource measurements, and discovery
   queues open until the missing production integration or external evidence is

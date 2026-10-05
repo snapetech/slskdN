@@ -1,3 +1,35 @@
+## Current state — Stable `.341` published and verified — 2026-10-05 12:57 UTC
+
+Stable `.341` is complete. Build tag
+`build-main-2026100511-slskdn.341` and release
+`2026100511-slskdn.341` point to commit `68a7cf846`; the public release is
+[available on GitHub](https://github.com/snapetech/slskdN/releases/tag/2026100511-slskdn.341).
+The guarded release gate passed. Its hosted workflow and every package publisher
+completed successfully, including Docker, package metadata, and the published
+Jammy PPA binary. The release artifact verifier passed checksums for all six
+platform ZIPs plus required support files, version output, VPN helper, and Web
+marker. The Docker image index contains linux/amd64 and linux/arm64. The
+workflow-generated `.341` package metadata commit is fast-forwarded into `main`.
+
+The full Release .NET suite passes 6,015 tests (74 application, 289 integration,
+5,652 unit); Web tests pass 1,232/1,232. `./bin/lint`, the .NET runtime matrix,
+packaging metadata, remediation baseline, local identity checks, release notes,
+and published artifact checks pass. All first-party projects target `net10.0`;
+MonoTorrent resolves to its compatible `lib/net8.0` asset. No active .NET 6
+project or selected package asset remains.
+
+The cancellation audit continued through signal handling, Mesh RPC/DHT/sync,
+routing/transport, discovery, scenes, health checks, MediaCore/music lookups,
+and multi-source HTTP request cancellation. Request cancellation now stays out
+of ordinary errors/fallback paths while existing partial-result behavior is
+preserved where intended.
+
+Remaining evidence-dependent work stays open: T-908 needs a real production
+swarm-job owner and end-to-end sender/cancel/manager lifecycle; global Party ID
+authority, physical/browser assistive-technology coverage, representative
+WAN/resource behavior, the frontend network-change root cause, and broad
+discovery queues need their documented code or external evidence.
+
 ## Current state — Refresh remediation inventory and resume stable `.341` — 2026-10-05 11:29 UTC
 
 The complete 82-commit remediation branch was pushed to `snapetech/slskdN` and

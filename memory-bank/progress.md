@@ -18091,3 +18091,24 @@ code changed.
 
 Next: commit and push the report/status refresh, rerun the guarded release gate,
 then tag and verify stable `.341` if every gate passes.
+
+
+## 2026-10-05 12:57 UTC — Publish and verify stable `.341`
+
+The guarded `.341` release gate passed locally and on GitHub. The GitHub release
+`2026100511-slskdn.341` is published from build tag
+`build-main-2026100511-slskdn.341`. `scripts/verify-release-artifacts.sh`
+verified all six ZIPs, SHA256SUMS, Linux support assets, Linux binary version,
+VPN helper, and bundled Web marker. The Docker OCI index contains both
+linux/amd64 and linux/arm64. Every `build-on-tag.yml` job completed successfully,
+including the exact Jammy PPA binary publication; Chocolatey, AUR, Nix metadata,
+COPR, Homebrew, and Docker jobs also passed. The workflow's stable metadata
+commit was fast-forwarded into local `main`, and packaging metadata validation
+passes. The branch is clean and synchronized before this completion record.
+
+The full .NET Release solution passes 6,015 tests (74 application, 289
+integration, 5,652 unit); Web tests pass 1,232/1,232; `./bin/lint`, runtime
+matrix, remediation baseline, release gate, and release-note validation pass.
+Every first-party project targets .NET 10; MonoTorrent selects its compatible
+.NET 8 package asset, with no active .NET 6 target. Evidence-dependent backlog
+items remain tracked rather than being claimed complete.
