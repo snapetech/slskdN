@@ -1,4 +1,4 @@
-## Current state — Preserve content-link cancellation and safe provider logs — 2026-10-05 21:46 UTC
+## Current state — Harden Pod storage and content API diagnostics — 2026-10-05 22:39 UTC
 
 First-party application, test, and build-tool projects target `net10.0`.
 MonoTorrent supplies the compatible `lib/net8.0` package asset; no active
@@ -6,33 +6,45 @@ project or selected MonoTorrent asset needs retargeting. The vendored
 slskNet.Runtime tree must remain synchronized with its pinned source and
 declared patch set.
 
-Pod content validation, metadata lookup, and recording search now propagate
-caller cancellation. Provider errors retain their existing best-effort
-fallback behavior, with remote exception text, content IDs, and unsupported
-search-domain log values escaped at the boundary. The focused suite passes
-9/9; the full Release suite passes 6,092 tests (74 application, 5,729 unit,
-289 integration); `./bin/lint` and the source guard pass. The current review
-queues are 215 callback/event, 426 remote-text, 12,356 red-team, and 828
-mutable-ownership candidates. The first full run
-hit a full `/tmp`; the isolated `/dev/shm` rerun passed.
+Pod content validation, metadata lookup, and recording search propagate caller
+cancellation. Provider errors retain their best-effort fallback behavior;
+remote exception text, content IDs, and unsupported search-domain log values
+are escaped. SQLite Pod persistence and DHT publish failures now log escaped
+exception text without attaching raw exception objects. Pod, peer, and channel
+identifiers are escaped at the log boundary. Content-linked Pod creation uses
+the same safe exception format while keeping API responses and rollback
+behavior unchanged. Pod reads, creates, updates, deletes, and joins propagate
+caller cancellation; transaction rollback remains possible after caller
+cancellation, and post-commit publication no longer triggers rollback
+handling. Focused Pod tests pass 22/22, including storage cancellation,
+publish cancellation, and escaped publish failures. The complete Release
+solution passes 6,101 tests (74 application, 5,738 unit, 289 integration),
+`./bin/lint`, the active-council count gate, and the Pod logging safety guard.
+The first run had two load-sensitive background DHT test timeouts; both passed
+in isolation, and raising their test-only startup budgets made the full suite
+pass. Gotcha `0z1691` records that failure mode. The latest discovery queues
+are 215 callback/event, 426 remote-text, 12,358 red-team, and 828
+mutable-ownership candidates; those are review queues, not confirmed bug
+counts. The first full run hit a full `/tmp`; the isolated `/dev/shm` rerun
+passed.
 
-The `.344` Release Gate and all six platform archive builds succeeded. GitHub
-created the `.344` GitHub release and stable metadata commit
-`b06e83be1`. Homebrew, AUR, and Chocolatey are complete; Docker and PPA were
-still in progress at the last poll. The gotcha and content fix are committed
-locally, rebased on the generated metadata commit, and need pushing before the
-final baseline can pass branch sync. These post-tag fixes are not in `.344`;
-they are candidates for the next stable release.
+The `.344` Release Gate, all six platform archive builds, and GitHub release
+creation succeeded. Its generated stable-metadata commit is `b06e83be1`.
+Docker/PPA and final release-asset verification still need a current hosted
+check. Post-tag content-link and Pod cancellation fixes are already on the
+remote branch; the current SQLite/API logging batch and its gotcha commits are
+local. These post-tag fixes need a later stable release.
 
 ## Next steps
 
-Commit the validation/status record, push all local commits to the verified
-`snapetech/slskdN` target, rerun the remediation baseline, and verify `.344`
-Docker/PPA publishers plus every release asset. Continue classifying confirmed
-code-backed findings for the next stable release. T-908 lifecycle, global
-Party ID authority, accessibility, WAN/resource measurements, hidden-tab
-throttling, frontend network-change root cause, and broad candidate queues
-remain open or evidence-gated.
+Commit the validated code and documentation separately, preview the release
+note range from `.344`, verify `snapetech/slskdN`, and push all local work.
+Then rerun the full remediation baseline and verify `.344` Docker/PPA
+publishers and assets. Prepare stable `.345` only after the pushed tree passes
+the release gate. Continue classifying confirmed code-backed findings. T-908 lifecycle, global Party ID
+authority, accessibility, WAN/resource measurements, hidden-tab throttling,
+frontend network-change root cause, and broad candidate queues remain open or
+evidence-gated.
 
 ## Previous state — Preserve cancellation across Pod APIs — 2026-10-05 21:29 UTC
 

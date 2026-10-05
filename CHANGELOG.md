@@ -38,6 +38,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   remote mDNS text cannot forge log entries.
 - Social federation logs now redact remote URL paths and credentials, escape
   peer-controlled text, and omit raw remote exception objects.
+- SQLite-backed Pod and content-linked API logs now escape exception details
+  and caller-controlled identifiers without attaching raw exception objects.
+  Pod storage reads and writes preserve caller cancellation, and post-commit
+  publication cancellation no longer attempts to roll back a committed update.
 - Mesh overlay readers now dispatch the numeric mesh message types emitted by
   the message DTOs, so valid mesh sync requests reach the sync service in both
   connection directions.

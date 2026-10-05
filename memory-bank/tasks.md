@@ -26,6 +26,35 @@
 
 ## Active Development
 
+### Post-.344 Pod storage and content API diagnostic safety — 2026-10-05
+
+- [x] Escape SQLite Pod persistence and DHT publish exception details, and
+  caller-controlled Pod, peer, and channel identifiers at their log boundaries.
+- [x] Escape content-linked Pod API creation exception details without
+  attaching raw exception objects; preserve response bodies and rollback paths.
+- [x] Add captured-log regressions for controller and SQLite insert failures,
+  including verification that failed creation rolls back.
+- [x] Add `check-sqlite-pod-logging-safety.sh` to the remediation baseline.
+- [x] Increase bounded unit-test startup budgets for background DHT
+  initialization after the original 5/30-second budgets timed out only under
+  full-suite load; gotcha `0z1691` records the observed boundary.
+- [x] Preserve caller cancellation across Pod reads, creates, updates, deletes,
+  and joins; roll active writes back independently of the canceled caller
+  token, and keep post-commit DHT publication outside the database rollback
+  handler.
+- [x] Pass focused Pod controller and SQLite service tests (22/22).
+- [x] Pass the full Release solution: 6,101 tests (74 application, 5,738
+  unit, 289 integration), `./bin/lint`, and the active-council count gate.
+- [ ] Commit the release documentation, preview the post-.344 note range, push
+  the validated changes, and rerun the full remediation baseline.
+- [ ] Verify `.344`'s remaining publishers and release assets; `.344` is
+  immutable and does not contain these post-tag fixes.
+- [ ] Ship these post-tag fixes in a later stable release; `.344` is immutable.
+- [ ] Continue code-backed remediation. T-908, global Party ID authority,
+  accessibility, WAN/resource measurements, hidden-tab throttling, frontend
+  network-change root cause, and broad review queues remain open or
+  evidence-gated.
+
 ### Post-.344 MusicBrainz content-link resilience — 2026-10-05
 
 - [x] Preserve caller cancellation through content-ID validation, metadata

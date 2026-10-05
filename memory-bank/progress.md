@@ -18361,3 +18361,50 @@ not a confirmed bug count. ADR-0001 records the mDNS/federation trust boundary
 and several validation gotchas. The `.343` hosted workflow was cancelled before
 release creation. Next: run remaining baseline and release-note gates, push the
 validated tree, and cut/verify stable `.344`.
+
+
+## 2026-10-05 22:02 UTC — Escape SQLite Pod and content API diagnostics
+
+SQLite Pod creation, update, retrieval, deletion, join, and background DHT
+publish failures now emit escaped exception text as structured log values
+instead of attaching raw exception objects. Pod, peer, and channel identifiers
+are escaped at the log boundary. Content-linked Pod creation applies the same
+safe exception format while keeping generic API responses and database
+rollback behavior unchanged. Captured-log regressions cover both controller
+exception branches and an injected SQLite insert failure; the latter verifies
+rollback. Focused Pod tests pass 15/15. `check-sqlite-pod-logging-safety.sh` is
+registered in the remediation baseline. EF Core wraps command-interceptor save
+failures in `DbUpdateException`; gotcha `0z1688` records the regression test
+contract. Full validation, release-note preview, push, and the next stable
+release remain pending.
+
+
+## 2026-10-05 22:24 UTC — Validate Pod logging and cancellation fixes
+
+The final focused Pod controller/storage suite passes 19/19. The complete
+Release solution passes 6,098 tests (74 application, 5,735 unit, 289
+integration); `./bin/lint`, the refreshed active-council inventory/backlog
+check, and `check-sqlite-pod-logging-safety.sh` pass. The active inventory is
+215 callback/event, 426 remote-text, 12,358 red-team, and 828 mutable-ownership
+candidates; these are review queues, not confirmed bug totals. The last full
+remediation baseline passed every substantive gate and stopped only at its
+expected branch-sync guard; it preceded the final post-commit publisher
+regression, whose dedicated source guard now passes. Rerun the full baseline
+after pushing the validated changes. Release-note preview, push, final hosted
+`.344` artifact checks, and the next stable tag remain pending.
+
+
+## 2026-10-05 22:39 UTC — Complete the Pod service release validation
+
+Expanded SQLite cancellation coverage verifies caller cancellation during Pod
+creation, update, deletion, join, and retrieval; post-commit publisher
+cancellation propagates without rolling back committed data. The focused Pod
+suite passes 22/22. The final Release solution passes 6,101 tests (74
+application, 5,738 unit, 289 integration). `./bin/lint` passes, and the active
+discovery inventory/backlog remains current at 215 callback/event, 426
+remote-text, 12,358 red-team, and 828 mutable-ownership candidates. Two
+background DHT unit tests initially timed out only under full-suite load and
+passed together in isolation; their bounded budgets were raised from 5/30 to
+60 seconds, and the complete suite then passed. Gotcha `0z1691` records the
+timing boundary. Commit/push, final remediation baseline, `.344` artifact
+verification, and stable `.345` remain to be completed.
