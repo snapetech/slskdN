@@ -39928,3 +39928,20 @@ failure.
 failure detail. Keep log assertions against the fully formatted exception so
 the test still proves that nested exception text is escaped and not attached
 as raw exception metadata.
+
+### 0z1689. Preserve SQLite Pod Cancellation Across Storage Boundaries (2026-10-05)
+
+**What went wrong:** Generic Pod service catches converted canceled reads into
+`null` and canceled membership writes into `false`. Transaction handlers also
+used the caller's canceled token for rollback. `UpdateAsync` awaited its DHT
+publish after commit inside the database catch, so publish cancellation was
+treated as a failed transaction and triggered an invalid rollback attempt.
+
+**Why:** The service catch blocks predate caller-cancellation propagation and
+combine database transaction handling with post-commit publishing.
+
+**Prevention:** Rethrow `OperationCanceledException` when the caller token is
+canceled before generic failure mapping. Roll back active transactions with an
+independent token, and keep post-commit publishing outside the storage
+transaction catch so its cancellation cannot be mistaken for a rollbackable
+database failure.
