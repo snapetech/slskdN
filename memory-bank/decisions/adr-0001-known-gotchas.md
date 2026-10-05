@@ -252,6 +252,22 @@ validation and serialization behavior.
 payload entirely. Do not add input-derived work solely for diagnostics; keep
 logging edits behavior-neutral and inspect new expressions for earlier throws.
 
+### 0z1583. Compile Logging Sanitizer Calls Against Local Type Names (2026-10-04)
+
+**What went wrong:** The VirtualSoulfind logging sweep imported the common
+`LoggingSanitizer` beside an existing Core type with the same name, and passed
+a typed `ContentWorkId` to an API that accepts strings. The application build
+reported these compile errors; the sanitizer alias also needed to follow the
+file's namespace imports to satisfy StyleCop.
+
+**Why:** A repository-wide utility name and domain-specific ID wrappers are
+not interchangeable under C# name resolution or parameter conversion.
+
+**Prevention:** Use an explicit type alias when a local namespace already has
+a same-named utility, call `ToString()` for typed IDs only at the diagnostic
+boundary, and run the owning project build after changing imports and logging
+arguments.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
