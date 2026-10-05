@@ -39776,3 +39776,17 @@ exception detail as untrusted at the logger. Redact URL query/credential data,
 escape text and exception details, omit raw exception objects, and preserve the
 original protocol values for delivery and lookup. Cover both accepted and
 rejected requests with captured-log regressions.
+
+### 0z1683. Serialize Dotnet Builds That Share The Repository Output Tree (2026-10-05)
+
+**What went wrong:** Two `dotnet test` commands targeted different filters in
+the same unit-test project at once. Both rebuilt `slskd.BuildTasks` into the
+shared `obj/Release/net10.0/ref` location, and one failed with an IOException
+because the other process held the output file.
+
+**Why:** Separate test filters looked independent, but MSBuild shares project
+intermediates and reference assemblies across invocations in the checkout.
+
+**Prevention:** Run build and test commands sequentially when they share a
+checkout's `bin` and `obj` directories. Parallelize only commands with disjoint
+output roots.
