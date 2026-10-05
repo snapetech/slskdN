@@ -20,6 +20,20 @@ expected validation failures and unexpected token-storage failures with a
 captured-log regression that checks control-character escaping and the absence
 of raw exception metadata.
 
+### 0z1701. Escape Exception Details In The HTTP Error Middleware (2026-10-05)
+
+**What went wrong:** The HTTP exception handler attached the raw exception and
+also logged its unescaped message, even though it escaped the request path.
+
+**Why:** The handler's production response is deliberately generic, but its
+separate server-side diagnostic path was not subject to the same boundary
+review as the client response.
+
+**Prevention:** Keep production response behavior unchanged while escaping the
+full exception text into a structured log field and omitting raw exception
+metadata. Preserve request method/path sanitization and pin this source pattern
+in the remediation baseline.
+
 ### 0z1699. Account For UDP Retry Logs In Listener Regressions (2026-10-05)
 
 **What went wrong:** The malformed-overlay listener regression required exactly
