@@ -38402,3 +38402,17 @@ workers, sequential retry, or deferred cleanup diagnostics.
 worker and `finally` blocks. Escape external identifiers, search text, paths,
 hashes, and full exception text only at the diagnostic boundary. Keep values
 unchanged for requests, transfer state, and filesystem operations.
+
+### 0z1591. Keep Log Sanitization Out Of Transfer Inputs (2026-10-05)
+
+**What went wrong:** A broad search-and-replace inserted
+`LoggingSanitizer.SanitizeFilePath` into a `RunSourceWorkerAsync` argument
+instead of the nearby log call, changing the filename passed through the
+transfer path.
+
+**Why:** The same identifier appeared in both diagnostic and behavior-bearing
+arguments, and the edit matched by value rather than by the enclosing call.
+
+**Prevention:** Apply sanitization only to arguments inside logger calls or
+telemetry tags. Review each hunk in context and verify request, peer-routing,
+and filesystem arguments still receive their original values.
