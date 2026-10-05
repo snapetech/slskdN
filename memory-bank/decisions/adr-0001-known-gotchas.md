@@ -105,6 +105,22 @@ message instead of escaping the exception's full diagnostic text.
 field. This preserves type and stack context while escaping embedded control
 characters; do not pass the original exception object at that boundary.
 
+### 0z1573. Sweep Transfer Service Logs Beyond Event Callbacks (2026-10-05)
+
+**What went wrong:** Application event handlers were hardened, but transfer
+services and API controllers still logged peer usernames, remote filenames,
+local paths, and exception details directly across enqueue, retry, upload,
+replacement, and content-verification paths.
+
+**Why:** The event-callback audit did not trace the same transfer values
+through the services and controllers that create, retry, and finalize
+transfers.
+
+**Prevention:** Search all transfer `Log.*` call sites, including deferred
+callbacks and catch blocks. Escape usernames/identifiers, remote filenames,
+paths, policy text, and full exception text at each log argument; leave the
+values passed to transfer operations and returned to callers unchanged.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
