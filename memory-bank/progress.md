@@ -17743,3 +17743,43 @@ queues remain 210, 12,236, and 823. Gotcha `0z1578` records that Pod signing
 and persistence are separate logging boundaries. The release fragment and
 changelog entry are prepared; `.340` remains deferred until remediation is
 complete.
+
+## Update 2026-10-05 05:33 UTC — Scope browser cleanup and finish .NET 10 remediation checks
+
+Limited service-worker unregister and cache deletion to slskdN's exact scope,
+script URL, and `slskdn-shell-*` cache prefix so sibling apps sharing an origin
+keep their registrations and offline data. Preserved multi-source planner
+capacity under constrained peer availability. Finished log-only escaping for
+Search/Mesh, signals/Swarm, streaming, multi-source transfers, MediaCore,
+VirtualSoulfind, peer verification, greetings, and privacy transforms; full
+exception detail remains visible as escaped structured text. Added captured-log
+regressions that verify operation inputs and fallback results stay unchanged.
+
+Aligned contribution, Homebrew source-build, and Synology source-build docs
+with the pinned .NET 10 SDK and added a matrix check. Every first-party project
+under `src`, `tests`, and `tools` targets `net10.0`; MonoTorrent's selected
+`net8.0` package asset is compatible, and the `.NET 6` reference is historical.
+The separately maintained slskNet.Runtime library retains its .NET Standard
+compatibility targets.
+
+Full Release validation passes: 74 application, 5,575 unit, and 289 integration
+tests; full Web suite 1,232 tests across 187 files, Web lint and build;
+`./bin/lint`, runtime matrix, active-backlog (211 callback / 445 remote-text /
+12,255 red-team / 826 mutable ownership), local-identity, and whitespace checks.
+One full-suite integration run exposed a 15-second overlay readiness timeout;
+the isolated test passed, and after increasing the bounded harness deadline to
+30 seconds, the isolated and complete .NET runs passed. `.340` is authorized
+but still pending commits, push, the guarded release gate, tag, and artifact
+verification. The whole-product initiative remains active for T-908 lifecycle
+design and environment-dependent browser/WAN/accessibility evidence.
+
+## Update 2026-10-05 05:43 UTC — Commit the validated `.340` remediation batch
+
+Committed the shared-origin service-worker fix, the historical MonoTorrent
+framework clarification, the integration listener startup-budget test change,
+and the broad backend diagnostics/planner remediation. The current release-note
+preview from `.339` includes the source-build .NET 10 guidance and the validated
+logging, planner, and service-worker fragments. The docs/deferred-work refresh
+is in progress; the `.340` changelog cut, target guard, branch push, guarded tag
+flow, and published-artifact verification remain pending. The whole-product
+initiative stays open for the recorded T-908 and environment-dependent followups.

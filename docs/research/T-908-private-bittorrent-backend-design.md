@@ -57,10 +57,16 @@ for that torrent.
 
 ## Remaining work
 
+- Establish a production active-job owner before wiring protocol activation.
+  The current `InMemorySwarmJobStore` exposes lookup only, the application does
+  not create `SwarmJob` instances, and `SwarmDownloadOrchestrator` is not
+  registered as a hosted service. The signal handler therefore cannot bind an
+  incoming request to a real sender/receiver job today.
 - Connect fallback acknowledgements to the sender's active swarm job and route
   the resulting torrent transfer through that job's lifecycle.
 - Implement actual `Swarm.JobCancel` handling and release any prepared torrent
-  manager when its owning job ends.
+  manager when its owning job ends. Keep all requests fail-closed until this
+  integration has end-to-end activation, cancellation, and cleanup coverage.
 - Keep keyed swarms deferred until a concrete key exchange and peer-auth
   protocol is designed.
 

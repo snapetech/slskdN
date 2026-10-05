@@ -1,32 +1,43 @@
-## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:50 UTC
+## Current state — Commit remediation records; prepare `.340` release — 2026-10-05 05:43 UTC
 
-Stable `.339` remains the latest release. The current VirtualSoulfind batch
-sanitizes caller queries, MBIDs, peer IDs, filenames, hashes, paths, and full
-exception details in bridge, capture, shadow-index, mesh-search, transfer, and
-API diagnostic logs. Sanitization is log-only, with regressions confirming
-that original MBIDs and hashes still reach query/transfer state. Homebrew and
-Synology source-build docs now require the pinned .NET 10 SDK; Homebrew release
-installs correctly state that the self-contained archive needs no .NET setup.
+Stable `.339` remains the latest release. The current code batch fixes a
+shared-origin service-worker cleanup bug, preserves constrained multi-source
+planner capacity, aligns .NET 10 source-build instructions, and escapes
+caller, peer, protocol, path, hash, and exception diagnostics across Search,
+Mesh, signals, Swarm, streaming, transfers, MediaCore, and VirtualSoulfind.
+Sanitization is restricted to log arguments; searches, routing, verification,
+transfers, and filesystem inputs retain their original values. Focused protocol
+and privacy log tests pass 9/9.
 
-Focused coverage passes 14/14. Full Release tests pass 5,924 (74 application,
-5,561 unit, 289 integration); `./bin/lint`, active-backlog, local-identity,
-and whitespace checks pass. The implementation, tests, changelog, release
-fragments, packaging docs, task/progress update, and backlog refresh are
-validated but not yet committed or pushed.
+Every first-party project under `src`, `tests`, and `tools` targets `net10.0`.
+MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves its compatible
+`lib/net8.0` package asset; the `.NET 6` reference in ADR-0001 is historical
+and describes the older package. The vendored slskNet.Runtime library remains
+on .NET Standard targets for compatibility; its standalone examples and test
+suite are separate from the slskd solution.
 
-Every first-party project under `src`, `tests`, and `tools` targets
-`net10.0`. MonoTorrent `3.9.0-alpha.unstable.rev0000` supplies its compatible
-`lib/net8.0` asset. The old `.NET 6` reference describes the package asset used
-before the dependency upgrade; no active `.NET 6` project TFM or selected
-MonoTorrent asset remains.
+Validation passes: full Release .NET suite 5,938 tests (74 application,
+5,575 unit, 289 integration); full Web suite 1,232 tests across 187 files;
+Web lint and production build; `./bin/lint`; .NET runtime matrix; active
+backlog, local-identity, and whitespace checks. A full-suite-only 15-second
+overlay listener timeout was reproduced as load-sensitive; after increasing
+the bounded harness budget to 30 seconds, the focused case and complete suite
+passed.
 
-Next: continue the broad VirtualSoulfind logging review, then take the next
-code-backed whole-product items. T-908 cross-peer sender/job activation,
-cancellation and manager cleanup; global Party ID ownership across disjoint
-DHT views; true background-tab timer throttling; WebKit/Orca and physical
-assistive-technology speech; representative WAN/resource evidence; the
-original frontend `ERR_NETWORK_CHANGED` cause; and broad discovery queues
-remain open. Do not cut `.340` until the continuing remediation is ready.
+The service-worker change, historical MonoTorrent status clarification,
+integration-listener test budget, and backend diagnostics/planner batch are
+committed locally. The `.339` to `.340` release-note preview includes the
+release fragments for these changes and the earlier local remediation work.
+The documentation status update and changelog cut remain before the guarded
+release gate. Next: commit the records, cut the `.340` changelog section,
+verify the GitHub target, push `main`, run the authorized tag flow, and verify
+published artifacts.
+
+The full-product initiative remains active. T-908 sender/job lifecycle,
+cross-node Party ID arbitration, actual hidden-tab throttling, physical
+assistive-technology speech, representative WAN/resource evidence, the
+original frontend `ERR_NETWORK_CHANGED` cause, and broad discovery queues stay
+tracked as follow-ups.
 
 ## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:27 UTC
 

@@ -26,7 +26,7 @@
 
 ## Active Development
 
-### Post-.336 reliability, .339 release, and analyzer follow-up — 2026-10-04
+### Post-.339 reliability, .NET 10 alignment, and product remediation — 2026-10-05
 
 - [x] Fix redirected process stream deadlocks and child cleanup in SongID,
   AudioSketch, Chromaprint fingerprints, perceptual hashing, Soulfind bridge,
@@ -59,9 +59,11 @@
 - [x] Resolve the MonoTorrent framework question. Every first-party project
   under `src`, `tests`, and `tools` targets `net10.0`; MonoTorrent
   `3.9.0-alpha.unstable.rev0000` resolves to its compatible `net8.0` asset for
-  the application's `net10.0` target. There is no active `net6.0` project TFM
-  or selected MonoTorrent `net6.0` asset; other compatible dependencies can
-  still ship lower-TFM assets.
+  the application's `net10.0` target. The `.NET 6` note in ADR-0001 is
+  historical: it describes the older package asset before that dependency was
+  upgraded. There is no active `net6.0` project TFM or selected MonoTorrent
+  `net6.0` asset. Homebrew and Synology source-build guidance now requires the
+  pinned .NET 10 SDK; the runtime matrix checks project TFMs and package docs.
 - [x] Fix Player transcode cancellation cleanup. FFmpeg stderr now drains
   independently of request cancellation, and the process tree is stopped and
   reaped before stream slots are released. A Linux process-backed regression
@@ -154,14 +156,27 @@
   paths, and full exception text in VirtualSoulfind bridge, capture,
   shadow-index, mesh-search, transfer, and API diagnostics — 2026-10-05.
   Sanitization is log-only; search and transfer inputs remain unchanged.
-  Focused coverage passes 14/14; full Release tests pass 5,924 (74
-  application, 5,561 unit, 289 integration). `./bin/lint`, active-backlog,
-  local-identity, and whitespace checks pass. The Homebrew and Synology
-  source-build docs now specify .NET 10; Homebrew release installs no longer
-  claim to require an SDK.
+  The remaining diagnostics sweep also covers search/mesh, signal and swarm,
+  streaming, multi-source, MediaCore, peer verification, greetings, and privacy
+  transforms. Full exception details remain available as escaped text; logs do
+  not receive raw exception objects, and operational inputs remain unchanged.
+  Focused coverage passes 14/14 plus 9 protocol/privacy log regressions. Full
+  Release tests pass 5,938 (74 application, 5,575 unit, 289 integration).
+  `./bin/lint`, active-backlog, local-identity, and whitespace checks pass.
+- [x] Scope service-worker cleanup to slskdN's registration and cache prefix.
+  Startup leaves sibling applications' registrations and cache entries intact.
+  The focused Web regressions pass 6/6; the full Web suite passes 1,232 tests
+  across 187 files, Web lint passes, and the production bundle builds.
+- [x] Preserve requested multi-source planner capacity when available peers
+  are below the requested source count; add a regression for the constrained
+  selection path.
+- [x] Raise the process-level integration harness TCP readiness budget from
+  15 to 30 seconds after a full-suite-only overlay startup timeout. The
+  previously failing CSRF case passes alone and the full Release suite passes
+  after the adjustment.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings. Discovery queues remain open at 210 callback/event,
-  462 remote-text, 12,237 red-team, and 823 mutable-ownership candidates;
+  code-backed findings. Discovery queues remain open at 211 callback/event,
+  445 remote-text, 12,255 red-team, and 826 mutable-ownership candidates;
   T-908 fallback lifecycle and distributed evidence requirements also remain
   open.
 
@@ -4163,7 +4178,7 @@
 
 - [x] **T-906 Resolver fetch**: SimpleResolver calls `MeshContent.GetByContentId` via IMeshServiceClient for `mesh:{peerId}:{contentId}`; writes payload to temp file and returns path. Done.
 - [x] **T-907 Resolver fetch**: SimpleResolver uses `IContentFetchBackend`; `WebDavBackend`, `S3Backend`, `HttpBackend` implement it; fetch via `FetchToStreamAsync`. Done.
-- [ ] **T-908 fallback lifecycle**: Bind the exact variant to a real sender/receiver job, connect fallback acknowledgements to transfer activation and cancellation, implement `Swarm.JobCancel`, and clean up managers when their owning job ends. Re-enable only with end-to-end coverage. The runtime rejects mismatched variants and incomplete lifecycle requests without starting a manager. Details: `docs/research/T-908-private-bittorrent-backend-design.md`.
+- [ ] **T-908 fallback lifecycle**: Add a production active-job owner first: `InMemorySwarmJobStore` supports lookup only, the app creates no `SwarmJob`, and `SwarmDownloadOrchestrator` is unregistered. Then bind exact variants to real jobs, connect fallback acknowledgements to transfer activation/cancellation, implement `Swarm.JobCancel`, and clean up managers when their owning job ends. Keep requests fail-closed until end-to-end coverage exists. Details: `docs/research/T-908-private-bittorrent-backend-design.md`.
 - [x] **T-912 Soulseek adapter**: `IMetadataFacade.GetBySoulseekFilenameAsync(username, filename)` parses common patterns (Artist - Title, Album - NN - Title, NN. Title) and returns `MetadataResult` with `SourceSoulseek`. Done.
 
 ### Packaging (docs/archive/root/TODO.md)
