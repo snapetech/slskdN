@@ -39718,14 +39718,15 @@ routing-table node is unchanged.
 ### 0z1679. Cover Every Cover-Traffic Exception Log Boundary (2026-10-05)
 
 **What went wrong:** The cover-traffic worker's send-failure warnings logged
-escaped exception text, but `Dispose()` still attached its caught exception
-directly to a warning event. The first focused safety check only asserted the
-worker path, while the remediation baseline correctly rejected the disposal
-path.
+escaped exception text, but `Dispose()` and the timed-out cleanup continuation
+still attached caught exceptions directly to warning and error events. The
+first focused safety check only asserted the worker path, while the remediation
+baseline and a full-file logger scan exposed the lifecycle paths.
 
 **Why:** The logger review followed the recurring send operation and missed a
 separate lifecycle boundary in the same class.
 
 **Prevention:** Search every logger call in the full owning type, including
-startup, shutdown, timeout, and disposal paths. Extend the captured-log test
-and source gate to cover lifecycle failures as well as steady-state work.
+startup, shutdown, timeout, and disposal paths. Reject exception objects at
+all log levels and sanitize their rendered text. Extend captured-log tests and
+the source gate to cover lifecycle failures as well as steady-state work.
