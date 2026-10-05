@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1611. Disambiguate Overlay And Mesh Hello Message Types (2026-10-05)
+
+**What went wrong:** A loopback integration regression imported both
+`slskd.DhtRendezvous.Messages` and `slskd.Mesh.Messages`; each namespace defines
+`MeshHelloMessage`, so the test project no longer compiled.
+
+**Why:** The similarly named DTOs represent different handshakes, but a broad
+namespace import made the new test's intended type ambiguous.
+
+**Prevention:** When a test file consumes both protocols, fully qualify the
+message type used by the test or declare a descriptive alias. Build the owning
+test project after adding protocol coverage.
+
 ### 0z1610. Sanitize Overlay Transport Diagnostics Alongside Mesh Sync (2026-10-05)
 
 **What went wrong:** The outbound mesh transport still logged remote message
