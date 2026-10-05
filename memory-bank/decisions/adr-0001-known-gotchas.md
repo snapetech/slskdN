@@ -135,6 +135,20 @@ behavior.
 surrounding call after each logging edit and confirm API, filesystem, search,
 and persistence inputs still receive their original values.
 
+### 0z1575. Alias Security Namespaces When They Shadow Domain Types (2026-10-05)
+
+**What went wrong:** Importing the security namespace to use `LoggingSanitizer`
+made `MultiSourceController` resolve its transfer-domain
+`ContentVerificationResult` references to a same-named security type, causing
+the application project to fail compilation.
+
+**Why:** A broad namespace import introduces every visible type into C# name
+resolution, even when the change only needs one utility class.
+
+**Prevention:** When a utility import can shadow a type already used in the
+file, use a type alias for the utility instead of importing the entire
+namespace. Recompile the owning project after adding namespace imports.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
