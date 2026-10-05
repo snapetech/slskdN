@@ -39911,3 +39911,20 @@ local patch. Make an intentional vendor change through the documented patch
 workflow and run `scripts/check-slsknet-runtime-sync.sh`. Do not retarget vendor
 tests or examples merely because compatible package assets use an older TFM;
 that metadata does not change the consuming application's .NET target.
+
+### 0z1688. Expect EF Core To Wrap Interceptor Failures During SaveChanges (2026-10-05)
+
+**What went wrong:** A persistence logging regression expected an exception
+thrown by a command interceptor to escape `SaveChangesAsync` as its original
+`InvalidOperationException`. EF Core wrapped it in `DbUpdateException`, so the
+test asserted the wrong exception type.
+
+**Why:** Relational save failures are surfaced through EF Core's update
+pipeline, which adds the database update context around the underlying command
+failure.
+
+**Prevention:** In persistence-boundary tests, assert EF Core's public
+`DbUpdateException` contract and inspect its inner exception for the injected
+failure detail. Keep log assertions against the fully formatted exception so
+the test still proves that nested exception text is escaped and not attached
+as raw exception metadata.
