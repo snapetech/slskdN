@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1682. Escape SQLite Pod Service Exceptions At Log Boundaries (2026-10-05)
+
+**What went wrong:** SQLite Pod create, update, read, delete, and join
+operations, plus background DHT publication callbacks, attach raw exception
+objects to logs. These paths process caller-owned Pod/member values or remote
+publisher failures.
+
+**Why:** The storage and callback code treated exception metadata as trusted
+internal diagnostics even though operation failures can contain supplied
+identifiers, database details, remote text, or line breaks.
+
+**Prevention:** Escape full exception text into a structured log field at each
+boundary and sanitize any caller or peer identifier alongside it. Keep the
+same rollback, rethrow, result, and background-task behavior. Use captured-log
+regressions for operation failures and publisher callbacks.
+
 ### 0z1681. Escape Content-Linked Pod Creation Exceptions (2026-10-05)
 
 **What went wrong:** Content-linked Pod creation logs raw exception objects in
