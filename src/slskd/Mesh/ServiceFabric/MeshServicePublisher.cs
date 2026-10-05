@@ -114,6 +114,10 @@ public class MeshServicePublisher : BackgroundService
             {
                 await PublishServiceGroupAsync(group.Key, group.ToList(), cancellationToken);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(
@@ -179,6 +183,10 @@ public class MeshServicePublisher : BackgroundService
             _logger.LogDebug(
                 "[ServicePublisher] Published {Count} descriptor(s) for service: {ServiceName} (TTL: {Ttl}s)",
                 descriptors.Count, serviceName, _options.DescriptorTtlSeconds);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

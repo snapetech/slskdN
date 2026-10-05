@@ -436,6 +436,43 @@ public class Phase8MeshTests
     }
 
     [Fact]
+    public async Task MeshHealthCheck_PropagatesCallerCancellation()
+    {
+        var statsCollector = new Mock<IMeshStatsCollector>();
+        var pendingStats = new TaskCompletionSource<MeshTransportStats>(TaskCreationOptions.RunContinuationsAsynchronously);
+        statsCollector.Setup(s => s.GetStatsAsync()).Returns(pendingStats.Task);
+        var healthCheck = new MeshHealthCheck(
+            Mock.Of<ILogger<MeshHealthCheck>>(),
+            statsCollector.Object,
+            Mock.Of<IMeshDirectory>(),
+            Mock.Of<slskd.Mesh.Dht.IMeshDhtClient>());
+        using var cancellation = new CancellationTokenSource();
+
+        var check = healthCheck.CheckHealthAsync(new HealthCheckContext(), cancellation.Token);
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => check);
+    }
+
+    [Fact]
+    public async Task MeshHealthCheck_ReportsInternalTimeoutAsDegraded()
+    {
+        var statsCollector = new Mock<IMeshStatsCollector>();
+        var pendingStats = new TaskCompletionSource<MeshTransportStats>(TaskCreationOptions.RunContinuationsAsynchronously);
+        statsCollector.Setup(s => s.GetStatsAsync()).Returns(pendingStats.Task);
+        var healthCheck = new MeshHealthCheck(
+            Mock.Of<ILogger<MeshHealthCheck>>(),
+            statsCollector.Object,
+            Mock.Of<IMeshDirectory>(),
+            Mock.Of<slskd.Mesh.Dht.IMeshDhtClient>());
+
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext());
+
+        Assert.Equal(HealthStatus.Degraded, result.Status);
+        Assert.True((bool)result.Data["timeout"]);
+    }
+
+    [Fact]
     public async Task MeshHealthCheck_DoesNotDegradeForNoActivePeers()
     {
         var logger = Mock.Of<Microsoft.Extensions.Logging.ILogger<MeshHealthCheck>>();

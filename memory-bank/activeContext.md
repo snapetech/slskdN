@@ -18604,3 +18604,26 @@ globally authoritative Party IDs, real hidden-tab behavior, physical/WebKit
 accessibility, representative WAN/resource evidence, the original frontend
 network-change cause, and broad discovery queues remain open. Push and cut the
 authorized stable release only after remaining implementation and validation.
+
+## Current state — Preserve Mesh health and publisher cancellation — 2026-10-05
+
+`MeshHealthCheck` now rethrows caller cancellation but retains its degraded
+result for the health check's own five-second timeout; the existing behavior
+has separate tests for both paths. `MeshServicePublisher` now propagates
+cancellation at both nested error boundaries, so DHT cancellation stops the
+current publication pass without being logged as a failure. Focused health and
+publisher coverage passes 6/6. Gotchas `0z1624` and `0z1625` were committed
+before implementation.
+
+The user-facing release fragment and changelog entries are ready. The .NET 10
+matrix is confirmed; first-party projects target `net10.0`, and MonoTorrent's
+compatible `lib/net8.0` asset is selected.
+
+The full Release .NET suite passes 5,965 tests (74 application, 5,602 unit,
+289 integration). Next: run repository lint and release gates, commit this
+batch, and continue the cancellation and remaining whole-product audit.
+T-908 active-job lifecycle, global Party ID authority, real hidden-tab
+behavior, physical/WebKit accessibility, representative WAN/resource
+evidence, frontend network-change root cause, and discovery queues remain
+open. Push and cut the authorized stable release after implementation and
+validation are complete.

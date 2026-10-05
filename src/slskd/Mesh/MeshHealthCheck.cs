@@ -97,6 +97,10 @@ public class MeshHealthCheck : IHealthCheck
 
             return new HealthCheckResult(status, GetDescription(status, stats), data: healthData);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             // Timeout occurred - return degraded instead of unhealthy

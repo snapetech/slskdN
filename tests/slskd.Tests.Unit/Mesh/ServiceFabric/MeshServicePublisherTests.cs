@@ -48,6 +48,34 @@ public class MeshServicePublisherTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task PublishAllServicesAsync_CallerCancellationDuringDhtWrite_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var dhtClient = new Mock<IMeshDhtClient>();
+        dhtClient
+            .Setup(x => x.PutAsync("svc:pods", It.IsAny<object?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, object? _, int _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled(token);
+            });
+        var publisher = new MeshServicePublisher(
+            Mock.Of<ILogger<MeshServicePublisher>>(),
+            dhtClient.Object,
+            Options.Create(new MeshServiceFabricOptions()));
+        publisher.RegisterService(CreateTestDescriptor("pods", "peer-1"));
+        var method = typeof(MeshServicePublisher).GetMethod(
+            "PublishAllServicesAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.NotNull(method);
+
+        var publish = (Task)method!.Invoke(publisher, new object[] { cancellation.Token })!;
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => publish);
+    }
+
     private static MeshServiceDescriptor CreateTestDescriptor(string serviceName, string ownerPeerId)
     {
         var now = DateTimeOffset.UtcNow;

@@ -54,6 +54,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   it into a service failure response.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
+- Mesh health checks and service publication now propagate caller cancellation
+  instead of returning degraded status or logging it as a publish failure.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

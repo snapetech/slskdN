@@ -18038,3 +18038,22 @@ Continue the wider cancellation audit after this batch. T-908 active-job
 lifecycle, global Party ID authority, and external browser/device/WAN evidence
 remain tracked; the framework target is still .NET 10 and MonoTorrent selects
 its compatible .NET 8 package asset.
+
+## Update 2026-10-05 — Preserve cancellation in mesh health and publishing
+
+`MeshHealthCheck` now propagates cancellation from its caller while preserving
+the existing degraded result for its internal five-second timeout. Separate
+regressions exercise caller cancellation and the internal timeout. The
+MeshHealthCheck suite passes 4/4.
+
+`MeshServicePublisher` now propagates its stopping token through both service
+group error boundaries. A canceled DHT write no longer becomes a logged
+publish failure or allow the publisher to continue through other groups.
+Publisher tests pass 2/2. Gotchas `0z1624` and `0z1625` were committed before
+their corresponding source changes.
+
+The combined release fragment and changelog note are present. The full Release
+.NET suite passes 5,965 tests (74 application, 5,602 unit, 289 integration).
+Repository lint and exact-range release gates remain. T-908 job lifecycle,
+cross-node Party ID authority, and external browser/device/WAN evidence remain
+open for ongoing remediation.

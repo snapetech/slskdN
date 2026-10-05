@@ -264,14 +264,23 @@
   a pre-canceled token and an in-root file; the full Release suite passes.
   Gotcha `0z1622` records the boundary; `0z1623` records explicit `System.IO`
   qualification in test files importing `Soulseek`.
+- [x] Propagate caller cancellation from Mesh health checks — 2026-10-05.
+  Caller cancellation now escapes `MeshHealthCheck`; its internal five-second
+  timeout still returns degraded health. Both paths are covered, and the
+  health-check suite passes 4/4. Gotcha `0z1624` records the distinction.
+- [x] Stop Mesh service publication promptly on cancellation — 2026-10-05.
+  `MeshServicePublisher` now propagates cancellation through both per-group
+  catch boundaries instead of logging it as an ordinary DHT failure or
+  continuing to publish. Publisher coverage passes 2/2. Gotcha `0z1625`
+  records the propagation requirement.
 - [x] Serialize the strict release-ID allocation regression — 2026-10-05.
   `MusicDomainMappingTests` now uses `AllocationTestCollection`, preventing its
   1 KiB current-thread allocation ceiling from racing other allocation tests.
   The isolated regression and subsequent full unit suite pass. Gotcha `0z1616`
   records the collection requirement.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings. Latest discovery queues: 211 callback/event, 431
-  remote-text, 12,273 red-team, and 827 mutable-ownership candidates. T-908
+  code-backed findings. Latest discovery queues: 212 callback/event, 431
+  remote-text, 12,275 red-team, and 827 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.

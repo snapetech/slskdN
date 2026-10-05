@@ -51,6 +51,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   it into a service failure response.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
+- Mesh health checks and service publication now propagate caller cancellation
+  instead of returning degraded status or logging it as a publish failure.
 - Rate-limited transfer and search updates now honor their concurrency limit
   from the first callback and retain staged updates across timer ticks.
 - Resolver cancellation now reports a canceled execution instead of a failed
