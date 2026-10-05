@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1664. Apply I2P Availability Deadline To The SAM Handshake (2026-10-05)
+
+**What went wrong:** `I2PTransport.IsAvailableAsync` linked its five-second
+timeout to `TcpClient.ConnectAsync`, then used only the caller token for the
+SAM HELLO flush and response read. A bridge that accepted TCP but never
+answered could keep the availability probe pending indefinitely.
+
+**Why:** The deadline was created around the full probe, but only one network
+operation received its token.
+
+**Prevention:** Use the linked caller/timeout token for every asynchronous
+operation in the bounded probe, including writes and response reads. Test a
+peer that accepts the connection and stalls before returning the protocol
+response.
+
 ### 0z1663. Preserve Delimiters At Each Loop-Conversion Boundary (2026-10-05)
 
 **What went wrong:** While converting a projection to a loop, I removed the
