@@ -39817,3 +39817,18 @@ type was not checked before adding a string-only diagnostic transformation.
 **Prevention:** Inspect the declared type before applying text sanitizers and
 convert typed identifiers with their explicit string representation only for
 logging. Leave the domain value used by federation operations unchanged.
+
+### 0z1686. Make Source Safety Gates Aware Of Type Aliases (2026-10-05)
+
+**What went wrong:** The federation log-safety gate searched only for the
+`LoggingSanitizer` type name. A source file used the same sanitizer through an
+explicit `LogSanitizer` alias, so the gate reported safe code as missing its
+sanitization boundary.
+
+**Why:** The source check treated one spelling as the behavioral contract and
+did not account for the repository's alias pattern when type names collide
+across layers.
+
+**Prevention:** Make source gates recognize the explicit aliases used by the
+owning source file, or inspect the alias declaration and verify its calls.
+Keep the regression test check alongside the source check.
