@@ -19,6 +19,24 @@ record.
 CR/LF characters. Join records only for positive checks that expected escaped
 sequences are present.
 
+### 0z1605. Sweep Pod API, Storage, Signing, and Routing Logs Together (2026-10-05)
+
+**What went wrong:** Native Pod controllers and the message router still logged
+route-supplied Pod/channel IDs, message/peer IDs, and caught exception objects
+without escaping control characters. The earlier Pod diagnostics work covered
+several messaging and persistence paths but missed adjacent API and routing
+owners.
+
+**Why:** Pod data crosses request, storage, signing, and overlay boundaries.
+Fixing only the service or signer leaves other layers able to log the same
+untrusted identifiers or exceptions containing remote message data.
+
+**Prevention:** Review every dynamic Pod log argument across native APIs,
+message storage, signing, and routing. Escape external identifiers and full
+`Exception.ToString()` text at the logging boundary, keep request/routing values
+unchanged, omit message bodies and private keys, and verify the behavior with
+captured-log regressions.
+
 ### 0z1603. Escape Remote Capability Metadata Before Logging (2026-10-05)
 
 **What went wrong:** Capability discovery logged remote usernames, downloaded
