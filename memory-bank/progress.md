@@ -17876,3 +17876,37 @@ technology evidence, WAN/resource evidence, the original frontend
 `ERR_NETWORK_CHANGED` cause, and broad discovery queues remain open. Push the
 complete tree and cut the next stable release only after those tasks and the
 final release gate are complete.
+
+## Update 2026-10-05 07:39 UTC — Repair mesh overlay dispatch and diagnostics
+
+Both overlay message loops now extract numeric JSON `type` values and dispatch
+the mesh enum IDs emitted by the current DTOs, while retaining their legacy
+string aliases. Valid mesh messages had previously been logged and ignored
+because extraction called `GetString()` on numeric JSON and both dispatchers
+matched only the legacy names. The client/server loopback regression sends real
+DTO messages in both directions and captures escaped remote exception details;
+the framing unit test checks numeric type extraction. The same batch escapes
+remote features, message types, validation text, protocol messages, and full
+exception details at the outbound connector log boundary.
+
+The focused integration case passes 1/1, SecureMessageFramer passes 7/7, and
+the complete Release .NET suite passes 5,952 (74 application, 5,589 unit, 289
+integration). `./bin/lint`, the .NET runtime matrix, active-backlog,
+local-identity, whitespace, and corrected `.340`-to-HEAD release-note preview
+pass. Current discovery queues are 211 callback/event, 431 remote-text,
+12,263 red-team, and 827 mutable-ownership candidates. The implementation is
+committed locally in `a679706c8`; ADR gotchas `0z1603`, `0z1604`, `0z1611`, and
+`0z1612` document the timeout budget, numeric discriminator, duplicate DTO
+name, and release-area slug findings.
+
+Stable `.340` has completed its hosted workflow, including the previously
+pending publisher. All first-party projects remain on `net10.0`; MonoTorrent
+3.9.0 selects its `net8.0` asset, which is compatible with .NET 10. No
+first-party or resolved MonoTorrent `.NET 6` target remains to upgrade.
+
+Next: continue the code-backed whole-product work, starting with T-908's
+sender/job lifetime and cancellation integration, then cross-node Party ID
+ownership. Hidden-tab throttling, physical assistive-technology and WebKit
+speech, representative WAN/resource evidence, the original frontend
+`ERR_NETWORK_CHANGED` cause, and broad discovery queues remain open. Keep the
+next stable release gated until code fixes and evidence are complete.

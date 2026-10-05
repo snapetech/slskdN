@@ -18385,3 +18385,29 @@ evidence, representative WAN/resource evidence, the original frontend
 `ERR_NETWORK_CHANGED` cause, and broad discovery queues remain open. Push all
 local commits and dirty/unrelated work, rerun the branch-sync release gate,
 then cut and verify the next stable release when implementation is complete.
+## Current state — Continue whole-product remediation; prepare next stable release — 2026-10-05 07:39 UTC
+
+Stable `.340` is published and its hosted workflow completed successfully.
+The mesh overlay batch in `a679706c8` fixes numeric mesh message dispatch in
+both connection directions and escapes remote overlay diagnostics. Focused
+loopback coverage passes 1/1, SecureMessageFramer tests pass 7/7, and full
+Release .NET tests pass 5,952 (74 application, 5,589 unit, 289 integration).
+`./bin/lint`, the .NET runtime/package matrix, active backlog, local identity,
+whitespace, and `.340`-to-HEAD release-note preview all pass. Current queues:
+211 callback/event, 431 remote-text, 12,263 red-team, and 827 mutable ownership.
+
+Every first-party project under `src`, `tests`, and `tools` targets `net10.0`.
+MonoTorrent `3.9.0-alpha.unstable.rev0000` selects the compatible
+`lib/net8.0` NuGet asset. The `.NET 6` reference is historical, not an active
+project or selected package target; vendored slskNet.Runtime remains on
+.NET Standard for compatibility.
+
+Continue the full-product initiative before pushing or cutting the next stable
+release. Start with T-908 sender/job lifetime and cancellation integration,
+then distributed Party ID ownership. Keep actual hidden-tab throttling,
+WebKit/physical assistive-technology speech, WAN/resource evidence, the
+frontend `ERR_NETWORK_CHANGED` root cause, and broad candidate queues open
+until their code or evidence exists. Final push/tag remains authorized by the
+user, but run the complete release gate on the final tree before publishing.
+
+## Previous state — Commit remediation records; prepare `.340` release — 2026-10-05 05:43 UTC
