@@ -149,6 +149,21 @@ resolution, even when the change only needs one utility class.
 file, use a type alias for the utility instead of importing the entire
 namespace. Recompile the owning project after adding namespace imports.
 
+### 0z1576. Sanitize Pod Message Diagnostics Without Rewriting Messages (2026-10-05)
+
+**What went wrong:** Pod messaging and the Soulseek chat bridge logged peer
+identifiers, message IDs, room/channel names, and exception objects directly.
+Those fields can arrive through signed or bridged remote messages and still
+contain log-breaking control characters.
+
+**Why:** Earlier Pod work covered discovery and transfer boundaries, but did
+not audit the distinct message-routing and room-bridge log paths.
+
+**Prevention:** Sweep both `PodMessaging` and `SoulseekChatBridge` log calls,
+including deferred callbacks and catch blocks. Sanitize only diagnostic
+arguments; preserve the original message, routing identifiers, and bridge
+payload used by the operation.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
