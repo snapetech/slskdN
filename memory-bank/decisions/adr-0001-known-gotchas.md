@@ -148,6 +148,19 @@ before retaining partial scene results, creating fallback metadata, or
 continuing to another announcement. Keep cancellation in the background
 pub/sub loop as normal shutdown behavior.
 
+### 0z1648. Preserve Shutdown Cancellation In Soulseek Health Checks (2026-10-05)
+
+**What went wrong:** The disconnected-client health-check path caught the
+monitor's canceled delay as an ordinary reconnect failure and reported
+Soulseek as unavailable during shutdown.
+
+**Why:** The broad catch was meant to classify network or client reconnect
+failures, but it did not distinguish the host stopping the health check.
+
+**Prevention:** Rethrow `OperationCanceledException` when the health monitor's
+token is canceled before classifying reconnect failures. Keep its loop-level
+cancellation handler responsible for normal shutdown.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
