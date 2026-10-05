@@ -70,6 +70,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Mesh search, hash-backed peer discovery, and shadow-index discovery now
   propagate caller cancellation instead of returning incomplete results or
   continuing through another discovery source.
+- Scene peer discovery now propagates cancellation from a member lookup instead
+  of returning a partial peer list.
 - Swarm intelligence, performance analysis, and configuration prediction now
   propagate cancellation instead of returning fallback recommendations.
 

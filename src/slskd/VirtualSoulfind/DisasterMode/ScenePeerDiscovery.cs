@@ -61,6 +61,10 @@ public class ScenePeerDiscovery : IScenePeerDiscovery
                     allPeers.Add(member.PeerId);
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 logger.LogWarning("[VSF-SCENE-DISCOVERY] Failed to get members for scene {SceneId}: {Exception}",
