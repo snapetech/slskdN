@@ -39745,3 +39745,18 @@ errors together with ordinary no-match status.
 **Prevention:** Use ripgrep's default regex syntax or an explicitly supported
 `--engine`/`--pcre2` option. For negative-match gates, distinguish status 1
 (no match) from command errors and fail the gate on every other nonzero status.
+
+### 0z1681. Treat Discovered mDNS Names As Remote Log Input (2026-10-05)
+
+**What went wrong:** `LanDiscoveryService` logged `IZeroconfHost.DisplayName`
+directly when parsing a discovered peer failed. The name and the service TXT
+properties are advertised by another host on the local network and can contain
+log-breaking control characters.
+
+**Why:** The discovery model looked like host metadata, so the error log treated
+its display name as trusted local context even though it comes from the
+received DNS-SD record.
+
+**Prevention:** Treat mDNS display names and TXT values like other peer-supplied
+text. Escape them only at diagnostic boundaries, preserve the original values
+for discovery behavior, and capture a malformed-peer log containing CR/LF.
