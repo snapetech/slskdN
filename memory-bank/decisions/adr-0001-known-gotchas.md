@@ -39957,3 +39957,19 @@ without checking each enclosing async lambda.
 
 **Prevention:** Inspect every rewritten `try`/`catch` in its local nesting
 context and run formatting lint before considering a repeated log edit done.
+
+### 0z1691. Budget Unit Startup Waits For Full Solution Load (2026-10-05)
+
+**What went wrong:** Two LAN-only DHT rendezvous tests timed out after 5 and
+30 seconds while the complete solution suite ran, waiting for background
+startup to reach a mock overlay callback or update its started timestamp. Both
+tests passed together in 86 ms when rerun in isolation.
+
+**Why:** `DhtRendezvousService.StartAsync` schedules initialization in the
+background, and solution-wide unit-test load can delay that work beyond the
+short per-test startup budgets.
+
+**Prevention:** Keep the waits bounded but size them for full-suite scheduling
+load. When startup gates fail only under suite load, rerun the focused tests to
+separate a timing-budget failure from a service regression before changing
+runtime behavior.
