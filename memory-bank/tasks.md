@@ -26,6 +26,33 @@
 
 ## Active Development
 
+### Post-.344 PodCore log-boundary hardening and .NET 10 audit — 2026-10-05
+
+- [x] Verify every first-party application, test, and build-tool project under
+  `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
+  project and selected NuGet asset target `net8.0`, which the .NET 10 app can
+  consume; there is no active first-party or selected `net6.0` target to
+  retarget. Keep the provenance-checked slskNet.Runtime mirror unchanged.
+- [x] Replace all 94 raw PodCore exception logger calls with escaped exception
+  text and escaped dynamic string fields while preserving structured event
+  values and operation results.
+- [x] Add a captured-log controller regression and
+  `check-pod-core-log-safety.sh` to the remediation baseline.
+- [x] Pass the focused PodChannelController logging regression, full solution
+  `dotnet test --no-restore` (74 application, 5,739 unit, 289 integration),
+  `./bin/lint`, and the PodCore log-safety guard.
+- [x] Preview the post-`.344` release-note range; it includes the PodCore
+  diagnostic security fragment.
+- [ ] Push the gotcha, product fix, and current memory update, then pass the
+  complete remediation baseline against `origin/main`.
+- [ ] Complete `.344` publisher verification. The Launchpad source is
+  Published, but the Jammy AMD64 build is still `Needs building`; create
+  stable `.345` only after that binary is published.
+- [ ] Continue the code-backed whole-product remediation. T-908 lifecycle,
+  global Party ID authority, accessibility, WAN/resource measurements,
+  hidden-tab throttling, frontend network-change root cause, and broad review
+  queues remain open or evidence-gated.
+
 ### Post-.344 Pod storage and content API diagnostic safety — 2026-10-05
 
 - [x] Escape SQLite Pod persistence and DHT publish exception details, and
@@ -49,13 +76,14 @@
   preview `build-main-2026100520-slskdn.344` to `HEAD`. The preview validates
   the MusicBrainz fallback/cancellation note and the new Pod security note.
 - [x] Push the validated commits to `snapetech/slskdN` (`769d97da3`).
-- [ ] Refresh the red-team backlog to 12,362 candidates and rerun the full
-  remediation baseline against the pushed branch.
+- [x] Refresh the red-team backlog to 12,362 candidates and rerun the full
+  remediation baseline against the pushed branch (`f6ef41af3`).
 - [x] Verify `.344`'s six platform archives, published SHA256 checksums, and
   required support assets with `verify-release-artifacts.sh`.
 - [ ] Finish `.344` publisher verification. Every hosted job except
   `Publish to PPA (Main)` has succeeded; its Launchpad publication waiter is
-  still running. `.344` is immutable and does not contain these post-tag fixes.
+  still running. Its source is Published, but the Jammy AMD64 build remains
+  `Needs building`. `.344` is immutable and does not contain these post-tag fixes.
 - [ ] Ship these post-tag fixes in stable `.345` after the release gate passes.
 - [ ] Continue code-backed remediation. T-908, global Party ID authority,
   accessibility, WAN/resource measurements, hidden-tab throttling, frontend

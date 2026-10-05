@@ -1,4 +1,39 @@
-## Current state — Harden Pod storage and content API diagnostics — 2026-10-05 22:50 UTC
+## Current state — Harden PodCore diagnostic log boundaries — 2026-10-05 23:09 UTC
+
+The .NET 10 audit is complete: all first-party app, test, and build-tool
+projects target `net10.0`, and no active `.NET 6` project or selected
+MonoTorrent asset exists. MonoTorrent's current upstream source and selected
+package asset target `net8.0`, which is compatible with the .NET 10 consumer;
+the vendored slskNet.Runtime mirror remains unchanged under its sync contract.
+
+The post-`.344` PodCore logging follow-up replaces 94 direct exception logger
+calls across controllers and services with escaped exception text and escaped
+dynamic string fields. Structured identifiers remain present, and operation
+results are unchanged. Added a captured-log controller regression and
+`check-pod-core-log-safety.sh` to the remediation baseline. The focused
+regression passes; full `dotnet test --no-restore` passes 6,102 tests (74
+application, 5,739 unit, 289 integration), and `./bin/lint` and the focused
+source guard pass. The post-`.344` release-note preview includes the new
+PodCore diagnostics fragment.
+
+Gotcha `0z1694` was committed as `59465bfcc`; the PodCore fix was committed as
+`c49379fd3`. These, plus this memory update, still need to be pushed, followed
+by the full remediation baseline. The pushed tree before these commits passes
+that baseline and contains the refreshed 12,362-candidate red-team inventory;
+the 215 callback/event, 426 remote-text, 12,362 red-team, and 828
+mutable-ownership values are review queues, not confirmed bug counts.
+
+Stable `.344` is immutable and its six platform archives and support assets
+pass local checksum/version verification. Its Launchpad source is Published,
+but the Jammy AMD64 binary still reports `Needs building`, so do not submit
+`.345` until that build is published. Afterward, run the guarded `.345` release
+gate and verify every hosted publisher and artifact. Continue the confirmed
+code-backed remediation; T-908 lifecycle, global Party ID authority,
+accessibility, WAN/resource measurements, hidden-tab throttling, the original
+frontend network-change cause, and broad candidate queues remain open or
+evidence-gated.
+
+## Prior state — Harden Pod storage and content API diagnostics — 2026-10-05 22:50 UTC
 
 First-party application, test, and build-tool projects target `net10.0`.
 MonoTorrent supplies the compatible `lib/net8.0` package asset; no active
@@ -37,7 +72,7 @@ platform assets are published; every hosted job except `Publish to PPA (Main)`
 has succeeded. The local artifact verifier confirmed all six archives,
 published checksums, and required support files. Stable `.344` is immutable.
 
-## Next steps
+### Next steps at 22:50 UTC
 
 Commit and push the backlog count correction, rerun the full remediation
 baseline, and verify `.344` PPA publication. Then run the release helper for

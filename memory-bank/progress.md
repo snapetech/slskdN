@@ -18443,3 +18443,27 @@ than 12,358; other counts remain 215 callback/event, 426 remote-text, and 828
 mutable-ownership. The backlog documentation is updated locally and needs a
 small follow-up push before rerunning the baseline. Stable `.344` artifact
 verification passes; its PPA waiter remains in progress.
+
+
+## 2026-10-05 23:09 UTC — Audit .NET 10 targets and PodCore log boundaries
+
+All first-party application, test, and build-tool projects under `src`,
+`tests`, and `tools` target `net10.0`. The selected MonoTorrent package ships
+`net8.0` assemblies, consistent with its upstream project target; .NET 10
+consumes those compatible assets. No active `.NET 6` target was found, and the
+vendored runtime mirror remains unchanged under its source-sync contract.
+
+Escaped exception details and caller-/peer-controlled string values at all 94
+PodCore logger sites that previously attached raw exception objects. Added a
+captured-log controller regression and `check-pod-core-log-safety.sh` to the
+remediation baseline. Full `dotnet test --no-restore` passes 6,102 tests (74
+application, 5,739 unit, 289 integration); `./bin/lint` and the focused log
+safety check pass. The release-note preview from `.344` contains the new
+PodCore security fragment. Gotcha `0z1694` is recorded.
+
+Commits `59465bfcc` and `c49379fd3` are local and not yet pushed. The full
+remediation baseline and branch sync remain to run after pushing. Launchpad
+has Published the `.344` source, but its Jammy AMD64 build is still marked
+`Needs building`; stable `.345` remains gated on publication of that exact
+binary. Confirmed code-backed remediation continues; the T-908 serving and
+authorization lifecycle and other evidence-gated items remain open.
