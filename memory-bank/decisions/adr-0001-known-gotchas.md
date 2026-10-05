@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1625. Preserve Cancellation Across Both Mesh Publisher Catch Layers (2026-10-05)
+
+**What went wrong:** Mesh service publication caught cancellation from DHT
+writes both inside a service group and again in the group loop, logged it as
+an error, and continued publishing other groups.
+
+**Why:** Both broad catches treated the background service's stopping token
+like an ordinary publish failure, so fixing only the innermost catch would
+still leave cancellation swallowed by the caller.
+
+**Prevention:** Rethrow when the publisher's cancellation token is canceled at
+both catch boundaries. Test a DHT write that cancels the token and verify
+`PublishAllServicesAsync` itself propagates cancellation.
+
 ### 0z1624. Distinguish Health-Check Timeout From Caller Cancellation (2026-10-05)
 
 **What went wrong:** `MeshHealthCheck` converted request cancellation into a
