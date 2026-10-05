@@ -45,11 +45,14 @@
 - [x] Pass focused Pod controller and SQLite service tests (22/22).
 - [x] Pass the full Release solution: 6,101 tests (74 application, 5,738
   unit, 289 integration), `./bin/lint`, and the active-council count gate.
-- [ ] Commit the release documentation, preview the post-.344 note range, push
-  the validated changes, and rerun the full remediation baseline.
+- [x] Commit the product fix, tests, release documentation, and memory records;
+  preview `build-main-2026100520-slskdn.344` to `HEAD`. The preview validates
+  the MusicBrainz fallback/cancellation note and the new Pod security note.
+- [ ] Push the validated commits to `snapetech/slskdN` and rerun the full
+  remediation baseline against the pushed branch.
 - [ ] Verify `.344`'s remaining publishers and release assets; `.344` is
   immutable and does not contain these post-tag fixes.
-- [ ] Ship these post-tag fixes in a later stable release; `.344` is immutable.
+- [ ] Ship these post-tag fixes in stable `.345` after the release gate passes.
 - [ ] Continue code-backed remediation. T-908, global Party ID authority,
   accessibility, WAN/resource measurements, hidden-tab throttling, frontend
   network-change root cause, and broad review queues remain open or

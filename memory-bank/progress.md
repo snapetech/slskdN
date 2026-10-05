@@ -18394,6 +18394,18 @@ after pushing the validated changes. Release-note preview, push, final hosted
 `.344` artifact checks, and the next stable tag remain pending.
 
 
+## 2026-10-05 22:46 UTC — Validate the next release-note range
+
+The validated tree is committed in separate Pod fix, full-suite timing, and
+documentation commits. The structured release-note preview from
+`build-main-2026100520-slskdn.344` to `HEAD` passes with three user-facing
+bullets for the post-tag MusicBrainz and Pod work. `verify-github-target.sh`
+confirms `snapetech/slskdN`; the release-facing local-identity scan passes.
+Stable `.344` assets are published, and the hosted workflow's only unfinished
+job is its Launchpad PPA publication waiter. Push, the final remediation
+baseline, `.344` artifact checks, and stable `.345` remain pending.
+
+
 ## 2026-10-05 22:39 UTC — Complete the Pod service release validation
 
 Expanded SQLite cancellation coverage verifies caller cancellation during Pod

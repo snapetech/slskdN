@@ -1,4 +1,4 @@
-## Current state — Harden Pod storage and content API diagnostics — 2026-10-05 22:39 UTC
+## Current state — Harden Pod storage and content API diagnostics — 2026-10-05 22:46 UTC
 
 First-party application, test, and build-tool projects target `net10.0`.
 MonoTorrent supplies the compatible `lib/net8.0` package asset; no active
@@ -28,23 +28,22 @@ mutable-ownership candidates; those are review queues, not confirmed bug
 counts. The first full run hit a full `/tmp`; the isolated `/dev/shm` rerun
 passed.
 
-The `.344` Release Gate, all six platform archive builds, and GitHub release
-creation succeeded. Its generated stable-metadata commit is `b06e83be1`.
-Docker/PPA and final release-asset verification still need a current hosted
-check. Post-tag content-link and Pod cancellation fixes are already on the
-remote branch; the current SQLite/API logging batch and its gotcha commits are
-local. These post-tag fixes need a later stable release.
+All current product, test, release-note, and memory changes are committed
+locally. The post-`.344` release-note preview passes with three user-facing
+bullets. `.344`'s release and all platform assets are published; every hosted
+job except `Publish to PPA (Main)` has succeeded. PPA publication and release
+asset checksum verification are still pending. New fixes and the current
+gotcha commits still need pushing; the published `.344` release is immutable.
 
 ## Next steps
 
-Commit the validated code and documentation separately, preview the release
-note range from `.344`, verify `snapetech/slskdN`, and push all local work.
-Then rerun the full remediation baseline and verify `.344` Docker/PPA
-publishers and assets. Prepare stable `.345` only after the pushed tree passes
-the release gate. Continue classifying confirmed code-backed findings. T-908 lifecycle, global Party ID
-authority, accessibility, WAN/resource measurements, hidden-tab throttling,
-frontend network-change root cause, and broad candidate queues remain open or
-evidence-gated.
+Verify `snapetech/slskdN`, push all local commits, and rerun the full
+remediation baseline against the pushed head. Verify `.344` assets and the
+remaining PPA job. Then run the release helper for stable `.345` and verify its
+hosted publishers and artifacts. Continue classifying confirmed code-backed
+findings. T-908 lifecycle, global Party ID authority, accessibility,
+WAN/resource measurements, hidden-tab throttling, frontend network-change
+root cause, and broad candidate queues remain open or evidence-gated.
 
 ## Previous state — Preserve cancellation across Pod APIs — 2026-10-05 21:29 UTC
 
