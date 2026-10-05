@@ -5,6 +5,7 @@ namespace slskd.DhtRendezvous.Security;
 
 using System;
 using System.Buffers.Binary;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -123,7 +124,13 @@ public sealed class SecureMessageFramer : IDisposable
             using var doc = JsonDocument.Parse(data);
             if (doc.RootElement.TryGetProperty("type", out var typeProp))
             {
-                return typeProp.GetString();
+                return typeProp.ValueKind switch
+                {
+                    JsonValueKind.String => typeProp.GetString(),
+                    JsonValueKind.Number when typeProp.TryGetInt32(out var numericType) =>
+                        numericType.ToString(CultureInfo.InvariantCulture),
+                    _ => null,
+                };
             }
 
             return null;

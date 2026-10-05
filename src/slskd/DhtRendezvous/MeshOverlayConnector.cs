@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ using slskd.DhtRendezvous.Search;
 using slskd.DhtRendezvous.Security;
 using slskd.Mesh;
 using slskd.Mesh.ServiceFabric;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Makes outbound overlay connections to mesh peers discovered via DHT.
@@ -247,19 +249,27 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
                     "Connected to mesh peer {Username}@{Endpoint} (features: {Features})",
                     OverlayLogSanitizer.Username(ack.Username),
                     OverlayLogSanitizer.Endpoint(endpoint),
-                    string.Join(", ", (IEnumerable<string>?)ack.Features ?? Array.Empty<string>()));
+                    string.Join(", ", ((IEnumerable<string>?)ack.Features ?? Array.Empty<string>()).Select(SafeLogValue)));
 
                 var registeredConnection = connection;
                 _ = TaskObservation.Observe(
                     RunOutboundMessageLoopAsync(registeredConnection, CancellationToken.None),
-                    ex => _logger.LogDebug(ex, "Unhandled outbound overlay message loop failure for {Username}@{Endpoint}", OverlayLogSanitizer.Username(registeredConnection.Username), OverlayLogSanitizer.Endpoint(endpoint)));
+                    ex => _logger.LogDebug(
+                        "Unhandled outbound overlay message loop failure for {Username}@{Endpoint}: {Exception}",
+                        OverlayLogSanitizer.Username(registeredConnection.Username),
+                        OverlayLogSanitizer.Endpoint(endpoint),
+                        SafeLogException(ex)));
                 connection = null;
                 return registeredConnection;
             }
             catch (Exception ex)
             {
                 var reason = ClassifyFailure(ex);
-                _logger.LogDebug(ex, "Handshake failed with {Endpoint} ({FailureReason})", OverlayLogSanitizer.Endpoint(endpoint), reason);
+                _logger.LogDebug(
+                    "Handshake failed with {Endpoint} ({FailureReason}): {Exception}",
+                    OverlayLogSanitizer.Endpoint(endpoint),
+                    reason,
+                    SafeLogException(ex));
                 _rateLimiter.RecordViolation(endpoint.Address);
                 if (connection != null)
                 {
@@ -274,7 +284,11 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
         catch (Exception ex)
         {
             var reason = ClassifyFailure(ex);
-            _logger.LogDebug(ex, "Failed to connect to {Endpoint} ({FailureReason})", OverlayLogSanitizer.Endpoint(endpoint), reason);
+            _logger.LogDebug(
+                "Failed to connect to {Endpoint} ({FailureReason}): {Exception}",
+                OverlayLogSanitizer.Endpoint(endpoint),
+                reason,
+                SafeLogException(ex));
             RecordFailure(reason, endpoint);
             return null;
         }
@@ -323,7 +337,7 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
                             var reqVal = MessageValidator.ValidateMeshSearchReq(meshSearchReq);
                             if (!reqVal.IsValid)
                             {
-                                _logger.LogWarning("Invalid mesh_search_req from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), reqVal.Error);
+                                _logger.LogWarning("Invalid mesh_search_req from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), SafeLogValue(reqVal.Error));
                                 _rateLimiter.RecordViolation(connection.RemoteAddress);
                                 break;
                             }
@@ -331,7 +345,7 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
                             var meshRl = _rateLimiter.CheckMeshSearchRequest(connection.ConnectionId);
                             if (!meshRl)
                             {
-                                _logger.LogWarning("Mesh search rate limit exceeded for {Username}: {Reason}", OverlayLogSanitizer.Username(connection.Username), meshRl.Reason);
+                                _logger.LogWarning("Mesh search rate limit exceeded for {Username}: {Reason}", OverlayLogSanitizer.Username(connection.Username), SafeLogValue(meshRl.Reason));
                                 break;
                             }
 
@@ -388,7 +402,7 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
                 catch (slskd.DhtRendezvous.Security.ProtocolViolationException ex)
                 {
                     disconnectReason = "protocol-violation";
-                    _logger.LogWarning("Protocol violation from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), ex.Message);
+                    _logger.LogWarning("Protocol violation from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), SafeLogValue(ex.Message));
                     _rateLimiter.RecordViolation(connection.RemoteAddress);
                     break;
                 }
@@ -397,7 +411,10 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
         catch (Exception ex)
         {
             disconnectReason = "message-loop-error";
-            _logger.LogDebug(ex, "Error in outbound message loop for {Username}", OverlayLogSanitizer.Username(connection.Username));
+            _logger.LogDebug(
+                "Error in outbound message loop for {Username}: {Exception}",
+                OverlayLogSanitizer.Username(connection.Username),
+                SafeLogException(ex));
         }
 
     cleanup:
@@ -418,19 +435,21 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
     {
         try
         {
+            // MeshMessage.Type is serialized as a numeric enum; retain legacy names for older peers.
             Mesh.Messages.MeshMessage? meshMessage = messageType switch
             {
-                "mesh_sync_hello" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshHelloMessage>(rawMessage),
-                "mesh_req_delta" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqDeltaMessage>(rawMessage),
-                "mesh_push_delta" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshPushDeltaMessage>(rawMessage),
-                "mesh_req_key" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqKeyMessage>(rawMessage),
-                "mesh_ack" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshAckMessage>(rawMessage),
+                "1" or "mesh_sync_hello" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshHelloMessage>(rawMessage),
+                "2" or "mesh_req_delta" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqDeltaMessage>(rawMessage),
+                "3" or "mesh_push_delta" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshPushDeltaMessage>(rawMessage),
+                "4" or "mesh_req_key" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqKeyMessage>(rawMessage),
+                "6" or "mesh_ack" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshAckMessage>(rawMessage),
+                "7" or "mesh_req_chunk" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqChunkMessage>(rawMessage),
                 _ => null,
             };
 
             if (meshMessage == null)
             {
-                _logger.LogDebug("Unknown message type {Type} from {Username}, ignoring", messageType, OverlayLogSanitizer.Username(connection.Username));
+                _logger.LogDebug("Unknown message type {Type} from {Username}, ignoring", SafeLogValue(messageType), OverlayLogSanitizer.Username(connection.Username));
                 return;
             }
 
@@ -442,13 +461,32 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
         }
         catch (slskd.DhtRendezvous.Security.ProtocolViolationException ex)
         {
-            _logger.LogWarning("Protocol violation parsing mesh message from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), ex.Message);
+            _logger.LogWarning("Protocol violation parsing mesh message from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), SafeLogValue(ex.Message));
             _rateLimiter.RecordViolation(connection.RemoteAddress);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error handling mesh message from {Username}", OverlayLogSanitizer.Username(connection.Username));
+            _logger.LogWarning(
+                "Error handling mesh message from {Username}: {Exception}",
+                OverlayLogSanitizer.Username(connection.Username),
+                SafeLogException(ex, rawMessage));
         }
+    }
+
+    private static string SafeLogValue(string? value)
+    {
+        return LoggingSanitizer.SanitizeExternalIdentifier(value);
+    }
+
+    private static string SafeLogException(Exception exception, byte[]? remotePayload = null)
+    {
+        var details = exception.ToString();
+        if (remotePayload is { Length: > 0 })
+        {
+            details = details.Replace(Encoding.UTF8.GetString(remotePayload), "[remote payload]", StringComparison.Ordinal);
+        }
+
+        return SafeLogValue(details);
     }
 
     private async Task HandleMeshServiceCallAsync(MeshOverlayConnection connection, byte[] rawMessage, CancellationToken cancellationToken)

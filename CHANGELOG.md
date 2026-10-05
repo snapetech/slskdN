@@ -34,6 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Mesh overlay readers now dispatch the numeric mesh message types emitted by
+  the message DTOs, so valid mesh sync requests reach the sync service in both
+  connection directions.
 - Rate-limited transfer and search updates now honor their concurrency limit
   from the first callback and retain staged updates across timer ticks.
 - Resolver cancellation now reports a canceled execution instead of a failed

@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.DhtRendezvous.Security;
 
 using System.Buffers.Binary;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -27,6 +28,16 @@ public class SecureMessageFramerTests
 
         Assert.Equal(payload, raw);
         Assert.Equal(OverlayMessageType.Ping, SecureMessageFramer.ExtractMessageType(raw));
+    }
+
+    [Fact]
+    public void ExtractMessageType_WhenMeshTypeIsNumeric_ReturnsInvariantNumericValue()
+    {
+        var payload = JsonSerializer.SerializeToUtf8Bytes(new slskd.Mesh.Messages.MeshHelloMessage());
+
+        Assert.Equal(
+            ((int)slskd.Mesh.Messages.MeshMessageType.Hello).ToString(CultureInfo.InvariantCulture),
+            SecureMessageFramer.ExtractMessageType(payload));
     }
 
     [Fact]

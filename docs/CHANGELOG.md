@@ -34,6 +34,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Escape peer identities, hash keys, validation details, metadata search text,
   and ban reasons before logging. Mesh exception diagnostics keep escaped stack
   context while removing full remote message payloads.
+- Mesh overlay connections now recognize numeric mesh message types emitted by
+  the message DTOs, allowing supported synchronization requests to reach the
+  mesh sync service in either connection direction.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

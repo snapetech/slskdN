@@ -201,6 +201,16 @@
   289 integration). `./bin/lint`, the .NET runtime matrix, active-backlog,
   local-identity, and whitespace checks pass. ADR-0001 gotcha `0z1608`
   records the cross-boundary review rule.
+- [x] Fix mesh overlay dispatch for numeric message enum values — 2026-10-05.
+  Both inbound overlay loops now extract numeric JSON `type` values and route
+  supported mesh message enum IDs while retaining legacy string dispatch.
+  Regression coverage sends real DTO messages through both loopback directions;
+  focused integration passes 1/1, SecureMessageFramer tests pass 7/7, and the
+  full Release suite passes 5,952 (74 application, 5,589 unit, 289
+  integration). `./bin/lint`, runtime matrix, active-backlog, local-identity,
+  and whitespace checks pass. Gotchas `0z1603`, `0z1604`, `0z1610`, and
+  `0z1611` record the timeout, discriminator, transport-diagnostic, and
+  duplicate-DTO-type boundaries.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Latest discovery queues: 211 callback/event, 434
   remote-text, 12,261 red-team, and 827 mutable-ownership candidates. T-908

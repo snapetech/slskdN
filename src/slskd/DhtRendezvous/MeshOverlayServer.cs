@@ -547,13 +547,15 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         try
         {
             // Try to parse as a mesh message
+            // MeshMessage.Type is serialized as a numeric enum; retain legacy names for older peers.
             Mesh.Messages.MeshMessage? meshMessage = messageType switch
             {
-                "mesh_sync_hello" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshHelloMessage>(rawMessage),
-                "mesh_req_delta" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqDeltaMessage>(rawMessage),
-                "mesh_push_delta" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshPushDeltaMessage>(rawMessage),
-                "mesh_req_key" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqKeyMessage>(rawMessage),
-                "mesh_ack" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshAckMessage>(rawMessage),
+                "1" or "mesh_sync_hello" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshHelloMessage>(rawMessage),
+                "2" or "mesh_req_delta" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqDeltaMessage>(rawMessage),
+                "3" or "mesh_push_delta" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshPushDeltaMessage>(rawMessage),
+                "4" or "mesh_req_key" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqKeyMessage>(rawMessage),
+                "6" or "mesh_ack" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshAckMessage>(rawMessage),
+                "7" or "mesh_req_chunk" => SecureMessageFramer.DeserializeMessage<Mesh.Messages.MeshReqChunkMessage>(rawMessage),
                 _ => null,
             };
 

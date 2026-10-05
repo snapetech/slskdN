@@ -4,6 +4,7 @@
 namespace slskd.Tests.Integration.DhtRendezvous;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -145,7 +146,7 @@ public class MeshSearchLoopbackTests
     }
 
     [Fact]
-    public async Task MeshOverlaySearchService_OverOutboundLoop_ReturnsRepeatedResponsesAndKeepsConnection()
+    public async Task MeshOverlaySearchService_OverOutboundLoop_HandlesRepeatedResponsesAndEscapesRemoteDiagnostics()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "slskdn-mesh-search-" + Guid.NewGuid().ToString("N")[..8]);
         System.IO.Directory.CreateDirectory(tempDir);
@@ -184,8 +185,9 @@ public class MeshSearchLoopbackTests
 
             var handler = new MeshSearchRpcHandler(share.Object, logFact.CreateLogger<MeshSearchRpcHandler>());
             var overlayConnector = new Mock<IMeshOverlayConnector>();
+            var serverLogger = new CapturingLogger<MeshOverlayServer>();
             await using var server = new MeshOverlayServer(
-                logFact.CreateLogger<MeshOverlayServer>(),
+                serverLogger,
                 serverOptionsMonitor.Object,
                 serverCertMgr,
                 serverPinStore,
@@ -217,8 +219,9 @@ public class MeshSearchLoopbackTests
             using var clientRateLimiter = new OverlayRateLimiter();
             using var clientBlocklist = new OverlayBlocklist(logFact.CreateLogger<OverlayBlocklist>());
             await using var clientRegistry = new MeshNeighborRegistry(logFact.CreateLogger<MeshNeighborRegistry>());
+            var connectorLogger = new CapturingLogger<MeshOverlayConnector>();
             var connector = new MeshOverlayConnector(
-                logFact.CreateLogger<MeshOverlayConnector>(),
+                connectorLogger,
                 clientOptionsMonitor.Object,
                 clientCertMgr,
                 clientPinStore,
@@ -236,7 +239,7 @@ public class MeshSearchLoopbackTests
 
             try
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds));
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 var connection = await connector.ConnectToEndpointAsync(new IPEndPoint(IPAddress.Loopback, port), cts.Token);
 
                 Assert.NotNull(connection);
@@ -257,6 +260,65 @@ public class MeshSearchLoopbackTests
                 Assert.Equal(1, clientRegistry.Count);
                 Assert.Single(clientRegistry.GetAllConnections());
                 Assert.True(connection.IsConnected);
+
+                var serverConnection = Assert.Single(serverRegistry.GetAllConnections());
+                await serverConnection.WriteMessageAsync(
+                    new { type = "unknown\r\n[forged]", body = "remote-body-secret" },
+                    cts.Token);
+
+                var unknownTypeLog = await connectorLogger.WaitForAsync("Unknown message type", cts.Token);
+                Assert.DoesNotContain('\r', unknownTypeLog.Message);
+                Assert.DoesNotContain('\n', unknownTypeLog.Message);
+                Assert.Contains("unknown\\r\\n[forged]", unknownTypeLog.Message, StringComparison.Ordinal);
+                Assert.DoesNotContain("remote-body-secret", unknownTypeLog.Message, StringComparison.Ordinal);
+                Assert.Null(unknownTypeLog.Exception);
+
+                meshSync
+                    .Setup(service => service.HandleMessageAsync(
+                        It.IsAny<string>(),
+                        It.Is<slskd.Mesh.Messages.MeshMessage>(message => message is slskd.Mesh.Messages.MeshHelloMessage),
+                        It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new InvalidOperationException("remote failure\r\n[forged]"));
+                await connection.WriteMessageAsync(
+                    new slskd.Mesh.Messages.MeshHelloMessage
+                    {
+                        ClientId = "remote-peer",
+                        ClientVersion = "1.0",
+                        LatestSeqId = 1,
+                        HashCount = 0,
+                    },
+                    cts.Token);
+
+                var serverHandlerExceptionLog = await serverLogger.WaitForAsync("Error handling mesh message", cts.Token);
+                Assert.DoesNotContain('\r', serverHandlerExceptionLog.Message);
+                Assert.DoesNotContain('\n', serverHandlerExceptionLog.Message);
+                Assert.Contains("remote failure\\r\\n[forged]", serverHandlerExceptionLog.Message, StringComparison.Ordinal);
+                Assert.Contains("System.InvalidOperationException", serverHandlerExceptionLog.Message, StringComparison.Ordinal);
+                Assert.Null(serverHandlerExceptionLog.Exception);
+
+                meshSync
+                    .Setup(service => service.HandleMessageAsync(
+                        It.IsAny<string>(),
+                        It.Is<slskd.Mesh.Messages.MeshMessage>(message => message is slskd.Mesh.Messages.MeshHelloMessage),
+                        It.IsAny<CancellationToken>()))
+                    .ThrowsAsync(new InvalidOperationException("remote failure\r\n[forged]"));
+                await serverConnection.WriteMessageAsync(
+                    new slskd.Mesh.Messages.MeshHelloMessage
+                    {
+                        ClientId = "remote-peer",
+                        ClientVersion = "1.0",
+                        LatestSeqId = 1,
+                        HashCount = 0,
+                    },
+                    cts.Token);
+
+                var handlerExceptionLog = await connectorLogger.WaitForAsync("Error handling mesh message", cts.Token);
+                Assert.DoesNotContain('\r', handlerExceptionLog.Message);
+                Assert.DoesNotContain('\n', handlerExceptionLog.Message);
+                Assert.Contains("remote failure\\r\\n[forged]", handlerExceptionLog.Message, StringComparison.Ordinal);
+                Assert.Contains("System.InvalidOperationException", handlerExceptionLog.Message, StringComparison.Ordinal);
+                Assert.Contains(" at ", handlerExceptionLog.Message, StringComparison.Ordinal);
+                Assert.Null(handlerExceptionLog.Exception);
             }
             finally
             {
@@ -310,4 +372,43 @@ public class MeshSearchLoopbackTests
         }
         return start;
     }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public ConcurrentQueue<CapturedLogEntry> Entries { get; } = new();
+
+        public IDisposable BeginScope<TState>(TState state)
+            where TState : notnull => null!;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Enqueue(new CapturedLogEntry(logLevel, formatter(state, exception), exception));
+        }
+
+        public async Task<CapturedLogEntry> WaitForAsync(string marker, CancellationToken cancellationToken)
+        {
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(TimeoutSeconds);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                var match = Entries.FirstOrDefault(entry => entry.Message.Contains(marker, StringComparison.Ordinal));
+                if (match is not null)
+                {
+                    return match;
+                }
+
+                await Task.Delay(10, cancellationToken);
+            }
+
+            throw new TimeoutException($"Timed out waiting for captured connector log containing '{marker}'.");
+        }
+    }
+
+    private sealed record CapturedLogEntry(LogLevel Level, string Message, Exception? Exception);
 }
