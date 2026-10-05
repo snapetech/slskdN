@@ -38356,3 +38356,20 @@ before publishing. If the task only authorizes `origin/main`, push
 `HEAD:refs/heads/main`; the secret scan still runs while the hook's separate
 YunoHost sync is skipped. Do not reconcile or push the external package branch
 without explicit authorization.
+
+### 0z1588. Escape Mesh And Search Exception Diagnostics (2026-10-05)
+
+**What went wrong:** Search lifecycle and mesh overlay logs passed exception
+objects directly to Serilog, preserving raw exception messages outside the
+escaped message fields. Mesh search also logged caller query text and remote
+error strings without escaping control characters.
+
+**Why:** Search and mesh failures are logged by background tasks and peer
+protocol handlers, so sanitizing only the visible query or username fields did
+not protect exception metadata and remote response text.
+
+**Prevention:** Convert exceptions to full `ToString()` details and escape
+them at the log boundary. Escape caller queries, protocol validation errors,
+remote disconnect reasons, and response error strings while preserving the
+original values used by search, routing, and protocol behavior. Add captured-log
+regressions for CR/LF-bearing values.
