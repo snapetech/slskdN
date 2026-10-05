@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1617. Propagate Cancellation From Signal Subscribers (2026-10-05)
+
+**What went wrong:** `SignalBus` treated a subscriber's
+OperationCanceledException as an isolated subscriber failure and swallowed it,
+even when the shared caller token had been canceled.
+
+**Why:** `InvokeSubscriberAsync` caught every exception to keep one subscriber
+from preventing delivery to the others, but omitted the cancellation exception
+that defines normal caller control flow.
+
+**Prevention:** Rethrow OperationCanceledException when the caller token is
+canceled before applying ordinary subscriber failure isolation. Keep the
+non-cancellation behavior that logs one subscriber failure and continues.
+
 ### 0z1616. Serialize Allocation-Bound Unit Test Classes (2026-10-05)
 
 **What went wrong:** A strict current-thread allocation regression passed
