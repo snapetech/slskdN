@@ -38556,3 +38556,18 @@ single-event sink.
 **Prevention:** Filter captured entries by expected level or event content when
 the operation legitimately logs progress and failure. Assert the target record
 and its exception state without assuming unrelated records are absent.
+
+### 0z1602. Budget Local Listener Readiness For Full Integration Load (2026-10-05)
+
+**What went wrong:** The full .NET suite timed out waiting 15 seconds for the
+local overlay listener in a CSRF integration test. The same test passed in two
+seconds when run alone, while 288 other integration tests passed in the full
+run.
+
+**Why:** Process startup and listener binding share the runner with the
+integration suite, so a short local-port deadline can fail under suite load
+without indicating a product listener failure.
+
+**Prevention:** Give process-level TCP readiness a bounded budget that tolerates
+full-suite contention. Keep the readiness poll local and rerun both the focused
+case and full integration suite after changing the deadline.
