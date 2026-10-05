@@ -1,3 +1,25 @@
+## Current state — Refresh remediation inventory and resume stable `.341` — 2026-10-05 11:29 UTC
+
+The complete 82-commit remediation branch was pushed to `snapetech/slskdN` and
+branch sync passed. The first guarded `.341` attempt validated the target,
+branch, release notes, and packaging, then stopped before product tests because
+the durable candidate counts were stale. The active backlog now records 214
+callback/event and 12,309 red-team candidates; the dedicated check passes all
+six counts. Only backlog and status documentation changed in this refresh.
+
+Full Release .NET tests pass 6,015 (74 application, 289 integration, 5,652
+unit), lint passes, and the .NET runtime/package matrix confirms the app and
+first-party projects use .NET 10 while MonoTorrent selects its compatible
+.NET 8 asset. Release notes for `2026100511-slskdn.341` validate with 50
+highlights/bullets assembled from the versioned changelog and 26 fragments.
+
+Next: commit and push the backlog refresh, rerun the guarded `.341` release
+gate, and create/publish the stable tag only if the complete frontend, backend,
+packaging, and integration gates pass. T-908 production job ownership, global
+Party ID authority, assistive-technology device/browser coverage, WAN/resource
+evidence, and broad discovery queues remain open until their prerequisites are
+met.
+
 ## Current state — Validate cancellation remediation and prepare stable `.341` — 2026-10-05 11:22 UTC
 
 Stable `.340` is published. The post-release work continues whole-product

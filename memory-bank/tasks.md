@@ -41,8 +41,8 @@
   packaging metadata validation, and active remediation checks.
 - [x] Preview release fragments from `.340` through the candidate; add the
   matching `.341` section to `docs/CHANGELOG.md`.
-- [ ] Push all committed local `main` work, run the guarded `.341` release gate,
-  create the authorized stable tag, and verify published artifacts.
+- [ ] Push the backlog refresh, rerun the guarded `.341` release gate, create
+  the authorized stable tag, and verify published artifacts.
 - [ ] Keep evidence-dependent T-908 lifecycle, global Party ID authority,
   browser/device accessibility, WAN/resource measurements, and discovery
   queues open until the missing production integration or external evidence is

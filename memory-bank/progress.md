@@ -18076,3 +18076,18 @@ verify the published artifacts. T-908's missing production job lifecycle,
 distributed Party ID authority, physical/browser assistive technology,
 representative WAN/resource behavior, and broad discovery queues remain open
 for their code or evidence prerequisites.
+
+
+## 2026-10-05 11:29 UTC — Refresh remediation inventory for `.341`
+
+The first guarded `.341` attempt passed target verification, branch sync,
+versioned release-note validation, packaging metadata, and the remediation
+baseline through the active-backlog gate. It stopped before frontend/backend
+product tests because the callback/event inventory had grown to 214 and the
+red-team inventory to 12,309. Refreshed
+`docs/dev/bug-council-active-backlog.md`;
+`check-council-active-backlog.sh` now passes all six current counts. No product
+code changed.
+
+Next: commit and push the report/status refresh, rerun the guarded release gate,
+then tag and verify stable `.341` if every gate passes.
