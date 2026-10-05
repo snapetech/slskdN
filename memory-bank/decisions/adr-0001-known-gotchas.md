@@ -33,6 +33,21 @@ contract explicit: run `find` from the repository with relative roots or strip
 the known root prefix before joining. Exercise the gate after changing path
 enumeration.
 
+### 0z1583. Sanitize Signal Envelope Fields At Every Logging Boundary (2026-10-05)
+
+**What went wrong:** Signal routing, channel handlers, and swarm-control
+handlers logged peer IDs, signal IDs, type/reason fields, and exception objects
+from remote messages without escaping control characters.
+
+**Why:** Signal data crosses several independent log boundaries after it is
+deserialized, so hardening the owning fallback handler alone would leave the
+bus and transport channels exposed.
+
+**Prevention:** Sweep the central signal bus, each transport adapter, and
+feature-specific handlers together. Sanitize the structured log arguments and
+full exception text only; preserve original signal fields for routing and
+policy evaluation, and assert captured log output for CR/LF input.
+
 ### 0z1566. Disambiguate Existing Logging Sanitizers (2026-10-04)
 
 **What went wrong:** `LibraryItemsController` already imported the mesh
