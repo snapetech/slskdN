@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1663. Preserve Delimiters At Each Loop-Conversion Boundary (2026-10-05)
+
+**What went wrong:** While converting a projection to a loop, I removed the
+lambda-closing `)` from a separate `Select` expression and left `)` after a
+`try` block. The method still had two C# syntax errors after the first
+correction.
+
+**Why:** Replacing repeated `})` tokens by text position treated delimiters as
+interchangeable instead of checking which construct each one closed.
+
+**Prevention:** Review each lambda, `try`, and loop boundary independently;
+then inspect the full method and compile the owning project before proceeding.
+
 ### 0z1662. Remove LINQ Closures When Converting To Imperative Loops (2026-10-05)
 
 **What went wrong:** Rewriting a LINQ projection as an imperative loop left the
