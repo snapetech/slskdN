@@ -70,7 +70,8 @@ public sealed class ProfileService : IProfileService
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[ProfileService] Failed to load keypair from {KeyFile}, generating a new keypair", keyFile);
+                _log.LogWarning(ex, "[ProfileService] Failed to load keypair from {KeyFile}, generating a new keypair",
+                    LoggingSanitizer.SanitizeFilePath(keyFile));
             }
         }
 

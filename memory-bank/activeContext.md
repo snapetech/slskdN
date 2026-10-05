@@ -18030,3 +18030,29 @@ remote-text, 12,222 red-team, and 821 mutable-ownership candidates. Stable
 `.338` core artifacts, Docker images, and Launchpad PPA publication are all
 complete. Prepare `.339` from the three post-`.338` release notes after pushing
 the validated security-event log change.
+
+## Current state — External diagnostic escaping and `.339` verification — 2026-10-04 18:12 CST
+
+Extended diagnostic escaping to user and peer filenames, FTP paths/errors,
+share-grant sender IDs, peer/pod/channel identifiers in PodCore, decoder
+stderr, staged paths, and swarm output paths. Regressions cover filename,
+peer-ID, and decoder CR/LF input. Corrected a stale integration-test comment
+from `net8.0` to `net10.0`. The MonoTorrent package resolves `lib/net8.0` for
+the app's `net10.0` target; all first-party projects under `src`, `tests`, and
+`tools` already target `net10.0`.
+
+Focused logging tests pass 31/31; full Release tests pass 5,913 (74 app,
+5,550 unit, 289 integration); lint, active backlog, identity, and whitespace
+checks pass. `.339` is published, and all six release archives, published
+checksums, VPN helper, and bundled Web marker pass artifact verification. Its
+Docker Main and PPA jobs are still running. Gotcha `0z1564` was committed and
+pushed separately; the remaining implementation, release note, and updated
+backlog counts are not yet committed. Current queues are 210 callback/event,
+486 remote-text, 12,229 red-team, and 821 mutable-ownership candidates.
+
+Next: commit and push the validated external-log batch, preview its release
+note range from `.339`, then continue narrowing code-backed remediation queues
+before cutting the next stable release. T-908 sender/receiver lifecycle,
+cross-DHT Party ID ownership semantics, background-tab throttling, WebKit and
+physical assistive-technology evidence, representative WAN/resource evidence,
+and the original frontend `ERR_NETWORK_CHANGED` cause remain open.

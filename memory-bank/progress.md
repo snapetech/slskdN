@@ -17611,3 +17611,22 @@ event payload. Focused aggregator tests pass 3/3; the full Release suite passes
 passes. Stable `.338` core artifacts, Docker manifests, and Launchpad PPA
 publication are complete. Prepare the next stable release after pushing this
 change.
+
+## Update 2026-10-04 18:12 CST — Escape external diagnostic values
+
+Extended log escaping to external filenames, FTP paths and error text, peer and
+pod identifiers, share-grant senders, decoder stderr, staged file paths, and
+swarm output paths. Added direct regressions for filenames, peer IDs, and
+decoder diagnostics, and corrected an integration-test comment that still
+named `net8.0`. The MonoTorrent package asset resolves to `lib/net8.0` for the
+app's `net10.0` target; every first-party project under `src`, `tests`, and
+`tools` already targets `net10.0`, so no project TFM change was needed.
+
+The focused logging tests pass 31/31 and the full Release suite passes 5,913
+tests (74 application, 5,550 unit, 289 integration); `./bin/lint`, the active
+backlog gate, local identity check, and whitespace check pass. Current active
+queues are 210 callback/event, 486 remote-text, 12,229 red-team, and 821
+mutable-ownership candidates. Stable `.339` archives, checksums, bundled Web
+marker, and VPN helper passed artifact verification. Docker Main and PPA jobs
+remain hosted workflow follow-ups. The code and release note are still
+uncommitted; continue the code-backed remediation before the next release cut.

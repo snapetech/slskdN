@@ -26,7 +26,7 @@
 
 ## Active Development
 
-### Post-.336 reliability, .338 release, and analyzer follow-up — 2026-10-04
+### Post-.336 reliability, .339 release, and analyzer follow-up — 2026-10-04
 
 - [x] Fix redirected process stream deadlocks and child cleanup in SongID,
   AudioSketch, Chromaprint fingerprints, perceptual hashing, Soulfind bridge,
@@ -95,9 +95,20 @@
   retained security event. Full .NET tests pass 5,910/5,910; `./bin/lint`,
   active backlog, identity, and whitespace checks pass. Release note and
   changelog entry are ready.
+- [x] Escape external filenames, transfer paths, peer identifiers, and
+  decoder diagnostics before logging them. This covers metadata, FTP, share
+  grants, fingerprint extraction, PodCore backfill and peer resolution, staged
+  downloads, and swarm output paths. Regression tests verify escaped filename,
+  peer ID, and decoder text. Focused tests pass 31/31; full `dotnet test`
+  passes 5,913 tests (74 application, 5,550 unit, 289 integration),
+  `./bin/lint` passes, and the active backlog gate matches 486 remote-text and
+  12,229 red-team candidates. Stable `.339` release assets and checksums pass
+  artifact verification.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings; T-908 fallback lifecycle and distributed evidence
-  requirements remain open.
+  code-backed findings. Discovery queues remain open at 210 callback/event,
+  486 remote-text, 12,229 red-team, and 821 mutable-ownership candidates;
+  T-908 fallback lifecycle and distributed evidence requirements also remain
+  open.
 
 ### Stable release `.335` — 2026-10-03
 

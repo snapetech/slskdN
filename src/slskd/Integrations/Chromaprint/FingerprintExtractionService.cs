@@ -13,6 +13,7 @@ namespace slskd.Integrations.Chromaprint
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using slskd.Common.CodeQuality;
+    using slskd.Common.Security;
     using ChromaprintOptions = slskd.Options.IntegrationOptions.ChromaprintOptions;
     using slskdOptions = slskd.Options;
 
@@ -90,10 +91,12 @@ namespace slskd.Integrations.Chromaprint
                 }
                 catch (Exception cleanupException)
                 {
-                    log.LogWarning(cleanupException, "Failed to stop ffmpeg after fingerprint extraction failed for {FilePath}", filePath);
+                    log.LogWarning(cleanupException, "Failed to stop ffmpeg after fingerprint extraction failed for {FilePath}",
+                        LoggingSanitizer.SanitizeFilePath(filePath));
                     _ = TaskObservation.Observe(
                         stderrTask,
-                        exception => log.LogWarning(exception, "Failed to drain ffmpeg stderr after fingerprint extraction failed for {FilePath}", filePath));
+                        exception => log.LogWarning(exception, "Failed to drain ffmpeg stderr after fingerprint extraction failed for {FilePath}",
+                            LoggingSanitizer.SanitizeFilePath(filePath)));
                 }
 
                 throw;
@@ -103,18 +106,20 @@ namespace slskd.Integrations.Chromaprint
 
             if (process.ExitCode != 0)
             {
-                log.LogWarning("ffmpeg exited with code {Code} ({Message}) while decoding {File}", process.ExitCode, FormatDiagnostic(stderr), filePath);
+                log.LogWarning("ffmpeg exited with code {Code} ({Message}) while decoding {File}", process.ExitCode,
+                    FormatDiagnostic(stderr), LoggingSanitizer.SanitizeFilePath(filePath));
             }
 
             if (bytes.Length == 0)
             {
-                throw new InvalidOperationException($"ffmpeg produced no PCM output for {filePath}. ffmpeg stderr: {FormatDiagnostic(stderr)}");
+                throw new InvalidOperationException($"ffmpeg produced no PCM output for {LoggingSanitizer.SanitizeFilePath(filePath)}. ffmpeg stderr: {FormatDiagnostic(stderr)}");
             }
 
             if (bytes.Length % sizeof(short) != 0)
             {
                 var truncated = bytes.Length - (bytes.Length % sizeof(short));
-                log.LogWarning("Truncating {FilePath} PCM output to {Truncated} bytes to align to sample boundary", filePath, truncated);
+                log.LogWarning("Truncating {FilePath} PCM output to {Truncated} bytes to align to sample boundary",
+                    LoggingSanitizer.SanitizeFilePath(filePath), truncated);
                 Array.Resize(ref bytes, truncated);
             }
 
@@ -128,7 +133,7 @@ namespace slskd.Integrations.Chromaprint
         internal static string FormatDiagnostic(string? diagnostic)
         {
             var trimmed = diagnostic?.Trim();
-            return string.IsNullOrEmpty(trimmed) ? "(no diagnostic output)" : trimmed;
+            return string.IsNullOrEmpty(trimmed) ? "(no diagnostic output)" : LoggingSanitizer.SanitizeQueryText(trimmed);
         }
 
         internal static int GetMaximumPcmBytes(ChromaprintOptions options)

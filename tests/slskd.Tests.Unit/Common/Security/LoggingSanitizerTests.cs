@@ -210,9 +210,11 @@ namespace slskd.Tests.Unit.Common.Security
         {
             var result = LoggingSanitizer.SanitizeQueryText("first\r\nsecond\tthird");
             var pathResult = LoggingSanitizer.SanitizeExternalIdentifier("/safe\r\nforged");
+            var filePathResult = LoggingSanitizer.SanitizeFilePath("/safe\r\nforged.txt");
 
             Assert.Equal("first\\r\\nsecond\\tthird", result);
             Assert.Equal("/safe\\r\\nforged", pathResult);
+            Assert.Equal("/safe\\r\\nforged.txt", filePathResult);
         }
     }
 }

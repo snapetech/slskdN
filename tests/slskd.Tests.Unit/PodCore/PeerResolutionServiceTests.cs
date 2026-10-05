@@ -3,9 +3,11 @@
 // </copyright>
 namespace slskd.Tests.Unit.PodCore;
 
+using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Mesh.Dht;
@@ -92,6 +94,31 @@ public class PeerResolutionServiceTests
         var username = await service.ResolvePeerIdToUsernameAsync(" peer-1 ");
 
         Assert.Equal("peer-1", username);
+    }
+
+    [Fact]
+    public async Task ResolvePeerIdToUsernameAsync_EscapesLogBreakingPeerId()
+    {
+        var peerId = "peer\r\nforged";
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(x => x.GetAsync<PeerMetadata>($"peer:metadata:{peerId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PeerMetadata?)null);
+        var logger = new Mock<ILogger<PeerResolutionService>>();
+        logger.Setup(x => x.IsEnabled(LogLevel.Debug)).Returns(true);
+        var service = new PeerResolutionService(dht.Object, logger.Object);
+
+        await service.ResolvePeerIdToUsernameAsync(peerId);
+
+        logger.Verify(
+            entry => entry.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("peer\\r\\nforged", StringComparison.Ordinal) &&
+                    !state.ToString()!.Contains(peerId, StringComparison.Ordinal)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

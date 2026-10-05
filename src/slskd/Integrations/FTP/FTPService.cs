@@ -29,6 +29,7 @@ namespace slskd.Integrations.FTP
     using FluentFTP;
     using FluentFTP.Exceptions;
     using Microsoft.Extensions.Logging;
+    using slskd.Common.Security;
     using static slskd.Options.IntegrationOptions;
 
     /// <summary>
@@ -66,7 +67,8 @@ namespace slskd.Integrations.FTP
         {
             if (!FtpOptions.Enabled)
             {
-                Log.LogDebug("Skipping FTP upload of {filename}; FTP integration is disabled", filename);
+                Log.LogDebug("Skipping FTP upload of {filename}; FTP integration is disabled",
+                    LoggingSanitizer.SanitizeFilePath(filename));
                 return;
             }
 
@@ -77,18 +79,22 @@ namespace slskd.Integrations.FTP
                 await Retry.Do(
                     task: () => AttemptUploadAsync(filename),
                     isRetryable: (attempts, ex) => true,
-                    onFailure: (attempts, ex) => Log.LogInformation("Failed attempt #{Attempts} to upload {Filename} to FTP: {Message}", attempts, fileAndParentDirectory, ex.Message),
+                    onFailure: (attempts, ex) => Log.LogInformation("Failed attempt #{Attempts} to upload {Filename} to FTP: {Message}",
+                        attempts, LoggingSanitizer.SanitizeFilePath(fileAndParentDirectory), LoggingSanitizer.SanitizeQueryText(ex.Message)),
                     maxAttempts: FtpOptions.RetryAttempts,
                     maxDelayInMilliseconds: 30000);
             }
             catch (RetryException ex)
             {
-                Log.LogError(ex, "Fatal error retrying upload of {Filename} to FTP: {Message}", fileAndParentDirectory, ex.Message);
+                Log.LogError(ex, "Fatal error retrying upload of {Filename} to FTP: {Message}",
+                    LoggingSanitizer.SanitizeFilePath(fileAndParentDirectory), LoggingSanitizer.SanitizeQueryText(ex.Message));
                 throw;
             }
             catch (Exception ex)
             {
-                Log.LogWarning("Failed to upload {Filename} to FTP after {Attempts} attempts: {Message}", fileAndParentDirectory, FtpOptions.RetryAttempts, ex.Message);
+                Log.LogWarning("Failed to upload {Filename} to FTP after {Attempts} attempts: {Message}",
+                    LoggingSanitizer.SanitizeFilePath(fileAndParentDirectory), FtpOptions.RetryAttempts,
+                    LoggingSanitizer.SanitizeQueryText(ex.Message));
                 throw;
             }
         }
@@ -123,7 +129,9 @@ namespace slskd.Integrations.FTP
                 throw connectTask.Exception;
             }
 
-            Log.LogInformation("Uploading {Filename} to FTP {Address}:{Port} as {RemoteFilename}", fileAndParentDirectory, FtpOptions.Address, FtpOptions.Port, remoteFilename);
+            Log.LogInformation("Uploading {Filename} to FTP {Address}:{Port} as {RemoteFilename}",
+                LoggingSanitizer.SanitizeFilePath(fileAndParentDirectory), FtpOptions.Address, FtpOptions.Port,
+                LoggingSanitizer.SanitizeFilePath(remoteFilename));
             var status = await client.UploadFile(filename, remoteFilename, existsMode, createRemoteDir: true);
 
             if (status == FtpStatus.Failed)
@@ -131,7 +139,8 @@ namespace slskd.Integrations.FTP
                 throw new FtpException("FTP client reported a failed transfer");
             }
 
-            Log.LogInformation("FTP upload of {Filename} to {Address}:{Port} complete", fileAndParentDirectory, FtpOptions.Address, FtpOptions.Port);
+            Log.LogInformation("FTP upload of {Filename} to {Address}:{Port} complete",
+                LoggingSanitizer.SanitizeFilePath(fileAndParentDirectory), FtpOptions.Address, FtpOptions.Port);
         }
 
         private string GetFileAndParentDirectoryFromFilename(string filename)

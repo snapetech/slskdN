@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Security and diagnostics
+
+- Escape external filenames, transfer paths, peer identifiers, and decoder
+  diagnostics before logging them, preserving visible text without allowing
+  control characters to break log records.
+
 ## [2026100423-slskdn.339] — 2026-10-04
 
 ### Transfer updates

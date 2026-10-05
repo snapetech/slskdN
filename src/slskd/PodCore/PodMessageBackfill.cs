@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Identity;
 using slskd.Mesh.Overlay;
 
@@ -76,7 +77,8 @@ public class PodMessageBackfill : IPodMessageBackfill
                 return new PodBackfillResult(false, podId, 0, 0, stopwatch.Elapsed, "Invalid pod ID");
             }
 
-            _logger.LogInformation("Starting backfill sync for pod {PodId} with {ChannelCount} channels", podId, lastSeenTimestamps.Count);
+            _logger.LogInformation("Starting backfill sync for pod {PodId} with {ChannelCount} channels",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), lastSeenTimestamps.Count);
 
             // Determine which channels need backfill
             var channelsNeedingBackfill = new Dictionary<string, MessageRange>();
@@ -86,7 +88,8 @@ public class PodMessageBackfill : IPodMessageBackfill
                 var normalizedChannelId = channelId?.Trim() ?? string.Empty;
                 if (!PodValidation.IsValidChannelId(normalizedChannelId))
                 {
-                    _logger.LogWarning("Skipping invalid channel ID {ChannelId} in backfill sync", channelId);
+                    _logger.LogWarning("Skipping invalid channel ID {ChannelId} in backfill sync",
+                        LoggingSanitizer.SanitizeExternalIdentifier(channelId));
                     continue;
                 }
 
@@ -105,7 +108,7 @@ public class PodMessageBackfill : IPodMessageBackfill
 
             if (channelsNeedingBackfill.Count == 0)
             {
-                _logger.LogInformation("No backfill needed for pod {PodId}", podId);
+                _logger.LogInformation("No backfill needed for pod {PodId}", LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return new PodBackfillResult(true, podId, 0, 0, stopwatch.Elapsed);
             }
 
@@ -124,7 +127,8 @@ public class PodMessageBackfill : IPodMessageBackfill
 
             if (!targetPeers.Any())
             {
-                _logger.LogWarning("No other pod members available for backfill in pod {PodId}", podId);
+                _logger.LogWarning("No other pod members available for backfill in pod {PodId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return new PodBackfillResult(false, podId, channelsRequested, 0, stopwatch.Elapsed, "No peers available for backfill");
             }
 
@@ -166,7 +170,8 @@ public class PodMessageBackfill : IPodMessageBackfill
                     .FirstOrDefault(error => !string.IsNullOrWhiteSpace(error))
                     ?? "Backfill requests failed";
 
-                _logger.LogWarning("All backfill requests failed for pod {PodId}: {Error}", podId, errorMessage);
+                _logger.LogWarning("All backfill requests failed for pod {PodId}: {Error}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeQueryText(errorMessage));
                 return new PodBackfillResult(false, podId, channelsRequested, 0, stopwatch.Elapsed, errorMessage);
             }
 
@@ -175,14 +180,14 @@ public class PodMessageBackfill : IPodMessageBackfill
             _lastBackfillOperation = DateTimeOffset.UtcNow;
 
             _logger.LogInformation("Backfill sync completed for pod {PodId}: {Channels} channels, {Messages} messages received in {Duration}ms",
-                podId, channelsRequested, totalMessagesReceived, stopwatch.ElapsedMilliseconds);
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), channelsRequested, totalMessagesReceived, stopwatch.ElapsedMilliseconds);
 
             return new PodBackfillResult(true, podId, channelsRequested, totalMessagesReceived, stopwatch.Elapsed);
 
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during backfill sync for pod {PodId}", podId);
+            _logger.LogError(ex, "Error during backfill sync for pod {PodId}", LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return new PodBackfillResult(false, podId, channelsRequested, totalMessagesReceived, stopwatch.Elapsed, "Backfill sync failed");
         }
     }
@@ -225,7 +230,8 @@ public class PodMessageBackfill : IPodMessageBackfill
             }
 
             _logger.LogInformation("Handling backfill request from peer {PeerId} for pod {PodId} with {ChannelCount} channels",
-                requestingPeerId, podId, channelRanges.Count);
+                LoggingSanitizer.SanitizeExternalIdentifier(requestingPeerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), channelRanges.Count);
 
             var channelMessages = new Dictionary<string, IReadOnlyList<PodMessage>>();
             var hasMoreData = false;
@@ -235,7 +241,8 @@ public class PodMessageBackfill : IPodMessageBackfill
                 var normalizedChannelId = channelId?.Trim() ?? string.Empty;
                 if (!PodValidation.IsValidChannelId(normalizedChannelId))
                 {
-                    _logger.LogWarning("Skipping invalid channel ID {ChannelId} in backfill request", channelId);
+                    _logger.LogWarning("Skipping invalid channel ID {ChannelId} in backfill request",
+                        LoggingSanitizer.SanitizeExternalIdentifier(channelId));
                     continue;
                 }
 
@@ -268,7 +275,7 @@ public class PodMessageBackfill : IPodMessageBackfill
                 }
 
                 _logger.LogDebug("Retrieved {MessageCount} messages for channel {ChannelId} in backfill response",
-                    filteredMessages.Count, channelId);
+                    filteredMessages.Count, LoggingSanitizer.SanitizeExternalIdentifier(channelId));
             }
 
             var response = new PodBackfillResponse(
@@ -283,7 +290,7 @@ public class PodMessageBackfill : IPodMessageBackfill
             Interlocked.Add(ref _totalBackfillBytesTransferred, totalBytes);
 
             _logger.LogInformation("Backfill response prepared for pod {PodId}: {TotalMessages} messages, {TotalBytes} bytes",
-                podId, channelMessages.Values.Sum(msgs => msgs.Count), totalBytes);
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), channelMessages.Values.Sum(msgs => msgs.Count), totalBytes);
 
             return response;
 
@@ -291,7 +298,8 @@ public class PodMessageBackfill : IPodMessageBackfill
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling backfill request from peer {PeerId} for pod {PodId}",
-                requestingPeerId, podId);
+                LoggingSanitizer.SanitizeExternalIdentifier(requestingPeerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             throw;
         }
     }
@@ -314,14 +322,16 @@ public class PodMessageBackfill : IPodMessageBackfill
             }
 
             _logger.LogInformation("Processing backfill response from peer {PeerId} for pod {PodId} with {ChannelCount} channels",
-                respondingPeerId, podId, response.ChannelMessages.Count);
+                LoggingSanitizer.SanitizeExternalIdentifier(respondingPeerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), response.ChannelMessages.Count);
 
             foreach (var (channelId, messages) in response.ChannelMessages)
             {
                 var normalizedChannelId = channelId?.Trim() ?? string.Empty;
                 if (!PodValidation.IsValidChannelId(normalizedChannelId))
                 {
-                    _logger.LogWarning("Skipping invalid channel ID {ChannelId} in backfill response", channelId);
+                    _logger.LogWarning("Skipping invalid channel ID {ChannelId} in backfill response",
+                        LoggingSanitizer.SanitizeExternalIdentifier(channelId));
                     continue;
                 }
 
@@ -348,7 +358,8 @@ public class PodMessageBackfill : IPodMessageBackfill
                     if (!string.Equals(message.ChannelId, normalizedChannelId, StringComparison.Ordinal))
                     {
                         _logger.LogWarning("Message channel ID mismatch in backfill response: expected {Expected}, got {Actual}",
-                            normalizedChannelId, message.ChannelId);
+                            LoggingSanitizer.SanitizeExternalIdentifier(normalizedChannelId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(message.ChannelId));
                         continue;
                     }
 
@@ -356,7 +367,8 @@ public class PodMessageBackfill : IPodMessageBackfill
                         !string.Equals(message.PodId, podId, StringComparison.Ordinal))
                     {
                         _logger.LogWarning("Message pod ID mismatch in backfill response: expected {Expected}, got {Actual}",
-                            podId, message.PodId);
+                            LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(message.PodId));
                         continue;
                     }
 
@@ -397,7 +409,8 @@ public class PodMessageBackfill : IPodMessageBackfill
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing backfill response from peer {PeerId} for pod {PodId}",
-                respondingPeerId, podId);
+                LoggingSanitizer.SanitizeExternalIdentifier(respondingPeerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return new PodBackfillProcessingResult(
                 false, podId, respondingPeerId, messagesProcessed, messagesStored, duplicatesSkipped, stopwatch.Elapsed, "Backfill response processing failed");
         }
@@ -492,7 +505,9 @@ public class PodMessageBackfill : IPodMessageBackfill
 
         try
         {
-            _logger.LogDebug("Requesting backfill from peer {PeerId} for pod {PodId}", peerId, podId);
+            _logger.LogDebug("Requesting backfill from peer {PeerId} for pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             _backfillRequestsByPod.AddOrUpdate(podId, 1, (_, count) => count + 1);
 
             // Create backfill request message
@@ -542,7 +557,9 @@ public class PodMessageBackfill : IPodMessageBackfill
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error requesting backfill from peer {PeerId} for pod {PodId}", peerId, podId);
+            _logger.LogError(ex, "Error requesting backfill from peer {PeerId} for pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return new PodBackfillProcessingResult(
                 false, podId, peerId, 0, 0, 0, TimeSpan.Zero, "Backfill request failed");
         }

@@ -1165,7 +1165,8 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
             podToSoulseekMapping[peerId] = normalizedUsername;
 
             logger.LogDebug("[ChatBridge] Created identity mapping: Soulseek {SanitizedUsername} <-> Pod {PeerId}",
-                LoggingSanitizer.SanitizeExternalIdentifier(normalizedUsername), peerId);
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedUsername),
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId));
 
             return peerId;
         }
@@ -1190,7 +1191,8 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
             podToSoulseekMapping[normalizedPeerId] = normalizedUsername;
 
             logger.LogInformation("[ChatBridge] Registered identity mapping: Soulseek {SanitizedUsername} <-> Pod {PeerId}",
-                LoggingSanitizer.SanitizeExternalIdentifier(normalizedUsername), normalizedPeerId);
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedUsername),
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId));
         }
     }
 

@@ -75,6 +75,27 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.GenericFile
         }
 
         [Fact]
+        public async Task TryGetItemByHashAndFilenameAsync_EscapesLogBreakingFilenameCharacters()
+        {
+            _loggerMock.Setup(logger => logger.IsEnabled(LogLevel.Debug)).Returns(true);
+            var provider = new GenericFileContentDomainProvider(_loggerMock.Object);
+            var filename = "document\r\nforged.docx";
+
+            await provider.TryGetItemByHashAndFilenameAsync("def456", filename, 2048L);
+
+            _loggerMock.Verify(
+                logger => logger.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((state, _) =>
+                        state.ToString()!.Contains("document\\r\\nforged.docx") &&
+                        !state.ToString()!.Contains(filename)),
+                    It.IsAny<Exception?>(),
+                    It.IsAny<System.Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
         public async Task TryGetItemByHashAndFilenameAsync_WithEmptyHash_ReturnsNull()
         {
             // Arrange

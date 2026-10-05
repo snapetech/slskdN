@@ -162,6 +162,12 @@ public class FingerprintExtractionServiceTests
         Assert.Equal("decoder failed", FingerprintExtractionService.FormatDiagnostic(" \ndecoder failed\n"));
     }
 
+    [Fact]
+    public void FormatDiagnostic_EscapesLogBreakingCharacters()
+    {
+        Assert.Equal("decoder failed\\r\\nforged", FingerprintExtractionService.FormatDiagnostic("decoder failed\r\nforged"));
+    }
+
     private static string GetProcessPath()
     {
         return OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";

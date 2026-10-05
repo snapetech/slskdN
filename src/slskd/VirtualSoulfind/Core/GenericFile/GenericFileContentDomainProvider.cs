@@ -9,6 +9,7 @@ namespace slskd.VirtualSoulfind.Core.GenericFile
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using slskd.Common.Moderation;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     GenericFile domain provider implementation for VirtualSoulfind v2.
@@ -45,12 +46,14 @@ namespace slskd.VirtualSoulfind.Core.GenericFile
                 // For GenericFile domain, we create items on-demand from local metadata
                 // In a full implementation, this might check a cache or database for existing items
                 var item = GenericFileItem.FromLocalFileMetadata(fileMetadata, isAdvertisable: false);
-                _logger.LogDebug("Created GenericFile item for {Filename} ({Size} bytes)", item.Filename, item.SizeBytes);
+                _logger.LogDebug("Created GenericFile item for {Filename} ({Size} bytes)",
+                    LoggingSanitizer.SanitizeFilePath(item.Filename), item.SizeBytes);
                 return Task.FromResult<GenericFileItem?>(item);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create GenericFile item from local metadata: {Path}", fileMetadata.Id);
+                _logger.LogError(ex, "Failed to create GenericFile item from local metadata: {Path}",
+                    LoggingSanitizer.SanitizeFilePath(fileMetadata.Id));
                 return Task.FromResult<GenericFileItem?>(null);
             }
         }
@@ -71,7 +74,8 @@ namespace slskd.VirtualSoulfind.Core.GenericFile
                 var safeFilename = Path.GetFileName(filename);
                 if (string.IsNullOrWhiteSpace(safeFilename))
                 {
-                    _logger.LogWarning("Invalid filename provided (empty after path extraction): {OriginalFilename}", filename);
+                    _logger.LogWarning("Invalid filename provided (empty after path extraction): {OriginalFilename}",
+                        LoggingSanitizer.SanitizeFilePath(filename));
                     return Task.FromResult<GenericFileItem?>(null);
                 }
 
@@ -83,12 +87,14 @@ namespace slskd.VirtualSoulfind.Core.GenericFile
                 };
 
                 var item = GenericFileItem.FromLocalFileMetadata(fileMetadata, isAdvertisable: false);
-                _logger.LogDebug("Created GenericFile item for {Filename} with hash {Hash}", item.Filename, item.PrimaryHash);
+                _logger.LogDebug("Created GenericFile item for {Filename} with hash {Hash}",
+                    LoggingSanitizer.SanitizeFilePath(item.Filename), LoggingSanitizer.SanitizeHash(item.PrimaryHash));
                 return Task.FromResult<GenericFileItem?>(item);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create GenericFile item from hash/filename: {Hash}/{Filename}", primaryHash, filename);
+                _logger.LogError(ex, "Failed to create GenericFile item from hash/filename: {Hash}/{Filename}",
+                    LoggingSanitizer.SanitizeHash(primaryHash), LoggingSanitizer.SanitizeFilePath(filename));
                 return Task.FromResult<GenericFileItem?>(null);
             }
         }

@@ -415,7 +415,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
             status.State = SwarmJobState.Completed;
             status.OutputPath = outputPath;
             logger.LogInformation("[SwarmOrchestrator] Job {JobId}: Completed successfully - {OutputPath}",
-                job.JobId, outputPath);
+                job.JobId, LoggingSanitizer.SanitizeFilePath(outputPath));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

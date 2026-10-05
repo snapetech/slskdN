@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 
 /// <summary>
@@ -69,7 +70,9 @@ public class PeerResolutionService : IPeerResolutionService
             {
                 if (peerMappings.TryGetValue(normalizedPeerId, out var mapping) && !string.IsNullOrWhiteSpace(mapping.Username))
                 {
-                    logger.LogDebug("[PeerResolution] Found username mapping for peer {PeerId}: {Username}", normalizedPeerId, mapping.Username);
+                    logger.LogDebug("[PeerResolution] Found username mapping for peer {PeerId}: {Username}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(mapping.Username));
                     return mapping.Username.Trim();
                 }
             }
@@ -100,17 +103,21 @@ public class PeerResolutionService : IPeerResolutionService
                     peerMappings[normalizedUsername] = mapping;
                 }
 
-                logger.LogDebug("[PeerResolution] Resolved peer {PeerId} to username {Username} via DHT", normalizedPeerId, normalizedUsername);
+                logger.LogDebug("[PeerResolution] Resolved peer {PeerId} to username {Username} via DHT",
+                    LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(normalizedUsername));
                 return normalizedUsername;
             }
 
             // Fallback: assume peer ID might be a username (for backward compatibility)
-            logger.LogDebug("[PeerResolution] No mapping found for peer {PeerId}, using peer ID as username", normalizedPeerId);
+            logger.LogDebug("[PeerResolution] No mapping found for peer {PeerId}, using peer ID as username",
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId));
             return normalizedPeerId;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "[PeerResolution] Error resolving peer {PeerId} to username", normalizedPeerId);
+            logger.LogWarning(ex, "[PeerResolution] Error resolving peer {PeerId} to username",
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId));
 
             // Fallback to peer ID
             return normalizedPeerId;
@@ -133,7 +140,8 @@ public class PeerResolutionService : IPeerResolutionService
             {
                 if (peerMappings.TryGetValue(normalizedPeerId, out var mapping) && mapping.Endpoint != null)
                 {
-                    logger.LogDebug("[PeerResolution] Found endpoint mapping for peer {PeerId}: {Endpoint}", normalizedPeerId, mapping.Endpoint);
+                    logger.LogDebug("[PeerResolution] Found endpoint mapping for peer {PeerId}: {Endpoint}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId), mapping.Endpoint);
                     return mapping.Endpoint;
                 }
 
@@ -143,7 +151,8 @@ public class PeerResolutionService : IPeerResolutionService
                     m.Endpoint != null);
                 if (aliasMapping?.Endpoint != null)
                 {
-                    logger.LogDebug("[PeerResolution] Resolved endpoint for alias {PeerId}: {Endpoint}", normalizedPeerId, aliasMapping.Endpoint);
+                    logger.LogDebug("[PeerResolution] Resolved endpoint for alias {PeerId}: {Endpoint}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId), aliasMapping.Endpoint);
                     return aliasMapping.Endpoint;
                 }
             }
@@ -179,17 +188,20 @@ public class PeerResolutionService : IPeerResolutionService
                         }
                     }
 
-                    logger.LogDebug("[PeerResolution] Resolved peer {PeerId} to endpoint {Endpoint} via DHT", normalizedPeerId, endpoint);
+                    logger.LogDebug("[PeerResolution] Resolved peer {PeerId} to endpoint {Endpoint} via DHT",
+                        LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId), endpoint);
                     return endpoint;
                 }
             }
 
-            logger.LogDebug("[PeerResolution] No endpoint found for peer {PeerId}", normalizedPeerId);
+            logger.LogDebug("[PeerResolution] No endpoint found for peer {PeerId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId));
             return null;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "[PeerResolution] Error resolving peer {PeerId} to endpoint", normalizedPeerId);
+            logger.LogWarning(ex, "[PeerResolution] Error resolving peer {PeerId} to endpoint",
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId));
             return null;
         }
     }
@@ -217,7 +229,8 @@ public class PeerResolutionService : IPeerResolutionService
         }
 
         logger.LogDebug("[PeerResolution] Registered mapping: peer {PeerId} -> username {Username}, endpoint {Endpoint}",
-            normalizedPeerId, normalizedUsername, endpoint?.ToString() ?? "none");
+            LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(normalizedUsername), endpoint?.ToString() ?? "none");
     }
 
     private static async Task<IPEndPoint?> ParseEndpointAsync(string endpointString, CancellationToken cancellationToken)

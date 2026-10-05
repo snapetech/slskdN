@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Common.Security;
 
 /// <summary>
 /// Receives share-grant announcements via private messages and ingests them into the local sharing DB
@@ -52,7 +53,8 @@ public sealed class ShareGrantAnnouncementService : IDisposable
             return;
         }
 
-        _log.LogInformation("[ShareGrantInbox] Received SHAREGRANT message from {User}", e.Username);
+        _log.LogInformation("[ShareGrantInbox] Received SHAREGRANT message from {User}",
+            LoggingSanitizer.SanitizeExternalIdentifier(e.Username));
 
         _ = ObserveBackgroundTaskAsync(
             Task.Run(() => HandleAnnouncementAsync(e.Message.Substring(Prefix.Length), e.Username, CancellationToken.None), CancellationToken.None),
@@ -140,7 +142,8 @@ public sealed class ShareGrantAnnouncementService : IDisposable
         if (!string.IsNullOrWhiteSpace(senderUsername) &&
             !string.Equals(ownerUserId, senderUsername, StringComparison.OrdinalIgnoreCase))
         {
-            _log.LogWarning("[ShareGrantInbox] Rejected announcement from {Sender}: claimed owner {OwnerUserId} did not match sender", senderUsername, ownerUserId);
+            _log.LogWarning("[ShareGrantInbox] Rejected announcement from {Sender}: claimed owner {OwnerUserId} did not match sender",
+                LoggingSanitizer.SanitizeExternalIdentifier(senderUsername), LoggingSanitizer.SanitizeExternalIdentifier(ownerUserId));
             return;
         }
 
@@ -267,7 +270,8 @@ public sealed class ShareGrantAnnouncementService : IDisposable
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "[ShareGrantInbox] Failed to handle announcement from {User}", username);
+            _log.LogWarning(ex, "[ShareGrantInbox] Failed to handle announcement from {User}",
+                LoggingSanitizer.SanitizeExternalIdentifier(username));
         }
     }
 
