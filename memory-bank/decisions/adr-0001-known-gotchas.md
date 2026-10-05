@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1679. Preserve Cancellation In Pod Content And Shadow Index Actions (2026-10-05)
+
+**What went wrong:** Pod message, content-search, and shadow-index controller
+actions catch broad exceptions around operations that receive the request
+cancellation token, then turn caller cancellation into HTTP 500 responses.
+
+**Why:** The handlers map every exception to an operation-specific server
+error without separating request cancellation from actual service failures.
+
+**Prevention:** Before mapping a broad catch to HTTP 500, rethrow
+`OperationCanceledException` when that action's request token is canceled.
+Exercise cancellation through the public controller action and keep ordinary
+service failures mapped to the existing response.
+
 ### 0z1678. Make Mock HTTP Handlers Honor Their Cancellation Token (2026-10-05)
 
 **What went wrong:** The NAT probe cancellation regression supplied a handler
