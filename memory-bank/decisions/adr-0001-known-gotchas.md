@@ -39973,3 +39973,18 @@ short per-test startup budgets.
 load. When startup gates fail only under suite load, rerun the focused tests to
 separate a timing-budget failure from a service regression before changing
 runtime behavior.
+
+### 0z1692. Update The Release Changelog Read By Repository Hooks (2026-10-05)
+
+**What went wrong:** Release-worthy fixes updated the repository-root
+`CHANGELOG.md`, but the commit validation hook rejected the fix commit because
+the Unreleased section in `docs/CHANGELOG.md` was unchanged.
+
+**Why:** This repository's release tooling and changelog contract use
+`docs/CHANGELOG.md` as the authoritative rolling release log; the root file is
+not a substitute for that file.
+
+**Prevention:** Add user-facing release bullets to `docs/CHANGELOG.md`'s
+Unreleased section for every release-worthy change, then run the changelog
+validation before committing. Update the root changelog only when the change
+also belongs in its separate general history.
