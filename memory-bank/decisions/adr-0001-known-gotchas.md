@@ -296,6 +296,20 @@ boundary.
 from logs. If diagnosis needs correlation, log only the sanitized derived ID
 and verify that structured log state does not retain the source value.
 
+### 0z1586. Include Contributor Setup In The Runtime Matrix Guard (2026-10-04)
+
+**What went wrong:** `CONTRIBUTING.md` still required the .NET 8 SDK after the
+application and package runtime had moved to .NET 10. The runtime-matrix
+validator covered package and feature documentation but did not inspect the
+contributor setup guide.
+
+**Why:** Runtime validation was scoped to deployment surfaces and omitted the
+document developers use to build the application locally.
+
+**Prevention:** Keep the contributor guide's SDK prerequisite tied to
+`global.json`, and include `CONTRIBUTING.md` in the runtime-matrix assertions
+and stale-major-version scan.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
