@@ -17958,3 +17958,21 @@ changelogs, task/progress updates, and allocation-test isolation are validated
 and ready to commit. Stable `.340` is fully published. T-908 end-to-end swarm
 lifecycle, global Party ID authority, and environment-dependent browser/device/
 WAN evidence remain open for continued remediation.
+
+## 2026-10-05 08:33 UTC — Propagate cancellation from SignalBus subscribers
+
+`SignalBus.InvokeSubscriberAsync` now distinguishes caller-requested
+cancellation from ordinary subscriber failures. Caller cancellation propagates
+through `Task.WhenAll`; regular subscriber exceptions retain the established
+behavior of an escaped warning and isolation from other subscribers. The
+regression verifies cancellation escapes without a subscriber-failure log.
+SignalBus tests pass 19/19; the full Release .NET suite passes 5,958 tests
+(74 application, 5,595 unit, 289 integration), and `./bin/lint` passes.
+ADR-0001 gotcha `0z1617` was committed before the fix.
+
+The code, test, task/backlog records, changelog entries, and release fragment
+are ready to commit. Release-note preview, runtime matrix, active-backlog,
+identity, and whitespace checks will be run after committing. Stable `.340`
+remains fully published; whole-product remediation stays active for T-908
+lifecycle, global Party ID authority, and environment-dependent browser/device/
+WAN evidence.

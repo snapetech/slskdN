@@ -226,6 +226,10 @@ public class SignalBus : ISignalBus, IDisposable
         {
             await subscriber(signal, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogWarning(

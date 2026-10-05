@@ -359,6 +359,25 @@ public class SignalBusTests
     }
 
     [Fact]
+    public async Task OnSignalReceived_WhenSubscriberCancelsCaller_PropagatesWithoutFailureLog()
+    {
+        var messages = new List<string>();
+        using var signalBus = new SignalBus(new CapturingLogger<SignalBus>(messages), optionsMonitorMock.Object);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        await signalBus.SubscribeAsync((_, token) =>
+        {
+            cancellationTokenSource.Cancel();
+            return Task.FromCanceled(token);
+        });
+        var signal = CreateTestSignal(SignalChannel.Mesh);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => signalBus.OnSignalReceivedAsync(signal, cancellationTokenSource.Token));
+
+        Assert.DoesNotContain(messages, message => message.StartsWith("Signal subscriber failed", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Dispose_DisposesRegisteredChannelHandlers()
     {
         var signalBus = new SignalBus(loggerMock.Object, optionsMonitorMock.Object);

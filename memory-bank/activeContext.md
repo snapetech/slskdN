@@ -18510,3 +18510,26 @@ in this session, so no new operating-system throttling evidence was produced.
 Next: commit the receive fix, then continue reviewing remaining confirmed
 cancellation/event boundaries. Push and cut the authorized next stable release
 after remaining work and the final release gate.
+
+## Current state — Continue remediation after SignalBus subscriber cancellation — 2026-10-05 08:33 UTC
+
+SignalBus now propagates caller cancellation from subscriber callbacks instead
+of swallowing it as an ordinary subscriber failure. Ordinary subscriber
+exceptions remain isolated and logged. The focused SignalBus suite passes
+19/19; the full Release .NET suite passes 5,958 (74 application, 5,595 unit,
+289 integration), and `./bin/lint` passes. ADR-0001 gotcha `0z1617` is already
+committed. The code, regression, release fragment, changelogs, and task/progress
+records are ready to commit.
+
+The .NET 10 review remains confirmed: first-party projects target `net10.0`,
+and MonoTorrent selects its compatible `lib/net8.0` package asset. Stable
+`.340`'s hosted workflow, including Launchpad, completed.
+
+Continue the broader engineering and UX remediation. T-908 sender/job
+lifecycle, globally atomic Party ID ownership, actual background-tab
+throttling, WebKit/physical assistive-technology speech, representative
+WAN/resource behavior, the original frontend `ERR_NETWORK_CHANGED` cause,
+and discovery queues remain open. The isolated desktop/browser tool family is
+unavailable in this session, so no actual OS timer-throttling evidence was
+produced. Next: commit this fix and continue the callback/event audit. Push and
+cut the authorized next stable release after remaining fixes and final gates.

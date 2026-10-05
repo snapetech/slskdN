@@ -43,6 +43,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   logging it as a transport failure.
 - Mesh and BitTorrent signal receivers now propagate callback cancellation
   without logging it as a message-processing failure.
+- SignalBus now propagates caller cancellation from subscriber callbacks
+  instead of swallowing it as a subscriber failure.
 - Rate-limited transfer and search updates now honor their concurrency limit
   from the first callback and retain staged updates across timer ticks.
 - Resolver cancellation now reports a canceled execution instead of a failed
