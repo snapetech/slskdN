@@ -18420,3 +18420,14 @@ passed together in isolation; their bounded budgets were raised from 5/30 to
 60 seconds, and the complete suite then passed. Gotcha `0z1691` records the
 timing boundary. Commit/push, final remediation baseline, `.344` artifact
 verification, and stable `.345` remain to be completed.
+
+
+## 2026-10-05 22:47 UTC — Verify stable `.344` release artifacts
+
+`verify-release-artifacts.sh` passes against
+`2026100520-slskdn.344`: all six platform archives match the published
+SHA256 manifest, required Linux support files are present, and the Linux x64
+binary reports the expected version. The VPN helper and Web footer marker are
+also present. The tag workflow's only remaining job is `Publish to PPA (Main)`,
+which is still waiting for Launchpad publication. Stable `.344` cannot be
+rewritten; post-tag fixes remain for stable `.345`.

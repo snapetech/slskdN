@@ -50,8 +50,11 @@
   the MusicBrainz fallback/cancellation note and the new Pod security note.
 - [ ] Push the validated commits to `snapetech/slskdN` and rerun the full
   remediation baseline against the pushed branch.
-- [ ] Verify `.344`'s remaining publishers and release assets; `.344` is
-  immutable and does not contain these post-tag fixes.
+- [x] Verify `.344`'s six platform archives, published SHA256 checksums, and
+  required support assets with `verify-release-artifacts.sh`.
+- [ ] Finish `.344` publisher verification. Every hosted job except
+  `Publish to PPA (Main)` has succeeded; its Launchpad publication waiter is
+  still running. `.344` is immutable and does not contain these post-tag fixes.
 - [ ] Ship these post-tag fixes in stable `.345` after the release gate passes.
 - [ ] Continue code-backed remediation. T-908, global Party ID authority,
   accessibility, WAN/resource measurements, hidden-tab throttling, frontend

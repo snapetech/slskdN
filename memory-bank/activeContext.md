@@ -32,8 +32,10 @@ All current product, test, release-note, and memory changes are committed
 locally. The post-`.344` release-note preview passes with three user-facing
 bullets. `.344`'s release and all platform assets are published; every hosted
 job except `Publish to PPA (Main)` has succeeded. PPA publication and release
-asset checksum verification are still pending. New fixes and the current
-gotcha commits still need pushing; the published `.344` release is immutable.
+asset checksum verification are still pending. The local artifact verifier has
+now confirmed all six platform archives, published checksums, and required
+support files. New fixes and the current gotcha commits still need pushing;
+the published `.344` release is immutable.
 
 ## Next steps
 
