@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1657. Sanitize Pod Membership API Diagnostics (2026-10-05)
+
+**What went wrong:** Membership endpoints logged caller-supplied pod and peer
+IDs, service-returned identifiers and error messages, and raw exception objects.
+
+**Why:** The controller's safe HTTP error bodies did not make its diagnostic
+logs safe; IDs and failure details can still contain log-breaking control
+characters.
+
+**Prevention:** Escape every dynamic log value, including service results and
+exception text, at the controller boundary. Keep request values unchanged for
+authorization and membership operations, and verify captured logs for both
+failure-result and thrown-exception paths.
+
 ### 0z1656. Keep Pod Membership Request Cancellation Out Of HTTP Failures (2026-10-05)
 
 **What went wrong:** Pod membership API actions caught cancellation from their
