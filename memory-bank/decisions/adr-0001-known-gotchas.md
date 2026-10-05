@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1634. Preserve Cancellation In Peer Relay Descriptor Updates (2026-10-05)
+
+**What went wrong:** `MarkPeerRequiresRelayAsync` caught cancellation from its
+DHT read or write and returned as though the relay-state update had failed.
+
+**Why:** Its generic recovery catch hid both expected DHT failures and
+cancellation requested by the operation's caller.
+
+**Prevention:** Rethrow cancellation when the supplied token is canceled
+before logging ordinary relay-update failures. Cover the public update method
+with a canceled DHT dependency.
+
 ### 0z1633. Match Kademlia Test Mocks To Exact Interface And DTO Contracts (2026-10-05)
 
 **What went wrong:** A new Kademlia cancellation test configured
