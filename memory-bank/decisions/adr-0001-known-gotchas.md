@@ -38543,3 +38543,16 @@ sanitize the exception metadata that logging providers render separately.
 as a structured string field instead of passing the exception object. Keep the
 original exception and protocol behavior intact, and add captured-log tests
 that assert the full detail is escaped and no raw exception object is attached.
+
+### 0z1601. Select The Target Event In Multi-Event Log Tests (2026-10-05)
+
+**What went wrong:** The greeting failure regression expected one captured log
+entry, but the operation also emits an informational record before the warning.
+The assertion failed even though the sanitized warning was present.
+
+**Why:** The test invoked the whole operation and treated its logger as a
+single-event sink.
+
+**Prevention:** Filter captured entries by expected level or event content when
+the operation legitimately logs progress and failure. Assert the target record
+and its exception state without assuming unrelated records are absent.
