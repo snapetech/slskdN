@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1621. Preserve Cancellation When Mesh Sync Waits For Its Lock (2026-10-05)
+
+**What went wrong:** `TrySyncWithPeerAsync` caught cancellation from
+`SemaphoreSlim.WaitAsync(cancellationToken)`, recorded a failed sync, and
+returned an ordinary mesh failure result.
+
+**Why:** The broad method-level catch grouped caller control flow with peer,
+capability, and transport failures.
+
+**Prevention:** Rethrow `OperationCanceledException` when the caller token is
+canceled before converting other exceptions into `MeshSyncResult` failures.
+Hold the sync semaphore in a regression so cancellation is deterministic.
+
 ### 0z1620. Create Integration Download Roots In The Test Fixture (2026-10-05)
 
 **What went wrong:** Pod download integration tests relied on a previously
