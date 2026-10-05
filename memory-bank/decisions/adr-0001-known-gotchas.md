@@ -38732,3 +38732,19 @@ not reconsidered when the scenario gained more network operations.
 round trips or log waits. Use a bounded but adequate scenario-level timeout,
 and give independently timed phases fresh tokens when they should not consume
 one another's budgets.
+
+### 0z1604. Match Mesh Dispatch To The Serialized Enum Type (2026-10-05)
+
+**What went wrong:** Overlay mesh dispatchers matched string message names such
+as mesh_sync_hello, while MeshMessage.Type serializes as a numeric enum.
+Incoming valid mesh sync messages therefore had no extracted string type and
+were silently ignored as unknown messages.
+
+**Why:** The handshake overlay uses string message types, but mesh sync uses a
+separate MeshMessageType enum. Reusing the handshake's string dispatch
+assumed both wire formats had the same discriminator representation.
+
+**Prevention:** Verify serialized discriminator values against the actual
+message DTOs whenever adding or reviewing overlay dispatch. Cover both inbound
+directions with a message serialized by the real DTO and ensure it reaches the
+sync handler.
