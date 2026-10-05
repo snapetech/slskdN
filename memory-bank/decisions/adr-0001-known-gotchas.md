@@ -19,6 +19,21 @@ record.
 CR/LF characters. Join records only for positive checks that expected escaped
 sequences are present.
 
+### 0z1606. Alias Logging Sanitizers Beside Mesh Privacy Types (2026-10-05)
+
+**What went wrong:** Importing the entire `slskd.Common.Security` namespace to
+use `LoggingSanitizer` in `PodMessageRouter` made its existing `IPrivacyLayer`
+reference ambiguous with `slskd.Mesh.Privacy.IPrivacyLayer`, stopping the
+application build.
+
+**Why:** Both namespaces define an `IPrivacyLayer`, and the broad import was
+added to a file that already imports the mesh privacy namespace.
+
+**Prevention:** When a file already uses a namespace with overlapping public
+types, import the specific sanitizer type with a `using` alias instead of
+importing the whole security namespace. Compile the owning project after
+changing namespace imports.
+
 ### 0z1605. Sweep Pod API, Storage, Signing, and Routing Logs Together (2026-10-05)
 
 **What went wrong:** Native Pod controllers and the message router still logged
