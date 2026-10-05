@@ -183,6 +183,27 @@ public class MeshServiceRouterTests
     }
 
     [Fact]
+    public async Task RouteAsync_WhenCallerCancelsServiceCall_PropagatesCancellation()
+    {
+        var serviceStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _router.RegisterService(new CancellationWaitingService(serviceStarted));
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var call = new ServiceCall
+        {
+            ServiceName = "cancellation-service",
+            Method = "Wait",
+            CorrelationId = Guid.NewGuid().ToString(),
+            Payload = Array.Empty<byte>(),
+        };
+
+        var route = _router.RouteAsync(call, "peer1", cancellationToken: cancellationTokenSource.Token);
+        await serviceStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        cancellationTokenSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => route);
+    }
+
+    [Fact]
     public void UnregisterService_WithRegisteredService_ReturnsTrue()
     {
         // Arrange
@@ -249,5 +270,38 @@ public class MeshServiceRouterTests
         {
             throw new NotSupportedException("Streaming not supported in test service");
         }
+    }
+
+    private sealed class CancellationWaitingService : IMeshService
+    {
+        private readonly TaskCompletionSource<bool> serviceStarted;
+
+        public CancellationWaitingService(TaskCompletionSource<bool> serviceStarted)
+        {
+            this.serviceStarted = serviceStarted;
+        }
+
+        public string ServiceName => "cancellation-service";
+
+        public async Task<ServiceReply> HandleCallAsync(
+            ServiceCall call,
+            MeshServiceContext context,
+            CancellationToken cancellationToken = default)
+        {
+            serviceStarted.TrySetResult(true);
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new ServiceReply
+            {
+                CorrelationId = call.CorrelationId,
+                StatusCode = ServiceStatusCodes.OK,
+                Payload = call.Payload,
+            };
+        }
+
+        public Task HandleStreamAsync(
+            MeshServiceStream stream,
+            MeshServiceContext context,
+            CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 }

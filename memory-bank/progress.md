@@ -17991,3 +17991,28 @@ before the code fix. Release fragment and matching changelog entries are
 present; task and active-backlog records are updated. T-908 sender/job
 lifecycle, global Party ID authority, and external browser/device/WAN evidence
 remain open.
+
+## Update 2026-10-05 — Preserve mesh service cancellation and isolate test roots
+
+`MeshServiceRouter` now propagates caller-requested cancellation through its
+service-handler and outer error boundaries. Router cancellation no longer
+becomes an unknown-error reply or circuit-breaker failure; service-owned
+timeouts still return the established timeout response. Router tests pass
+12/12.
+
+The full Release solution initially exposed that the web integration fixture
+relied on a stale shared `downloads` directory. The fixture now creates its
+configured download and incomplete roots. Under a fresh isolated `TMPDIR`, the
+SearchActions integration class passes 13/13, and the full Release solution
+passes 5,960 tests (74 application, 5,597 unit, 289 integration). The initial
+four HTTP 500s were test setup failures caused by the missing trusted root,
+not product regressions. `./bin/lint` passed before the fixture-only change;
+it will be rerun with the final gate.
+
+Gotchas `0z1619` and `0z1620` were committed before their respective fixes.
+The router source, test, release fragment, changelogs, and project records are
+ready for commit. `.NET 10` remains verified: first-party app/test/build
+projects target `net10.0`, and MonoTorrent resolves its compatible `net8.0`
+asset. Continue the MeshSync cancellation audit; T-908 lifecycle, distributed
+Party ID authority, and environment-dependent browser/device/WAN evidence
+remain open.

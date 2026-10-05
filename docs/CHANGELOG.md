@@ -50,6 +50,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   instead of swallowing it as a subscriber failure.
 - Mesh hash-consensus lookups now propagate caller cancellation instead of
   treating it as a failed peer query.
+- Mesh service routing now propagates caller cancellation instead of converting
+  it into a service failure response.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

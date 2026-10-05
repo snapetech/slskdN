@@ -269,6 +269,10 @@ public class MeshServiceRouter
                     ServiceStatusCodes.Timeout,
                     "Service call timed out");
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _securityLogger?.LogServiceException(
@@ -297,6 +301,10 @@ public class MeshServiceRouter
                 call.ServiceName, call.Method, reply.StatusCode);
 
             return reply;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

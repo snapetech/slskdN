@@ -18557,3 +18557,29 @@ in this session, so OS timer-throttling evidence remains absent. Next: commit
 the mesh cancellation fix and continue reviewing remaining cancellation and
 callback boundaries. Push and cut the authorized next release after remaining
 fixes and final gates.
+
+## Current state — Preserve mesh routing cancellation — 2026-10-05
+
+`MeshServiceRouter` now propagates caller cancellation instead of converting
+it into an unknown-error reply, circuit-breaker failure, or router error.
+Focused router coverage passes 12/12. The full Release .NET suite passes
+5,960 tests (74 application, 5,597 unit, 289 integration), and repository lint
+passes.
+
+That full run exposed a test-fixture dependency on stale temp state: the shared
+integration host configured download/incomplete roots without creating them.
+Both are now created during fixture setup. SearchActions integration coverage
+passes 13/13 and the full suite passes with a new isolated `TMPDIR`. Gotchas
+`0z1619` and `0z1620` were committed before the respective changes.
+
+The MonoTorrent concern is closed: first-party application, test, and build
+projects target .NET 10, and package restore selects MonoTorrent's compatible
+`lib/net8.0` asset. The old `.NET 6` mention is historical.
+
+Next: continue MeshSync cancellation review, including caller cancellation
+during sync-lock acquisition and inbound chunk reads. T-908 sender/job
+lifecycle, globally authoritative Party ID ownership, hidden-tab throttling,
+physical/WebKit assistive-technology evidence, representative WAN/resource
+behavior, the original frontend `ERR_NETWORK_CHANGED` cause, and broad
+discovery queues remain open. Push and cut the authorized stable release only
+after remaining code fixes and final release gates.

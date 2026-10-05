@@ -240,6 +240,18 @@
   1/1; the full Release .NET suite passes 5,959 (74 application, 5,596 unit,
   289 integration), and `./bin/lint` passes. Gotcha `0z1618` records the fan-out
   boundary.
+- [x] Preserve caller cancellation through mesh service routing — 2026-10-05.
+  `MeshServiceRouter` now rethrows caller cancellation without logging it as a
+  handler failure or counting it against the service circuit breaker; its
+  router-level catch preserves cancellation too. Router tests pass 12/12, the
+  full Release .NET suite passes 5,960 (74 application, 5,597 unit, 289
+  integration), and `./bin/lint` passes. Gotcha `0z1619` records the boundary.
+- [x] Create test download roots in the web integration fixture — 2026-10-05.
+  The fixture creates its configured download and incomplete roots so secure
+  output tests pass with a fresh isolated `TMPDIR`, independent of stale
+  machine state. Search action integration coverage passes 13/13 and the full
+  Release .NET solution passes. This is test-harness-only work; gotcha `0z1620`
+  records the missing-root dependency.
 - [x] Serialize the strict release-ID allocation regression — 2026-10-05.
   `MusicDomainMappingTests` now uses `AllocationTestCollection`, preventing its
   1 KiB current-thread allocation ceiling from racing other allocation tests.
