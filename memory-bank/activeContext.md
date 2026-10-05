@@ -18273,3 +18273,42 @@ before cutting the next stable release. T-908 sender/receiver lifecycle,
 cross-DHT Party ID ownership semantics, background-tab throttling, WebKit and
 physical assistive-technology evidence, representative WAN/resource evidence,
 and the original frontend `ERR_NETWORK_CHANGED` cause remain open.
+## Current state — Continue remediation after `.340`; capability diagnostics complete — 2026-10-05 06:22 UTC
+
+Stable `.340` is published as
+[`2026100505-slskdn.340`](https://github.com/snapetech/slskdN/releases/tag/2026100505-slskdn.340).
+Its six application archives and checksums, support assets, VPN helper,
+bundled Web marker, and Linux version were verified. The hosted Docker Main
+publisher and Launchpad PPA publication are still running.
+
+Capability discovery diagnostics now escape peer usernames, remote paths,
+client/version metadata, and full exception details only at log boundaries.
+Requests, parsed content, and peer-cache values retain their original input.
+The regression suite covers successful discovery, download failure, global
+policy rejection, and the capability cache. Commit `be3e51245` contains this
+implementation, tests, release fragment, changelog, task status, and active
+backlog refresh. Focused capability tests pass 32/32; the full Release .NET
+suite passes 5,942 (74 application, 5,579 unit, 289 integration). Repository
+format lint, active-backlog, local-identity, and whitespace checks pass.
+
+Every first-party project under `src`, `tests`, and `tools` targets `net10.0`.
+MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves its compatible
+`lib/net8.0` assets; no MonoTorrent `.NET 6` asset is selected. The old ADR
+reference was historical. Other dependencies may expose compatible lower-TFM
+assets without changing the application target.
+
+Current active discovery queues are 25 async-void examples, 0 silent catches,
+211 callback/event candidates, 435 remote-text candidates, 12,257 red-team
+candidates, and 826 mutable-ownership candidates. These are review queues, not
+confirmed bug totals. T-908 fallback lifecycle, distributed Party ID claims,
+actual hidden-tab throttling, physical assistive-technology use, representative
+WAN/resource evidence, and the original frontend `ERR_NETWORK_CHANGED` cause
+remain open. The local gotcha and capability commits have not yet been pushed.
+
+Next: continue the subsystem-by-subsystem diagnostic review and code-backed
+product fixes, refresh queue classifications and release documentation, then
+push the complete validated tree and cut the next stable release. Do not mark
+the whole-product initiative complete while implementation or required
+external evidence remains open.
+
+## Current state — Commit remediation records; prepare `.340` release — 2026-10-05 05:43 UTC

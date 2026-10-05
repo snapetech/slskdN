@@ -17783,3 +17783,28 @@ logging, planner, and service-worker fragments. The docs/deferred-work refresh
 is in progress; the `.340` changelog cut, target guard, branch push, guarded tag
 flow, and published-artifact verification remain pending. The whole-product
 initiative stays open for the recorded T-908 and environment-dependent followups.
+## Update 2026-10-05 06:22 UTC — Escape capability discovery diagnostics
+
+Escaped peer usernames, downloaded capability paths, peer-provided client and
+version fields, and full exception details at every capability-discovery log
+boundary. The escaping affects only the diagnostic copy; capability downloads,
+parsed values, and cache identity preserve their source values. Captured-log
+regressions cover successful discovery, a failed download, and a fetch rejected
+by global exclusion policy. ADR-0001 gotchas `0z1603` and `0z1604` document the
+remote-input boundary and per-record newline assertion pattern.
+
+Commit `be3e51245` records the implementation, tests, release fragment,
+changelog, tasks, and active-bughunt counts. Focused capability tests pass
+32/32. The full Release .NET suite passes 5,942 (74 application, 5,579 unit,
+289 integration); `./bin/lint`, active-backlog, local-identity, and whitespace
+checks pass. Current discovery queues are 211 callback/event, 435 remote-text,
+12,257 red-team, and 826 mutable-ownership candidates.
+
+Stable `.340` is published and its six archives and checksums were verified.
+The hosted Docker Main publisher and Launchpad PPA publication remain in
+progress. All first-party projects target `net10.0`; MonoTorrent selects its
+compatible `net8.0` asset. The broader remediation remains open. Next: continue
+the diagnostic sweep and code-backed product fixes, then push the validated
+tree and prepare the next stable release.
+
+## Update 2026-10-05 02:50 UTC — Align .NET 10 packaging docs and escape VirtualSoulfind diagnostics
