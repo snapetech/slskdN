@@ -39988,3 +39988,17 @@ not a substitute for that file.
 Unreleased section for every release-worthy change, then run the changelog
 validation before committing. Update the root changelog only when the change
 also belongs in its separate general history.
+
+### 0z1693. Keep Release Fragment Bodies Within The Preview Limit (2026-10-05)
+
+**What went wrong:** The first draft of a Pod diagnostic release fragment was
+too long for the release-note preview's 400-character body limit, so the
+post-`.344` release-note validation failed.
+
+**Why:** The fragment tried to carry implementation detail and several
+behavior boundaries in one paragraph instead of stating the user impact
+concisely.
+
+**Prevention:** Keep each fragment body within the validator's 30–400
+character range and describe user impact in concise sentences. Run the exact
+base-to-head preview before treating release documentation as complete.
