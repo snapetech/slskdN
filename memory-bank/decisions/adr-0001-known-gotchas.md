@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1619. Keep Mesh Caller Cancellation Out Of Handler Failure Responses (2026-10-05)
+
+**What went wrong:** `MeshServiceRouter` converted caller cancellation from a
+service handler into an unknown-error reply and counted it as a circuit-breaker
+failure; its outer catch could also turn cancellation into a router error.
+
+**Why:** The inner timeout filter deliberately distinguishes router timeout
+from caller cancellation, but the broad exception handlers did not preserve
+the caller's control flow afterward.
+
+**Prevention:** Preserve the service timeout response for router-owned timeout
+cancellation, then rethrow when the caller token is canceled before generic
+inner or outer error handling. Cover cancellation through `RouteAsync`.
+
 ### 0z1618. Propagate Cancellation Through Mesh Consensus Fan-Out (2026-10-05)
 
 **What went wrong:** A mesh hash-consensus peer-query task caught caller
