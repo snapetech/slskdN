@@ -67,6 +67,39 @@ public class PodMessagingRoutingTests
     }
 
     [Fact]
+    public async Task SendAsync_EscapesPodAndChannelIdsInLogsAndRetainsOriginalLookupValues()
+    {
+        var podId = "pod\r\nforged";
+        var channelId = "channel\r\nforged";
+        var message = new PodMessage
+        {
+            PodId = podId,
+            MessageId = "message-1",
+            ChannelId = channelId,
+            SenderPeerId = "peer-1",
+            Body = "hello",
+        };
+        mockPodService
+            .Setup(service => service.GetPodAsync(podId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Pod?)null);
+
+        var accepted = await podMessaging.SendAsync(message);
+
+        Assert.False(accepted);
+        mockPodService.Verify(service => service.GetPodAsync(podId, It.IsAny<CancellationToken>()), Times.Once);
+        mockLogger.Verify(logger => logger.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("pod\\r\\nforged", StringComparison.Ordinal) &&
+                state.ToString()!.Contains("channel\\r\\nforged", StringComparison.Ordinal) &&
+                !state.ToString()!.Contains(podId, StringComparison.Ordinal) &&
+                !state.ToString()!.Contains(channelId, StringComparison.Ordinal)),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
     public async Task SendAsync_ShouldRouteMessageToMembers()
     {
         var podId = "pod:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

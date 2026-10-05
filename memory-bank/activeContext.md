@@ -1,4 +1,32 @@
-## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:01 UTC
+## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:14 UTC
+
+Stable `.339` remains the latest published release. Transfer diagnostics are
+committed locally in `81af65cbd` with a regression that checks escaped peer
+fields while preserving the original request filename. The next batch hardens
+Pod membership, message verification/routing, signature, and Soulseek chat
+bridge logs. It preserves message contents and routing inputs and includes a
+captured structured-log regression for Pod/channel ID escaping. Focused Pod
+coverage passes 1/1; full Release tests pass 5,922 (74 application, 5,559
+unit, 289 integration), `./bin/lint`, active-backlog, local-identity, and
+whitespace checks pass. The Pod code, release note, changelog, task/progress
+updates, and backlog refresh are validated but not yet committed or pushed.
+Gotchas `0z1576` and `0z1577` are committed separately.
+
+All first-party projects under `src`, `tests`, and `tools` target `net10.0`.
+MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves to its compatible
+`lib/net8.0` asset; no project TFM or selected MonoTorrent asset targets
+`.NET 6`. No framework change is needed.
+
+Next: commit this validated Pod batch and continue the remote-text audit with
+message signing, SQLite Pod storage, and VirtualSoulfind search/download
+diagnostics. Keep T-908 fallback lifecycle, global Party ID ownership across
+disjoint DHT views, actual background-tab timer throttling, WebKit/Orca and
+physical assistive-technology speech, representative WAN/resource evidence,
+the original frontend `ERR_NETWORK_CHANGED` cause, and broad discovery queues
+open until their required code or external evidence exists. Do not cut `.340`
+yet.
+
+## Previous state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:01 UTC
 
 Stable `.339` remains the latest published release. The transfer diagnostics
 batch now escapes usernames, remote filenames, paths, policy text, and full

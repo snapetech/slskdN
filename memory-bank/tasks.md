@@ -136,9 +136,17 @@
   Full Release tests pass 5,921 (74 application, 5,558 unit, 289 integration);
   `./bin/lint`, active-backlog, identity, and whitespace checks pass. Gotchas
   `0z1573`–`0z1575` record the sweep boundaries and review failures.
+- [x] Escape peer, pod, channel, and room identifiers in Pod membership,
+  message routing, signature verification, and Soulseek chat bridge logs —
+  2026-10-05. Exception diagnostics retain full escaped stack context while
+  messages and routing values remain unchanged. Focused Pod regression passes
+  1/1; full Release tests pass 5,922 (74 application, 5,559 unit, 289
+  integration), `./bin/lint`, active-backlog, identity, and whitespace checks
+  pass. Gotchas `0z1576` and `0z1577` document the message and membership
+  boundaries.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Discovery queues remain open at 210 callback/event,
-  476 remote-text, 12,236 red-team, and 823 mutable-ownership candidates;
+  471 remote-text, 12,236 red-team, and 823 mutable-ownership candidates;
   T-908 fallback lifecycle and distributed evidence requirements also remain
   open.
 

@@ -17695,3 +17695,17 @@ and 823 mutable-ownership candidates. Gotchas `0z1573`–`0z1575` capture the
 transfer boundary, behavior-preservation, and namespace-shadowing findings.
 The release fragment is ready for the next stable release; `.340` remains
 deferred until the ongoing remediation is complete.
+
+## Update 2026-10-05 02:14 UTC — Escape Pod message and bridge diagnostics
+
+Escaped peer/pod/channel IDs and room names in Pod membership, message
+verification and routing, signature validation, and Soulseek chat bridge logs.
+Remote exception detail now remains available as escaped full diagnostic text.
+Added a regression that checks CR/LF escaping and confirms the original IDs
+still reach the pod lookup. Focused coverage passes 1/1; full Release tests
+pass 5,922 (74 application, 5,559 unit, 289 integration), `./bin/lint`,
+active-backlog, local-identity, and whitespace checks pass. The refreshed
+remote-text queue is 471; callback/event, red-team, and mutable-ownership
+queues are 210, 12,236, and 823. Gotchas `0z1576` and `0z1577` record the
+message-routing and membership-log boundaries. The Pod release note is ready;
+`.340` remains deferred while remediation continues.

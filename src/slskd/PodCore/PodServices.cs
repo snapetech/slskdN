@@ -233,9 +233,9 @@ public class PodService : IPodService
                 // Log the rejection for audit purposes
                 logger?.LogInformation(
                     "Rejected pod join for peer {PeerId}: would exceed max members ({MaxMembers}) for VPN pod {PodId}",
-                    member.PeerId,
+                    LoggingSanitizer.SanitizeExternalIdentifier(member.PeerId),
                     maxMembers,
-                    podId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return false;
             }
         }
@@ -271,10 +271,10 @@ public class PodService : IPodService
             {
                 // Log but don't fail join if signing fails
                 logger?.LogWarning(
-                    ex,
-                    "Failed to sign membership record for peer {PeerId} while joining pod {PodId}",
-                    member.PeerId,
-                    podId);
+                    "Failed to sign membership record for peer {PeerId} while joining pod {PodId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(member.PeerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -329,10 +329,10 @@ public class PodService : IPodService
                     {
                         // Log but don't fail ban if signing fails
                         logger?.LogWarning(
-                            ex,
-                            "Failed to sign ban record for peer {PeerId} in pod {PodId}",
-                            peerId,
-                            podId);
+                            "Failed to sign ban record for peer {PeerId} in pod {PodId}: {Exception}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                 }
 
@@ -516,7 +516,8 @@ public class PodService : IPodService
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Failed to {Operation}", operation);
+            logger?.LogWarning("Failed to {Operation}: {Exception}", operation,
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -632,7 +633,8 @@ public class PodMessaging : IPodMessaging
         {
             if (seenMessageIds.Contains(message.MessageId))
             {
-                logger.LogDebug("[PodMessaging] Rejecting duplicate message {MessageId}", message.MessageId);
+                logger.LogDebug("[PodMessaging] Rejecting duplicate message {MessageId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
                 return false;
             }
 
@@ -646,14 +648,18 @@ public class PodMessaging : IPodMessaging
         var pod = await podService.GetPodAsync(podId, ct);
         if (pod == null)
         {
-            logger.LogWarning("[PodMessaging] Pod {PodId} not found for channel {ChannelId}", podId, message.ChannelId);
+            logger.LogWarning("[PodMessaging] Pod {PodId} not found for channel {ChannelId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(message.ChannelId));
             return false;
         }
 
         var channel = pod.Channels.FirstOrDefault(c => c.ChannelId == channelIdOnly);
         if (channel == null)
         {
-            logger.LogWarning("[PodMessaging] Channel {ChannelId} not found in pod {PodId}", channelIdOnly, pod.PodId);
+            logger.LogWarning("[PodMessaging] Channel {ChannelId} not found in pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(channelIdOnly),
+                LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId));
             return false;
         }
 
@@ -667,22 +673,26 @@ public class PodMessaging : IPodMessaging
             if (!messageVerification.HasValidSignature) reasons.Add("invalid signature");
 
             logger.LogWarning("[PodMessaging] Rejecting message {MessageId} from {PeerId}: {Reasons}",
-                message.MessageId, message.SenderPeerId, string.Join(", ", reasons));
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId), string.Join(", ", reasons));
             return false;
         }
 
         logger.LogDebug("[PodMessaging] Message {MessageId} passed verification (member: {IsMember}, not banned: {NotBanned}, signature: {SignatureValid})",
-            message.MessageId, messageVerification.IsFromValidMember, messageVerification.IsNotBanned, messageVerification.HasValidSignature);
+            LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+            messageVerification.IsFromValidMember, messageVerification.IsNotBanned, messageVerification.HasValidSignature);
 
         // 5. Verify message signature
         var signatureValid = await messageSigner.VerifyMessageAsync(message, ct);
         if (!signatureValid)
         {
-            logger.LogWarning("[PodMessaging] Rejecting message {MessageId} with invalid signature", message.MessageId);
+            logger.LogWarning("[PodMessaging] Rejecting message {MessageId} with invalid signature",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
             return false;
         }
 
-        logger.LogDebug("[PodMessaging] Message {MessageId} signature verified", message.MessageId);
+        logger.LogDebug("[PodMessaging] Message {MessageId} signature verified",
+            LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
 
         // 6. Get pod members for routing
         var members = await podService.GetMembersAsync(pod.PodId, ct);
@@ -707,7 +717,9 @@ public class PodMessaging : IPodMessaging
         }
 
         logger.LogDebug("[PodMessaging] Accepted and stored message {MessageId} from {PeerId} in channel {ChannelId}",
-            message.MessageId, message.SenderPeerId, message.ChannelId);
+            LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+            LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(message.ChannelId));
 
         // 7. Forward to Soulseek room if channel is bound (mirror mode)
         _ = ObservePodBackgroundTaskAsync(
@@ -734,7 +746,9 @@ public class PodMessaging : IPodMessaging
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[PodMessaging] Failed to {Operation} for {MessageId}", operation, messageId);
+            logger.LogWarning("[PodMessaging] Failed to {Operation} for {MessageId}: {Exception}", operation,
+                LoggingSanitizer.SanitizeExternalIdentifier(messageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -749,7 +763,8 @@ public class PodMessaging : IPodMessaging
     {
         if (members == null || members.Count == 0)
         {
-            logger.LogDebug("[PodMessaging] No members to route message {MessageId} to", message.MessageId);
+            logger.LogDebug("[PodMessaging] No members to route message {MessageId} to",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
             return;
         }
 
@@ -760,11 +775,13 @@ public class PodMessaging : IPodMessaging
 
         if (recipients.Count == 0)
         {
-            logger.LogDebug("[PodMessaging] No valid recipients for message {MessageId}", message.MessageId);
+            logger.LogDebug("[PodMessaging] No valid recipients for message {MessageId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
             return;
         }
 
-        logger.LogDebug("[PodMessaging] Routing message {MessageId} to {Count} members", message.MessageId, recipients.Count);
+        logger.LogDebug("[PodMessaging] Routing message {MessageId} to {Count} members",
+            LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId), recipients.Count);
 
         // Serialize message to JSON for transport
         var messageJson = JsonSerializer.Serialize(message);
@@ -790,13 +807,17 @@ public class PodMessaging : IPodMessaging
                         var meshMessage = $"{PodMessagePrefix}{messageJson}";
                         await soulseekClient.SendPrivateMessageAsync(username, meshMessage, ct);
                         logger.LogDebug("[PodMessaging] Routed message {MessageId} to {PeerId} (Soulseek: {Username})",
-                            message.MessageId, member.PeerId, username);
+                            LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(member.PeerId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(username));
                     }
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "[PodMessaging] Failed to route message {MessageId} to member {PeerId} via Soulseek",
-                        message.MessageId, member.PeerId);
+                    logger.LogWarning("[PodMessaging] Failed to route message {MessageId} to member {PeerId} via Soulseek: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(member.PeerId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
         }
@@ -844,7 +865,8 @@ public class PodMessaging : IPodMessaging
     {
         if (string.IsNullOrWhiteSpace(message.Signature))
         {
-            logger.LogWarning("[PodMessaging] Message {MessageId} has no signature", message.MessageId);
+            logger.LogWarning("[PodMessaging] Message {MessageId} has no signature",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
             return false;
         }
 
@@ -860,14 +882,17 @@ public class PodMessaging : IPodMessaging
 
             if (senderMember == null)
             {
-                logger.LogWarning("[PodMessaging] Sender {PeerId} not found in pod {PodId} membership", message.SenderPeerId, podId);
+                logger.LogWarning("[PodMessaging] Sender {PeerId} not found in pod {PodId} membership",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return false;
             }
 
             // Check if public key is available
             if (string.IsNullOrWhiteSpace(senderMember.PublicKey))
             {
-                logger.LogWarning("[PodMessaging] Sender {PeerId} has no public key stored - rejecting unsigned pod message", message.SenderPeerId);
+                logger.LogWarning("[PodMessaging] Sender {PeerId} has no public key stored - rejecting unsigned pod message",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId));
                 return false;
             }
 
@@ -897,14 +922,17 @@ public class PodMessaging : IPodMessaging
             if (!isValid)
             {
                 logger.LogWarning("[PodMessaging] Signature verification failed for message {MessageId} from {PeerId}",
-                    message.MessageId, message.SenderPeerId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.SenderPeerId));
             }
 
             return isValid;
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[PodMessaging] Signature validation failed for message {MessageId}", message.MessageId);
+            logger.LogWarning("[PodMessaging] Signature validation failed for message {MessageId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -1016,12 +1044,16 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
         var podService = scope.ServiceProvider.GetRequiredService<IPodService>();
 
         logger.LogInformation("[ChatBridge] Binding pod {PodId} channel {ChannelId} to Soulseek room {Room} (mode: {Mode})",
-            podId, channelId, roomName, mode);
+            LoggingSanitizer.SanitizeExternalIdentifier(podId),
+            LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+            LoggingSanitizer.SanitizeExternalIdentifier(roomName),
+            LoggingSanitizer.SanitizeExternalIdentifier(mode));
 
         // Validate mode
         if (mode != "readonly" && mode != "mirror")
         {
-            logger.LogWarning("[ChatBridge] Invalid mode: {Mode} (must be 'readonly' or 'mirror')", mode);
+            logger.LogWarning("[ChatBridge] Invalid mode: {Mode} (must be 'readonly' or 'mirror')",
+                LoggingSanitizer.SanitizeExternalIdentifier(mode));
             return false;
         }
 
@@ -1029,14 +1061,15 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
         var pod = await podService.GetPodAsync(podId, ct);
         if (pod == null)
         {
-            logger.LogWarning("[ChatBridge] Pod {PodId} not found", podId);
+            logger.LogWarning("[ChatBridge] Pod {PodId} not found", LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return false;
         }
 
         var channel = pod.Channels.FirstOrDefault(c => c.ChannelId == channelId);
         if (channel == null)
         {
-            logger.LogWarning("[ChatBridge] Channel {ChannelId} not found in pod {PodId}", channelId, podId);
+            logger.LogWarning("[ChatBridge] Channel {ChannelId} not found in pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(podId));
             return false;
         }
 
@@ -1044,11 +1077,13 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
         try
         {
             await roomService.JoinAsync(roomName);
-            logger.LogDebug("[ChatBridge] Joined Soulseek room {Room}", roomName);
+            logger.LogDebug("[ChatBridge] Joined Soulseek room {Room}", LoggingSanitizer.SanitizeExternalIdentifier(roomName));
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[ChatBridge] Failed to join Soulseek room {Room}", roomName);
+            logger.LogWarning("[ChatBridge] Failed to join Soulseek room {Room}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(roomName),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Continue anyway - might already be joined
         }
@@ -1072,21 +1107,25 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
         channel.BindingInfo = $"soulseek-room:{roomName}";
 
         logger.LogInformation("[ChatBridge] Successfully bound channel {ChannelId} to room {Room} (mode: {Mode})",
-            channelId, roomName, mode);
+            LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+            LoggingSanitizer.SanitizeExternalIdentifier(roomName),
+            LoggingSanitizer.SanitizeExternalIdentifier(mode));
 
         return true;
     }
 
     public Task<bool> UnbindRoomAsync(string podId, string channelId, CancellationToken ct = default)
     {
-        logger.LogInformation("[ChatBridge] Unbinding channel {ChannelId} from pod {PodId}", channelId, podId);
+        logger.LogInformation("[ChatBridge] Unbinding channel {ChannelId} from pod {PodId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(podId));
 
         lock (bindingsLock)
         {
             if (activeBindings.TryGetValue(channelId, out var binding))
             {
                 activeBindings.Remove(channelId);
-                logger.LogInformation("[ChatBridge] Unbound channel {ChannelId} from room {Room}", channelId, binding.RoomName);
+                logger.LogInformation("[ChatBridge] Unbound channel {ChannelId} from room {Room}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(binding.RoomName));
                 return Task.FromResult(true);
             }
         }
@@ -1123,18 +1162,22 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
             if (sent)
             {
                 logger.LogDebug("[ChatBridge] Forwarded message from {User} in room {Room} to pod channel {Channel}",
-                    soulseekUsername, binding.RoomName, binding.ChannelId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(soulseekUsername),
+                    LoggingSanitizer.SanitizeExternalIdentifier(binding.RoomName),
+                    LoggingSanitizer.SanitizeExternalIdentifier(binding.ChannelId));
             }
             else
             {
                 logger.LogWarning("[ChatBridge] Failed to forward message from {User} to pod channel {Channel}",
-                    soulseekUsername, binding.ChannelId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(soulseekUsername),
+                    LoggingSanitizer.SanitizeExternalIdentifier(binding.ChannelId));
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[ChatBridge] Error forwarding Soulseek message to pod channel {Channel}",
-                binding.ChannelId);
+            logger.LogError("[ChatBridge] Error forwarding Soulseek message to pod channel {Channel}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(binding.ChannelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -1225,7 +1268,8 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
             var soulseekUsername = MapPodToSoulseekUsername(podMessage.SenderPeerId);
             if (string.IsNullOrEmpty(soulseekUsername))
             {
-                logger.LogDebug("[ChatBridge] Cannot map Pod peer {PeerId} to Soulseek username", podMessage.SenderPeerId);
+                logger.LogDebug("[ChatBridge] Cannot map Pod peer {PeerId} to Soulseek username",
+                    LoggingSanitizer.SanitizeExternalIdentifier(podMessage.SenderPeerId));
                 return false;
             }
 
@@ -1236,14 +1280,16 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
             await soulseekClient.SendRoomMessageAsync(binding.RoomName, formattedMessage);
 
             logger.LogDebug("[ChatBridge] Forwarded Pod message from {PeerId} to Soulseek room {Room}",
-                podMessage.SenderPeerId, binding.RoomName);
+                LoggingSanitizer.SanitizeExternalIdentifier(podMessage.SenderPeerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(binding.RoomName));
 
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[ChatBridge] Error forwarding Pod message to Soulseek room {Room}",
-                binding.RoomName);
+            logger.LogError("[ChatBridge] Error forwarding Pod message to Soulseek room {Room}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(binding.RoomName),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -1279,7 +1325,8 @@ public sealed class SoulseekChatBridge : ISoulseekChatBridge
             // - Query pod membership records for public key -> username mapping
             // - Query DHT for peer's identity record
             // - Return null if no mapping found
-            logger.LogDebug("[ChatBridge] No identity mapping found for Pod peer {PeerId}", normalizedPeerId);
+            logger.LogDebug("[ChatBridge] No identity mapping found for Pod peer {PeerId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId));
             return null;
         }
     }
