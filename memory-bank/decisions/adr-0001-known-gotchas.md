@@ -38373,3 +38373,16 @@ them at the log boundary. Escape caller queries, protocol validation errors,
 remote disconnect reasons, and response error strings while preserving the
 original values used by search, routing, and protocol behavior. Add captured-log
 regressions for CR/LF-bearing values.
+
+### 0z1589. Set The Sink Level In Captured Diagnostic Tests (2026-10-05)
+
+**What went wrong:** A captured-log regression configured a Serilog sink but
+left the default minimum level at `Information`, so the expected `Debug` event
+was filtered before reaching the sink.
+
+**Why:** Adding a sink does not change Serilog's global minimum level, and the
+test interpreted an empty capture as a missing log call.
+
+**Prevention:** Set `MinimumLevel.Debug()` when a regression asserts debug
+diagnostics. Keep the captured sink focused on the target event before
+asserting its escaped structured message and exception state.
