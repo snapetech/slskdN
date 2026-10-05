@@ -18513,3 +18513,39 @@ building`, so `.345` remains gated on publication of that binary. T-908,
 distributed Party ID ownership, accessibility, WAN/resource measurements,
 hidden-tab throttling, frontend network-change root cause, and broad candidate
 queues remain open or evidence-gated.
+
+
+## 2026-10-05 23:40 UTC — Pass the post-push remediation baseline
+
+Pushed the four DHT diagnostic hardening commits and the updated active
+backlog/task/progress/context records to `snapetech/slskdN` at `de3710d3b`.
+`check-remediation-baseline.sh` passes on the synchronized branch, including
+route inventory, CSRF, API versioning, cancellation and diagnostic guards,
+runtime/package matrices, release-facing identity scan, council backlog and
+negative-space checks. `main` matches `origin/main`.
+
+The Launchpad source for stable `.344` is Published, but its exact Jammy AMD64
+binary still reports `Needs building`; the hosted PPA publisher is the only
+unfinished `.344` job. Its existing archives and support files remain verified.
+The guarded `.345` release stays queued until that exact binary is published.
+
+
+## 2026-10-05 23:48 UTC — Escape HTTP middleware exception diagnostics
+
+The global HTTP exception handler had attached the raw exception object and
+logged its unescaped message; both CSRF middleware catch paths also attached
+raw exception metadata. All three now escape the request method and full
+exception text at the log boundary. Client error responses, cookie/token
+behavior, and security decisions are unchanged. Added an exception-text
+sanitizer regression and `check-http-middleware-log-safety.sh` to the full
+remediation baseline. The focused sanitizer suite passes 19/19, the complete
+Release solution passes 6,104 tests (74 application, 5,741 unit, 289
+integration), and `./bin/lint` passes.
+
+The active-council report is current at 215 callback/event, 426 remote-text,
+12,395 red-team, and 828 mutable-ownership candidates; counts are review
+queues, not confirmed defects. Gotchas `0z1700` and `0z1701` are committed
+locally. The HTTP code, regression, guard, release fragment, changelog and
+inventory/memory updates still need the `.344`-range preview, product commit,
+push, and post-push baseline. The exact `.344` Jammy AMD64 Launchpad build
+remains `Needs building`.

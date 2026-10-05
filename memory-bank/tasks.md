@@ -26,7 +26,7 @@
 
 ## Active Development
 
-### Post-.344 PodCore and DHT diagnostic-boundary hardening; .NET 10 audit — 2026-10-05
+### Post-.344 HTTP, DHT, and Pod diagnostic-boundary hardening; .NET 10 audit — 2026-10-05
 
 - [x] Verify every first-party application, test, and build-tool project under
   `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
@@ -51,10 +51,21 @@
 - [x] Pass focused DHT log regressions (17/17), the full solution
   `dotnet test --no-restore` (74 application, 5,740 unit, 289 integration),
   `./bin/lint`, and the DHT remote-log safety guard.
-- [ ] Refresh the active red-team candidate count to 12,381 and commit/push the
-  four validated DHT batch commits plus current inventory and memory updates.
-  Gotcha `0z1696` records count refreshes; the 13 new matches are review
-  candidates, not confirmed bugs. Then pass the full post-push baseline.
+- [x] Escape exception text and request methods in the global HTTP exception
+  handler and both CSRF middleware error paths without changing response,
+  token, or security decisions. Add the sanitizer regression and register
+  `check-http-middleware-log-safety.sh` in the remediation baseline.
+- [x] Pass the full Release solution suite (74 application, 5,741 unit, 289
+  integration tests), `./bin/lint`, and the HTTP middleware source guard.
+- [x] Push the four validated DHT batch commits and the 12,381 candidate-count
+  inventory/memory refresh at `de3710d3b`. Gotcha `0z1696` records count
+  refreshes; those 13 additional lines are review candidates, not confirmed
+  bugs. The complete post-push remediation baseline passes.
+- [x] Refresh the current active red-team candidate count to 12,395. The ten
+  additional lines are source-review candidates, not confirmed defects.
+- [ ] Preview the full `.344` to next-release-note range, commit/push gotchas
+  `0z1700`/`0z1701`, the HTTP middleware fix, release fragment, and refreshed
+  inventory/memory notes, then pass the full post-push remediation baseline.
 - [ ] Complete `.344` publisher verification. The Launchpad source is
   Published, but the Jammy AMD64 build is still `Needs building`; create
   stable `.345` only after that binary is published.

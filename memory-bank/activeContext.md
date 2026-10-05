@@ -1,4 +1,4 @@
-## Current state — Validate DHT diagnostic hardening — 2026-10-05 23:36 UTC
+## Current state — Harden HTTP middleware diagnostics — 2026-10-05 23:48 UTC
 
 The .NET 10 audit is complete: every first-party app, test, and build-tool
 project under `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent's
@@ -16,11 +16,20 @@ baseline. Focused tests pass 17/17, the full Release solution passes 6,103
 tests (74 application, 5,740 unit, 289 integration), and `./bin/lint` passes.
 The `.344` to `HEAD` release-note preview includes the DHT security fragment.
 
-The four validated DHT batch commits and the current inventory/memory commit
-are local and ready to push. The latest council report has 215 callback/event,
-426 remote-text, 12,381 red-team, and 828 mutable-ownership candidates. These
-are review queues, not confirmed bug counts. Push the five commits and run the
-full post-push remediation baseline.
+The DHT/mesh diagnostic batch and inventory update are pushed at `de3710d3b`,
+and its post-push remediation baseline passes. A follow-up source review found
+raw exception metadata in the global HTTP exception handler and both CSRF
+middleware catches. Those three sites now log escaped exception text and
+request methods; a sanitizer regression and baseline source guard are added.
+The full Release solution passes 6,104 tests (74 application, 5,741 unit, 289
+integration), and `./bin/lint` passes. Gotchas `0z1700` and `0z1701` are
+committed locally; the HTTP fix and its release documentation are not yet
+committed/pushed.
+
+The latest council report has 215 callback/event, 426 remote-text, 12,395
+red-team, and 828 mutable-ownership candidates. These are review queues, not
+confirmed bug counts. Refresh and push the active inventory, then rerun the
+full baseline.
 
 Stable `.344` is immutable and its six platform archives/support assets pass
 checksum and version verification. The exact Launchpad source is Published,
