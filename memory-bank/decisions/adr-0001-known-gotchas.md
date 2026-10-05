@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1631. Stop Peer Descriptor Refresh Without Logging Cancellation As Failure (2026-10-05)
+
+**What went wrong:** `PeerDescriptorRefreshService` caught its stopping-token
+cancellation from `PublishSelfAsync` as a refresh warning, then only stopped
+when the following delay observed the canceled token.
+
+**Why:** The refresh's broad catch treated normal host shutdown like a
+descriptor-publication failure.
+
+**Prevention:** Handle `OperationCanceledException` when the stopping token is
+canceled before the generic refresh-failure catch, and stop the loop promptly.
+Test shutdown while a refresh is in flight and verify no refresh-failure
+warning is logged.
+
 ### 0z1630. Preserve Cancellation In DHT Service Discovery (2026-10-05)
 
 **What went wrong:** DHT-backed service-directory lookups caught caller
