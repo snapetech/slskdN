@@ -193,6 +193,21 @@ retrieval, deletion, and backfill. Sanitize external IDs, validation text, and
 full exception details only at log calls; retain original values in database
 operations and returned messages.
 
+### 0z1579. Audit VirtualSoulfind Diagnostics Across Search And Transfer (2026-10-05)
+
+**What went wrong:** VirtualSoulfind bridge, capture, shadow-index, and mesh
+transfer paths logged caller queries, usernames, filenames, peer/recording
+IDs, and remote exception objects without escaping control characters.
+
+**Why:** Search and transfer diagnostics are emitted by separate API, observer,
+and mesh services, so sanitizing one bridge endpoint leaves sibling flows
+exposed.
+
+**Prevention:** Trace query, identity, path, transfer, and exception values
+through each VirtualSoulfind entry point and deferred catch. Sanitize only the
+log representation and keep request, file-system, and peer-routing values
+unchanged.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
