@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1627. Clean Up Hole-Punch Sessions When Caller Cancels (2026-10-05)
+
+**What went wrong:** Hole-punch service catch blocks converted caller
+cancellation into ordinary RPC failure replies. Cancellation during the
+forwarded request also left the just-created session active, while cancellation
+during UDP punching was recorded as a failed punch.
+
+**Why:** Nested error-handling blocks treated request cancellation like a
+failed peer operation and did not unwind the session state created by the
+request.
+
+**Prevention:** Rethrow caller cancellation at each RPC and punching catch
+boundary. Remove a session created for a canceled request, and mark a canceled
+local punch session canceled before propagating. Test both the forwarded
+request and UDP punching paths with caller cancellation.
+
 ### 0z1626. Keep Caller Cancellation Out Of Mesh RPC Error Replies (2026-10-05)
 
 **What went wrong:** Mesh RPC handlers caught `OperationCanceledException`
