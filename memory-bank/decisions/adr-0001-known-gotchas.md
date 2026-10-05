@@ -39287,6 +39287,22 @@ message DTOs whenever adding or reviewing overlay dispatch. Cover both inbound
 directions with a message serialized by the real DTO and ensure it reaches the
 sync handler.
 
+### 0z1606. Sanitize Caller-Owned Rate-Limit Keys At Every Log Boundary (2026-10-05)
+
+**What went wrong:** The shared token-bucket limiter logged its raw bucket key
+when a caller exhausted capacity. DHT rate-limit wrappers also logged raw peer
+IDs, operation names, and failure reasons, so sanitizing only a higher-level
+caller would leave the shared logger exposed.
+
+**Why:** Rate-limit keys look like internal bookkeeping, but their components
+can include remote peer identities, message types, or other caller-controlled
+values. Nested services have independent diagnostic boundaries.
+
+**Prevention:** Sanitize every dynamic field at the logger that emits it,
+including shared infrastructure and the higher-level service. Keep original
+keys unchanged for accounting, and capture warning logs with CR/LF-bearing
+inputs to verify escaped output and intact limiter behavior.
+
 ### 0z1605. Keep DHT Node Identifiers Immutable After Insertion (2026-10-05)
 
 **What went wrong:** `KNode` copied the caller's node identifier on
