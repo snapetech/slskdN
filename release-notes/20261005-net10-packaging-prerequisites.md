@@ -1,6 +1,6 @@
 ---
 category: changed
-audience: developers
+audience: operators
 area: packaging
 action: use the .NET 10 SDK when building from source
 breaking: false
