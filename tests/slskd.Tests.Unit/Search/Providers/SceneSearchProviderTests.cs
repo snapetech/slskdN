@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Common.Security;
 using slskd.Search;
@@ -17,6 +18,31 @@ using Xunit;
 
 public sealed class SceneSearchProviderTests
 {
+    [Fact]
+    public async Task StartSearchAsync_WhenRateLimited_EscapesQueryInLog()
+    {
+        const string query = "artist\r\nforged log entry";
+        var logger = new Mock<ILogger<SceneSearchProvider>>();
+        var limiter = new Mock<ISoulseekSafetyLimiter>();
+        limiter.Setup(candidate => candidate.TryConsumeSearch("scene-provider")).Returns(false);
+        var provider = new SceneSearchProvider(
+            Mock.Of<ISoulseekClient>(),
+            limiter.Object,
+            logger.Object);
+
+        await provider.StartSearchAsync(new SearchRequest { SearchText = query }, new RecordingSink(), CancellationToken.None);
+
+        logger.Verify(candidate => candidate.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("artist\\r\\nforged log entry", StringComparison.Ordinal) &&
+                !state.ToString()!.Contains('\r') &&
+                !state.ToString()!.Contains('\n')),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
     [Fact]
     public async Task StartSearchAsync_WishlistLowResult_UsesBoundedSoulseekFallback()
     {

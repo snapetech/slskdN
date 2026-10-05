@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 /// <summary>
 ///     SQLite-backed pod message storage with full-text search and retention policies.
@@ -191,10 +192,13 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
 
     public async Task<IReadOnlyList<PodMessage>> SearchMessagesAsync(string podId, string query, string? channelId = null, int limit = DefaultSearchLimit, CancellationToken ct = default)
     {
+        var safePodId = LoggingSanitizer.SanitizeExternalIdentifier(podId);
+        var safeQuery = LoggingSanitizer.SanitizeQueryText(query);
+
         // Validate inputs
         if (!PodValidation.IsValidPodId(podId))
         {
-            logger.LogWarning("Invalid pod ID in SearchMessagesAsync: {PodId}", podId);
+            logger.LogWarning("Invalid pod ID in SearchMessagesAsync: {PodId}", safePodId);
             return Array.Empty<PodMessage>();
         }
 
@@ -266,12 +270,13 @@ public sealed class SqlitePodMessageStorage : IPodMessageStorage, IDisposable
                 });
             }
 
-            logger.LogDebug("Found {Count} messages matching query '{Query}' in pod {PodId}", messages.Count, query, podId);
+            logger.LogDebug("Found {Count} messages matching query '{Query}' in pod {PodId}", messages.Count, safeQuery, safePodId);
             return messages;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error searching messages in pod {PodId} with query '{Query}'", podId, query);
+            logger.LogError("Error searching messages in pod {PodId} with query '{Query}': {Exception}",
+                safePodId, safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Array.Empty<PodMessage>();
         }
     }

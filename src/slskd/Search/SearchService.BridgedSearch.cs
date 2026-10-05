@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using slskd.Common.Security;
 using slskd.Search.API;
 using slskd.Search.Providers;
 using Soulseek;
@@ -37,6 +38,7 @@ public sealed partial class SearchService
         string safetySource = "user",
         Guid? wishlistItemId = null)
     {
+        var safeQuery = LoggingSanitizer.SanitizeQueryText(query.SearchText);
         var cancellationTokenSource = new CancellationTokenSource();
         var searchCancellationToken = cancellationTokenSource.Token;
         CancellationTokens.TryAdd(id, cancellationTokenSource);
@@ -101,13 +103,13 @@ public sealed partial class SearchService
             await SearchHub.BroadcastUpdateAsync(search);
 
             Log.Information("[ScenePodBridge] Bridged search completed for '{Query}': {ResponseCount} responses, {FileCount} files (id: {Id})",
-                query.SearchText, search.ResponseCount, search.FileCount, id);
+                safeQuery, search.ResponseCount, search.FileCount, id);
 
             return search;
         }
         catch (OperationCanceledException) when (searchCancellationToken.IsCancellationRequested)
         {
-            Log.Information("[ScenePodBridge] Search for '{Query}' was cancelled", query.SearchText);
+            Log.Information("[ScenePodBridge] Search for '{Query}' was cancelled", safeQuery);
             search.State = SearchStates.Completed | SearchStates.Cancelled;
             search.EndedAt = DateTime.UtcNow;
             Update(search);
@@ -116,7 +118,8 @@ public sealed partial class SearchService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[ScenePodBridge] Failed to execute bridged search for '{Query}': {Message}", query.SearchText, ex.Message);
+            Log.Error("[ScenePodBridge] Failed to execute bridged search for '{Query}': {Exception}",
+                safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             search.State = SearchStates.Completed | SearchStates.Errored;
             search.EndedAt = DateTime.UtcNow;
             Update(search);

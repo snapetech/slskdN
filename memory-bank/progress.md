@@ -17665,3 +17665,18 @@ active backlog gate matches 479 remote-text, 12,230 red-team, and 822
 mutable-ownership candidates. The application-event release fragment and
 changelog entry are prepared for the later `.340` release. Continue the
 remaining whole-product remediation before creating a release tag.
+
+## Update 2026-10-05 01:25 UTC — Escape provider and persisted search diagnostics
+
+Extended query escaping to bridged searches, Scene and Pod search providers,
+pod-message FTS storage, pod discovery, content lookup, and local shared-file
+search. Request text and result values remain unchanged. Error logs retain the
+full exception type and stack in an escaped structured field. Regressions
+cover a CR/LF query rejected by the Scene rate limiter and a CR/LF FTS query
+that still returns its matching message.
+
+Focused tests pass 10/10; the full Release suite passes 5,920 (74 application,
+5,557 unit, 289 integration), and `./bin/lint`, active-backlog, local-identity,
+and whitespace checks pass. Gotchas `0z1571` and `0z1572` document provider
+coverage and sanitized exception detail. Post-`.339` work remains unreleased;
+continue the broader whole-product remediation before cutting `.340`.

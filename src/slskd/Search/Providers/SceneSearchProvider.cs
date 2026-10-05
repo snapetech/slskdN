@@ -40,10 +40,12 @@ public class SceneSearchProvider : ISearchProvider
 
     public async Task StartSearchAsync(SearchRequest request, ISearchResultSink sink, CancellationToken ct)
     {
+        var safeQuery = LoggingSanitizer.SanitizeQueryText(request.SearchText);
+
         // H-08: Check Soulseek safety caps before initiating search
         if (!_safetyLimiter.TryConsumeSearch("scene-provider"))
         {
-            _logger.LogWarning("[SceneProvider] Search rejected for query='{Query}': rate limit exceeded", request.SearchText);
+            _logger.LogWarning("[SceneProvider] Search rejected for query='{Query}': rate limit exceeded", safeQuery);
             return; // Silently fail - don't block pod provider
         }
 
@@ -64,7 +66,7 @@ public class SceneSearchProvider : ISearchProvider
                 {
                     _logger.LogDebug(
                         "[SceneProvider] Smart Wishlist fallback stopped by the Soulseek safety limiter for '{Query}'",
-                        request.SearchText);
+                        safeQuery);
                     break;
                 }
 
@@ -103,7 +105,7 @@ public class SceneSearchProvider : ISearchProvider
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.LogDebug("[SceneProvider] Search timed out for '{Query}'", queryText);
+                    _logger.LogDebug("[SceneProvider] Search timed out for '{Query}'", LoggingSanitizer.SanitizeQueryText(queryText));
                 }
 
                 if (!SmartSearchFallback.NeedsFallback(
@@ -151,17 +153,18 @@ public class SceneSearchProvider : ISearchProvider
                 sink.AddResult(searchResult);
             }
 
-            _logger.LogDebug("[SceneProvider] Search completed for '{Query}': {Count} responses", request.SearchText, responses.Count);
+            _logger.LogDebug("[SceneProvider] Search completed for '{Query}': {Count} responses", safeQuery, responses.Count);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            _logger.LogDebug("[SceneProvider] Search cancelled for '{Query}'", request.SearchText);
+            _logger.LogDebug("[SceneProvider] Search cancelled for '{Query}'", safeQuery);
             throw;
         }
         catch (Exception ex)
         {
             // Don't block pod provider - log and continue
-            _logger.LogDebug(ex, "[SceneProvider] Search failed for '{Query}': {Message}", request.SearchText, ex.Message);
+            _logger.LogDebug("[SceneProvider] Search failed for '{Query}': {Exception}",
+                safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 }

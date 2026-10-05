@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 
 /// <summary>
@@ -80,7 +81,9 @@ public class PodDiscovery : IPodDiscovery
         try
         {
             logger.LogDebug("[PodDiscovery] Discovering pods (query: {Query}, tags: {Tags}, content: {Content}, limit: {Limit})",
-                normalizedQuery, normalizedTags != null ? string.Join(",", normalizedTags) : "none", normalizedFocusContentId, limit);
+                LoggingSanitizer.SanitizeQueryText(normalizedQuery),
+                LoggingSanitizer.SanitizeQueryText(normalizedTags != null ? string.Join(",", normalizedTags) : "none"),
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedFocusContentId), limit);
 
             // Get pod index from DHT
             const string PodIndexKey = "pod:index:listed";

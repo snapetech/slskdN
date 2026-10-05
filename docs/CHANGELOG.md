@@ -32,6 +32,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   search behavior and result values unchanged.
 - Escape peer-controlled fields and exception details in application event,
   transfer, browse, and Pod message diagnostics.
+- Escape caller-supplied text in bridged, Scene, and Pod searches, pod-message
+  FTS, pod discovery, content lookup, and local shared-file search logs while
+  preserving the original search behavior.
 
 ## [2026100423-slskdn.339] — 2026-10-04
 

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.DhtRendezvous.Search;
 using slskd.Search;
 
@@ -32,6 +33,8 @@ public class PodSearchProvider : ISearchProvider
 
     public async Task StartSearchAsync(SearchRequest request, ISearchResultSink sink, CancellationToken ct)
     {
+        var safeQuery = LoggingSanitizer.SanitizeQueryText(request.SearchText);
+
         try
         {
             // Use mesh overlay search service to query pod peers
@@ -78,17 +81,18 @@ public class PodSearchProvider : ISearchProvider
                 sink.AddResult(searchResult);
             }
 
-            _logger.LogDebug("[PodProvider] Search completed for '{Query}': {Count} responses", request.SearchText, filteredResponses.Count);
+            _logger.LogDebug("[PodProvider] Search completed for '{Query}': {Count} responses", safeQuery, filteredResponses.Count);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            _logger.LogDebug("[PodProvider] Search cancelled for '{Query}'", request.SearchText);
+            _logger.LogDebug("[PodProvider] Search cancelled for '{Query}'", safeQuery);
             throw;
         }
         catch (Exception ex)
         {
             // Don't block scene provider - log and continue
-            _logger.LogDebug(ex, "[PodProvider] Search failed for '{Query}': {Message}", request.SearchText, ex.Message);
+            _logger.LogDebug("[PodProvider] Search failed for '{Query}': {Exception}",
+                safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 

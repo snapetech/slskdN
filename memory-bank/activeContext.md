@@ -1,4 +1,33 @@
-## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 01:05 UTC
+## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 01:25 UTC
+
+Stable `.339` remains the latest published release. The provider and
+persisted-search diagnostics batch now escapes caller-supplied search text,
+pod identifiers, and exception details in bridged, Scene, Pod, pod-message
+FTS, pod-discovery, content-lookup, and local shared-file log paths. Original
+search values still drive provider behavior and results. Gotcha `0z1571`
+records the search-boundary sweep; `0z1572` records preserving full stack
+context when sanitizing exception details.
+
+Focused Scene provider and pod-message tests pass 10/10. Full Release tests
+pass 5,920 (74 application, 5,557 unit, 289 integration); lint, active-backlog,
+local-identity, and whitespace checks pass. The implementation and release
+note are ready to commit; the work is not yet pushed.
+
+Every first-party project under `src`, `tests`, and `tools` targets
+`net10.0`. MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves to
+`lib/net8.0` for the application, and no `.NET 6` project TFM or selected
+MonoTorrent asset exists. Other compatible dependencies can still ship lower
+TFM assets.
+
+Next: commit this validated batch and continue the remaining transfer
+diagnostic sweep and code-backed product remediation. Keep T-908 fallback
+sender/receiver lifecycle, global Party ID ownership across disjoint DHT
+views, actual background-tab timer throttling, WebKit/Orca and physical
+assistive-technology speech, WAN/resource evidence, the original frontend
+`ERR_NETWORK_CHANGED` cause, and broad discovery queues open until their
+required code or external evidence exists.
+
+## Previous state — Continue whole-product remediation; prepare `.340` — 2026-10-05 01:05 UTC
 
 Stable `.339` remains the latest published release. The search-diagnostics
 batch is committed and pushed at `63a95c1bf`; no `.340` tag exists. The current

@@ -4,6 +4,7 @@
 namespace slskd.PodCore.API.Controllers;
 
 using Asp.Versioning;
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 using System;
@@ -71,7 +72,8 @@ public class PodContentController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating content ID {ContentId}", contentId);
+            _logger.LogError("Error validating content ID {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while validating the content ID");
         }
     }
@@ -111,7 +113,8 @@ public class PodContentController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting metadata for content ID {ContentId}", contentId);
+            _logger.LogError("Error getting metadata for content ID {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting content metadata");
         }
     }
@@ -154,7 +157,8 @@ public class PodContentController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching content with query '{Query}'", query);
+            _logger.LogError("Error searching content with query '{Query}': {Exception}",
+                LoggingSanitizer.SanitizeQueryText(query), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while searching content");
         }
     }

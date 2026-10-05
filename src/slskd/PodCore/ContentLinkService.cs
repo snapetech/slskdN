@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Integrations.MusicBrainz;
 using slskd.MediaCore;
 
@@ -142,7 +143,8 @@ public class ContentLinkService : IContentLinkService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching content with query '{Query}'", query);
+            _logger.LogError("Error searching content with query '{Query}': {Exception}",
+                LoggingSanitizer.SanitizeQueryText(query), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Array.Empty<ContentSearchResult>();
         }
     }

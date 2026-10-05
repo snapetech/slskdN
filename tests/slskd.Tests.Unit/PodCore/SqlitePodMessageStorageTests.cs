@@ -8,7 +8,8 @@ using System.IO;
 using System.Reflection;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
+using Moq;
 using slskd.PodCore;
 using Xunit;
 
@@ -20,6 +21,7 @@ public sealed class SqlitePodMessageStorageTests : IDisposable
     private readonly DbContextOptions<PodDbContext> contextOptions;
     private readonly PodDbContext dbContext;
     private readonly SqlitePodMessageStorage storage;
+    private readonly Mock<ILogger<SqlitePodMessageStorage>> logger;
 
     public SqlitePodMessageStorageTests()
     {
@@ -30,7 +32,8 @@ public sealed class SqlitePodMessageStorageTests : IDisposable
             .Options;
 
         dbContext = new PodDbContext(contextOptions);
-        storage = new SqlitePodMessageStorage(dbContext, NullLogger<SqlitePodMessageStorage>.Instance);
+        logger = new Mock<ILogger<SqlitePodMessageStorage>>();
+        storage = new SqlitePodMessageStorage(dbContext, logger.Object);
     }
 
     public void Dispose()
@@ -81,6 +84,37 @@ public sealed class SqlitePodMessageStorageTests : IDisposable
         Assert.True(GetInitialized());
         Assert.True(await TableExistsAsync("Messages"));
         Assert.True(await TableExistsAsync("Messages_fts"));
+    }
+
+    [Fact]
+    public async Task SearchMessagesAsync_EscapesQueryInLogAndPreservesSearchBehavior()
+    {
+        dbContext.Database.EnsureCreated();
+        dbContext.Messages.Add(new PodMessageEntity
+        {
+            PodId = ValidPodId,
+            ChannelId = ValidChannelId,
+            TimestampUnixMs = 123,
+            SenderPeerId = "peer:1",
+            Body = "hello world",
+            Signature = "sig",
+        });
+        await dbContext.SaveChangesAsync();
+        Assert.True(await storage.RebuildSearchIndexAsync());
+
+        var query = "hello\r\nworld";
+        var messages = await storage.SearchMessagesAsync(ValidPodId, query);
+
+        Assert.Single(messages);
+        logger.Verify(candidate => candidate.Log(
+            LogLevel.Debug,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((state, _) =>
+                state.ToString()!.Contains("hello\\r\\nworld", StringComparison.Ordinal) &&
+                !state.ToString()!.Contains('\r') &&
+                !state.ToString()!.Contains('\n')),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
     [Fact]

@@ -26,6 +26,7 @@ namespace slskd.Shares
     using System.Timers;
     using Microsoft.Data.Sqlite;
     using Serilog;
+    using slskd.Common.Security;
     using Soulseek;
 
     /// <summary>
@@ -633,7 +634,7 @@ namespace slskd.Shares
                     // **CAUTION** performance of this will degrade exponentially as the list of exclusions grows
                     if (query.Exclusions.Any(x => filename.Contains(x, StringComparison.OrdinalIgnoreCase)))
                     {
-                        Log.Debug("Dropping excluded filename {File}", filename);
+                        Log.Debug("Dropping excluded filename {File}", LoggingSanitizer.SanitizeFilePath(filename));
                         continue;
                     }
 
@@ -652,7 +653,8 @@ namespace slskd.Shares
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to execute shared file query '{Query}': {Message}", query, ex.Message);
+                Log.Warning("Failed to execute shared file query '{Query}': {Exception}",
+                    LoggingSanitizer.SanitizeQueryText(query.SearchText), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return Enumerable.Empty<Soulseek.File>();
             }
         }

@@ -121,6 +121,13 @@
   pass 17/17; full Release tests pass 5,919 (74 application, 5,555 unit, 289
   integration), `./bin/lint` passes, and the active backlog check passes with
   479 remote-text and 822 mutable-ownership candidates.
+- [x] Escape caller-supplied text at provider and persisted-search log
+  boundaries — 2026-10-05. Bridged, Scene, Pod, pod-message FTS, pod discovery,
+  content lookup, and local shared-file search logs now sanitize their
+  diagnostic copy while retaining the original search input. Focused Scene
+  provider and pod-message storage tests pass 10/10; full Release tests pass
+  5,920 (74 application, 5,557 unit, 289 integration), `./bin/lint` passes,
+  and active-backlog, identity, and whitespace checks pass.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Discovery queues remain open at 210 callback/event,
   479 remote-text, 12,230 red-team, and 822 mutable-ownership candidates;
