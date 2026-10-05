@@ -14,14 +14,14 @@ public interface IMeshPeerManager
     /// Gets all available peers in the mesh.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A list of available peers.</returns>
+    /// <returns>Independent snapshots of available peers.</returns>
     Task<List<MeshPeer>> GetAvailablePeersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a peer by ID.
     /// </summary>
     /// <param name="peerId">The peer ID.</param>
-    /// <returns>The peer, or null if not found.</returns>
+    /// <returns>An independent snapshot of the peer, or null if not found.</returns>
     MeshPeer? GetPeer(string peerId);
 
     /// <summary>

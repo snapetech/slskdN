@@ -62,6 +62,10 @@ public class PodVerificationController : ControllerBase
             var result = await _membershipVerifier.VerifyMembershipAsync(podId, peerId, cancellationToken);
             return Ok(result);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError("[PodVerification] Error verifying membership for {PeerId} in {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
@@ -106,6 +110,10 @@ public class PodVerificationController : ControllerBase
             var result = await _membershipVerifier.VerifyMessageAsync(message, cancellationToken);
             return Ok(result);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError("[PodVerification] Error verifying message {MessageId}: {Exception}", SafeLogValue(message?.MessageId), SafeLogException(ex));
@@ -139,6 +147,10 @@ public class PodVerificationController : ControllerBase
         {
             var hasRole = await _membershipVerifier.HasRoleAsync(podId, peerId, requiredRole, cancellationToken);
             return Ok(new { hasRole });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

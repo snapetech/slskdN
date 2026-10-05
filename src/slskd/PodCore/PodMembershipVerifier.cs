@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 /// <summary>
 /// Service for verifying pod membership and message authenticity.
@@ -65,10 +66,18 @@ public class PodMembershipVerifier : IPodMembershipVerifier
 
             return result;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             Interlocked.Increment(ref _failedMembershipChecks);
-            _logger.LogError(ex, "[PodMembershipVerifier] Error verifying membership for {PeerId} in {PodId}", peerId, podId);
+            _logger.LogError(
+                "[PodMembershipVerifier] Error verifying membership for {PeerId} in {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new MembershipVerificationResult(
                 IsValidMember: false,
                 IsBanned: false,
@@ -130,7 +139,7 @@ public class PodMembershipVerifier : IPodMembershipVerifier
 
             _logger.LogDebug(
                 "[PodMembershipVerifier] Message {MessageId} verification: valid={IsValid}, member={IsMember}, notBanned={NotBanned}, signature={SignatureValid}",
-                message.MessageId, isValid, isFromValidMember, isNotBanned, hasValidSignature);
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId), isValid, isFromValidMember, isNotBanned, hasValidSignature);
 
             return new MessageVerificationResult(
                 IsValid: isValid,
@@ -138,9 +147,16 @@ public class PodMembershipVerifier : IPodMembershipVerifier
                 HasValidSignature: hasValidSignature,
                 IsNotBanned: isNotBanned);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembershipVerifier] Error verifying message {MessageId}", message.MessageId);
+            _logger.LogError(
+                "[PodMembershipVerifier] Error verifying message {MessageId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new MessageVerificationResult(
                 IsValid: false,
                 IsFromValidMember: false,
@@ -180,9 +196,17 @@ public class PodMembershipVerifier : IPodMembershipVerifier
                    roleHierarchy.TryGetValue(requiredRole, out var requiredLevel) &&
                    userLevel >= requiredLevel;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembershipVerifier] Error checking role for {PeerId} in {PodId}", peerId, podId);
+            _logger.LogError(
+                "[PodMembershipVerifier] Error checking role for {PeerId} in {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -212,9 +236,16 @@ public class PodMembershipVerifier : IPodMembershipVerifier
         {
             return await _messageSigner.VerifyMessageAsync(message, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembershipVerifier] Error verifying message signature for {MessageId}", message.MessageId);
+            _logger.LogError(
+                "[PodMembershipVerifier] Error verifying message signature for {MessageId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }

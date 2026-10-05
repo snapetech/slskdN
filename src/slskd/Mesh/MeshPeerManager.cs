@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System.Net;
+using slskd.Common.Security;
 
 namespace slskd.Mesh;
 
@@ -36,6 +37,7 @@ public class MeshPeerManager : IMeshPeerManager
             var cutoff = DateTimeOffset.UtcNow.AddHours(-24);
             var availablePeers = _peers.Values
                 .Where(p => p.LastSeen > cutoff)
+                .Select(p => p.CreateSnapshot())
                 .ToList();
 
             return Task.FromResult(availablePeers);
@@ -52,7 +54,7 @@ public class MeshPeerManager : IMeshPeerManager
         lock (_peersLock)
         {
             _peers.TryGetValue(peerId, out var peer);
-            return peer;
+            return peer?.CreateSnapshot();
         }
     }
 
@@ -62,11 +64,13 @@ public class MeshPeerManager : IMeshPeerManager
     /// <param name="peer">The peer to add or update.</param>
     public void AddOrUpdatePeer(MeshPeer peer)
     {
+        var snapshot = peer.CreateSnapshot();
+
         lock (_peersLock)
         {
-            _peers[peer.PeerId] = peer;
+            _peers[snapshot.PeerId] = snapshot;
             _logger.LogDebug("Added/updated peer {PeerId} with {AddressCount} addresses",
-                peer.PeerId, peer.Addresses.Count);
+                LoggingSanitizer.SanitizeExternalIdentifier(snapshot.PeerId), snapshot.Addresses.Count);
         }
     }
 
@@ -80,7 +84,7 @@ public class MeshPeerManager : IMeshPeerManager
         {
             if (_peers.Remove(peerId))
             {
-                _logger.LogDebug("Removed peer {PeerId}", peerId);
+                _logger.LogDebug("Removed peer {PeerId}", LoggingSanitizer.SanitizeExternalIdentifier(peerId));
             }
         }
     }
@@ -115,7 +119,7 @@ public class MeshPeerManager : IMeshPeerManager
             if (_peers.TryGetValue(peerId, out var peer))
             {
                 peer.UpdateInfo(addresses, version, supportsOnionRouting);
-                _logger.LogDebug("Updated peer {PeerId} info", peerId);
+                _logger.LogDebug("Updated peer {PeerId} info", LoggingSanitizer.SanitizeExternalIdentifier(peerId));
             }
             else
             {
@@ -126,7 +130,7 @@ public class MeshPeerManager : IMeshPeerManager
                     peer.Version = version ?? string.Empty;
                     peer.SupportsOnionRouting = supportsOnionRouting ?? false;
                     _peers[peerId] = peer;
-                    _logger.LogDebug("Created new peer {PeerId}", peerId);
+                    _logger.LogDebug("Created new peer {PeerId}", LoggingSanitizer.SanitizeExternalIdentifier(peerId));
                 }
             }
         }
@@ -144,7 +148,7 @@ public class MeshPeerManager : IMeshPeerManager
             if (_peers.TryGetValue(peerId, out var peer))
             {
                 peer.RecordSuccessfulConnection(latencyMs);
-                _logger.LogDebug("Recorded successful connection to {PeerId} ({LatencyMs}ms)", peerId, latencyMs);
+                _logger.LogDebug("Recorded successful connection to {PeerId} ({LatencyMs}ms)", LoggingSanitizer.SanitizeExternalIdentifier(peerId), latencyMs);
             }
         }
     }
@@ -160,7 +164,7 @@ public class MeshPeerManager : IMeshPeerManager
             if (_peers.TryGetValue(peerId, out var peer))
             {
                 peer.RecordFailedConnection();
-                _logger.LogDebug("Recorded failed connection to {PeerId}", peerId);
+                _logger.LogDebug("Recorded failed connection to {PeerId}", LoggingSanitizer.SanitizeExternalIdentifier(peerId));
             }
         }
     }

@@ -3,6 +3,8 @@
 // </copyright>
 namespace slskd.Mesh.Dht;
 
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
+
 /// <summary>
 /// Rate limiter specifically for DHT operations to prevent abuse and resource exhaustion.
 /// </summary>
@@ -37,7 +39,8 @@ public class DhtRateLimiter
         var fetchKey = $"dht-descriptor-fetch-{peerId}";
         if (!_rateLimiter.TryConsume(fetchKey, capacity: DescriptorFetchCapacity, refillRate: DescriptorFetchRefillRate))
         {
-            _logger.LogWarning("DHT descriptor fetch rate limit exceeded for peer {PeerId}", peerId);
+            _logger.LogWarning("DHT descriptor fetch rate limit exceeded for peer {PeerId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId));
             return false;
         }
 
@@ -54,7 +57,8 @@ public class DhtRateLimiter
         var publishKey = $"dht-descriptor-publish-{peerId}";
         if (!_rateLimiter.TryConsume(publishKey, capacity: PublishCapacity, refillRate: PublishRefillRate))
         {
-            _logger.LogWarning("DHT descriptor publish rate limit exceeded for peer {PeerId}", peerId);
+            _logger.LogWarning("DHT descriptor publish rate limit exceeded for peer {PeerId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId));
             return false;
         }
 
@@ -72,7 +76,9 @@ public class DhtRateLimiter
         var queryKey = $"dht-query-{queryType}-{requesterId}";
         if (!_rateLimiter.TryConsume(queryKey, capacity: QueryCapacity, refillRate: QueryRefillRate))
         {
-            _logger.LogWarning("DHT query rate limit exceeded for {QueryType} by {RequesterId}", queryType, requesterId);
+            _logger.LogWarning("DHT query rate limit exceeded for {QueryType} by {RequesterId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(queryType),
+                LoggingSanitizer.SanitizeExternalIdentifier(requesterId));
             return false;
         }
 
@@ -87,7 +93,9 @@ public class DhtRateLimiter
     public void ReportSuccessfulOperation(string operationType, string peerId)
     {
         // Could implement reputation-based rate limit increases
-        _logger.LogDebug("Successful DHT {Operation} reported for peer {PeerId}", operationType, peerId);
+        _logger.LogDebug("Successful DHT {Operation} reported for peer {PeerId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(operationType),
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId));
     }
 
     /// <summary>
@@ -106,7 +114,10 @@ public class DhtRateLimiter
 
         if (!_rateLimiter.TryConsume(failureKey, capacity: failureCapacity, refillRate: failureRefillRate))
         {
-            _logger.LogWarning("Excessive DHT {Operation} failures for peer {PeerId}: {Reason}", operationType, peerId, reason);
+            _logger.LogWarning("Excessive DHT {Operation} failures for peer {PeerId}: {Reason}",
+                LoggingSanitizer.SanitizeExternalIdentifier(operationType),
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(reason));
         }
     }
 

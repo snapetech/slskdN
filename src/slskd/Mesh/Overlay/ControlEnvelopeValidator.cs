@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using slskd.Mesh;
 using slskd.Mesh.Dht;
 using slskd.Mesh.Transport;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.Mesh.Overlay;
 
@@ -90,7 +91,8 @@ public class ControlEnvelopeValidator : IControlEnvelopeValidator
         if (!_connectionThrottler.ShouldAllowEnvelopeProcessing(peerId, envelope.Type))
         {
             _logger.LogWarning("[ControlEnvelopeValidator] Envelope processing blocked by rate limiting for peer {PeerId}, type {Type}",
-                peerId, envelope.Type);
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(envelope.Type));
             return EnvelopeValidationResult.Failure($"Rate limit exceeded for envelope type {envelope.Type}");
         }
 
@@ -101,7 +103,9 @@ public class ControlEnvelopeValidator : IControlEnvelopeValidator
             return EnvelopeValidationResult.Failure($"Envelope MessageId {envelope.MessageId} is a replay");
         }
 
-        _logger.LogDebug("Envelope validation successful for peer {PeerId}, message {MessageId}", peerId, envelope.MessageId);
+        _logger.LogDebug("Envelope validation successful for peer {PeerId}, message {MessageId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(envelope.MessageId));
         return EnvelopeValidationResult.Success();
     }
 
@@ -118,7 +122,7 @@ public class ControlEnvelopeValidator : IControlEnvelopeValidator
         if (allowedKeys == null || !allowedKeys.Any())
         {
             _logger.LogWarning("Peer descriptor has no control signing keys for peer {PeerId}",
-                peerDescriptor.PeerId);
+                LoggingSanitizer.SanitizeExternalIdentifier(peerDescriptor.PeerId));
             return false;
         }
 
@@ -131,7 +135,7 @@ public class ControlEnvelopeValidator : IControlEnvelopeValidator
                 if (publicKey.Length != 32)
                 {
                     _logger.LogWarning("Invalid control signing key length for peer {PeerId}",
-                        peerDescriptor.PeerId);
+                        LoggingSanitizer.SanitizeExternalIdentifier(peerDescriptor.PeerId));
                     continue;
                 }
 
@@ -148,14 +152,16 @@ public class ControlEnvelopeValidator : IControlEnvelopeValidator
                 {
                     // LOW-03: legacy signature format accepted for backward compatibility; deprecate and remove in future version
                     _logger.LogWarning("[ControlEnvelopeValidator] Accepted legacy signature format from peer {PeerId}. " +
-                        "Peer should upgrade to current signature format.", peerDescriptor.PeerId);
+                        "Peer should upgrade to current signature format.",
+                        LoggingSanitizer.SanitizeExternalIdentifier(peerDescriptor.PeerId));
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error validating signature with key for peer {PeerId}",
-                    peerDescriptor.PeerId);
+                _logger.LogWarning("Error validating signature with key for peer {PeerId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerDescriptor.PeerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 

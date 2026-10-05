@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Manages semi-sticky "small-world" neighbors for faster mesh propagation.
@@ -96,7 +97,7 @@ public sealed class SmallWorldNeighborService
             neighbor.InteractionCount++;
             neighbor.LastInteractionType = type;
             _logger.LogDebug("Updated neighbor {Username}: {Count} interactions",
-                username, neighbor.InteractionCount);
+                LoggingSanitizer.SanitizeExternalIdentifier(username), neighbor.InteractionCount);
             return;
         }
 
@@ -231,7 +232,8 @@ public sealed class SmallWorldNeighborService
 
         foreach (var username in staleNeighbors)
         {
-            _logger.LogInformation("Demoting stale neighbor {Username}", username);
+            _logger.LogInformation("Demoting stale neighbor {Username}",
+                LoggingSanitizer.SanitizeExternalIdentifier(username));
             DemoteNeighbor(username);
         }
 
@@ -274,7 +276,7 @@ public sealed class SmallWorldNeighborService
         };
 
         _candidates.TryRemove(username, out _);
-        _logger.LogInformation("Added neighbor {Username}", username);
+        _logger.LogInformation("Added neighbor {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
     }
 
     /// <summary>
@@ -284,7 +286,7 @@ public sealed class SmallWorldNeighborService
     {
         if (_neighbors.TryRemove(username, out _))
         {
-            _logger.LogInformation("Removed neighbor {Username}", username);
+            _logger.LogInformation("Removed neighbor {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
         }
     }
 
@@ -300,7 +302,7 @@ public sealed class SmallWorldNeighborService
         _candidates.TryRemove(username, out _);
 
         _logger.LogInformation("Promoted {Username} to neighbor after {Count} interactions",
-            username, info.InteractionCount);
+            LoggingSanitizer.SanitizeExternalIdentifier(username), info.InteractionCount);
     }
 
     private void DemoteNeighbor(string username)
@@ -311,7 +313,8 @@ public sealed class SmallWorldNeighborService
             info.FailureCount = 0;
             _candidates[username] = info;
 
-            _logger.LogInformation("Demoted neighbor {Username} to candidate", username);
+            _logger.LogInformation("Demoted neighbor {Username} to candidate",
+                LoggingSanitizer.SanitizeExternalIdentifier(username));
         }
     }
 

@@ -91,6 +91,24 @@ public class Phase8MeshTests
     }
 
     [Fact]
+    public void KademliaRoutingTable_ReturnedNodeIdCannotMutateStoredRoutingEntry()
+    {
+        var selfId = new byte[20];
+        var nodeId = new byte[20];
+        nodeId[19] = 1;
+        var expectedNodeId = nodeId.ToArray();
+        var table = new KademliaRoutingTable(selfId);
+        table.Touch(nodeId, "udp://192.0.2.1:5000");
+        nodeId[19] = 3;
+
+        var returnedNode = Assert.Single(table.GetAllNodes());
+        returnedNode.NodeId[19] = 2;
+
+        Assert.Equal(expectedNodeId, Assert.Single(table.GetAllNodes()).NodeId);
+        Assert.Equal(expectedNodeId, Assert.Single(table.GetClosest(selfId, 1)).NodeId);
+    }
+
+    [Fact]
     public async Task InMemoryDhtClient_PutGet_Expires()
     {
         var logger = Mock.Of<Microsoft.Extensions.Logging.ILogger<InMemoryDhtClient>>();

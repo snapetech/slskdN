@@ -22,6 +22,27 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+
+### Fixed
+
+- Kademlia node snapshots now return defensive copies of node identifiers, so
+  consumers cannot mutate identifiers used by the routing table.
+- Shared and DHT rate-limit diagnostics now escape caller-supplied bucket keys,
+  peer IDs, operation names, and failure reasons before logging them.
+- Mesh control-envelope diagnostics now escape peer IDs, message IDs, envelope
+  types, and validation exception details before logging them.
+- Mesh neighbor and consensus diagnostics now escape remote usernames, source
+  IDs, filenames, and hashes while preserving the original values for routing
+  and consensus.
+- Mesh peer-manager diagnostics now escape caller-controlled peer IDs while
+  preserving the IDs used by the peer index. Peer state is copied on manager
+  insertion and lookup so caller changes cannot alter trust or circuit
+  eligibility.
+- Pod membership APIs and message/role verification now propagate caller
+  cancellation and escape remote identifiers, service errors, and exception
+  details in logs.
+
+
 ## [2026100511-slskdn.341] — 2026-10-05
 
 ### Security and diagnostics

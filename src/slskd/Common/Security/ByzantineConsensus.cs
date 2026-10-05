@@ -93,7 +93,7 @@ public sealed class ByzantineConsensus : IDisposable
 
         _sessions[sessionId] = session;
 
-        _logger.LogDebug("Started consensus session {Id} for {File}", sessionId, filename);
+        _logger.LogDebug("Started consensus session {Id} for {File}", sessionId, LoggingSanitizer.SanitizeFilePath(filename));
 
         return sessionId;
     }
@@ -142,7 +142,9 @@ public sealed class ByzantineConsensus : IDisposable
 
             _logger.LogDebug(
                 "Vote from {Source} for chunk {Index}: {Hash}",
-                source, chunkIndex, normalizedHash[..Math.Min(16, normalizedHash.Length)]);
+                LoggingSanitizer.SanitizeExternalIdentifier(source),
+                chunkIndex,
+                LoggingSanitizer.SanitizeHash(normalizedHash[..Math.Min(16, normalizedHash.Length)]));
 
             return VoteResult.Succeeded();
         }
@@ -254,8 +256,8 @@ public sealed class ByzantineConsensus : IDisposable
                     _logger.LogWarning(
                         "Session {Id} failed: expected {Expected}, got {Actual}",
                         sessionId,
-                        session.ExpectedHash[..Math.Min(16, session.ExpectedHash.Length)],
-                        actualFileHash[..Math.Min(16, actualFileHash.Length)]);
+                        LoggingSanitizer.SanitizeHash(session.ExpectedHash[..Math.Min(16, session.ExpectedHash.Length)]),
+                        LoggingSanitizer.SanitizeHash(actualFileHash[..Math.Min(16, actualFileHash.Length)]));
                 }
                 else
                 {

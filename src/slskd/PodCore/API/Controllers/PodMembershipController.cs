@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
+using LogSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.PodCore.API.Controllers;
 
@@ -93,18 +94,22 @@ public class PodMembershipController : ControllerBase
 
             if (result.Success)
             {
-                _logger.LogInformation("[PodMembership] Published membership for {PeerId} in pod {PodId}", result.PeerId, result.PodId);
+                _logger.LogInformation("[PodMembership] Published membership for {PeerId} in pod {PodId}", SafeLogValue(result.PeerId), SafeLogValue(result.PodId));
                 return Ok(result);
             }
             else
             {
-                _logger.LogWarning("[PodMembership] Failed to publish membership for {PeerId} in {PodId}: {Error}", result.PeerId, result.PodId, result.ErrorMessage);
+                _logger.LogWarning("[PodMembership] Failed to publish membership for {PeerId} in {PodId}: {Error}", SafeLogValue(result.PeerId), SafeLogValue(result.PodId), SafeLogValue(result.ErrorMessage));
                 return StatusCode(500, new { error = "Failed to publish membership" });
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error publishing membership");
+            _logger.LogError("[PodMembership] Error publishing membership: {Exception}", SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to publish membership" });
         }
     }
@@ -156,18 +161,22 @@ public class PodMembershipController : ControllerBase
 
             if (result.Success)
             {
-                _logger.LogInformation("[PodMembership] Updated membership for {PeerId} in pod {PodId}", result.PeerId, result.PodId);
+                _logger.LogInformation("[PodMembership] Updated membership for {PeerId} in pod {PodId}", SafeLogValue(result.PeerId), SafeLogValue(result.PodId));
                 return Ok(result);
             }
             else
             {
-                _logger.LogWarning("[PodMembership] Failed to update membership for {PeerId} in {PodId}: {Error}", result.PeerId, result.PodId, result.ErrorMessage);
+                _logger.LogWarning("[PodMembership] Failed to update membership for {PeerId} in {PodId}: {Error}", SafeLogValue(result.PeerId), SafeLogValue(result.PodId), SafeLogValue(result.ErrorMessage));
                 return StatusCode(500, new { error = "Failed to update membership" });
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error updating membership");
+            _logger.LogError("[PodMembership] Error updating membership: {Exception}", SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to update membership" });
         }
     }
@@ -204,18 +213,22 @@ public class PodMembershipController : ControllerBase
 
             if (result.Success)
             {
-                _logger.LogInformation("[PodMembership] Removed membership for {PeerId} from pod {PodId}", peerId, podId);
+                _logger.LogInformation("[PodMembership] Removed membership for {PeerId} from pod {PodId}", SafeLogValue(peerId), SafeLogValue(podId));
                 return Ok(result);
             }
             else
             {
-                _logger.LogWarning("[PodMembership] Failed to remove membership for {PeerId} from {PodId}: {Error}", peerId, podId, result.ErrorMessage);
+                _logger.LogWarning("[PodMembership] Failed to remove membership for {PeerId} from {PodId}: {Error}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogValue(result.ErrorMessage));
                 return StatusCode(500, new { error = "Failed to remove membership" });
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error removing membership for {PeerId} from {PodId}", peerId, podId);
+            _logger.LogError("[PodMembership] Error removing membership for {PeerId} from {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to remove membership" });
         }
     }
@@ -257,9 +270,13 @@ public class PodMembershipController : ControllerBase
                 return NotFound(new { found = false, error = "Membership not found" });
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error retrieving membership for {PeerId} in {PodId}", peerId, podId);
+            _logger.LogError("[PodMembership] Error retrieving membership for {PeerId} in {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to retrieve membership" });
         }
     }
@@ -293,9 +310,13 @@ public class PodMembershipController : ControllerBase
             var result = await _membershipService.VerifyMembershipAsync(podId, peerId, cancellationToken);
             return Ok(result);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error verifying membership for {PeerId} in {PodId}", peerId, podId);
+            _logger.LogError("[PodMembership] Error verifying membership for {PeerId} in {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to verify membership" });
         }
     }
@@ -333,18 +354,22 @@ public class PodMembershipController : ControllerBase
 
             if (result.Success)
             {
-                _logger.LogInformation("[PodMembership] Banned member {PeerId} from pod {PodId}", peerId, podId);
+                _logger.LogInformation("[PodMembership] Banned member {PeerId} from pod {PodId}", SafeLogValue(peerId), SafeLogValue(podId));
                 return Ok(result);
             }
             else
             {
-                _logger.LogWarning("[PodMembership] Failed to ban member {PeerId} from {PodId}: {Error}", peerId, podId, result.ErrorMessage);
+                _logger.LogWarning("[PodMembership] Failed to ban member {PeerId} from {PodId}: {Error}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogValue(result.ErrorMessage));
                 return StatusCode(500, new { error = "Failed to ban member" });
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error banning member {PeerId} from {PodId}", peerId, podId);
+            _logger.LogError("[PodMembership] Error banning member {PeerId} from {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to ban member" });
         }
     }
@@ -380,18 +405,22 @@ public class PodMembershipController : ControllerBase
 
             if (result.Success)
             {
-                _logger.LogInformation("[PodMembership] Unbanned member {PeerId} from pod {PodId}", peerId, podId);
+                _logger.LogInformation("[PodMembership] Unbanned member {PeerId} from pod {PodId}", SafeLogValue(peerId), SafeLogValue(podId));
                 return Ok(result);
             }
             else
             {
-                _logger.LogWarning("[PodMembership] Failed to unban member {PeerId} from {PodId}: {Error}", peerId, podId, result.ErrorMessage);
+                _logger.LogWarning("[PodMembership] Failed to unban member {PeerId} from {PodId}: {Error}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogValue(result.ErrorMessage));
                 return StatusCode(500, new { error = "Failed to unban member" });
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error unbanning member {PeerId} from {PodId}", peerId, podId);
+            _logger.LogError("[PodMembership] Error unbanning member {PeerId} from {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to unban member" });
         }
     }
@@ -429,18 +458,22 @@ public class PodMembershipController : ControllerBase
 
             if (result.Success)
             {
-                _logger.LogInformation("[PodMembership] Changed role for {PeerId} in pod {PodId} to {Role}", peerId, podId, newRole);
+                _logger.LogInformation("[PodMembership] Changed role for {PeerId} in pod {PodId} to {Role}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogValue(newRole));
                 return Ok(result);
             }
             else
             {
-                _logger.LogWarning("[PodMembership] Failed to change role for {PeerId} in {PodId}: {Error}", peerId, podId, result.ErrorMessage);
+                _logger.LogWarning("[PodMembership] Failed to change role for {PeerId} in {PodId}: {Error}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogValue(result.ErrorMessage));
                 return StatusCode(500, new { error = "Failed to change role" });
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error changing role for {PeerId} in {PodId}", peerId, podId);
+            _logger.LogError("[PodMembership] Error changing role for {PeerId} in {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to change role" });
         }
     }
@@ -459,9 +492,13 @@ public class PodMembershipController : ControllerBase
             var stats = await _membershipService.GetStatsAsync(cancellationToken);
             return Ok(stats);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error getting membership stats");
+            _logger.LogError("[PodMembership] Error getting membership stats: {Exception}", SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to get membership statistics" });
         }
     }
@@ -481,11 +518,25 @@ public class PodMembershipController : ControllerBase
             _logger.LogInformation("[PodMembership] Cleaned up {Count} expired memberships", result.RecordsCleaned);
             return Ok(result);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error cleaning up expired memberships");
+            _logger.LogError("[PodMembership] Error cleaning up expired memberships: {Exception}", SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to cleanup expired memberships" });
         }
+    }
+
+    private static string SafeLogValue(string? value)
+    {
+        return LogSanitizer.SanitizeExternalIdentifier(value);
+    }
+
+    private static string SafeLogException(Exception exception)
+    {
+        return SafeLogValue(exception.ToString());
     }
 }
 

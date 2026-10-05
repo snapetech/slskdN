@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System.Collections.Concurrent;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.Mesh.Transport;
 
@@ -45,7 +46,7 @@ public class RateLimiter
         if (!success)
         {
             _logger.LogWarning("Rate limit exceeded for bucket {Bucket}: capacity={Capacity}, refillRate={RefillRate}",
-                bucketKey, capacity, refillRate);
+                LoggingSanitizer.SanitizeExternalIdentifier(bucketKey), capacity, refillRate);
         }
 
         return success;

@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Mesh.Transport;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 using MeshRateLimiter = slskd.Mesh.Transport.RateLimiter;
 
@@ -56,6 +57,24 @@ public class RateLimiterTests : IDisposable
 
         // Assert
         Assert.False(result);
+    }
+
+    [Fact]
+    public void TryConsume_WhenBucketKeyContainsNewline_EscapesOnlyTheLoggedKey()
+    {
+        const string bucketKey = "peer-1\r\nforged warning";
+        var logger = new CapturingLogger<MeshRateLimiter>();
+        var rateLimiter = new MeshRateLimiter(logger);
+
+        Assert.True(rateLimiter.TryConsume(bucketKey, capacity: 1, refillRate: 0.01));
+        Assert.False(rateLimiter.TryConsume(bucketKey, capacity: 1, refillRate: 0.01));
+
+        Assert.Equal(0, rateLimiter.GetCurrentTokens(bucketKey));
+        var warning = Assert.Single(logger.Entries, entry => entry.Level == LogLevel.Warning);
+        Assert.Null(warning.Exception);
+        Assert.Contains("peer-1\\r\\nforged warning", warning.Message);
+        Assert.DoesNotContain('\r', warning.Message);
+        Assert.DoesNotContain('\n', warning.Message);
     }
 
     [Fact]

@@ -69,6 +69,19 @@ public class MeshPeer
     /// </summary>
     public string Version { get; set; } = string.Empty;
 
+    internal MeshPeer CreateSnapshot()
+    {
+        return new MeshPeer(PeerId, _addresses)
+        {
+            LastSeen = LastSeen,
+            TrustScore = TrustScore,
+            LatencyMs = LatencyMs,
+            BandwidthMbps = BandwidthMbps,
+            SupportsOnionRouting = SupportsOnionRouting,
+            Version = Version
+        };
+    }
+
     /// <summary>
     /// Gets the best address to use for connecting to this peer.
     /// </summary>

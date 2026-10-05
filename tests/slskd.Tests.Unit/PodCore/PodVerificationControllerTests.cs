@@ -14,6 +14,60 @@ using Xunit;
 public class PodVerificationControllerTests
 {
     [Fact]
+    public async Task VerifyMembership_RequestCancellationPropagates()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var verifier = new Mock<IPodMembershipVerifier>();
+        verifier
+            .Setup(service => service.VerifyMembershipAsync("pod-1", "peer-1", cancellation.Token))
+            .Returns(Task.FromCanceled<MembershipVerificationResult>(cancellation.Token));
+        var controller = new PodVerificationController(NullLogger<PodVerificationController>.Instance, verifier.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            controller.VerifyMembership("pod-1", "peer-1", cancellation.Token));
+    }
+
+    [Fact]
+    public async Task VerifyMessage_RequestCancellationPropagates()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var verifier = new Mock<IPodMembershipVerifier>();
+        verifier
+            .Setup(service => service.VerifyMessageAsync(It.IsAny<PodMessage>(), cancellation.Token))
+            .Returns(Task.FromCanceled<MessageVerificationResult>(cancellation.Token));
+        var controller = new PodVerificationController(NullLogger<PodVerificationController>.Instance, verifier.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            controller.VerifyMessage(
+                new PodMessage
+                {
+                    MessageId = "message-1",
+                    PodId = "pod-1",
+                    ChannelId = "pod-1:general",
+                    SenderPeerId = "peer-1",
+                    Signature = "signature",
+                },
+                cancellation.Token));
+    }
+
+    [Fact]
+    public async Task CheckRole_RequestCancellationPropagates()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var verifier = new Mock<IPodMembershipVerifier>();
+        verifier
+            .Setup(service => service.HasRoleAsync("pod-1", "peer-1", "moderator", cancellation.Token))
+            .Returns(Task.FromCanceled<bool>(cancellation.Token));
+        var controller = new PodVerificationController(NullLogger<PodVerificationController>.Instance, verifier.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            controller.CheckRole("pod-1", "peer-1", "moderator", cancellation.Token));
+    }
+
+    [Fact]
     public async Task CheckRole_TrimsRouteArgumentsBeforeDispatch()
     {
         var verifier = new Mock<IPodMembershipVerifier>();

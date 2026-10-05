@@ -387,13 +387,24 @@ public class KademliaRoutingTable
 
 public sealed record KNode
 {
-    public byte[] NodeId { get; init; }
+    private byte[] nodeId = Array.Empty<byte>();
+
+    public byte[] NodeId
+    {
+        get => nodeId.ToArray();
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            nodeId = value.ToArray();
+        }
+    }
+
     public string Address { get; init; }
     public DateTimeOffset LastSeen { get; init; }
 
     public KNode(byte[] nodeId, string address, DateTimeOffset lastSeen)
     {
-        NodeId = (nodeId ?? throw new ArgumentNullException(nameof(nodeId))).ToArray();
+        NodeId = nodeId ?? throw new ArgumentNullException(nameof(nodeId));
         Address = address;
         LastSeen = lastSeen;
     }

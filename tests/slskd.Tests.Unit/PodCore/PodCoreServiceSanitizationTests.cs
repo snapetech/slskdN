@@ -4,11 +4,13 @@
 namespace slskd.Tests.Unit.PodCore;
 
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Identity;
 using slskd.Mesh.Dht;
 using slskd.Mesh.Overlay;
 using slskd.PodCore;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class PodCoreServiceSanitizationTests
@@ -16,21 +18,127 @@ public class PodCoreServiceSanitizationTests
     [Fact]
     public async Task PodMembershipVerifier_WhenMembershipLookupThrows_ReturnsSanitizedErrorMessage()
     {
+        const string podId = "pod-1\r\nforged pod";
+        const string peerId = "peer-1\r\nforged peer";
         var membershipService = new Mock<IPodMembershipService>();
         membershipService
             .Setup(service => service.VerifyMembershipAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("sensitive membership detail"));
+            .ThrowsAsync(new InvalidOperationException("sensitive membership detail\r\nforged error"));
+        var logger = new CapturingLogger<PodMembershipVerifier>();
 
+        var verifier = new PodMembershipVerifier(
+            logger,
+            membershipService.Object,
+            Mock.Of<IMessageSigner>());
+
+        var result = await verifier.VerifyMembershipAsync(podId, peerId, CancellationToken.None);
+
+        Assert.False(result.IsValidMember);
+        Assert.Equal("Membership verification failed", result.ErrorMessage);
+        Assert.DoesNotContain("sensitive", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        membershipService.Verify(service => service.VerifyMembershipAsync(podId, peerId, It.IsAny<CancellationToken>()), Times.Once);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("peer-1\\r\\nforged peer", entry.Message);
+        Assert.Contains("pod-1\\r\\nforged pod", entry.Message);
+        Assert.Contains("forged error", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Null(entry.Exception);
+    }
+
+    [Fact]
+    public async Task PodMembershipVerifier_WhenCanceled_PropagatesWithoutRecordingFailure()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var membershipService = new Mock<IPodMembershipService>();
+        membershipService
+            .Setup(service => service.VerifyMembershipAsync("pod-1", "peer-1", cancellation.Token))
+            .Returns(Task.FromCanceled<MembershipVerificationResult>(cancellation.Token));
         var verifier = new PodMembershipVerifier(
             NullLogger<PodMembershipVerifier>.Instance,
             membershipService.Object,
             Mock.Of<IMessageSigner>());
 
-        var result = await verifier.VerifyMembershipAsync("pod-1", "peer-1", CancellationToken.None);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            verifier.VerifyMembershipAsync("pod-1", "peer-1", cancellation.Token));
 
-        Assert.False(result.IsValidMember);
-        Assert.Equal("Membership verification failed", result.ErrorMessage);
-        Assert.DoesNotContain("sensitive", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        var stats = await verifier.GetStatsAsync();
+        Assert.Equal(0, stats.TotalVerifications);
+        Assert.Equal(0, stats.FailedMembershipChecks);
+    }
+
+    [Fact]
+    public async Task PodMembershipVerifier_WhenMessageSignatureIsCanceled_Propagates()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var membershipService = new Mock<IPodMembershipService>();
+        membershipService
+            .Setup(service => service.VerifyMembershipAsync("pod-1", "peer-1", cancellation.Token))
+            .ReturnsAsync(new MembershipVerificationResult(true, false, PodRoles.Member));
+        var signer = new Mock<IMessageSigner>();
+        signer
+            .Setup(service => service.VerifyMessageAsync(It.IsAny<PodMessage>(), cancellation.Token))
+            .Returns(Task.FromCanceled<bool>(cancellation.Token));
+        var verifier = new PodMembershipVerifier(
+            NullLogger<PodMembershipVerifier>.Instance,
+            membershipService.Object,
+            signer.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            verifier.VerifyMessageAsync(
+                new PodMessage { MessageId = "message-1", ChannelId = "pod-1:general", SenderPeerId = "peer-1" },
+                cancellation.Token));
+    }
+
+    [Fact]
+    public async Task PodMembershipVerifier_WhenRoleLookupIsCanceled_Propagates()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var membershipService = new Mock<IPodMembershipService>();
+        membershipService
+            .Setup(service => service.VerifyMembershipAsync("pod-1", "peer-1", cancellation.Token))
+            .Returns(Task.FromCanceled<MembershipVerificationResult>(cancellation.Token));
+        var verifier = new PodMembershipVerifier(
+            NullLogger<PodMembershipVerifier>.Instance,
+            membershipService.Object,
+            Mock.Of<IMessageSigner>());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            verifier.HasRoleAsync("pod-1", "peer-1", PodRoles.Moderator, cancellation.Token));
+    }
+
+    [Fact]
+    public async Task PodMembershipVerifier_EscapesMessageIdentifiersAndExceptionsInLogs()
+    {
+        const string messageId = "message-1\r\nforged message";
+        var membershipService = new Mock<IPodMembershipService>();
+        membershipService
+            .Setup(service => service.VerifyMembershipAsync("pod-1", "peer-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MembershipVerificationResult(true, false, PodRoles.Member));
+        var signer = new Mock<IMessageSigner>();
+        signer
+            .Setup(service => service.VerifyMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("signature failed\r\n[forged]"));
+        var logger = new CapturingLogger<PodMembershipVerifier>();
+        var verifier = new PodMembershipVerifier(logger, membershipService.Object, signer.Object);
+
+        var result = await verifier.VerifyMessageAsync(
+            new PodMessage { MessageId = messageId, ChannelId = "pod-1:general", SenderPeerId = "peer-1" },
+            CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(2, logger.Entries.Count);
+        Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Error && entry.Message.Contains("signature failed\\r\\n[forged]", StringComparison.Ordinal));
+        foreach (var entry in logger.Entries)
+        {
+            Assert.Contains("message-1\\r\\nforged message", entry.Message);
+            Assert.DoesNotContain('\r', entry.Message);
+            Assert.DoesNotContain('\n', entry.Message);
+            Assert.Null(entry.Exception);
+        }
     }
 
     [Fact]

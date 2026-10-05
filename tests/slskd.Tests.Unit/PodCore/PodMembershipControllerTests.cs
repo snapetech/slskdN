@@ -6,11 +6,13 @@ namespace slskd.Tests.Unit.PodCore;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Core.Security;
 using slskd.PodCore;
 using slskd.PodCore.API.Controllers;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class PodMembershipControllerTests
@@ -179,6 +181,117 @@ public class PodMembershipControllerTests
         Assert.Contains("Membership not found", notFound.Value?.ToString() ?? string.Empty);
         Assert.DoesNotContain("pod-1", notFound.Value?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("peer-1", notFound.Value?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("publish")]
+    [InlineData("update")]
+    [InlineData("remove")]
+    [InlineData("get")]
+    [InlineData("verify")]
+    [InlineData("ban")]
+    [InlineData("unban")]
+    [InlineData("change-role")]
+    [InlineData("stats")]
+    [InlineData("cleanup")]
+    public async Task MembershipActions_WhenRequestIsCanceled_PropagateCancellation(string actionName)
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var membershipService = CreateCanceledMembershipService(cancellation.Token);
+        var controller = PodControllerTestContext.AsAdministrator(
+            new PodMembershipController(
+                NullLogger<PodMembershipController>.Instance,
+                membershipService.Object,
+                CreatePodService()),
+            "peer-1");
+
+        Func<Task<IActionResult>> action = actionName switch
+        {
+            "publish" => () => controller.PublishMembership(
+                "pod-1", new PodMember { PeerId = "peer-1", Role = "member" }, cancellation.Token),
+            "update" => () => controller.UpdateMembership(
+                "pod-1", "peer-1", new PodMember { Role = "member" }, cancellation.Token),
+            "remove" => () => controller.RemoveMembership("pod-1", "peer-1", cancellation.Token),
+            "get" => () => controller.GetMembership("pod-1", "peer-1", cancellation.Token),
+            "verify" => () => controller.VerifyMembership("pod-1", "peer-1", cancellation.Token),
+            "ban" => () => controller.BanMember("pod-1", "peer-1", new BanRequest("test"), cancellation.Token),
+            "unban" => () => controller.UnbanMember("pod-1", "peer-1", cancellation.Token),
+            "change-role" => () => controller.ChangeRole("pod-1", "peer-1", new ChangeRoleRequest("moderator"), cancellation.Token),
+            "stats" => () => controller.GetMembershipStats(cancellation.Token),
+            "cleanup" => () => controller.CleanupExpiredMemberships(cancellation.Token),
+            _ => throw new InvalidOperationException($"Unknown action {actionName}"),
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(action);
+    }
+
+    [Fact]
+    public async Task MembershipDiagnostics_EscapeRemoteValuesAndExceptionText()
+    {
+        const string podId = "pod-1\r\nforged pod";
+        const string peerId = "peer-1\r\nforged peer";
+        var membershipService = new Mock<IPodMembershipService>();
+        membershipService
+            .SetupSequence(service => service.RemoveMembershipAsync(podId, peerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MembershipPublishResult(
+                false,
+                "result-pod\r\nforged pod",
+                "result-peer\r\nforged peer",
+                string.Empty,
+                DateTimeOffset.MinValue,
+                DateTimeOffset.MinValue,
+                "failure\r\nforged result"))
+            .ThrowsAsync(new InvalidOperationException("exception\r\nforged detail"));
+        var logger = new CapturingLogger<PodMembershipController>();
+        var controller = PodControllerTestContext.AsAdministrator(
+            new PodMembershipController(logger, membershipService.Object, CreatePodService()),
+            "admin");
+
+        Assert.Equal(500, Assert.IsType<ObjectResult>(await controller.RemoveMembership(podId, peerId)).StatusCode);
+        Assert.Equal(500, Assert.IsType<ObjectResult>(await controller.RemoveMembership(podId, peerId)).StatusCode);
+
+        Assert.Equal(2, logger.Entries.Count);
+        Assert.Contains("peer-1\\r\\nforged peer", logger.Entries[0].Message);
+        Assert.Contains("pod-1\\r\\nforged pod", logger.Entries[0].Message);
+        Assert.Contains("failure\\r\\nforged result", logger.Entries[0].Message);
+        Assert.Contains("peer-1\\r\\nforged peer", logger.Entries[1].Message);
+        Assert.Contains("pod-1\\r\\nforged pod", logger.Entries[1].Message);
+        Assert.Contains("exception\\r\\nforged detail", logger.Entries[1].Message);
+        foreach (var entry in logger.Entries)
+        {
+            Assert.DoesNotContain('\r', entry.Message);
+            Assert.DoesNotContain('\n', entry.Message);
+            Assert.Null(entry.Exception);
+        }
+
+        membershipService.Verify(service => service.RemoveMembershipAsync(podId, peerId, It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    private static Mock<IPodMembershipService> CreateCanceledMembershipService(CancellationToken cancellationToken)
+    {
+        var service = new Mock<IPodMembershipService>();
+        service.Setup(instance => instance.PublishMembershipAsync(It.IsAny<string>(), It.IsAny<PodMember>(), cancellationToken))
+            .Returns(Task.FromCanceled<MembershipPublishResult>(cancellationToken));
+        service.Setup(instance => instance.UpdateMembershipAsync(It.IsAny<string>(), It.IsAny<PodMember>(), cancellationToken))
+            .Returns(Task.FromCanceled<MembershipPublishResult>(cancellationToken));
+        service.Setup(instance => instance.RemoveMembershipAsync(It.IsAny<string>(), It.IsAny<string>(), cancellationToken))
+            .Returns(Task.FromCanceled<MembershipPublishResult>(cancellationToken));
+        service.Setup(instance => instance.GetMembershipAsync(It.IsAny<string>(), It.IsAny<string>(), cancellationToken))
+            .Returns(Task.FromCanceled<MembershipRetrievalResult>(cancellationToken));
+        service.Setup(instance => instance.VerifyMembershipAsync(It.IsAny<string>(), It.IsAny<string>(), cancellationToken))
+            .Returns(Task.FromCanceled<MembershipVerificationResult>(cancellationToken));
+        service.Setup(instance => instance.BanMemberAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), cancellationToken))
+            .Returns(Task.FromCanceled<MembershipPublishResult>(cancellationToken));
+        service.Setup(instance => instance.UnbanMemberAsync(It.IsAny<string>(), It.IsAny<string>(), cancellationToken))
+            .Returns(Task.FromCanceled<MembershipPublishResult>(cancellationToken));
+        service.Setup(instance => instance.ChangeRoleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), cancellationToken))
+            .Returns(Task.FromCanceled<MembershipPublishResult>(cancellationToken));
+        service.Setup(instance => instance.GetStatsAsync(cancellationToken))
+            .Returns(Task.FromCanceled<MembershipStats>(cancellationToken));
+        service.Setup(instance => instance.CleanupExpiredAsync(cancellationToken))
+            .Returns(Task.FromCanceled<MembershipCleanupResult>(cancellationToken));
+        return service;
     }
 
     private static IPodService CreatePodService()
