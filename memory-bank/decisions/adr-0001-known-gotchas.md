@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1678. Make Mock HTTP Handlers Honor Their Cancellation Token (2026-10-05)
+
+**What went wrong:** The NAT probe cancellation regression supplied a handler
+that ignored its canceled token and threw a separate failure, so the probe
+correctly treated that exception as a failed endpoint and returned.
+
+**Why:** The fake transport did not model `HttpMessageHandler.SendAsync`, which
+receives the request cancellation token and must return a canceled task when
+that token is canceled.
+
+**Prevention:** Have custom HTTP handlers honor `cancellationToken` before
+their configured success/failure behavior, and separately test explicit
+pre-cancellation at service boundaries.
+
 ### 0z1677. Preserve NAT Probe Cancellation And Escape Network Failures (2026-10-05)
 
 **What went wrong:** Public-IP HTTP probe failures attached raw exceptions to
