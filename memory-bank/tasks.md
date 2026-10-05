@@ -128,9 +128,17 @@
   provider and pod-message storage tests pass 10/10; full Release tests pass
   5,920 (74 application, 5,557 unit, 289 integration), `./bin/lint` passes,
   and active-backlog, identity, and whitespace checks pass.
+- [x] Escape peer usernames, filenames, paths, policy text, and exception
+  details across transfer services and controllers — 2026-10-05. This covers
+  enqueue, retries, upload, auto-replace, content verification, multi-source
+  APIs, and pod/scene download actions. A captured-log regression confirms
+  CR/LF escaping while preserving the original transfer filename and result.
+  Full Release tests pass 5,921 (74 application, 5,558 unit, 289 integration);
+  `./bin/lint`, active-backlog, identity, and whitespace checks pass. Gotchas
+  `0z1573`–`0z1575` record the sweep boundaries and review failures.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Discovery queues remain open at 210 callback/event,
-  479 remote-text, 12,230 red-team, and 822 mutable-ownership candidates;
+  476 remote-text, 12,236 red-team, and 823 mutable-ownership candidates;
   T-908 fallback lifecycle and distributed evidence requirements also remain
   open.
 

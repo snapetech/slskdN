@@ -36,6 +36,7 @@ namespace slskd.Transfers.API
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.SignalR;
     using Serilog;
+    using slskd.Common.Security;
     using slskd.Core.Security;
     using slskd.Core.Web;
     using slskd.Transfers.AutoReplace;
@@ -491,7 +492,7 @@ namespace slskd.Transfers.API
             {
                 Log.Information(
                     "Rejected download request for {Username}; all {Count} file(s) matched the global download policy",
-                    username,
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
                     blockedDownloads.Count);
                 return StatusCode(
                     403,
@@ -539,7 +540,8 @@ namespace slskd.Transfers.API
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to enqueue {Count} files for {Username}", requestList.Count, username);
+                Log.Error("Failed to enqueue {Count} files for {Username}: {Exception}", requestList.Count,
+                    LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return StatusCode(500, "Failed to enqueue downloads");
             }
             finally
@@ -982,12 +984,13 @@ namespace slskd.Transfers.API
             }
             catch (TimeoutException)
             {
-                Log.Debug("Timed out getting place in queue for {Username}/{TransferId}", username, guid);
+                Log.Debug("Timed out getting place in queue for {Username}/{TransferId}", LoggingSanitizer.SanitizeExternalIdentifier(username), guid);
                 return NoContent();
             }
             catch (Exception ex)
             {
-                Log.Debug(ex, "Queue position unavailable for {Username}/{TransferId}: {Message}", username, guid, ex.Message);
+                Log.Debug("Queue position unavailable for {Username}/{TransferId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username), guid, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return NoContent();
             }
         }

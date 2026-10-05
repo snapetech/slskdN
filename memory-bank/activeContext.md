@@ -1,4 +1,32 @@
-## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 01:25 UTC
+## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:01 UTC
+
+Stable `.339` remains the latest published release. The transfer diagnostics
+batch now escapes usernames, remote filenames, paths, policy text, and full
+exception details across download/upload enqueue, retry, completion,
+auto-replace, content verification, multi-source APIs, and Pod/Scene download
+actions. Sanitization is applied only to log arguments; transfer behavior and
+returned values retain the original input. A captured-log regression verifies
+CR/LF escaping and unchanged failed-filename output. Full Release tests pass
+5,921 (74 application, 5,558 unit, 289 integration); `./bin/lint`, active
+backlog, local-identity, and whitespace checks pass. The transfer code, test,
+release note, changelog, and backlog refresh are validated but not yet
+committed or pushed. Gotchas `0z1573`–`0z1575` record the boundary and two
+implementation review failures.
+
+Every first-party project under `src`, `tests`, and `tools` targets
+`net10.0`. MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves to its
+compatible `lib/net8.0` asset; no project TFM or selected MonoTorrent asset
+targets `.NET 6`. No framework change is needed.
+
+Next: commit this validated transfer batch, then continue the remote-text audit
+with PodMessaging and ChatBridge diagnostics. Keep T-908 fallback lifecycle,
+global Party ID ownership across disjoint DHT views, actual background-tab
+timer throttling, WebKit/Orca and physical assistive-technology speech,
+representative WAN/resource evidence, the original frontend
+`ERR_NETWORK_CHANGED` cause, and the broad discovery queues open until their
+required code or external evidence exists. Do not cut `.340` yet.
+
+## Previous state — Continue whole-product remediation; prepare `.340` — 2026-10-05 01:25 UTC
 
 Stable `.339` remains the latest published release. The provider and
 persisted-search diagnostics batch now escapes caller-supplied search text,

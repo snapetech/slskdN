@@ -17680,3 +17680,18 @@ Focused tests pass 10/10; the full Release suite passes 5,920 (74 application,
 and whitespace checks pass. Gotchas `0z1571` and `0z1572` document provider
 coverage and sanitized exception detail. Post-`.339` work remains unreleased;
 continue the broader whole-product remediation before cutting `.340`.
+
+## Update 2026-10-05 02:01 UTC — Escape transfer service diagnostics
+
+Extended log escaping through download and upload enqueue, retry, finalization,
+auto-replace, content verification, multi-source endpoints, and Pod/Scene
+download actions. Transfer inputs and returned values keep the original text.
+A captured-log regression verifies escaped CR/LF in the download username and
+filename while checking the returned failure filename is unchanged. Full
+Release tests pass 5,921 (74 application, 5,558 unit, 289 integration),
+`./bin/lint`, active-backlog, local-identity, and whitespace checks pass. The
+refreshed open queues are 210 callback/event, 476 remote-text, 12,236 red-team,
+and 823 mutable-ownership candidates. Gotchas `0z1573`–`0z1575` capture the
+transfer boundary, behavior-preservation, and namespace-shadowing findings.
+The release fragment is ready for the next stable release; `.340` remains
+deferred until the ongoing remediation is complete.

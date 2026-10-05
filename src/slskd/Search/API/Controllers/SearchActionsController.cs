@@ -165,8 +165,8 @@ public class SearchActionsController : ControllerBase
         {
             _logger.LogInformation(
                 "[SearchActions] Blocked download of {Filename} by global exclusion {Exclusion}",
-                policyFilename,
-                policyExclusion);
+                LoggingSanitizer.SanitizeFilePath(policyFilename),
+                LoggingSanitizer.SanitizeExternalIdentifier(policyExclusion));
             return DownloadBlocked(policyFilename, policyExclusion);
         }
 
@@ -349,7 +349,9 @@ public class SearchActionsController : ControllerBase
             return DownloadBlocked(file.Filename, policyExclusion);
         }
 
-        _logger.LogInformation("[SearchActions] Pod download: contentId={ContentId}, filename={Filename}, peerId={PeerId}", contentId, file.Filename, peerId);
+        _logger.LogInformation("[SearchActions] Pod download: contentId={ContentId}, filename={Filename}, peerId={PeerId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeFilePath(file.Filename),
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId));
 
         string? completedRoot = null;
         string? stagingFilename = null;
@@ -361,7 +363,8 @@ public class SearchActionsController : ControllerBase
             if (resolved != null)
             {
                 // Content is already local - return success
-                _logger.LogDebug("[SearchActions] Pod content {ContentId} is already local at {Path}", contentId, resolved.AbsolutePath);
+                _logger.LogDebug("[SearchActions] Pod content {ContentId} is already local at {Path}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeFilePath(resolved.AbsolutePath));
                 return Ok(new
                 {
                     success = true,
@@ -374,7 +377,8 @@ public class SearchActionsController : ControllerBase
             }
 
             // Content is not local - download from pod peers
-            _logger.LogInformation("[SearchActions] Pod content {ContentId} is not local - downloading from peer {PeerId}", contentId, peerId);
+            _logger.LogInformation("[SearchActions] Pod content {ContentId} is not local - downloading from peer {PeerId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(peerId));
 
             // Try to find peers that have this content (fallback if peerId from search is unavailable)
             string targetPeerId = peerId;
@@ -394,12 +398,14 @@ public class SearchActionsController : ControllerBase
                 }
 
                 targetPeerId = fallbackPeer.PeerId;
-                _logger.LogDebug("[SearchActions] Using peer {PeerId} from mesh directory lookup", targetPeerId);
+                _logger.LogDebug("[SearchActions] Using peer {PeerId} from mesh directory lookup",
+                    LoggingSanitizer.SanitizeExternalIdentifier(targetPeerId));
             }
 
             if (file.Size <= 0 || file.Size > MaxPodDownloadBytes)
             {
-                _logger.LogWarning("[SearchActions] Refusing pod download {ContentId} with unsupported size {Size}", contentId, file.Size);
+                _logger.LogWarning("[SearchActions] Refusing pod download {ContentId} with unsupported size {Size}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(contentId), file.Size);
                 return BadRequest(new ProblemDetails
                 {
                     Type = "pod_download_size_invalid",
@@ -441,7 +447,9 @@ public class SearchActionsController : ControllerBase
                     if (fetchResult.Error != null || fetchResult.Data == null || fetchResult.Size != chunkLength)
                     {
                         _logger.LogWarning("[SearchActions] Failed to fetch pod content {ContentId} from peer {PeerId}: {Error}",
-                            contentId, targetPeerId, fetchResult.Error ?? "Invalid chunk response");
+                            LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(targetPeerId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(fetchResult.Error ?? "Invalid chunk response"));
                         fetchResult.Data?.Dispose();
                         fetchFailure = StatusCode(502, new ProblemDetails
                         {
@@ -496,7 +504,8 @@ public class SearchActionsController : ControllerBase
             }
 
             _logger.LogInformation("[SearchActions] Successfully downloaded pod content {ContentId} from peer {PeerId} to {Path}",
-                contentId, targetPeerId, localFilename);
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(targetPeerId), LoggingSanitizer.SanitizeFilePath(localFilename));
 
             return Ok(new
             {
@@ -524,7 +533,7 @@ public class SearchActionsController : ControllerBase
                 TryDeletePartialPodDownload(stagingFilename, completedRoot);
             }
 
-            _logger.LogError(ex, "[SearchActions] Pod download failed");
+            _logger.LogError("[SearchActions] Pod download failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new ProblemDetails
             {
                 Type = "pod_download_exception",
@@ -547,8 +556,8 @@ public class SearchActionsController : ControllerBase
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _logger.LogWarning(ex, "[SearchActions] Failed to remove staged pod download at {StagingPath}",
-                LoggingSanitizer.SanitizeFilePath(localFilename));
+            _logger.LogWarning("[SearchActions] Failed to remove staged pod download at {StagingPath}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(localFilename), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -567,7 +576,7 @@ public class SearchActionsController : ControllerBase
         }
 
         _logger.LogInformation("[SearchActions] Scene download: username={Username}, filename={Filename}",
-            sceneRef.Username, sceneRef.Filename);
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneRef.Username), LoggingSanitizer.SanitizeFilePath(sceneRef.Filename));
 
         try
         {
@@ -613,7 +622,7 @@ public class SearchActionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SearchActions] Scene download failed");
+            _logger.LogError("[SearchActions] Scene download failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new ProblemDetails
             {
                 Type = "download_exception",

@@ -19,6 +19,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 using slskd.Files;
 using Soulseek;
 
@@ -265,7 +266,8 @@ namespace slskd.Transfers.Uploads
 
             if (existing != default)
             {
-                Log.Debug("Superseding transfer record for {Filename} from {Username}", transfer.Filename, transfer.Username);
+                Log.Debug("Superseding transfer record for {Filename} from {Username}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
                 existing.Removed = true;
             }
 
@@ -295,7 +297,7 @@ namespace slskd.Transfers.Uploads
 
             if (!Locks.TryAdd(lockName, true))
             {
-                Log.Debug("Ignoring concurrent invocation; lock {LockName} already held", lockName);
+                Log.Debug("Ignoring concurrent invocation; lock {LockName} already held", LoggingSanitizer.SanitizeExternalIdentifier(lockName));
                 return default;
             }
 
@@ -313,7 +315,7 @@ namespace slskd.Transfers.Uploads
             try
             {
                 cts = new CancellationTokenSource();
-                Log.Debug("Acquired lock {LockName}", lockName);
+                Log.Debug("Acquired lock {LockName}", LoggingSanitizer.SanitizeExternalIdentifier(lockName));
 
                 /*
                     fetch an updated copy of the transfer record from the database; now that we are locked, we *should*
@@ -351,10 +353,12 @@ namespace slskd.Transfers.Uploads
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Failed to watch user {Username}", transfer.Username);
+                    Log.Warning("Failed to watch user {Username}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
 
-                Log.Information("Initializing upload of {Filename} to {Username}", transfer.Filename, transfer.Username);
+                Log.Information("Initializing upload of {Filename} to {Username}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
 
                 // locate the file on disk. we checked this once already when enqueueing, but it may have moved since
                 // can throw NotFoundException
@@ -367,13 +371,15 @@ namespace slskd.Transfers.Uploads
                     progressUpdateMinimumBytes: 1024 * 1024,
                     stateChanged: (args) =>
                     {
-                        Log.Debug("Upload of {Filename} to user {Username} changed state from {Previous} to {New}", localFilename, transfer.Username, args.PreviousState, args.Transfer.State);
+                        Log.Debug("Upload of {Filename} to user {Username} changed state from {Previous} to {New}",
+                            LoggingSanitizer.SanitizeFilePath(localFilename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username), args.PreviousState, args.Transfer.State);
 
                         // prevent Exceptions thrown during shutdown from updating the transfer record with related Exceptions;
                         // instead, allow these to be left "hanging" so that they are properly cleaned up at the next startup
                         if (Application.IsShuttingDown)
                         {
-                            Log.Debug("Upload update of {Filename} to {Username} not persisted; app is shutting down", transfer.Filename, transfer.Username);
+                            Log.Debug("Upload update of {Filename} to {Username} not persisted; app is shutting down",
+                                LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
                             return;
                         }
 
@@ -414,7 +420,8 @@ namespace slskd.Transfers.Uploads
                             }
                             else
                             {
-                                Log.Debug("Skipped progress update of {Filename} to {Username} {BytesTransferred}/{TotalBytes}; previous update still pending", transfer.Filename, transfer.Username, args.Transfer.BytesTransferred, args.Transfer.Size);
+                                Log.Debug("Skipped progress update of {Filename} to {Username} {BytesTransferred}/{TotalBytes}; previous update still pending",
+                                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username), args.Transfer.BytesTransferred, args.Transfer.Size);
                             }
                         }
                     }),
@@ -499,7 +506,9 @@ namespace slskd.Transfers.Uploads
             }
             catch (NotFoundException ex)
             {
-                Log.Error(ex, "Upload of {Filename} to user {Username} failed: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Error("Upload of {Filename} to user {Username} failed: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 TryFail(transfer.Id, "File could not be found", TransferStates.Completed | TransferStates.Aborted);
 
@@ -507,7 +516,9 @@ namespace slskd.Transfers.Uploads
             }
             catch (OperationCanceledException ex)
             {
-                Log.Information("Upload of {Filename} to user {Username} was canceled: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Information("Upload of {Filename} to user {Username} was canceled: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 TryFail(transfer.Id, exception: ex);
 
@@ -518,10 +529,10 @@ namespace slskd.Transfers.Uploads
                 FailedPeerCooldowns[transfer.Username] = DateTime.UtcNow.Add(FailedPeerCooldown);
                 Log.Warning(
                     "Upload of {Filename} to user {Username} failed because of an expected peer/network error; pausing new uploads to this peer for {CooldownSeconds} seconds: {Message}",
-                    transfer.Filename,
-                    transfer.Username,
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
                     FailedPeerCooldown.TotalSeconds,
-                    ex.Message);
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 TryFail(transfer.Id, exception: ex);
 
@@ -529,7 +540,9 @@ namespace slskd.Transfers.Uploads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Upload of {Filename} to user {Username} failed: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Error("Upload of {Filename} to user {Username} failed: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 TryFail(transfer.Id, exception: ex);
 
@@ -546,7 +559,9 @@ namespace slskd.Transfers.Uploads
                     }
                     catch (Exception ex)
                     {
-                        Log.Warning(ex, "Failed to record {BytesSent} Soulseek upload bytes for {Filename} to {Username}", bytesSent, transfer.Filename, transfer.Username);
+                        Log.Warning("Failed to record {BytesSent} Soulseek upload bytes for {Filename} to {Username}: {Exception}",
+                            bytesSent, LoggingSanitizer.SanitizeFilePath(transfer.Filename),
+                            LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                 }
 
@@ -565,7 +580,7 @@ namespace slskd.Transfers.Uploads
                 try
                 {
                     Locks.TryRemove(lockName, out _);
-                    Log.Debug("Released lock {LockName}", lockName);
+                    Log.Debug("Released lock {LockName}", LoggingSanitizer.SanitizeExternalIdentifier(lockName));
 
                     if (CancellationTokens.TryRemove(transfer.Id, out var removedCts))
                     {
@@ -583,7 +598,9 @@ namespace slskd.Transfers.Uploads
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex, "Failed to finalize upload of {Filename} to {Username}: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                    Log.Error("Failed to finalize upload of {Filename} to {Username}: {Exception}",
+                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
         }
@@ -614,8 +631,8 @@ namespace slskd.Transfers.Uploads
                     var retrySeconds = Math.Max(1, (int)Math.Ceiling((retryAfter - now).TotalSeconds));
                     Log.Warning(
                         "Rejected upload of {Filename} to {Username}; peer is cooling down after a recent connection failure for another {RetrySeconds} seconds",
-                        filename,
-                        username,
+                        LoggingSanitizer.SanitizeFilePath(filename),
+                        LoggingSanitizer.SanitizeExternalIdentifier(username),
                         retrySeconds);
                     throw new DownloadEnqueueException("Recent transfer failed; retry later.");
                 }
@@ -627,7 +644,7 @@ namespace slskd.Transfers.Uploads
 
             if (!Locks.TryAdd(lockName, true))
             {
-                Log.Debug("Ignoring concurrent upload enqueue attempt; lock {LockName} already held", lockName);
+                Log.Debug("Ignoring concurrent upload enqueue attempt; lock {LockName} already held", LoggingSanitizer.SanitizeExternalIdentifier(lockName));
                 return default;
             }
 
@@ -635,9 +652,10 @@ namespace slskd.Transfers.Uploads
 
             try
             {
-                Log.Debug("Acquired lock {LockName}", lockName);
+                Log.Debug("Acquired lock {LockName}", LoggingSanitizer.SanitizeExternalIdentifier(lockName));
 
-                Log.Information("Upload of {Filename} to {Username} requested", filename, username);
+                Log.Information("Upload of {Filename} to {Username} requested",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username));
 
                 using var context = ContextFactory.CreateDbContext();
 
@@ -661,7 +679,9 @@ namespace slskd.Transfers.Uploads
                 */
                 if (existingInProgressRecords.Count != 0)
                 {
-                    Log.Information("Upload of {Filename} to {Username} is already queued or is in progress (ids: {Ids})", filename, username, string.Join(", ", existingInProgressRecords.Select(t => t.Id)));
+                    Log.Information("Upload of {Filename} to {Username} is already queued or is in progress (ids: {Ids})",
+                        LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                        string.Join(", ", existingInProgressRecords.Select(t => t.Id)));
                     return default;
                 }
 
@@ -690,11 +710,14 @@ namespace slskd.Transfers.Uploads
                 }
                 catch (NotFoundException)
                 {
-                    Log.Information("Upload of {Filename} to {Username} {Rejected}: {Message}", filename, username, "REJECTED", "File not shared.");
+                    Log.Information("Upload of {Filename} to {Username} {Rejected}: {Message}",
+                        LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username), "REJECTED", "File not shared.");
                     throw new DownloadEnqueueException($"File not shared.");
                 }
 
-                Log.Debug("Resolved {Remote} to physical file {Physical} on host '{Host}'", filename, localFilename, host);
+                Log.Debug("Resolved {Remote} to physical file {Physical} on host '{Host}'",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeFilePath(localFilename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(host));
 
                 /*
                     we're cleared to enqueue! create a new transfer record, and automatically mark any existing records
@@ -718,12 +741,14 @@ namespace slskd.Transfers.Uploads
                 {
                     record.Removed = true;
                     context.Update(record);
-                    Log.Debug("Marked existing upload record of {Filename} to {Username} removed (id: {Id})", filename, username, record.Id);
+                    Log.Debug("Marked existing upload record of {Filename} to {Username} removed (id: {Id})",
+                        LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username), record.Id);
                 }
 
                 context.SaveChanges();
 
-                Log.Information("Successfully enqueued upload of {Filename} to {Username} (id: {Id})", filename, username, id);
+                Log.Information("Successfully enqueued upload of {Filename} to {Username} (id: {Id})",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username), id);
 
                 // users with uploads must be watched so that we can keep informed of their online status, privileges, and
                 // statistics. this is so that we can accurately determine their effective group.
@@ -736,7 +761,8 @@ namespace slskd.Transfers.Uploads
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Failed to watch user {Username}", username);
+                    Log.Warning("Failed to watch user {Username}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
 
                 /*
@@ -751,11 +777,14 @@ namespace slskd.Transfers.Uploads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to enqueue upload of {Filename} to {Username}: {Message}", filename, username, ex.Message);
+                Log.Error("Failed to enqueue upload of {Filename} to {Username}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 if (!TryFail(id, exception: ex))
                 {
-                    Log.Error(ex, "Failed to clean up transfer {Id} after failed enqueue: {Message}", id, ex.Message);
+                    Log.Error("Failed to clean up transfer {Id} after failed enqueue: {Exception}",
+                        id, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     throw;
                 }
 
@@ -765,7 +794,7 @@ namespace slskd.Transfers.Uploads
             {
                 if (Locks.TryRemove(lockName, out _))
                 {
-                    Log.Debug("Released lock {LockName}", lockName);
+                    Log.Debug("Released lock {LockName}", LoggingSanitizer.SanitizeExternalIdentifier(lockName));
                 }
             }
         }
@@ -775,7 +804,8 @@ namespace slskd.Transfers.Uploads
             try
             {
                 await uploadTask.ConfigureAwait(false);
-                Log.Information("Task for upload of {Filename} to {Username} completed successfully", filename, username);
+                Log.Information("Task for upload of {Filename} to {Username} completed successfully",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username));
             }
             catch (Exception ex)
             {
@@ -787,11 +817,14 @@ namespace slskd.Transfers.Uploads
                     * transfer record updated so that it's no longer in Queued | Locally
                     * Soulseek.NET already tracking an identical upload (slskd <> Soulseek.NET desync)
                 */
-                Log.Debug("Observed failed upload task for {Filename} to {Username}: {Error}", filename, username, ex.Message);
+                Log.Debug("Observed failed upload task for {Filename} to {Username}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 if (!TryFail(id, ex))
                 {
-                    Log.Error(ex, "Failed to clean up transfer {Id} after failed execution: {Message}", id, ex.Message);
+                    Log.Error("Failed to clean up transfer {Id} after failed execution: {Exception}",
+                        id, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
         }
@@ -840,7 +873,7 @@ namespace slskd.Transfers.Uploads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to find upload: {Message}", ex.Message);
+                Log.Error("Failed to find upload: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -880,7 +913,7 @@ namespace slskd.Transfers.Uploads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to list uploads: {Message}", ex.Message);
+                Log.Error("Failed to list uploads: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -908,7 +941,7 @@ namespace slskd.Transfers.Uploads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to list uploads: {Message}", ex.Message);
+                Log.Error("Failed to list uploads: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -988,7 +1021,7 @@ namespace slskd.Transfers.Uploads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to prune uploads: {Message}", ex.Message);
+                Log.Error("Failed to prune uploads: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -1025,7 +1058,7 @@ namespace slskd.Transfers.Uploads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to remove upload {Id}: {Message}", id, ex.Message);
+                Log.Error("Failed to remove upload {Id}: {Exception}", id, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -1108,7 +1141,7 @@ namespace slskd.Transfers.Uploads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to update database: {Message}", ex.Message);
+                Log.Error("Failed to update database: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return false;
             }
         }
@@ -1133,7 +1166,9 @@ namespace slskd.Transfers.Uploads
             */
             (host, filename, length) = await Shares.ResolveFileAsync(remoteFilename);
 
-            Log.Debug("Resolved shared file {RemoteFilename} to host {Host} and file {ShareFilename} (length: {ShareLength})", remoteFilename, host, filename, length);
+            Log.Debug("Resolved shared file {RemoteFilename} to host {Host} and file {ShareFilename} (length: {ShareLength})",
+                LoggingSanitizer.SanitizeFilePath(remoteFilename), LoggingSanitizer.SanitizeExternalIdentifier(host),
+                LoggingSanitizer.SanitizeFilePath(filename), length);
 
             /*
                 if the file is hosted locally, do some quick I/O to check to see if the file still exists at the location
@@ -1148,7 +1183,8 @@ namespace slskd.Transfers.Uploads
                 if (!info.Exists)
                 {
                     Shares.RequestScan();
-                    Log.Warning("The shared file '{File}' could not be located on disk. A share scan should be performed", filename);
+                    Log.Warning("The shared file '{File}' could not be located on disk. A share scan should be performed",
+                        LoggingSanitizer.SanitizeFilePath(filename));
                     throw new NotFoundException($"The file '{filename}' could not be located on disk. A share scan should be performed.");
                 }
 
@@ -1156,7 +1192,8 @@ namespace slskd.Transfers.Uploads
                 // doesn't care that the size is exact.  we definitely need to re-scan though.
                 if (info.Length != length)
                 {
-                    Log.Warning("The length of shared file '{File}' differs between the share ({ShareSize}) and disk ({DiskSize}). A share scan should be performed", filename, length, info.Length);
+                    Log.Warning("The length of shared file '{File}' differs between the share ({ShareSize}) and disk ({DiskSize}). A share scan should be performed",
+                        LoggingSanitizer.SanitizeFilePath(filename), length, info.Length);
                     Shares.RequestScan();
                 }
 
@@ -1182,7 +1219,8 @@ namespace slskd.Transfers.Uploads
                 if (relayLength != length)
                 {
                     // todo: force a remote scan
-                    Log.Warning("The length of shared file '{File}' on host {Host} differs between the share ({ShareSize}) and disk ({DiskSize}). A share scan should be performed", filename, host, length, relayLength);
+                    Log.Warning("The length of shared file '{File}' on host {Host} differs between the share ({ShareSize}) and disk ({DiskSize}). A share scan should be performed",
+                        LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(host), length, relayLength);
                 }
 
                 length = relayLength;

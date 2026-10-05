@@ -35,6 +35,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Escape caller-supplied text in bridged, Scene, and Pod searches, pod-message
   FTS, pod discovery, content lookup, and local shared-file search logs while
   preserving the original search behavior.
+- Escape peer usernames, remote filenames, paths, policy text, and exception
+  details across transfer services and controllers, without changing transfer
+  inputs or returned values.
 
 ## [2026100423-slskdn.339] — 2026-10-04
 

@@ -12,6 +12,7 @@ namespace slskd.Transfers.AutoReplace
     using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Options;
     using Serilog;
+    using slskd.Common.Security;
     using slskd.Search;
     using slskd.Transfers.API;
     using slskd.Transfers.Downloads;
@@ -349,7 +350,7 @@ namespace slskd.Transfers.AutoReplace
 
                 Log.Information(
                     "Auto-replace retry limit reached for {Filename} ({Attempts} replacement cycles, max retries {MaxRetries})",
-                    CleanTrackTitle(download.Filename),
+                    LoggingSanitizer.SanitizeFilePath(CleanTrackTitle(download.Filename)),
                     replacementCount,
                     maxRetries);
                 return false;
@@ -378,8 +379,8 @@ namespace slskd.Transfers.AutoReplace
             {
                 Log.Information(
                     "Skipping alternative-source search for {Filename}; blocked by global exclusion {Exclusion}",
-                    request.Filename,
-                    targetExclusion);
+                    LoggingSanitizer.SanitizeFilePath(request.Filename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(targetExclusion));
                 return (candidates, SearchBudgetExceeded: false);
             }
 
@@ -387,18 +388,18 @@ namespace slskd.Transfers.AutoReplace
             var searchText = BuildAlternativeSearchText(request.Filename);
             if (string.IsNullOrWhiteSpace(searchText))
             {
-                Log.Warning("Could not build search text from filename: {Filename}", request.Filename);
+                Log.Warning("Could not build search text from filename: {Filename}", LoggingSanitizer.SanitizeFilePath(request.Filename));
                 return (candidates, SearchBudgetExceeded: false);
             }
 
             var expectedMatchTokens = GetMatchTokens(searchText);
             if (expectedMatchTokens.Count < 2)
             {
-                Log.Information("Skipping unsafe alternative search with fewer than two identifying filename tokens: {Filename}", request.Filename);
+                Log.Information("Skipping unsafe alternative search with fewer than two identifying filename tokens: {Filename}", LoggingSanitizer.SanitizeFilePath(request.Filename));
                 return (candidates, SearchBudgetExceeded: false);
             }
 
-            Log.Debug("Searching for alternatives: {SearchText}", searchText);
+            Log.Debug("Searching for alternatives: {SearchText}", LoggingSanitizer.SanitizeQueryText(searchText));
 
             var searchId = Guid.NewGuid();
             var searchOptions = new Soulseek.SearchOptions(
@@ -436,7 +437,7 @@ namespace slskd.Transfers.AutoReplace
 
                 if (searchState?.State.HasFlag(SearchStates.Completed) != true)
                 {
-                    Log.Warning("Search for alternatives did not complete within {TimeoutSeconds}s: {SearchText}", SearchCompletionTimeout.TotalSeconds, searchText);
+                    Log.Warning("Search for alternatives did not complete within {TimeoutSeconds}s: {SearchText}", SearchCompletionTimeout.TotalSeconds, LoggingSanitizer.SanitizeQueryText(searchText));
                     return (candidates, SearchBudgetExceeded: false);
                 }
 
@@ -444,7 +445,7 @@ namespace slskd.Transfers.AutoReplace
 
                 if (searchWithResponses?.Responses == null || !searchWithResponses.Responses.Any())
                 {
-                    Log.Debug("No search responses found for: {SearchText}", searchText);
+                    Log.Debug("No search responses found for: {SearchText}", LoggingSanitizer.SanitizeQueryText(searchText));
                     return (candidates, SearchBudgetExceeded: false);
                 }
 
@@ -533,16 +534,16 @@ namespace slskd.Transfers.AutoReplace
 
                 if (candidates.Count > 0)
                 {
-                    Log.Information("Found {Count} alternative candidates for: {SearchText} (using smart ranking)", candidates.Count, searchText);
+                    Log.Information("Found {Count} alternative candidates for: {SearchText} (using smart ranking)", candidates.Count, LoggingSanitizer.SanitizeQueryText(searchText));
                 }
                 else
                 {
-                    Log.Debug("Found no alternative candidates for: {SearchText} (using smart ranking)", searchText);
+                    Log.Debug("Found no alternative candidates for: {SearchText} (using smart ranking)", LoggingSanitizer.SanitizeQueryText(searchText));
                 }
             }
             catch (InvalidOperationException ex) when (IsSearchRateLimitExceeded(ex))
             {
-                Log.Warning("Search safety budget exhausted while finding alternatives for: {SearchText}. Deferring remaining auto-replace work.", searchText);
+                Log.Warning("Search safety budget exhausted while finding alternatives for: {SearchText}. Deferring remaining auto-replace work.", LoggingSanitizer.SanitizeQueryText(searchText));
                 return (candidates, SearchBudgetExceeded: true);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -551,7 +552,7 @@ namespace slskd.Transfers.AutoReplace
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error searching for alternatives: {Message}", ex.Message);
+                Log.Error("Error searching for alternatives: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             return (candidates, SearchBudgetExceeded: false);
@@ -577,14 +578,14 @@ namespace slskd.Transfers.AutoReplace
                 {
                     Log.Information(
                         "Blocked replacement download of {Filename} by global exclusion {Exclusion}",
-                        request.NewFilename,
-                        policyExclusion);
+                        LoggingSanitizer.SanitizeFilePath(request.NewFilename),
+                        LoggingSanitizer.SanitizeExternalIdentifier(policyExclusion));
                     return false;
                 }
 
                 if (!Guid.TryParse(request.OriginalId, out var originalGuid))
                 {
-                    Log.Warning("Invalid original download ID: {Id}", request.OriginalId);
+                    Log.Warning("Invalid original download ID: {Id}", LoggingSanitizer.SanitizeExternalIdentifier(request.OriginalId));
                     return false;
                 }
 
@@ -610,8 +611,8 @@ namespace slskd.Transfers.AutoReplace
                 }
 
                 Log.Information("Removed stuck download from {Username}: {Filename}",
-                    request.OriginalUsername,
-                    CleanTrackTitle(request.NewFilename));
+                    LoggingSanitizer.SanitizeExternalIdentifier(request.OriginalUsername),
+                    LoggingSanitizer.SanitizeFilePath(CleanTrackTitle(request.NewFilename)));
 
                 // Enqueue the new download under the original request so the UI row stays stable.
                 var (enqueued, failed) = await Transfers.Downloads.EnqueueAsync(
@@ -633,15 +634,15 @@ namespace slskd.Transfers.AutoReplace
                 if (enqueued.Count > 0)
                 {
                     Log.Information("Enqueued replacement from {Username}: {Filename}",
-                        request.NewUsername,
-                        CleanTrackTitle(request.NewFilename));
+                        LoggingSanitizer.SanitizeExternalIdentifier(request.NewUsername),
+                        LoggingSanitizer.SanitizeFilePath(CleanTrackTitle(request.NewFilename)));
                     return true;
                 }
                 else
                 {
                     Log.Warning("Failed to enqueue replacement from {Username}: {Filename}",
-                        request.NewUsername,
-                        CleanTrackTitle(request.NewFilename));
+                        LoggingSanitizer.SanitizeExternalIdentifier(request.NewUsername),
+                        LoggingSanitizer.SanitizeFilePath(CleanTrackTitle(request.NewFilename)));
                     return false;
                 }
             }
@@ -651,7 +652,7 @@ namespace slskd.Transfers.AutoReplace
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error replacing download: {Message}", ex.Message);
+                Log.Error("Error replacing download: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return false;
             }
         }
@@ -757,8 +758,8 @@ namespace slskd.Transfers.AutoReplace
                         detail.Success = true;
                         result.Replaced++;
                         Log.Information("Replaced: {Original} -> {New} (diff: {Diff:F1}%)",
-                            CleanTrackTitle(download.Filename),
-                            CleanTrackTitle(bestCandidate.Filename),
+                            LoggingSanitizer.SanitizeFilePath(CleanTrackTitle(download.Filename)),
+                            LoggingSanitizer.SanitizeFilePath(CleanTrackTitle(bestCandidate.Filename)),
                             bestCandidate.SizeDiffPercent);
                     }
                     else
@@ -775,7 +776,9 @@ namespace slskd.Transfers.AutoReplace
                 {
                     detail.Error = "Auto-replace processing failed";
                     result.Failed++;
-                    Log.Error(ex, "Error processing: {Filename}", CleanTrackTitle(download.Filename));
+                    Log.Error("Error processing {Filename}: {Exception}",
+                        LoggingSanitizer.SanitizeFilePath(CleanTrackTitle(download.Filename)),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
 
                 result.Details.Add(detail);

@@ -291,7 +291,8 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "{Message}", message);
+                Log.Warning("{Message}: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(message),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -372,7 +373,8 @@ namespace slskd.Transfers.Downloads
 
             if (existing != default)
             {
-                Log.Debug("Superseding transfer record for {Filename} from {Username}", transfer.Filename, transfer.Username);
+                Log.Debug("Superseding transfer record for {Filename} from {Username}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
                 existing.Removed = true;
 
                 // Preserve request continuity across supersede so the UI row stays stable.
@@ -461,7 +463,8 @@ namespace slskd.Transfers.Downloads
                 throw new ArgumentException("Two or more files in request are duplicated", nameof(files));
             }
 
-            Log.Information("Requested enqueue of {Count} files from user {Username}", fileList.Count, username);
+            Log.Information("Requested enqueue of {Count} files from user {Username}",
+                fileList.Count, LoggingSanitizer.SanitizeExternalIdentifier(username));
 
             List<Transfer> enqueued = [];
             List<string> failed = [];
@@ -484,9 +487,9 @@ namespace slskd.Transfers.Downloads
                     failed.Add(blockedFile.Filename);
                     Log.Information(
                         "Blocked download enqueue for {Filename} from {Username} by global exclusion {Exclusion}",
-                        blockedFile.Filename,
-                        username,
-                        blockedFile.Exclusion);
+                        LoggingSanitizer.SanitizeFilePath(blockedFile.Filename),
+                        LoggingSanitizer.SanitizeExternalIdentifier(username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(blockedFile.Exclusion));
                 }
 
                 var blockedFilenames = policyBlockedFiles
@@ -522,12 +525,12 @@ namespace slskd.Transfers.Downloads
                 Log.Debug("Released enqueue semaphore sync root");
             }
 
-            Log.Debug("Awaiting enqueue semaphore for user {Username}", username);
+            Log.Debug("Awaiting enqueue semaphore for user {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
             await userSemaphoreWaitTask;
 
             try
             {
-                Log.Debug("Acquired enqueue semaphore for user {Username}", username);
+                Log.Debug("Acquired enqueue semaphore for user {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
 
                 using var context = ContextFactory.CreateDbContext();
 
@@ -597,7 +600,8 @@ namespace slskd.Transfers.Downloads
 
                         try
                         {
-                            Log.Debug("Checking whether download of {Filename} from {Username} is already in progress", file.Filename, username);
+                            Log.Debug("Checking whether download of {Filename} from {Username} is already in progress",
+                                LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username));
                             existingRecordsByFilename.TryGetValue(file.Filename, out var existingFilenameRecords);
 
                             /*
@@ -608,7 +612,8 @@ namespace slskd.Transfers.Downloads
 
                             if (existingInProgressRecord is not null)
                             {
-                                Log.Debug("Ignoring concurrent download enqueue attempt; transfer for {Filename} from {Username} already in progress (id: {Id})", file.Filename, username, existingInProgressRecord.Id);
+                                Log.Debug("Ignoring concurrent download enqueue attempt; transfer for {Filename} from {Username} already in progress (id: {Id})",
+                                    LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username), existingInProgressRecord.Id);
                                 failed.Add(file.Filename);
                                 continue;
                             }
@@ -620,7 +625,8 @@ namespace slskd.Transfers.Downloads
                             */
                             if (IsActiveClientDownload(username, file.Filename))
                             {
-                                Log.Warning("Ignoring concurrent download enqueue attempt; transfer for {Filename} from {Username} is tracked by the Soulseek client but not slskd", file.Filename, username);
+                                Log.Warning("Ignoring concurrent download enqueue attempt; transfer for {Filename} from {Username} is tracked by the Soulseek client but not slskd",
+                                    LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username));
                                 failed.Add(file.Filename);
                                 continue;
                             }
@@ -713,7 +719,8 @@ namespace slskd.Transfers.Downloads
 
                             context.Add(transfer);
 
-                            Log.Debug("Added Transfer record for download of {Filename} from {Username} (id: {Id})", transfer.Filename, transfer.Username, transfer.Id);
+                            Log.Debug("Added Transfer record for download of {Filename} from {Username} (id: {Id})",
+                                LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username), transfer.Id);
 
                             if (existingFilenameRecords != null)
                             {
@@ -726,7 +733,8 @@ namespace slskd.Transfers.Downloads
 
                                     record.Removed = true;
                                     context.Update(record);
-                                    Log.Debug("Marked existing download record of {Filename} from {Username} removed (id: {Id})", file.Filename, username, record.Id);
+                                    Log.Debug("Marked existing download record of {Filename} from {Username} removed (id: {Id})",
+                                        LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username), record.Id);
                                 }
                             }
 
@@ -745,10 +753,10 @@ namespace slskd.Transfers.Downloads
                             _ = TaskObservation.Observe(
                                 enqueuedTcs.Task,
                                 ex => Log.Debug(
-                                    "Observed terminal download enqueue signal fault for {Filename} from {Username}: {Message}",
-                                    file.Filename,
-                                    username,
-                                    ex.Message));
+                                    "Observed terminal download enqueue signal fault for {Filename} from {Username}: {Exception}",
+                                    LoggingSanitizer.SanitizeFilePath(file.Filename),
+                                    LoggingSanitizer.SanitizeExternalIdentifier(username),
+                                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
 
                             // satisfies condition #3; CancellationTokenSource set cancelled by the user (via API call)
                             var cts = new CancellationTokenSource();
@@ -761,19 +769,22 @@ namespace slskd.Transfers.Downloads
                             */
                             context.SaveChanges();
 
-                            Log.Debug("Scheduling Task for enqueue of {Filename} from {Username}", file.Filename, username);
+                            Log.Debug("Scheduling Task for enqueue of {Filename} from {Username}",
+                                LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username));
 
                             var downloadEnqueueTask = TrackTransferTask(
                                 ActiveEnqueueTasks,
                                 transferId,
                                 ObserveDownloadEnqueueTaskAsync(Task.Run(async () =>
                             {
-                                Log.Debug("Awaiting download enqueue semaphore for {Filename} from {Username}", transfer.Filename, transfer.Username);
+                                Log.Debug("Awaiting download enqueue semaphore for {Filename} from {Username}",
+                                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
                                 await enqueueSemaphore.WaitAsync(cts.Token);
 
                                 try
                                 {
-                                    Log.Debug("Acquired download enqueue semaphore for {Filename} from {Username}", transfer.Filename, transfer.Username);
+                                    Log.Debug("Acquired download enqueue semaphore for {Filename} from {Username}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
 
                                     List<string> transitions = [];
                                     TransferStates state = TransferStates.None;
@@ -782,7 +793,9 @@ namespace slskd.Transfers.Downloads
                                     using var timeoutCts = new CancellationTokenSource(maxTimeToWaitForEnqueueRequestAck);
                                     timeoutCts.Token.Register(() =>
                                     {
-                                        Log.Information("Download of {Filename} from {Username} did not enqueue remotely within {Duration} seconds. State transition history: {History}", transfer.Filename, username, maxTimeToWaitForEnqueueRequestAck.TotalSeconds, string.Join(", ", transitions));
+                                        Log.Information("Download of {Filename} from {Username} did not enqueue remotely within {Duration} seconds. State transition history: {History}",
+                                            LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                                            maxTimeToWaitForEnqueueRequestAck.TotalSeconds, string.Join(", ", transitions));
                                         enqueuedTcs.TrySetException(new TimeoutException($"Download failed to enqueue remotely after hard time limit of {maxTimeToWaitForEnqueueRequestAck.TotalSeconds} secs"));
                                         CancelTrackedDownload(transfer.Id, transfer.Filename, username, "remote enqueue acknowledgement timed out");
                                     });
@@ -813,7 +826,8 @@ namespace slskd.Transfers.Downloads
                                         }
                                     }
 
-                                    Log.Debug("Scheduling Task for download of {Filename} from {Username}", transfer.Filename, transfer.Username);
+                                    Log.Debug("Scheduling Task for download of {Filename} from {Username}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
 
                                     var downloadTask = TrackTransferTask(
                                         ActiveDownloadTasks,
@@ -824,9 +838,11 @@ namespace slskd.Transfers.Downloads
                                             file.Filename,
                                             username));
 
-                                    Log.Debug("Download Task status for {Filename} from {Username}: {Status}", file.Filename, username, downloadTask.Status);
+                                    Log.Debug("Download Task status for {Filename} from {Username}: {Status}",
+                                        LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username), downloadTask.Status);
 
-                                    Log.Debug("Waiting for download of {Filename} from {Username} to transition into {State}", transfer.Filename, transfer.Username, TransferStates.Queued | TransferStates.Remotely);
+                                    Log.Debug("Waiting for download of {Filename} from {Username} to transition into {State}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username), TransferStates.Queued | TransferStates.Remotely);
 
                                     /*
                                         wait for one of the four conditions to be true:
@@ -838,15 +854,20 @@ namespace slskd.Transfers.Downloads
                                     */
                                     await enqueuedTcs.Task;
 
-                                    Log.Debug("Download of {Filename} from {Username} successfully entered state {State}", transfer.Filename, transfer.Username, state);
+                                    Log.Debug("Download of {Filename} from {Username} successfully entered state {State}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username), state);
                                 }
                                 catch (Exception ex) when (IsShutdownCancellation(ex))
                                 {
-                                    Log.Debug("Download enqueue for {File} from {Username} cancelled during shutdown: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                                    Log.Debug("Download enqueue for {File} from {Username} cancelled during shutdown: {Exception}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                 }
                                 catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
                                 {
-                                    Log.Information("Download of {File} from {Username} timed out or was cancelled while waiting for remote enqueue: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                                    Log.Information("Download of {File} from {Username} timed out or was cancelled while waiting for remote enqueue: {Exception}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                     CancelTrackedDownload(transfer.Id, transfer.Filename, transfer.Username, "remote enqueue wait ended");
                                     if (!TryFail(transferId, exception: ex))
                                     {
@@ -855,7 +876,10 @@ namespace slskd.Transfers.Downloads
                                 }
                                 catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
                                 {
-                                    Log.Debug("Download of {File} from {Username} failed while waiting for remote enqueue because {Reason}: {Diagnostic}", transfer.Filename, transfer.Username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
+                                    Log.Debug("Download of {File} from {Username} failed while waiting for remote enqueue because {Reason}: {Diagnostic}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                                        LoggingSanitizer.SanitizeExternalIdentifier(DescribeExpectedRemoteDownloadFailureReason(ex)),
+                                        LoggingSanitizer.SanitizeExternalIdentifier(DescribeRemoteDownloadFailure(ex)));
                                     if (!TryFail(transferId, exception: ex))
                                     {
                                         Log.Debug("Transfer {Id} was already cleaned up after expected remote enqueue failure", transfer.Id);
@@ -863,10 +887,13 @@ namespace slskd.Transfers.Downloads
                                 }
                                 catch (Exception ex)
                                 {
-                                    Log.Error(ex, "Download of {File} from {Username} failed: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                                    Log.Error("Download of {File} from {Username} failed: {Exception}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                     if (!TryFail(transferId, exception: ex))
                                     {
-                                        Log.Error(ex, "Failed to clean up transfer {Id} after failed execution: {Message}", transfer.Id, ex.Message);
+                                        Log.Error("Failed to clean up transfer {Id} after failed execution: {Exception}",
+                                            transfer.Id, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                     }
                                 }
                                 finally
@@ -879,13 +906,18 @@ namespace slskd.Transfers.Downloads
                                     username));
 
                             trackedEnqueueTasks.Add(downloadEnqueueTask);
-                            Log.Debug("Download enqueue Task status for {Filename} from {Username}: {Status}", file.Filename, username, downloadEnqueueTask.Status);
-                            Log.Information("Successfully locally enqueued download of {Filename} from {Username} (id: {Id})", file.Filename, username, transferId);
+                            Log.Debug("Download enqueue Task status for {Filename} from {Username}: {Status}",
+                                LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username), downloadEnqueueTask.Status);
+                            Log.Information("Successfully locally enqueued download of {Filename} from {Username} (id: {Id})",
+                                LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username), transferId);
                             enqueued.Add(transfer);
                         }
                         catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
                         {
-                            Log.Information("Failed to enqueue download of {Filename} from {Username} because {Reason}: {Diagnostic}", file.Filename, username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
+                            Log.Information("Failed to enqueue download of {Filename} from {Username} because {Reason}: {Diagnostic}",
+                                LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                                LoggingSanitizer.SanitizeExternalIdentifier(DescribeExpectedRemoteDownloadFailureReason(ex)),
+                                LoggingSanitizer.SanitizeExternalIdentifier(DescribeRemoteDownloadFailure(ex)));
                             TryFail(transferId, exception: ex);
                             failed.Add(file.Filename);
 
@@ -896,7 +928,9 @@ namespace slskd.Transfers.Downloads
                         }
                         catch (Exception ex)
                         {
-                            Log.Error(ex, "Failed to enqueue download of {Filename} from {Username}: {Message}", file.Filename, username, ex.Message);
+                            Log.Error("Failed to enqueue download of {Filename} from {Username}: {Exception}",
+                                LoggingSanitizer.SanitizeFilePath(file.Filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                             TryFail(transferId, exception: ex);
                             failed.Add(file.Filename);
 
@@ -909,7 +943,7 @@ namespace slskd.Transfers.Downloads
                         }
                     } // end foreach()
 
-                    Log.Information("Successfully enqueued {Count} files from {Username}", enqueued.Count, username);
+                    Log.Information("Successfully enqueued {Count} files from {Username}", enqueued.Count, LoggingSanitizer.SanitizeExternalIdentifier(username));
                     return (enqueued, failed);
                 }
                 finally
@@ -919,13 +953,14 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to enqueue one or more of {Count} files from {Username}: {Message}", fileList.Count, username, ex.Message);
+                Log.Error("Failed to enqueue one or more of {Count} files from {Username}: {Exception}", fileList.Count,
+                    LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
             finally
             {
                 ReleaseSemaphore(userSemaphore, "download enqueue user", null, username);
-                Log.Debug("Released enqueue semaphore for user {Username}", username);
+                Log.Debug("Released enqueue semaphore for user {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
             }
         }
 
@@ -947,7 +982,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to find download: {Message}", ex.Message);
+                Log.Error("Failed to find download: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -999,7 +1034,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to list downloads: {Message}", ex.Message);
+                Log.Error("Failed to list downloads: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -1048,7 +1083,8 @@ namespace slskd.Transfers.Downloads
                     transfer.Filename,
                     OptionsMonitor.CurrentValue?.Filters.Download.Exclude ?? Array.Empty<string>()))
                 {
-                    Log.Debug("Skipping auto-retry candidate {Filename}; blocked by global download policy", transfer.Filename);
+                    Log.Debug("Skipping auto-retry candidate {Filename}; blocked by global download policy",
+                        LoggingSanitizer.SanitizeFilePath(transfer.Filename));
                     continue;
                 }
 
@@ -1131,7 +1167,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to prune downloads: {Message}", ex.Message);
+                Log.Error("Failed to prune downloads: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -1181,12 +1217,13 @@ namespace slskd.Transfers.Downloads
 
                         if (normalizedFilename is null)
                         {
-                            Log.Warning("Skipped deleting download file {Filename} because it resolves outside configured directories", localFilename);
+                            Log.Warning("Skipped deleting download file {Filename} because it resolves outside configured directories",
+                                LoggingSanitizer.SanitizeFilePath(localFilename));
                         }
                         else if (System.IO.File.Exists(normalizedFilename))
                         {
                             System.IO.File.Delete(normalizedFilename);
-                            Log.Information("Deleted file {Filename} for removed download {Id}", normalizedFilename, id);
+                            Log.Information("Deleted file {Filename} for removed download {Id}", LoggingSanitizer.SanitizeFilePath(normalizedFilename), id);
 
                             // Recursively delete empty parent directories up to base directory
                             var directory = System.IO.Path.GetDirectoryName(normalizedFilename);
@@ -1199,18 +1236,19 @@ namespace slskd.Transfers.Downloads
                                    PathGuard.IsContainedIn(System.IO.Path.GetFullPath(directory), normalizedBase))
                             {
                                 System.IO.Directory.Delete(directory);
-                                Log.Debug("Deleted empty directory {Directory}", directory);
+                                Log.Debug("Deleted empty directory {Directory}", LoggingSanitizer.SanitizeFilePath(directory));
                                 directory = System.IO.Path.GetDirectoryName(directory);
                             }
                         }
                         else
                         {
-                            Log.Warning("File {Filename} not found for deletion", localFilename);
+                            Log.Warning("File {Filename} not found for deletion", LoggingSanitizer.SanitizeFilePath(localFilename));
                         }
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(ex, "Failed to delete file for download {Id}", id);
+                        Log.Error("Failed to delete file for download {Id}: {Exception}", id,
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                 }
 
@@ -1220,7 +1258,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to remove download {Id}: {Message}", id, ex.Message);
+                Log.Error("Failed to remove download {Id}: {Exception}", id, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -1357,7 +1395,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to update database: {Message}", ex.Message);
+                Log.Error("Failed to update database: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return false;
             }
         }
@@ -1378,11 +1416,15 @@ namespace slskd.Transfers.Downloads
             try
             {
                 cts.Cancel();
-                Log.Debug("Cancelled tracked download token for {Filename} from {Username} because {Reason}", filename, username, reason);
+                Log.Debug("Cancelled tracked download token for {Filename} from {Username} because {Reason}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(reason));
             }
             catch (ObjectDisposedException)
             {
-                Log.Debug("Tracked download token for {Filename} from {Username} was already disposed before cancellation after {Reason}", filename, username, reason);
+                Log.Debug("Tracked download token for {Filename} from {Username} was already disposed before cancellation after {Reason}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(reason));
             }
         }
 
@@ -1467,13 +1509,16 @@ namespace slskd.Transfers.Downloads
                     {
                         try
                         {
-                            Log.Debug("Download of {Filename} from user {Username} changed state from {Previous} to {New}", transfer.Filename, transfer.Username, args.PreviousState, args.Transfer.State);
+                            Log.Debug("Download of {Filename} from user {Username} changed state from {Previous} to {New}",
+                                LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                                args.PreviousState, args.Transfer.State);
 
                             // prevent Exceptions thrown during shutdown from updating the transfer record with related Exceptions;
                             // instead, allow these to be left "hanging" so that they are properly cleaned up at the next startup
                             if (Application.IsShuttingDown)
                             {
-                                Log.Debug("Download update of {Filename} from {Username} not persisted; app is shutting down", transfer.Filename, transfer.Username);
+                                Log.Debug("Download update of {Filename} from {Username} not persisted; app is shutting down",
+                                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
                                 return;
                             }
 
@@ -1505,7 +1550,9 @@ namespace slskd.Transfers.Downloads
                                 }
                                 catch (Exception ex)
                                 {
-                                    Log.Warning(ex, "Download state callback failed for {Filename} from {Username}", transfer.Filename, transfer.Username);
+                                    Log.Warning("Download state callback failed for {Filename} from {Username}: {Exception}",
+                                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                 }
                             }
                         }
@@ -1564,7 +1611,9 @@ namespace slskd.Transfers.Downloads
                             }
                             else
                             {
-                                Log.Debug("Skipped progress update of {Filename} from {Username} {BytesTransferred}/{TotalBytes}; previous update still pending", transfer.Filename, transfer.Username, args.Transfer.BytesTransferred, args.Transfer.Size);
+                                Log.Debug("Skipped progress update of {Filename} from {Username} {BytesTransferred}/{TotalBytes}; previous update still pending",
+                                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                                    args.Transfer.BytesTransferred, args.Transfer.Size);
                             }
                         }
                     }),
@@ -1579,7 +1628,8 @@ namespace slskd.Transfers.Downloads
                 var incompleteStrategy = retryOptions.Incomplete.ToEnum<RetryIncompleteStrategy>();
                 var incompleteFilename = GetIncompleteRetryFilename(transfer);
 
-                Log.Debug("Invoking Soulseek DownloadAsync() for {Filename} from {Username}", transfer.Filename, transfer.Username);
+                Log.Debug("Invoking Soulseek DownloadAsync() for {Filename} from {Username}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
                 transfer.Attempts = 1;
                 SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
 
@@ -1621,7 +1671,9 @@ namespace slskd.Transfers.Downloads
                     transfer.NextAttemptAt = DateTime.UtcNow.AddMilliseconds(delay);
                     transfer.State = TransferStates.Queued | TransferStates.Locally;
                     SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
-                    Log.Information("Retrying download of {Filename} from {Username}; attempt {Attempt} begins in about {Seconds} second(s)", transfer.Filename, transfer.Username, attempt, (int)Math.Ceiling(delay / 1000d));
+                    Log.Information("Retrying download of {Filename} from {Username}; attempt {Attempt} begins in about {Seconds} second(s)",
+                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                        attempt, (int)Math.Ceiling(delay / 1000d));
                 }
 
                 void MarkFailedAttempt(int attempt, Exception ex)
@@ -1631,15 +1683,22 @@ namespace slskd.Transfers.Downloads
                     SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
                     if (IsExpectedRemoteDownloadFailure(ex))
                     {
-                        Log.Debug("Attempt {Attempt} to download {Filename} from {Username} failed because {Reason}: {Diagnostic}", attempt, transfer.Filename, transfer.Username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
+                        Log.Debug("Attempt {Attempt} to download {Filename} from {Username} failed because {Reason}: {Diagnostic}",
+                            attempt, LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                            LoggingSanitizer.SanitizeExternalIdentifier(DescribeExpectedRemoteDownloadFailureReason(ex)),
+                            LoggingSanitizer.SanitizeExternalIdentifier(DescribeRemoteDownloadFailure(ex)));
                     }
                     else if (IsCancellationException(ex) || IsDownloadTimeout(ex))
                     {
-                        Log.Debug("Attempt {Attempt} to download {Filename} from {Username} ended with expected timeout or cancellation: {Message}", attempt, transfer.Filename, transfer.Username, ex.Message);
+                        Log.Debug("Attempt {Attempt} to download {Filename} from {Username} ended with expected timeout or cancellation: {Exception}",
+                            attempt, LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                     else
                     {
-                        Log.Warning("Attempt {Attempt} to download {Filename} from {Username} failed: {Message}", attempt, transfer.Filename, transfer.Username, ex.Message);
+                        Log.Warning("Attempt {Attempt} to download {Filename} from {Username} failed: {Exception}",
+                            attempt, LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                 }
 
@@ -1738,30 +1797,36 @@ namespace slskd.Transfers.Downloads
                         try
                         {
                             using var probe = partial.OpenWrite();
-                            Log.Information("Continuing partial download of {Filename} from {Username} at byte {Offset}", pendingTransfer.Filename, pendingTransfer.Username, partial.Length);
+                            Log.Information("Continuing partial download of {Filename} from {Username} at byte {Offset}",
+                                LoggingSanitizer.SanitizeFilePath(pendingTransfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(pendingTransfer.Username), partial.Length);
                             return (System.IO.FileMode.Append, partial.Length);
                         }
                         catch (UnauthorizedAccessException)
                         {
-                            Log.Warning("Existing incomplete file {Filename} exists but is not writable; deleting and starting fresh", localFilename);
+                            Log.Warning("Existing incomplete file {Filename} exists but is not writable; deleting and starting fresh",
+                                LoggingSanitizer.SanitizeFilePath(localFilename));
                             try
                             {
                                 System.IO.File.Delete(localFilename);
                             }
                             catch (Exception deleteEx)
                             {
-                                Log.Warning(deleteEx, "Failed to delete unwritable incomplete file {Filename}: {Message}", localFilename, deleteEx.Message);
+                                Log.Warning("Failed to delete unwritable incomplete file {Filename}: {Exception}",
+                                    LoggingSanitizer.SanitizeFilePath(localFilename), LoggingSanitizer.SanitizeExternalIdentifier(deleteEx.ToString()));
                             }
 
                             return (System.IO.FileMode.Create, 0);
                         }
                     }
 
-                    Log.Information("Discarding {Bytes} incomplete bytes before retrying {Filename} from {Username}", partial.Length, pendingTransfer.Filename, pendingTransfer.Username);
+                    Log.Information("Discarding {Bytes} incomplete bytes before retrying {Filename} from {Username}",
+                        partial.Length, LoggingSanitizer.SanitizeFilePath(pendingTransfer.Filename),
+                        LoggingSanitizer.SanitizeExternalIdentifier(pendingTransfer.Username));
                     return (System.IO.FileMode.Create, 0);
                 }
 
-                Log.Debug("Invocation of Soulseek DownloadAsync() for {Filename} from user {Username} completed successfully", transfer.Filename, transfer.Username);
+                Log.Debug("Invocation of Soulseek DownloadAsync() for {Filename} from user {Username} completed successfully",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
 
                 // Record successful chunk completion for peer metrics (Phase 2C - T-409)
                 if (PeerMetrics != null)
@@ -1801,10 +1866,10 @@ namespace slskd.Transfers.Downloads
                 {
                     Log.Warning(
                         "Content verification for {Filename} from {Username} reported {ThreatLevel}: {Message}",
-                        transfer.Filename,
-                        transfer.Username,
+                        LoggingSanitizer.SanitizeFilePath(transfer.Filename),
+                        LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
                         contentVerification.ThreatLevel,
-                        contentVerification.Message);
+                        LoggingSanitizer.SanitizeExternalIdentifier(contentVerification.Message));
                 }
 
                 if (contentSafetyDisposition.Rejected)
@@ -1840,7 +1905,8 @@ namespace slskd.Transfers.Downloads
                     overwrite: false,
                     deleteSourceDirectoryIfEmptyAfterMove: true);
 
-                Log.Debug("Moved file {Filename} to {Destination}", transfer.Filename, finalFilename);
+                Log.Debug("Moved file {Filename} to {Destination}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeFilePath(finalFilename));
                 transfer.LocalFilename = finalFilename;
 
                 // Enrich transfer record with audio metadata from the downloaded file
@@ -1858,7 +1924,8 @@ namespace slskd.Transfers.Downloads
                 {
                     // begin post-processing tasks; the file is downloaded, it has been removed from the client's download dictionary,
                     // and the file has been moved from the incomplete directory to the downloads directory
-                    Log.Debug("Running post-download logic for {Filename} from {Username}", transfer.Filename, transfer.Username);
+                    Log.Debug("Running post-download logic for {Filename} from {Username}",
+                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
 
                     EventBus.Raise(new DownloadFileCompleteEvent
                     {
@@ -1896,16 +1963,20 @@ namespace slskd.Transfers.Downloads
                             $"Failed to start FTP upload for completed download {finalFilename}");
                     }
 
-                    Log.Debug("Completed post-download logic for {Filename} from {Username} successfully", transfer.Filename, transfer.Username);
+                    Log.Debug("Completed post-download logic for {Filename} from {Username} successfully",
+                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
                 }
                 catch (Exception ex)
                 {
                     // log, but don't throw. the file ended up in the download folder and is complete; if we throw it looks like it didn't complete
                     // todo: add a visual indicator/new state for Transfers that indicate this state.  or move all of this logic out and handle it via events
-                    Log.Error(ex, "Failed to run post-download processes for {Filename} from {Username}: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                    Log.Error("Failed to run post-download processes for {Filename} from {Username}: {Exception}",
+                        LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
 
-                Log.Information("Download of {Filename} from user {Username} completed successfully", transfer.Filename, transfer.Username);
+                Log.Information("Download of {Filename} from user {Username} completed successfully",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username));
 
                 if (transfer.RequestId.HasValue)
                 {
@@ -1920,7 +1991,8 @@ namespace slskd.Transfers.Downloads
                     }
                     catch (Exception ex)
                     {
-                        Log.Debug(ex, "Failed to mark DownloadRequest {RequestId} as Completed", transfer.RequestId);
+                        Log.Debug("Failed to mark DownloadRequest {RequestId} as Completed: {Exception}",
+                            transfer.RequestId, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                 }
 
@@ -1928,12 +2000,16 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsShutdownCancellation(ex))
             {
-                Log.Debug("Download of {Filename} from user {Username} cancelled during shutdown: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Debug("Download of {Filename} from user {Username} cancelled during shutdown: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
             catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
             {
-                Log.Information("Download of {Filename} from user {Username} timed out or was cancelled: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Information("Download of {Filename} from user {Username} timed out or was cancelled: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 // Record failed/timed out chunk completion for peer metrics (Phase 2C - T-409)
                 if (PeerMetrics != null)
@@ -1957,7 +2033,10 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
             {
-                Log.Information("Download of {Filename} from user {Username} failed because {Reason}: {Diagnostic}", transfer.Filename, transfer.Username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
+                Log.Information("Download of {Filename} from user {Username} failed because {Reason}: {Diagnostic}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(DescribeExpectedRemoteDownloadFailureReason(ex)),
+                    LoggingSanitizer.SanitizeExternalIdentifier(DescribeRemoteDownloadFailure(ex)));
 
                 if (PeerMetrics != null)
                 {
@@ -1979,7 +2058,9 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Download of {Filename} from user {Username} failed: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Error("Download of {Filename} from user {Username} failed: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename), LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 // Record failed chunk completion for peer metrics (Phase 2C - T-409)
                 if (PeerMetrics != null)
@@ -2042,15 +2123,20 @@ namespace slskd.Transfers.Downloads
             try
             {
                 await downloadTask.ConfigureAwait(false);
-                Log.Information("Task for download of {Filename} from {Username} completed successfully", filename, username);
+                Log.Information("Task for download of {Filename} from {Username} completed successfully",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username));
             }
             catch (Exception ex) when (IsShutdownCancellation(ex))
             {
-                Log.Debug("Task for download of {Filename} from {Username} cancelled during shutdown: {Message}", filename, username, ex.Message);
+                Log.Debug("Task for download of {Filename} from {Username} cancelled during shutdown: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
             catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
             {
-                Log.Debug("Task for download of {Filename} from {Username} ended with expected timeout or cancellation: {Error}", filename, username, ex.Message);
+                Log.Debug("Task for download of {Filename} from {Username} ended with expected timeout or cancellation: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 if (!TryFail(transferId, exception: ex))
                 {
@@ -2059,7 +2145,9 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
             {
-                Log.Debug("Task for download of {Filename} from {Username} ended with expected remote peer failure: {Diagnostic}", filename, username, DescribeRemoteDownloadFailure(ex));
+                Log.Debug("Task for download of {Filename} from {Username} ended with expected remote peer failure: {Diagnostic}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(DescribeRemoteDownloadFailure(ex)));
 
                 if (!TryFail(transferId, exception: ex))
                 {
@@ -2068,7 +2156,9 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsLocalFilesystemFailure(ex))
             {
-                Log.Debug("Task for download of {Filename} from {Username} ended with observed local filesystem failure: {Error}", filename, username, ex.Message);
+                Log.Debug("Task for download of {Filename} from {Username} ended with observed local filesystem failure: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 if (!TryFail(transferId, exception: ex))
                 {
@@ -2077,11 +2167,14 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Task for download of {Filename} from {Username} did not complete successfully: {Error}", filename, username, ex.Message);
+                Log.Error("Task for download of {Filename} from {Username} did not complete successfully: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 if (!TryFail(transferId, exception: ex))
                 {
-                    Log.Error(ex, "Failed to clean up transfer {Id} after failed download", transferId);
+                    Log.Error("Failed to clean up transfer {Id} after failed download: {Exception}",
+                        transferId, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
         }
@@ -2091,24 +2184,32 @@ namespace slskd.Transfers.Downloads
             try
             {
                 await enqueueTask.ConfigureAwait(false);
-                Log.Information("Task for enqueue of {Filename} from {Username} completed successfully", filename, username);
+                Log.Information("Task for enqueue of {Filename} from {Username} completed successfully",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username));
             }
             catch (Exception ex) when (IsShutdownCancellation(ex))
             {
-                Log.Debug("Task for enqueue of {Filename} from {Username} cancelled during shutdown: {Message}", filename, username, ex.Message);
+                Log.Debug("Task for enqueue of {Filename} from {Username} cancelled during shutdown: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
             catch (OperationCanceledException ex)
             {
-                Log.Error(ex, "Task for enqueue of {Filename} from {Username} did not complete successfully: {Error}", filename, username, ex.Message);
+                Log.Error("Task for enqueue of {Filename} from {Username} did not complete successfully: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 if (!TryFail(transferId, exception: ex))
                 {
-                    Log.Error(ex, "Failed to clean up transfer {Id} after failed enqueue", transferId);
+                    Log.Error("Failed to clean up transfer {Id} after failed enqueue: {Exception}",
+                        transferId, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
             catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
             {
-                Log.Debug("Task for enqueue of {Filename} from {Username} ended with expected remote peer failure: {Diagnostic}", filename, username, DescribeRemoteDownloadFailure(ex));
+                Log.Debug("Task for enqueue of {Filename} from {Username} ended with expected remote peer failure: {Diagnostic}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(DescribeRemoteDownloadFailure(ex)));
 
                 if (!TryFail(transferId, exception: ex))
                 {
@@ -2117,11 +2218,14 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Task for enqueue of {Filename} from {Username} did not complete successfully: {Error}", filename, username, ex.Message);
+                Log.Error("Task for enqueue of {Filename} from {Username} did not complete successfully: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 if (!TryFail(transferId, exception: ex))
                 {
-                    Log.Error(ex, "Failed to clean up transfer {Id} after failed enqueue", transferId);
+                    Log.Error("Failed to clean up transfer {Id} after failed enqueue: {Exception}",
+                        transferId, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
         }
@@ -2134,7 +2238,9 @@ namespace slskd.Transfers.Downloads
             }
             catch (ObjectDisposedException ex) when (Application.IsShuttingDown || _disposed)
             {
-                Log.Debug(ex, "Skipped releasing disposed semaphore for {Operation} of {Filename} from {Username} during shutdown", operation, filename, username);
+                Log.Debug("Skipped releasing disposed semaphore for {Operation} of {Filename} from {Username} during shutdown: {Exception}",
+                    operation, LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -2183,7 +2289,7 @@ namespace slskd.Transfers.Downloads
                         {
                             EnqueueSemaphores.TryRemove(kvp.Key, out var removed);
                             removed?.Dispose();
-                            Log.Debug("Cleaned up enqueue semaphore for {Key}", kvp.Key);
+                            Log.Debug("Cleaned up enqueue semaphore for {Key}", LoggingSanitizer.SanitizeExternalIdentifier(kvp.Key));
                         }
                     }
                 }
@@ -2409,7 +2515,8 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex)
             {
-                Log.Debug(ex, "Failed to read audio metadata from {LocalFilename} for transfer enrichment", localFilename);
+                Log.Debug("Failed to read audio metadata from {LocalFilename} for transfer enrichment: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(localFilename), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 

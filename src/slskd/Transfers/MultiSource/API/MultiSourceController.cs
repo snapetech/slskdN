@@ -19,6 +19,7 @@ namespace slskd.Transfers.MultiSource.API
     using slskd.Transfers.MultiSource.Discovery;
     using Soulseek;
     using IOPath = System.IO.Path;
+    using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Experimental multi-source download API.
@@ -123,7 +124,7 @@ namespace slskd.Transfers.MultiSource.API
 
             var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
 
-            Log.Information("[MultiSource] Searching for users: {SearchText}", searchText);
+            Log.Information("[MultiSource] Searching for users: {SearchText}", LoggingSanitizer.SanitizeQueryText(searchText));
 
             if (!TryConsumeSearchBudget("multisource-users", out var limitedResult))
             {
@@ -150,7 +151,7 @@ namespace slskd.Transfers.MultiSource.API
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[MultiSource] Search failed");
+                Log.Warning("[MultiSource] Search failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return StatusCode(500, new { error = "Search failed" });
             }
 
@@ -295,7 +296,8 @@ namespace slskd.Transfers.MultiSource.API
             var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
 
             var searchTerm = IOPath.GetFileNameWithoutExtension(request.Filename);
-            Log.Information("[MultiSource] Searching for file sources: {Filename} ({Size} bytes)", request.Filename, request.Size);
+            Log.Information("[MultiSource] Searching for file sources: {Filename} ({Size} bytes)",
+                LoggingSanitizer.SanitizeFilePath(request.Filename), request.Size);
 
             if (!TryConsumeSearchBudget("multisource-file-sources", out var limitedResult))
             {
@@ -322,7 +324,7 @@ namespace slskd.Transfers.MultiSource.API
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[MultiSource] Search failed");
+                Log.Warning("[MultiSource] Search failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return StatusCode(500, new { error = "Search failed" });
             }
 
@@ -439,7 +441,7 @@ namespace slskd.Transfers.MultiSource.API
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[MultiSource] Download search failed");
+                Log.Warning("[MultiSource] Download search failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return StatusCode(500, new { error = "Search failed" });
             }
 
@@ -478,7 +480,8 @@ namespace slskd.Transfers.MultiSource.API
             }
 
             // Verify sources
-            Log.Information("[MultiSource] Verifying {Count} sources for {Filename}", sources.Count, targetFilename);
+            Log.Information("[MultiSource] Verifying {Count} sources for {Filename}",
+                sources.Count, LoggingSanitizer.SanitizeFilePath(targetFilename));
 
             var verificationResult = await MultiSource.FindVerifiedSourcesAsync(
                 sources.First().FullPath,
@@ -544,7 +547,8 @@ namespace slskd.Transfers.MultiSource.API
 
             var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
 
-            Log.Information("[SWARM] Starting swarm download: {Filename} ({Size} bytes, useDb={UseDb})", request.Filename, request.Size, request.UseDiscoveryDb);
+            Log.Information("[SWARM] Starting swarm download: {Filename} ({Size} bytes, useDb={UseDb})",
+                LoggingSanitizer.SanitizeFilePath(request.Filename), request.Size, request.UseDiscoveryDb);
 
             var allSources = new List<(string Username, string FullPath, int Speed)>();
             string? blockedSourceExclusion = null;
@@ -600,7 +604,7 @@ namespace slskd.Transfers.MultiSource.API
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "[MultiSource] Swarm search failed");
+                    Log.Warning("[MultiSource] Swarm search failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     return StatusCode(500, new { error = "Search failed" });
                 }
 
@@ -701,7 +705,7 @@ namespace slskd.Transfers.MultiSource.API
                 }
 
                 Log.Information("[SWARM] Verified {Count} sources with matching hash {Hash}",
-                    verifiedSources.Count, expectedHash);
+                    verifiedSources.Count, LoggingSanitizer.SanitizeHash(expectedHash));
             }
 
             // Calculate chunks for display
@@ -727,7 +731,8 @@ namespace slskd.Transfers.MultiSource.API
 
             if (!downloadResult.Success && !string.IsNullOrWhiteSpace(downloadResult.Error))
             {
-                Log.Warning("Swarm download failed for {Filename}: {Error}", request.Filename, downloadResult.Error);
+                Log.Warning("Swarm download failed for {Filename}: {Error}",
+                    LoggingSanitizer.SanitizeFilePath(request.Filename), LoggingSanitizer.SanitizeExternalIdentifier(downloadResult.Error));
             }
 
             return Ok(new
@@ -868,7 +873,7 @@ namespace slskd.Transfers.MultiSource.API
                 }
 
                 Log.Information("[SWARM ASYNC] Verified {Count} sources with matching hash {Hash}",
-                    verifiedSources.Count, expectedHash);
+                    verifiedSources.Count, LoggingSanitizer.SanitizeHash(expectedHash));
             }
 
             var targetFilename = IOPath.GetFileName(verifiedSources.First().FullPath);
@@ -970,7 +975,7 @@ namespace slskd.Transfers.MultiSource.API
                 return BadRequest("Search text is required");
             }
 
-            Log.Information("[MultiSource] Searching for: {SearchText}", searchText);
+            Log.Information("[MultiSource] Searching for: {SearchText}", LoggingSanitizer.SanitizeQueryText(searchText));
 
             var searchResults = new List<SearchResponse>();
             var searchOptions = new SearchOptions(
@@ -993,7 +998,7 @@ namespace slskd.Transfers.MultiSource.API
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[MultiSource] Search failed");
+                Log.Warning("[MultiSource] Search failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return StatusCode(500, new { error = "Search failed" });
             }
 
@@ -1090,7 +1095,7 @@ namespace slskd.Transfers.MultiSource.API
             Log.Information(
                 "[MultiSource] Verifying {Count} sources for {Filename}",
                 request.Usernames.Count,
-                request.Filename);
+                LoggingSanitizer.SanitizeFilePath(request.Filename));
 
             var result = await MultiSource.FindVerifiedSourcesAsync(
                 request.Filename,
@@ -1164,7 +1169,7 @@ namespace slskd.Transfers.MultiSource.API
 
             Log.Information(
                 "[MultiSource] Starting download of {Filename} from {Count} sources",
-                request.Filename,
+                LoggingSanitizer.SanitizeFilePath(request.Filename),
                 request.Sources.Count);
 
             var downloadRequest = new MultiSourceDownloadRequest
@@ -1219,7 +1224,7 @@ namespace slskd.Transfers.MultiSource.API
                 StartedAt = DateTime.UtcNow,
             };
 
-            Log.Information("[MultiSource] Starting test for: {SearchText}", request.SearchText);
+            Log.Information("[MultiSource] Starting test for: {SearchText}", LoggingSanitizer.SanitizeQueryText(request.SearchText));
 
             // Step 1: Wide net search
             var searchResults = new List<SearchResponse>();
@@ -1245,7 +1250,7 @@ namespace slskd.Transfers.MultiSource.API
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[MultiSource] Search test failed");
+                Log.Warning("[MultiSource] Search test failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 testResult.Error = "Search failed";
                 return Ok(testResult);
             }
@@ -1296,7 +1301,7 @@ namespace slskd.Transfers.MultiSource.API
 
             Log.Information(
                 "[MultiSource] Best candidate: {File} ({Size} bytes) with {Sources} sources",
-                testResult.SelectedFile,
+                LoggingSanitizer.SanitizeFilePath(testResult.SelectedFile),
                 testResult.FileSize,
                 testResult.CandidateSources);
 
@@ -1369,7 +1374,8 @@ namespace slskd.Transfers.MultiSource.API
             }
             catch (Exception ex)
             {
-                Log.Error(ex, messageTemplate, ex.Message);
+                Log.Error("{MessageTemplate}: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(messageTemplate),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }

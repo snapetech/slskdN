@@ -15,6 +15,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using slskd.Events;
 using slskd.Files;
 using slskd.HashDb;
@@ -45,6 +48,71 @@ public class DownloadServiceTests
                 Incomplete = System.IO.Path.Combine(TestDirectoryRoot, "incomplete"),
             },
         };
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_GlobalDownloadExclusionEscapesPeerFieldsInLogsWithoutChangingRequestValues()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var username = "alice\r\ninjected";
+        var filename = "Music\\Instrumental\\track\r\ninjected.flac";
+        var sink = new CapturingLogSink();
+        var originalLogger = Log.Logger;
+        using var logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+        Log.Logger = logger;
+
+        DownloadService? service = null;
+        try
+        {
+            var soulseekClient = new Mock<ISoulseekClient>();
+            soulseekClient.SetupGet(client => client.Downloads).Returns(Array.Empty<Soulseek.Transfer>());
+            var configuredOptions = new slskd.Options
+            {
+                Filters = new slskd.Options.FiltersOptions
+                {
+                    Download = new slskd.Options.FiltersOptions.DownloadFilterOptions
+                    {
+                        Exclude = new[] { "instrumental" },
+                    },
+                },
+            };
+            service = CreateDownloadService(options, soulseekClient, configuredOptions);
+
+            var (enqueued, failed) = await service.EnqueueAsync(
+                username,
+                new[] { (Filename: filename, Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Empty(enqueued);
+            Assert.Equal(new[] { filename }, failed);
+
+            var requestMessage = Assert.Single(sink.Events, logEvent => logEvent.RenderMessage().StartsWith("Requested enqueue", StringComparison.Ordinal));
+            Assert.Contains("alice\\r\\ninjected", requestMessage.RenderMessage());
+            Assert.DoesNotContain("\r\n", requestMessage.RenderMessage());
+
+            var blockedMessage = Assert.Single(sink.Events, logEvent => logEvent.RenderMessage().StartsWith("Blocked download enqueue", StringComparison.Ordinal));
+            Assert.Contains("track\\r\\ninjected.flac", blockedMessage.RenderMessage());
+            Assert.Contains("alice\\r\\ninjected", blockedMessage.RenderMessage());
+            Assert.DoesNotContain("\r\n", blockedMessage.RenderMessage());
+        }
+        finally
+        {
+            service?.Dispose();
+            Log.Logger = originalLogger;
+            DeleteDatabase(databasePath);
+        }
     }
 
     [Fact]
@@ -2393,6 +2461,15 @@ public class DownloadServiceTests
         {
             System.IO.File.Delete(databasePath);
         }
+    }
+
+    private sealed class CapturingLogSink : ILogEventSink
+    {
+        private readonly ConcurrentBag<LogEvent> _events = [];
+
+        public IReadOnlyCollection<LogEvent> Events => _events.ToArray();
+
+        public void Emit(LogEvent logEvent) => _events.Add(logEvent);
     }
 
     private sealed class TestDbContextFactory : Microsoft.EntityFrameworkCore.IDbContextFactory<TransfersDbContext>

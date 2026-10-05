@@ -14,6 +14,7 @@ namespace slskd.Transfers.MultiSource
     using Microsoft.Extensions.Options;
     using Serilog;
     using Soulseek;
+    using slskd.Common.Security;
     using slskd.HashDb;
     using slskd.HashDb.Models;
     using slskd.Mesh;
@@ -123,14 +124,14 @@ namespace slskd.Transfers.MultiSource
                 if (entry != null)
                 {
                     Log.Debug("[HASHDB] Cache hit for {Filename} ({Size} bytes): {Hash}",
-                        filename, fileSize, entry.ByteHash);
+                        LoggingSanitizer.SanitizeFilePath(filename), fileSize, LoggingSanitizer.SanitizeHash(entry.ByteHash));
 
                     // Increment use count
                     await HashDb.IncrementHashUseCountAsync(flacKey, cancellationToken);
                     return entry.ByteHash;
                 }
 
-                Log.Debug("[HASHDB] Cache miss for {Filename} ({Size} bytes)", filename, fileSize);
+                Log.Debug("[HASHDB] Cache miss for {Filename} ({Size} bytes)", LoggingSanitizer.SanitizeFilePath(filename), fileSize);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -138,7 +139,8 @@ namespace slskd.Transfers.MultiSource
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[HASHDB] Error looking up hash for {Filename}", filename);
+                Log.Warning("[HASHDB] Error looking up hash for {Filename}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             return default;
@@ -166,7 +168,8 @@ namespace slskd.Transfers.MultiSource
                 if (HashDb != null)
                 {
                     await HashDb.StoreHashFromVerificationAsync(filename, fileSize, hash, cancellationToken: cancellationToken);
-                    Log.Debug("[HASHDB] Stored hash for {Filename}: {Hash}", filename, hash);
+                    Log.Debug("[HASHDB] Stored hash for {Filename}: {Hash}",
+                        LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeHash(hash));
                 }
 
                 // Publish to mesh for other slskdn clients
@@ -182,7 +185,8 @@ namespace slskd.Transfers.MultiSource
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[HASHDB] Error storing hash for {Filename}", filename);
+                Log.Warning("[HASHDB] Error storing hash for {Filename}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -207,7 +211,7 @@ namespace slskd.Transfers.MultiSource
             Log.Information(
                 "Verifying {Count} sources for {Filename} ({Size} bytes)",
                 sourcesToVerify.Count,
-                request.Filename,
+                LoggingSanitizer.SanitizeFilePath(request.Filename),
                 request.FileSize);
 
             // Phase 5 Integration: Try to get known hash from database first
@@ -216,7 +220,7 @@ namespace slskd.Transfers.MultiSource
             if (knownHash != null)
             {
                 Log.Information("[HASHDB] Using cached hash for {Filename}, will verify {Count} sources against it",
-                    request.Filename, sourcesToVerify.Count);
+                    LoggingSanitizer.SanitizeFilePath(request.Filename), sourcesToVerify.Count);
                 result.ExpectedHash = knownHash;
             }
 
@@ -437,8 +441,8 @@ namespace slskd.Transfers.MultiSource
                 Log.Debug(
                     "Requesting first {Bytes} bytes from {Username} for {Filename} (FLAC: {IsFlac})",
                     bytesNeeded,
-                    username,
-                    filename,
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeFilePath(filename),
                     isFlac);
 
                 // Download the verification chunk using a limited stream that cancels after enough bytes
@@ -465,7 +469,8 @@ namespace slskd.Transfers.MultiSource
                 {
                     // Expected - we cancelled after getting enough bytes
                     Telemetry.SwarmMetrics.SwarmMidStreamCancellationsTotal.WithLabels("soulseek", "verification_probe").Inc();
-                    Log.Debug("Got {Bytes} bytes from {Username}, cancelled remaining transfer", bytesNeeded, username);
+                    Log.Debug("Got {Bytes} bytes from {Username}, cancelled remaining transfer",
+                        bytesNeeded, LoggingSanitizer.SanitizeExternalIdentifier(username));
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -487,17 +492,17 @@ namespace slskd.Transfers.MultiSource
                 {
                     Log.Debug(
                         "FLAC byte verification for {Username}: SHA256={Hash}, AudioMD5={AudioMd5}, SampleRate={SampleRate}",
-                        username,
-                        hash,
-                        streamInfo.AudioMd5Hex,
+                        LoggingSanitizer.SanitizeExternalIdentifier(username),
+                        LoggingSanitizer.SanitizeHash(hash),
+                        LoggingSanitizer.SanitizeHash(streamInfo.AudioMd5Hex),
                         streamInfo.SampleRate);
                 }
                 else
                 {
                     Log.Debug(
                         "Content verification for {Username}: SHA256={Hash} (first {Bytes} bytes)",
-                        username,
-                        hash,
+                        LoggingSanitizer.SanitizeExternalIdentifier(username),
+                        LoggingSanitizer.SanitizeHash(hash),
                         data.Length);
                 }
 
@@ -513,14 +518,17 @@ namespace slskd.Transfers.MultiSource
             {
                 stopwatch.Stop();
                 Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "failed").Inc();
-                Log.Warning("Verification timeout for {Username} on {Filename}", username, filename);
+                Log.Warning("Verification timeout for {Username} on {Filename}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeFilePath(filename));
                 return (username, null, default, stopwatch.ElapsedMilliseconds, "Timeout");
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
                 Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "failed").Inc();
-                Log.Warning(ex, "Verification failed for {Username} on {Filename}: {Message}", username, filename, ex.Message);
+                Log.Warning("Verification failed for {Username} on {Filename}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeFilePath(filename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return (username, null, default, stopwatch.ElapsedMilliseconds, "Verification failed");
             }
         }
@@ -545,7 +553,8 @@ namespace slskd.Transfers.MultiSource
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[HASHDB] Unable to lookup entry for {Filename}", filename);
+                Log.Warning("[HASHDB] Unable to lookup entry for {Filename}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return null;
             }
         }
@@ -563,14 +572,16 @@ namespace slskd.Transfers.MultiSource
                     Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "skipped_budget").Inc();
                     Log.Information(
                         "[VERIFY] Skipping probe for {Username}: per-peer-per-day budget exhausted ({Cap})",
-                        username,
+                        LoggingSanitizer.SanitizeExternalIdentifier(username),
                         MaxProbesPerPeerPerDay);
                     failureReason = $"Verification probe budget exhausted ({MaxProbesPerPeerPerDay}/day)";
                     return false;
 
                 default:
                     Telemetry.SwarmMetrics.SwarmVerificationProbesTotal.WithLabels("soulseek", "skipped_budget_unavailable").Inc();
-                    Log.Warning(failure, "[VERIFY] Skipping probe for {Username}: per-peer-per-day budget state is unavailable", username);
+                    Log.Warning("[VERIFY] Skipping probe for {Username}: per-peer-per-day budget state is unavailable ({Exception})",
+                        LoggingSanitizer.SanitizeExternalIdentifier(username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(failure?.ToString()));
                     failureReason = "Verification probe budget unavailable; probe skipped";
                     return false;
             }
