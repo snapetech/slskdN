@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1677. Preserve NAT Probe Cancellation And Escape Network Failures (2026-10-05)
+
+**What went wrong:** Public-IP HTTP probe failures attached raw exceptions to
+logs, and the broad endpoint catch treated caller cancellation as an ordinary
+probe failure. STUN had the same raw-exception and cancellation-boundary shape.
+
+**Why:** Each endpoint was treated as an independent best-effort fallback, so
+the handler suppressed errors without distinguishing caller cancellation or
+sanitizing remote response details.
+
+**Prevention:** Rethrow cancellation when the caller token is canceled before
+falling back to another endpoint. Log other exception text as escaped fields,
+and test with a mocked HTTP handler so no public network dependency is needed.
+
 ### 0z1676. Await The Cover Traffic Logger's Exposed Warning Task (2026-10-05)
 
 **What went wrong:** The cover-traffic test's capture logger exposed its
