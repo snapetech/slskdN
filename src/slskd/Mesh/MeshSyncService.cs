@@ -707,6 +707,10 @@ namespace slskd.Mesh
                 {
                     return await QueryPeerForHashAsync(peer.Username, flacKey, cancellationToken);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogDebug("[MESH] Failed to query peer {Peer} for hash {Key}: {Exception}", SafeLogValue(peer.Username), SafeLogValue(flacKey), SafeLogException(ex));

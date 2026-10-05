@@ -17976,3 +17976,18 @@ identity, and whitespace checks will be run after committing. Stable `.340`
 remains fully published; whole-product remediation stays active for T-908
 lifecycle, global Party ID authority, and environment-dependent browser/device/
 WAN evidence.
+
+## 2026-10-05 08:44 UTC — Preserve cancellation in mesh hash-consensus lookup
+
+Mesh hash lookup already propagated cancellation from a single peer request,
+but `LookupHashAsync` wrapped each parallel peer task in broad exception
+isolation and converted caller cancellation into a normal peer miss. The
+fan-out now rethrows caller-requested cancellation while continuing to isolate
+ordinary peer failures. A public-lookup regression passes 1/1.
+
+The full Release .NET suite passes 5,959 (74 application, 5,596 unit, 289
+integration); `./bin/lint` passes. ADR-0001 gotcha `0z1618` was committed
+before the code fix. Release fragment and matching changelog entries are
+present; task and active-backlog records are updated. T-908 sender/job
+lifecycle, global Party ID authority, and external browser/device/WAN evidence
+remain open.

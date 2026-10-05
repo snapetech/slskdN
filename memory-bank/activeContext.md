@@ -18533,3 +18533,27 @@ and discovery queues remain open. The isolated desktop/browser tool family is
 unavailable in this session, so no actual OS timer-throttling evidence was
 produced. Next: commit this fix and continue the callback/event audit. Push and
 cut the authorized next stable release after remaining fixes and final gates.
+
+## Current state — Continue network cancellation audit — 2026-10-05 08:44 UTC
+
+Mesh hash-consensus lookup now propagates caller cancellation through its
+parallel peer fan-out instead of reporting canceled peers as ordinary misses.
+The focused public-lookup regression passes 1/1. Full Release .NET tests pass
+5,959 (74 application, 5,596 unit, 289 integration), and `./bin/lint` passes.
+ADR-0001 gotcha `0z1618` is already committed. Implementation, regression,
+release fragment, changelog, and task/backlog/progress records are ready to
+commit.
+
+The app/tests/build tools target `net10.0`; MonoTorrent selects its compatible
+`net8.0` package asset. Stable `.340`'s hosted workflow, including Launchpad,
+completed.
+
+Continue the whole-product remediation. T-908 sender/job lifecycle,
+globally atomic Party ID ownership, actual background-tab throttling,
+WebKit/physical assistive-technology speech, representative WAN/resource
+behavior, the original frontend `ERR_NETWORK_CHANGED` cause, and discovery
+queues remain open. The isolated desktop/browser tool family is unavailable
+in this session, so OS timer-throttling evidence remains absent. Next: commit
+the mesh cancellation fix and continue reviewing remaining cancellation and
+callback boundaries. Push and cut the authorized next release after remaining
+fixes and final gates.

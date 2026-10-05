@@ -888,6 +888,28 @@ namespace slskd.Tests.Unit.Mesh
         }
 
         [Fact]
+        public async Task LookupHashAsync_CallerCancellationPropagatesFromConsensusFanOut()
+        {
+            var options = Options.Create(new MeshSyncSecurityOptions { ConsensusMinPeers = 1, ConsensusMinAgreements = 1 });
+            var service = CreateTestableMeshSyncService(options);
+            SeedPeers(service, "mesh-peer");
+            var queryStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            service.QueryPeer = async (_, cancellationToken) =>
+            {
+                queryStarted.TrySetResult();
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                return null;
+            };
+            using var cancellation = new CancellationTokenSource();
+
+            var lookup = service.LookupHashAsync("0123456789abcdef", cancellation.Token);
+            await queryStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => lookup);
+        }
+
+        [Fact]
         public async Task LookupHashAsync_ConsensusOptions_WhenMinAgreementsNotMet_ReturnsNull()
         {
             var flacKey = "0123456789abcdef";
@@ -1125,6 +1147,8 @@ namespace slskd.Tests.Unit.Mesh
 
         private sealed class TestableMeshSyncService : MeshSyncService
         {
+            public Func<string, CancellationToken, Task<MeshHashEntry?>>? QueryPeer { get; set; }
+
             public TestableMeshSyncService(
                 IHashDbService hashDb,
                 ICapabilityService capabilities,
@@ -1138,8 +1162,13 @@ namespace slskd.Tests.Unit.Mesh
                 : base(hashDb, capabilities, soulseekClient, messageSigner, peerReputation, appState, syncSecurityOptions, pathResolver, proofOfPossession)
             { }
 
-            protected override async Task<MeshHashEntry> QueryPeerForHashAsync(string username, string flacKey, CancellationToken cancellationToken)
+            protected override async Task<MeshHashEntry?> QueryPeerForHashAsync(string username, string flacKey, CancellationToken cancellationToken)
             {
+                if (QueryPeer != null)
+                {
+                    return await QueryPeer(username, cancellationToken);
+                }
+
                 await Task.CompletedTask;
                 return ConsensusQueryResponses.TryGetValue(username, out var e) ? e : null;
             }

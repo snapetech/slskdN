@@ -48,6 +48,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   without logging it as a message-processing failure.
 - SignalBus now propagates caller cancellation from subscriber callbacks
   instead of swallowing it as a subscriber failure.
+- Mesh hash-consensus lookups now propagate caller cancellation instead of
+  treating it as a failed peer query.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

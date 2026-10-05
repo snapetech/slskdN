@@ -234,6 +234,12 @@
   exceptions remain isolated and logged. SignalBus tests pass 19/19; the full
   Release .NET suite passes 5,958 (74 application, 5,595 unit, 289
   integration), and `./bin/lint` passes. Gotcha `0z1617` records this boundary.
+- [x] Preserve caller cancellation through mesh hash-consensus fan-out —
+  2026-10-05. The public lookup now propagates cancellation from its parallel
+  peer queries instead of treating it as a peer miss. Focused coverage passes
+  1/1; the full Release .NET suite passes 5,959 (74 application, 5,596 unit,
+  289 integration), and `./bin/lint` passes. Gotcha `0z1618` records the fan-out
+  boundary.
 - [x] Serialize the strict release-ID allocation regression — 2026-10-05.
   `MusicDomainMappingTests` now uses `AllocationTestCollection`, preventing its
   1 KiB current-thread allocation ceiling from racing other allocation tests.
