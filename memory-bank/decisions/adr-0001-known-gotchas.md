@@ -310,6 +310,21 @@ document developers use to build the application locally.
 `global.json`, and include `CONTRIBUTING.md` in the runtime-matrix assertions
 and stale-major-version scan.
 
+### 0z1587. Bound Initial Capacity For Per-Peer Planning Caches (2026-10-04)
+
+**What went wrong:** The planner cached reputation decisions in a default-size
+dictionary. Large candidate sets with unique peers repeatedly resized that
+dictionary and exceeded the allocation budget even though repeated peers were
+cached correctly.
+
+**Why:** The optimization bounded the merged-candidate collections, but left
+the per-peer cache on the dictionary's repeated-growth path.
+
+**Prevention:** When a hot-path cache cardinality is bounded by known input
+size, initialize it from that count with the same explicit capacity ceiling
+used by adjacent collections. Keep the ceiling in place for adversarially
+large inputs, then run both repeated-peer and unique-peer allocation cases.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
