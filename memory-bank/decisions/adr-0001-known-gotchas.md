@@ -4,6 +4,35 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1654. Sanitize Pod Verification Identifiers And Exceptions (2026-10-05)
+
+**What went wrong:** Pod membership and message verification logged peer, pod,
+and message identifiers supplied by callers, and logged exception objects
+directly when verification failed.
+
+**Why:** These values can originate in remote pod messages or request payloads;
+formatting an exception object can also emit unescaped detail derived from
+those values.
+
+**Prevention:** Escape every dynamic identifier at its logging boundary and
+format exception details as escaped text. Preserve the original identifiers
+for membership and signature verification, and capture warning/error output in
+regressions.
+
+### 0z1653. Preserve Caller Cancellation In Pod Verification (2026-10-05)
+
+**What went wrong:** `PodMembershipVerifier` caught caller cancellation in
+membership, message, role, and signature verification and returned an ordinary
+invalid result or `false`.
+
+**Why:** Broad catches were intended to turn verification failures into safe
+negative results, but they treated a caller stopping the operation as an
+invalid peer or signature.
+
+**Prevention:** Rethrow `OperationCanceledException` when the corresponding
+request token is canceled before updating failure counts, logging, or returning
+a negative result. Test cancellation at each independent catch boundary.
+
 ### 0z1652. Isolate Mutable Peer State At Manager Boundaries (2026-10-05)
 
 **What went wrong:** `MeshPeerManager` retained a caller's mutable `MeshPeer`
