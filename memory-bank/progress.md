@@ -18484,3 +18484,32 @@ rule; update the durable count and rerun the full baseline.
 The full solution test run remains green at 6,102 tests, and lint passes. The
 `.344` Launchpad source is Published, but its Jammy AMD64 build remains
 `Needs building`, so no newer stable PPA source has been submitted.
+
+
+## 2026-10-05 23:36 UTC — Harden DHT and mesh diagnostic boundaries
+
+Reviewed direct exception and remote-data logging in DHT rendezvous and mesh
+DHT paths. Exception text and caller-/peer-controlled peer IDs, endpoints,
+descriptors, keys, hashes, and reasons are escaped only at log boundaries;
+wire values and operation results remain unchanged. Added captured-log
+regressions for malformed UDP retries and malformed remote descriptors, plus
+`check-dht-remote-log-safety.sh` in the remediation baseline. Focused tests
+pass 17/17, the full Release suite passes 6,103 tests (74 application, 5,740
+unit, 289 integration), and `./bin/lint` passes. Release-note preview from
+stable `.344` includes the DHT security fragment.
+
+All first-party application, test, and tooling projects remain on `net10.0`.
+MonoTorrent resolves the upstream `net8.0` asset, which is compatible with
+.NET 10; the vendored slskNet.Runtime mirror remains governed by its upstream
+sync contract. No active first-party `net6.0` target was found.
+
+The latest active-council scan reports 215 callback/event, 426 remote-text,
+12,381 red-team, and 828 mutable-ownership candidates. These are review
+queues, not confirmed defects; the durable red-team count is refreshed in this
+batch. Four validated DHT commits and one inventory/memory commit are local
+pending push, followed by the full post-push remediation baseline. Stable `.344`
+is artifact-verified; its exact Launchpad Jammy AMD64 build remains `Needs
+building`, so `.345` remains gated on publication of that binary. T-908,
+distributed Party ID ownership, accessibility, WAN/resource measurements,
+hidden-tab throttling, frontend network-change root cause, and broad candidate
+queues remain open or evidence-gated.

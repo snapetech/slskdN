@@ -1,40 +1,36 @@
-## Current state — Refresh the post-PodCore active inventory — 2026-10-05 23:13 UTC
+## Current state — Validate DHT diagnostic hardening — 2026-10-05 23:36 UTC
 
-The .NET 10 audit is complete: all first-party app, test, and build-tool
-projects target `net10.0`, and no active `.NET 6` project or selected
-MonoTorrent asset exists. MonoTorrent's current upstream source and selected
-package asset target `net8.0`, which is compatible with the .NET 10 consumer;
-the vendored slskNet.Runtime mirror remains unchanged under its sync contract.
+The .NET 10 audit is complete: every first-party app, test, and build-tool
+project under `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent's
+upstream project and selected package asset target `net8.0`, which the .NET 10
+consumer supports. No active first-party `.NET 6` target was found. The
+vendored slskNet.Runtime projects remain at their pinned upstream `net8.0`
+targets under the repository's source-sync contract.
 
-The post-`.344` PodCore logging follow-up replaces 94 direct exception logger
-calls across controllers and services with escaped exception text and escaped
-dynamic string fields. Structured identifiers remain present, and operation
-results are unchanged. Added a captured-log controller regression and
-`check-pod-core-log-safety.sh` to the remediation baseline. The focused
-regression passes; full `dotnet test --no-restore` passes 6,102 tests (74
-application, 5,739 unit, 289 integration), and `./bin/lint` and the focused
-source guard pass. The post-`.344` release-note preview includes the new
-PodCore diagnostics fragment.
+The post-`.344` DHT/mesh logging batch replaces raw exception metadata with
+escaped exception text and escapes remote peer, endpoint, descriptor, hash,
+and reason values only at the logging boundary. Regressions cover every retry
+log from malformed UDP input and a malformed remote descriptor. The new
+`check-dht-remote-log-safety.sh` guard is registered in the remediation
+baseline. Focused tests pass 17/17, the full Release solution passes 6,103
+tests (74 application, 5,740 unit, 289 integration), and `./bin/lint` passes.
+The `.344` to `HEAD` release-note preview includes the DHT security fragment.
 
-Gotchas `0z1694` and `0z1695`, the PodCore fix, its release fragment, and the
-route inventory refresh are pushed at `ae1bc9d84`. The post-push baseline
-passes route, cancellation, security, runtime, package, identity, registry,
-and branch-sync checks. Its first run required refreshing the route line
-inventory; the next run reports the red-team discovery count is now 12,368,
-not 12,362. Gotcha `0z1696` is committed locally. Refresh and push the active
-backlog count, then rerun the complete baseline. Counts of 215 callback/event,
-426 remote-text, 12,368 red-team, and 828 mutable-ownership candidates are
-review queues, not confirmed bug counts.
+The four validated DHT batch commits and the current inventory/memory commit
+are local and ready to push. The latest council report has 215 callback/event,
+426 remote-text, 12,381 red-team, and 828 mutable-ownership candidates. These
+are review queues, not confirmed bug counts. Push the five commits and run the
+full post-push remediation baseline.
 
-Stable `.344` is immutable and its six platform archives and support assets
-pass local checksum/version verification. Its Launchpad source is Published,
-but the Jammy AMD64 binary still reports `Needs building`, so do not submit
-`.345` until that build is published. Afterward, run the guarded `.345` release
-gate and verify every hosted publisher and artifact. Continue the confirmed
-code-backed remediation; T-908 lifecycle, global Party ID authority,
-accessibility, WAN/resource measurements, hidden-tab throttling, the original
-frontend network-change cause, and broad candidate queues remain open or
-evidence-gated.
+Stable `.344` is immutable and its six platform archives/support assets pass
+checksum and version verification. The exact Launchpad source is Published,
+but its Jammy AMD64 build remains `Needs building`; the hosted workflow has
+only its PPA publisher job outstanding. Do not submit `.345` until that exact
+binary is built and published. Then run the guarded stable release gate and
+verify all hosted publishers and artifacts. Continue confirmed code-backed
+remediation; T-908 lifecycle, global Party ID authority, accessibility,
+WAN/resource measurements, hidden-tab throttling, the original frontend
+network-change cause, and broad review queues remain open or evidence-gated.
 
 ## Prior state — Harden Pod storage and content API diagnostics — 2026-10-05 22:50 UTC
 

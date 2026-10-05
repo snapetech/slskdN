@@ -26,7 +26,7 @@
 
 ## Active Development
 
-### Post-.344 PodCore log-boundary hardening and .NET 10 audit — 2026-10-05
+### Post-.344 PodCore and DHT diagnostic-boundary hardening; .NET 10 audit — 2026-10-05
 
 - [x] Verify every first-party application, test, and build-tool project under
   `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
@@ -43,12 +43,18 @@
   `./bin/lint`, and the PodCore log-safety guard.
 - [x] Preview the post-`.344` release-note range; it includes the PodCore
   diagnostic security fragment.
-- [x] Push the gotcha, product fix, route inventory refresh, and current memory
-  update to `origin/main` at `ae1bc9d84`.
-- [ ] Refresh the active red-team candidate count to 12,368, push gotcha
-  `0z1696` and the inventory correction, then pass the full baseline. The
-  first post-push run found and corrected stale route line numbers under
-  gotcha `0z1695`; its next run stopped only on this stale candidate count.
+- [x] Replace direct raw-exception logging in DHT rendezvous and mesh DHT
+  boundaries with escaped exception text; escape remote peer, descriptor,
+  endpoint, hash, and reason strings at the logging boundary.
+- [x] Add malformed UDP retry and malformed remote descriptor captured-log
+  regressions, and register `check-dht-remote-log-safety.sh` in the baseline.
+- [x] Pass focused DHT log regressions (17/17), the full solution
+  `dotnet test --no-restore` (74 application, 5,740 unit, 289 integration),
+  `./bin/lint`, and the DHT remote-log safety guard.
+- [ ] Refresh the active red-team candidate count to 12,381 and commit/push the
+  four validated DHT batch commits plus current inventory and memory updates.
+  Gotcha `0z1696` records count refreshes; the 13 new matches are review
+  candidates, not confirmed bugs. Then pass the full post-push baseline.
 - [ ] Complete `.344` publisher verification. The Launchpad source is
   Published, but the Jammy AMD64 build is still `Needs building`; create
   stable `.345` only after that binary is published.
