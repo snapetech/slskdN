@@ -83,6 +83,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Scene searches, metadata deserialization, and announcement refresh now stop
   on caller cancellation instead of returning partial scene results or moving
   on to another scene.
+- Soulseek health checks now preserve monitor shutdown cancellation instead of
+  reporting the reconnect delay as an unavailable server.
+- Multi-source search endpoints now propagate HTTP request-abort cancellation
+  instead of converting a disconnected request into an HTTP 500 search error.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
 - Mesh health checks and service publication now propagate caller cancellation

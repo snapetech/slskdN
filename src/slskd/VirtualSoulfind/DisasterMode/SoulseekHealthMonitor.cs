@@ -265,6 +265,10 @@ public sealed class SoulseekHealthMonitor : ISoulseekHealthMonitor, IHostedServi
                     return SoulseekHealth.Healthy;
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (SoulseekClientException ex) when (ex.Message.Contains("banned", StringComparison.OrdinalIgnoreCase))
             {
                 logger.LogWarning("[VSF-HEALTH] Soulseek account banned");

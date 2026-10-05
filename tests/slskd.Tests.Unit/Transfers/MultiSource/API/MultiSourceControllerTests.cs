@@ -79,6 +79,37 @@ public class MultiSourceControllerTests
     }
 
     [Fact]
+    public async Task GetTopUsers_WhenRequestAborts_PropagatesSearchCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .Setup(client => client.SearchAsync(
+                It.IsAny<SearchQuery>(),
+                It.IsAny<Action<SearchResponse>>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<int?>(),
+                It.IsAny<SearchOptions>(),
+                cancellation.Token))
+            .Returns(Task.FromCanceled<Search>(cancellation.Token));
+        var controller = new MultiSourceController(
+            Mock.Of<IMultiSourceDownloadService>(),
+            soulseekClient.Object,
+            Mock.Of<ITransferService>(),
+            Mock.Of<ISourceDiscoveryService>(),
+            Mock.Of<IContentVerificationService>())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { RequestAborted = cancellation.Token },
+            },
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => controller.GetTopUsers("hello"));
+    }
+
+    [Fact]
     public async Task Search_TrimsSearchTextBeforeDispatch()
     {
         SearchQuery? capturedQuery = null;

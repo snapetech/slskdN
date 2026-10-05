@@ -149,6 +149,10 @@ namespace slskd.Transfers.MultiSource.API
                     options: searchOptions,
                     cancellationToken: cancellationToken);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Log.Warning("[MultiSource] Search failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
@@ -322,6 +326,10 @@ namespace slskd.Transfers.MultiSource.API
                     options: searchOptions,
                     cancellationToken: cancellationToken);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Log.Warning("[MultiSource] Search failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
@@ -438,6 +446,10 @@ namespace slskd.Transfers.MultiSource.API
                         filterResponses: true,
                         minimumResponseFileCount: 1),
                     cancellationToken: cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -601,6 +613,10 @@ namespace slskd.Transfers.MultiSource.API
                             filterResponses: true,
                             minimumResponseFileCount: 1),
                         cancellationToken: cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -982,6 +998,7 @@ namespace slskd.Transfers.MultiSource.API
                 filterResponses: true,
                 minimumResponseFileCount: 1,
                 responseLimit: 100);
+            var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
 
             if (!TryConsumeSearchBudget("multisource-search", out var limitedResult))
             {
@@ -994,7 +1011,11 @@ namespace slskd.Transfers.MultiSource.API
                     SearchQuery.FromText(searchText),
                     responseHandler: (response) => searchResults.Add(response),
                     options: searchOptions,
-                    cancellationToken: HttpContext?.RequestAborted ?? CancellationToken.None);
+                    cancellationToken: cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {

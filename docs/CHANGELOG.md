@@ -82,6 +82,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Scene searches, metadata deserialization, and announcement refresh now stop
   on caller cancellation instead of returning partial scene results or moving
   on to another scene.
+- Soulseek health checks now preserve monitor shutdown cancellation instead of
+  reporting the reconnect delay as an unavailable server.
+- Multi-source search endpoints now propagate HTTP request-abort cancellation
+  instead of converting a disconnected request into an HTTP 500 search error.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 
