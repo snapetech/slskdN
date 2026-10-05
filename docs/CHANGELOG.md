@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Security and diagnostics
+
+- Escape peer usernames, capability-file metadata, and full exception details
+  before writing capability-discovery logs. Capability requests and cached
+  peer metadata retain their original values.
+
 ## [2026100505-slskdn.340] — 2026-10-05
 
 ### Security and diagnostics

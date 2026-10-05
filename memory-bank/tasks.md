@@ -174,11 +174,21 @@
   15 to 30 seconds after a full-suite-only overlay startup timeout. The
   previously failing CSRF case passes alone and the full Release suite passes
   after the adjustment.
+- [x] Escape peer usernames, remote paths, capability-file client/version
+  metadata, and full exceptions at capability-discovery log boundaries —
+  2026-10-05. Requests, parsed values, and peer-cache state retain their
+  original inputs. Captured-log regressions cover normal discovery, failed
+  download, and global-policy rejection. Capability tests pass 32/32; the
+  full Release .NET suite passes 5,942 (74 application, 5,579 unit,
+  289 integration). `./bin/lint`, active-backlog, local-identity, and
+  whitespace checks pass. ADR-0001 gotchas `0z1603` and `0z1604` record the
+  remote boundary and log-record assertion pattern.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings. Discovery queues remain open at 211 callback/event,
-  445 remote-text, 12,255 red-team, and 826 mutable-ownership candidates;
-  T-908 fallback lifecycle and distributed evidence requirements also remain
-  open.
+  code-backed findings. Latest discovery queues: 211 callback/event, 435
+  remote-text, 12,257 red-team, and 826 mutable-ownership candidates. T-908
+  fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
+  resource evidence, hidden-tab throttling, and the frontend network-change
+  root cause remain open.
 
 ### Stable release `.335` — 2026-10-03
 

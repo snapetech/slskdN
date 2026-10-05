@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Common.Security;
 using slskd.Transfers.Downloads;
 using slskd.Transfers.MultiSource;
 
@@ -135,7 +136,9 @@ public sealed class CapabilityFileService
         {
             try
             {
-                _logger.LogDebug("Requesting capability file from {Username} at {Path}", username, path);
+                _logger.LogDebug("Requesting capability file from {Username} at {Path}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeFilePath(path));
 
                 var data = await DownloadSmallFileWithTimeoutAsync(username, path, 4096, TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
 
@@ -145,7 +148,9 @@ public sealed class CapabilityFileService
                     if (content is not null)
                     {
                         _logger.LogInformation("Got capability file from {Username}: {Client} v{Version}",
-                            username, content.Client, content.Version);
+                            LoggingSanitizer.SanitizeExternalIdentifier(username),
+                            LoggingSanitizer.SanitizeExternalIdentifier(content.Client),
+                            LoggingSanitizer.SanitizeExternalIdentifier(content.Version));
 
                         // Cache the result
                         _cache[username] = new CachedCapabilityFile
@@ -170,7 +175,10 @@ public sealed class CapabilityFileService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogDebug(ex, "Failed to get capability file from {Username} at {Path}", username, path);
+                _logger.LogDebug("Failed to get capability file from {Username} at {Path}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeFilePath(path),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -190,16 +198,20 @@ public sealed class CapabilityFileService
                     FetchedAt = DateTimeOffset.UtcNow,
                 };
 
-                _logger.LogInformation("Recovered capabilities for {Username} from UserInfo description tags", username);
+                _logger.LogInformation("Recovered capabilities for {Username} from UserInfo description tags",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username));
                 return fallback;
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogDebug(ex, "Failed to recover capabilities from UserInfo for {Username}", username);
+            _logger.LogDebug("Failed to recover capabilities from UserInfo for {Username}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
-        _logger.LogDebug("No capability file available from {Username}", username);
+        _logger.LogDebug("No capability file available from {Username}",
+            LoggingSanitizer.SanitizeExternalIdentifier(username));
         return null;
     }
 
@@ -248,7 +260,9 @@ public sealed class CapabilityFileService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogDebug(ex, "Runtime capability probe failed for {Username}", username);
+            _logger.LogDebug("Runtime capability probe failed for {Username}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return null;
@@ -359,7 +373,8 @@ public sealed class CapabilityFileService
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to parse capability file");
+            _logger.LogDebug("Failed to parse capability file: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }
@@ -441,13 +456,18 @@ public sealed class CapabilityFileService
                     file.NormalizedRemoteFilename.EndsWith(normalizedFilename, StringComparison.OrdinalIgnoreCase));
             if (remoteFile == null)
             {
-                _logger.LogDebug("Capability file {Path} not exposed by {Username} browse result", filename, username);
+                _logger.LogDebug("Capability file {Path} not exposed by {Username} browse result",
+                    LoggingSanitizer.SanitizeFilePath(filename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(username));
                 return null;
             }
 
             if (remoteFile.Size <= 0 || remoteFile.Size > maxBytes)
             {
-                _logger.LogDebug("Capability file {Path} from {Username} has unsupported size {Size}", filename, username, remoteFile.Size);
+                _logger.LogDebug("Capability file {Path} from {Username} has unsupported size {Size}",
+                    LoggingSanitizer.SanitizeFilePath(filename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    remoteFile.Size);
                 return null;
             }
 
@@ -458,9 +478,9 @@ public sealed class CapabilityFileService
             {
                 _logger.LogInformation(
                     "Blocked capability-file fetch {Path} from {Username} by global exclusion {Exclusion}",
-                    remoteFile.RemoteFilename,
-                    username,
-                    policyExclusion);
+                    LoggingSanitizer.SanitizeFilePath(remoteFile.RemoteFilename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(policyExclusion));
                 return null;
             }
 
@@ -483,7 +503,9 @@ public sealed class CapabilityFileService
             }
             catch (OperationCanceledException) when (limitedStream.LimitReached)
             {
-                _logger.LogDebug("Capability file download from {Username} reached size limit after {Bytes} bytes", username, limitedStream.BytesWritten);
+                _logger.LogDebug("Capability file download from {Username} reached size limit after {Bytes} bytes",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    limitedStream.BytesWritten);
             }
 
             var bytes = memoryStream.ToArray();
@@ -491,7 +513,8 @@ public sealed class CapabilityFileService
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Error downloading capability file");
+            _logger.LogDebug("Error downloading capability file: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }

@@ -6,8 +6,10 @@ namespace slskd.Tests.Unit.Capabilities;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using slskd.Capabilities;
+using slskd.Tests.Unit.TestHelpers;
 using Soulseek;
 using Xunit;
 
@@ -156,5 +158,192 @@ public sealed class CapabilityFileServiceTests
 
         Assert.NotNull(content);
         Assert.Equal("@@slskdn\\__caps__.json", capturedRemoteFilename);
+    }
+
+    [Fact]
+    public async Task RequestCapabilityFileAsync_EscapesPeerAndCapabilityMetadataOnlyInLogs()
+    {
+        const string username = "alice\r\nforged peer";
+        const string remoteDirectory = "folder\r\nforged\\@@slskdn";
+        const string remoteFilename = "folder\r\nforged\\@@slskdn\\__caps__.json";
+        const string capabilityJson = """
+            {
+              "client": "slskdn\r\nforged client",
+              "version": "1.2.3\r\nforged version",
+              "protocolVersion": 1,
+              "capabilities": 0,
+              "features": []
+            }
+            """;
+
+        var client = new Mock<ISoulseekClient>();
+        client
+            .Setup(soulseekClient => soulseekClient.BrowseAsync(username, It.IsAny<BrowseOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BrowseResponse(new[]
+            {
+                new Directory(remoteDirectory, new[]
+                {
+                    new File(1, "__caps__.json", capabilityJson.Length, "json"),
+                }),
+            }));
+
+        string? capturedUsername = null;
+        string? capturedRemoteFilename = null;
+        client
+            .Setup(soulseekClient => soulseekClient.DownloadAsync(
+                username,
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (string requestedUsername, string requestedFilename, Func<Task<Stream>> outputStreamFactory, long size, long startOffset, int? token, TransferOptions options, CancellationToken? cancellationToken) =>
+            {
+                capturedUsername = requestedUsername;
+                capturedRemoteFilename = requestedFilename;
+                await using var stream = await outputStreamFactory();
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(capabilityJson));
+                return (Transfer)null!;
+            });
+
+        var fileLogger = new CapturingLogger<CapabilityFileService>();
+        var capabilityLogger = new CapturingLogger<CapabilityService>();
+        var capabilityService = new CapabilityService(capabilityLogger);
+        var service = new CapabilityFileService(fileLogger, capabilityService, client.Object);
+
+        var content = await service.RequestCapabilityFileAsync(username);
+
+        Assert.NotNull(content);
+        Assert.Equal("slskdn\r\nforged client", content!.Client);
+        Assert.Equal("1.2.3\r\nforged version", content.Version);
+        Assert.Equal(username, capturedUsername);
+        Assert.Equal(remoteFilename, capturedRemoteFilename);
+        Assert.Equal(username, capabilityService.GetPeerCapabilities(username)!.Username);
+
+        var entries = fileLogger.Entries.Concat(capabilityLogger.Entries).ToArray();
+        var messages = string.Join(Environment.NewLine, entries.Select(entry => entry.Message));
+        Assert.Contains("alice\\r\\nforged peer", messages);
+        Assert.Contains("slskdn\\r\\nforged client", messages);
+        Assert.Contains("1.2.3\\r\\nforged version", messages);
+        Assert.All(entries, entry =>
+        {
+            Assert.DoesNotContain("\r", entry.Message);
+            Assert.DoesNotContain("\n", entry.Message);
+            Assert.Null(entry.Exception);
+        });
+    }
+
+    [Fact]
+    public async Task RequestCapabilityFileAsync_EscapesDownloadExceptionDetailsWithoutChangingRequest()
+    {
+        const string username = "alice\r\nforged peer";
+        const string remoteFilename = "@@slskdn\\__caps__.json";
+        const string capabilityJson = "{}";
+        var client = new Mock<ISoulseekClient>();
+        client
+            .Setup(soulseekClient => soulseekClient.BrowseAsync(username, It.IsAny<BrowseOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BrowseResponse(new[]
+            {
+                new Directory("@@slskdn", new[]
+                {
+                    new File(1, "__caps__.json", capabilityJson.Length, "json"),
+                }),
+            }));
+
+        string? capturedUsername = null;
+        string? capturedRemoteFilename = null;
+        client
+            .Setup(soulseekClient => soulseekClient.DownloadAsync(
+                username,
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns((string requestedUsername, string requestedFilename, Func<Task<Stream>> outputStreamFactory, long size, long startOffset, int? token, TransferOptions options, CancellationToken? cancellationToken) =>
+            {
+                capturedUsername = requestedUsername;
+                capturedRemoteFilename = requestedFilename;
+                return Task.FromException<Transfer>(new InvalidOperationException("remote\r\nfailure"));
+            });
+
+        var logger = new CapturingLogger<CapabilityFileService>();
+        var service = new CapabilityFileService(
+            logger,
+            Mock.Of<ICapabilityService>(),
+            client.Object);
+
+        var content = await service.RequestCapabilityFileAsync(username);
+
+        Assert.Null(content);
+        Assert.Equal(username, capturedUsername);
+        Assert.Equal(remoteFilename, capturedRemoteFilename);
+        Assert.Contains(logger.Entries, entry => entry.Message.Contains("remote\\r\\nfailure", StringComparison.Ordinal));
+        Assert.All(logger.Entries, entry =>
+        {
+            Assert.DoesNotContain("\r", entry.Message);
+            Assert.DoesNotContain("\n", entry.Message);
+            Assert.Null(entry.Exception);
+        });
+    }
+
+    [Fact]
+    public async Task RequestCapabilityFileAsync_EscapesRemotePathWhenGlobalPolicyBlocksFetch()
+    {
+        const string username = "alice\r\nforged peer";
+        const string remoteDirectory = "folder\r\nforged\\@@slskdn";
+        var client = new Mock<ISoulseekClient>();
+        client
+            .Setup(soulseekClient => soulseekClient.BrowseAsync(username, It.IsAny<BrowseOptions>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BrowseResponse(new[]
+            {
+                new Directory(remoteDirectory, new[]
+                {
+                    new File(1, "__caps__.json", 10, "json"),
+                }),
+            }));
+
+        var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+        optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options
+        {
+            Filters = new slskd.Options.FiltersOptions
+            {
+                Download = new slskd.Options.FiltersOptions.DownloadFilterOptions
+                {
+                    Exclude = new[] { "__caps__" },
+                },
+            },
+        });
+
+        var logger = new CapturingLogger<CapabilityFileService>();
+        var service = new CapabilityFileService(
+            logger,
+            Mock.Of<ICapabilityService>(),
+            client.Object,
+            optionsMonitor.Object);
+
+        var content = await service.RequestCapabilityFileAsync(username);
+
+        Assert.Null(content);
+        var messages = string.Join(Environment.NewLine, logger.Entries.Select(entry => entry.Message));
+        Assert.Contains("folder\\r\\nforged", messages);
+        Assert.All(logger.Entries, entry =>
+        {
+            Assert.DoesNotContain("\r", entry.Message);
+            Assert.DoesNotContain("\n", entry.Message);
+        });
+        client.Verify(soulseekClient => soulseekClient.DownloadAsync(
+            username,
+            It.IsAny<string>(),
+            It.IsAny<Func<Task<Stream>>>(),
+            It.IsAny<long>(),
+            It.IsAny<long>(),
+            It.IsAny<int?>(),
+            It.IsAny<TransferOptions>(),
+            It.IsAny<CancellationToken?>()), Times.Never);
     }
 }

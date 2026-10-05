@@ -9,7 +9,8 @@ namespace slskd.Capabilities
     using System.Linq;
     using System.Text.Json;
     using System.Text.RegularExpressions;
-    using Serilog;
+    using Microsoft.Extensions.Logging;
+    using slskd.Common.Security;
     using slskd.HashDb;
 
     /// <summary>
@@ -32,7 +33,7 @@ namespace slskd.Capabilities
             PeerCapabilityFlags.SupportsSwarm;
 
         private readonly ConcurrentDictionary<string, PeerCapabilities> peerCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly ILogger log = Log.ForContext<CapabilityService>();
+        private readonly ILogger<CapabilityService> _logger;
         private readonly IHashDbService? hashDb;
 
         // Regex to parse capability tag: slskdn_caps:v1;dht=1;mesh=1;swarm=1
@@ -45,8 +46,9 @@ namespace slskd.Capabilities
             @"slskdn/([^+\s]+)(\+.*)?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public CapabilityService(IHashDbService? hashDb = null)
+        public CapabilityService(ILogger<CapabilityService> logger, IHashDbService? hashDb = null)
         {
+            _logger = logger;
             this.hashDb = hashDb;
         }
 
@@ -222,7 +224,9 @@ namespace slskd.Capabilities
                 return existing;
             });
 
-            log.Debug("Updated capabilities for {Username}: {Flags}", username, capabilities.Flags);
+            _logger.LogDebug("Updated capabilities for {Username}: {Flags}",
+                LoggingSanitizer.SanitizeExternalIdentifier(username),
+                capabilities.Flags);
         }
 
         /// <inheritdoc/>
