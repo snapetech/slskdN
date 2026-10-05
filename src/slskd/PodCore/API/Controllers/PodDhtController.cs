@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,7 +85,7 @@ public class PodDhtController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDht] Error publishing pod");
+            _logger.LogError("[PodDht] Error publishing pod; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to publish pod" });
         }
     }
@@ -133,7 +134,7 @@ public class PodDhtController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDht] Error updating pod");
+            _logger.LogError("[PodDht] Error updating pod; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to update pod" });
         }
     }
@@ -171,7 +172,7 @@ public class PodDhtController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDht] Error unpublishing pod {PodId}", podId);
+            _logger.LogError("[PodDht] Error unpublishing pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to unpublish pod" });
         }
     }
@@ -207,7 +208,7 @@ public class PodDhtController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDht] Error retrieving pod metadata for {PodId}", podId);
+            _logger.LogError("[PodDht] Error retrieving pod metadata for {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to retrieve pod metadata" });
         }
     }
@@ -245,7 +246,7 @@ public class PodDhtController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDht] Error refreshing pod {PodId}", podId);
+            _logger.LogError("[PodDht] Error refreshing pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to refresh pod" });
         }
     }
@@ -265,7 +266,7 @@ public class PodDhtController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDht] Error getting publishing stats");
+            _logger.LogError("[PodDht] Error getting publishing stats; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get publishing statistics" });
         }
     }

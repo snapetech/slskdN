@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using NSec.Cryptography;
 using slskd.Mesh.Overlay;
 
@@ -101,7 +102,7 @@ public class PodMembershipSigner : IPodMembershipSigner
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[PodMembershipSigner] Failed to sign membership record");
+            logger.LogError("[PodMembershipSigner] Failed to sign membership record; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
@@ -153,7 +154,7 @@ public class PodMembershipSigner : IPodMembershipSigner
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[PodMembershipSigner] Error verifying membership record");
+            logger.LogWarning("[PodMembershipSigner] Error verifying membership record; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Task.FromResult(false);
         }
     }

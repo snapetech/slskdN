@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -82,7 +83,7 @@ public class PodJoinLeaveController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error processing join request");
+            _logger.LogError("[PodJoinLeave] Error processing join request; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to process join request" });
         }
     }
@@ -135,7 +136,7 @@ public class PodJoinLeaveController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error processing join acceptance");
+            _logger.LogError("[PodJoinLeave] Error processing join acceptance; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to process join acceptance" });
         }
     }
@@ -186,7 +187,7 @@ public class PodJoinLeaveController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error processing leave request");
+            _logger.LogError("[PodJoinLeave] Error processing leave request; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to process leave request" });
         }
     }
@@ -238,7 +239,7 @@ public class PodJoinLeaveController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error processing leave acceptance");
+            _logger.LogError("[PodJoinLeave] Error processing leave acceptance; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to process leave acceptance" });
         }
     }
@@ -265,7 +266,7 @@ public class PodJoinLeaveController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error getting pending join requests for {PodId}", podId);
+            _logger.LogError("[PodJoinLeave] Error getting pending join requests for {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get pending join requests" });
         }
     }
@@ -292,7 +293,7 @@ public class PodJoinLeaveController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error getting pending leave requests for {PodId}", podId);
+            _logger.LogError("[PodJoinLeave] Error getting pending leave requests for {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get pending leave requests" });
         }
     }
@@ -331,7 +332,7 @@ public class PodJoinLeaveController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error cancelling join request for {PeerId} from {PodId}", peerId, podId);
+            _logger.LogError("[PodJoinLeave] Error cancelling join request for {PeerId} from {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(peerId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to cancel join request" });
         }
     }
@@ -370,7 +371,7 @@ public class PodJoinLeaveController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error cancelling leave request for {PeerId} from {PodId}", peerId, podId);
+            _logger.LogError("[PodJoinLeave] Error cancelling leave request for {PeerId} from {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(peerId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to cancel leave request" });
         }
     }

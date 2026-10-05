@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 /// <summary>
 ///     Pod message backfill management.
@@ -104,7 +105,7 @@ public class PodMessageBackfillController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error syncing backfill for pod {PodId}", podId);
+            _logger.LogError("Error syncing backfill for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while syncing backfill");
         }
     }
@@ -137,7 +138,7 @@ public class PodMessageBackfillController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting last seen timestamps for pod {PodId}", podId);
+            _logger.LogError("Error getting last seen timestamps for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting last seen timestamps");
         }
     }
@@ -187,7 +188,7 @@ public class PodMessageBackfillController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating last seen timestamp for pod {PodId} channel {ChannelId}", podId, channelId);
+            _logger.LogError("Error updating last seen timestamp for pod {PodId} channel {ChannelId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while updating last seen timestamp");
         }
     }
@@ -211,7 +212,7 @@ public class PodMessageBackfillController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting backfill statistics");
+            _logger.LogError("Error getting backfill statistics; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting backfill statistics");
         }
     }
@@ -276,7 +277,7 @@ public class PodMessageBackfillController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error syncing all pods for backfill");
+            _logger.LogError("Error syncing all pods for backfill; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while syncing all pods");
         }
     }

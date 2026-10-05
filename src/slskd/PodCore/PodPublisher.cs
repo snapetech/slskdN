@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 
 /// <summary>
@@ -164,7 +165,7 @@ public class PodPublisher : IPodPublisher
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[PodPublisher] Failed to publish pod {PodId} to DHT", pod.PodId);
+            logger.LogError("[PodPublisher] Failed to publish pod {PodId} to DHT; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -192,7 +193,7 @@ public class PodPublisher : IPodPublisher
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[PodPublisher] Failed to unpublish pod {PodId} from DHT", podId);
+            logger.LogError("[PodPublisher] Failed to unpublish pod {PodId} from DHT; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -224,7 +225,7 @@ public class PodPublisher : IPodPublisher
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[PodPublisher] Failed to refresh pod {PodId} in DHT", podId);
+            logger.LogError("[PodPublisher] Failed to refresh pod {PodId} in DHT; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -277,7 +278,7 @@ public class PodPublisher : IPodPublisher
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[PodPublisher] Failed to update pod index");
+            logger.LogWarning("[PodPublisher] Failed to update pod index; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -352,7 +353,7 @@ public class PodPublisherBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[PodPublisher] Error in background refresh cycle");
+                logger.LogError("[PodPublisher] Error in background refresh cycle; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 // Continue running despite errors
             }

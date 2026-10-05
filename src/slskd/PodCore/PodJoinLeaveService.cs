@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using Microsoft.Extensions.Options;
 using slskd.Mesh.Transport;
 
@@ -142,7 +143,7 @@ public class PodJoinLeaveService : IPodJoinLeaveService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error processing join request from {PeerId} to {PodId}", joinRequest.PeerId, joinRequest.PodId);
+            _logger.LogError("[PodJoinLeave] Error processing join request from {PeerId} to {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(joinRequest.PeerId), LoggingSanitizer.SanitizeExternalIdentifier(joinRequest.PodId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodJoinResult(
                 Success: false,
                 PodId: joinRequest.PodId,
@@ -246,7 +247,7 @@ public class PodJoinLeaveService : IPodJoinLeaveService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error processing join acceptance for {PeerId} in {PodId}", acceptance.PeerId, acceptance.PodId);
+            _logger.LogError("[PodJoinLeave] Error processing join acceptance for {PeerId} in {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(acceptance.PeerId), LoggingSanitizer.SanitizeExternalIdentifier(acceptance.PodId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodMembershipOperationResult(
                 Success: false,
                 PodId: acceptance.PodId,
@@ -338,7 +339,7 @@ public class PodJoinLeaveService : IPodJoinLeaveService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error processing leave request from {PeerId} in {PodId}", leaveRequest.PeerId, leaveRequest.PodId);
+            _logger.LogError("[PodJoinLeave] Error processing leave request from {PeerId} in {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(leaveRequest.PeerId), LoggingSanitizer.SanitizeExternalIdentifier(leaveRequest.PodId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodLeaveResult(
                 Success: false,
                 PodId: leaveRequest.PodId,
@@ -428,7 +429,7 @@ public class PodJoinLeaveService : IPodJoinLeaveService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodJoinLeave] Error processing leave acceptance for {PeerId} in {PodId}", acceptance.PeerId, acceptance.PodId);
+            _logger.LogError("[PodJoinLeave] Error processing leave acceptance for {PeerId} in {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(acceptance.PeerId), LoggingSanitizer.SanitizeExternalIdentifier(acceptance.PodId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodMembershipOperationResult(
                 Success: false,
                 PodId: acceptance.PodId,
@@ -640,12 +641,12 @@ public class PodJoinLeaveService : IPodJoinLeaveService
         }
         catch (FormatException ex)
         {
-            _logger.LogWarning(ex, "[PodJoinLeave] Invalid base64 Ed25519 signature material on {Operation}", operation);
+            _logger.LogWarning("[PodJoinLeave] Invalid base64 Ed25519 signature material on {Operation}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(operation), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[PodJoinLeave] Error verifying Ed25519 signature on {Operation}", operation);
+            _logger.LogWarning("[PodJoinLeave] Error verifying Ed25519 signature on {Operation}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(operation), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }

@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.MediaCore;
 using slskd.Mesh.Dht;
 using slskd.Mesh.Transport;
@@ -96,7 +97,7 @@ public class PodOpinionService : IPodOpinionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error publishing opinion for pod {PodId}", podId);
+            _logger.LogError("Error publishing opinion for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new OpinionPublishResult(
                 false, podId, opinion.ContentId, opinion.VariantHash, "Failed to publish opinion");
         }
@@ -303,7 +304,7 @@ public class PodOpinionService : IPodOpinionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error refreshing opinions for pod {PodId}", podId);
+            _logger.LogError("Error refreshing opinions for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new OpinionRefreshResult(
                 false, podId, refreshedCount, newOpinionsCount, stopwatch.Elapsed, "Failed to refresh opinions");
         }
@@ -342,7 +343,7 @@ public class PodOpinionService : IPodOpinionService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error retrieving opinions from DHT key {Key}", dhtKey);
+            _logger.LogWarning("Error retrieving opinions from DHT key {Key}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(dhtKey), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new List<PodVariantOpinion>();
         }
     }

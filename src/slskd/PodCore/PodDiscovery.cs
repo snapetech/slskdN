@@ -120,7 +120,7 @@ public class PodDiscovery : IPodDiscovery
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "[PodDiscovery] Failed to get metadata for pod {PodId}", podId);
+                    logger.LogWarning("[PodDiscovery] Failed to get metadata for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     return null;
                 }
             });
@@ -164,7 +164,7 @@ public class PodDiscovery : IPodDiscovery
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[PodDiscovery] Error discovering pods");
+            logger.LogError("[PodDiscovery] Error discovering pods; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Array.Empty<PodMetadata>();
         }
     }
@@ -204,7 +204,7 @@ public class PodDiscovery : IPodDiscovery
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[PodDiscovery] Error discovering pod {PodId}", normalizedPodId);
+            logger.LogError("[PodDiscovery] Error discovering pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(normalizedPodId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }
@@ -236,7 +236,7 @@ public class PodDiscovery : IPodDiscovery
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[PodDiscovery] Error discovering pods for content {ContentId}", normalizedContentId);
+            logger.LogError("[PodDiscovery] Error discovering pods for content {ContentId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(normalizedContentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Array.Empty<PodMetadata>();
         }
     }

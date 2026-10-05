@@ -116,8 +116,7 @@ public class PeerResolutionService : IPeerResolutionService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "[PeerResolution] Error resolving peer {PeerId} to username",
-                LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId));
+            logger.LogWarning("[PeerResolution] Error resolving peer {PeerId} to username; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Fallback to peer ID
             return normalizedPeerId;
@@ -200,8 +199,7 @@ public class PeerResolutionService : IPeerResolutionService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "[PeerResolution] Error resolving peer {PeerId} to endpoint",
-                LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId));
+            logger.LogWarning("[PeerResolution] Error resolving peer {PeerId} to endpoint; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(normalizedPeerId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }

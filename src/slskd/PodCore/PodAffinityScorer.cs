@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Opinions;
 
 /// <summary>
@@ -81,7 +82,7 @@ public class PodAffinityScorer : IPodAffinityScorer
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to compute affinity for pod {PodId}", podId);
+            logger.LogWarning("Failed to compute affinity for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return 0.0;
         }
     }
@@ -110,7 +111,7 @@ public class PodAffinityScorer : IPodAffinityScorer
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to get pod recommendations for user {UserId}", userId);
+            logger.LogError("Failed to get pod recommendations for user {UserId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(userId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Array.Empty<PodRecommendation>();
         }
     }

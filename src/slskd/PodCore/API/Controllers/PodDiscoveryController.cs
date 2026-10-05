@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -81,7 +82,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error registering pod");
+            _logger.LogError("[PodDiscovery] Error registering pod; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to register pod" });
         }
     }
@@ -119,7 +120,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error unregistering pod {PodId}", podId);
+            _logger.LogError("[PodDiscovery] Error unregistering pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to unregister pod" });
         }
     }
@@ -168,7 +169,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error updating pod discovery");
+            _logger.LogError("[PodDiscovery] Error updating pod discovery; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to update pod discovery" });
         }
     }
@@ -196,7 +197,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering pods by name: {Name}", name);
+            _logger.LogError("[PodDiscovery] Error discovering pods by name: {Name}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(name), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to discover pods by name" });
         }
     }
@@ -224,7 +225,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering pods by tag: {Tag}", tag);
+            _logger.LogError("[PodDiscovery] Error discovering pods by tag: {Tag}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(tag), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to discover pods by tag" });
         }
     }
@@ -264,7 +265,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering pods by tags: {Tags}", tags);
+            _logger.LogError("[PodDiscovery] Error discovering pods by tags: {Tags}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(tags), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to discover pods by tags" });
         }
     }
@@ -291,7 +292,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering all pods");
+            _logger.LogError("[PodDiscovery] Error discovering all pods; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to discover pods" });
         }
     }
@@ -318,7 +319,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering pods by content: {ContentId}", contentId);
+            _logger.LogError("[PodDiscovery] Error discovering pods by content: {ContentId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to discover pods by content" });
         }
     }
@@ -338,7 +339,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error getting discovery stats");
+            _logger.LogError("[PodDiscovery] Error getting discovery stats; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get discovery statistics" });
         }
     }
@@ -361,7 +362,7 @@ public class PodDiscoveryController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error refreshing discovery");
+            _logger.LogError("[PodDiscovery] Error refreshing discovery; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to refresh discovery" });
         }
     }

@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 /// <summary>
 ///     Service for aggregating and weighting pod member opinions based on affinity and trust.
@@ -166,7 +167,7 @@ public class PodOpinionAggregator : IPodOpinionAggregator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error aggregating opinions for pod {PodId} content {ContentId}", podId, contentId);
+            _logger.LogError("Error aggregating opinions for pod {PodId} content {ContentId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
@@ -251,7 +252,7 @@ public class PodOpinionAggregator : IPodOpinionAggregator
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error calculating affinity for member {MemberId} in pod {PodId}", member.PeerId, podId);
+                    _logger.LogWarning("Error calculating affinity for member {MemberId} in pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(member.PeerId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                     // Fallback affinity
                     var normalizedPeerId = member.PeerId?.Trim() ?? string.Empty;
@@ -275,7 +276,7 @@ public class PodOpinionAggregator : IPodOpinionAggregator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting member affinities for pod {PodId}", podId);
+            _logger.LogError("Error getting member affinities for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new Dictionary<string, MemberAffinity>();
         }
     }
@@ -416,7 +417,7 @@ public class PodOpinionAggregator : IPodOpinionAggregator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating member affinities for pod {PodId}", podId);
+            _logger.LogError("Error updating member affinities for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new AffinityUpdateResult(
                 Success: false,
                 PodId: podId,

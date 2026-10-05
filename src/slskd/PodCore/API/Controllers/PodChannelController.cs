@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.PodCore.API;
 
 /// <summary>
@@ -106,17 +107,17 @@ public class PodChannelController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid create channel request for pod {PodId}", podId);
+            _logger.LogWarning("Invalid create channel request for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest("Invalid channel request");
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Create channel operation rejected for pod {PodId}", podId);
+            _logger.LogWarning("Create channel operation rejected for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest("Invalid channel request");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating channel in pod {PodId}", podId);
+            _logger.LogError("Error creating channel in pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while creating the channel");
         }
     }
@@ -164,7 +165,7 @@ public class PodChannelController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting channels for pod {PodId}", podId);
+            _logger.LogError("Error getting channels for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting channels");
         }
     }
@@ -225,7 +226,7 @@ public class PodChannelController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting channel {ChannelId} for pod {PodId}", channelId, podId);
+            _logger.LogError("Error getting channel {ChannelId} for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting the channel");
         }
     }
@@ -318,17 +319,17 @@ public class PodChannelController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid update channel request for pod {PodId}/{ChannelId}", podId, channelId);
+            _logger.LogWarning("Invalid update channel request for pod {PodId}/{ChannelId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest("Invalid channel request");
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Update channel operation rejected for pod {PodId}/{ChannelId}", podId, channelId);
+            _logger.LogWarning("Update channel operation rejected for pod {PodId}/{ChannelId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest("Invalid channel request");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating channel {ChannelId} in pod {PodId}", channelId, podId);
+            _logger.LogError("Error updating channel {ChannelId} in pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while updating the channel");
         }
     }
@@ -399,12 +400,12 @@ public class PodChannelController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Delete channel operation rejected for pod {PodId}/{ChannelId}", podId, channelId);
+            _logger.LogWarning("Delete channel operation rejected for pod {PodId}/{ChannelId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest("Invalid channel request");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting channel {ChannelId} from pod {PodId}", channelId, podId);
+            _logger.LogError("Error deleting channel {ChannelId} from pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(channelId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while deleting the channel");
         }
     }

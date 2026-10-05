@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 
 /// <summary>
@@ -108,7 +109,7 @@ public class PodDiscoveryService : IPodDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error registering pod {PodId} for discovery", pod.PodId);
+            _logger.LogError("[PodDiscovery] Error registering pod {PodId} for discovery; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodRegistrationResult(
                 Success: false,
                 PodId: pod.PodId,
@@ -169,7 +170,7 @@ public class PodDiscoveryService : IPodDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error unregistering pod {PodId} from discovery", podId);
+            _logger.LogError("[PodDiscovery] Error unregistering pod {PodId} from discovery; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodUnregistrationResult(
                 Success: false,
                 PodId: podId,
@@ -210,7 +211,7 @@ public class PodDiscoveryService : IPodDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering pods by name: {Slug}", nameSlug);
+            _logger.LogError("[PodDiscovery] Error discovering pods by name: {Slug}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(nameSlug), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodDiscoveryResult(
                 Pods: Array.Empty<PodMetadata>(),
                 SearchType: "name",
@@ -245,7 +246,7 @@ public class PodDiscoveryService : IPodDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering pods by tag: {Tag}", tag);
+            _logger.LogError("[PodDiscovery] Error discovering pods by tag: {Tag}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(tag), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodDiscoveryResult(
                 Pods: Array.Empty<PodMetadata>(),
                 SearchType: "tag",
@@ -295,7 +296,7 @@ public class PodDiscoveryService : IPodDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering pods by tags: {Tags}", string.Join(", ", tagList));
+            _logger.LogError("[PodDiscovery] Error discovering pods by tags: {Tags}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(string.Join(", ", tagList)), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodDiscoveryResult(
                 Pods: Array.Empty<PodMetadata>(),
                 SearchType: "tags",
@@ -331,7 +332,7 @@ public class PodDiscoveryService : IPodDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering all pods");
+            _logger.LogError("[PodDiscovery] Error discovering all pods; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodDiscoveryResult(
                 Pods: Array.Empty<PodMetadata>(),
                 SearchType: "all",
@@ -366,7 +367,7 @@ public class PodDiscoveryService : IPodDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDiscovery] Error discovering pods by content: {ContentId}", contentId);
+            _logger.LogError("[PodDiscovery] Error discovering pods by content: {ContentId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodDiscoveryResult(
                 Pods: Array.Empty<PodMetadata>(),
                 SearchType: "content",
@@ -439,7 +440,7 @@ public class PodDiscoveryService : IPodDiscoveryService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[PodDiscovery] Error refreshing discovery for pod {PodId}", podId);
+                _logger.LogError("[PodDiscovery] Error refreshing discovery for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 errors++;
             }
         }
@@ -538,7 +539,7 @@ public class PodDiscoveryService : IPodDiscoveryService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[PodDiscovery] Error getting metadata for pod {PodId}", podId);
+                _logger.LogWarning("[PodDiscovery] Error getting metadata for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 

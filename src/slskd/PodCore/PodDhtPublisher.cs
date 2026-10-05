@@ -11,6 +11,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 using slskd.Mesh.Overlay;
 
@@ -110,7 +111,7 @@ public class PodDhtPublisher : IPodDhtPublisher
         catch (Exception ex)
         {
             Interlocked.Increment(ref _failedPublications);
-            _logger.LogError(ex, "[PodDhtPublisher] Error publishing pod {PodId}", pod.PodId);
+            _logger.LogError("[PodDhtPublisher] Error publishing pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(pod.PodId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodPublishResult(
                 Success: false,
                 PodId: pod.PodId,
@@ -160,7 +161,7 @@ public class PodDhtPublisher : IPodDhtPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDhtPublisher] Error unpublishing pod {PodId}", podId);
+            _logger.LogError("[PodDhtPublisher] Error unpublishing pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Task.FromResult(new PodUnpublishResult(
                 Success: false,
                 PodId: podId,
@@ -225,7 +226,7 @@ public class PodDhtPublisher : IPodDhtPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDhtPublisher] Error retrieving metadata for pod {PodId}", podId);
+            _logger.LogError("[PodDhtPublisher] Error retrieving metadata for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodMetadataResult(
                 Found: false,
                 PodId: podId,
@@ -299,7 +300,7 @@ public class PodDhtPublisher : IPodDhtPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodDhtPublisher] Error refreshing pod {PodId}", podId);
+            _logger.LogError("[PodDhtPublisher] Error refreshing pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodRefreshResult(
                 Success: false,
                 PodId: podId,

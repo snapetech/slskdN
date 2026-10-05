@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 using slskd.Mesh.Overlay;
 
@@ -95,7 +96,7 @@ public class PodMembershipService : IPodMembershipService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error publishing membership for {PeerId} in {PodId}", member.PeerId, podId);
+            _logger.LogError("[PodMembership] Error publishing membership for {PeerId} in {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(member.PeerId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new MembershipPublishResult(
                 Success: false,
                 PodId: podId,
@@ -159,7 +160,7 @@ public class PodMembershipService : IPodMembershipService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error removing membership for {PeerId} from {PodId}", peerId, podId);
+            _logger.LogError("[PodMembership] Error removing membership for {PeerId} from {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(peerId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new MembershipPublishResult(
                 Success: false,
                 PodId: podId,
@@ -218,7 +219,7 @@ public class PodMembershipService : IPodMembershipService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMembership] Error retrieving membership for {PeerId} in {PodId}", peerId, podId);
+            _logger.LogError("[PodMembership] Error retrieving membership for {PeerId} in {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(peerId), LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new MembershipRetrievalResult(
                 Found: false,
                 PodId: podId,
@@ -443,7 +444,7 @@ public class PodMembershipService : IPodMembershipService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[PodMembership] Error cleaning up membership {Key}", membershipKey);
+                _logger.LogError("[PodMembership] Error cleaning up membership {Key}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(membershipKey), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 errors++;
             }
         }

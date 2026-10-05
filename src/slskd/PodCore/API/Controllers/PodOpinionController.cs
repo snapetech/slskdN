@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 /// <summary>
 ///     Pod opinion management.
@@ -95,7 +96,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error publishing opinion for pod {PodId}", podId);
+            _logger.LogError("Error publishing opinion for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while publishing the opinion");
         }
     }
@@ -138,7 +139,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting opinions for pod {PodId} content {ContentId}", podId, contentId);
+            _logger.LogError("Error getting opinions for pod {PodId} content {ContentId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting opinions");
         }
     }
@@ -189,8 +190,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting variant opinions for pod {PodId} content {ContentId} variant {VariantHash}",
-                podId, contentId, variantHash);
+            _logger.LogError("Error getting variant opinions for pod {PodId} content {ContentId} variant {VariantHash}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(variantHash), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting variant opinions");
         }
     }
@@ -233,7 +233,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting opinion statistics for pod {PodId} content {ContentId}", podId, contentId);
+            _logger.LogError("Error getting opinion statistics for pod {PodId} content {ContentId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting opinion statistics");
         }
     }
@@ -269,7 +269,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error refreshing opinions for pod {PodId}", podId);
+            _logger.LogError("Error refreshing opinions for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while refreshing opinions");
         }
     }
@@ -312,7 +312,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting aggregated opinions for pod {PodId} content {ContentId}", podId, contentId);
+            _logger.LogError("Error getting aggregated opinions for pod {PodId} content {ContentId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting aggregated opinions");
         }
     }
@@ -347,7 +347,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting member affinities for pod {PodId}", podId);
+            _logger.LogError("Error getting member affinities for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting member affinities");
         }
     }
@@ -390,7 +390,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting consensus recommendations for pod {PodId} content {ContentId}", podId, contentId);
+            _logger.LogError("Error getting consensus recommendations for pod {PodId} content {ContentId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting consensus recommendations");
         }
     }
@@ -426,7 +426,7 @@ public class PodOpinionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating member affinities for pod {PodId}", podId);
+            _logger.LogError("Error updating member affinities for pod {PodId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while updating member affinities");
         }
     }

@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using Soulseek;
 
 /// <summary>
@@ -360,7 +361,7 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[GoldStarClub] Auto-join background service failed; the host will continue running.");
+            logger.LogError("[GoldStarClub] Auto-join background service failed; the host will continue running.; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 

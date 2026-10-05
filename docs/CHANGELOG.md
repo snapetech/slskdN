@@ -36,6 +36,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Security
 
+- PodCore API and background-service diagnostics now escape exception details
+  and caller- or peer-controlled identifiers without attaching raw exception
+  objects to log events.
 - SQLite-backed Pod and content-linked API diagnostics now escape exception
   details and caller-controlled Pod, peer, and channel identifiers without
   attaching raw exception objects to log events.
