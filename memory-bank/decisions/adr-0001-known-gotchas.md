@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1615. Propagate Incoming Signal Callback Cancellation (2026-10-05)
+
+**What went wrong:** Mesh and BitTorrent signal receive handlers caught
+caller-requested cancellation from their subscriber callback and logged it as
+an incoming message-processing error.
+
+**Why:** The broad callback exception handler did not distinguish host or
+caller cancellation from malformed input and real processing failures.
+
+**Prevention:** Rethrow OperationCanceledException when the callback's token
+is canceled before handling other failures. Test that subscriber cancellation
+propagates through each transport without an error log.
+
 ### 0z1614. Keep Caller Cancellation Out Of Signal Transport Error Logs (2026-10-05)
 
 **What went wrong:** Mesh and BitTorrent-extension signal senders caught caller
