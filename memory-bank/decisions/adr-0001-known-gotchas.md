@@ -4,6 +4,17 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1676. Await The Cover Traffic Logger's Exposed Warning Task (2026-10-05)
+
+**What went wrong:** The cover-traffic test's capture logger exposed its
+TaskCompletionSource through a `Task<CapturedLogEntry>` property, but the test
+then accessed `.Task` on that already-exposed task and failed to compile.
+
+**Why:** The test mixed the completion-source and consumer-facing task APIs.
+
+**Prevention:** Expose a `Task` to test callers and await that property
+directly; keep the completion source private to the signaling logger.
+
 ### 0z1675. Escape Cover Traffic Send Exceptions In The Worker Log (2026-10-05)
 
 **What went wrong:** The cover-traffic worker attached raw exceptions from its
