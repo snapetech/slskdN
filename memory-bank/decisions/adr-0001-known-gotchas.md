@@ -105,6 +105,21 @@ overload instead of a callback delegate for the nullable task result.
 `TaskCompletionSource<TResult?>.Task` (or another explicitly typed task) when
 a cancellation-aware mock must keep an operation pending.
 
+### 0z1645. Do Not Turn Canceled Descriptor Retrieval Into A Cache Miss (2026-10-05)
+
+**What went wrong:** Descriptor retrieval caught a canceled DHT request and
+returned a normal failed-lookup result. Verification could likewise translate
+cancellation into an invalid-descriptor result.
+
+**Why:** DHT and validation failures are represented as useful result objects,
+but caller cancellation is control flow and must remain observable to the
+caller.
+
+**Prevention:** Rethrow `OperationCanceledException` when the request token is
+canceled before producing ordinary retrieval or verification failures. Keep
+batch retrieval's documented best-effort partial-result behavior explicit and
+separate from single-descriptor retrieval.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
