@@ -26,6 +26,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Pod management, content-linking, and shadow-index endpoints now propagate
   caller cancellation instead of reporting canceled requests as HTTP 500 errors.
+- Pod content lookup propagates caller cancellation and escapes MusicBrainz
+  error details and unsupported-domain values in logs while preserving
+  best-effort fallbacks for provider failures.
 
 ## [2026100520-slskdn.344] — 2026-10-05
 

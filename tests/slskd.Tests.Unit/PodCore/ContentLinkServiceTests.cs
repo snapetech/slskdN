@@ -8,6 +8,7 @@ using Moq;
 using slskd.Integrations.MusicBrainz;
 using slskd.Integrations.MusicBrainz.Models;
 using slskd.PodCore;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class ContentLinkServiceTests
@@ -34,6 +35,42 @@ public class ContentLinkServiceTests
         Assert.True(result.IsValid);
         Assert.Equal("content:audio:track:recording-1", result.ContentId);
         Assert.Equal("content:audio:track:recording-1", result.Metadata!.ContentId);
+    }
+
+    [Fact]
+    public async Task ValidateContentIdAsync_WhenCallerCancels_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var musicBrainz = new Mock<IMusicBrainzClient>();
+        musicBrainz
+            .Setup(client => client.GetRecordingAsync("recording-1", cancellation.Token))
+            .ThrowsAsync(new OperationCanceledException(cancellation.Token));
+
+        var service = new ContentLinkService(musicBrainz.Object, NullLogger<ContentLinkService>.Instance);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.ValidateContentIdAsync("content:audio:track:recording-1", cancellation.Token));
+    }
+
+    [Fact]
+    public async Task GetContentMetadataAsync_WhenProviderFails_EscapesExceptionTextInLog()
+    {
+        var musicBrainz = new Mock<IMusicBrainzClient>();
+        musicBrainz
+            .Setup(client => client.GetRecordingAsync("recording-1", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new System.Net.Http.HttpRequestException("provider failure\r\nforged log line"));
+        var logger = new CapturingLogger<ContentLinkService>();
+        var service = new ContentLinkService(musicBrainz.Object, logger);
+
+        var metadata = await service.GetContentMetadataAsync("content:audio:track:recording-1");
+
+        Assert.Null(metadata);
+        var log = Assert.Single(logger.Entries);
+        Assert.Null(log.Exception);
+        Assert.Contains("content:audio:track:recording-1", log.Message);
+        Assert.Contains("provider failure\\r\\nforged log line", log.Message);
+        Assert.DoesNotContain("provider failure\r\nforged log line", log.Message);
     }
 
     [Fact]
@@ -68,6 +105,35 @@ public class ContentLinkServiceTests
 
         Assert.Empty(results);
         musicBrainz.Verify(client => client.SearchRecordingsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SearchContentAsync_WhenCallerCancels_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var musicBrainz = new Mock<IMusicBrainzClient>();
+        musicBrainz
+            .Setup(client => client.SearchRecordingsAsync("song", 20, cancellation.Token))
+            .ThrowsAsync(new OperationCanceledException(cancellation.Token));
+        var service = new ContentLinkService(musicBrainz.Object, NullLogger<ContentLinkService>.Instance);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.SearchContentAsync("song", ct: cancellation.Token));
+    }
+
+    [Fact]
+    public async Task SearchContentAsync_UnsupportedDomainEscapesDomainInLog()
+    {
+        var logger = new CapturingLogger<ContentLinkService>();
+        var service = new ContentLinkService(Mock.Of<IMusicBrainzClient>(), logger);
+
+        var results = await service.SearchContentAsync("song", "video\r\nforged log line");
+
+        Assert.Empty(results);
+        var log = Assert.Single(logger.Entries);
+        Assert.Contains("video\\r\\nforged log line", log.Message);
+        Assert.DoesNotContain("video\r\nforged log line", log.Message);
     }
 
     [Fact]

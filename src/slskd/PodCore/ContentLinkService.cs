@@ -56,9 +56,15 @@ public class ContentLinkService : IContentLinkService
 
             return new ContentValidationResult(true, normalizedContentId, Metadata: metadata);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error validating content ID {ContentId}", normalizedContentId);
+            _logger.LogWarning("Error validating content ID {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedContentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new ContentValidationResult(false, normalizedContentId, "Validation failed");
         }
     }
@@ -91,9 +97,15 @@ public class ContentLinkService : IContentLinkService
                     return CreateBasicMetadata(parsed);
             }
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error fetching metadata for content ID {ContentId}", normalizedContentId);
+            _logger.LogWarning("Error fetching metadata for content ID {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedContentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }
@@ -119,7 +131,8 @@ public class ContentLinkService : IContentLinkService
             if (!string.IsNullOrWhiteSpace(normalizedDomain) &&
                 !string.Equals(normalizedDomain, ContentDomains.Audio, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning("Content search requested for unsupported domain '{Domain}'", normalizedDomain);
+                _logger.LogWarning("Content search requested for unsupported domain '{Domain}'",
+                    LoggingSanitizer.SanitizeExternalIdentifier(normalizedDomain));
                 return Array.Empty<ContentSearchResult>();
             }
 
@@ -140,6 +153,10 @@ public class ContentLinkService : IContentLinkService
                         ["musicbrainz_artist_id"] = hit.MusicBrainzArtistId ?? string.Empty,
                     }))
                 .ToList();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
