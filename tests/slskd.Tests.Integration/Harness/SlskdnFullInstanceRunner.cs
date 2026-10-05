@@ -637,7 +637,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
 
     private async Task WaitForTcpPortReadyAsync(int port, string serviceName, CancellationToken ct)
     {
-        const int maxAttempts = 30;
+        const int maxAttempts = 60;
         var attempt = 0;
 
         while (attempt < maxAttempts && !ct.IsCancellationRequested)
