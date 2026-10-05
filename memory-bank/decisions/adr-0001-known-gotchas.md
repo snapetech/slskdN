@@ -17,6 +17,22 @@ imports conceal that collision until compilation.
 neighboring namespace for same-named types. Use a clear alias or fully
 qualify the intended sanitizer, then compile the owning project.
 
+### 0z1567. Sanitize Mesh-Imported Hash Diagnostics (2026-10-04)
+
+**What went wrong:** Hash-database merge conflict diagnostics included hash
+keys and byte hashes received from mesh entries without escaping control
+characters. A few deserialization diagnostics also emitted identifiers loaded
+from persisted job or artist records directly.
+
+**Why:** The logging audit covered the network and download paths first, but
+did not include the mesh-import and database-recovery paths in the same
+subsystem.
+
+**Prevention:** Treat mesh entries and persisted identifier fields as external
+text at the log boundary. Sanitize hash values with `SanitizeHash` and IDs with
+`SanitizeExternalIdentifier`; inspect every dynamic field in neighboring merge
+and recovery diagnostics when changing a logging boundary.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
