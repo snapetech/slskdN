@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1695. Refresh The Generated Route Inventory After Source-Line Shifts (2026-10-05)
+
+**What went wrong:** The remediation baseline rejected the API route inventory
+after logging imports shifted controller source locations.
+
+**Why:** `docs/system-surfaces-current.md` records source line numbers as well
+as route declarations, and those references are generated snapshots rather than
+line-independent route data.
+
+**Prevention:** After adding imports or otherwise moving route attributes,
+rerun `scripts/generate-route-inventory.sh docs/system-surfaces-current.md`
+before running the full remediation baseline.
+
 ### 0z1694. Escape PodCore API And Service Exceptions At Log Boundaries (2026-10-05)
 
 **What went wrong:** PodCore API controllers, discovery, membership, DHT,
