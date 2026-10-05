@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1674. Escape User Block Names Only In Service Logs (2026-10-05)
+
+**What went wrong:** UserBlockService wrote the normalized username directly
+to a structured log field. The service trims usernames but does not reject
+line-break characters, so a caller could forge additional log lines.
+
+**Why:** The persistent username was mistaken for trusted internal data after
+normalization, even though normalization preserves control characters.
+
+**Prevention:** Escape usernames only in the diagnostic argument, preserving
+the exact stored/returned identity, and capture the logger with a CR/LF-bearing
+username to verify both properties.
+
 ### 0z1673. Assert Raw Exception Text Separately From Escaped Log Text (2026-10-05)
 
 **What went wrong:** The MeshMessageSigner regression expected literal
