@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1670. Use Valid Pod IDs To Reach Backfill Operation Boundaries (2026-10-05)
+
+**What went wrong:** New backfill cancellation tests used `pod-1`, which the
+production `PodValidation` rejects before any storage call. The intended
+cancellation path was therefore not exercised.
+
+**Why:** The test copied a readable identifier from controller tests instead
+of the PodCore service's strict `pod:<32 lowercase hex>` identifier contract.
+
+**Prevention:** Use the shared valid Pod ID format in service-level backfill
+fixtures and verify the expected storage/router call occurs before asserting
+cancellation behavior.
+
 ### 0z1669. Preserve Pod Backfill Cancellation And Escape Peer Exceptions (2026-10-05)
 
 **What went wrong:** Pod backfill logged raw exceptions while processing peer
