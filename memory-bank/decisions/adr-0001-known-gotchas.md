@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1661. Escape Mesh Search Request Diagnostics (2026-10-05)
+
+**What went wrong:** `MeshSearchRpcHandler` logged the request's `RequestId`
+and raw exception details. Mesh search validation requires a parseable GUID,
+but accepts surrounding whitespace, so a caller can include CR/LF in a valid
+request ID and forge additional log lines.
+
+**Why:** Protocol shape validation does not make a caller-provided string safe
+for diagnostics, and logging an exception object can render unescaped detail
+outside the message template.
+
+**Prevention:** Escape request IDs, local filenames, and exception text at the
+logging boundary; do not rewrite the identifiers used for response
+correlation. Capture logs with CR/LF-bearing valid GUID input and verify the
+wire response retains the original request ID.
+
 ### 0z1660. Preserve Cancellation Around Synchronous Mesh Search (2026-10-05)
 
 **What went wrong:** `MeshSearchRpcHandler` created a linked caller/timeout
