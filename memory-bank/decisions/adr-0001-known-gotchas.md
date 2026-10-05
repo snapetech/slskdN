@@ -121,6 +121,20 @@ callbacks and catch blocks. Escape usernames/identifiers, remote filenames,
 paths, policy text, and full exception text at each log argument; leave the
 values passed to transfer operations and returned to callers unchanged.
 
+### 0z1574. Keep Sanitization At The Logging Boundary (2026-10-05)
+
+**What went wrong:** A transfer verification call was changed to receive a
+sanitized filename while adding log sanitization. Control characters in the
+original filename could therefore change the path used by the operation.
+
+**Why:** The same expression was edited for diagnostics and then reused as an
+operational argument, crossing the boundary between display safety and product
+behavior.
+
+**Prevention:** Sanitize values only inside logging argument lists. Inspect the
+surrounding call after each logging edit and confirm API, filesystem, search,
+and persistence inputs still receive their original values.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
