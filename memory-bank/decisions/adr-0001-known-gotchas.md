@@ -238,6 +238,20 @@ and full exception text only in log arguments; keep original values for
 protocol handling, peer routing, and persistence. Add a captured-log regression
 for CR/LF-bearing remote exception text.
 
+### 0z1582. Do Not Add Input Dereferences While Redacting Chat Logs (2026-10-04)
+
+**What went wrong:** Removing scene-chat message text from a diagnostic log
+temporarily replaced it with `content.Length`, adding an input dereference
+before the existing profile and publish path.
+
+**Why:** A privacy-focused log edit tried to retain extra diagnostic detail,
+even though that detail was unnecessary and the operation already owns content
+validation and serialization behavior.
+
+**Prevention:** When removing private payloads from logs, prefer omitting the
+payload entirely. Do not add input-derived work solely for diagnostics; keep
+logging edits behavior-neutral and inspect new expressions for earlier throws.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
