@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
+
+**What went wrong:** `MeshTransportService` caught cancellation from
+anonymity/obfuscation selection and returned the ordinary configured route.
+Callers could then continue without the privacy transport they requested.
+
+**Why:** The catch intentionally falls back when a transport selector fails,
+but it treated caller cancellation as the same kind of availability failure.
+
+**Prevention:** Rethrow when the selection token is canceled before applying
+the standard-route fallback. Keep fallback behavior for non-cancellation
+selector failures and test both paths.
+
 ### 0z1636. Preserve Cancellation While Caching Mesh Consensus Results (2026-10-05)
 
 **What went wrong:** `LookupHashAsync` caught cancellation from the local
