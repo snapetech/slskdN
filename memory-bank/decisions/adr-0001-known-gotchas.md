@@ -120,6 +120,20 @@ canceled before producing ordinary retrieval or verification failures. Keep
 batch retrieval's documented best-effort partial-result behavior explicit and
 separate from single-descriptor retrieval.
 
+### 0z1646. Keep Cancellation Distinct From Missing Music Metadata (2026-10-05)
+
+**What went wrong:** Music domain-provider hash database lookups caught
+cancellation and returned `null`, making a caller stop look like missing
+metadata.
+
+**Why:** `null` represents an expected no-match result, while the broad error
+fallback also caught the `OperationCanceledException` used to stop database
+lookups.
+
+**Prevention:** Rethrow caller cancellation before converting ordinary lookup
+errors to `null`. Cover release, title/artist, recording, and local-metadata
+lookups that have separate error boundaries.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
