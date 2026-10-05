@@ -90,6 +90,10 @@ public class MeshCircuitBuilder : IMeshCircuitBuilder, IDisposable
 
             return circuit;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to build circuit to peer {TargetPeerId}", targetPeerId);
@@ -274,6 +278,15 @@ public class MeshCircuitBuilder : IMeshCircuitBuilder, IDisposable
                 _logger.LogDebug("Established hop {HopNumber} to peer {PeerId} via {Transport}",
                     hop.HopNumber, hop.PeerId, transport.TransportType);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                foreach (var establishedHop in hops)
+                {
+                    establishedHop.Dispose();
+                }
+
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to establish hop {HopNumber} to peer {PeerId}", hop.HopNumber, hop.PeerId);
@@ -289,6 +302,7 @@ public class MeshCircuitBuilder : IMeshCircuitBuilder, IDisposable
         // Validate that the circuit is complete
         if (!circuit.IsComplete())
         {
+            circuit.Dispose();
             throw new InvalidOperationException("Circuit establishment failed - not all hops connected");
         }
 

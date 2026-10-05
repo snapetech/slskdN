@@ -104,6 +104,8 @@ public class TransportSelector
             throw new ArgumentNullException(nameof(remoteDescriptor));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         _logger.LogDebug("Selecting transport for peer {PeerId}, pod {PodId} with policies", targetPeerId, podId ?? "none");
 
         // Get applicable transport policy
@@ -150,6 +152,8 @@ public class TransportSelector
         // Try each candidate in order
         foreach (var endpoint in orderedCandidates)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var dialer = GetDialerForEndpoint(endpoint);
             if (dialer == null)
             {
@@ -158,7 +162,9 @@ public class TransportSelector
             }
 
             // Check if dialer is available
-            if (!await dialer.IsAvailableAsync(cancellationToken))
+            var isAvailable = await dialer.IsAvailableAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!isAvailable)
             {
                 _logger.LogDebug("Dialer for {TransportType} not available, skipping", endpoint.TransportType);
                 continue;
@@ -196,6 +202,10 @@ public class TransportSelector
 
                 return (dialer, stream);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to connect to peer {PeerId} via {TransportType}://{Host}:{Port}",
@@ -205,6 +215,7 @@ public class TransportSelector
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         throw new InvalidOperationException($"All transport candidates failed for peer {targetPeerId}");
     }
 

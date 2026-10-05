@@ -113,6 +113,81 @@ public class MeshCircuitBuilderTests : IDisposable
     }
 
     [Fact]
+    public async Task BuildCircuitAsync_WhenHopConnectionIsCanceled_PropagatesCancellationAndDisposesEstablishedHops()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var firstStream = new MemoryStream();
+        var transport = Mock.Of<IAnonymityTransport>();
+        var connectionAttempts = 0;
+        _peerManagerMock
+            .Setup(manager => manager.GetAvailablePeersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateCircuitPeers());
+        _transportSelectorMock
+            .Setup(selector => selector.SelectAndConnectAsync(
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string _, int _, string? _, CancellationToken token) =>
+            {
+                if (Interlocked.Increment(ref connectionAttempts) == 1)
+                {
+                    return Task.FromResult<(IAnonymityTransport Transport, Stream Stream)>((transport, firstStream));
+                }
+
+                cancellation.Cancel();
+                return Task.FromCanceled<(IAnonymityTransport Transport, Stream Stream)>(token);
+            });
+
+        using var builder = new MeshCircuitBuilder(
+            _defaultOptions,
+            _loggerMock.Object,
+            _peerManagerMock.Object,
+            _transportSelectorMock.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            builder.BuildCircuitAsync("target-peer", circuitLength: 2, cancellation.Token));
+
+        Assert.False(firstStream.CanRead);
+    }
+
+    [Fact]
+    public async Task BuildCircuitAsync_WhenHopConnectionFails_DisposesEstablishedHops()
+    {
+        var firstStream = new MemoryStream();
+        var transport = Mock.Of<IAnonymityTransport>();
+        var connectionAttempts = 0;
+        _peerManagerMock
+            .Setup(manager => manager.GetAvailablePeersAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateCircuitPeers());
+        _transportSelectorMock
+            .Setup(selector => selector.SelectAndConnectAsync(
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string _, int _, string? _, CancellationToken _) =>
+            {
+                if (Interlocked.Increment(ref connectionAttempts) == 1)
+                {
+                    return Task.FromResult<(IAnonymityTransport Transport, Stream Stream)>((transport, firstStream));
+                }
+
+                return Task.FromException<(IAnonymityTransport Transport, Stream Stream)>(new IOException("Peer unavailable"));
+            });
+
+        using var builder = new MeshCircuitBuilder(
+            _defaultOptions,
+            _loggerMock.Object,
+            _peerManagerMock.Object,
+            _transportSelectorMock.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => builder.BuildCircuitAsync("target-peer", circuitLength: 2));
+
+        Assert.False(firstStream.CanRead);
+    }
+
+    [Fact]
     public void GetCircuit_WithNonExistentCircuitId_ReturnsNull()
     {
         // Arrange
@@ -139,5 +214,14 @@ public class MeshCircuitBuilderTests : IDisposable
         Assert.Equal(0, stats.TotalCircuitsBuilt);
         Assert.Equal(0, stats.AverageCircuitLength);
         Assert.Empty(stats.CircuitLengths);
+    }
+
+    private static List<MeshPeer> CreateCircuitPeers()
+    {
+        return new List<MeshPeer>
+        {
+            new("relay-peer", new List<IPEndPoint> { new(IPAddress.Loopback, 4100) }),
+            new("target-peer", new List<IPEndPoint> { new(IPAddress.Loopback, 4200) })
+        };
     }
 }

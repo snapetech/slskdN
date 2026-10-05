@@ -52,6 +52,8 @@ public class QuicOverlayClient : IOverlayClient, IAsyncDisposable
 
     public async Task<bool> SendAsync(ControlEnvelope envelope, IPEndPoint endpoint, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (!options.Enable)
         {
             return false;
@@ -125,6 +127,10 @@ public class QuicOverlayClient : IOverlayClient, IAsyncDisposable
 
             return success;
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "[Overlay-QUIC] Failed to send to {Endpoint}", endpoint);
@@ -174,6 +180,10 @@ public class QuicOverlayClient : IOverlayClient, IAsyncDisposable
             var connection = await QuicConnection.ConnectAsync(clientOptions, ct);
             logger.LogDebug("[Overlay-QUIC] Connected to {Endpoint}", endpoint);
             return connection;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

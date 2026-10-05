@@ -117,6 +117,8 @@ public class TorSocksDialer : ITransportDialer
     /// <returns>True if the Tor proxy is accessible.</returns>
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (!_options.Enabled)
         {
             _statistics.IsAvailable = false;
@@ -128,20 +130,18 @@ public class TorSocksDialer : ITransportDialer
         {
             // Test basic connectivity to the SOCKS proxy
             using var client = new TcpClient();
-            var connectTask = client.ConnectAsync(_options.SocksHost, _options.SocksPort);
-            var timeoutTask = Task.Delay(_options.ConnectionTimeout, cancellationToken);
-
-            var completedTask = await Task.WhenAny(connectTask, timeoutTask);
-            if (completedTask == timeoutTask)
-            {
-                throw new TimeoutException("Connection to Tor SOCKS proxy timed out");
-            }
-
-            await connectTask; // Ensure any exceptions are propagated
+            using var connectionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            connectionCts.CancelAfter(_options.ConnectionTimeout);
+            await client.ConnectAsync(_options.SocksHost, _options.SocksPort, connectionCts.Token);
+            cancellationToken.ThrowIfCancellationRequested();
 
             _statistics.IsAvailable = true;
             _statistics.LastError = null;
             return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

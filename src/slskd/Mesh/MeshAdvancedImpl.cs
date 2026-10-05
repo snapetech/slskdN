@@ -42,6 +42,8 @@ public class MeshAdvanced : IMeshAdvanced
 
     public async Task<IReadOnlyList<MeshRouteDiagnostics>> TraceRoutesAsync(string peerId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         var diagnostics = new List<MeshRouteDiagnostics>();
         var startTime = DateTimeOffset.UtcNow;
 
@@ -128,6 +130,10 @@ public class MeshAdvanced : IMeshAdvanced
             logger.LogInformation("[MeshRoute] Route diagnostics completed for {PeerId} in {Time}ms with {HopCount} hops",
                 peerId, totalTime, diagnostics.Count);
 
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

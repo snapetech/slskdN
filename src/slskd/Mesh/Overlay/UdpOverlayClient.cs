@@ -43,6 +43,8 @@ public class UdpOverlayClient : IOverlayClient
 
     public async Task<bool> SendAsync(ControlEnvelope envelope, IPEndPoint endpoint, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (!options.Enable) return false;
 
         try
@@ -107,6 +109,10 @@ public class UdpOverlayClient : IOverlayClient
 
             return success;
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "[Overlay] Failed to send control to {Endpoint}", endpoint);
@@ -123,6 +129,10 @@ public class UdpOverlayClient : IOverlayClient
         {
             await udp.SendAsync(payload, endpoint, ct);
             return true;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

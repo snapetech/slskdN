@@ -63,6 +63,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   of falling back to standard mesh routing. Canceled privacy transport
   availability checks and connections also stop without starting a fallback
   route.
+- Mesh transport selection and route diagnostics now propagate caller
+  cancellation instead of trying another endpoint or returning an ordinary
+  result. Incomplete circuits release streams from established hops.
+- UDP and QUIC overlay sends now propagate caller cancellation instead of
+  reporting a canceled send as a transport failure.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
 - Mesh health checks and service publication now propagate caller cancellation

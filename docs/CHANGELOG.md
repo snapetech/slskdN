@@ -62,6 +62,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Anonymity and obfuscated-transport probes and connections now preserve caller
   cancellation; canceled private routes stop without opening another transport
   or falling back to standard mesh routing.
+- Mesh transport selection and route diagnostics now propagate caller
+  cancellation instead of trying another endpoint or returning an ordinary
+  result. Incomplete circuits release streams from established hops.
+- UDP and QUIC overlay sends now propagate caller cancellation instead of
+  reporting a canceled send as a transport failure.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

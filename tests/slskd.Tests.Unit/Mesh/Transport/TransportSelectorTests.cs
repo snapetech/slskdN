@@ -49,7 +49,12 @@ public class TransportSelectorTests
 
     private TransportSelector CreateSelector(MeshTransportOptions options)
     {
-        return new TransportSelector(options, _dialers, _policyManager, _downgradeProtector, _connectionThrottler, _logger);
+        return CreateSelector(options, _dialers);
+    }
+
+    private TransportSelector CreateSelector(MeshTransportOptions options, IEnumerable<ITransportDialer> dialers)
+    {
+        return new TransportSelector(options, dialers, _policyManager, _downgradeProtector, _connectionThrottler, _logger);
     }
 
     [Fact]
@@ -240,18 +245,77 @@ public class TransportSelectorTests
         Assert.False(result);
     }
 
+    [Fact]
+    public async Task SelectAndConnectAsync_WhenDialIsCanceled_DoesNotTryAnotherEndpoint()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var primary = new MockTransportDialer(
+            TransportType.DirectQuic,
+            isAvailable: true,
+            dial: token =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<Stream>(token);
+            });
+        var fallback = new MockTransportDialer(TransportType.TorOnionQuic, isAvailable: true);
+        var options = new MeshTransportOptions
+        {
+            EnableDirect = true,
+            Tor = new TorTransportOptions { Enabled = true },
+            PreferenceOrder = new List<TransportType> { TransportType.DirectQuic, TransportType.TorOnionQuic }
+        };
+        var selector = CreateSelector(options, new[] { primary, fallback });
+        var descriptor = new MeshPeerDescriptor
+        {
+            TransportEndpoints = new List<TransportEndpoint>
+            {
+                new() { TransportType = TransportType.DirectQuic, Host = "127.0.0.1", Port = 4100, Scope = TransportScope.Control },
+                new() { TransportType = TransportType.TorOnionQuic, Host = "peer.onion", Port = 4101, Scope = TransportScope.Control }
+            }
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            selector.SelectAndConnectAsync("target-peer", descriptor, cancellationToken: cancellation.Token));
+
+        Assert.Equal(0, fallback.AvailabilityCalls);
+    }
+
+    [Fact]
+    public async Task SocksDialerAvailability_WhenCallerIsAlreadyCanceled_PropagatesCancellation()
+    {
+        using var loggerFactory = LoggerFactory.Create(_ => { });
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        var tor = new TorSocksDialer(
+            new TorTransportOptions { Enabled = true },
+            loggerFactory.CreateLogger<TorSocksDialer>());
+        var i2p = new I2pSocksDialer(
+            new I2PTransportOptions { Enabled = true },
+            loggerFactory.CreateLogger<I2pSocksDialer>());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => tor.IsAvailableAsync(cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => i2p.IsAvailableAsync(cancellation.Token));
+    }
+
     // Mock transport dialer for testing
     private class MockTransportDialer : ITransportDialer
     {
         private readonly bool _isAvailable;
+        private readonly Func<CancellationToken, Task<Stream>>? _dial;
 
-        public MockTransportDialer(TransportType transportType, bool isAvailable)
+        public MockTransportDialer(
+            TransportType transportType,
+            bool isAvailable,
+            Func<CancellationToken, Task<Stream>>? dial = null)
         {
             TransportType = transportType;
             _isAvailable = isAvailable;
+            _dial = dial;
         }
 
         public TransportType TransportType { get; }
+        public int AvailabilityCalls { get; private set; }
 
         public bool CanHandle(TransportEndpoint endpoint) => endpoint.TransportType == TransportType;
 
@@ -266,10 +330,13 @@ public class TransportSelectorTests
         }
 
         public Task<Stream> DialWithPeerValidationAsync(TransportEndpoint endpoint, string peerId, string? isolationKey = null, CancellationToken cancellationToken = default)
-            => Task.FromResult<Stream>(new MemoryStream());
+            => _dial?.Invoke(cancellationToken) ?? Task.FromResult<Stream>(new MemoryStream());
 
         public Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(_isAvailable);
+        {
+            AvailabilityCalls++;
+            return Task.FromResult(_isAvailable);
+        }
 
         public DialerStatistics GetStatistics() => new DialerStatistics { TransportType = TransportType };
     }

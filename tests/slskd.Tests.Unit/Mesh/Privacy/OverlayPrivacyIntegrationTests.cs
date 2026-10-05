@@ -85,6 +85,45 @@ public class OverlayPrivacyIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task UdpOverlayClient_WhenPrivacyTransformCancelsCaller_PropagatesCancellation()
+    {
+        using var cts = new CancellationTokenSource();
+        var privacyLayer = new Mock<IPrivacyLayer>();
+        privacyLayer.SetupGet(p => p.IsEnabled).Returns(true);
+        privacyLayer
+            .Setup(p => p.ProcessOutboundMessageAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .Returns<byte[], CancellationToken>((_, _) =>
+            {
+                cts.Cancel();
+                return Task.FromCanceled<byte[]>(cts.Token);
+            });
+
+        var options = Mock.Of<IOptions<OverlayOptions>>(o => o.Value == _overlayOptions);
+        var client = new UdpOverlayClient(Mock.Of<ILogger<UdpOverlayClient>>(), options, privacyLayer.Object);
+        var envelope = new ControlEnvelope { Type = "test", Payload = new byte[] { 1 } };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.SendAsync(envelope, new IPEndPoint(IPAddress.Loopback, 5000), cts.Token));
+    }
+
+    [Fact]
+    public async Task QuicOverlayClient_WhenCallerCancellationIsAlreadyRequested_PropagatesCancellation()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var options = Mock.Of<IOptions<OverlayOptions>>(o => o.Value == _overlayOptions);
+        var client = new TestableQuicOverlayClient(
+            _clientLoggerMock.Object,
+            options,
+            _signerMock.Object);
+        var envelope = new ControlEnvelope { Type = "test", Payload = new byte[] { 1 } };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.SendAsync(envelope, new IPEndPoint(IPAddress.Loopback, 5000), cts.Token));
+    }
+
+    [Fact]
     public async Task ControlDispatcherWithPrivacyLayer_ProcessesInboundMessages()
     {
         // Arrange
