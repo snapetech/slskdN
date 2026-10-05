@@ -34,6 +34,24 @@ full exception text into a structured log field and omitting raw exception
 metadata. Preserve request method/path sanitization and pin this source pattern
 in the remediation baseline.
 
+### 0z1702. Escape Operator-Supplied Startup Diagnostics (2026-10-05)
+
+**What went wrong:** Startup diagnostics emitted paths from command-line and
+configuration inputs directly, logged a configured Loki URL with its path and
+possible credentials, and emitted raw directory-preparation exception
+messages. Newlines could forge events, and URL credentials could leak.
+
+**Why:** The values were local configuration rather than network input, so
+their trusted origin was assumed even though the logger still needs a strict
+single-event boundary.
+
+**Prevention:** Preserve readable path details but pass every command-line or
+configured path through `LoggingSanitizer.SanitizeFilePath` at its log call.
+Redact configured URLs with `LoggingSanitizer.SanitizeExternalIdentifierOrUrl`.
+Write filesystem exception details as escaped structured text rather than
+interpolating raw messages. Cover representative CR/LF values and URL
+credentials, and pin each startup diagnostic owner in the remediation baseline.
+
 ### 0z1699. Account For UDP Retry Logs In Listener Regressions (2026-10-05)
 
 **What went wrong:** The malformed-overlay listener regression required exactly
