@@ -18,6 +18,20 @@ attempt to stop.
 the failover path. Test that a canceled first transport does not start another
 connection.
 
+### 0z1639. Propagate Cancellation From Anonymity Availability Probes (2026-10-05)
+
+**What went wrong:** Built-in Tor, I2P, WebSocket, HTTP-tunnel, obfs4, and Meek
+availability probes caught caller cancellation as an ordinary probe failure
+and returned `false`. The selector could then continue to another transport.
+
+**Why:** The probes intentionally translate connectivity errors into an
+unavailable status, but their broad catches did not distinguish a canceled
+caller from a failed remote endpoint.
+
+**Prevention:** Rethrow `OperationCanceledException` when the supplied token
+is canceled before updating failure status or returning unavailable. Test
+that canceling the selected transport's availability probe stops selection.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
