@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1672. Import The Overlay Namespace For Mesh Signer Test Keys (2026-10-05)
+
+**What went wrong:** The new MeshMessageSigner regression referenced
+`IKeyStore` while importing `slskd.Mesh`, but the interface is declared in
+`slskd.Mesh.Overlay`, so the test project failed to compile.
+
+**Why:** The signer implementation's namespace and the key store interface's
+namespace differ, and the test was written from the signer file's imports.
+
+**Prevention:** Resolve test dependency namespaces from the interface
+declaration before writing mocks, especially when production files already
+import sibling namespaces explicitly.
+
 ### 0z1671. Escape Exceptions From Mesh Signature Operations (2026-10-05)
 
 **What went wrong:** Mesh signing and verification attached raw exceptions to
