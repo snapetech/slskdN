@@ -38717,3 +38717,18 @@ without indicating a product listener failure.
 **Prevention:** Give process-level TCP readiness a bounded budget that tolerates
 full-suite contention. Keep the readiness poll local and rerun both the focused
 case and full integration suite after changing the deadline.
+
+### 0z1603. Give Extended Loopback Scenarios Enough Cancellation Budget (2026-10-05)
+
+**What went wrong:** A loopback integration test added log assertions after
+three successful search round trips but reused its original ten-second
+cancellation token. The token expired during the extra diagnostic checks, so
+the test reported cancellation before evaluating the new assertions.
+
+**Why:** The test's shared timeout was sized for the original scenario and was
+not reconsidered when the scenario gained more network operations.
+
+**Prevention:** Re-budget integration-test cancellation whenever adding
+round trips or log waits. Use a bounded but adequate scenario-level timeout,
+and give independently timed phases fresh tokens when they should not consume
+one another's budgets.
