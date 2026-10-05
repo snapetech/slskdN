@@ -50,8 +50,11 @@ public static class WebApplicationPipelineExtensions
                 var ex = feature.Error;
                 var path = LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value);
                 var traceId = context.TraceIdentifier;
-                Serilog.Log.Error(ex, "[ExceptionHandler] Unhandled exception for {Method} {Path} traceId={TraceId}: {Message}",
-                    context.Request.Method, path, traceId, ex.Message);
+                Serilog.Log.Error("[ExceptionHandler] Unhandled exception for {Method} {Path} traceId={TraceId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Method),
+                    path,
+                    traceId,
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 if (!context.Response.HasStarted)
                 {
@@ -200,14 +203,18 @@ public static class WebApplicationPipelineExtensions
                 catch (Microsoft.AspNetCore.Antiforgery.AntiforgeryValidationException ex)
                 {
                     // This is expected for some requests - log at debug level only
-                    Serilog.Log.Debug(ex, "[CSRF Middleware] Antiforgery validation exception for {Method} {Path} (this is normal for some requests)",
-                        context.Request.Method, LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value));
+                    Serilog.Log.Debug("[CSRF Middleware] Antiforgery validation exception for {Method} {Path} (this is normal for some requests): {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Method),
+                        LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
                 catch (Exception ex)
                 {
                     // Log other exceptions but don't fail - GetAndStoreTokens can fail for some requests
-                    Serilog.Log.Warning(ex, "[CSRF Middleware] Exception getting/storing tokens for {Method} {Path}",
-                        context.Request.Method, LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value));
+                    Serilog.Log.Warning("[CSRF Middleware] Exception getting/storing tokens for {Method} {Path}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Method),
+                        LoggingSanitizer.SanitizeExternalIdentifier(context.Request.Path.Value),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 

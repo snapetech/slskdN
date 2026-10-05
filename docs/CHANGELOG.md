@@ -36,6 +36,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Security
 
+- HTTP exception and CSRF token middleware now escape request and exception
+  details before logging, preventing request-triggered control characters from
+  forging log entries without changing responses or token handling.
 - DHT and mesh-directory diagnostics now escape malformed peer values and
   exception details at log boundaries without attaching raw exception
   objects to log events.

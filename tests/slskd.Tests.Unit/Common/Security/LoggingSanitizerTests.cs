@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.Common.Security
 {
+    using System;
     using System.Net;
     using slskd.Common.Security;
     using Xunit;
@@ -98,6 +99,17 @@ namespace slskd.Tests.Unit.Common.Security
 
             // Assert
             Assert.Equal(identifier, result);
+        }
+
+        [Fact]
+        public void SanitizeExternalIdentifier_WithExceptionText_EscapesRequestControlledLineBreaks()
+        {
+            var exceptionText = new InvalidOperationException("token failure\r\nforged request line").ToString();
+
+            var result = LoggingSanitizer.SanitizeExternalIdentifier(exceptionText);
+
+            Assert.Contains("token failure\\r\\nforged request line", result);
+            Assert.DoesNotContain("\r\n", result);
         }
 
         [Fact]

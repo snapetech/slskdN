@@ -36,6 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - LAN discovery logs now escape peer names and parse exception details so
   remote mDNS text cannot forge log entries.
+- HTTP exception and CSRF token middleware logs now escape request and
+  exception details, preventing request-triggered control characters from
+  forging log entries without changing response or token behavior.
 - Social federation logs now redact remote URL paths and credentials, escape
   peer-controlled text, and omit raw remote exception objects.
 - SQLite-backed Pod and content-linked API logs now escape exception details
