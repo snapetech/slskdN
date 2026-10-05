@@ -91,6 +91,20 @@ search-backed storage path for `SearchText`, `queryText`, and request query
 values used in logs. Sanitize only the log representation and retain the
 original query for provider behavior and results.
 
+### 0z1572. Preserve Stack Context When Escaping Remote Exceptions (2026-10-05)
+
+**What went wrong:** Removing an exception object from a remote-input log avoids
+emitting its raw message, but also silently drops the exception type and stack
+trace needed to diagnose the failure.
+
+**Why:** Log-safety cleanup replaced the structured exception with only its
+message instead of escaping the exception's full diagnostic text.
+
+**Prevention:** When exception details may contain request or peer input, log
+`LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())` as a structured
+field. This preserves type and stack context while escaping embedded control
+characters; do not pass the original exception object at that boundary.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
