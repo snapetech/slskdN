@@ -92,6 +92,19 @@ is canceled before handling ordinary per-peer failures or generating fallback
 analysis. Test both direct directory cancellation and cancellation inside a
 best-effort peer lookup or content-registry query.
 
+### 0z1644. Type Nullable Moq Async Callback Results Explicitly (2026-10-05)
+
+**What went wrong:** A Moq `Returns` setup for a two-argument async operation
+with a nullable result did not compile when the callback was written as an
+untyped async lambda.
+
+**Why:** The async lambda return inference selected Moq's `Task<TResult>`
+overload instead of a callback delegate for the nullable task result.
+
+**Prevention:** Type callback parameters explicitly and return a
+`TaskCompletionSource<TResult?>.Task` (or another explicitly typed task) when
+a cancellation-aware mock must keep an operation pending.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
