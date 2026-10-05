@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1666. Escape Rendered Messages In The Startup Logging Fallback (2026-10-05)
+
+**What went wrong:** When the startup log-record callback threw, the fallback
+wrote its exception message and the already-rendered log message directly to
+stderr. That rendered value can include caller or peer controlled text and
+line breaks.
+
+**Why:** The normal logging pipeline escapes dynamic fields at their source,
+but this exceptional fallback receives a fully rendered message and bypassed
+those field-level boundaries.
+
+**Prevention:** Escape both exception details and rendered log text at the
+stderr fallback boundary. Add a regression that forces the callback to fail
+with CR/LF-bearing values and verifies stderr remains single-line.
+
 ### 0z1665. Escape Rescue Transfer And Peer Diagnostics At Their Log Boundary (2026-10-05)
 
 **What went wrong:** RescueService logged peer supplied filenames and propagated
