@@ -12,6 +12,7 @@ using slskd.Integrations.MetadataFacade;
 using slskd.Integrations.MusicBrainz;
 using slskd.Integrations.MusicBrainz.Models;
 using slskd.Tests.Unit;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public sealed class MetadataFacadeTests
@@ -34,6 +35,30 @@ public sealed class MetadataFacadeTests
         Assert.Equal("Artist", result.Artist);
         Assert.Equal("Title", result.Title);
         Assert.Null(result.MusicBrainzRecordingId);
+    }
+
+    [Fact]
+    public async Task SearchAsync_EscapesQueryInLogsAndPreservesMusicBrainzInput()
+    {
+        var query = "artist\r\n[forged]";
+        var mb = new Mock<IMusicBrainzClient>();
+        mb.Setup(client => client.SearchRecordingsAsync(query, 10, default))
+            .ReturnsAsync(new[]
+            {
+                new RecordingSearchHit(string.Empty, string.Empty, string.Empty, null),
+            });
+        var logger = new CapturingLogger<MetadataFacade>();
+        var facade = CreateFacade(mb.Object, logger);
+
+        var results = await ToListAsync(facade.SearchAsync(query, 10));
+
+        Assert.Empty(results);
+        mb.Verify(client => client.SearchRecordingsAsync(query, 10, default), Times.Once);
+        var entry = Assert.Single(logger.Entries);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Contains("artist\\r\\n[forged]", entry.Message);
+        Assert.Null(entry.Exception);
     }
 
     [Fact]
@@ -61,7 +86,9 @@ public sealed class MetadataFacadeTests
         }
     }
 
-    private static MetadataFacade CreateFacade(IMusicBrainzClient? musicBrainzClient = null)
+    private static MetadataFacade CreateFacade(
+        IMusicBrainzClient? musicBrainzClient = null,
+        ILogger<MetadataFacade>? logger = null)
     {
         var options = new slskd.Options
         {
@@ -83,7 +110,7 @@ public sealed class MetadataFacadeTests
             Mock.Of<IAcoustIdClient>(),
             Mock.Of<IFingerprintExtractionService>(),
             new TestOptionsMonitor<slskd.Options>(options),
-            Mock.Of<ILogger<MetadataFacade>>(),
+            logger ?? Mock.Of<ILogger<MetadataFacade>>(),
             new MemoryCache(new MemoryCacheOptions()));
     }
 

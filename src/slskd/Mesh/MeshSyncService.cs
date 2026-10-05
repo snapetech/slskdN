@@ -14,8 +14,9 @@ namespace slskd.Mesh
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Options;
-    using Serilog;
     using slskd.Capabilities;
     using slskd.Core;
     using slskd.DhtRendezvous.Security;
@@ -25,6 +26,7 @@ namespace slskd.Mesh
     using slskd.Mesh.Overlay;
     using slskd.Mesh.Transport;
     using Soulseek;
+    using LogSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Service for epidemic mesh synchronization of hash databases.
@@ -60,7 +62,7 @@ namespace slskd.Mesh
         private readonly ISoulseekClient soulseekClient;
         private readonly IMeshMessageSigner messageSigner;
         private readonly Common.Security.PeerReputation? peerReputation;
-        private readonly ILogger log = Log.ForContext<MeshSyncService>();
+        private readonly ILogger<MeshSyncService> _logger;
 
         private readonly ConcurrentDictionary<string, MeshPeerState> peerStates = new(StringComparer.OrdinalIgnoreCase);
         private readonly MeshSyncStats stats = new();
@@ -101,7 +103,8 @@ namespace slskd.Mesh
             IProofOfPossessionService? proofOfPossession = null,
             IKeyStore? keyStore = null,
             Ed25519Signer? entrySigner = null,
-            IOptionsMonitor<slskd.Options>? optionsMonitor = null)
+            IOptionsMonitor<slskd.Options>? optionsMonitor = null,
+            ILogger<MeshSyncService>? logger = null)
         {
             this.hashDb = hashDb;
             this.capabilities = capabilities;
@@ -115,6 +118,7 @@ namespace slskd.Mesh
             _keyStore = keyStore;
             _entrySigner = entrySigner;
             _optionsMonitor = optionsMonitor;
+            _logger = logger ?? NullLogger<MeshSyncService>.Instance;
             var o = syncSecurityOptions?.Value;
             _maxInvalidEntriesPerWindow = o?.MaxInvalidEntriesPerWindow ?? DefaultMaxInvalidEntriesPerWindow;
             _maxInvalidMessagesPerWindow = o?.MaxInvalidMessagesPerWindow ?? DefaultMaxInvalidMessagesPerWindow;
@@ -144,7 +148,7 @@ namespace slskd.Mesh
             var parts = messageText.Split(new[] { ':' }, 2);
             if (parts.Length != 2)
             {
-                log.Warning("[MESH] Invalid mesh message format from {Peer}: {Message}", e.Username, e.Message);
+                _logger.LogWarning("[MESH] Invalid mesh message format from {Peer}", SafeLogValue(e.Username));
                 return;
             }
 
@@ -167,12 +171,12 @@ namespace slskd.Mesh
                     }
                     else
                     {
-                        log.Warning("[MESH] Rejected RESPKEY from {Peer}: invalid signature or missing key", e.Username);
+                        _logger.LogWarning("[MESH] Rejected RESPKEY from {Peer}: invalid signature or missing key", SafeLogValue(e.Username));
                     }
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[MESH] Failed to deserialize RESPKEY message from {Peer}", e.Username);
+                    _logger.LogWarning("[MESH] Failed to deserialize RESPKEY message from {Peer}: {Exception}", SafeLogValue(e.Username), SafeLogException(ex, payload));
                 }
             }
             else if (messageType == "RESPCHUNK")
@@ -190,12 +194,12 @@ namespace slskd.Mesh
                     }
                     else
                     {
-                        log.Warning("[MESH] Rejected RESPCHUNK from {Peer}: invalid signature or missing key", e.Username);
+                        _logger.LogWarning("[MESH] Rejected RESPCHUNK from {Peer}: invalid signature or missing key", SafeLogValue(e.Username));
                     }
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[MESH] Failed to deserialize RESPCHUNK message from {Peer}", e.Username);
+                    _logger.LogWarning("[MESH] Failed to deserialize RESPCHUNK message from {Peer}: {Exception}", SafeLogValue(e.Username), SafeLogException(ex, payload));
                 }
             }
             else if (messageType == "REQKEY" || messageType == "REQDELTA" || messageType == "PUSHDELTA" || messageType == "HELLO" || messageType == "REQCHUNK")
@@ -228,10 +232,10 @@ namespace slskd.Mesh
                         }
                         catch (Exception ex)
                         {
-                            log.Warning(ex, "[MESH] Error handling mesh message from {Peer}", e.Username);
+                            _logger.LogWarning("[MESH] Error handling mesh message from {Peer}: {Exception}", SafeLogValue(e.Username), SafeLogException(ex, payload));
                         }
                     }),
-                    ex => log.Warning(ex, "[MESH] Unobserved mesh message handler failure from {Peer}", e.Username));
+                    ex => _logger.LogWarning("[MESH] Unobserved mesh message handler failure from {Peer}: {Exception}", SafeLogValue(e.Username), SafeLogException(ex, payload)));
             }
         }
 
@@ -264,13 +268,13 @@ namespace slskd.Mesh
             username = username?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(username))
             {
-                log.Debug("[MESH] Cannot send mesh message - peer username is invalid");
+                _logger.LogDebug("[MESH] Cannot send mesh message - peer username is invalid");
                 return;
             }
 
             if (soulseekClient == null)
             {
-                log.Warning("[MESH] Cannot send mesh message - Soulseek client not available");
+                _logger.LogWarning("[MESH] Cannot send mesh message - Soulseek client not available");
                 return;
             }
 
@@ -296,11 +300,11 @@ namespace slskd.Mesh
                 var messageText = $"{MeshMessagePrefix}{messageType}:{payload}";
 
                 await soulseekClient.SendPrivateMessageAsync(username, messageText);
-                log.Debug("[MESH] Sent signed {Type} message to {Peer}", messageType, username);
+                _logger.LogDebug("[MESH] Sent signed {Type} message to {Peer}", SafeLogValue(messageType), SafeLogValue(username));
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[MESH] Failed to send mesh message to {Peer}", username);
+                _logger.LogWarning("[MESH] Failed to send mesh message to {Peer}: {Exception}", SafeLogValue(username), SafeLogException(ex));
             }
         }
 
@@ -317,7 +321,7 @@ namespace slskd.Mesh
 
             if (soulseekClient == null)
             {
-                log.Debug("[MESH] Cannot request chunk - Soulseek client not available");
+                _logger.LogDebug("[MESH] Cannot request chunk - Soulseek client not available");
                 return (null, false);
             }
 
@@ -329,7 +333,7 @@ namespace slskd.Mesh
             var createdRequest = pendingChunkRequests.TryAdd(key, tcs);
             if (!createdRequest)
             {
-                log.Debug("[MESH] Reusing pending chunk request for {Key} from {Peer}", key, peer);
+                _logger.LogDebug("[MESH] Reusing pending chunk request for {Key} from {Peer}", SafeLogValue(key), SafeLogValue(peer));
                 if (!pendingChunkRequests.TryGetValue(key, out tcs))
                 {
                     return (null, false);
@@ -355,13 +359,13 @@ namespace slskd.Mesh
             }
             catch (OperationCanceledException)
             {
-                log.Debug("[MESH] Chunk request timeout for {Key} from {Peer}", key, peer);
+                _logger.LogDebug("[MESH] Chunk request timeout for {Key} from {Peer}", SafeLogValue(key), SafeLogValue(peer));
                 pendingChunkRequests.TryRemove(key, out _);
                 return (null, false);
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[MESH] Chunk request failed for {Key} from {Peer}", key, peer);
+                _logger.LogWarning("[MESH] Chunk request failed for {Key} from {Peer}: {Exception}", SafeLogValue(key), SafeLogValue(peer), SafeLogException(ex));
                 pendingChunkRequests.TryRemove(key, out _);
                 return (null, false);
             }
@@ -438,7 +442,7 @@ namespace slskd.Mesh
                 {
                     _ = GenerateHelloMessage();
                     result.Error = "Mesh sync transport unavailable";
-                    log.Warning("[MESH] Refusing to report successful sync with {Peer}: transport is unavailable", username);
+                    _logger.LogWarning("[MESH] Refusing to report successful sync with {Peer}: transport is unavailable", SafeLogValue(username));
                 }
                 finally
                 {
@@ -449,7 +453,7 @@ namespace slskd.Mesh
             {
                 result.Error = "Mesh sync failed";
                 lock (statsLock) { stats.FailedSyncs++; }
-                log.Warning(ex, "[MESH] Sync with {Peer} failed", username);
+                _logger.LogWarning("[MESH] Sync with {Peer} failed: {Exception}", SafeLogValue(username), SafeLogException(ex));
             }
 
             result.DurationMs = sw.ElapsedMilliseconds;
@@ -475,7 +479,7 @@ namespace slskd.Mesh
             var usernameValidation = MessageValidator.ValidateUsername(fromUser);
             if (!usernameValidation.IsValid)
             {
-                log.Warning("[MESH] Rejecting message from invalid username: {Error}", usernameValidation.Error);
+                _logger.LogWarning("[MESH] Rejecting message from invalid username: {Error}", SafeLogValue(usernameValidation.Error));
                 lock (statsLock) { stats.RejectedMessages++; }
                 return null;
             }
@@ -483,7 +487,7 @@ namespace slskd.Mesh
             // SECURITY: Validate message is not null
             if (message == null)
             {
-                log.Warning("[MESH] Rejecting null message from {Peer}", fromUser);
+                _logger.LogWarning("[MESH] Rejecting null message from {Peer}", SafeLogValue(fromUser));
                 lock (statsLock) { stats.RejectedMessages++; }
                 return null;
             }
@@ -491,7 +495,7 @@ namespace slskd.Mesh
             // SECURITY: Check if peer is quarantined (T-1433)
             if (IsQuarantined(fromUser))
             {
-                log.Warning("[MESH] Rejecting message from quarantined peer {Peer}", fromUser);
+                _logger.LogWarning("[MESH] Rejecting message from quarantined peer {Peer}", SafeLogValue(fromUser));
                 lock (statsLock) { stats.RejectedMessages++; }
 
                 // Note: QuarantinedPeers count is updated in Stats getter
@@ -501,7 +505,7 @@ namespace slskd.Mesh
             // SECURITY: Verify message signature (T-1430)
             if (!messageSigner.VerifyMessage(message))
             {
-                log.Warning("[MESH] Rejecting message with invalid signature from {Peer}", fromUser);
+                _logger.LogWarning("[MESH] Rejecting message with invalid signature from {Peer}", SafeLogValue(fromUser));
                 lock (statsLock)
                 {
                     stats.RejectedMessages++;
@@ -515,7 +519,7 @@ namespace slskd.Mesh
             var messageValidation = ValidateIncomingMessage(fromUser, message);
             if (!messageValidation.IsValid)
             {
-                log.Warning("[MESH] Rejecting invalid message from {Peer}: {Error}", fromUser, messageValidation.Error);
+                _logger.LogWarning("[MESH] Rejecting invalid message from {Peer}: {Error}", SafeLogValue(fromUser), SafeLogValue(messageValidation.Error));
                 lock (statsLock) { stats.RejectedMessages++; }
 
                 // SECURITY: Track invalid message for rate limiting (T-1432)
@@ -524,7 +528,7 @@ namespace slskd.Mesh
                 // Check if peer exceeded rate limit
                 if (IsRateLimited(fromUser, isMessage: true))
                 {
-                    log.Warning("[MESH] Peer {Peer} exceeded invalid message rate limit, rejecting", fromUser);
+                    _logger.LogWarning("[MESH] Peer {Peer} exceeded invalid message rate limit, rejecting", SafeLogValue(fromUser));
                     lock (statsLock) { stats.RateLimitViolations++; } // T-1436
 
                     if (peerReputation != null)
@@ -689,12 +693,12 @@ namespace slskd.Mesh
 
             if (meshPeers.Count == 0)
             {
-                log.Debug("[MESH] No mesh peers available for hash lookup: {Key}", flacKey);
+                _logger.LogDebug("[MESH] No mesh peers available for hash lookup: {Key}", SafeLogValue(flacKey));
                 return null;
             }
 
             var requiredAgreements = Math.Max(1, Math.Min(minAgreements, meshPeers.Count));
-            log.Debug("[MESH] Querying {Count} mesh peers for hash: {Key} (consensus: requiredAgreements={Min})", meshPeers.Count, flacKey, requiredAgreements);
+            _logger.LogDebug("[MESH] Querying {Count} mesh peers for hash: {Key} (consensus: requiredAgreements={Min})", meshPeers.Count, SafeLogValue(flacKey), requiredAgreements);
 
             // Query peers in parallel
             var queryTasks = meshPeers.Select(async peer =>
@@ -705,7 +709,7 @@ namespace slskd.Mesh
                 }
                 catch (Exception ex)
                 {
-                    log.Debug(ex, "[MESH] Failed to query peer {Peer} for hash {Key}", peer.Username, flacKey);
+                    _logger.LogDebug("[MESH] Failed to query peer {Peer} for hash {Key}: {Exception}", SafeLogValue(peer.Username), SafeLogValue(flacKey), SafeLogException(ex));
                     return null;
                 }
             });
@@ -723,7 +727,7 @@ namespace slskd.Mesh
 
             if (foundEntry != null)
             {
-                log.Debug("[MESH] Found hash {Key} via mesh query", flacKey);
+                _logger.LogDebug("[MESH] Found hash {Key} via mesh query", SafeLogValue(flacKey));
 
                 // Optionally cache the result locally
                 if (foundEntry.ByteHash != null && foundEntry.Size > 0)
@@ -737,17 +741,17 @@ namespace slskd.Mesh
                             Size = foundEntry.Size,
                             MetaFlags = foundEntry.MetaFlags,
                         }, cancellationToken);
-                        log.Debug("[MESH] Cached mesh query result for {Key}", flacKey);
+                        _logger.LogDebug("[MESH] Cached mesh query result for {Key}", SafeLogValue(flacKey));
                     }
                     catch (Exception ex)
                     {
-                        log.Debug(ex, "[MESH] Failed to cache mesh query result for {Key}", flacKey);
+                        _logger.LogDebug("[MESH] Failed to cache mesh query result for {Key}: {Exception}", SafeLogValue(flacKey), SafeLogException(ex));
                     }
                 }
             }
             else
             {
-                log.Debug("[MESH] Hash {Key} not found in any queried mesh peer", flacKey);
+                _logger.LogDebug("[MESH] Hash {Key} not found in any queried mesh peer", SafeLogValue(flacKey));
             }
 
             return foundEntry;
@@ -769,13 +773,13 @@ namespace slskd.Mesh
             var peerCaps = capabilities.GetPeerCapabilities(username);
             if (peerCaps == null || !peerCaps.CanMeshSync)
             {
-                log.Debug("[MESH] Peer {Peer} does not support mesh sync", username);
+                _logger.LogDebug("[MESH] Peer {Peer} does not support mesh sync", SafeLogValue(username));
                 return null;
             }
 
             if (soulseekClient == null)
             {
-                log.Debug("[MESH] Cannot query peer {Peer} - Soulseek client not available", username);
+                _logger.LogDebug("[MESH] Cannot query peer {Peer} - Soulseek client not available", SafeLogValue(username));
                 return null;
             }
 
@@ -795,7 +799,7 @@ namespace slskd.Mesh
             var createdRequest = pendingRequests.TryAdd(requestId, tcs);
             if (!createdRequest)
             {
-                log.Debug("[MESH] Reusing pending request for key {Key} to peer {Peer}", flacKey, username);
+                _logger.LogDebug("[MESH] Reusing pending request for key {Key} to peer {Peer}", SafeLogValue(flacKey), SafeLogValue(username));
                 if (!pendingRequests.TryGetValue(requestId, out tcs))
                 {
                     return null;
@@ -810,7 +814,7 @@ namespace slskd.Mesh
                     await SendMeshMessageAsync(username, request);
                 }
 
-                log.Debug("[MESH] Sent REQKEY message to {Peer} for key {Key}", username, flacKey);
+                _logger.LogDebug("[MESH] Sent REQKEY message to {Peer} for key {Key}", SafeLogValue(username), SafeLogValue(flacKey));
 
                 // Wait for response with timeout
                 using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -822,12 +826,12 @@ namespace slskd.Mesh
                 {
                     response.Entry.FlacKey = response.Entry.FlacKey?.Trim() ?? flacKey;
                     response.Entry.ByteHash = response.Entry.ByteHash?.Trim() ?? string.Empty;
-                    log.Debug("[MESH] Peer {Peer} found key {Key}", username, flacKey);
+                    _logger.LogDebug("[MESH] Peer {Peer} found key {Key}", SafeLogValue(username), SafeLogValue(flacKey));
                     return response.Entry;
                 }
                 else
                 {
-                    log.Debug("[MESH] Peer {Peer} did not have key {Key}", username, flacKey);
+                    _logger.LogDebug("[MESH] Peer {Peer} did not have key {Key}", SafeLogValue(username), SafeLogValue(flacKey));
                     return null;
                 }
             }
@@ -842,7 +846,7 @@ namespace slskd.Mesh
             }
             catch (OperationCanceledException)
             {
-                log.Debug("[MESH] Request timeout for key {Key} from peer {Peer}", flacKey, username);
+                _logger.LogDebug("[MESH] Request timeout for key {Key} from peer {Peer}", SafeLogValue(flacKey), SafeLogValue(username));
                 if (createdRequest)
                 {
                     pendingRequests.TryRemove(requestId, out _);
@@ -852,7 +856,7 @@ namespace slskd.Mesh
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[MESH] Error querying peer {Peer} for key {Key}", username, flacKey);
+                _logger.LogWarning("[MESH] Error querying peer {Peer} for key {Key}: {Exception}", SafeLogValue(username), SafeLogValue(flacKey), SafeLogException(ex));
                 if (createdRequest)
                 {
                     pendingRequests.TryRemove(requestId, out _);
@@ -890,7 +894,7 @@ namespace slskd.Mesh
                 MetaFlags = metaFlags,
             }, cancellationToken);
 
-            log.Debug("[MESH] Published hash {Key} -> {Hash}", flacKey, byteHash ?? "(null)");
+            _logger.LogDebug("[MESH] Published hash {Key} -> {Hash}", SafeLogValue(flacKey), SafeLogValue(byteHash ?? "(null)"));
 
             // The hash will propagate to peers during next sync session
             // No immediate push - epidemic model relies on pull-based delta sync
@@ -925,7 +929,7 @@ namespace slskd.Mesh
             if (string.IsNullOrWhiteSpace(username))
             {
                 username = "slskdn"; // Fallback if state not available
-                log.Debug("[MESH] Using fallback username 'slskdn' (state not available)");
+                _logger.LogDebug("[MESH] Using fallback username 'slskdn' (state not available)");
             }
 
             return new MeshHelloMessage
@@ -973,7 +977,7 @@ namespace slskd.Mesh
                     }
                     catch (Exception ex)
                     {
-                        log.Warning(ex, "[MESH] Failed to sign hash entry {Key}; emitting unsigned", entry.FlacKey);
+                        _logger.LogWarning("[MESH] Failed to sign hash entry {Key}; emitting unsigned: {Exception}", SafeLogValue(entry.FlacKey), SafeLogException(ex));
                     }
                 }
             }
@@ -992,7 +996,7 @@ namespace slskd.Mesh
             // SECURITY: Check if peer is quarantined (T-1433)
             if (IsQuarantined(fromUser))
             {
-                log.Warning("[MESH] Rejecting entries from quarantined peer {Peer}", fromUser);
+                _logger.LogWarning("[MESH] Rejecting entries from quarantined peer {Peer}", SafeLogValue(fromUser));
                 lock (statsLock) { stats.RejectedMessages++; }
                 return 0;
             }
@@ -1001,7 +1005,7 @@ namespace slskd.Mesh
             if (peerReputation != null && peerReputation.IsUntrusted(fromUser))
             {
                 var score = peerReputation.GetScore(fromUser);
-                log.Warning("[MESH] Rejecting entries from untrusted peer {Peer} (score={Score})", fromUser, score);
+                _logger.LogWarning("[MESH] Rejecting entries from untrusted peer {Peer} (score={Score})", SafeLogValue(fromUser), score);
                 lock (statsLock)
                 {
                     stats.RejectedMessages++;
@@ -1024,7 +1028,7 @@ namespace slskd.Mesh
                 var keyValidation = MessageValidator.ValidateFlacKey(entry.FlacKey);
                 if (!keyValidation.IsValid)
                 {
-                    log.Debug("[MESH] Skipping entry with invalid FlacKey from {Peer}: {Error}", fromUser, keyValidation.Error);
+                    _logger.LogDebug("[MESH] Skipping entry with invalid FlacKey from {Peer}: {Error}", SafeLogValue(fromUser), SafeLogValue(keyValidation.Error));
                     skipped++;
                     continue;
                 }
@@ -1033,7 +1037,7 @@ namespace slskd.Mesh
                 var hashValidation = MessageValidator.ValidateSha256Hash(entry.ByteHash);
                 if (!hashValidation.IsValid)
                 {
-                    log.Debug("[MESH] Skipping entry with invalid ByteHash from {Peer}: {Error}", fromUser, hashValidation.Error);
+                    _logger.LogDebug("[MESH] Skipping entry with invalid ByteHash from {Peer}: {Error}", SafeLogValue(fromUser), SafeLogValue(hashValidation.Error));
                     skipped++;
                     continue;
                 }
@@ -1042,7 +1046,7 @@ namespace slskd.Mesh
                 var sizeValidation = MessageValidator.ValidateFileSize(entry.Size);
                 if (!sizeValidation.IsValid)
                 {
-                    log.Debug("[MESH] Skipping entry with invalid Size from {Peer}: {Error}", fromUser, sizeValidation.Error);
+                    _logger.LogDebug("[MESH] Skipping entry with invalid Size from {Peer}: {Error}", SafeLogValue(fromUser), SafeLogValue(sizeValidation.Error));
                     skipped++;
                     continue;
                 }
@@ -1050,7 +1054,7 @@ namespace slskd.Mesh
                 // Validate SeqId
                 if (entry.SeqId < 0)
                 {
-                    log.Debug("[MESH] Skipping entry with negative SeqId from {Peer}: {SeqId}", fromUser, entry.SeqId);
+                    _logger.LogDebug("[MESH] Skipping entry with negative SeqId from {Peer}: {SeqId}", SafeLogValue(fromUser), entry.SeqId);
                     skipped++;
                     continue;
                 }
@@ -1065,7 +1069,7 @@ namespace slskd.Mesh
                     if (_entrySigner == null
                         || !MeshHashEntrySigner.TryVerify(entry, _entrySigner, out _))
                     {
-                        log.Warning("[MESH] Dropping entry {Key} from {Peer}: signature invalid", entry.FlacKey, fromUser);
+                        _logger.LogWarning("[MESH] Dropping entry {Key} from {Peer}: signature invalid", SafeLogValue(entry.FlacKey), SafeLogValue(fromUser));
                         skipped++;
                         lock (statsLock) { stats.SignatureVerificationFailures++; }
                         continue;
@@ -1073,16 +1077,16 @@ namespace slskd.Mesh
                 }
                 else if (requireSigned)
                 {
-                    log.Warning("[MESH] Dropping unsigned entry {Key} from {Peer}: RequireSignedEntries=true", entry.FlacKey, fromUser);
+                    _logger.LogWarning("[MESH] Dropping unsigned entry {Key} from {Peer}: RequireSignedEntries=true", SafeLogValue(entry.FlacKey), SafeLogValue(fromUser));
                     skipped++;
                     continue;
                 }
                 else if (_unsignedPeersLogged.TryAdd(fromUser, 0))
                 {
-                    log.Warning(
+                    _logger.LogWarning(
                         "[MESH] Accepting unsigned hash entries from {Peer}. Upgrade both peers and set " +
                         "Mesh.SyncSecurity.RequireSignedEntries=true to enforce (HARDENING-2026-04-20 H7).",
-                        fromUser);
+                        SafeLogValue(fromUser));
                 }
 
                 validatedEntries.Add(new HashDbEntry
@@ -1096,7 +1100,7 @@ namespace slskd.Mesh
 
             if (skipped > 0)
             {
-                log.Warning("[MESH] Skipped {Skipped}/{Total} invalid entries from {Peer}", skipped, entryList.Count, fromUser);
+                _logger.LogWarning("[MESH] Skipped {Skipped}/{Total} invalid entries from {Peer}", skipped, entryList.Count, SafeLogValue(fromUser));
                 lock (statsLock) { stats.SkippedEntries += skipped; }
 
                 // SECURITY: Track invalid entries for rate limiting (T-1432)
@@ -1105,7 +1109,7 @@ namespace slskd.Mesh
                 // SECURITY: Check if peer exceeded rate limit
                 if (IsRateLimited(fromUser, isMessage: false))
                 {
-                    log.Warning("[MESH] Peer {Peer} exceeded invalid entry rate limit, rejecting remaining entries", fromUser);
+                    _logger.LogWarning("[MESH] Peer {Peer} exceeded invalid entry rate limit, rejecting remaining entries", SafeLogValue(fromUser));
                     lock (statsLock) { stats.RateLimitViolations++; } // T-1436
 
                     if (peerReputation != null)
@@ -1133,7 +1137,7 @@ namespace slskd.Mesh
 
             if (validatedEntries.Count == 0)
             {
-                log.Warning("[MESH] No valid entries to merge from {Peer}", fromUser);
+                _logger.LogWarning("[MESH] No valid entries to merge from {Peer}", SafeLogValue(fromUser));
                 return 0;
             }
 
@@ -1152,7 +1156,7 @@ namespace slskd.Mesh
                         if (!ok)
                         {
                             lock (statsLock) { stats.ProofOfPossessionFailures++; }
-                            log.Debug("[MESH] Proof-of-possession failed for {Key} from {Peer}", entry.FlacKey, fromUser);
+                            _logger.LogDebug("[MESH] Proof-of-possession failed for {Key} from {Peer}", SafeLogValue(entry.FlacKey), SafeLogValue(fromUser));
                         }
                     }
 
@@ -1165,7 +1169,7 @@ namespace slskd.Mesh
                 validatedEntries = toMerge;
                 if (validatedEntries.Count == 0)
                 {
-                    log.Warning("[MESH] No entries passed proof-of-possession from {Peer}", fromUser);
+                    _logger.LogWarning("[MESH] No entries passed proof-of-possession from {Peer}", SafeLogValue(fromUser));
                     return 0;
                 }
             }
@@ -1191,7 +1195,7 @@ namespace slskd.Mesh
                 }
             }
 
-            log.Information("[MESH] Merged {Merged}/{Valid} valid entries from {Peer} ({Skipped} skipped)", merged, validatedEntries.Count, fromUser, skipped);
+            _logger.LogInformation("[MESH] Merged {Merged}/{Valid} valid entries from {Peer} ({Skipped} skipped)", merged, validatedEntries.Count, SafeLogValue(fromUser), skipped);
             return merged;
         }
 
@@ -1203,7 +1207,7 @@ namespace slskd.Mesh
             state.LatestSeqId = hello.LatestSeqId;
             state.ClientVersion = hello.ClientVersion;
 
-            log.Information("[MESH] Received HELLO from {Peer}: seq={SeqId}, count={Count}", fromUser, hello.LatestSeqId, hello.HashCount);
+            _logger.LogInformation("[MESH] Received HELLO from {Peer}: seq={SeqId}, count={Count}", SafeLogValue(fromUser), hello.LatestSeqId, hello.HashCount);
 
             // Respond with our own HELLO
             return Task.FromResult<MeshMessage>(GenerateHelloMessage());
@@ -1211,18 +1215,18 @@ namespace slskd.Mesh
 
         private async Task<MeshMessage> HandleReqDeltaAsync(string fromUser, MeshReqDeltaMessage req, CancellationToken cancellationToken)
         {
-            log.Debug("[MESH] {Peer} requested delta since seq={SeqId}, max={Max}", fromUser, req.SinceSeqId, req.MaxEntries);
+            _logger.LogDebug("[MESH] {Peer} requested delta since seq={SeqId}, max={Max}", SafeLogValue(fromUser), req.SinceSeqId, req.MaxEntries);
 
             var response = await GenerateDeltaResponseAsync(req.SinceSeqId, Math.Min(req.MaxEntries, MaxEntriesPerSync), cancellationToken);
             lock (statsLock) { stats.TotalEntriesSent += response.Entries.Count; }
 
-            log.Information("[MESH] Sending {Count} entries to {Peer} (hasMore={HasMore})", response.Entries.Count, fromUser, response.HasMore);
+            _logger.LogInformation("[MESH] Sending {Count} entries to {Peer} (hasMore={HasMore})", response.Entries.Count, SafeLogValue(fromUser), response.HasMore);
             return response;
         }
 
         private async Task<MeshMessage> HandlePushDeltaAsync(string fromUser, MeshPushDeltaMessage push, CancellationToken cancellationToken)
         {
-            log.Information("[MESH] Received {Count} entries from {Peer}", push.Entries.Count, fromUser);
+            _logger.LogInformation("[MESH] Received {Count} entries from {Peer}", push.Entries.Count, SafeLogValue(fromUser));
 
             var merged = await MergeEntriesAsync(fromUser, push.Entries, cancellationToken);
 
@@ -1238,7 +1242,7 @@ namespace slskd.Mesh
 
         private async Task<MeshMessage> HandleReqKeyAsync(string fromUser, MeshReqKeyMessage req, CancellationToken cancellationToken)
         {
-            log.Debug("[MESH] {Peer} requested key {Key}", fromUser, req.FlacKey);
+            _logger.LogDebug("[MESH] {Peer} requested key {Key}", SafeLogValue(fromUser), SafeLogValue(req.FlacKey));
 
             var entry = await hashDb.LookupHashAsync(req.FlacKey, cancellationToken);
 
@@ -1261,7 +1265,7 @@ namespace slskd.Mesh
 
         private async Task<MeshMessage> HandleReqChunkAsync(string fromUser, MeshReqChunkMessage req, CancellationToken cancellationToken)
         {
-            log.Debug("[MESH] {Peer} requested chunk {Key} @ {Offset} len={Length}", fromUser, req.FlacKey, req.Offset, req.Length);
+            _logger.LogDebug("[MESH] {Peer} requested chunk {Key} @ {Offset} len={Length}", SafeLogValue(fromUser), SafeLogValue(req.FlacKey), req.Offset, req.Length);
 
             var indexedPath = _pathResolver != null ? await _pathResolver.TryGetFilePathAsync(req.FlacKey, cancellationToken) : null;
             var allowedRoots = _optionsMonitor?.CurrentValue.Shares.Directories ?? Array.Empty<string>();
@@ -1295,7 +1299,7 @@ namespace slskd.Mesh
             }
             catch (Exception ex)
             {
-                log.Debug(ex, "[MESH] Failed to read chunk for {Key} from {Peer}", req.FlacKey, fromUser);
+                _logger.LogDebug("[MESH] Failed to read chunk for {Key} from {Peer}: {Exception}", SafeLogValue(req.FlacKey), SafeLogValue(fromUser), SafeLogException(ex));
                 return new MeshRespChunkMessage { FlacKey = req.FlacKey, Offset = req.Offset, DataBase64 = string.Empty, Success = false };
             }
         }
@@ -1407,7 +1411,7 @@ namespace slskd.Mesh
             {
                 state.RateLimitViolationCount++;
                 state.LastRateLimitViolation = DateTime.UtcNow;
-                log.Debug("[MESH] Peer {Peer} rate limit violation count: {Count}", username, state.RateLimitViolationCount);
+                _logger.LogDebug("[MESH] Peer {Peer} rate limit violation count: {Count}", SafeLogValue(username), state.RateLimitViolationCount);
             }
         }
 
@@ -1447,15 +1451,15 @@ namespace slskd.Mesh
                 {
                     // Already quarantined, extend duration
                     state.QuarantinedUntil = DateTime.UtcNow.AddMinutes(_quarantineDurationMinutes);
-                    log.Warning("[MESH] Extended quarantine for peer {Peer} until {Until} (reason: {Reason})",
-                        username, state.QuarantinedUntil, reason);
+                    _logger.LogWarning("[MESH] Extended quarantine for peer {Peer} until {Until} (reason: {Reason})",
+                        SafeLogValue(username), state.QuarantinedUntil, SafeLogValue(reason));
                 }
                 else
                 {
                     // New quarantine
                     state.QuarantinedUntil = DateTime.UtcNow.AddMinutes(_quarantineDurationMinutes);
-                    log.Warning("[MESH] Quarantined peer {Peer} until {Until} (reason: {Reason}, violations: {Count})",
-                        username, state.QuarantinedUntil, reason, state.RateLimitViolationCount);
+                    _logger.LogWarning("[MESH] Quarantined peer {Peer} until {Until} (reason: {Reason}, violations: {Count})",
+                        SafeLogValue(username), state.QuarantinedUntil, SafeLogValue(reason), state.RateLimitViolationCount);
 
                     lock (statsLock) { stats.QuarantineEvents++; } // T-1436
 
@@ -1483,12 +1487,31 @@ namespace slskd.Mesh
                 {
                     // Quarantine expired, lift it
                     state.QuarantinedUntil = null;
-                    log.Information("[MESH] Quarantine lifted for peer {Peer}", username);
+                    _logger.LogInformation("[MESH] Quarantine lifted for peer {Peer}", SafeLogValue(username));
                     return false;
                 }
 
                 return true;
             }
+        }
+
+        private static string SafeLogValue(string? value)
+        {
+            return LogSanitizer.SanitizeExternalIdentifier(value);
+        }
+
+        private static string SafeLogException(Exception exception, params string?[] remotePayloads)
+        {
+            var details = exception.ToString();
+            foreach (var payload in remotePayloads)
+            {
+                if (!string.IsNullOrEmpty(payload))
+                {
+                    details = details.Replace(payload, "[remote payload]", StringComparison.Ordinal);
+                }
+            }
+
+            return SafeLogValue(details);
         }
 
         /// <summary>

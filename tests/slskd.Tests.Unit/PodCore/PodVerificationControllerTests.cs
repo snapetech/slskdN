@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.PodCore;
 using slskd.PodCore.API.Controllers;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class PodVerificationControllerTests
@@ -48,5 +49,35 @@ public class PodVerificationControllerTests
         verifier.Verify(
             service => service.VerifyMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task VerifyMessage_EscapesRequestIdAndExceptionInLogs()
+    {
+        var verifier = new Mock<IPodMembershipVerifier>();
+        verifier
+            .Setup(service => service.VerifyMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("verification failed\r\n[forged]"));
+        var logger = new CapturingLogger<PodVerificationController>();
+        var controller = new PodVerificationController(logger, verifier.Object);
+
+        var result = await controller.VerifyMessage(
+            new PodMessage
+            {
+                MessageId = "message\r\n[forged]",
+                PodId = "pod-1",
+                ChannelId = "channel-1",
+                SenderPeerId = "peer-1",
+                Signature = "signature",
+            },
+            CancellationToken.None);
+
+        Assert.Equal(500, Assert.IsType<ObjectResult>(result).StatusCode);
+        var entry = Assert.Single(logger.Entries);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Contains("message\\r\\n[forged]", entry.Message);
+        Assert.Contains("verification failed\\r\\n[forged]", entry.Message);
+        Assert.Null(entry.Exception);
     }
 }

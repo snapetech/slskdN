@@ -213,7 +213,7 @@ public sealed class ViolationTracker : IDisposable
         var removed = _bans.TryRemove(key, out _);
         if (removed)
         {
-            _logger.LogInformation("Unbanned username {Username}", username);
+            _logger.LogInformation("Unbanned username {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
         }
 
         return removed;
@@ -284,7 +284,7 @@ public sealed class ViolationTracker : IDisposable
         // SECURITY: Check entity limit before adding new entries
         if (tracker.Count >= MaxTrackedEntities && !tracker.ContainsKey(key))
         {
-            _logger.LogWarning("Cannot track violations for {Key}: max entities limit ({Max}) reached", key, MaxTrackedEntities);
+            _logger.LogWarning("Cannot track violations for {Key}: max entities limit ({Max}) reached", LoggingSanitizer.SanitizeExternalIdentifier(key), MaxTrackedEntities);
 
             // Still try to ban if this looks like a serious violation
             if (type is ViolationType.PathTraversal or ViolationType.DangerousContent or ViolationType.CertificateMismatch)
@@ -321,7 +321,7 @@ public sealed class ViolationTracker : IDisposable
 
             _logger.LogDebug(
                 "Violation recorded for {Key}: {Type} ({Count} in window, {Total} total)",
-                key, type, recentCount, record.TotalViolations);
+                LoggingSanitizer.SanitizeExternalIdentifier(key), type, recentCount, record.TotalViolations);
 
             // Check if we should escalate
             if (recentCount >= ViolationsBeforeAutoBan)
@@ -334,7 +334,7 @@ public sealed class ViolationTracker : IDisposable
                     Ban(banKey, $"Auto-permanent: {record.TotalViolations} violations, {record.AutoBanCount} auto-bans", permanent: true);
                     _logger.LogWarning(
                         "PERMANENT BAN for {Key}: {Total} total violations, {AutoBans} auto-bans",
-                        key, record.TotalViolations, record.AutoBanCount);
+                        LoggingSanitizer.SanitizeExternalIdentifier(key), record.TotalViolations, record.AutoBanCount);
                     return ViolationAction.PermanentBan;
                 }
                 else
@@ -344,7 +344,7 @@ public sealed class ViolationTracker : IDisposable
                     Ban(banKey, $"Auto-ban #{record.AutoBanCount}: {recentCount} violations in {ViolationWindow.TotalHours}h", banDuration);
                     _logger.LogWarning(
                         "Auto-ban #{AutoBan} for {Key}: {Count} violations, banned for {Duration}",
-                        record.AutoBanCount, key, recentCount, banDuration);
+                        record.AutoBanCount, LoggingSanitizer.SanitizeExternalIdentifier(key), recentCount, banDuration);
 
                     // Clear recent violations after ban
                     record.RecentViolations.Clear();
@@ -399,7 +399,7 @@ public sealed class ViolationTracker : IDisposable
 
         _logger.LogWarning(
             "Banned {Key} for {Duration}: {Reason}",
-            key, effectiveDuration, reason);
+            LoggingSanitizer.SanitizeExternalIdentifier(key), effectiveDuration, LoggingSanitizer.SanitizeExternalIdentifier(reason));
     }
 
     private void CleanupExpired(object? state)

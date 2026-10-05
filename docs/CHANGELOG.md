@@ -31,6 +31,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   storage, signing, and routing diagnostics. Exception logs retain escaped
   stack details while redacting message bodies, search queries, and private
   keys when those values appear in exception text.
+- Escape peer identities, hash keys, validation details, metadata search text,
+  and ban reasons before logging. Mesh exception diagnostics keep escaped stack
+  context while removing full remote message payloads.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

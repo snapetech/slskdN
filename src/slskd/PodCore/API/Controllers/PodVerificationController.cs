@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
+using LogSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.PodCore.API.Controllers;
 
@@ -63,7 +64,7 @@ public class PodVerificationController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodVerification] Error verifying membership for {PeerId} in {PodId}", peerId, podId);
+            _logger.LogError("[PodVerification] Error verifying membership for {PeerId} in {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to verify membership" });
         }
     }
@@ -107,7 +108,7 @@ public class PodVerificationController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodVerification] Error verifying message {MessageId}", message?.MessageId);
+            _logger.LogError("[PodVerification] Error verifying message {MessageId}: {Exception}", SafeLogValue(message?.MessageId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to verify message" });
         }
     }
@@ -141,7 +142,7 @@ public class PodVerificationController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodVerification] Error checking role for {PeerId} in {PodId}", peerId, podId);
+            _logger.LogError("[PodVerification] Error checking role for {PeerId} in {PodId}: {Exception}", SafeLogValue(peerId), SafeLogValue(podId), SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to check role" });
         }
     }
@@ -161,8 +162,18 @@ public class PodVerificationController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodVerification] Error getting verification stats");
+            _logger.LogError("[PodVerification] Error getting verification stats: {Exception}", SafeLogException(ex));
             return StatusCode(500, new { error = "Failed to get verification statistics" });
         }
+    }
+
+    private static string SafeLogValue(string? value)
+    {
+        return LogSanitizer.SanitizeExternalIdentifier(value);
+    }
+
+    private static string SafeLogException(Exception exception)
+    {
+        return SafeLogValue(exception.ToString());
     }
 }

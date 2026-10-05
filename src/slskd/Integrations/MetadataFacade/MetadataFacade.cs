@@ -18,6 +18,7 @@ namespace slskd.Integrations.MetadataFacade
     using slskd.Integrations.MusicBrainz;
     using slskd.Integrations.MusicBrainz.Models;
     using TagLib;
+    using LogSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Single facade over MusicBrainz, AcoustID, file tags, and Soulseek metadata. T-912.
@@ -257,7 +258,7 @@ namespace slskd.Integrations.MetadataFacade
                     string.IsNullOrWhiteSpace(h.Title) &&
                     string.IsNullOrWhiteSpace(h.Artist))
                 {
-                    _log.LogDebug("Skipping metadata search hit without recording ID or artist/title for query {Query}", query);
+                    _log.LogDebug("Skipping metadata search hit without recording ID or artist/title for query {Query}", LogSanitizer.SanitizeQueryText(query));
                     continue;
                 }
 

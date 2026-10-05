@@ -191,9 +191,19 @@
   application, 5,583 unit, 289 integration). `./bin/lint`, active-backlog,
   local-identity, and whitespace checks pass. ADR-0001 gotchas `0z1605` and
   `0z1606` record the subsystem sweep and sanitizer namespace alias rule.
+- [x] Escape mesh sync, verification, violation-tracker, and metadata-search
+  diagnostics — 2026-10-05. Mesh sync now uses the injected logger, escapes
+  peer identities, hash keys, validation details, and exceptions, and omits
+  complete remote message payloads. Pod verification IDs, ban usernames and
+  reasons, and MusicBrainz search text are escaped only in logs; requests,
+  database values, and ban records remain unchanged. Focused regressions pass
+  61/61; the full Release .NET suite passes 5,951 (74 application, 5,588 unit,
+  289 integration). `./bin/lint`, the .NET runtime matrix, active-backlog,
+  local-identity, and whitespace checks pass. ADR-0001 gotcha `0z1608`
+  records the cross-boundary review rule.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Latest discovery queues: 211 callback/event, 434
-  remote-text, 12,260 red-team, and 826 mutable-ownership candidates. T-908
+  remote-text, 12,261 red-team, and 827 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.

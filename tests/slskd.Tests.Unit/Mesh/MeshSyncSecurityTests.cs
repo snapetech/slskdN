@@ -19,6 +19,7 @@ namespace slskd.Tests.Unit.Mesh
     using slskd.HashDb.Models;
     using slskd.Mesh;
     using slskd.Mesh.Messages;
+    using slskd.Tests.Unit.TestHelpers;
     using Soulseek;
     using Xunit;
 
@@ -71,7 +72,8 @@ namespace slskd.Tests.Unit.Mesh
                 mockCapabilities.Object,
                 mockSoulseekClient.Object,
                 mockMessageSigner.Object,
-                peerReputation);
+                peerReputation,
+                logger: mockLogger.Object);
         }
 
         [Fact]
@@ -98,6 +100,71 @@ namespace slskd.Tests.Unit.Mesh
 
             Assert.Equal(1, addCount);
             Assert.Equal(1, removeCount);
+        }
+
+        [Fact]
+        public async Task MergeEntriesAsync_EscapesPeerInLogsAndPreservesDatabaseInput()
+        {
+            const string peer = "peer\r\n[forged]";
+            var logger = new CapturingLogger<MeshSyncService>();
+            using var service = new MeshSyncService(
+                mockHashDb.Object,
+                mockCapabilities.Object,
+                mockSoulseekClient.Object,
+                mockMessageSigner.Object,
+                logger: logger);
+            var entry = new MeshHashEntry
+            {
+                FlacKey = "0123456789abcdef",
+                ByteHash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                Size = 1024,
+                SeqId = 1,
+            };
+
+            var merged = await service.MergeEntriesAsync(peer, new[] { entry });
+
+            Assert.Equal(1, merged);
+            mockHashDb.Verify(
+                hashDb => hashDb.UpdatePeerLastSeqSeenAsync(peer, 1, It.IsAny<CancellationToken>()),
+                Times.Once);
+            Assert.Contains(logger.Entries, log => log.Message.Contains("Merged", StringComparison.Ordinal));
+            Assert.All(logger.Entries, log =>
+            {
+                Assert.DoesNotContain('\r', log.Message);
+                Assert.DoesNotContain('\n', log.Message);
+            });
+            Assert.Contains(logger.Entries, log => log.Message.Contains("peer\\r\\n[forged]", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void PrivateMessageReceived_DoesNotLogRemotePayloadFromExceptions()
+        {
+            const string peer = "peer\r\n[forged]";
+            const string payload = "{\"secret\":\"remote-body\"}";
+            var logger = new CapturingLogger<MeshSyncService>();
+            var soulseekClient = new Mock<ISoulseekClient>();
+            var signer = new Mock<IMeshMessageSigner>();
+            signer
+                .Setup(service => service.VerifyMessage(It.IsAny<MeshMessage>()))
+                .Throws(new InvalidOperationException(payload));
+            using var service = new MeshSyncService(
+                mockHashDb.Object,
+                mockCapabilities.Object,
+                soulseekClient.Object,
+                signer.Object,
+                logger: logger);
+
+            soulseekClient.Raise(
+                client => client.PrivateMessageReceived += null,
+                new PrivateMessageReceivedEventArgs(1, DateTime.UtcNow, peer, $"MESH:RESPKEY:{payload}", false));
+
+            var entry = Assert.Single(logger.Entries);
+            Assert.DoesNotContain('\r', entry.Message);
+            Assert.DoesNotContain('\n', entry.Message);
+            Assert.DoesNotContain(payload, entry.Message, StringComparison.Ordinal);
+            Assert.Contains("[remote payload]", entry.Message, StringComparison.Ordinal);
+            Assert.Contains("peer\\r\\n[forged]", entry.Message, StringComparison.Ordinal);
+            Assert.Null(entry.Exception);
         }
 
         [Fact]

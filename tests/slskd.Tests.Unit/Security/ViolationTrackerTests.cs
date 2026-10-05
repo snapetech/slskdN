@@ -7,6 +7,7 @@ using System;
 using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
 using slskd.Common.Security;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class ViolationTrackerTests
@@ -127,6 +128,33 @@ public class ViolationTrackerTests
         var result = _tracker.UnbanUsername(username);
         Assert.True(result);
         Assert.False(_tracker.IsUsernameBanned(username));
+    }
+
+    [Fact]
+    public void BanAndUnbanUsername_EscapeDiagnosticTextAndPreserveStoredValues()
+    {
+        const string username = "baduser\r\n[forged]";
+        const string reason = "manual reason\r\n[forged]";
+        var logger = new CapturingLogger<ViolationTracker>();
+        using var tracker = new ViolationTracker(logger);
+
+        tracker.BanUsername(username, reason);
+        var ban = tracker.GetUsernameBan(username);
+        var wasUnbanned = tracker.UnbanUsername(username);
+
+        Assert.NotNull(ban);
+        Assert.Equal($"User:{username.ToLowerInvariant()}", ban.Key);
+        Assert.Equal(reason, ban.Reason);
+        Assert.True(wasUnbanned);
+        Assert.Equal(2, logger.Entries.Count);
+        Assert.All(logger.Entries, entry =>
+        {
+            Assert.DoesNotContain('\r', entry.Message);
+            Assert.DoesNotContain('\n', entry.Message);
+            Assert.Null(entry.Exception);
+        });
+        Assert.Contains(logger.Entries, entry => entry.Message.Contains("manual reason\\r\\n[forged]", StringComparison.Ordinal));
+        Assert.Contains(logger.Entries, entry => entry.Message.Contains("baduser\\r\\n[forged]", StringComparison.Ordinal));
     }
 
     [Fact]
