@@ -1,7 +1,7 @@
 ---
 category: fixed
 audience: operators
-area: mesh sync
+area: mesh-sync
 action: none
 breaking: false
 ---
