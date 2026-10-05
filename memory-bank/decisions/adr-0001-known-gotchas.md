@@ -19,6 +19,20 @@ events as untrusted diagnostic text. Escape the full `Exception.ToString()` at
 the log boundary while retaining type and stack context, and cover the wrapper
 with a captured-log regression.
 
+### 0z1582. Normalize Absolute Find Results Before Joining Repository Paths (2026-10-05)
+
+**What went wrong:** The runtime-matrix check passed absolute paths from `find`
+into a loop that prepended the repository root, producing an invalid doubled
+path and stopping the gate before it checked project target frameworks.
+
+**Why:** The loop treated `find "$repo_root/..."` output as repository-relative
+even though `find` preserves its absolute starting path.
+
+**Prevention:** When a script joins discovered paths to a root, make the path
+contract explicit: run `find` from the repository with relative roots or strip
+the known root prefix before joining. Exercise the gate after changing path
+enumeration.
+
 ### 0z1566. Disambiguate Existing Logging Sanitizers (2026-10-04)
 
 **What went wrong:** `LibraryItemsController` already imported the mesh
