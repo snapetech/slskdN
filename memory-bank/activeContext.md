@@ -18312,3 +18312,42 @@ the whole-product initiative complete while implementation or required
 external evidence remains open.
 
 ## Current state — Commit remediation records; prepare `.340` release — 2026-10-05 05:43 UTC
+## Current state — Continue remediation after `.340`; Pod diagnostics complete — 2026-10-05 06:40 UTC
+
+Stable `.340` is published as
+[`2026100505-slskdn.340`](https://github.com/snapetech/slskdN/releases/tag/2026100505-slskdn.340).
+The six application archives/checksums, Docker Main image, support assets,
+VPN helper, bundled Web marker, and Linux version were verified. All release
+jobs have completed except Launchpad PPA publication, which is still waiting
+for Launchpad.
+
+The capability discovery log fix is committed as `be3e51245`; the Pod native
+API, storage, signing, and router diagnostics fix is `2fc2d82a5`. Pod route and
+message IDs are escaped at log boundaries. Exception output keeps escaped
+stack details, but redacts request search text, message bodies, and private
+keys if present. Requests, routing values, cache values, and parsed capability
+metadata remain unchanged. The `.340`-to-HEAD release-note preview contains
+both new security bullets.
+
+Validation passes: focused capability suite 32/32; focused Pod controller and
+router suites 52/52; full Release .NET suite 5,946 (74 application, 5,583
+unit, 289 integration); `./bin/lint`; active-backlog, local-identity, and
+whitespace checks. Discovery queues remain open at 211 callback/event, 434
+remote-text, 12,260 red-team, and 826 mutable-ownership candidates.
+
+Every first-party project under `src`, `tests`, and `tools` targets `net10.0`.
+MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves `lib/net8.0` assets that
+are compatible with the .NET 10 app. No selected MonoTorrent asset or project
+targets `.NET 6`; the old ADR reference was historical. Lower-TFM assets from
+other compatible dependencies do not change the application target.
+
+The whole-product initiative remains open. Continue classifying and fixing
+confirmed log boundaries, then the remaining code-backed product issues.
+T-908 fallback lifecycle, cross-node Party ID claims, actual hidden-tab
+throttling, physical assistive-technology use, representative WAN/resource
+evidence, and the original frontend `ERR_NETWORK_CHANGED` cause remain
+tracked. Local remediation commits are not yet pushed. After the work
+and release gates are complete, push the full branch and cut the next stable
+release; do not retag immutable `.340`.
+
+## Current state — Continue remediation after `.340`; capability diagnostics complete — 2026-10-05 06:22 UTC

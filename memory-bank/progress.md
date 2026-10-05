@@ -17808,3 +17808,30 @@ the diagnostic sweep and code-backed product fixes, then push the validated
 tree and prepare the next stable release.
 
 ## Update 2026-10-05 02:50 UTC — Align .NET 10 packaging docs and escape VirtualSoulfind diagnostics
+## Update 2026-10-05 06:40 UTC — Harden Pod API and message-routing diagnostics
+
+Sanitized remote Pod, channel, message, and peer identifiers across the native
+Pods API, Pod message storage and signing controllers, and `PodMessageRouter`.
+Caught exceptions retain their escaped stack details without logging message
+bodies, search queries, or private keys supplied by the request. Tests confirm
+request, route, and result values retain their originals while captured log
+records contain no raw CR/LF. ADR-0001 gotchas `0z1605`–`0z1607` record the
+Pod-boundary sweep, the sanitizer alias collision, and the append-only release
+fragment correction.
+
+Commit `2fc2d82a5` contains the code, four regressions, changelog, release
+fragment, task update, and refreshed active-bughunt counts. The full Release
+.NET suite passes 5,946 (74 application, 5,583 unit, 289 integration); the
+focused Pod suites pass 52/52; `./bin/lint`, active-backlog,
+local-identity, whitespace, and `.340`-to-HEAD release-note preview pass.
+Current queues are 211 callback/event, 434 remote-text, 12,260 red-team, and
+826 mutable-ownership candidates.
+
+Stable `.340` is published and its six artifacts and Docker Main image are
+verified. Launchpad PPA is the only remaining publisher. MonoTorrent remains
+on a compatible `net8.0` NuGet asset while every first-party project targets
+`net10.0`; the `.NET 6` historical note was clarified in the prior batch.
+Continue the remote-input audit and remaining code-backed fixes before pushing
+the complete tree and preparing the next stable release.
+
+## Update 2026-10-05 06:22 UTC — Escape capability discovery diagnostics
