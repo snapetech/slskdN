@@ -78,17 +78,19 @@ both an in-flight send and QUIC connection setup cancellation.
 
 ### 0z1643. Preserve Cancellation In Best-Effort Mesh Discovery (2026-10-05)
 
-**What went wrong:** Mesh search and peer discovery caught caller cancellation
-inside per-peer or fallback boundaries and converted it into a missing peer,
-empty result set, or failed transfer.
+**What went wrong:** Mesh search, peer discovery, and swarm analysis caught
+caller cancellation inside per-peer or fallback boundaries and converted it
+into a missing peer, empty result set, fallback recommendation, or failed
+transfer.
 
 **Why:** These operations isolate ordinary peer failures so one unreachable
 peer does not abort useful discovery, but broad catches failed to distinguish
 an unreachable peer from a caller asking the operation to stop.
 
 **Prevention:** Rethrow `OperationCanceledException` when the supplied token
-is canceled before handling ordinary per-peer failures. Test both direct
-directory cancellation and cancellation inside a best-effort peer lookup.
+is canceled before handling ordinary per-peer failures or generating fallback
+analysis. Test both direct directory cancellation and cancellation inside a
+best-effort peer lookup or content-registry query.
 
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
