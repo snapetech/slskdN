@@ -26,6 +26,28 @@
 
 ## Active Development
 
+### Stable `.341` and post-.340 reliability audit — 2026-10-05
+
+- [x] Confirm framework alignment: every first-party project under `src`,
+  `tests`, and `tools` targets `net10.0`; MonoTorrent selects its compatible
+  `lib/net8.0` asset, and no active project or selected package asset targets
+  .NET 6.
+- [x] Continue the cancellation audit across Mesh, signals, DHT, overlays,
+  discovery, scenes, media lookups, health checks, and multi-source HTTP
+  actions. Preserve ordinary error handling and existing partial-result
+  behavior where cancellation is best-effort.
+- [x] Pass full Release `dotnet test -c Release`: 6,015 tests (74 application,
+  289 integration, 5,652 unit); pass `./bin/lint`, the runtime matrix,
+  packaging metadata validation, and active remediation checks.
+- [x] Preview release fragments from `.340` through the candidate; add the
+  matching `.341` section to `docs/CHANGELOG.md`.
+- [ ] Push all committed local `main` work, run the guarded `.341` release gate,
+  create the authorized stable tag, and verify published artifacts.
+- [ ] Keep evidence-dependent T-908 lifecycle, global Party ID authority,
+  browser/device accessibility, WAN/resource measurements, and discovery
+  queues open until the missing production integration or external evidence is
+  available.
+
 ### Post-.339 reliability, .NET 10 alignment, and product remediation — 2026-10-05
 
 - [x] Fix redirected process stream deadlocks and child cleanup in SongID,

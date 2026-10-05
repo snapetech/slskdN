@@ -18057,3 +18057,22 @@ The combined release fragment and changelog note are present. The full Release
 Repository lint and exact-range release gates remain. T-908 job lifecycle,
 cross-node Party ID authority, and external browser/device/WAN evidence remain
 open for ongoing remediation.
+
+
+## 2026-10-05 11:22 UTC — Validate cancellation audit and prepare `.341`
+
+The `.NET 6` MonoTorrent concern is resolved: all first-party projects target
+`net10.0`, while NuGet selects the compatible `net8.0` package asset. The full
+Release solution passes 6,015 tests (74 application, 289 integration, 5,652
+unit). Repository lint, the runtime matrix, packaging metadata validation, and
+remediation checks pass; the remediation check's only failure was the expected
+branch-sync guard because the 81-commit local branch has not yet been pushed.
+The `.340` to candidate release preview is valid, and the matching `.341`
+changelog section is staged for the release candidate.
+
+Next: commit the release and memory records, verify the fork target, push the
+complete `main` history, run the guarded release gate, tag stable `.341`, and
+verify the published artifacts. T-908's missing production job lifecycle,
+distributed Party ID authority, physical/browser assistive technology,
+representative WAN/resource behavior, and broad discovery queues remain open
+for their code or evidence prerequisites.

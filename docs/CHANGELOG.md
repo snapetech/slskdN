@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100511-slskdn.341] — 2026-10-05
+
 ### Security and diagnostics
 
 - Escape peer usernames, capability-file metadata, and full exception details

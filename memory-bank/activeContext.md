@@ -1,3 +1,30 @@
+## Current state — Validate cancellation remediation and prepare stable `.341` — 2026-10-05 11:22 UTC
+
+Stable `.340` is published. The post-release work continues whole-product
+reliability remediation, with cancellation now preserved through signal
+senders/receivers and subscribers, mesh routing/RPC/DHT/sync/health/publishing,
+overlay and privacy transports, discovery and scene lookup, descriptor/music
+metadata operations, Soulseek health, and multi-source HTTP request handling.
+Focused regressions cover the changed boundaries. Full Release `dotnet test`
+passes 6,015 tests (74 application, 289 integration, 5,652 unit); `./bin/lint`,
+the .NET runtime matrix, packaging metadata validation, and the active
+remediation checks pass. The baseline's final branch-sync assertion is pending
+the authorized push.
+
+The MonoTorrent framework question is settled: all first-party projects under
+`src`, `tests`, and `tools` target `net10.0`; MonoTorrent supplies a compatible
+`lib/net8.0` asset, and no active project or selected MonoTorrent asset targets
+.NET 6. No dependency upgrade is needed. The `.340` to candidate release-note
+preview is valid, and the `.341` version section is prepared in
+`docs/CHANGELOG.md`.
+
+Next: commit release and memory records, reverify `snapetech/slskdN`, push all
+committed local `main` work, run the guarded stable `.341` release gate, create
+the tag, and verify published artifacts. Keep T-908's missing production job
+lifecycle, global Party ID authority, physical/browser assistive-technology
+speech, WAN/resource evidence, and broad discovery queues open until their
+code or evidence prerequisites are met.
+
 ## Current state — Commit remediation records; prepare `.340` release — 2026-10-05 05:43 UTC
 
 Stable `.339` remains the latest release. The current code batch fixes a
