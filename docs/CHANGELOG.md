@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+### Fixed
+
+- Pod management, content-linking, and shadow-index endpoints now propagate
+  caller cancellation instead of reporting canceled requests as HTTP 500 errors.
+
 ## [2026100520-slskdn.344] — 2026-10-05
 
 ### Security

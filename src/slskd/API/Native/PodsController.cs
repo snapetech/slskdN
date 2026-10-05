@@ -78,6 +78,10 @@ public class PodsController : ControllerBase
 
             return Ok(visiblePods);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to list pods: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
@@ -113,6 +117,10 @@ public class PodsController : ControllerBase
 
             return Ok(pod);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to get pod {PodId}: {Exception}",
@@ -145,6 +153,10 @@ public class PodsController : ControllerBase
                 return NotFound(new { error = "Pod not found" });
 
             return NoContent();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -215,6 +227,10 @@ public class PodsController : ControllerBase
         {
             logger.LogWarning("Invalid pod create request: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest(new { error = "Invalid pod request" });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -315,6 +331,10 @@ public class PodsController : ControllerBase
                 LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest(new { error = "Invalid pod request" });
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to update pod {PodId}: {Exception}",
@@ -370,6 +390,10 @@ public class PodsController : ControllerBase
 
             var members = access.Members ?? await podService.GetMembersAsync(podId, ct);
             return Ok(members);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -433,6 +457,10 @@ public class PodsController : ControllerBase
 
             return Ok(new { joined = true });
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to join pod {PodId}: {Exception}",
@@ -482,6 +510,10 @@ public class PodsController : ControllerBase
 
             return Ok(new { left = true });
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to leave pod {PodId}: {Exception}",
@@ -530,6 +562,10 @@ public class PodsController : ControllerBase
             }
 
             return Ok(new { banned = true });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -590,6 +626,10 @@ public class PodsController : ControllerBase
 
             var messages = await podMessaging.GetMessagesAsync(podId, channelId, since, ct);
             return Ok(messages);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -670,6 +710,10 @@ public class PodsController : ControllerBase
 
             return Ok(new { messageId = message.MessageId, sent = true });
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             var exceptionText = string.IsNullOrWhiteSpace(request?.Body)
@@ -740,6 +784,10 @@ public class PodsController : ControllerBase
 
             return Ok(new { bound = true });
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to bind pod {PodId} channel {ChannelId} to room: {Exception}",
@@ -782,6 +830,10 @@ public class PodsController : ControllerBase
             }
 
             return Ok(new { unbound = true });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -70,6 +70,10 @@ public class PodContentController : ControllerBase
             var result = await _contentLinkService.ValidateContentIdAsync(contentId, cancellationToken);
             return Ok(result);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError("Error validating content ID {ContentId}: {Exception}",
@@ -110,6 +114,10 @@ public class PodContentController : ControllerBase
             }
 
             return Ok(metadata);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -154,6 +162,10 @@ public class PodContentController : ControllerBase
         {
             var results = await _contentLinkService.SearchContentAsync(query, domain, limit, cancellationToken);
             return Ok(results);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -226,6 +238,10 @@ public class PodContentController : ControllerBase
         {
             _logger.LogWarning(ex, "Invalid content-linked pod request");
             return BadRequest("Invalid content-linked pod request");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

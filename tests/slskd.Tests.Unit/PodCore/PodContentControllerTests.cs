@@ -34,6 +34,26 @@ public class PodContentControllerTests
     }
 
     [Fact]
+    public async Task SearchContent_WhenRequestIsCancelled_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var contentLinkService = new Mock<IContentLinkService>();
+        contentLinkService
+            .Setup(service => service.SearchContentAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                cancellation.Token))
+            .ThrowsAsync(new OperationCanceledException(cancellation.Token));
+
+        var controller = CreateController(contentLinkService.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            controller.SearchContent("ambient techno", null, 20, cancellation.Token));
+    }
+
+    [Fact]
     public async Task CreateContentLinkedPod_TrimsAndDeduplicatesTagsBeforeDispatch()
     {
         var podService = new Mock<IPodService>();

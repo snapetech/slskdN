@@ -70,6 +70,10 @@ public class ShadowIndexController : ControllerBase
 
             return Ok(new { variants });
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Failed to query shadow index for MBID {Mbid}: {Exception}",

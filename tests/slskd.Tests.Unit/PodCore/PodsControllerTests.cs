@@ -79,6 +79,19 @@ public class PodsControllerTests
     }
 
     [Fact]
+    public async Task ListPods_WhenRequestIsCancelled_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        _podServiceMock
+            .Setup(service => service.ListAsync(cancellation.Token))
+            .ThrowsAsync(new OperationCanceledException(cancellation.Token));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => _controller.ListPods(cancellation.Token));
+    }
+
+    [Fact]
     public async Task GetPod_WithValidPodId_ReturnsOkResult()
     {
         // Arrange

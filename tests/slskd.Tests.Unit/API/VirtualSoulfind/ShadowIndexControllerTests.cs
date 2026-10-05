@@ -43,6 +43,24 @@ public class ShadowIndexControllerTests
     }
 
     [Fact]
+    public async Task GetShadowIndex_WhenRequestIsCancelled_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var query = new Mock<IShadowIndexQuery>();
+        query
+            .Setup(service => service.QueryAsync(It.IsAny<string>(), cancellation.Token))
+            .ThrowsAsync(new OperationCanceledException(cancellation.Token));
+
+        var controller = new ShadowIndexController(
+            NullLogger<ShadowIndexController>.Instance,
+            query.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            controller.GetShadowIndex("mbid-1", cancellation.Token));
+    }
+
+    [Fact]
     public async Task GetShadowIndex_WhenQueryThrows_DoesNotLeakMbid()
     {
         var query = new Mock<IShadowIndexQuery>();
