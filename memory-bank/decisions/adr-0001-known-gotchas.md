@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1618. Propagate Cancellation Through Mesh Consensus Fan-Out (2026-10-05)
+
+**What went wrong:** A mesh hash-consensus peer-query task caught caller
+cancellation in its per-peer failure handler, logged it as a peer miss, and
+returned null. The aggregate lookup could then report a normal no-result.
+
+**Why:** The peer-query method preserved cancellation, but the parallel fan-out
+wrapped it in a broader exception-isolation block that converted every error
+into an absent peer result.
+
+**Prevention:** Rethrow OperationCanceledException when the fan-out caller's
+token is canceled before isolating ordinary peer failures. Test cancellation
+through the public multi-peer lookup, not only the individual peer request.
+
 ### 0z1617. Propagate Cancellation From Signal Subscribers (2026-10-05)
 
 **What went wrong:** `SignalBus` treated a subscriber's
