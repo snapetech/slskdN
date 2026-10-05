@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Mono.Nat;
+using slskd.Common.Security;
 
 /// <summary>
 /// Service for detecting NAT type, public IP, and managing port mappings.
@@ -165,12 +166,14 @@ public sealed class NatDetectionService : IAsyncDisposable
         }
         catch (MappingException ex)
         {
-            _logger.LogWarning(ex, "Failed to create UPnP port mapping: {Message}", ex.Message);
+            _logger.LogWarning("Failed to create UPnP port mapping: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating port mappings");
+            _logger.LogError("Error creating port mappings: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -205,7 +208,8 @@ public sealed class NatDetectionService : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error removing port mappings");
+            _logger.LogWarning("Error removing port mappings: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -289,7 +293,8 @@ public sealed class NatDetectionService : IAsyncDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Could not get external IP from NAT device");
+                    _logger.LogDebug("Could not get external IP from NAT device: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
         }
@@ -301,8 +306,12 @@ public sealed class NatDetectionService : IAsyncDisposable
 
     private async Task DetectPublicIpViaStunAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         foreach (var stunServer in StunServers)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (!TryParseHostAndPort(stunServer, out var host, out var port))
@@ -318,9 +327,16 @@ public sealed class NatDetectionService : IAsyncDisposable
                     return;
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "STUN query to {Server} failed", stunServer);
+                cancellationToken.ThrowIfCancellationRequested();
+                _logger.LogDebug("STUN query to {Server} failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(stunServer),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -459,6 +475,8 @@ public sealed class NatDetectionService : IAsyncDisposable
 
     private async Task DetectPublicIpViaHttpAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Fallback: use HTTP API to get public IP
         var services = new[]
         {
@@ -472,6 +490,8 @@ public sealed class NatDetectionService : IAsyncDisposable
 
         foreach (var service in services)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 var response = await http.GetStringAsync(service, cancellationToken);
@@ -484,9 +504,16 @@ public sealed class NatDetectionService : IAsyncDisposable
                     return;
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "HTTP IP detection via {Service} failed", service);
+                cancellationToken.ThrowIfCancellationRequested();
+                _logger.LogDebug("HTTP IP detection via {Service} failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(service),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }

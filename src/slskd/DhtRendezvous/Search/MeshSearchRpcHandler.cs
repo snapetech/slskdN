@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.DhtRendezvous.Messages;
 using slskd.DhtRendezvous.Security;
 using slskd.Shares;
@@ -46,6 +47,8 @@ public sealed class MeshSearchRpcHandler : IMeshSearchRpcHandler
     /// <inheritdoc />
     public async Task<MeshSearchResponseMessage> HandleAsync(MeshSearchRequestMessage request, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             // Query length cap (prevent abuse)
@@ -61,74 +64,91 @@ public sealed class MeshSearchRpcHandler : IMeshSearchRpcHandler
                 };
             }
 
-            // Time cap: use cancellation token with timeout
+            // Apply the caller and five-second budget wherever the search path supports cancellation.
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5)); // 5 second cap
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+            var operationToken = linkedCts.Token;
 
             var query = SearchQuery.FromText(request.SearchText);
             var maxResults = Math.Clamp(request.MaxResults, MessageValidator.MinMeshSearchMaxResults, MessageValidator.MaxMeshSearchMaxResults);
 
-            var files = await _shareService.SearchLocalAsync(query).ConfigureAwait(false);
+            operationToken.ThrowIfCancellationRequested();
+            var files = await _shareService.SearchLocalAsync(query).WaitAsync(operationToken).ConfigureAwait(false);
+            operationToken.ThrowIfCancellationRequested();
 
             // Deterministic ordering by filename; take up to maxResults+1 to detect truncation
             var ordered = files
+                .Select(file =>
+                {
+                    operationToken.ThrowIfCancellationRequested();
+                    return file;
+                })
                 .OrderBy(f => f.Filename, StringComparer.Ordinal)
                 .Take(maxResults + 1)
                 .ToList();
+            operationToken.ThrowIfCancellationRequested();
 
             var truncated = ordered.Count > maxResults;
-            var toReturn = truncated ? ordered.Take(maxResults) : ordered;
+            var toReturn = truncated ? ordered.Take(maxResults).ToList() : ordered;
 
             var repo = _shareService.GetLocalRepository();
-            var dtos = toReturn
-                .Select(f =>
+            var dtos = new List<MeshSearchFileDto>(toReturn.Count);
+            foreach (var f in toReturn)
+            {
+                operationToken.ThrowIfCancellationRequested();
+                string? contentId = null;
+                try
                 {
-                    // Look up ContentId from share repository
-                    string? contentId = null;
-                    try
+                    var hasFallback = false;
+                    string? fallbackContentId = null;
+
+                    foreach (var contentItem in repo.ListContentItemsForFile(f.Filename))
                     {
-                        var hasFallback = false;
-                        string? fallbackContentId = null;
+                        operationToken.ThrowIfCancellationRequested();
 
-                        foreach (var contentItem in repo.ListContentItemsForFile(f.Filename))
+                        if (!hasFallback)
                         {
-                            if (!hasFallback)
-                            {
-                                fallbackContentId = contentItem.ContentId;
-                                hasFallback = true;
-                            }
-
-                            if (contentItem.IsAdvertisable)
-                            {
-                                contentId = contentItem.ContentId;
-                                break;
-                            }
+                            fallbackContentId = contentItem.ContentId;
+                            hasFallback = true;
                         }
 
-                        contentId ??= fallbackContentId;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogDebug(ex, "Failed to look up ContentId for file {Filename}", f.Filename);
+                        if (contentItem.IsAdvertisable)
+                        {
+                            contentId = contentItem.ContentId;
+                            break;
+                        }
                     }
 
-                    return new MeshSearchFileDto
-                    {
-                        Filename = f.Filename, // Virtual share path only; repository must not expose absolute paths
-                        Size = f.Size,
-                        Extension = string.IsNullOrEmpty(f.Extension) ? null : f.Extension,
-                        Bitrate = f.BitRate,
-                        Duration = f.Length,
-                        Codec = DeriveCodec(f.Extension),
-                        MediaKinds = DeriveMediaKinds(f.Extension),
-                        ContentId = contentId,
+                    contentId ??= fallbackContentId;
+                }
+                catch (OperationCanceledException) when (operationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(
+                        "Failed to look up ContentId for file {Filename}: {Exception}",
+                        LoggingSanitizer.SanitizeFilePath(f.Filename),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
+                }
 
-                        // Hash lookup deferred: requires HashDb integration or on-demand computation
-                        // See memory-bank/triage-todo-fixme.md for details
-                        Hash = null,
-                    };
-                })
-                .ToList();
+                dtos.Add(new MeshSearchFileDto
+                {
+                    Filename = f.Filename, // Virtual share path only; repository must not expose absolute paths
+                    Size = f.Size,
+                    Extension = string.IsNullOrEmpty(f.Extension) ? null : f.Extension,
+                    Bitrate = f.BitRate,
+                    Duration = f.Length,
+                    Codec = DeriveCodec(f.Extension),
+                    MediaKinds = DeriveMediaKinds(f.Extension),
+                    ContentId = contentId,
+
+                    // Hash lookup deferred: requires HashDb integration or on-demand computation
+                    // See memory-bank/triage-todo-fixme.md for details
+                    Hash = null,
+                });
+            }
 
             // Enforce response amplification limit
             if (dtos.Count > MessageValidator.MaxMeshSearchResponseFiles)
@@ -145,9 +165,16 @@ public sealed class MeshSearchRpcHandler : IMeshSearchRpcHandler
                 Error = null,
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Mesh search failed for request {RequestId}: {Message}", request.RequestId, ex.Message);
+            _logger.LogWarning(
+                "Mesh search failed for request {RequestId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(request.RequestId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new MeshSearchResponseMessage
             {
                 RequestId = request.RequestId,

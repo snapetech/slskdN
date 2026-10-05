@@ -27,6 +27,33 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Launchpad PPA publication checks now verify exact package versions locally,
   avoiding long waits or false timeouts when Launchpad's exact-match query lags
   a published binary.
+- Inbound mesh search now preserves caller cancellation and stops result
+  processing after a peer disconnects. Request IDs, filenames, and exception
+  details are escaped before logging while response correlation stays intact.
+- I2P SAM availability checks now apply their five-second deadline to the
+  HELLO exchange, so a bridge that accepts a connection but does not respond is
+  reported unavailable instead of leaving the probe pending.
+- Rescue transfer filenames, transfer identifiers, and exception details are
+  escaped at service and guardrail log boundaries, preventing remote control
+  characters from forging log entries while preserving rescue inputs.
+- Startup logging now escapes rendered log messages and callback exception
+  text before writing its failure fallback to stderr.
+- Pod routing logs now escape external identifiers, router errors, and exception
+  details. Caller cancellation propagates through routing, statistics, and
+  cleanup actions instead of becoming an HTTP 500 response.
+- Kademlia FIND_NODE, FIND_VALUE, PING, and STORE diagnostics now escape peer
+  addresses, remote error text, and exception details before logging them.
+- Pod backfill now propagates caller cancellation through sync and response
+  processing, and escapes peer-related exception details before logging.
+- Mesh signature diagnostics now escape exception details from signing and peer
+  verification without changing verification results or rethrow behavior.
+- Blocked and unblocked usernames are escaped in service diagnostics while
+  their stored and returned values remain unchanged.
+- Cover-traffic send, disposal, and delayed cleanup failures now log escaped
+  exception text without attaching raw exception metadata; retry and shutdown
+  behavior are unchanged.
+- NAT detection now propagates caller cancellation through STUN and public-IP
+  HTTP probes, and escapes network exception details before logging them.
 
 ## [2026100514-slskdn.342] — 2026-10-05
 

@@ -22,6 +22,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using slskd.Common.Security;
 
 namespace slskd.Mesh.Dht;
 
@@ -237,7 +238,8 @@ public sealed class KademliaRpcClient : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[Kademlia] Error in StoreAsync for key {KeyHex}", Convert.ToHexString(signedMessage.Key));
+            _logger.LogError("[Kademlia] Error in StoreAsync for key {KeyHex}: {Exception}",
+                Convert.ToHexString(signedMessage.Key), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -267,12 +269,15 @@ public sealed class KademliaRpcClient : IDisposable
             if (reply.IsSuccess)
             {
                 var response = JsonSerializer.Deserialize<PingResponse>(reply.Payload);
-                _logger.LogDebug("[Kademlia] PING to {Address} successful", node.Address);
+                _logger.LogDebug("[Kademlia] PING to {Address} successful", LoggingSanitizer.SanitizeExternalIdentifier(node.Address));
                 return true;
             }
             else
             {
-                _logger.LogDebug("[Kademlia] PING to {Address} failed: {Error}", node.Address, reply.ErrorMessage);
+                _logger.LogDebug(
+                    "[Kademlia] PING to {Address} failed: {Error}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(node.Address),
+                    LoggingSanitizer.SanitizeExternalIdentifier(reply.ErrorMessage));
                 return false;
             }
         }
@@ -282,7 +287,8 @@ public sealed class KademliaRpcClient : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "[Kademlia] PING to {Address} threw exception", node.Address);
+            _logger.LogDebug("[Kademlia] PING to {Address} threw exception: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(node.Address), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -370,7 +376,8 @@ public sealed class KademliaRpcClient : IDisposable
             {
                 _logger.LogDebug(
                     "[Kademlia] FIND_NODE query to {Address} failed: {Error}",
-                    address, reply.ErrorMessage);
+                    LoggingSanitizer.SanitizeExternalIdentifier(address),
+                    LoggingSanitizer.SanitizeExternalIdentifier(reply.ErrorMessage));
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -379,7 +386,8 @@ public sealed class KademliaRpcClient : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "[Kademlia] FIND_NODE query to {Address} threw exception", address);
+            _logger.LogDebug("[Kademlia] FIND_NODE query to {Address} threw exception: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(address), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return null;
@@ -411,8 +419,8 @@ public sealed class KademliaRpcClient : IDisposable
 
             _logger.LogDebug(
                 "[Kademlia] FIND_VALUE query to {Address} failed: {Error}",
-                node.Address,
-                reply.ErrorMessage);
+                LoggingSanitizer.SanitizeExternalIdentifier(node.Address),
+                LoggingSanitizer.SanitizeExternalIdentifier(reply.ErrorMessage));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -420,7 +428,8 @@ public sealed class KademliaRpcClient : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "[Kademlia] FIND_VALUE query to {Address} threw exception", node.Address);
+            _logger.LogDebug("[Kademlia] FIND_VALUE query to {Address} threw exception: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(node.Address), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return null;
@@ -460,7 +469,8 @@ public sealed class KademliaRpcClient : IDisposable
             {
                 _logger.LogDebug(
                     "[Kademlia] STORE to {Address} failed: {Error}",
-                    node.Address, reply.ErrorMessage);
+                    LoggingSanitizer.SanitizeExternalIdentifier(node.Address),
+                    LoggingSanitizer.SanitizeExternalIdentifier(reply.ErrorMessage));
                 return false;
             }
         }
@@ -470,7 +480,8 @@ public sealed class KademliaRpcClient : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "[Kademlia] STORE to {Address} threw exception", node.Address);
+            _logger.LogDebug("[Kademlia] STORE to {Address} threw exception: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(node.Address), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }

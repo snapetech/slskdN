@@ -12,6 +12,7 @@ namespace slskd.Transfers.Rescue
     using System.Threading;
     using System.Threading.Tasks;
     using Serilog;
+    using slskd.Common.Security;
     using slskd.HashDb;
     using slskd.Integrations.AcoustId;
     using slskd.Integrations.Chromaprint;
@@ -114,13 +115,13 @@ namespace slskd.Transfers.Rescue
             UnderperformanceReason reason,
             CancellationToken ct = default)
         {
-            log.Information("[RESCUE] Activating rescue mode for {File} (reason: {Reason})", filename, reason);
+            log.Information("[RESCUE] Activating rescue mode for {File} (reason: {Reason})", LoggingSanitizer.SanitizeFilePath(filename), reason);
 
             // Step 0: Check guardrails
             var (allowed, guardReason) = await guardrails.CheckRescueAllowedAsync(transferId, filename, ct);
             if (!allowed)
             {
-                log.Debug("[RESCUE] Rescue mode not allowed: {Reason}", guardReason);
+                log.Debug("[RESCUE] Rescue mode not allowed: {Reason}", LoggingSanitizer.SanitizeExternalIdentifier(guardReason));
                 return RescueActivationResult.Skipped(RescueActivationOutcome.GuardrailDenied);
             }
 
@@ -129,22 +130,22 @@ namespace slskd.Transfers.Rescue
 
             if (recordingId == null)
             {
-                log.Debug("[RESCUE] Cannot activate rescue: unable to resolve MusicBrainz Recording ID for {File}", filename);
+                log.Debug("[RESCUE] Cannot activate rescue: unable to resolve MusicBrainz Recording ID for {File}", LoggingSanitizer.SanitizeFilePath(filename));
                 return RescueActivationResult.Skipped(RescueActivationOutcome.NoRecordingId);
             }
 
-            log.Information("[RESCUE] Resolved recording ID: {RecordingId}", recordingId);
+            log.Information("[RESCUE] Resolved recording ID: {RecordingId}", LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
 
             // Step 2: Query overlay mesh for peers with this recording
             var overlayPeers = await DiscoverOverlayPeersAsync(recordingId, ct);
 
             if (overlayPeers.Count == 0)
             {
-                log.Debug("[RESCUE] Cannot activate rescue: no overlay peers found for recording {RecordingId}", recordingId);
+                log.Debug("[RESCUE] Cannot activate rescue: no overlay peers found for recording {RecordingId}", LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
                 return RescueActivationResult.Skipped(RescueActivationOutcome.NoOverlayPeers);
             }
 
-            log.Information("[RESCUE] Found {Count} overlay peers with recording {RecordingId}", overlayPeers.Count, recordingId);
+            log.Information("[RESCUE] Found {Count} overlay peers with recording {RecordingId}", overlayPeers.Count, LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
 
             // Step 2.5: Check guardrails for multi-source job
             // For now, assume original Soulseek transfer counts as 1 Soulseek peer
@@ -156,7 +157,7 @@ namespace slskd.Transfers.Rescue
 
             if (!jobAllowed)
             {
-                log.Information("[RESCUE] Multi-source job not allowed: {Reason}", jobReason);
+                log.Information("[RESCUE] Multi-source job not allowed: {Reason}", LoggingSanitizer.SanitizeExternalIdentifier(jobReason));
                 return RescueActivationResult.Skipped(RescueActivationOutcome.MultiSourceDenied);
             }
 
@@ -212,14 +213,14 @@ namespace slskd.Transfers.Rescue
                             if (result.Success)
                             {
                                 log.Information("[RESCUE] Multi-source download completed successfully: {File}, {Bytes} bytes in {TimeMs}ms",
-                                    result.Filename, result.BytesDownloaded, result.TotalTimeMs);
+                                    LoggingSanitizer.SanitizeFilePath(result.Filename), result.BytesDownloaded, result.TotalTimeMs);
                                 rescueJob.MultiSourceJobId = result.Id.ToString();
                                 activeRescueJobs[transferId] = result.Id.ToString();
                             }
                             else
                             {
                                 log.Warning("[RESCUE] Multi-source download failed: {File}, error: {Error}",
-                                    result.Filename, result.Error);
+                                    LoggingSanitizer.SanitizeFilePath(result.Filename), LoggingSanitizer.SanitizeExternalIdentifier(result.Error));
                             }
                         }, ct),
                         "[RESCUE] Multi-source download threw exception: {Message}");
@@ -229,7 +230,7 @@ namespace slskd.Transfers.Rescue
                 }
                 catch (Exception ex)
                 {
-                    log.Error(ex, "[RESCUE] Failed to create multi-source download: {Message}", ex.Message);
+                    log.Error("[RESCUE] Failed to create multi-source download: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     return RescueActivationResult.Skipped(RescueActivationOutcome.Failed);
                 }
             }
@@ -245,7 +246,7 @@ namespace slskd.Transfers.Rescue
         /// <inheritdoc/>
         public async Task DeactivateRescueModeAsync(string transferId, CancellationToken ct = default)
         {
-            log.Information("[RESCUE] Deactivating rescue mode for transfer {TransferId}", transferId);
+            log.Information("[RESCUE] Deactivating rescue mode for transfer {TransferId}", LoggingSanitizer.SanitizeExternalIdentifier(transferId));
 
             if (activeRescueJobs.TryGetValue(transferId, out var jobId))
             {
@@ -256,12 +257,13 @@ namespace slskd.Transfers.Rescue
                         var status = multiSource?.GetStatus(jobGuid);
                         if (status != null && status.State != MultiSourceDownloadState.Completed && status.State != MultiSourceDownloadState.Failed)
                         {
-                            log.Information("[RESCUE] Marking multi-source job {JobId} for transfer {TransferId} as inactive", jobId, transferId);
+                            log.Information("[RESCUE] Marking multi-source job {JobId} for transfer {TransferId} as inactive", LoggingSanitizer.SanitizeExternalIdentifier(jobId), LoggingSanitizer.SanitizeExternalIdentifier(transferId));
                         }
                     }
                     catch (Exception ex)
                     {
-                        log.Warning(ex, "[RESCUE] Error checking multi-source job status for {TransferId}", transferId);
+                        log.Warning("[RESCUE] Error checking multi-source job status for {TransferId}: {Exception}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(transferId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                 }
 
@@ -302,7 +304,8 @@ namespace slskd.Transfers.Rescue
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[RESCUE] Failed to get output path for transfer {TransferId}, using temp", transferId);
+                log.Warning("[RESCUE] Failed to get output path for transfer {TransferId}, using temp: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(transferId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             return Path.Combine(Path.GetTempPath(), "slskd", "rescue", $"rescue_{transferId}.tmp");
@@ -328,7 +331,7 @@ namespace slskd.Transfers.Rescue
 
                             if (hashEntry != null && !string.IsNullOrEmpty(hashEntry.MusicBrainzId))
                             {
-                                log.Debug("[RESCUE] Found recording ID in HashDb: {RecordingId}", hashEntry.MusicBrainzId);
+                                log.Debug("[RESCUE] Found recording ID in HashDb: {RecordingId}", LoggingSanitizer.SanitizeExternalIdentifier(hashEntry.MusicBrainzId));
                                 return hashEntry.MusicBrainzId;
                             }
 
@@ -337,7 +340,7 @@ namespace slskd.Transfers.Rescue
                             var matchingEntry = entriesBySize.FirstOrDefault(e => e.ByteHash == fileHash);
                             if (matchingEntry != null && !string.IsNullOrEmpty(matchingEntry.MusicBrainzId))
                             {
-                                log.Debug("[RESCUE] Found recording ID in HashDb by size/hash: {RecordingId}", matchingEntry.MusicBrainzId);
+                                log.Debug("[RESCUE] Found recording ID in HashDb by size/hash: {RecordingId}", LoggingSanitizer.SanitizeExternalIdentifier(matchingEntry.MusicBrainzId));
                                 return matchingEntry.MusicBrainzId;
                             }
                         }
@@ -345,7 +348,7 @@ namespace slskd.Transfers.Rescue
                 }
                 catch (Exception ex)
                 {
-                    log.Debug(ex, "[RESCUE] HashDb lookup failed, continuing");
+                    log.Debug("[RESCUE] HashDb lookup failed, continuing: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -369,7 +372,7 @@ namespace slskd.Transfers.Rescue
                             if (lookupResult != null && lookupResult.Recordings != null && lookupResult.Recordings.Any())
                             {
                                 var recordingId = lookupResult.Recordings[0].Id;
-                                log.Debug("[RESCUE] Resolved recording ID via AcoustID fingerprint: {RecordingId}", recordingId);
+                                log.Debug("[RESCUE] Resolved recording ID via AcoustID fingerprint: {RecordingId}", LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
                                 return recordingId;
                             }
                         }
@@ -377,7 +380,7 @@ namespace slskd.Transfers.Rescue
                 }
                 catch (Exception ex)
                 {
-                    log.Debug(ex, "[RESCUE] Fingerprinting failed, continuing");
+                    log.Debug("[RESCUE] Fingerprinting failed, continuing: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -385,7 +388,7 @@ namespace slskd.Transfers.Rescue
             var mbidFromFilename = ExtractMbidFromFilename(filename);
             if (mbidFromFilename != null)
             {
-                log.Debug("[RESCUE] Extracted recording ID from filename: {RecordingId}", mbidFromFilename);
+                log.Debug("[RESCUE] Extracted recording ID from filename: {RecordingId}", LoggingSanitizer.SanitizeExternalIdentifier(mbidFromFilename));
                 return mbidFromFilename;
             }
 
@@ -403,7 +406,7 @@ namespace slskd.Transfers.Rescue
                 {
                     // Query mesh DHT for peers advertising this recording
                     var contentId = $"mbid:recording:{recordingId}";
-                    log.Debug("[RESCUE] Querying mesh DHT for content ID: {ContentId}", contentId);
+                    log.Debug("[RESCUE] Querying mesh DHT for content ID: {ContentId}", LoggingSanitizer.SanitizeExternalIdentifier(contentId));
 
                     var meshPeers = await meshDirectory.FindPeersByContentAsync(contentId, ct);
 
@@ -419,11 +422,11 @@ namespace slskd.Transfers.Rescue
                         });
                     }
 
-                    log.Debug("[RESCUE] Found {Count} mesh peers for recording {RecordingId}", peers.Count, recordingId);
+                    log.Debug("[RESCUE] Found {Count} mesh peers for recording {RecordingId}", peers.Count, LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[RESCUE] Mesh query failed: {Message}", ex.Message);
+                    log.Warning("[RESCUE] Mesh query failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
             else
@@ -459,7 +462,8 @@ namespace slskd.Transfers.Rescue
             }
             catch (Exception ex)
             {
-                log.Debug(ex, "[RESCUE] Failed to get partial file path for {Filename}", filename);
+                log.Debug("[RESCUE] Failed to get partial file path for {Filename}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             return null;
@@ -481,7 +485,8 @@ namespace slskd.Transfers.Rescue
             }
             catch (Exception ex)
             {
-                log.Debug(ex, "[RESCUE] Failed to compute file hash for {Path}", filePath);
+                log.Debug("[RESCUE] Failed to compute file hash for {Path}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filePath), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return null;
             }
         }
@@ -528,7 +533,7 @@ namespace slskd.Transfers.Rescue
             }
             catch (Exception ex)
             {
-                log.Error(ex, messageTemplate, ex.Message);
+                log.Error(messageTemplate, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }

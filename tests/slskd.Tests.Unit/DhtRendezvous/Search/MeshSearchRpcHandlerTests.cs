@@ -6,7 +6,6 @@ namespace slskd.Tests.Unit.DhtRendezvous.Search;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -14,6 +13,7 @@ using Moq;
 using slskd.DhtRendezvous.Messages;
 using slskd.DhtRendezvous.Search;
 using slskd.Shares;
+using slskd.Tests.Unit.TestHelpers;
 using Soulseek;
 using Xunit;
 using NullLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<slskd.DhtRendezvous.Search.MeshSearchRpcHandler>;
@@ -133,7 +133,7 @@ public class MeshSearchRpcHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_TimeCap_RespectsCancellation()
+    public async Task HandleAsync_CallerCancellationBeforeSearch_Propagates()
     {
         var handler = CreateHandler();
         var request = new MeshSearchRequestMessage
@@ -145,15 +145,90 @@ public class MeshSearchRpcHandlerTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        _shareServiceMock.Setup(x => x.SearchLocalAsync(It.IsAny<SearchQuery>()))
-            .Returns(Task.FromCanceled<IEnumerable<Soulseek.File>>(cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => handler.HandleAsync(request, cts.Token));
 
-        var timer = Stopwatch.StartNew();
-        var response = await handler.HandleAsync(request, cts.Token);
-        timer.Stop();
+        _shareServiceMock.Verify(x => x.SearchLocalAsync(It.IsAny<SearchQuery>()), Times.Never);
+    }
 
+    [Fact]
+    public async Task HandleAsync_CallerCancellationDuringSearch_StopsWaitingAndPropagates()
+    {
+        var searchTask = new TaskCompletionSource<IEnumerable<Soulseek.File>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _shareServiceMock
+            .Setup(x => x.SearchLocalAsync(It.IsAny<SearchQuery>()))
+            .Returns(searchTask.Task);
+        using var cts = new CancellationTokenSource();
+        var handlerTask = CreateHandler().HandleAsync(new MeshSearchRequestMessage
+        {
+            RequestId = "req-cancel",
+            SearchText = "test",
+            MaxResults = 10,
+        }, cts.Token);
+
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => handlerTask);
+        _shareServiceMock.Verify(x => x.GetLocalRepository(), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_SearchFailureEscapesRequestIdAndExceptionInLogs()
+    {
+        var logger = new CapturingLogger<MeshSearchRpcHandler>();
+        var requestId = $"\r\n{Guid.NewGuid():D}";
+        var request = new MeshSearchRequestMessage
+        {
+            RequestId = requestId,
+            SearchText = "test",
+            MaxResults = 10,
+        };
+        Assert.True(Guid.TryParse(requestId, out _));
+        _shareServiceMock
+            .Setup(x => x.SearchLocalAsync(It.IsAny<SearchQuery>()))
+            .Returns(Task.FromException<IEnumerable<Soulseek.File>>(new InvalidOperationException("remote\r\nforged")));
+
+        var response = await new MeshSearchRpcHandler(_shareServiceMock.Object, logger).HandleAsync(request);
+
+        Assert.Equal(requestId, response.RequestId);
         Assert.Equal("Search failed", response.Error);
-        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(1));
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Warning, entry.Level);
+        Assert.Null(entry.Exception);
+        Assert.DoesNotContain("\r", entry.Message);
+        Assert.DoesNotContain("\n", entry.Message);
+        Assert.Contains("\\r\\n" + requestId[2..], entry.Message, StringComparison.Ordinal);
+        Assert.Contains("remote\\r\\nforged", entry.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ContentLookupFailureEscapesFilenameAndExceptionInLogs()
+    {
+        var logger = new CapturingLogger<MeshSearchRpcHandler>();
+        var fileName = "folder\r\nforged.flac";
+        var repository = new Mock<IShareRepository>();
+        repository
+            .Setup(r => r.ListContentItemsForFile(fileName))
+            .Throws(new InvalidOperationException("database\r\nforged"));
+        _shareServiceMock
+            .Setup(s => s.SearchLocalAsync(It.IsAny<SearchQuery>()))
+            .ReturnsAsync(new[] { new Soulseek.File(1, fileName, 1_000, ".flac", null) });
+        _shareServiceMock.Setup(s => s.GetLocalRepository()).Returns(repository.Object);
+
+        var response = await new MeshSearchRpcHandler(_shareServiceMock.Object, logger).HandleAsync(new MeshSearchRequestMessage
+        {
+            RequestId = "request-content-lookup",
+            SearchText = "track",
+            MaxResults = 10,
+        });
+
+        Assert.Equal(fileName, Assert.Single(response.Files).Filename);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Debug, entry.Level);
+        Assert.Null(entry.Exception);
+        Assert.DoesNotContain("\r", entry.Message);
+        Assert.DoesNotContain("\n", entry.Message);
+        Assert.Contains("folder\\r\\nforged.flac", entry.Message, StringComparison.Ordinal);
+        Assert.Contains("database\\r\\nforged", entry.Message, StringComparison.Ordinal);
     }
 
     [Fact]

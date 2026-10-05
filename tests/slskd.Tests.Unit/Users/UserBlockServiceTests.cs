@@ -6,7 +6,7 @@ namespace slskd.Tests.Unit.Users;
 
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
+using slskd.Tests.Unit.TestHelpers;
 using slskd.Users.Notes;
 using Xunit;
 
@@ -14,6 +14,7 @@ public sealed class UserBlockServiceTests : IDisposable
 {
     private readonly SqliteConnection connection = new("Data Source=:memory:");
     private readonly UserNotesDbContext context;
+    private readonly CapturingLogger<UserBlockService> logger = new();
     private readonly UserBlockService service;
 
     public UserBlockServiceTests()
@@ -24,7 +25,7 @@ public sealed class UserBlockServiceTests : IDisposable
             .Options;
         context = new UserNotesDbContext(options);
         context.Database.EnsureCreated();
-        service = new UserBlockService(new TestDbContextFactory(options), NullLogger<UserBlockService>.Instance);
+        service = new UserBlockService(new TestDbContextFactory(options), logger);
     }
 
     public void Dispose()
@@ -43,6 +44,20 @@ public sealed class UserBlockServiceTests : IDisposable
         Assert.Equal(first.Username, second.Username);
         Assert.Single(await service.GetAllBlocksAsync());
         Assert.Contains("PEER", await service.GetBlockedUsernamesAsync());
+    }
+
+    [Fact]
+    public async Task BlockAsync_EscapesUsernameOnlyInLogs()
+    {
+        const string username = "peer\r\nforged";
+
+        var block = await service.BlockAsync(username);
+
+        Assert.Equal(username, block.Username);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("peer\\r\\nforged", entry.Message);
+        Assert.DoesNotContain("\r", entry.Message);
+        Assert.DoesNotContain("\n", entry.Message);
     }
 
     [Fact]

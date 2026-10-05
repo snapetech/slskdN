@@ -59,10 +59,10 @@ public class I2PTransport : IAnonymityTransport
                 using var reader = new StreamReader(stream, leaveOpen: true);
 
                 // Send HELLO command to test SAM bridge
-                await writer.WriteLineAsync("HELLO VERSION MIN=3.1 MAX=3.1");
-                await writer.FlushAsync(cancellationToken);
+                await writer.WriteLineAsync("HELLO VERSION MIN=3.1 MAX=3.1".AsMemory(), linkedCts.Token);
+                await writer.FlushAsync(linkedCts.Token);
 
-                var response = await reader.ReadLineAsync(cancellationToken);
+                var response = await reader.ReadLineAsync(linkedCts.Token);
                 if (response != null && response.Contains("RESULT=OK"))
                 {
                     lock (_statusLock)
@@ -100,6 +100,17 @@ public class I2PTransport : IAnonymityTransport
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (OperationCanceledException)
+        {
+            lock (_statusLock)
+            {
+                _status.IsAvailable = false;
+                _status.LastError = "I2P SAM bridge availability check timed out";
+            }
+
+            _logger.LogDebug("I2P SAM bridge availability check timed out at {Address}", _options.SamAddress);
+            return false;
         }
         catch (Exception ex)
         {

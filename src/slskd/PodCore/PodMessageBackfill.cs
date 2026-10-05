@@ -185,9 +185,14 @@ public class PodMessageBackfill : IPodMessageBackfill
             return new PodBackfillResult(true, podId, channelsRequested, totalMessagesReceived, stopwatch.Elapsed);
 
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during backfill sync for pod {PodId}", LoggingSanitizer.SanitizeExternalIdentifier(podId));
+            _logger.LogError("Error during backfill sync for pod {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodBackfillResult(false, podId, channelsRequested, totalMessagesReceived, stopwatch.Elapsed, "Backfill sync failed");
         }
     }
@@ -295,11 +300,16 @@ public class PodMessageBackfill : IPodMessageBackfill
             return response;
 
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling backfill request from peer {PeerId} for pod {PodId}",
+            _logger.LogError("Error handling backfill request from peer {PeerId} for pod {PodId}: {Exception}",
                 LoggingSanitizer.SanitizeExternalIdentifier(requestingPeerId),
-                LoggingSanitizer.SanitizeExternalIdentifier(podId));
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
@@ -406,11 +416,16 @@ public class PodMessageBackfill : IPodMessageBackfill
             return result;
 
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing backfill response from peer {PeerId} for pod {PodId}",
+            _logger.LogError("Error processing backfill response from peer {PeerId} for pod {PodId}: {Exception}",
                 LoggingSanitizer.SanitizeExternalIdentifier(respondingPeerId),
-                LoggingSanitizer.SanitizeExternalIdentifier(podId));
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodBackfillProcessingResult(
                 false, podId, respondingPeerId, messagesProcessed, messagesStored, duplicatesSkipped, stopwatch.Elapsed, "Backfill response processing failed");
         }
@@ -557,9 +572,10 @@ public class PodMessageBackfill : IPodMessageBackfill
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error requesting backfill from peer {PeerId} for pod {PodId}",
+            _logger.LogError("Error requesting backfill from peer {PeerId} for pod {PodId}: {Exception}",
                 LoggingSanitizer.SanitizeExternalIdentifier(peerId),
-                LoggingSanitizer.SanitizeExternalIdentifier(podId));
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PodBackfillProcessingResult(
                 false, podId, peerId, 0, 0, 0, TimeSpan.Zero, "Backfill request failed");
         }

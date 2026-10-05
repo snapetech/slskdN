@@ -7,6 +7,7 @@ namespace slskd.Transfers.Rescue
     using System.Threading.Tasks;
     using Microsoft.Extensions.Options;
     using Serilog;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     Service for enforcing Soulseek-primary guardrails in rescue mode.
@@ -62,7 +63,7 @@ namespace slskd.Transfers.Rescue
                 // In this implementation, we assume rescue mode is only called
                 // when there's already a Soulseek transfer (that's underperforming)
                 // so this is always satisfied.
-                log.Debug("[GUARDRAIL] Soulseek origin requirement satisfied (transfer {TransferId} exists)", transferId);
+                log.Debug("[GUARDRAIL] Soulseek origin requirement satisfied (transfer {TransferId} exists)", LoggingSanitizer.SanitizeExternalIdentifier(transferId));
             }
 
             // Guardrail 3: Check if overlay-only mode is explicitly enabled
@@ -73,7 +74,8 @@ namespace slskd.Transfers.Rescue
             }
 
             // Additional guardrails can be layered here: Soulseek history, concurrent rescue caps, and daily quotas.
-            log.Debug("[GUARDRAIL] Rescue allowed for transfer {TransferId}, file {File}", transferId, filename);
+            log.Debug("[GUARDRAIL] Rescue allowed for transfer {TransferId}, file {File}",
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId), LoggingSanitizer.SanitizeFilePath(filename));
             return Task.FromResult((true, "Allowed"));
         }
 

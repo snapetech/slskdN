@@ -11,6 +11,7 @@ using Serilog.Events;
 using Serilog.Formatting.Display;
 using Serilog.Sinks.Grafana.Loki;
 using Serilog.Sinks.SystemConsole.Themes;
+using slskd.Common.Security;
 
 public static class StartupLogging
 {
@@ -79,7 +80,8 @@ public static class StartupLogging
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"Misconfigured delegating logger: {ex.Message}. Message: {message}");
+                    Console.Error.WriteLine(
+                        $"Misconfigured delegating logger: {LoggingSanitizer.SanitizeExternalIdentifier(ex.Message)}. Message: {LoggingSanitizer.SanitizeExternalIdentifier(message)}");
                 }
             }))
             .CreateLogger();

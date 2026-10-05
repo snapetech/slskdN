@@ -9,6 +9,7 @@ namespace slskd.Mesh
     using System.Text.Json;
     using Microsoft.Extensions.Logging;
     using NSec.Cryptography;
+    using slskd.Common.Security;
     using slskd.Mesh.Messages;
     using slskd.Mesh.Overlay;
 
@@ -82,7 +83,8 @@ namespace slskd.Mesh
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[MeshSigner] Failed to sign message");
+                logger.LogError("[MeshSigner] Failed to sign message: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -167,7 +169,8 @@ namespace slskd.Mesh
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[MeshSigner] Error verifying message signature");
+                logger.LogWarning("[MeshSigner] Error verifying message signature: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return false;
             }
         }

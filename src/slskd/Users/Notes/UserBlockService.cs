@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 /// <summary>
 ///     Entity Framework implementation of <see cref="IUserBlockService"/>.
@@ -68,7 +69,7 @@ public sealed class UserBlockService : IUserBlockService
         var block = new UserBlock { Username = username, CreatedAt = DateTime.UtcNow };
         context.UserBlocks.Add(block);
         await context.SaveChangesAsync(cancellationToken);
-        logger.LogDebug("Blocked user {Username}", username);
+        logger.LogDebug("Blocked user {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
         return block;
     }
 
@@ -85,7 +86,7 @@ public sealed class UserBlockService : IUserBlockService
 
         context.UserBlocks.Remove(existing);
         await context.SaveChangesAsync(cancellationToken);
-        logger.LogDebug("Unblocked user {Username}", username);
+        logger.LogDebug("Unblocked user {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
     }
 
     private static string NormalizeUsername(string username)

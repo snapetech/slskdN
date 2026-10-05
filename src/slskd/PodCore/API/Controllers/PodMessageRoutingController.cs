@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
+using slskd.Common.Security;
 
 namespace slskd.PodCore.API.Controllers;
 
@@ -67,20 +68,26 @@ public class PodMessageRoutingController : ControllerBase
             {
                 _logger.LogInformation(
                     "[PodMessageRouting] Manually routed message {MessageId} to {Success}/{Total} peers in pod {PodId}",
-                    result.MessageId, result.SuccessfullyRoutedCount, result.TargetPeerCount, result.PodId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(result.MessageId), result.SuccessfullyRoutedCount, result.TargetPeerCount,
+                    LoggingSanitizer.SanitizeExternalIdentifier(result.PodId));
                 return Ok(result);
             }
             else
             {
                 _logger.LogWarning(
                     "[PodMessageRouting] Failed to route message {MessageId}: {Error}",
-                    result.MessageId, result.ErrorMessage);
+                    LoggingSanitizer.SanitizeExternalIdentifier(result.MessageId), LoggingSanitizer.SanitizeExternalIdentifier(result.ErrorMessage));
                 return StatusCode(500, new { error = "Failed to route message" });
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageRouting] Error routing message");
+            _logger.LogError("[PodMessageRouting] Error routing message: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to route message" });
         }
     }
@@ -126,20 +133,25 @@ public class PodMessageRoutingController : ControllerBase
             {
                 _logger.LogInformation(
                     "[PodMessageRouting] Routed message {MessageId} to {Success}/{Total} specific peers",
-                    result.MessageId, result.SuccessfullyRoutedCount, result.TargetPeerCount);
+                    LoggingSanitizer.SanitizeExternalIdentifier(result.MessageId), result.SuccessfullyRoutedCount, result.TargetPeerCount);
                 return Ok(result);
             }
             else
             {
                 _logger.LogWarning(
                     "[PodMessageRouting] Partially failed to route message {MessageId}: {Failed} failures",
-                    result.MessageId, result.FailedRoutingCount);
+                    LoggingSanitizer.SanitizeExternalIdentifier(result.MessageId), result.FailedRoutingCount);
                 return Ok(result); // Still return 200 since some routing may have succeeded
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageRouting] Error routing message to peers");
+            _logger.LogError("[PodMessageRouting] Error routing message to peers: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to route message to peers" });
         }
     }
@@ -157,9 +169,14 @@ public class PodMessageRoutingController : ControllerBase
             var stats = await _messageRouter.GetRoutingStatsAsync(cancellationToken);
             return Ok(stats);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageRouting] Error getting routing stats");
+            _logger.LogError("[PodMessageRouting] Error getting routing stats: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get routing statistics" });
         }
     }
@@ -188,7 +205,8 @@ public class PodMessageRoutingController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageRouting] Error checking if message is seen");
+            _logger.LogError("[PodMessageRouting] Error checking if message is seen: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to check message seen status" });
         }
     }
@@ -218,7 +236,8 @@ public class PodMessageRoutingController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageRouting] Error registering message as seen");
+            _logger.LogError("[PodMessageRouting] Error registering message as seen: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to register message as seen" });
         }
     }
@@ -240,9 +259,14 @@ public class PodMessageRoutingController : ControllerBase
                 result.MessagesCleaned, result.MessagesRetained);
             return Ok(result);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageRouting] Error cleaning up seen messages");
+            _logger.LogError("[PodMessageRouting] Error cleaning up seen messages: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to cleanup seen messages" });
         }
     }

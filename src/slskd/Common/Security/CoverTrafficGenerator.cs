@@ -125,7 +125,8 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
                 ClearGeneration(generationTask, generationCts);
                 if (completedTask.IsFaulted && completedTask.Exception is { } exception)
                 {
-                    _logger.LogError(exception, "Cover traffic generation failed after stop timed out");
+                    _logger.LogError("Cover traffic generation failed after stop timed out: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(exception.ToString()));
                 }
             },
             CancellationToken.None,
@@ -133,7 +134,8 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
             TaskScheduler.Default);
         _ = TaskObservation.Observe(
             cleanupTask,
-            exception => _logger.LogError(exception, "Cover traffic cleanup failed after stop timed out"));
+            exception => _logger.LogError("Cover traffic cleanup failed after stop timed out: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(exception.ToString())));
         return false;
     }
 
@@ -191,7 +193,8 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error stopping cover traffic generation during disposal");
+            _logger.LogWarning("Error stopping cover traffic generation during disposal: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
         finally
         {
@@ -247,11 +250,13 @@ public sealed class CoverTrafficGenerator : ICoverTrafficGenerator, IDisposable
                 }
                 catch (OperationCanceledException ex)
                 {
-                    _logger.LogWarning(ex, "Cover traffic send was cancelled unexpectedly");
+                    _logger.LogWarning("Cover traffic send was cancelled unexpectedly: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to send cover traffic message");
+                    _logger.LogWarning("Failed to send cover traffic message: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
         }

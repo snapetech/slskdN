@@ -13,6 +13,7 @@ using slskd.Mesh.Dht;
 using slskd.Mesh.Messages;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Transport;
+using slskd.Tests.Unit.TestHelpers;
 using System.Security.Cryptography;
 using System.Text;
 using NSec.Cryptography;
@@ -175,6 +176,106 @@ public class KademliaRpcClientTests
 
         Assert.Equal("radio-host", Assert.Single(closest).Address);
         Assert.Equal(remote, Assert.Single(routing.GetAllNodes()).NodeId);
+    }
+
+    [Theory]
+    [InlineData("FindNode", false)]
+    [InlineData("FindValue", false)]
+    [InlineData("Ping", false)]
+    [InlineData("Store", false)]
+    [InlineData("FindNode", true)]
+    [InlineData("FindValue", true)]
+    [InlineData("Ping", true)]
+    [InlineData("Store", true)]
+    public async Task PeerRpcFailure_EscapesAddressAndDiagnosticText(string operation, bool throws)
+    {
+        var self = Enumerable.Repeat((byte)1, 20).ToArray();
+        var remote = Enumerable.Repeat((byte)2, 20).ToArray();
+        const string address = "peer\r\nforged-address";
+        var routing = new KademliaRoutingTable(self);
+        await routing.TouchAsync(remote, address);
+        var dht = new Mock<IDhtClient>();
+        dht.Setup(store => store.GetMultipleAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<byte[]>());
+        var transport = new Mock<IMeshServiceClient>();
+        transport
+            .Setup(client => client.CallAsync(It.IsAny<string>(), It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, ServiceCall call, CancellationToken _) =>
+            {
+                if (operation == "Store" && call.Method == "FindNode")
+                {
+                    return Task.FromResult(new ServiceReply
+                    {
+                        StatusCode = ServiceStatusCodes.OK,
+                        Payload = JsonSerializer.SerializeToUtf8Bytes(new FindNodeResponse
+                        {
+                            TargetId = self,
+                            ResponderId = remote,
+                            Nodes = Array.Empty<DhtNodeInfo>(),
+                        }),
+                    });
+                }
+
+                if (call.Method == operation)
+                {
+                    if (throws)
+                    {
+                        throw new InvalidOperationException("remote exception\r\nforged");
+                    }
+
+                    return Task.FromResult(new ServiceReply
+                    {
+                        StatusCode = ServiceStatusCodes.UnknownError,
+                        ErrorMessage = "remote error\r\nforged",
+                    });
+                }
+
+                throw new InvalidOperationException($"Unexpected RPC method {call.Method}");
+            });
+        var logger = new CapturingLogger<KademliaRpcClient>();
+        using var client = new KademliaRpcClient(logger, transport.Object, routing, dht.Object);
+
+        switch (operation)
+        {
+            case "FindNode":
+                await client.FindNodeAsync(self);
+                break;
+            case "FindValue":
+                await client.FindValueAsync(self);
+                break;
+            case "Ping":
+                await client.PingAsync(new KNode(remote, address, DateTimeOffset.UtcNow));
+                break;
+            case "Store":
+                await client.StoreAsync(new DhtStoreMessage
+                {
+                    Key = self,
+                    Value = [1],
+                    RequesterId = self,
+                    TtlSeconds = 60,
+                    PublicKeyBase64 = "key",
+                    SignatureBase64 = "signature",
+                    TimestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                });
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(operation));
+        }
+
+        var expectedOperation = operation switch
+        {
+            "FindNode" => "FIND_NODE query to",
+            "FindValue" => "FIND_VALUE query to",
+            "Ping" => "PING to",
+            "Store" => "STORE to",
+            _ => throw new ArgumentOutOfRangeException(nameof(operation)),
+        };
+        var entry = Assert.Single(logger.Entries, item => item.Message.Contains(expectedOperation, StringComparison.Ordinal));
+        Assert.Contains("peer\\r\\nforged-address", entry.Message);
+        Assert.DoesNotContain("\r", entry.Message);
+        Assert.DoesNotContain("\n", entry.Message);
+        Assert.Null(entry.Exception);
+        Assert.Contains(throws ? "remote exception\\r\\nforged" : "remote error\\r\\nforged", entry.Message);
     }
 
     [Fact]
