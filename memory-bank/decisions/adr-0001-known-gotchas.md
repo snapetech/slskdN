@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1700. Escape Exceptions At The CSRF Middleware Log Boundary (2026-10-05)
+
+**What went wrong:** The CSRF middleware escaped the request path but attached
+raw exception objects to both expected antiforgery-validation diagnostics and
+token-storage failure warnings.
+
+**Why:** The path had been treated as untrusted request text, while exception
+messages and stack details from the same request pipeline were still emitted
+through Serilog's raw exception metadata.
+
+**Prevention:** At request middleware boundaries, log escaped exception text
+as a structured field instead of attaching raw exception objects. Cover both
+expected validation failures and unexpected token-storage failures with a
+captured-log regression that checks control-character escaping and the absence
+of raw exception metadata.
+
 ### 0z1699. Account For UDP Retry Logs In Listener Regressions (2026-10-05)
 
 **What went wrong:** The malformed-overlay listener regression required exactly
