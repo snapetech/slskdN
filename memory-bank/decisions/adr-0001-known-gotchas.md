@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1655. Preserve Request Cancellation In Pod Verification Controllers (2026-10-05)
+
+**What went wrong:** Membership, message, and role verification controller
+actions caught cancellation from their request-abort token and returned HTTP
+500 responses.
+
+**Why:** Their broad exception handlers treated a disconnected client like a
+verification failure even after the service correctly propagated cancellation.
+
+**Prevention:** Rethrow `OperationCanceledException` when the action's request
+token is canceled before mapping ordinary verification errors to HTTP 500.
+Cover canceled requests at each action boundary.
+
 ### 0z1654. Sanitize Pod Verification Identifiers And Exceptions (2026-10-05)
 
 **What went wrong:** Pod membership and message verification logged peer, pod,
