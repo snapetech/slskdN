@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1566. Disambiguate Existing Logging Sanitizers (2026-10-04)
+
+**What went wrong:** `LibraryItemsController` already imported the mesh
+`LoggingSanitizer`; adding the shared security sanitizer by name made every
+unqualified sanitizer reference ambiguous and stopped the application build.
+
+**Why:** Two namespaces expose a type with the same name, and the file-local
+imports conceal that collision until compilation.
+
+**Prevention:** Before adding a sanitizer import, search the target file and
+neighboring namespace for same-named types. Use a clear alias or fully
+qualify the intended sanitizer, then compile the owning project.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
