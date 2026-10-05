@@ -1,7 +1,7 @@
 ---
 category: fixed
 audience: users, operators
-area: pod-api
+area: pod-management
 action: none
 breaking: false
 ---
