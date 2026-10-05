@@ -62,6 +62,20 @@ failover boundary. Rethrow caller cancellation before ordinary failure
 handling, stop circuit construction immediately, and dispose established hops
 when a circuit cannot be completed.
 
+### 0z1642. Propagate Cancellation From Mesh Overlay Sends (2026-10-05)
+
+**What went wrong:** UDP and QUIC overlay send paths caught caller
+cancellation and returned `false`; QUIC connection setup also converted a
+canceled connect into a missing connection.
+
+**Why:** These paths intentionally treat network failures as best-effort send
+failures, but broad catches made a caller stopping the operation look like
+packet loss.
+
+**Prevention:** Rethrow `OperationCanceledException` when the supplied token
+is canceled before recording a send failure or returning no connection. Test
+both an in-flight send and QUIC connection setup cancellation.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
