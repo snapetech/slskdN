@@ -38459,3 +38459,17 @@ error response missed the separate log boundary.
 and service logs. Escape IDs and full exception text only as logger arguments;
 keep request, validation, lookup, and response values intact. Cover the
 boundary with a captured-log test for control characters.
+
+### 0z1595. Escape Remote HTTP Candidate Diagnostics (2026-10-05)
+
+**What went wrong:** HTTP and WebDAV candidate validation logged raw
+`HttpRequestException` objects and unescaped remote candidate IDs. Exception
+messages can include remote URL details, and candidate IDs may contain control
+characters.
+
+**Why:** These validation paths return a generic failure to callers, which
+made the diagnostic log look internal even though it includes remote input.
+
+**Prevention:** Sanitize candidate IDs and full exception text only at the
+logger boundary. Preserve the original candidate and backend reference for
+validation and fetch operations; cover failures with captured-log regressions.
