@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1630. Preserve Cancellation In DHT Service Discovery (2026-10-05)
+
+**What went wrong:** DHT-backed service-directory lookups caught caller
+cancellation and returned an empty descriptor list, making an interrupted
+lookup appear to be a normal service-not-found result.
+
+**Why:** The directory treated DHT transport errors and request cancellation
+as the same discovery failure even though callers pass a cancellation token.
+
+**Prevention:** Rethrow cancellation when the lookup token is canceled before
+returning an empty result for ordinary discovery errors. Cover both service
+name and service ID lookups with canceled DHT requests.
+
 ### 0z1629. Qualify Duplicate Hole-Punch DTO Names In Tests (2026-10-05)
 
 **What went wrong:** A hole-punch test imported both the NAT and mesh-service
