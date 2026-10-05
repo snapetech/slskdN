@@ -178,6 +178,21 @@ file.
 trace fields to their source. Escape peer and pod IDs and full exception text
 in membership and signing diagnostics while preserving join/ban behavior.
 
+### 0z1578. Follow Pod Diagnostics Through Signers And Storage (2026-10-05)
+
+**What went wrong:** Message signing and SQLite persistence had their own log
+boundaries beyond `PodMessaging`: message IDs, peer/pod/channel IDs,
+validation reasons, and exception objects were still emitted directly.
+
+**Why:** Pod security and storage behavior is split across signer, messaging,
+and persistence types, so completing one file does not close the feature's
+diagnostic boundary.
+
+**Prevention:** Trace Pod data through signing, validation, message storage,
+retrieval, deletion, and backfill. Sanitize external IDs, validation text, and
+full exception details only at log calls; retain original values in database
+operations and returned messages.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
