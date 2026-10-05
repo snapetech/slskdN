@@ -2,7 +2,9 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -10,6 +12,9 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using slskd.Configuration;
 using slskd.Core.API;
 using slskd.Events;
@@ -32,6 +37,47 @@ namespace slskd.Tests.Unit.Core;
 [Collection(StaticEventCollection.Name)]
 public class ApplicationLifecycleTests
 {
+    [Fact]
+    public void DownloadDeniedEvent_EscapesPeerFieldsBeforeLogging()
+    {
+        var sink = new CapturingLogSink();
+        var originalLogger = Log.Logger;
+        using var logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+        Log.Logger = logger;
+
+        Application? application = null;
+        try
+        {
+            application = CreateApplication(
+                new TestOptionsMonitor<Options>(new Options()),
+                new ManagedState<State>(),
+                new ManagedState<ShareState>(),
+                new ManagedState<RelayState>(),
+                out _,
+                out var soulseekClient);
+
+            soulseekClient.Raise(
+                client => client.DownloadDenied += null,
+                new DownloadDeniedEventArgs("peer\r\ninjected", "track\r\nname.flac", "denied\r\nwith reason"));
+
+            var entry = Assert.Single(sink.Events, logEvent => logEvent.RenderMessage().StartsWith("Download of ", StringComparison.Ordinal));
+            var rendered = entry.RenderMessage();
+
+            Assert.Contains("track\\r\\nname.flac", rendered);
+            Assert.Contains("peer\\r\\ninjected", rendered);
+            Assert.Contains("denied\\r\\nwith reason", rendered);
+            Assert.DoesNotContain("\r\n", rendered);
+        }
+        finally
+        {
+            application?.Dispose();
+            Log.Logger = originalLogger;
+        }
+    }
+
     [Fact]
     public void CreateStartupSoulseekClientOptionsPatch_ConfiguresIncomingConnectionOptions()
     {
@@ -445,6 +491,15 @@ public class ApplicationLifecycleTests
             out applicationHub,
             out soulseekClient,
             out _);
+    }
+
+    private sealed class CapturingLogSink : ILogEventSink
+    {
+        private readonly ConcurrentBag<LogEvent> events = [];
+
+        public IReadOnlyCollection<LogEvent> Events => events.ToArray();
+
+        public void Emit(LogEvent logEvent) => events.Add(logEvent);
     }
 
     private static Application CreateApplication(

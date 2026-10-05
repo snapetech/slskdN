@@ -1,4 +1,33 @@
-## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 00:40 UTC
+## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 01:05 UTC
+
+Stable `.339` remains the latest published release. The search-diagnostics
+batch is committed and pushed at `63a95c1bf`; no `.340` tag exists. The current
+post-`.339` batch hardens application-level Soulseek event, transfer, browse,
+and Pod-message diagnostics and adds a captured-log regression for download
+denial events.
+
+Every first-party project under `src`, `tests`, and `tools` targets
+`net10.0`. MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves to
+`lib/net8.0` for the application. There is no `.NET 6` project TFM or selected
+MonoTorrent `.NET 6` asset; the old gotcha reference records the package's
+previous target before it was upgraded. Other compatible dependencies may
+still ship lower-TFM assets.
+
+Focused lifecycle tests pass 17/17; full Release tests pass 5,919 (74
+application, 5,555 unit, 289 integration). `./bin/lint` and the active backlog
+gate pass. Current queues: 210 callback/event, 479 remote-text, 12,230
+red-team, and 822 mutable-ownership candidates. The current implementation,
+release note, changelog, backlog, and memory updates are not yet committed or
+pushed.
+
+Next: commit and push this batch, then continue remaining code-backed fixes
+and the whole-product review. Keep T-908 fallback sender/receiver lifecycle,
+global Party ID ownership across disjoint DHT views, actual background-tab
+timer throttling, WebKit Orca and physical assistive-technology speech,
+representative WAN and sustained-resource measurements, the original
+frontend `ERR_NETWORK_CHANGED` cause, and the broad discovery queues open.
+
+## Previous state — Continue whole-product remediation; prepare `.340` — 2026-10-05 00:40 UTC
 
 Stable `.339` is published as
 [`2026100423-slskdn.339`](https://github.com/snapetech/slskdN/releases/tag/2026100423-slskdn.339).

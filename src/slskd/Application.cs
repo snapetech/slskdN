@@ -241,10 +241,10 @@ namespace slskd
             Client.UserStatusChanged += Client_UserStatusChanged;
             Client.PrivateMessageReceived += Client_PrivateMessageReceived;
 
-            _privateRoomMembershipAddedHandler = (e, room) => Log.Information("Added to private room {Room}", room);
-            _privateRoomMembershipRemovedHandler = (e, room) => Log.Information("Removed from private room {Room}", room);
-            _privateRoomModerationAddedHandler = (e, room) => Log.Information("Promoted to moderator in private room {Room}", room);
-            _privateRoomModerationRemovedHandler = (e, room) => Log.Information("Demoted from moderator in private room {Room}", room);
+            _privateRoomMembershipAddedHandler = (e, room) => Log.Information("Added to private room {Room}", LoggingSanitizer.SanitizeExternalIdentifier(room));
+            _privateRoomMembershipRemovedHandler = (e, room) => Log.Information("Removed from private room {Room}", LoggingSanitizer.SanitizeExternalIdentifier(room));
+            _privateRoomModerationAddedHandler = (e, room) => Log.Information("Promoted to moderator in private room {Room}", LoggingSanitizer.SanitizeExternalIdentifier(room));
+            _privateRoomModerationRemovedHandler = (e, room) => Log.Information("Demoted from moderator in private room {Room}", LoggingSanitizer.SanitizeExternalIdentifier(room));
             Client.PrivateRoomMembershipAdded += _privateRoomMembershipAddedHandler;
             Client.PrivateRoomMembershipRemoved += _privateRoomMembershipRemovedHandler;
             Client.PrivateRoomModerationAdded += _privateRoomModerationAddedHandler;
@@ -256,8 +256,15 @@ namespace slskd
             Client.LoggedIn += Client_LoggedIn;
             Client.StateChanged += Client_StateChanged;
             Client.DistributedNetworkStateChanged += Client_DistributedNetworkStateChanged;
-            _downloadDeniedHandler = (e, args) => Log.Information("Download of {Filename} from {Username} was denied by the remote user: {Message}", args.Filename, args.Username, args.Message);
-            _downloadFailedHandler = (e, args) => Log.Information("Download of {Filename} from {Username} reported as failed by the remote user", args.Filename, args.Username);
+            _downloadDeniedHandler = (e, args) => Log.Information(
+                "Download of {Filename} from {Username} was denied by the remote user: {Message}",
+                LoggingSanitizer.SanitizeFilePath(args.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(args.Username),
+                LoggingSanitizer.SanitizeExternalIdentifier(args.Message));
+            _downloadFailedHandler = (e, args) => Log.Information(
+                "Download of {Filename} from {Username} reported as failed by the remote user",
+                LoggingSanitizer.SanitizeFilePath(args.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(args.Username));
             Client.DownloadDenied += _downloadDeniedHandler;
             Client.DownloadFailed += _downloadFailedHandler;
 
@@ -422,13 +429,15 @@ namespace slskd
             {
                 // FormatException from Version.Parse() is wrapped in GitHubException
                 // This is normal for dev/experimental builds with non-standard version strings
-                Log.Debug("Failed to parse latest version string (this is normal for dev/experimental builds): {Message}", ex.InnerException?.Message ?? ex.Message);
+                Log.Debug("Failed to parse latest version string (this is normal for dev/experimental builds): {Message}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.InnerException?.Message ?? ex.Message));
 
                 // Ignore parse errors to avoid noisy warnings on malformed tags (normal for dev builds)
             }
             catch (FormatException ex)
             {
-                Log.Debug("Failed to parse latest version string (this is normal for dev/experimental builds): {Message}", ex.Message);
+                Log.Debug("Failed to parse latest version string (this is normal for dev/experimental builds): {Message}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
 
                 // Ignore parse errors to avoid noisy warnings on malformed tags (normal for dev builds)
             }
@@ -442,7 +451,7 @@ namespace slskd
                         IsUpdateAvailable = null,
                     },
                 });
-                Log.Warning("Failed to check version: {Message}", ex.Message);
+                Log.Warning("Failed to check version: {Message}", LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
             }
         }
 
@@ -476,7 +485,8 @@ namespace slskd
 
             foreach (var upload in activeUploads)
             {
-                Log.Debug("Cleaning up dangling upload {Filename} to {Username}", upload.Filename, upload.Username);
+                Log.Debug("Cleaning up dangling upload {Filename} to {Username}",
+                    LoggingSanitizer.SanitizeFilePath(upload.Filename), LoggingSanitizer.SanitizeExternalIdentifier(upload.Username));
                 upload.State = TransferStates.Completed | TransferStates.Errored;
                 upload.EndedAt = DateTime.UtcNow;
                 upload.Exception = ApplicationShutdownTransferExceptionMessage;
@@ -487,7 +497,8 @@ namespace slskd
 
             foreach (var download in activeDownloads)
             {
-                Log.Debug("Cleaning up dangling download {Filename} from {Username}", download.Filename, download.Username);
+                Log.Debug("Cleaning up dangling download {Filename} from {Username}",
+                    LoggingSanitizer.SanitizeFilePath(download.Filename), LoggingSanitizer.SanitizeExternalIdentifier(download.Username));
                 download.State = TransferStates.Completed | TransferStates.Errored;
                 download.EndedAt = DateTime.UtcNow;
                 download.Exception = ApplicationShutdownTransferExceptionMessage;
@@ -950,7 +961,7 @@ namespace slskd
             }
             catch (InvalidOperationException ex) when (ShuttingDown && ex.Message.Contains("Sequence contains no elements", StringComparison.Ordinal))
             {
-                Log.Debug("Ignoring Soulseek disconnect race during shutdown: {Message}", ex.Message);
+                Log.Debug("Ignoring Soulseek disconnect race during shutdown: {Message}", LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
             }
 
             Client.Dispose();
@@ -990,7 +1001,8 @@ namespace slskd
             }
             catch (SocketException ex)
             {
-                Log.Warning("Failed to configure connection keepalive settings: \"{Message}\". Performance is degraded. Set the configuration flag \"Legacy Windows TCP Keepalive\" to avoid this.", ex.Message);
+                Log.Warning("Failed to configure connection keepalive settings: \"{Message}\". Performance is degraded. Set the configuration flag \"Legacy Windows TCP Keepalive\" to avoid this.",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
             }
         }
 
@@ -1034,13 +1046,15 @@ namespace slskd
             {
                 if (IsSelfUsername(username))
                 {
-                    Log.Information("Rejected self-upload enqueue request for {Username} ({IP})", username, endpoint.Address);
+                    Log.Information("Rejected self-upload enqueue request for {Username} ({IP})",
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeIpAddress(endpoint.Address));
                     throw new DownloadEnqueueException("File not shared.");
                 }
 
                 if (Users.IsBlacklisted(username, endpoint.Address))
                 {
-                    Log.Information("Rejected enqueue request for blacklisted user {Username} ({IP})", username, endpoint.Address);
+                    Log.Information("Rejected enqueue request for blacklisted user {Username} ({IP})",
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeIpAddress(endpoint.Address));
                     throw new DownloadEnqueueException("File not shared.");
                 }
 
@@ -1110,7 +1124,8 @@ namespace slskd
                 // of control, but i'd need to figure out a lower bound
                 if (string.Equals(group, PrivilegedGroup))
                 {
-                    Log.Debug("Limits bypassed for {Username} and {File}; user is privileged", username, filename);
+                    Log.Debug("Limits bypassed for {Username} and {File}; user is privileged",
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeFilePath(filename));
                     await Transfers.Uploads.EnqueueAsync(username, filename);
                     return;
                 }
@@ -1150,7 +1165,9 @@ namespace slskd
                     var ext = Path.GetExtension(resolved.Filename);
                     if (!allowedTypes.Any(t => string.Equals(t, ext, StringComparison.OrdinalIgnoreCase)))
                     {
-                        Log.Information("Rejected enqueue request for user {Username}: file type {Extension} not allowed for group {Group}", username, ext, group);
+                        Log.Information("Rejected enqueue request for user {Username}: file type {Extension} not allowed for group {Group}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeExternalIdentifier(ext),
+                            LoggingSanitizer.SanitizeExternalIdentifier(group));
                         throw new DownloadEnqueueException($"File type {ext} is not permitted.");
                     }
                 }
@@ -1208,7 +1225,8 @@ namespace slskd
 
                     if (over.Files || over.Megabytes)
                     {
-                        Log.Information("Rejected enqueue request for user {Username}: Queued limits exceeded", username);
+                        Log.Information("Rejected enqueue request for user {Username}: Queued limits exceeded",
+                            LoggingSanitizer.SanitizeExternalIdentifier(username));
 
                         // note: return exactly 'Too many files' or 'Too many megabytes' to ensure interop with other clients.
                         // these messages are retryable, while anything else is not
@@ -1238,7 +1256,8 @@ namespace slskd
 
                     if (failureLimit is not null && failures.Files >= failureLimit)
                     {
-                        Log.Information("Rejected enqueue request for user {Username}: Weekly failure limit met or exceeded", username);
+                        Log.Information("Rejected enqueue request for user {Username}: Weekly failure limit met or exceeded",
+                            LoggingSanitizer.SanitizeExternalIdentifier(username));
                         throw new DownloadEnqueueException("Too many failed transfers this week");
                     }
 
@@ -1255,7 +1274,8 @@ namespace slskd
 
                     if (over.Files || over.Megabytes)
                     {
-                        Log.Information("Rejected enqueue request for user {Username}: Weekly limits exceeded", username);
+                        Log.Information("Rejected enqueue request for user {Username}: Weekly limits exceeded",
+                            LoggingSanitizer.SanitizeExternalIdentifier(username));
                         throw new DownloadEnqueueException($"Too many {(over.Files ? "files" : "megabytes")} this week");
                     }
                 }
@@ -1279,7 +1299,8 @@ namespace slskd
 
                     if (failureLimit is not null && failures.Files >= failureLimit)
                     {
-                        Log.Information("Rejected enqueue request for user {Username}: Daily failure limit met or exceeded", username);
+                        Log.Information("Rejected enqueue request for user {Username}: Daily failure limit met or exceeded",
+                            LoggingSanitizer.SanitizeExternalIdentifier(username));
                         throw new DownloadEnqueueException("Too many failed transfers today");
                     }
 
@@ -1296,7 +1317,8 @@ namespace slskd
 
                     if (over.Files || over.Megabytes)
                     {
-                        Log.Information("Rejected enqueue request for user {Username}: Daily limits exceeded", username);
+                        Log.Information("Rejected enqueue request for user {Username}: Daily limits exceeded",
+                            LoggingSanitizer.SanitizeExternalIdentifier(username));
                         throw new DownloadEnqueueException($"Too many {(over.Files ? "files" : "megabytes")} today");
                     }
                 }
@@ -1321,7 +1343,9 @@ namespace slskd
 
                 Interlocked.Exchange(ref CurrentEnqueueLatency, Metrics.Enqueue.CurrentLatency.Value);
 
-                Log.Information("Enqueue of {Filename} to {Username} completed in {ElapsedOverall}ms, decision made in {ElapsedDecision}ms", filename, username, stopwatch.ElapsedMilliseconds, decisionStopwatch.ElapsedMilliseconds);
+                Log.Information("Enqueue of {Filename} to {Username} completed in {ElapsedOverall}ms, decision made in {ElapsedDecision}ms",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    stopwatch.ElapsedMilliseconds, decisionStopwatch.ElapsedMilliseconds);
             }
             catch (DownloadEnqueueException ex)
             {
@@ -1376,7 +1400,8 @@ namespace slskd
 
             if (Users.IsBlacklisted(username, endpoint.Address))
             {
-                Log.Information("Returned empty browse listing for blacklisted user {Username} ({IP})", username, endpoint.Address);
+                Log.Information("Returned empty browse listing for blacklisted user {Username} ({IP})",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeIpAddress(endpoint.Address));
                 return new BrowseResponse();
             }
 
@@ -1401,7 +1426,7 @@ namespace slskd
                     response = new RawBrowseResponse(cacheFileInfo.Length, stream);
                 }
 
-                Log.Information("Sent browse response to {User}", username);
+                Log.Information("Sent browse response to {User}", LoggingSanitizer.SanitizeExternalIdentifier(username));
 
                 sw.Stop();
 
@@ -1413,7 +1438,7 @@ namespace slskd
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to resolve browse response: {Message}", ex.Message);
+                Log.Warning("Failed to resolve browse response: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -1470,11 +1495,15 @@ namespace slskd
 
             if (args.IncludesException && OptionsAtStartup.Debug)
             {
-                logger.Write(level, exception: args.Exception, "{@Message}", args.Message);
+                logger.Write(
+                    level,
+                    "{Message} {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(args.Message),
+                    LoggingSanitizer.SanitizeExternalIdentifier(args.Exception?.ToString()));
                 return;
             }
 
-            logger.Write(level, "{@Message}", args.Message);
+            logger.Write(level, "{@Message}", LoggingSanitizer.SanitizeExternalIdentifier(args.Message));
         }
 
         private void Client_Disconnected(object? sender, SoulseekClientDisconnectedEventArgs args)
@@ -1507,7 +1536,8 @@ namespace slskd
             }
             else
             {
-                Log.Error("Disconnected from the Soulseek server: {Message}", args.Exception?.Message ?? args.Message);
+                Log.Error("Disconnected from the Soulseek server: {Message}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(args.Exception?.Message ?? args.Message));
                 ConnectionWatchdog.Start();
             }
 
@@ -1547,7 +1577,7 @@ namespace slskd
 
         private async Task HandleClientLoggedInAsync()
         {
-            Log.Information("Logged in to the Soulseek server as {Username}", Client.Username);
+            Log.Information("Logged in to the Soulseek server as {Username}", LoggingSanitizer.SanitizeExternalIdentifier(Client.Username));
 
             // send whatever counts we have currently. we'll probably connect before the cache is primed, so these will be zero
             // initially, but we'll update them when the cache is filled.
@@ -1601,7 +1631,8 @@ namespace slskd
                     }
                     catch (Exception ex)
                     {
-                        Log.Warning("Failed to re-enqueue {Count} file(s) from {Username}: {Message}", files.Count(), username, ex.Message);
+                        Log.Warning("Failed to re-enqueue {Count} file(s) from {Username}: {Message}", files.Count(),
+                            LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
                     }
                 }
             }
@@ -1631,7 +1662,8 @@ namespace slskd
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning("Failed to publish configured Soulseek liked interest {Interest}: {Message}", interest, ex.Message);
+                    Log.Warning("Failed to publish configured Soulseek liked interest {Interest}: {Message}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(interest), LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
                 }
             }
 
@@ -1643,7 +1675,8 @@ namespace slskd
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning("Failed to publish configured Soulseek disliked interest {Interest}: {Message}", interest, ex.Message);
+                    Log.Warning("Failed to publish configured Soulseek disliked interest {Interest}: {Message}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(interest), LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
                 }
             }
         }
@@ -1652,7 +1685,7 @@ namespace slskd
         {
             if (Users.IsBlacklisted(args.Username))
             {
-                Log.Debug("Ignored private message from blacklisted user {Username}", args.Username);
+                Log.Debug("Ignored private message from blacklisted user {Username}", LoggingSanitizer.SanitizeExternalIdentifier(args.Username));
                 return;
             }
             else
@@ -1666,7 +1699,7 @@ namespace slskd
                 _ = ObserveBackgroundTaskAsync(
                     Task.Run(() => HandlePodMessageAsync(args.Username, args.Message), CancellationToken.None),
                     "Failed to handle pod message from {Username}",
-                    args.Username);
+                    LoggingSanitizer.SanitizeExternalIdentifier(args.Username));
                 return; // Don't process as regular PM
             }
 
@@ -1679,13 +1712,13 @@ namespace slskd
                     _ = ObserveBackgroundTaskAsync(
                         SendHumanChallengeAutoResponseAsync(args.Username),
                         "Failed to send human-check auto response to {Username}",
-                        args.Username);
+                        LoggingSanitizer.SanitizeExternalIdentifier(args.Username));
                 }
 
                 _ = ObserveBackgroundTaskAsync(
                     Notifications.SendPrivateMessageAsync(args.Username, args.Message),
                     "Failed to send private-message notification from {Username}",
-                    args.Username);
+                    LoggingSanitizer.SanitizeExternalIdentifier(args.Username));
             }
         }
 
@@ -1753,7 +1786,7 @@ namespace slskd
         private Task SendHumanChallengeAutoResponseAsync(string username)
         {
             var message = Options.Soulseek.PrivateMessageAutoResponse.Message.Trim();
-            Log.Information("Sending human-check auto response to {Username}", username);
+            Log.Information("Sending human-check auto response to {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
             return Messaging.Conversations.SendMessageAsync(username, message);
         }
 
@@ -1769,14 +1802,14 @@ namespace slskd
                 if (message.Length > MaxMessageSize)
                 {
                     Log.Warning("Pod message from {Username} exceeds size limit ({Size} > {MaxSize})",
-                        username, message.Length, MaxMessageSize);
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), message.Length, MaxMessageSize);
                     return;
                 }
 
                 // Extract JSON payload after "PODMSG:" prefix
                 if (!message.StartsWith("PODMSG:", StringComparison.Ordinal) || message.Length <= "PODMSG:".Length)
                 {
-                    Log.Warning("Invalid PODMSG format from {Username}", username);
+                    Log.Warning("Invalid PODMSG format from {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
                     return;
                 }
 
@@ -1787,7 +1820,7 @@ namespace slskd
                 if (jsonPayload.Length > MaxJsonSize)
                 {
                     Log.Warning("Pod message JSON payload from {Username} exceeds size limit ({Size} > {MaxSize})",
-                        username, jsonPayload.Length, MaxJsonSize);
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), jsonPayload.Length, MaxJsonSize);
                     return;
                 }
 
@@ -1802,7 +1835,7 @@ namespace slskd
                 var podMessage = JsonSerializer.Deserialize<PodCore.PodMessage>(jsonPayload, options);
                 if (podMessage == null)
                 {
-                    Log.Warning("Failed to parse pod message JSON from {Username}", username);
+                    Log.Warning("Failed to parse pod message JSON from {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
                     return;
                 }
 
@@ -1811,20 +1844,22 @@ namespace slskd
                 if (podMessage.SenderPeerId != expectedPeerId)
                 {
                     Log.Warning("Pod message sender validation failed: expected {Expected}, got {Actual} from {Username}",
-                        expectedPeerId, podMessage.SenderPeerId, username);
+                        LoggingSanitizer.SanitizeExternalIdentifier(expectedPeerId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(podMessage.SenderPeerId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(username));
                     return;
                 }
 
                 // HARDENING: Additional validation - ensure PodId and ChannelId are present and valid
                 if (string.IsNullOrWhiteSpace(podMessage.PodId) || string.IsNullOrWhiteSpace(podMessage.ChannelId))
                 {
-                    Log.Warning("Pod message missing required PodId or ChannelId from {Username}", username);
+                    Log.Warning("Pod message missing required PodId or ChannelId from {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
                     return;
                 }
 
                 if (!PodCore.PodValidation.IsValidPodId(podMessage.PodId) || !PodCore.PodValidation.IsValidChannelId(podMessage.ChannelId))
                 {
-                    Log.Warning("Pod message contains invalid PodId or ChannelId from {Username}", username);
+                    Log.Warning("Pod message contains invalid PodId or ChannelId from {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
                     return;
                 }
 
@@ -1839,26 +1874,37 @@ namespace slskd
                         if (stored)
                         {
                             Log.Debug("Stored pod message {MessageId} from {Username} in pod {PodId} channel {ChannelId}",
-                                podMessage.MessageId, username, podMessage.PodId, podMessage.ChannelId);
+                                LoggingSanitizer.SanitizeExternalIdentifier(podMessage.MessageId),
+                                LoggingSanitizer.SanitizeExternalIdentifier(username),
+                                LoggingSanitizer.SanitizeExternalIdentifier(podMessage.PodId),
+                                LoggingSanitizer.SanitizeExternalIdentifier(podMessage.ChannelId));
                         }
                         else
                         {
-                            Log.Warning("Failed to store pod message {MessageId} from {Username}", podMessage.MessageId, username);
+                            Log.Warning("Failed to store pod message {MessageId} from {Username}",
+                                LoggingSanitizer.SanitizeExternalIdentifier(podMessage.MessageId),
+                                LoggingSanitizer.SanitizeExternalIdentifier(username));
                         }
                     }
                     else
                     {
-                        Log.Warning("IPodMessaging service not available, pod message {MessageId} from {Username} was not stored", podMessage.MessageId, username);
+                        Log.Warning("IPodMessaging service not available, pod message {MessageId} from {Username} was not stored",
+                            LoggingSanitizer.SanitizeExternalIdentifier(podMessage.MessageId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(username));
                     }
                 }
                 else
                 {
-                    Log.Warning("ServiceScopeFactory not available, pod message {MessageId} from {Username} was not stored", podMessage.MessageId, username);
+                    Log.Warning("ServiceScopeFactory not available, pod message {MessageId} from {Username} was not stored",
+                        LoggingSanitizer.SanitizeExternalIdentifier(podMessage.MessageId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(username));
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error handling pod message from {Username}", username);
+                Log.Error("Error handling pod message from {Username}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -1878,8 +1924,8 @@ namespace slskd
                 _ = ObserveBackgroundTaskAsync(
                     Notifications.SendRoomMentionAsync(message.RoomName, message.Username, message.Message),
                     "Failed to send room-mention notification from {Username} in {RoomName}",
-                    message.Username,
-                    message.RoomName);
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.RoomName));
             }
         }
 
@@ -2013,14 +2059,15 @@ namespace slskd
                         return;
                     }
 
-                    Log.Debug("Pruning files older than {Age} minutes from {Directory}", age, directory);
+                    Log.Debug("Pruning files older than {Age} minutes from {Directory}", age, LoggingSanitizer.SanitizeFilePath(directory));
                     var result = PruneDirectoryFiles(age.Value, directory, Files, DateTime.UtcNow);
                     Log.Debug("Found {Count} files in need of pruning", result.Found);
                     Log.Debug("Pruning complete. Deleted: {Deleted}, Errors: {Errors}", result.Deleted, result.Errors);
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("Failed to prune files in directory {Directory}: {Message}", directory, ex.Message);
+                    Log.Error("Failed to prune files in directory {Directory}: {Message}",
+                        LoggingSanitizer.SanitizeFilePath(directory), LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
                 }
             }
 
@@ -2062,7 +2109,8 @@ namespace slskd
                 catch (Exception ex)
                 {
                     errors++;
-                    Serilog.Log.Warning(ex, "Failed to prune file {File}: {Message}", file, ex.Message);
+                    Serilog.Log.Warning("Failed to prune file {File}: {Message}",
+                        LoggingSanitizer.SanitizeFilePath(file.FullName), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -2251,8 +2299,8 @@ namespace slskd
             _ = ObserveBackgroundTaskAsync(
                 TransferHubExtensions.EmitTransferProgressAsync(TransfersHub, progress),
                 "Failed to broadcast transfer progress for {Filename} from {Username}",
-                xfer.Filename,
-                xfer.Username);
+                LoggingSanitizer.SanitizeFilePath(xfer.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(xfer.Username));
         }
 
         private void Client_TransferStateChanged(object? sender, TransferStateChangedEventArgs args)
@@ -2271,7 +2319,16 @@ namespace slskd
                 QueueSoulseekDownloadAccountingCommit(xfer);
             }
 
-            Log.Information($"[{direction}] [{user}/{file}] {oldState} => {state}{(completed ? FormatCompletedTransferProgress(xfer.BytesTransferred, xfer.Size, xfer.PercentComplete, xfer.AverageSpeed) : string.Empty)}");
+            var progress = completed
+                ? FormatCompletedTransferProgress(xfer.BytesTransferred, xfer.Size, xfer.PercentComplete, xfer.AverageSpeed)
+                : string.Empty;
+            Log.Information("[{Direction}] [{Username}/{Filename}] {PreviousState} => {State}{Progress}",
+                direction,
+                LoggingSanitizer.SanitizeExternalIdentifier(user),
+                LoggingSanitizer.SanitizeFilePath(file),
+                oldState,
+                state,
+                progress);
 
             if (completed)
             {
@@ -2284,15 +2341,15 @@ namespace slskd
             _ = ObserveBackgroundTaskAsync(
                 TransferHubExtensions.EmitTransferActivityAsync(TransfersHub, activity),
                 "Failed to broadcast transfer activity for {Filename} from {Username}",
-                xfer.Filename,
-                xfer.Username);
+                LoggingSanitizer.SanitizeFilePath(xfer.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(xfer.Username));
 
             if (xfer.Direction == TransferDirection.Upload && xfer.State.HasFlag(TransferStates.Completed | TransferStates.Succeeded) && args.Transfer.AverageSpeed > 0)
             {
                 _ = ObserveBackgroundTaskAsync(
                     Client.SendUploadSpeedAsync(Convert.ToInt32(Math.Ceiling(args.Transfer.AverageSpeed))),
                     "Failed to report upload speed for {Username}",
-                    xfer.Username);
+                    LoggingSanitizer.SanitizeExternalIdentifier(xfer.Username));
             }
         }
 
@@ -2326,7 +2383,10 @@ namespace slskd
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to account Soulseek download traffic for {Filename} from {Username}", transfer.Filename, transfer.Username);
+                Log.Error("Failed to account Soulseek download traffic for {Filename} from {Username}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(transfer.Filename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(transfer.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
             finally
             {
@@ -2370,7 +2430,9 @@ namespace slskd
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to estimate place in queue for {Filename} requested by {Username}", filename, username);
+                Log.Warning("Failed to estimate place in queue for {Filename} requested by {Username}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -2387,7 +2449,8 @@ namespace slskd
         {
             if (Users.IsBlacklisted(username, endpoint.Address))
             {
-                Log.Information("Returned empty directory listing for blacklisted user {Username} ({IP})", username, endpoint.Address);
+                Log.Information("Returned empty directory listing for blacklisted user {Username} ({IP})",
+                    LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeIpAddress(endpoint.Address));
                 return [new Soulseek.Directory(directory)];
             }
 
@@ -2398,7 +2461,7 @@ namespace slskd
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to resolve directory contents: {Message}", ex.Message);
+                Log.Warning("Failed to resolve directory contents: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -2511,7 +2574,10 @@ namespace slskd
 
                 if (newlyBlacklisted.Count > 0)
                 {
-                    Log.Information("Cancelling active transfers for {Count} newly blacklisted user(s): {Users}", newlyBlacklisted.Count, newlyBlacklisted);
+                    Log.Information(
+                        "Cancelling active transfers for {Count} newly blacklisted user(s): {Users}",
+                        newlyBlacklisted.Count,
+                        newlyBlacklisted.Select(LoggingSanitizer.SanitizeExternalIdentifier).ToArray());
 
                     foreach (var username in newlyBlacklisted)
                     {
@@ -2661,7 +2727,7 @@ namespace slskd
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to apply option update: {Message}", ex.Message);
+                Log.Error("Failed to apply option update: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
             finally
             {
@@ -2861,7 +2927,7 @@ namespace slskd
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Failed to resolve search response: {Message}", LoggingSanitizer.SanitizeQueryText(ex.Message));
+                    Log.Warning("Failed to resolve search response: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     throw;
                 }
             }
@@ -3033,7 +3099,7 @@ namespace slskd
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error caching browse response: {Message}", ex.Message);
+                Log.Error("Error caching browse response: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
             finally
@@ -3081,7 +3147,8 @@ namespace slskd
                 {
                     // this isn't a serious enough problem to prevent us from continuing, so we'll just
                     // log a warning and continue, omitting the picture
-                    Log.Warning("Failed to read Soulseek picture {Picture}: {Message}", Options.Soulseek.Picture, ex.Message);
+                    Log.Warning("Failed to read Soulseek picture {Picture}: {Message}",
+                        LoggingSanitizer.SanitizeFilePath(Options.Soulseek.Picture), LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
                 }
             }
 
@@ -3131,7 +3198,7 @@ namespace slskd
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to resolve user info: {Message}", ex.Message);
+                Log.Warning("Failed to resolve user info: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }

@@ -17648,3 +17648,20 @@ upgraded; no `.NET 6` project TFM or MonoTorrent asset remains. Some unrelated
 dependencies still contain compatible lower-TFM assets, which do not change
 the application's target framework. The security release fragment and
 changelog entry are ready for the next release after remediation is complete.
+
+## Update 2026-10-05 01:05 UTC — Escape application peer-event diagnostics
+
+Extended log escaping to application event subscriptions and incoming
+callbacks: private room names; peer usernames, filenames, and download denial
+text; transfer state and progress; browse and Pod identifiers; and remote
+exception details. Soulseek diagnostics now escape both message and exception
+text before writing log records. Added a captured-log regression that raises a
+download-denied event with CR/LF in all peer fields and verifies the emitted
+record contains escaped values.
+
+Focused `ApplicationLifecycleTests` pass 17/17. Full Release tests pass 5,919
+(74 application, 5,555 unit, 289 integration), `./bin/lint` passes, and the
+active backlog gate matches 479 remote-text, 12,230 red-team, and 822
+mutable-ownership candidates. The application-event release fragment and
+changelog entry are prepared for the later `.340` release. Continue the
+remaining whole-product remediation before creating a release tag.

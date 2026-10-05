@@ -112,11 +112,18 @@
   original values. Focused coverage passes 185/185; full Release tests pass
   5,917 (74 application, 5,554 unit, 289 integration), `./bin/lint` and the
   backlog gate pass. The active queues are 479 remote-text, 12,230 red-team,
-  210 callback/event, and 821 mutable-ownership candidates; the `.340` release
+  210 callback/event, and 822 mutable-ownership candidates; the `.340` release
   remains deferred until the ongoing remediation is complete.
+- [x] Escape peer-controlled fields and remote exception details at
+  application event, transfer, browse, and Pod-message log boundaries. The
+  DownloadDenied event regression captures the emitted log and verifies that
+  usernames, filenames, and denial text stay escaped. Focused lifecycle tests
+  pass 17/17; full Release tests pass 5,919 (74 application, 5,555 unit, 289
+  integration), `./bin/lint` passes, and the active backlog check passes with
+  479 remote-text and 822 mutable-ownership candidates.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Discovery queues remain open at 210 callback/event,
-  479 remote-text, 12,230 red-team, and 821 mutable-ownership candidates;
+  479 remote-text, 12,230 red-team, and 822 mutable-ownership candidates;
   T-908 fallback lifecycle and distributed evidence requirements also remain
   open.
 
