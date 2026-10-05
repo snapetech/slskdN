@@ -1,4 +1,37 @@
-## Current state — Verify .337; prepare .338 transcode cleanup — 2026-10-04 21:22 UTC
+## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 00:40 UTC
+
+Stable `.339` is published as
+[`2026100423-slskdn.339`](https://github.com/snapetech/slskdN/releases/tag/2026100423-slskdn.339).
+Its release verifier passed for all six archives, checksums, support assets,
+VPN helper, Linux version, and bundled Web marker. Post-`.339` changes remain
+unreleased; do not tag `.340` until the continuing remediation is complete.
+
+Every first-party project under `src`, `tests`, and `tools` targets
+`net10.0`. MonoTorrent `3.9.0-alpha.unstable.rev0000` resolves to
+`lib/net8.0` for the `net10.0` application. There is no `net6.0` project TFM or
+selected MonoTorrent `net6.0` asset. Other compatible dependencies can still
+ship `net6.0` assets, and the gotcha note describes the earlier MonoTorrent
+upgrade from that older asset to `net8.0`.
+
+The current logging batch escapes request search text and related identifiers
+in compatibility/native APIs, the search lifecycle, mesh search, and HashDb.
+The log-only search snapshot uses the escaped text; application behavior and
+returned search values retain the input. Focused tests pass 185/185. Full
+Release tests pass 5,917 (74 application, 5,554 unit, 289 integration),
+`./bin/lint` passes, and the active backlog gate matches 479 remote-text,
+12,230 red-team, 210 callback/event, and 821 mutable-ownership candidates.
+Release note, changelog, backlog, and memory records are prepared with the
+implementation; changes are not yet committed or pushed.
+
+Next: commit and push this validated batch, then continue the remaining
+code-backed fixes and product remediation. T-908 cross-peer fallback sender
+and receiver lifecycle, global Party ID claims across disjoint DHT views,
+actual background-tab timer throttling, WebKit Orca and physical
+assistive-technology speech, representative WAN and sustained-resource
+measurements, the original frontend `ERR_NETWORK_CHANGED` cause, and broad
+bug-council queues remain open until their required code or evidence exists.
+
+## Previous state — Verify .337; prepare .338 transcode cleanup — 2026-10-04 21:22 UTC
 
 Stable release `.337` is tagged as
 [`2026100420-slskdn.337`](https://github.com/snapetech/slskdN/releases/tag/2026100420-slskdn.337)

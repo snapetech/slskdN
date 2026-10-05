@@ -27,6 +27,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Escape external filenames, transfer paths, peer identifiers, and decoder
   diagnostics before logging them, preserving visible text without allowing
   control characters to break log records.
+- Escape user search text, peer identifiers, filenames, and persisted hash
+  identifiers in API, mesh-search, and hash-database diagnostics while keeping
+  search behavior and result values unchanged.
 
 ## [2026100423-slskdn.339] — 2026-10-04
 

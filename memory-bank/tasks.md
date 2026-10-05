@@ -58,8 +58,10 @@
   default is now three hours to cover that observed publication delay.
 - [x] Resolve the MonoTorrent framework question. Every first-party project
   under `src`, `tests`, and `tools` targets `net10.0`; MonoTorrent
-  `3.9.0-alpha.unstable.rev0000` provides a compatible `net8.0` asset, and no
-  active `.NET 6` project target or package asset remains.
+  `3.9.0-alpha.unstable.rev0000` resolves to its compatible `net8.0` asset for
+  the application's `net10.0` target. There is no active `net6.0` project TFM
+  or selected MonoTorrent `net6.0` asset; other compatible dependencies can
+  still ship lower-TFM assets.
 - [x] Fix Player transcode cancellation cleanup. FFmpeg stderr now drains
   independently of request cancellation, and the process tree is stopped and
   reaped before stream slots are released. A Linux process-backed regression
@@ -104,9 +106,17 @@
   `./bin/lint` passes, and the active backlog gate matches 486 remote-text and
   12,229 red-team candidates. Stable `.339` release assets and checksums pass
   artifact verification.
+- [x] Escape request search text and related identifiers before logging in
+  compatibility/native APIs, the search lifecycle, mesh search, and HashDb.
+  Log-only snapshots retain escaped input while searches and results keep the
+  original values. Focused coverage passes 185/185; full Release tests pass
+  5,917 (74 application, 5,554 unit, 289 integration), `./bin/lint` and the
+  backlog gate pass. The active queues are 479 remote-text, 12,230 red-team,
+  210 callback/event, and 821 mutable-ownership candidates; the `.340` release
+  remains deferred until the ongoing remediation is complete.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Discovery queues remain open at 210 callback/event,
-  486 remote-text, 12,229 red-team, and 821 mutable-ownership candidates;
+  479 remote-text, 12,230 red-team, and 821 mutable-ownership candidates;
   T-908 fallback lifecycle and distributed evidence requirements also remain
   open.
 

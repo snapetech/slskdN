@@ -48,11 +48,13 @@ public class UsersCompatibilityController : ControllerBase
             return BadRequest(new { error = "Username is required" });
         }
 
-        logger.LogInformation("Browse user requested: {Username}", username);
+        logger.LogInformation("Browse user requested: {Username}",
+            LoggingSanitizer.SanitizeExternalIdentifier(username));
 
         if (!safetyLimiter.TryConsumeBrowse("compatibility"))
         {
-            logger.LogWarning("[SAFETY] Compatibility browse rejected for user='{Username}': rate limit exceeded", username);
+            logger.LogWarning("[SAFETY] Compatibility browse rejected for user='{Username}': rate limit exceeded",
+                LoggingSanitizer.SanitizeExternalIdentifier(username));
             return StatusCode(429, new { error = "Browse rate limit exceeded. See Soulseek safety configuration." });
         }
 
@@ -84,7 +86,8 @@ public class UsersCompatibilityController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to browse user {Username}", username);
+            logger.LogError(ex, "Failed to browse user {Username}",
+                LoggingSanitizer.SanitizeExternalIdentifier(username));
             return StatusCode(500, new { error = "Failed to browse user" });
         }
     }

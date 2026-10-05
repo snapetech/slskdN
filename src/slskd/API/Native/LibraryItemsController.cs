@@ -24,6 +24,7 @@ using slskd.Shares;
 using slskd.Streaming;
 using slskd.VirtualSoulfind.Core;
 using Soulseek;
+using SecurityLoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Provides library items search API for E2E tests and Collections UI.
@@ -76,7 +77,8 @@ public class LibraryItemsController : ControllerBase
         kinds = string.IsNullOrWhiteSpace(kinds) ? null : kinds.Trim();
         limit = Math.Clamp(limit, 1, 100);
         cancellationToken.ThrowIfCancellationRequested();
-        logger?.LogInformation("Library items search: query={Query}, kinds={Kinds}, limit={Limit}", query, kinds, limit);
+        logger?.LogInformation("Library items search: query={Query}, kinds={Kinds}, limit={Limit}",
+            SecurityLoggingSanitizer.SanitizeQueryText(query), SecurityLoggingSanitizer.SanitizeQueryText(kinds), limit);
 
         try
         {
@@ -342,7 +344,8 @@ public class LibraryItemsController : ControllerBase
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        logger?.LogInformation("Get library item: contentId={ContentId}", contentId);
+        logger?.LogInformation("Get library item: contentId={ContentId}",
+            SecurityLoggingSanitizer.SanitizeExternalIdentifier(contentId));
 
         try
         {
@@ -422,7 +425,8 @@ public class LibraryItemsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Failed to convert file to library item: {Filename}", file.Filename);
+            logger?.LogWarning(ex, "Failed to convert file to library item: {Filename}",
+                SecurityLoggingSanitizer.SanitizeFilePath(file.Filename));
             return null;
         }
     }
@@ -454,7 +458,8 @@ public class LibraryItemsController : ControllerBase
             }
             catch (Exception ex)
             {
-                logger?.LogWarning(ex, "Failed to resolve file: {Filename}", candidate.File.Filename);
+                logger?.LogWarning(ex, "Failed to resolve file: {Filename}",
+                    SecurityLoggingSanitizer.SanitizeFilePath(candidate.File.Filename));
             }
         }
 
@@ -550,7 +555,8 @@ public class LibraryItemsController : ControllerBase
             }
             catch (Exception ex)
             {
-                logger?.LogDebug(ex, "Failed to upsert content item for {Filename}", maskedFilename);
+                logger?.LogDebug(ex, "Failed to upsert content item for {Filename}",
+                    SecurityLoggingSanitizer.SanitizeFilePath(maskedFilename));
             }
 
             var ext = Path.GetExtension(filename).TrimStart('.').ToLowerInvariant();
@@ -573,7 +579,8 @@ public class LibraryItemsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Failed to convert file to library item: {Filename}", item.File.Filename);
+            logger?.LogWarning(ex, "Failed to convert file to library item: {Filename}",
+                SecurityLoggingSanitizer.SanitizeFilePath(item.File.Filename));
             return null;
         }
     }

@@ -35,6 +35,7 @@ namespace slskd.Search
     using Microsoft.EntityFrameworkCore;
     using Serilog;
     using Serilog.Events;
+    using slskd.Common.Security;
     using slskd.Search.API;
     using slskd.Search.Providers;
     using Soulseek;
@@ -337,9 +338,10 @@ namespace slskd.Search
 
         public async Task<Search> StartAsync(Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? requestedProviders, string safetySource, Guid? wishlistItemId = null)
         {
+            var safeQuery = LoggingSanitizer.SanitizeQueryText(query.SearchText);
             using var activity = SearchActivitySource.Source.StartActivity("search.start");
             activity?.SetTag("search.id", id.ToString());
-            activity?.SetTag("search.query", query.SearchText);
+            activity?.SetTag("search.query", safeQuery);
             activity?.SetTag("search.scope", scope.ToString());
             activity?.SetTag("search.providers", requestedProviders != null ? string.Join(",", requestedProviders) : "all");
             activity?.SetTag("search.safety_source", safetySource);
@@ -363,7 +365,8 @@ namespace slskd.Search
             if (!SafetyLimiter.TryConsumeSearch(safetySource))
             {
                 var message = $"Search rate limit exceeded. See Soulseek safety configuration.";
-                Log.Warning("[SAFETY] Search rejected for source={Source} query='{Query}': {Message}", safetySource, query.SearchText, message);
+                Log.Warning("[SAFETY] Search rejected for source={Source} query='{Query}': {Message}",
+                    safetySource, safeQuery, LoggingSanitizer.SanitizeQueryText(message));
 
                 throw new InvalidOperationException(message);
             }
@@ -452,7 +455,7 @@ namespace slskd.Search
                             SearchHub.BroadcastUpdateAsync(search);
                         }
 
-                        Log.Debug("Search for '{Query}' state changed: {State} (id: {Id})", query, search.State, id);
+                        Log.Debug("Search for '{Query}' state changed: {State} (id: {Id})", safeQuery, search.State, id);
                     },
                     responseReceived: (args) => progressRateLimiter.Invoke(() =>
                     {
@@ -536,11 +539,12 @@ namespace slskd.Search
                             var soulseekSearch = await soulseekSearchTask;
                             search = search.WithSoulseekSearch(soulseekSearch);
 
-                            Log.Debug("Search for '{Query}' ended normally (id: {Id})", query, id);
+                            Log.Debug("Search for '{Query}' ended normally (id: {Id})", safeQuery, id);
                         }
                         catch (Exception ex)
                         {
-                            Log.Debug(ex, "Search for '{Query}' threw {Exception}: {Message} (id: {Id})", query, ex.GetType(), ex.Message, id);
+                            Log.Debug(ex, "Search for '{Query}' threw {Exception}: {Message} (id: {Id})",
+                                safeQuery, ex.GetType(), LoggingSanitizer.SanitizeQueryText(ex.Message), id);
 
                             // OperationCanceledException might be thrown somewhere deeper, and we don't want that to count.
                             // User-cancelled searches trip the search token; host shutdown trips the app lifecycle flag.
@@ -548,17 +552,19 @@ namespace slskd.Search
                                 || IsExpectedSearchRuntimeShutdownFailure(ex, Application.IsShuttingDown))
                             {
                                 var reason = Application.IsShuttingDown ? " during shutdown" : string.Empty;
-                                Log.Information("Search for '{Query}' was cancelled{Reason}", query, reason);
+                                Log.Information("Search for '{Query}' was cancelled{Reason}", safeQuery, reason);
                                 search.State = SearchStates.Completed | SearchStates.Cancelled;
                             }
                             else if (IsSearchUnavailableDuringLogin(ex))
                             {
-                                Log.Warning("Search for '{Query}' deferred because Soulseek is still logging in: {Message}", query, ex.Message);
+                                Log.Warning("Search for '{Query}' deferred because Soulseek is still logging in: {Message}",
+                                    safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
                                 search.State = SearchStates.Completed | SearchStates.Cancelled;
                             }
                             else
                             {
-                                Log.Error(ex, "Failed to execute search for '{Query}': {Message}", query, ex.Message);
+                                Log.Error(ex, "Failed to execute search for '{Query}': {Message}",
+                                    safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
                                 search.State = SearchStates.Completed | SearchStates.Errored;
                             }
                         }
@@ -613,8 +619,9 @@ namespace slskd.Search
                         // data out over the SignalR socket
                         await SearchHub.BroadcastUpdateAsync(search with { Responses = [] });
 
-                        Log.Debug("Search for '{Query}' finalized (id: {Id}): {Search}", query, id, search with { Responses = [] });
-                        Log.Debug("Search for '{Query}' completed with {Responses} responses", query, search.ResponseCount);
+                        Log.Debug("Search for '{Query}' finalized (id: {Id}): {Search}",
+                            safeQuery, id, search with { SearchText = safeQuery, Responses = [] });
+                        Log.Debug("Search for '{Query}' completed with {Responses} responses", safeQuery, search.ResponseCount);
 
                         var completionLog = safetySource == "user" || search.ResponseCount > 0
                             ? LogEventLevel.Information
@@ -624,7 +631,7 @@ namespace slskd.Search
                             completionLog,
                             "Search completed: source={Source} query='{Query}' state={State} soulseekResponses={SoulseekResponses} meshResponses={MeshResponses} mergedResponses={MergedResponses} files={Files} durationMs={DurationMs}",
                             safetySource,
-                            query.SearchText,
+                            safeQuery,
                             search.State,
                             soulseekSnapshot.Count,
                             meshResponses.Count,
@@ -641,7 +648,8 @@ namespace slskd.Search
                             }
                             catch (Exception ex)
                             {
-                                Log.Debug(ex, "Mesh overlay search for '{Query}' failed: {Message}", query.SearchText, ex.Message);
+                                Log.Debug(ex, "Mesh overlay search for '{Query}' failed: {Message}",
+                                    safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
                                 meshResponses = Array.Empty<Response>();
                             }
 
@@ -666,7 +674,7 @@ namespace slskd.Search
 
                             Log.Debug(
                                 "Published early mesh results for '{Query}' (id: {Id}): meshResponses={MeshResponses} mergedResponses={MergedResponses} files={Files}",
-                                query.SearchText,
+                                safeQuery,
                                 id,
                                 meshResponses.Count,
                                 search.ResponseCount,
@@ -679,12 +687,14 @@ namespace slskd.Search
                     {
                         if (IsExpectedSearchFinalizationFailure(ex, Application.IsShuttingDown))
                         {
-                            Log.Debug(ex, "Search finalization for '{Query}' stopped during shutdown: {Message}", query, ex.Message);
+                            Log.Debug(ex, "Search finalization for '{Query}' stopped during shutdown: {Message}",
+                                safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
                             return;
                         }
 
                         // record may be left 'hanging' and will need to be cleaned up at the next boot; we tried to update but failed
-                        Log.Error(ex, "Failed to finalize search for '{Query}': {Message}", query, ex.Message);
+                        Log.Error(ex, "Failed to finalize search for '{Query}': {Message}",
+                            safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
                     }
                     finally
                     {
@@ -695,7 +705,7 @@ namespace slskd.Search
                 backgroundOwnsResources = true;
                 _ = TaskObservation.Observe(
                     finalizationTask,
-                    ex => Log.Warning(ex, "Search background task for '{Query}' failed (id: {Id})", query.SearchText, id));
+                    ex => Log.Warning(ex, "Search background task for '{Query}' failed (id: {Id})", safeQuery, id));
 
                 // broadcast and return the _newly created_ search; it will continue to be updated in the background
                 await SearchHub.BroadcastUpdateAsync(search);
@@ -713,11 +723,13 @@ namespace slskd.Search
                 // the app isn't connected, and a few other straightforward issues that arise before even requesting the search
                 if (IsSearchUnavailableDuringLogin(ex))
                 {
-                    Log.Warning("Search {Search} deferred because Soulseek is still logging in: {Message}", new { query, scope, options }, ex.Message);
+                    Log.Warning("Search {Search} deferred because Soulseek is still logging in: {Message}",
+                        new { query = safeQuery, scope, options }, LoggingSanitizer.SanitizeQueryText(ex.Message));
                 }
                 else
                 {
-                    Log.Error(ex, "Failed to execute search {Search}: {Message}", new { query, scope, options }, ex.Message);
+                    Log.Error(ex, "Failed to execute search {Search}: {Message}",
+                        new { query = safeQuery, scope, options }, LoggingSanitizer.SanitizeQueryText(ex.Message));
                 }
 
                 // selectively 'undo' whatever actions we were able to take successfully
@@ -785,6 +797,7 @@ namespace slskd.Search
             string safetySource,
             Action fallbackStarted)
         {
+            var safeQuery = LoggingSanitizer.SanitizeQueryText(query.SearchText);
             var soulseekSearch = await initialSearchTask.ConfigureAwait(false);
 
             if (!SmartSearchFallback.IsEnabledForSource(safetySource) ||
@@ -805,7 +818,7 @@ namespace slskd.Search
                 {
                     Log.Debug(
                         "Smart Wishlist fallback stopped by the Soulseek safety limiter for '{Query}'",
-                        query.SearchText);
+                        safeQuery);
                     break;
                 }
 
@@ -818,8 +831,8 @@ namespace slskd.Search
                 {
                     Log.Information(
                         "Smart Wishlist fallback searching '{FallbackQuery}' after low-result query '{Query}' ({ResponseCount} responses, {FileCount} files)",
-                        fallbackText,
-                        query.SearchText,
+                        LoggingSanitizer.SanitizeQueryText(fallbackText),
+                        safeQuery,
                         soulseekSearch.ResponseCount,
                         soulseekSearch.FileCount);
 
@@ -849,9 +862,9 @@ namespace slskd.Search
                     Log.Debug(
                         ex,
                         "Smart Wishlist fallback '{FallbackQuery}' failed after '{Query}': {Message}",
-                        fallbackText,
-                        query.SearchText,
-                        ex.Message);
+                        LoggingSanitizer.SanitizeQueryText(fallbackText),
+                        safeQuery,
+                        LoggingSanitizer.SanitizeQueryText(ex.Message));
                     break;
                 }
             }
@@ -1119,7 +1132,8 @@ namespace slskd.Search
             string safetySource = "user",
             Guid? wishlistItemId = null)
         {
-            Log.Information("[VSF-DISASTER-SEARCH] Starting mesh-only search for query: {Query} (id: {Id})", query.SearchText, id);
+            var safeQuery = LoggingSanitizer.SanitizeQueryText(query.SearchText);
+            Log.Information("[VSF-DISASTER-SEARCH] Starting mesh-only search for query: {Query} (id: {Id})", safeQuery, id);
 
             var cancellationTokenSource = new CancellationTokenSource();
             var searchCancellationToken = cancellationTokenSource.Token;
@@ -1151,7 +1165,7 @@ namespace slskd.Search
 
                 if (mbids.Count == 0)
                 {
-                    Log.Information("[VSF-DISASTER-SEARCH] No MBIDs for query: {Query}, falling back to overlay text search", query.SearchText);
+                    Log.Information("[VSF-DISASTER-SEARCH] No MBIDs for query: {Query}, falling back to overlay text search", safeQuery);
                     IReadOnlyList<Response> overlayResponses;
                     if (MeshOverlaySearchService != null)
                     {
@@ -1161,7 +1175,8 @@ namespace slskd.Search
                         }
                         catch (Exception ex)
                         {
-                            Log.Debug(ex, "[VSF-DISASTER-SEARCH] Overlay text search failed: {Message}", ex.Message);
+                            Log.Debug(ex, "[VSF-DISASTER-SEARCH] Overlay text search failed: {Message}",
+                                LoggingSanitizer.SanitizeQueryText(ex.Message));
                             overlayResponses = Array.Empty<Response>();
                         }
                     }
@@ -1183,7 +1198,7 @@ namespace slskd.Search
                     return search;
                 }
 
-                Log.Debug("[VSF-DISASTER-SEARCH] Resolved {Count} MBIDs for query: {Query}", mbids.Count, query.SearchText);
+                Log.Debug("[VSF-DISASTER-SEARCH] Resolved {Count} MBIDs for query: {Query}", mbids.Count, safeQuery);
 
                 // Step 2: Query mesh for each MBID and aggregate results
                 var meshResults = new List<slskd.VirtualSoulfind.DisasterMode.MeshPeerResult>();
@@ -1208,7 +1223,8 @@ namespace slskd.Search
                     }
                     catch (Exception ex)
                     {
-                        Log.Debug(ex, "[VSF-DISASTER-SEARCH] Failed to search MBID {Mbid}", mbid);
+                        Log.Debug(ex, "[VSF-DISASTER-SEARCH] Failed to search MBID {Mbid}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(mbid));
                     }
                 }
 
@@ -1237,7 +1253,7 @@ namespace slskd.Search
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[VSF-DISASTER-SEARCH] Mesh-only search failed for query: {Query} (id: {Id})", query.SearchText, id);
+                Log.Error(ex, "[VSF-DISASTER-SEARCH] Mesh-only search failed for query: {Query} (id: {Id})", safeQuery, id);
 
                 search.State = SearchStates.Completed;
                 search.EndedAt = DateTime.UtcNow;
@@ -1261,6 +1277,7 @@ namespace slskd.Search
         private Task<List<string>> ResolveQueryToMbidsAsync(string query, CancellationToken ct)
         {
             _ = ct;
+            var safeQuery = LoggingSanitizer.SanitizeQueryText(query);
 
             // For now, implement simple query parsing to extract potential MBIDs
             // In a full implementation, this would integrate with MusicBrainz API
@@ -1276,7 +1293,7 @@ namespace slskd.Search
             // For text queries, we would normally query MusicBrainz API
             // For this implementation, we'll use a simple heuristic or return empty
             // In production, this should integrate with IMusicBrainzClient
-            Log.Debug("[VSF-DISASTER-SEARCH] Query '{Query}' is not an MBID - mesh search may return limited results", query);
+            Log.Debug("[VSF-DISASTER-SEARCH] Query '{Query}' is not an MBID - mesh search may return limited results", safeQuery);
 
             // MusicBrainz API integration deferred: requires IMusicBrainzClient integration
             // For now, return empty to indicate no MBIDs found (mesh search will proceed with text query)

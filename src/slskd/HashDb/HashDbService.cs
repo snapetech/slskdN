@@ -125,7 +125,8 @@ namespace slskd.HashDb
             dbPath = Path.Combine(appDirectory, "hashdb.db");
             InitializeDatabase();
             currentSeqId = GetLatestSeqIdSync();
-            log.Information("[HashDb] Initialized at {Path}, current seq_id: {SeqId}", dbPath, currentSeqId);
+            log.Information("[HashDb] Initialized at {Path}, current seq_id: {SeqId}",
+                LoggingSanitizer.SanitizeFilePath(dbPath), currentSeqId);
 
             // Subscribe to events for hash discovery
             if (eventBus != null)
@@ -153,11 +154,13 @@ namespace slskd.HashDb
             {
                 // Track this peer - they're active on the network and might have FLACs we want
                 await TouchPeerAsync(evt.Username);
-                log.Debug("[HashDb] Tracked peer {Username} who searched us (had results: {HadResults})", evt.Username, evt.HadResults);
+                log.Debug("[HashDb] Tracked peer {Username} who searched us (had results: {HadResults})",
+                    LoggingSanitizer.SanitizeExternalIdentifier(evt.Username), evt.HadResults);
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[HashDb] Error tracking peer {Username} from search", evt.Username);
+                log.Warning(ex, "[HashDb] Error tracking peer {Username} from search",
+                    LoggingSanitizer.SanitizeExternalIdentifier(evt.Username));
             }
         }
 
@@ -170,11 +173,13 @@ namespace slskd.HashDb
             {
                 // Track this peer - they're active and downloading, good candidate for FLAC discovery
                 await TouchPeerAsync(evt.Username);
-                log.Debug("[HashDb] Tracked peer {Username} who downloaded {File}", evt.Username, evt.Filename);
+                log.Debug("[HashDb] Tracked peer {Username} who downloaded {File}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(evt.Username), LoggingSanitizer.SanitizeFilePath(evt.Filename));
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[HashDb] Error tracking peer {Username} from download", evt.Username);
+                log.Warning(ex, "[HashDb] Error tracking peer {Username} from download",
+                    LoggingSanitizer.SanitizeExternalIdentifier(evt.Username));
             }
         }
 
@@ -256,7 +261,8 @@ namespace slskd.HashDb
 
                 if (!IsAudioHashCandidate(localFilename, evt.RemoteFilename))
                 {
-                    log.Debug("[HashDb] Skipping hash for non-audio completed download {Filename}", localFilename);
+                    log.Debug("[HashDb] Skipping hash for non-audio completed download {Filename}",
+                        LoggingSanitizer.SanitizeFilePath(localFilename));
                     FinishMetadataStage(pipeline, "skipped", "Not a supported audio file");
                     return;
                 }
@@ -264,7 +270,8 @@ namespace slskd.HashDb
                 // Only hash files that are large enough
                 if (fileSize < HashChunkSize)
                 {
-                    log.Debug("[HashDb] Skipping hash for {Filename}: file too small ({Size} bytes)", localFilename, fileSize);
+                    log.Debug("[HashDb] Skipping hash for {Filename}: file too small ({Size} bytes)",
+                        LoggingSanitizer.SanitizeFilePath(localFilename), fileSize);
                     FinishMetadataStage(pipeline, "skipped", "File is too small for hashing");
                     return;
                 }
@@ -274,7 +281,7 @@ namespace slskd.HashDb
                 var existing = await LookupHashAsync(flacKey);
                 if (existing != null)
                 {
-                    log.Debug("[HashDb] Hash already exists for {Filename}", localFilename);
+                    log.Debug("[HashDb] Hash already exists for {Filename}", LoggingSanitizer.SanitizeFilePath(localFilename));
                     await IncrementHashUseCountAsync(flacKey);
                     FinishMetadataStage(pipeline, "complete", "Existing hash reused");
                     return;
@@ -284,14 +291,15 @@ namespace slskd.HashDb
                 var hash = await ComputeFileHashAsync(localFilename);
                 if (hash == null)
                 {
-                    log.Warning("[HashDb] Failed to compute hash for {Filename}", localFilename);
+                    log.Warning("[HashDb] Failed to compute hash for {Filename}", LoggingSanitizer.SanitizeFilePath(localFilename));
                     FinishMetadataStage(pipeline, "failed", "Hash computation failed");
                     return;
                 }
 
                 // Store the hash locally
                 await StoreHashFromVerificationAsync(evt.RemoteFilename, fileSize, hash);
-                log.Information("[HashDb] Stored hash for downloaded file {Filename}: {Hash}", localFilename, hash);
+                log.Information("[HashDb] Stored hash for downloaded file {Filename}: {Hash}",
+                    LoggingSanitizer.SanitizeFilePath(localFilename), LoggingSanitizer.SanitizeHash(hash));
                 FinishMetadataStage(pipeline, "complete", "Hash stored");
 
                 // Derive variant metadata + quality score
@@ -302,7 +310,8 @@ namespace slskd.HashDb
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[HashDb] Failed to derive audio variant metadata for {Filename}", localFilename);
+                    log.Warning(ex, "[HashDb] Failed to derive audio variant metadata for {Filename}",
+                        LoggingSanitizer.SanitizeFilePath(localFilename));
                 }
 
                 if (fingerprintExtractionService != null)
@@ -315,7 +324,7 @@ namespace slskd.HashDb
                         if (!string.IsNullOrWhiteSpace(fingerprint))
                         {
                             await UpdateHashFingerprintAsync(flacKey, fingerprint).ConfigureAwait(false);
-                            log.Debug("[HashDb] Stored fingerprint for {Filename}", localFilename);
+                            log.Debug("[HashDb] Stored fingerprint for {Filename}", LoggingSanitizer.SanitizeFilePath(localFilename));
                             FinishMetadataStage(fingerprintStage, "complete", "Fingerprint stored");
 
                             await TryResolveAcoustIdAsync(localFilename, flacKey, fingerprint).ConfigureAwait(false);
@@ -327,7 +336,8 @@ namespace slskd.HashDb
                     }
                     catch (Exception ex)
                     {
-                        log.Warning(ex, "[HashDb] Fingerprint extraction failed for {Filename}", localFilename);
+                        log.Warning(ex, "[HashDb] Fingerprint extraction failed for {Filename}",
+                            LoggingSanitizer.SanitizeFilePath(localFilename));
                         FinishMetadataStage(fingerprintStage, "failed", $"Fingerprint extraction failed: {ex.GetType().Name}: {ex.Message}");
                     }
                 }
@@ -344,14 +354,15 @@ namespace slskd.HashDb
                     if (meshSync != null)
                     {
                         await meshSync.PublishHashAsync(flacKey, hash, fileSize);
-                        log.Debug("[HashDb] Published hash to mesh: {Key}", flacKey);
+                        log.Debug("[HashDb] Published hash to mesh: {Key}", LoggingSanitizer.SanitizeHash(flacKey));
                     }
                 }
             }
             catch (Exception ex)
             {
                 FinishMetadataStage(pipeline, "failed", $"Hash processing failed ({ex.GetType().Name})");
-                log.Error(ex, "[HashDb] Error hashing downloaded file {Filename}", evt.LocalFilename);
+                log.Error(ex, "[HashDb] Error hashing downloaded file {Filename}",
+                    LoggingSanitizer.SanitizeFilePath(evt.LocalFilename));
             }
         }
 
@@ -419,7 +430,8 @@ namespace slskd.HashDb
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[HashDb] Error reading file for hashing: {Filename}", filename);
+                log.Warning(ex, "[HashDb] Error reading file for hashing: {Filename}",
+                    LoggingSanitizer.SanitizeFilePath(filename));
                 return null;
             }
         }
@@ -489,7 +501,7 @@ namespace slskd.HashDb
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[HashDb] FLAC analysis failed for {File}", filePath);
+                    log.Warning(ex, "[HashDb] FLAC analysis failed for {File}", LoggingSanitizer.SanitizeFilePath(filePath));
                     variant.QualityScore = qualityScorer.ComputeQualityScore(variant);
                     var (suspect, reason) = transcodeDetector.DetectTranscode(variant);
                     variant.TranscodeSuspect = suspect;
@@ -518,7 +530,7 @@ namespace slskd.HashDb
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[HashDb] MP3 analysis failed for {File}", filePath);
+                    log.Warning(ex, "[HashDb] MP3 analysis failed for {File}", LoggingSanitizer.SanitizeFilePath(filePath));
                     variant.QualityScore = qualityScorer.ComputeQualityScore(variant);
                     var (suspect, reason) = transcodeDetector.DetectTranscode(variant);
                     variant.TranscodeSuspect = suspect;
@@ -545,7 +557,7 @@ namespace slskd.HashDb
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[HashDb] Opus analysis failed for {File}", filePath);
+                    log.Warning(ex, "[HashDb] Opus analysis failed for {File}", LoggingSanitizer.SanitizeFilePath(filePath));
                     variant.QualityScore = qualityScorer.ComputeQualityScore(variant);
                     var (suspect, reason) = transcodeDetector.DetectTranscode(variant);
                     variant.TranscodeSuspect = suspect;
@@ -573,7 +585,7 @@ namespace slskd.HashDb
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[HashDb] AAC analysis failed for {File}", filePath);
+                    log.Warning(ex, "[HashDb] AAC analysis failed for {File}", LoggingSanitizer.SanitizeFilePath(filePath));
                     variant.QualityScore = qualityScorer.ComputeQualityScore(variant);
                     var (suspect, reason) = transcodeDetector.DetectTranscode(variant);
                     variant.TranscodeSuspect = suspect;
@@ -596,7 +608,7 @@ namespace slskd.HashDb
                 }
                 catch (Exception ex)
                 {
-                    log.Warning(ex, "[HashDb] Audio sketch hash failed for {File}", filePath);
+                    log.Warning(ex, "[HashDb] Audio sketch hash failed for {File}", LoggingSanitizer.SanitizeFilePath(filePath));
                 }
             }
 
@@ -1670,7 +1682,7 @@ namespace slskd.HashDb
             if (hashCache != null && hashCache.TryGetValue($"hashdb:lookup:{flacKey}", out var cachedObj) && cachedObj is HashDbEntry cached)
             {
                 activity?.SetTag("hashdb.lookup.cache_hit", true);
-                log.Debug("[HashDb] Cache hit for flac_key: {Key}", flacKey);
+                log.Debug("[HashDb] Cache hit for flac_key: {Key}", LoggingSanitizer.SanitizeHash(flacKey));
                 return cached;
             }
 
@@ -1706,7 +1718,7 @@ namespace slskd.HashDb
                         });
                     }
 
-                    log.Debug("[HashDb] Cached lookup result for flac_key: {Key}", flacKey);
+                    log.Debug("[HashDb] Cached lookup result for flac_key: {Key}", LoggingSanitizer.SanitizeHash(flacKey));
                 }
 
                 activity?.SetTag("hashdb.lookup.found", true);
@@ -1888,7 +1900,9 @@ namespace slskd.HashDb
                 MetaFlags = metaFlags,
             }, cancellationToken);
 
-            log.Debug("[HashDb] Stored hash {Key} -> {Hash} for {File} ({Size} bytes)", flacKey, byteHash, filename, size);
+            log.Debug("[HashDb] Stored hash {Key} -> {Hash} for {File} ({Size} bytes)",
+                LoggingSanitizer.SanitizeHash(flacKey), LoggingSanitizer.SanitizeHash(byteHash),
+                LoggingSanitizer.SanitizeFilePath(filename), size);
         }
 
         /// <inheritdoc/>
@@ -2774,13 +2788,15 @@ namespace slskd.HashDb
 
                 if (string.IsNullOrWhiteSpace(recordingId))
                 {
-                    log.Debug("[HashDb] AcoustID did not resolve a recording for fingerprint {Fingerprint}", fingerprint);
+                    log.Debug("[HashDb] AcoustID did not resolve a recording for fingerprint {Fingerprint}",
+                        LoggingSanitizer.SanitizeHash(fingerprint));
                     FinishMetadataStage(acoustIdStage, "complete", "No recording match");
                     return;
                 }
 
                 await UpdateHashRecordingIdAsync(flacKey, recordingId, cancellationToken).ConfigureAwait(false);
-                log.Information("[HashDb] Resolved AcoustID fingerprint to recording {RecordingId} for key {FlacKey}", recordingId, flacKey);
+                log.Information("[HashDb] Resolved AcoustID fingerprint to recording {RecordingId} for key {FlacKey}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(recordingId), LoggingSanitizer.SanitizeHash(flacKey));
                 FinishMetadataStage(acoustIdStage, "complete", $"Recording {recordingId}");
 
                 musicBrainzStage = BeginMetadataStage(filename, "musicbrainz");
@@ -2799,13 +2815,13 @@ namespace slskd.HashDb
                         FinishMetadataStage(autoTagStage, "complete", tagResult?.Updated == true ? "Tags updated" : "No tag changes needed");
                         if (tagResult?.Updated == true)
                         {
-                            log.Information("[HashDb] Auto-tagged {File}", filePath);
+                            log.Information("[HashDb] Auto-tagged {File}", LoggingSanitizer.SanitizeFilePath(filePath));
                         }
                     }
                     catch (Exception ex)
                     {
                         FinishMetadataStage(autoTagStage, "failed", $"Auto-tagging failed ({ex.GetType().Name})");
-                        log.Warning(ex, "[HashDb] Auto-tagging failed for {File}", filePath);
+                        log.Warning(ex, "[HashDb] Auto-tagging failed for {File}", LoggingSanitizer.SanitizeFilePath(filePath));
                     }
                 }
             }
@@ -3778,7 +3794,8 @@ namespace slskd.HashDb
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[HashDb] Failed to deserialize discography job {JobId}", jobId);
+                log.Warning(ex, "[HashDb] Failed to deserialize discography job {JobId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(jobId));
             }
 
             var profileText = reader.IsDBNull(3) ? null : reader.GetString(3);
@@ -4570,7 +4587,8 @@ namespace slskd.HashDb
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[HashDb] Failed to deserialize label crate job {JobId}", jobId);
+                log.Warning(ex, "[HashDb] Failed to deserialize label crate job {JobId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(jobId));
             }
 
             var statusText = reader.IsDBNull(7) ? null : reader.GetString(7);
@@ -4851,7 +4869,8 @@ namespace slskd.HashDb
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "[HashDb] Failed to deserialize release graph for artist {ArtistId}", artistId);
+                log.Warning(ex, "[HashDb] Failed to deserialize release graph for artist {ArtistId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(artistId));
                 return null;
             }
         }
@@ -5043,10 +5062,10 @@ namespace slskd.HashDb
                 {
                     // Conflict: retain the established local entry.
                     log.Warning("[HashDb] Hash conflict for {Key}: local={Local} (uses:{LocalUse}) vs remote={Remote} (uses:{RemoteUse})",
-                        item.Key,
-                        existing.ByteHash,
+                        LoggingSanitizer.SanitizeHash(item.Key),
+                        LoggingSanitizer.SanitizeHash(existing.ByteHash),
                         existing.UseCount,
-                        item.Entry.ByteHash,
+                        LoggingSanitizer.SanitizeHash(item.Entry.ByteHash),
                         item.Entry.UseCount);
                     conflicts++;
                 }

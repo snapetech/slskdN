@@ -17630,3 +17630,21 @@ mutable-ownership candidates. Stable `.339` archives, checksums, bundled Web
 marker, and VPN helper passed artifact verification. Docker Main and PPA jobs
 remain hosted workflow follow-ups. The code and release note are still
 uncommitted; continue the code-backed remediation before the next release cut.
+
+## Update 2026-10-05 00:40 UTC — Escape request search diagnostics
+
+Escaped caller-supplied search text and related usernames, peer IDs, filenames,
+hashes, and persisted IDs in compatibility/native APIs, the search lifecycle,
+mesh search, and HashDb diagnostics. The lifecycle log now uses a copy of the
+search record with the escaped query; search behavior and returned data keep
+the original. Focused tests pass 185/185. Full Release tests pass 5,917 tests
+(74 application, 5,554 unit, 289 integration), `./bin/lint` passes, and the
+active backlog gate matches 479 remote-text and 12,230 red-team candidates.
+
+Rechecked MonoTorrent: the application targets `net10.0`, while package
+`3.9.0-alpha.unstable.rev0000` supplies the selected `lib/net8.0` asset. The
+old `net6.0` reference in ADR-0001 documents the prior package that was already
+upgraded; no `.NET 6` project TFM or MonoTorrent asset remains. Some unrelated
+dependencies still contain compatible lower-TFM assets, which do not change
+the application's target framework. The security release fragment and
+changelog entry are ready for the next release after remediation is complete.

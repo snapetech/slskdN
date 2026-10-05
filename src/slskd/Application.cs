@@ -42,6 +42,7 @@ namespace slskd
     using Microsoft.Extensions.Hosting;
     using Serilog;
     using Serilog.Events;
+    using slskd.Common.Security;
     using slskd.Configuration;
     using slskd.Core.API;
     using slskd.Events;
@@ -502,7 +503,8 @@ namespace slskd
 
             foreach (var search in activeSearches)
             {
-                Log.Debug("Cleaning up dangling search {Query} started {StartedAt}", search.SearchText, search.StartedAt);
+                Log.Debug("Cleaning up dangling search {Query} started {StartedAt}",
+                    LoggingSanitizer.SanitizeQueryText(search.SearchText), search.StartedAt);
                 search.Responses = [];
                 search.ResponseCount = 0;
                 search.FileCount = 0;
@@ -2808,7 +2810,8 @@ namespace slskd
                         // and we don't want to incur the massive penalties that would caching data for each request.
                         var forecastedPosition = Transfers.Uploads.Queue.ForecastPosition(username);
 
-                        Log.Debug("Sending search response with {Count} files to {Username} for query '{Query}'", results.Count(), username, query.SearchText);
+                        Log.Debug("Sending search response with {Count} files to {Username} for query '{Query}'", results.Count(),
+                            LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeQueryText(query.SearchText));
 
                         // Raise event for passive FLAC discovery - this user searched us and we had results
                         EventBus.Raise(new Events.PeerSearchedUsEvent
@@ -2844,17 +2847,21 @@ namespace slskd
                 }
                 catch (Exception ex) when (IsCancellationException(ex))
                 {
-                    Log.Debug("Search response resolution for query '{Query}' requested by {Username} was cancelled: {Message}", query.SearchText, username, ex.Message);
+                    Log.Debug("Search response resolution for query '{Query}' requested by {Username} was cancelled: {Message}",
+                        LoggingSanitizer.SanitizeQueryText(query.SearchText),
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeQueryText(ex.Message));
                     throw;
                 }
                 catch (Exception ex) when (IsTimeoutException(ex))
                 {
-                    Log.Debug("Search response resolution for query '{Query}' requested by {Username} timed out: {Message}", query.SearchText, username, ex.Message);
+                    Log.Debug("Search response resolution for query '{Query}' requested by {Username} timed out: {Message}",
+                        LoggingSanitizer.SanitizeQueryText(query.SearchText),
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), LoggingSanitizer.SanitizeQueryText(ex.Message));
                     return null;
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Failed to resolve search response: {Message}", ex.Message);
+                    Log.Warning(ex, "Failed to resolve search response: {Message}", LoggingSanitizer.SanitizeQueryText(ex.Message));
                     throw;
                 }
             }

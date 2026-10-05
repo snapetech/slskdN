@@ -75,6 +75,30 @@ public class LibraryItemsControllerTests
     }
 
     [Fact]
+    public async Task SearchItems_EscapesLogBreakingQueryWithoutChangingSearchBehavior()
+    {
+        var query = "alpha\r\nforged";
+        shareServiceMock
+            .Setup(x => x.BrowseAsync(It.IsAny<slskd.Shares.Share>()))
+            .ReturnsAsync(new List<Soulseek.Directory>());
+        loggerMock.Setup(logger => logger.IsEnabled(LogLevel.Information)).Returns(true);
+
+        var result = await controller.SearchItems(query, null, 100, CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        loggerMock.Verify(
+            entry => entry.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("alpha\\r\\nforged") &&
+                    !state.ToString()!.Contains(query)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task SearchItems_NoQuery_ReturnsAllFiles()
     {
         // Arrange

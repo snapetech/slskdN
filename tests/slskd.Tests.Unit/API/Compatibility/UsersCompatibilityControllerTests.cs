@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.API.Compatibility;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.API.Compatibility;
@@ -13,6 +14,32 @@ using Xunit;
 
 public class UsersCompatibilityControllerTests
 {
+    [Fact]
+    public async Task BrowseUser_EscapesLogBreakingUsername()
+    {
+        var username = "alice\r\nforged";
+        var logger = new Mock<ILogger<UsersCompatibilityController>>();
+        logger.Setup(entry => entry.IsEnabled(LogLevel.Information)).Returns(true);
+        var soulseekClient = new Mock<ISoulseekClient>(MockBehavior.Strict);
+        var safetyLimiter = new Mock<ISoulseekSafetyLimiter>();
+        safetyLimiter.Setup(limiter => limiter.TryConsumeBrowse("compatibility")).Returns(false);
+        var controller = new UsersCompatibilityController(logger.Object, soulseekClient.Object, safetyLimiter.Object);
+
+        await controller.BrowseUser(username, CancellationToken.None);
+
+        logger.Verify(
+            entry => entry.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("alice\\r\\nforged") &&
+                    !state.ToString()!.Contains(username)),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+        soulseekClient.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task BrowseUser_WhenBrowseThrows_DoesNotLeakExceptionMessage()
     {

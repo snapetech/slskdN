@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh;
 using slskd.Mesh.Dht;
 
@@ -78,7 +79,7 @@ public class MeshSearchService : IMeshSearchService
     public async Task<MeshSearchResult> SearchAsync(string query, CancellationToken ct = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        logger.LogInformation("[VSF-MESH-SEARCH] Searching mesh for query: {Query}", query);
+        logger.LogInformation("[VSF-MESH-SEARCH] Searching mesh for query: {Query}", LoggingSanitizer.SanitizeQueryText(query));
 
         var result = new MeshSearchResult
         {
@@ -120,7 +121,8 @@ public class MeshSearchService : IMeshSearchService
                     }
                     catch (Exception ex)
                     {
-                        logger.LogDebug(ex, "[VSF-MESH-SEARCH] Failed to query peer {Peer}", peer.Username);
+                        logger.LogDebug(ex, "[VSF-MESH-SEARCH] Failed to query peer {Peer}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(peer.Username));
                         return null;
                     }
                 });
@@ -185,7 +187,8 @@ public class MeshSearchService : IMeshSearchService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-MESH-SEARCH] Search failed for query: {Query}", query);
+            logger.LogError(ex, "[VSF-MESH-SEARCH] Search failed for query: {Query}",
+                LoggingSanitizer.SanitizeQueryText(query));
             result.SearchDuration = stopwatch.Elapsed;
             return result;
         }
@@ -194,7 +197,8 @@ public class MeshSearchService : IMeshSearchService
     public async Task<MeshSearchResult> SearchByMbidAsync(string mbid, CancellationToken ct = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        logger.LogInformation("[VSF-MESH-SEARCH] Searching mesh for MBID: {Mbid}", mbid);
+        logger.LogInformation("[VSF-MESH-SEARCH] Searching mesh for MBID: {Mbid}",
+            LoggingSanitizer.SanitizeExternalIdentifier(mbid));
 
         var result = new MeshSearchResult
         {
@@ -215,7 +219,8 @@ public class MeshSearchService : IMeshSearchService
             var contentId = $"mbid:recording:{mbid}";
             var peers = await meshDirectory.FindPeersByContentAsync(contentId, ct);
 
-            logger.LogDebug("[VSF-MESH-SEARCH] Found {Count} peers with MBID {Mbid}", peers.Count, mbid);
+            logger.LogDebug("[VSF-MESH-SEARCH] Found {Count} peers with MBID {Mbid}",
+                peers.Count, LoggingSanitizer.SanitizeExternalIdentifier(mbid));
 
             var peerResults = new List<MeshPeerResult>();
 
@@ -248,7 +253,8 @@ public class MeshSearchService : IMeshSearchService
                 }
                 catch (Exception ex)
                 {
-                    logger.LogDebug(ex, "[VSF-MESH-SEARCH] Failed to get content from peer {Peer}", peer.PeerId);
+                    logger.LogDebug(ex, "[VSF-MESH-SEARCH] Failed to get content from peer {Peer}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(peer.PeerId));
                 }
             }
 
@@ -266,7 +272,8 @@ public class MeshSearchService : IMeshSearchService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-MESH-SEARCH] MBID search failed: {Mbid}", mbid);
+            logger.LogError(ex, "[VSF-MESH-SEARCH] MBID search failed: {Mbid}",
+                LoggingSanitizer.SanitizeExternalIdentifier(mbid));
             result.SearchDuration = stopwatch.Elapsed;
             return result;
         }

@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.API.Compatibility;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 using Microsoft.AspNetCore.Authorization;
@@ -52,7 +53,7 @@ public class SearchCompatibilityController : ControllerBase
             return BadRequest(new { error = "Limit must be positive" });
         }
 
-        logger.LogInformation("Compatibility search: {Query}", query);
+        logger.LogInformation("Compatibility search: {Query}", LoggingSanitizer.SanitizeQueryText(query));
 
         // Generate a search ID
         var searchId = Guid.NewGuid();
