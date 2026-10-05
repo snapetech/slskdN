@@ -107,11 +107,16 @@ public class SceneMembershipTracker : ISceneMembershipTracker
         SceneMetadata metadata;
         try
         {
+            ct.ThrowIfCancellationRequested();
             metadata = MessagePack.MessagePackSerializer.Deserialize<SceneMetadata>(data, cancellationToken: ct);
             if (metadata == null)
             {
                 throw new InvalidOperationException("Deserialized metadata is null");
             }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

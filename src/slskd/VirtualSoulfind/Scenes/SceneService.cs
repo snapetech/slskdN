@@ -243,6 +243,10 @@ public class SceneService : ISceneService
                     results.Add(metadata);
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 logger.LogDebug("[VSF-SCENE] Failed to get metadata for scene {SceneId}: {Exception}",

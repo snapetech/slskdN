@@ -79,6 +79,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   retrieval keeps completed results when the caller cancels.
 - Music metadata lookups now propagate caller cancellation instead of returning
   “not found” for canceled HashDb operations.
+- Scene searches, metadata deserialization, and announcement refresh now stop
+  on caller cancellation instead of returning partial scene results or moving
+  on to another scene.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

@@ -43,6 +43,73 @@ public class SceneServicesTests
     }
 
     [Fact]
+    public async Task SceneMembershipTracker_GetSceneMetadataAsync_PropagatesCancellationBeforeDeserialization()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var metadataBytes = MessagePack.MessagePackSerializer.Serialize(new SceneMetadata { SceneId = "scene:test" });
+        var dht = new Mock<IDhtClient>();
+        dht
+            .Setup(client => client.GetAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .Returns((byte[] _, CancellationToken _) =>
+            {
+                cancellation.Cancel();
+                return Task.FromResult<byte[]?>(metadataBytes);
+            });
+        var tracker = new SceneMembershipTracker(NullLogger<SceneMembershipTracker>.Instance, dht.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            tracker.GetSceneMetadataAsync("scene:test", cancellation.Token));
+    }
+
+    [Fact]
+    public async Task SceneService_SearchScenesAsync_PropagatesCanceledMetadataLookup()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var membershipTracker = new Mock<ISceneMembershipTracker>();
+        membershipTracker
+            .Setup(tracker => tracker.GetSceneMetadataAsync("scene:label:search", cancellation.Token))
+            .Returns(Task.FromCanceled<SceneMetadata?>(cancellation.Token));
+        var service = new SceneService(
+            NullLogger<SceneService>.Instance,
+            Mock.Of<ISceneAnnouncementService>(),
+            membershipTracker.Object,
+            CreateOptionsMonitor());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.SearchScenesAsync("search", cancellation.Token));
+    }
+
+    [Fact]
+    public async Task SceneAnnouncementService_RefreshAnnouncementsAsync_StopsOnCallerCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var sceneService = new Mock<ISceneService>();
+        sceneService
+            .Setup(service => service.GetJoinedScenesAsync(cancellation.Token))
+            .ReturnsAsync(new List<Scene>
+            {
+                new() { SceneId = "scene:first" },
+                new() { SceneId = "scene:second" },
+            });
+        var rateLimiter = new Mock<IDhtRateLimiter>();
+        rateLimiter
+            .Setup(limiter => limiter.TryAcquireAsync(cancellation.Token))
+            .Returns(Task.FromCanceled<bool>(cancellation.Token));
+        var service = new SceneAnnouncementService(
+            NullLogger<SceneAnnouncementService>.Instance,
+            Mock.Of<IDhtClient>(),
+            rateLimiter.Object,
+            Mock.Of<IProfileService>(),
+            sceneService.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.RefreshAnnouncementsAsync(cancellation.Token));
+        rateLimiter.Verify(limiter => limiter.TryAcquireAsync(cancellation.Token), Times.Once);
+    }
+
+    [Fact]
     public async Task SceneChatService_OnPubSubFallbackMessage_PreservesSceneIdFromEnvelope()
     {
         var pubsub = new StubScenePubSubService();

@@ -80,6 +80,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   retrieval keeps completed results when the caller cancels.
 - Music metadata lookups now propagate caller cancellation instead of returning
   “not found” for canceled HashDb operations.
+- Scene searches, metadata deserialization, and announcement refresh now stop
+  on caller cancellation instead of returning partial scene results or moving
+  on to another scene.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
 - Mesh health checks and service publication now propagate caller cancellation

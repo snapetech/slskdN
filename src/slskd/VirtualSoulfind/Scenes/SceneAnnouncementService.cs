@@ -114,6 +114,10 @@ public class SceneAnnouncementService : ISceneAnnouncementService
                 // Refresh join announcement (re-publish with new timestamp)
                 await AnnounceJoinAsync(scene.SceneId, ct);
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 logger.LogWarning("[VSF-SCENE-DHT] Failed to refresh announcement for scene {SceneId}: {Exception}",
