@@ -39804,3 +39804,16 @@ namespace import exposes all same-named types to the source file.
 **Prevention:** When a source file already imports another security layer,
 prefer a specific type alias or a fully qualified type name for the intended
 sanitizer. Compile the application after introducing new imports.
+
+### 0z1685 Convert Typed Domain IDs Only At The Logging Boundary (2026-10-05)
+
+**What went wrong:** A structured `ContentItemId` value was passed directly to
+a text logging sanitizer. The application did not compile because the domain
+identifier is not a string.
+
+**Why:** The source value looked string-like at the call site, so its declared
+type was not checked before adding a string-only diagnostic transformation.
+
+**Prevention:** Inspect the declared type before applying text sanitizers and
+convert typed identifiers with their explicit string representation only for
+logging. Leave the domain value used by federation operations unchanged.
