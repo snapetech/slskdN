@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-10-04T21:34:52Z
+Generated: 2026-10-05T07:04:13Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -218,13 +218,13 @@ None found.
   - 331:    [HttpGet("stats")]
   - 351:    [HttpPost("refresh")]
 - src/slskd/PodCore/API/Controllers/PodVerificationController.cs
-  - 46:    [HttpGet("membership/{podId}/{peerId}")]
-  - 47:    [AllowAnonymous]
-  - 77:    [HttpPost("message")]
-  - 78:    [AllowAnonymous]
-  - 123:    [HttpGet("role/{podId}/{peerId}/{requiredRole}")]
-  - 124:    [AllowAnonymous]
-  - 154:    [HttpGet("stats")]
+  - 47:    [HttpGet("membership/{podId}/{peerId}")]
+  - 48:    [AllowAnonymous]
+  - 78:    [HttpPost("message")]
+  - 79:    [AllowAnonymous]
+  - 124:    [HttpGet("role/{podId}/{peerId}/{requiredRole}")]
+  - 125:    [AllowAnonymous]
+  - 155:    [HttpGet("stats")]
 - src/slskd/SocialFederation/API/ActivityPubController.cs
   - 99:        [HttpGet("{actorName}")]
   - 100:        [AllowAnonymous]
