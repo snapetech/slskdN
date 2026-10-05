@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1697. Escape Remote DHT Data At Diagnostic Boundaries (2026-10-05)
+
+**What went wrong:** DHT peer records and mesh-directory descriptors could
+fail parsing and then log raw `PeerInfo`, peer identifiers, or exception
+objects. Shared UDP/TCP callback paths also attached raw exception metadata
+after processing network input.
+
+**Why:** These paths treated DHT values, peer-library formatting, and parser
+exceptions as local diagnostics even though remote peers can influence the
+values and failure text.
+
+**Prevention:** At DHT and mesh-directory log boundaries, escape remote string
+fields and full exception text instead of attaching raw exception objects.
+Keep packet handling, discovery outcomes, and cancellation behavior unchanged;
+cover representative malformed inputs and guard the source patterns.
+
 ### 0z1696. Refresh The Active Candidate Count After Source Changes (2026-10-05)
 
 **What went wrong:** The post-push remediation baseline found that the active
