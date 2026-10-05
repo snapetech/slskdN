@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100520-slskdn.344] — 2026-10-05
+
 ### Security
 
 - LAN discovery now escapes mDNS peer names and parse exception details before
