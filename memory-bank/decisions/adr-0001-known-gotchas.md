@@ -77,6 +77,20 @@ callbacks form a separate logging boundary.
 request log call. Sweep event subscriptions and callback handlers together,
 and cover the emitted structured log state for representative CR/LF input.
 
+### 0z1571. Sweep Provider-Specific Search Diagnostic Paths (2026-10-05)
+
+**What went wrong:** The core search lifecycle now logs an escaped query, but
+provider-specific paths still wrote raw text from bridged searches, the Scene
+provider, and persisted Pod-message search queries.
+
+**Why:** The central lifecycle audit did not trace query values through every
+provider and storage boundary that owns its own diagnostic calls.
+
+**Prevention:** After changing search logging, search every provider and
+search-backed storage path for `SearchText`, `queryText`, and request query
+values used in logs. Sanitize only the log representation and retain the
+original query for provider behavior and results.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
