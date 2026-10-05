@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1610. Sanitize Overlay Transport Diagnostics Alongside Mesh Sync (2026-10-05)
+
+**What went wrong:** The outbound mesh transport still logged remote message
+types, advertised feature strings, protocol violation text, and caught
+exceptions without escaping them. The adjacent `MeshSyncService` sweep did not
+cover the connector that extracts and dispatches these fields.
+
+**Why:** Overlay logs are split between connection setup, the long-running
+message loop, and mesh sync dispatch. Escaping peer names and endpoints does
+not make other fields parsed from the same peer safe.
+
+**Prevention:** Review connection and dispatch logs together. Escape remote
+message types, feature values, validation and protocol text, and exception
+details at log boundaries; omit raw message bodies and preserve wire values for
+protocol handling. Exercise the outbound loop with adversarial remote fields.
+
 ### 0z1609. Regenerate the Route Inventory After Controller Edits (2026-10-05)
 
 **What went wrong:** A logging-only edit in `PodVerificationController`
