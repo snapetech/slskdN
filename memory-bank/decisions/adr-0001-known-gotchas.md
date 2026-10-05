@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1612. Use Lowercase Slugs For Release Fragment Areas (2026-10-05)
+
+**What went wrong:** The mesh overlay release fragment used `mesh sync` as
+its area, but the release-note validator requires a lowercase slug and rejected
+the preview.
+
+**Why:** The fragment metadata was written from its human-readable subsystem
+name without applying the schema's slug format.
+
+**Prevention:** Use lowercase hyphen-separated values for fragment areas, then
+run the complete release-note preview before treating the metadata as valid.
+
 ### 0z1611. Disambiguate Overlay And Mesh Hello Message Types (2026-10-05)
 
 **What went wrong:** A loopback integration regression imported both
