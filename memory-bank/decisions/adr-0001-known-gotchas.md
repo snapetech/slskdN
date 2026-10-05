@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1629. Qualify Duplicate Hole-Punch DTO Names In Tests (2026-10-05)
+
+**What went wrong:** A hole-punch test imported both the NAT and mesh-service
+namespaces, which each define `HolePunchRequest`, so the new DTO construction
+was ambiguous at compile time.
+
+**Why:** Production protocol DTOs and low-level NAT request DTOs use the same
+type name in separate namespaces.
+
+**Prevention:** Fully qualify the service DTO or use an explicit alias when a
+test imports both namespaces. Check compile output after adding tests around
+protocol boundaries with similarly named DTOs.
+
 ### 0z1628. Keep Cancellation Cleanup Variables In Scope (2026-10-05)
 
 **What went wrong:** Hole-punch cancellation cleanup referenced the parsed
