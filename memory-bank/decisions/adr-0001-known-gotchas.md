@@ -6,17 +6,18 @@
 
 ### 0z1668. Escape Remote Kademlia Reply And Exception Diagnostics (2026-10-05)
 
-**What went wrong:** Kademlia FIND_NODE and FIND_VALUE logged remote RPC error
-strings and attached raw exceptions from peer calls. A peer-controlled line
-break could alter diagnostic records.
+**What went wrong:** Kademlia FIND_NODE, FIND_VALUE, PING, and STORE paths
+logged remote RPC error strings and attached raw exceptions from peer calls.
+A peer-controlled line break could alter diagnostic records.
 
 **Why:** The iterative lookup preserved the remote error for debugging but did
 not pass it through the established log-boundary sanitizer; exceptions were
 treated as trusted transport metadata.
 
 **Prevention:** Escape remote addresses, RPC error text, and exception details
-where each log is emitted. Preserve cancellation before ordinary error
-handling, and capture both rejected replies and thrown peer calls in tests.
+where each operation logs. Preserve cancellation before ordinary error
+handling, and capture rejected replies and thrown peer calls across all four
+operations.
 
 ### 0z1667. Preserve Pod Routing Cancellation And Escape Its Diagnostics (2026-10-05)
 
