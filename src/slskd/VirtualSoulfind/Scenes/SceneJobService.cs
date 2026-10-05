@@ -4,6 +4,7 @@
 namespace slskd.VirtualSoulfind.Scenes;
 
 using slskd.Jobs;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Interface for scene-scoped job creation.
@@ -58,7 +59,7 @@ public class SceneJobService : ISceneJobService
         CancellationToken ct)
     {
         logger.LogInformation("[VSF-SCENE-JOB] Creating label crate job for scene {SceneId}, limit={Limit}",
-            sceneId, limit);
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId), limit);
 
         // Get scene metadata to extract popular content
         var metadata = await membershipTracker.GetSceneMetadataAsync(sceneId, ct);
@@ -79,7 +80,8 @@ public class SceneJobService : ISceneJobService
         }, ct);
 
         logger.LogInformation("[VSF-SCENE-JOB] Created label crate job {JobId} for scene {SceneId}",
-            jobId, sceneId);
+            LoggingSanitizer.SanitizeExternalIdentifier(jobId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         return jobId;
     }
@@ -91,7 +93,8 @@ public class SceneJobService : ISceneJobService
         CancellationToken ct)
     {
         logger.LogInformation("[VSF-SCENE-JOB] Creating discography job for artist {ArtistId} in scene {SceneId}",
-            artistId, sceneId);
+            LoggingSanitizer.SanitizeExternalIdentifier(artistId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         // Verify scene exists
         var metadata = await membershipTracker.GetSceneMetadataAsync(sceneId, ct);
@@ -108,7 +111,8 @@ public class SceneJobService : ISceneJobService
         }, ct);
 
         logger.LogInformation("[VSF-SCENE-JOB] Created discography job {JobId} for scene {SceneId}",
-            jobId, sceneId);
+            LoggingSanitizer.SanitizeExternalIdentifier(jobId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         return jobId;
     }

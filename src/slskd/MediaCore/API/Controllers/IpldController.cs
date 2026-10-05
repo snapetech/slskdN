@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace slskd.MediaCore.API.Controllers;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 /// <summary>
@@ -71,7 +72,9 @@ public class IpldController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IPLD] Failed to traverse from {StartContentId} following {LinkName}", startContentId, linkName);
+            _logger.LogError("[IPLD] Failed to traverse from {StartContentId} following {LinkName}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(startContentId), LoggingSanitizer.SanitizeExternalIdentifier(linkName),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to traverse content graph" });
         }
     }
@@ -106,7 +109,8 @@ public class IpldController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IPLD] Failed to get graph for {ContentId}", contentId);
+            _logger.LogError("[IPLD] Failed to get graph for {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get content graph" });
         }
     }
@@ -136,7 +140,8 @@ public class IpldController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IPLD] Failed to find inbound links for {TargetContentId}", targetContentId);
+            _logger.LogError("[IPLD] Failed to find inbound links for {TargetContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(targetContentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to find inbound links" });
         }
     }
@@ -156,7 +161,7 @@ public class IpldController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IPLD] Failed to validate links");
+            _logger.LogError("[IPLD] Failed to validate links: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to validate IPLD links" });
         }
     }
@@ -203,13 +208,14 @@ public class IpldController : ControllerBase
 
             _logger.LogInformation(
                 "[IPLD] Added {LinkCount} links to {ContentId}",
-                links.Count, contentId);
+                links.Count, LoggingSanitizer.SanitizeExternalIdentifier(contentId));
 
             return Ok(new { message = "Links added successfully" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IPLD] Failed to add links to {ContentId}", contentId);
+            _logger.LogError("[IPLD] Failed to add links to {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to add IPLD links" });
         }
     }

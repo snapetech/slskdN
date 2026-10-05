@@ -14,6 +14,8 @@ using slskd.Mesh.Dht;
 
 namespace slskd.VirtualSoulfind.ShadowIndex;
 
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
+
 /// <summary>
 /// Interface for DHT operations.
 /// Phase 6B: Real implementation uses Mesh.Dht.InMemoryDhtClient (registered in Program.cs).
@@ -103,7 +105,8 @@ public class ShardPublisher : BackgroundService, IShardPublisher
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[VSF-PUBLISH] Failed to publish shards");
+                logger.LogError("[VSF-PUBLISH] Failed to publish shards: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             await Task.Delay(TimeSpan.FromMinutes(intervalMinutes), stoppingToken);
@@ -136,7 +139,7 @@ public class ShardPublisher : BackgroundService, IShardPublisher
                 logger.LogDebug(
                     "[VSF-PUBLISH] Selected {Count} recording IDs through cursor {Cursor}",
                     recordingIds.Count,
-                    lastPublishedRecordingId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(lastPublishedRecordingId));
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -144,7 +147,8 @@ public class ShardPublisher : BackgroundService, IShardPublisher
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-PUBLISH] Failed to get recording IDs from HashDb: {Message}", ex.Message);
+                logger.LogWarning("[VSF-PUBLISH] Failed to get recording IDs from HashDb: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 recordingIds = Array.Empty<string>();
             }
         }
@@ -180,7 +184,7 @@ public class ShardPublisher : BackgroundService, IShardPublisher
                     var acquired = await rateLimiter.TryAcquireAsync(ct);
                     if (!acquired)
                     {
-                        logger.LogWarning("[VSF-PUBLISH] Rate limit exceeded, skipping {MBID}", mbid);
+                        logger.LogWarning("[VSF-PUBLISH] Rate limit exceeded, skipping {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(mbid));
                         Interlocked.Increment(ref failedCount);
                         return;
                     }
@@ -191,7 +195,9 @@ public class ShardPublisher : BackgroundService, IShardPublisher
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-PUBLISH] Failed to publish shard for {MBID}", mbid);
+                logger.LogWarning("[VSF-PUBLISH] Failed to publish shard for {MBID}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(mbid),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 Interlocked.Increment(ref failedCount);
             }
             finally
@@ -240,14 +246,14 @@ public class ShardPublisher : BackgroundService, IShardPublisher
         var shard = await builder.BuildShardAsync(mbid, ct);
         if (shard == null)
         {
-            logger.LogDebug("[VSF-PUBLISH] No shard data for {MBID}", mbid);
+            logger.LogDebug("[VSF-PUBLISH] No shard data for {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(mbid));
             return;
         }
 
         // Apply eviction policy (trim if needed)
         if (ShardEvictionPolicy.ExceedsSizeLimit(shard))
         {
-            logger.LogDebug("[VSF-PUBLISH] Shard for {MBID} exceeds size limit, trimming", mbid);
+            logger.LogDebug("[VSF-PUBLISH] Shard for {MBID} exceeds size limit, trimming", LoggingSanitizer.SanitizeExternalIdentifier(mbid));
             shard = ShardEvictionPolicy.TrimShard(shard);
         }
 
@@ -265,6 +271,9 @@ public class ShardPublisher : BackgroundService, IShardPublisher
         await dht.PutAsync(key, value, ttlSeconds, ct);
 
         logger.LogInformation("[VSF-PUBLISH] Published shard for {MBID}: {PeerCount} peers, {VariantCount} variants, TTL={TTL}s",
-            mbid, shard.ApproximatePeerCount, shard.CanonicalVariants.Count, ttlSeconds);
+            LoggingSanitizer.SanitizeExternalIdentifier(mbid),
+            shard.ApproximatePeerCount,
+            shard.CanonicalVariants.Count,
+            ttlSeconds);
     }
 }

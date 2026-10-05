@@ -49,9 +49,44 @@ For dev or build tags, use the same logical version string embedded in the tag.
   exception details in VirtualSoulfind bridge, capture, shadow-index, mesh
   search, and transfer diagnostics while preserving the original operation
   inputs.
-- Update Homebrew and Synology source-build instructions to require .NET 10;
-  Homebrew users installing the self-contained release do not need a separate
-  .NET runtime or SDK.
+- Escape scene IDs, peer IDs, moderation reasons, and full exception details in
+  the legacy Scene and Bridge, fallback, shadow-index, content-domain, and v2
+  intent diagnostics, including exceptions raised by remote-message
+  subscribers. Scene chat bodies and original Soulseek usernames are omitted
+  from logs.
+- Require the .NET 10 SDK in contribution, Homebrew source-build, and Synology
+  source-build instructions. Homebrew users installing the self-contained
+  release do not need a separate .NET runtime or SDK.
+- Escape signal IDs, peer IDs, remote signal types/reasons, and exception
+  details in the shared signal bus, Mesh and BitTorrent signal channels, and
+  swarm control handlers. Original signal values remain unchanged for routing
+  and policy evaluation.
+- Escape job IDs, content IDs, peer IDs, filenames, paths, scheduler reasons,
+  and exception details in Swarm download diagnostics without changing job,
+  transfer, or filesystem values.
+- Escape search queries, mesh response errors, protocol validation details,
+  disconnect reasons, and full exception text in search and overlay
+  diagnostics. Search, routing, and protocol values remain unchanged.
+- Escape filenames, query text, peer identifiers, content IDs, hashes, remote
+  errors, and full exception details in multi-source discovery, scheduling,
+  chunk, failover, analytics, and cleanup diagnostics. Transfer requests and
+  filesystem values remain unchanged.
+- Escape ticket-derived peer IDs, ContentIDs, filenames, hashes, and full
+  exception details in mesh and Soulseek preview-stream and content-fetch
+  diagnostics. Preview lookups and transfer requests retain their original
+  values.
+- Escape caller-supplied ContentIDs, external IDs, domains, link names,
+  validation details, and full exception text in MediaCore API, descriptor,
+  IPLD, retrieval, and shadow-index diagnostics. Lookups, registrations, and
+  API error responses keep their existing values.
+- Escape remote Soulseek and protocol exception details in peer verification,
+  mesh greeting, and privacy-transform diagnostics while preserving their
+  existing fallback behavior.
+
+### Performance
+
+- Bound the initial reputation lookup allocation for large multi-source peer
+  sets while preserving plan ranking and peer selection.
 
 ## [2026100423-slskdn.339] — 2026-10-04
 

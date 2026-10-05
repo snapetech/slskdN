@@ -127,7 +127,7 @@ public sealed class PrivacyLayer : IPrivacyLayer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error transforming outbound message");
+            _logger.LogError("Error transforming outbound message: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Return original message on error to avoid breaking communication
             return message;
@@ -170,7 +170,7 @@ public sealed class PrivacyLayer : IPrivacyLayer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error transforming inbound message");
+            _logger.LogError("Error transforming inbound message: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Return original message on error
             return Task.FromResult(message);

@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh.ServiceFabric;
 
 /// <summary>
@@ -73,7 +74,8 @@ public sealed class MeshContentFetcher : IMeshContentFetcher
 
             _logger.LogDebug(
                 "[MeshContentFetcher] Fetching content {ContentId} from peer {PeerId} (offset={Offset}, length={Length})",
-                contentId, peerId, offset, length);
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId), offset, length);
 
             var reply = await _meshClient.CallAsync(peerId, call, cancellationToken);
 
@@ -128,7 +130,9 @@ public sealed class MeshContentFetcher : IMeshContentFetcher
                 {
                     _logger.LogWarning(
                         "[MeshContentFetcher] Hash mismatch for {ContentId} from {PeerId}: expected {Expected}, got {Actual}",
-                        contentId, peerId, expectedHash, actualHash);
+                        LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                        LoggingSanitizer.SanitizeHash(expectedHash), LoggingSanitizer.SanitizeHash(actualHash));
                 }
             }
 
@@ -136,14 +140,19 @@ public sealed class MeshContentFetcher : IMeshContentFetcher
             {
                 _logger.LogWarning(
                     "[MeshContentFetcher] Size mismatch for {ContentId} from {PeerId}: expected {Expected}, got {Actual}",
-                    contentId, peerId, expectedSize, actualSize);
+                    LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId), expectedSize, actualSize);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MeshContentFetcher] Failed to fetch {ContentId} from {PeerId}", contentId, peerId);
+            _logger.LogError(
+                "[MeshContentFetcher] Failed to fetch {ContentId} from {PeerId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new MeshContentFetchResult
             {
                 Error = "Mesh content fetch failed",

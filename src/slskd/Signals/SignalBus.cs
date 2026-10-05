@@ -8,6 +8,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Common.CodeQuality;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Central signal routing and deduplication service.
@@ -69,7 +70,10 @@ public class SignalBus : ISignalBus, IDisposable
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Signal channel handler {Channel} failed to start receiving", channel);
+            logger.LogError(
+                "Signal channel handler {Channel} failed to start receiving: {Exception}",
+                channel,
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -81,12 +85,16 @@ public class SignalBus : ISignalBus, IDisposable
 
         if (signal.IsExpired(DateTimeOffset.UtcNow))
         {
-            logger.LogWarning("Attempted to send expired signal: {SignalId}", signal.SignalId);
+            logger.LogWarning("Attempted to send expired signal: {SignalId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
             return;
         }
 
         logger.LogDebug("Sending signal: {Type} from {FromPeerId} to {ToPeerId} via {Channels}",
-            signal.Type, signal.FromPeerId, signal.ToPeerId, string.Join(", ", signal.PreferredChannels));
+            LoggingSanitizer.SanitizeExternalIdentifier(signal.Type),
+            LoggingSanitizer.SanitizeExternalIdentifier(signal.FromPeerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(signal.ToPeerId),
+            string.Join(", ", signal.PreferredChannels));
 
         // Try each preferred channel in order
         foreach (var channel in signal.PreferredChannels)
@@ -99,7 +107,8 @@ public class SignalBus : ISignalBus, IDisposable
 
             if (!handler.CanSendTo(signal.ToPeerId))
             {
-                logger.LogDebug("Channel {Channel} cannot send to peer {PeerId}", channel, signal.ToPeerId);
+                logger.LogDebug("Channel {Channel} cannot send to peer {PeerId}",
+                    channel, LoggingSanitizer.SanitizeExternalIdentifier(signal.ToPeerId));
                 continue;
             }
 
@@ -107,19 +116,24 @@ public class SignalBus : ISignalBus, IDisposable
             {
                 await handler.SendAsync(signal, cancellationToken);
                 Interlocked.Increment(ref signalsSent);
-                logger.LogDebug("Signal {SignalId} sent successfully via {Channel}", signal.SignalId, channel);
+                logger.LogDebug("Signal {SignalId} sent successfully via {Channel}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId), channel);
                 return; // Success, don't try other channels
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to send signal {SignalId} via {Channel}, trying next channel",
-                    signal.SignalId, channel);
+                logger.LogWarning(
+                    "Failed to send signal {SignalId} via {Channel}, trying next channel: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                    channel,
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 // Continue to next channel
             }
         }
 
-        logger.LogWarning("Failed to send signal {SignalId} via any preferred channel", signal.SignalId);
+        logger.LogWarning("Failed to send signal {SignalId} via any preferred channel",
+            LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
     }
 
     /// <inheritdoc />
@@ -155,21 +169,24 @@ public class SignalBus : ISignalBus, IDisposable
         if (seenSignalIds.ContainsKey(signal.SignalId))
         {
             Interlocked.Increment(ref duplicateSignalsDropped);
-            logger.LogDebug("Dropping duplicate signal: {SignalId}", signal.SignalId);
+            logger.LogDebug("Dropping duplicate signal: {SignalId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
             return;
         }
 
         if (signal.IsExpired(DateTimeOffset.UtcNow))
         {
             Interlocked.Increment(ref expiredSignalsDropped);
-            logger.LogDebug("Dropping expired signal: {SignalId}", signal.SignalId);
+            logger.LogDebug("Dropping expired signal: {SignalId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
             return;
         }
 
         if (!seenSignalIds.TryAdd(signal.SignalId, signal.SentAt))
         {
             Interlocked.Increment(ref duplicateSignalsDropped);
-            logger.LogDebug("Dropping duplicate signal: {SignalId}", signal.SignalId);
+            logger.LogDebug("Dropping duplicate signal: {SignalId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
             return;
         }
 
@@ -188,7 +205,9 @@ public class SignalBus : ISignalBus, IDisposable
         }
 
         logger.LogDebug("Forwarding signal {SignalId} ({Type}) to {Count} subscribers",
-            signal.SignalId, signal.Type, currentSubscribers.Count);
+            LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+            LoggingSanitizer.SanitizeExternalIdentifier(signal.Type),
+            currentSubscribers.Count);
 
         var tasks = currentSubscribers.Select(subscriber => InvokeSubscriberAsync(subscriber, signal, cancellationToken));
         await Task.WhenAll(tasks);
@@ -205,7 +224,10 @@ public class SignalBus : ISignalBus, IDisposable
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Signal subscriber failed for {SignalId}: {Message}", signal.SignalId, ex.Message);
+            logger.LogWarning(
+                "Signal subscriber failed for {SignalId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -262,7 +284,8 @@ public class SignalBus : ISignalBus, IDisposable
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in signal ID cleanup task");
+                logger.LogError("Error in signal ID cleanup task: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -330,7 +353,8 @@ public class SignalBus : ISignalBus, IDisposable
                     TaskScheduler.Default);
                 _ = TaskObservation.Observe(
                     completionTask,
-                    ex => logger.LogError(ex, "Signal ID cleanup completion handler failed"));
+                    ex => logger.LogError("Signal ID cleanup completion handler failed: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
             }
 
             // Subscribers and receive callbacks can still be unwinding through this
@@ -342,7 +366,8 @@ public class SignalBus : ISignalBus, IDisposable
     {
         if (completedTask.IsFaulted && completedTask.Exception is { } exception)
         {
-            logger.LogError(exception, "Signal ID cleanup task failed after disposal");
+            logger.LogError("Signal ID cleanup task failed after disposal: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(exception.ToString()));
         }
 
         cleanupCancellationTokenSource.Dispose();

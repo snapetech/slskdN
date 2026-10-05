@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.VirtualSoulfind.Scenes;
 
@@ -69,7 +70,9 @@ public class SceneModerationService : ISceneModerationService
     public Task MutePeerAsync(string sceneId, string peerId, string? reason, CancellationToken ct)
     {
         logger.LogInformation("[VSF-SCENE-MOD] Muting {PeerId} in scene {SceneId}: {Reason}",
-            peerId, sceneId, reason ?? "no reason");
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId),
+            LoggingSanitizer.SanitizeExternalIdentifier(reason ?? "no reason"));
 
         var muted = mutedPeers.GetOrAdd(sceneId, _ => new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         lock (muted)
@@ -85,7 +88,8 @@ public class SceneModerationService : ISceneModerationService
     public Task UnmutePeerAsync(string sceneId, string peerId, CancellationToken ct)
     {
         logger.LogInformation("[VSF-SCENE-MOD] Unmuting {PeerId} in scene {SceneId}",
-            peerId, sceneId);
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         if (mutedPeers.TryGetValue(sceneId, out var muted))
         {
@@ -103,7 +107,9 @@ public class SceneModerationService : ISceneModerationService
     public Task BlockPeerAsync(string sceneId, string peerId, string? reason, CancellationToken ct)
     {
         logger.LogInformation("[VSF-SCENE-MOD] Blocking {PeerId} in scene {SceneId}: {Reason}",
-            peerId, sceneId, reason ?? "no reason");
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId),
+            LoggingSanitizer.SanitizeExternalIdentifier(reason ?? "no reason"));
 
         var blocked = blockedPeers.GetOrAdd(sceneId, _ => new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         lock (blocked)
@@ -119,7 +125,8 @@ public class SceneModerationService : ISceneModerationService
     public Task UnblockPeerAsync(string sceneId, string peerId, CancellationToken ct)
     {
         logger.LogInformation("[VSF-SCENE-MOD] Unblocking {PeerId} in scene {SceneId}",
-            peerId, sceneId);
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         if (blockedPeers.TryGetValue(sceneId, out var blocked))
         {

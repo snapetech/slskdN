@@ -6,6 +6,7 @@ namespace slskd.VirtualSoulfind.Scenes;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using slskd;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 using OptionsModel = slskd.Options;
 
 /// <summary>
@@ -82,8 +83,8 @@ public sealed class SceneChatService : ISceneChatService
             throw new InvalidOperationException("Scene chat is not enabled");
         }
 
-        logger.LogDebug("[VSF-SCENE-CHAT] Sending message to scene {SceneId}: {Content}",
-            sceneId, content);
+        logger.LogDebug("[VSF-SCENE-CHAT] Sending message to scene {SceneId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         var profile = await profileService.GetMyProfileAsync(ct);
         if (string.IsNullOrWhiteSpace(profile.PeerId))
@@ -109,7 +110,8 @@ public sealed class SceneChatService : ISceneChatService
         StoreMessage(message);
 
         logger.LogInformation("[VSF-SCENE-CHAT] Sent message {MessageId} to scene {SceneId}",
-            message.MessageId, sceneId);
+            LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
     }
 
     public Task<List<SceneChatMessage>> GetMessagesAsync(
@@ -123,7 +125,7 @@ public sealed class SceneChatService : ISceneChatService
         }
 
         logger.LogDebug("[VSF-SCENE-CHAT] Getting messages for scene {SceneId}, limit={Limit}",
-            sceneId, limit);
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId), limit);
 
         if (messageCache.TryGetValue(sceneId, out var messages))
         {
@@ -157,12 +159,14 @@ public sealed class SceneChatService : ISceneChatService
                 RaiseMessageReceived(message);
 
                 logger.LogDebug("[VSF-SCENE-CHAT] Received message {MessageId} in scene {SceneId}",
-                    message.MessageId, message.SceneId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.SceneId));
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-SCENE-CHAT] Failed to process pubsub message");
+            logger.LogError("[VSF-SCENE-CHAT] Failed to process pubsub message: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -181,7 +185,8 @@ public sealed class SceneChatService : ISceneChatService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-SCENE-CHAT] MessageReceived subscriber failed");
+                logger.LogWarning("[VSF-SCENE-CHAT] MessageReceived subscriber failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -218,7 +223,8 @@ public sealed class SceneChatService : ISceneChatService
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-SCENE-CHAT] Failed to serialize message, falling back to UTF-8");
+            logger.LogWarning("[VSF-SCENE-CHAT] Failed to serialize message, falling back to UTF-8: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return System.Text.Encoding.UTF8.GetBytes(message.Content);
         }
     }
@@ -232,7 +238,8 @@ public sealed class SceneChatService : ISceneChatService
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-SCENE-CHAT] Failed to deserialize message, falling back to simple parsing");
+            logger.LogWarning("[VSF-SCENE-CHAT] Failed to deserialize message, falling back to simple parsing: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Fallback: try to parse as simple text
             try

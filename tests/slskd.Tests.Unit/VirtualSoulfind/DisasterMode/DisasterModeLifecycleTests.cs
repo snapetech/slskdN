@@ -6,6 +6,9 @@ namespace slskd.Tests.Unit.VirtualSoulfind.DisasterMode;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using slskd.VirtualSoulfind.DisasterMode;
 using Soulseek;
 using Xunit;
@@ -45,6 +48,41 @@ public class DisasterModeLifecycleTests
     }
 
     [Fact]
+    public void SoulseekClientWrapper_EscapesSubscriberExceptionBeforeLogging()
+    {
+        var sink = new CapturingLogSink();
+        var originalLogger = Log.Logger;
+        using var logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+        Log.Logger = logger;
+
+        try
+        {
+            var soulseekClient = new Mock<Soulseek.ISoulseekClient>();
+            using var wrapper = new SoulseekClientWrapper(soulseekClient.Object);
+            wrapper.RoomMessageReceived += (_, _) => throw new IOException("remote\r\nforged");
+
+            soulseekClient.Raise(
+                client => client.RoomMessageReceived += null,
+                soulseekClient.Object,
+                new RoomMessageReceivedEventArgs("room", "peer", "message"));
+
+            var entry = Assert.Single(sink.Events, logEvent =>
+                logEvent.RenderMessage().StartsWith("[VSF-DISCO] RoomMessageReceived subscriber failed", StringComparison.Ordinal));
+            var rendered = entry.RenderMessage();
+
+            Assert.Contains("IOException: remote\\r\\nforged", rendered);
+            Assert.DoesNotContain("\r\n", rendered);
+        }
+        finally
+        {
+            Log.Logger = originalLogger;
+        }
+    }
+
+    [Fact]
     public void DisasterModeCoordinator_Dispose_UnsubscribesHealthMonitor()
     {
         var healthMonitor = new Mock<ISoulseekHealthMonitor>();
@@ -78,5 +116,15 @@ public class DisasterModeLifecycleTests
         recovery.Dispose();
 
         healthMonitor.VerifyRemove(x => x.HealthChanged -= It.IsAny<EventHandler<SoulseekHealthChangedEventArgs>>(), Times.Once);
+    }
+
+    private sealed class CapturingLogSink : ILogEventSink
+    {
+        public List<LogEvent> Events { get; } = new();
+
+        public void Emit(LogEvent logEvent)
+        {
+            Events.Add(logEvent);
+        }
     }
 }

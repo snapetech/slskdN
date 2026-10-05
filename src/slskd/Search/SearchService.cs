@@ -543,8 +543,8 @@ namespace slskd.Search
                         }
                         catch (Exception ex)
                         {
-                            Log.Debug(ex, "Search for '{Query}' threw {Exception}: {Message} (id: {Id})",
-                                safeQuery, ex.GetType(), LoggingSanitizer.SanitizeQueryText(ex.Message), id);
+                            Log.Debug("Search for '{Query}' threw {Exception}: {Message} (id: {Id})",
+                                safeQuery, ex.GetType(), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()), id);
 
                             // OperationCanceledException might be thrown somewhere deeper, and we don't want that to count.
                             // User-cancelled searches trip the search token; host shutdown trips the app lifecycle flag.
@@ -558,13 +558,13 @@ namespace slskd.Search
                             else if (IsSearchUnavailableDuringLogin(ex))
                             {
                                 Log.Warning("Search for '{Query}' deferred because Soulseek is still logging in: {Message}",
-                                    safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
+                                    safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                 search.State = SearchStates.Completed | SearchStates.Cancelled;
                             }
                             else
                             {
-                                Log.Error(ex, "Failed to execute search for '{Query}': {Message}",
-                                    safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
+                                Log.Error("Failed to execute search for '{Query}': {Exception}",
+                                    safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                 search.State = SearchStates.Completed | SearchStates.Errored;
                             }
                         }
@@ -648,8 +648,8 @@ namespace slskd.Search
                             }
                             catch (Exception ex)
                             {
-                                Log.Debug(ex, "Mesh overlay search for '{Query}' failed: {Message}",
-                                    safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
+                                Log.Debug("Mesh overlay search for '{Query}' failed: {Exception}",
+                                    safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                 meshResponses = Array.Empty<Response>();
                             }
 
@@ -687,14 +687,14 @@ namespace slskd.Search
                     {
                         if (IsExpectedSearchFinalizationFailure(ex, Application.IsShuttingDown))
                         {
-                            Log.Debug(ex, "Search finalization for '{Query}' stopped during shutdown: {Message}",
-                                safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
+                            Log.Debug("Search finalization for '{Query}' stopped during shutdown: {Exception}",
+                                safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                             return;
                         }
 
                         // record may be left 'hanging' and will need to be cleaned up at the next boot; we tried to update but failed
-                        Log.Error(ex, "Failed to finalize search for '{Query}': {Message}",
-                            safeQuery, LoggingSanitizer.SanitizeQueryText(ex.Message));
+                        Log.Error("Failed to finalize search for '{Query}': {Exception}",
+                            safeQuery, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                     finally
                     {
@@ -705,7 +705,8 @@ namespace slskd.Search
                 backgroundOwnsResources = true;
                 _ = TaskObservation.Observe(
                     finalizationTask,
-                    ex => Log.Warning(ex, "Search background task for '{Query}' failed (id: {Id})", safeQuery, id));
+                    ex => Log.Warning("Search background task for '{Query}' failed (id: {Id}): {Exception}",
+                        safeQuery, id, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
 
                 // broadcast and return the _newly created_ search; it will continue to be updated in the background
                 await SearchHub.BroadcastUpdateAsync(search);
@@ -723,13 +724,13 @@ namespace slskd.Search
                 // the app isn't connected, and a few other straightforward issues that arise before even requesting the search
                 if (IsSearchUnavailableDuringLogin(ex))
                 {
-                    Log.Warning("Search {Search} deferred because Soulseek is still logging in: {Message}",
-                        new { query = safeQuery, scope, options }, LoggingSanitizer.SanitizeQueryText(ex.Message));
+                    Log.Warning("Search {Search} deferred because Soulseek is still logging in: {Exception}",
+                        new { query = safeQuery, scope, options }, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
                 else
                 {
-                    Log.Error(ex, "Failed to execute search {Search}: {Message}",
-                        new { query = safeQuery, scope, options }, LoggingSanitizer.SanitizeQueryText(ex.Message));
+                    Log.Error("Failed to execute search {Search}: {Exception}",
+                        new { query = safeQuery, scope, options }, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
 
                 // selectively 'undo' whatever actions we were able to take successfully
@@ -922,7 +923,10 @@ namespace slskd.Search
                 }
                 catch (Exception ex)
                 {
-                    log.Debug(ex, "Failed to notify traffic observer for search '{Query}'", query);
+                    log.Debug(
+                        "Failed to notify traffic observer for search '{Query}': {Exception}",
+                        LoggingSanitizer.SanitizeQueryText(query),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
         }
@@ -965,7 +969,7 @@ namespace slskd.Search
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to prune searches: {Message}", ex.Message);
+                Log.Error("Failed to prune searches: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -989,7 +993,7 @@ namespace slskd.Search
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to delete all searches: {Message}", ex.Message);
+                Log.Error("Failed to delete all searches: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -1049,7 +1053,7 @@ namespace slskd.Search
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to cleanup searches: {Message}", ex.Message);
+                Log.Error("Failed to cleanup searches: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -1175,8 +1179,8 @@ namespace slskd.Search
                         }
                         catch (Exception ex)
                         {
-                            Log.Debug(ex, "[VSF-DISASTER-SEARCH] Overlay text search failed: {Message}",
-                                LoggingSanitizer.SanitizeQueryText(ex.Message));
+                            Log.Debug("[VSF-DISASTER-SEARCH] Overlay text search failed: {Exception}",
+                                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                             overlayResponses = Array.Empty<Response>();
                         }
                     }
@@ -1223,8 +1227,9 @@ namespace slskd.Search
                     }
                     catch (Exception ex)
                     {
-                        Log.Debug(ex, "[VSF-DISASTER-SEARCH] Failed to search MBID {Mbid}",
-                            LoggingSanitizer.SanitizeExternalIdentifier(mbid));
+                        Log.Debug("[VSF-DISASTER-SEARCH] Failed to search MBID {Mbid}: {Exception}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(mbid),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
                 }
 
@@ -1253,7 +1258,8 @@ namespace slskd.Search
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[VSF-DISASTER-SEARCH] Mesh-only search failed for query: {Query} (id: {Id})", safeQuery, id);
+                Log.Error("[VSF-DISASTER-SEARCH] Mesh-only search failed for query: {Query} (id: {Id}): {Exception}",
+                    safeQuery, id, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 search.State = SearchStates.Completed;
                 search.EndedAt = DateTime.UtcNow;

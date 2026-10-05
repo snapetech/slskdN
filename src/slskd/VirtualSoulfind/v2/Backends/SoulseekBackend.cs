@@ -16,6 +16,7 @@ namespace slskd.VirtualSoulfind.v2.Backends
     using slskd.VirtualSoulfind.v2.Catalogue;
     using slskd.VirtualSoulfind.v2.Matching;
     using slskd.VirtualSoulfind.v2.Sources;
+    using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Content backend for searching the Soulseek network.
@@ -87,7 +88,8 @@ namespace slskd.VirtualSoulfind.v2.Backends
             // Safety limiter check (H-08) - THIS IS CRITICAL!
             if (!_safetyLimiter.TryConsumeSearch("virtualsoulfind-v2"))
             {
-                _logger.LogWarning("Soulseek search rate limit exceeded (H-08), skipping search for {ItemId}", itemId);
+                _logger.LogWarning("Soulseek search rate limit exceeded (H-08), skipping search for {ItemId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(itemId.ToString()));
                 return Array.Empty<SourceCandidate>();
             }
 
@@ -95,13 +97,14 @@ namespace slskd.VirtualSoulfind.v2.Backends
 
             if (string.IsNullOrWhiteSpace(searchQuery))
             {
-                _logger.LogDebug("Could not build metadata-backed Soulseek query for {ItemId}", itemId);
+                _logger.LogDebug("Could not build metadata-backed Soulseek query for {ItemId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(itemId.ToString()));
                 return Array.Empty<SourceCandidate>();
             }
 
             try
             {
-                _logger.LogDebug("Searching Soulseek for: {Query}", searchQuery);
+                _logger.LogDebug("Searching Soulseek for: {Query}", LoggingSanitizer.SanitizeQueryText(searchQuery));
 
                 // Perform the search with configured timeout and response limits
                 var searchOptions = new SearchOptions(
@@ -118,7 +121,7 @@ namespace slskd.VirtualSoulfind.v2.Backends
 
                 if (results.Responses == null || !results.Responses.Any())
                 {
-                    _logger.LogDebug("No Soulseek results for: {Query}", searchQuery);
+                    _logger.LogDebug("No Soulseek results for: {Query}", LoggingSanitizer.SanitizeQueryText(searchQuery));
                     return Array.Empty<SourceCandidate>();
                 }
 
@@ -126,7 +129,7 @@ namespace slskd.VirtualSoulfind.v2.Backends
                     "Found {Count} Soulseek responses with {FileCount} total files for {Query}",
                     results.Responses.Count,
                     results.Responses.Sum(r => r.FileCount),
-                    searchQuery);
+                    LoggingSanitizer.SanitizeQueryText(searchQuery));
 
                 // Convert responses to SourceCandidates
                 var candidates = new List<SourceCandidate>();
@@ -167,18 +170,22 @@ namespace slskd.VirtualSoulfind.v2.Backends
                     .Take(opts.MaxCandidatesPerItem)
                     .ToList();
 
-                _logger.LogDebug("Returning {Count} Soulseek candidates for {ItemId}", ordered.Count, itemId);
+                _logger.LogDebug("Returning {Count} Soulseek candidates for {ItemId}",
+                    ordered.Count,
+                    LoggingSanitizer.SanitizeExternalIdentifier(itemId.ToString()));
 
                 return ordered;
             }
             catch (OperationCanceledException)
             {
-                _logger.LogDebug("Soulseek search cancelled for {ItemId}", itemId);
+                _logger.LogDebug("Soulseek search cancelled for {ItemId}", LoggingSanitizer.SanitizeExternalIdentifier(itemId.ToString()));
                 throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error searching Soulseek for {ItemId}", itemId);
+                _logger.LogError("Error searching Soulseek for {ItemId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(itemId.ToString()),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return Array.Empty<SourceCandidate>();
             }
         }
@@ -226,8 +233,8 @@ namespace slskd.VirtualSoulfind.v2.Backends
             // Actual download attempt will happen in the Resolver
             _logger.LogDebug(
                 "Validated Soulseek candidate: {Username}/{Filename} (trust: {Trust}, quality: {Quality})",
-                parts[0],
-                parts[1],
+                LoggingSanitizer.SanitizeExternalIdentifier(parts[0]),
+                LoggingSanitizer.SanitizeFilePath(parts[1]),
                 candidate.TrustScore,
                 candidate.ExpectedQuality);
 

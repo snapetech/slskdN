@@ -253,6 +253,7 @@ public class SqliteObservationStore : IObservationStore
             ON Observations (Timestamp);";
         command.ExecuteNonQuery();
 
-        logger.LogInformation("[VSF-STORE] Raw observation persistence initialized at {Path}", dbPath);
+        logger.LogInformation("[VSF-STORE] Raw observation persistence initialized at {Path}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeFilePath(dbPath));
     }
 }

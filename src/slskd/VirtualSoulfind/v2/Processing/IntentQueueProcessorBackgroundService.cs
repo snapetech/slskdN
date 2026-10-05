@@ -9,6 +9,7 @@ namespace slskd.VirtualSoulfind.v2.Processing
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Background service that continuously processes the intent queue.
@@ -91,7 +92,8 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error in intent queue processor: {Message}", ex.Message);
+                    _logger.LogError("Error in intent queue processor: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
 
                 // Wait before next iteration

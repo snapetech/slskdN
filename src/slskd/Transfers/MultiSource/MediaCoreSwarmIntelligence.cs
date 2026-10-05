@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.MediaCore;
 
 /// <summary>
@@ -44,7 +45,7 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
 
             _logger.LogInformation(
                 "[SwarmIntelligence] Analyzing swarm for {ContentId} with {PeerCount} active peers",
-                contentId, activePeerList.Count);
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), activePeerList.Count);
 
             // Get content descriptor for intelligence analysis
             var descriptor = await _descriptorRetriever.RetrieveAsync(contentId, cancellationToken: cancellationToken);
@@ -61,13 +62,16 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
 
             _logger.LogInformation(
                 "[SwarmIntelligence] Swarm analysis complete for {ContentId}: Health={Health}, Recommendations={RecCount}",
-                contentId, health.Status, recommendations.Count);
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), health.Status, recommendations.Count);
 
             return intelligence;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SwarmIntelligence] Error analyzing swarm for {ContentId}", contentId);
+            _logger.LogError(
+                "[SwarmIntelligence] Error analyzing swarm for {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Return minimal intelligence on error
             return new SwarmIntelligence(
@@ -117,13 +121,16 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
 
             _logger.LogInformation(
                 "[SwarmIntelligence] Performance analysis for {ContentId}: {Rating} with {IssueCount} issues",
-                contentId, overallRating, issues.Count);
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), overallRating, issues.Count);
 
             return analysis;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SwarmIntelligence] Error analyzing performance for {ContentId}", contentId);
+            _logger.LogError(
+                "[SwarmIntelligence] Error analyzing performance for {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             return new SwarmPerformanceAnalysis(
                 Rating: SwarmPerformanceRating.Acceptable,
@@ -149,7 +156,7 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
 
             _logger.LogInformation(
                 "[SwarmIntelligence] Predicting optimal configuration for {ContentId} with {PeerCount} available peers",
-                contentId, peerList.Count);
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), peerList.Count);
 
             // Get content characteristics
             var descriptor = await _descriptorRetriever.RetrieveAsync(contentId, cancellationToken: cancellationToken);
@@ -180,13 +187,16 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
 
             _logger.LogInformation(
                 "[SwarmIntelligence] Predicted configuration for {ContentId}: {Strategy}, {PeerCount} peers, {Speed:F1}x speed, {Quality:F1}x quality",
-                contentId, recommendedStrategy, optimalPeerCount, predictedSpeed, predictedQuality);
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), recommendedStrategy, optimalPeerCount, predictedSpeed, predictedQuality);
 
             return prediction;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SwarmIntelligence] Error predicting configuration for {ContentId}", contentId);
+            _logger.LogError(
+                "[SwarmIntelligence] Error predicting configuration for {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Return conservative fallback prediction
             return new SwarmPrediction(

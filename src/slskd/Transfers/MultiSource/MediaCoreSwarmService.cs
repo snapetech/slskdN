@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.MediaCore;
 
 /// <summary>
@@ -46,7 +47,7 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
     {
         try
         {
-            _logger.LogInformation("[MediaCoreSwarm] Discovering content variants for {Filename}", filename);
+            _logger.LogInformation("[MediaCoreSwarm] Discovering content variants for {Filename}", LoggingSanitizer.SanitizeFilePath(filename));
 
             // Extract potential ContentID from filename
             var potentialContentId = ExtractContentIdFromFilename(filename);
@@ -87,13 +88,16 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
 
             _logger.LogInformation(
                 "[MediaCoreSwarm] Found {Count} content variants for {Filename}",
-                variants.Count, filename);
+                variants.Count, LoggingSanitizer.SanitizeFilePath(filename));
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreSwarm] Error discovering variants for {Filename}", filename);
+            _logger.LogError(
+                "[MediaCoreSwarm] Error discovering variants for {Filename}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new ContentVariantsResult(
                 OriginalFilename: filename,
                 FileSize: fileSize,
@@ -112,7 +116,7 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
             _logger.LogInformation(
                 "[MediaCoreSwarm] Grouping {Count} sources by ContentID for {Filename}",
                 verificationResult.SourcesByHash.Sum(kvp => kvp.Value.Count),
-                verificationResult.Filename);
+                LoggingSanitizer.SanitizeFilePath(verificationResult.Filename));
 
             var groupsByContentId = new Dictionary<string, SwarmGroup>();
             var recommendedContentIds = new List<string>();
@@ -173,14 +177,16 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
 
             _logger.LogInformation(
                 "[MediaCoreSwarm] Created {GroupCount} ContentID groups with primary {PrimaryContentId}",
-                groupsByContentId.Count, primaryContentId);
+                groupsByContentId.Count, LoggingSanitizer.SanitizeExternalIdentifier(primaryContentId));
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreSwarm] Error grouping sources by ContentID for {Filename}",
-                verificationResult.Filename);
+            _logger.LogError(
+                "[MediaCoreSwarm] Error grouping sources by ContentID for {Filename}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(verificationResult.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Fallback to basic grouping
             return CreateFallbackGrouping(verificationResult, cancellationToken);
@@ -239,14 +245,16 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
 
             _logger.LogInformation(
                 "[MediaCoreSwarm] Selected {PeerCount} peers using {Strategy} strategy for {ContentId}",
-                selectedPeers.Count, strategy, swarmGrouping.PrimaryContentId);
+                selectedPeers.Count, strategy, LoggingSanitizer.SanitizeExternalIdentifier(swarmGrouping.PrimaryContentId));
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreSwarm] Error selecting optimal peers for {ContentId}",
-                swarmGrouping.PrimaryContentId);
+            _logger.LogError(
+                "[MediaCoreSwarm] Error selecting optimal peers for {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(swarmGrouping.PrimaryContentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Fallback to simple peer selection
             return CreateFallbackPeerSelection(swarmGrouping, maxPeers, cancellationToken);
@@ -368,7 +376,10 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[MediaCoreSwarm] Error finding fuzzy variants for {Filename}", filename);
+            _logger.LogWarning(
+                "[MediaCoreSwarm] Error finding fuzzy variants for {Filename}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return variants.OrderByDescending(v => v.SimilarityScore).ToList();

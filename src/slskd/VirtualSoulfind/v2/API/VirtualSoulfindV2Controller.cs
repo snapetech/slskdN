@@ -22,6 +22,7 @@ namespace slskd.VirtualSoulfind.v2.API
     using slskd.VirtualSoulfind.v2.Resolution;
     using slskd.VirtualSoulfind.v2.Execution;
     using slskd.Core.Security;
+    using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     API controller for VirtualSoulfind v2.
@@ -592,7 +593,9 @@ namespace slskd.VirtualSoulfind.v2.API
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to process intent {IntentId}", intentId);
+                _logger.LogWarning("Failed to process intent {IntentId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(intentId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }

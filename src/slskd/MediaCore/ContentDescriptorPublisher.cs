@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 
 namespace slskd.MediaCore;
 
@@ -140,7 +141,8 @@ public class ContentDescriptorPublisher : IContentDescriptorPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to publish {ContentId}", descriptor.ContentId);
+            _logger.LogError("[ContentDescriptorPublisher] Failed to publish {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(descriptor.ContentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new DescriptorPublishResult(
                 Success: false,
                 ContentId: descriptor.ContentId,
@@ -240,7 +242,8 @@ public class ContentDescriptorPublisher : IContentDescriptorPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to update {ContentId}", contentId);
+            _logger.LogError("[ContentDescriptorPublisher] Failed to update {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Task.FromResult(new DescriptorUpdateResult(
                 Success: false,
                 ContentId: contentId,
@@ -319,7 +322,8 @@ public class ContentDescriptorPublisher : IContentDescriptorPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to unpublish {ContentId}", contentId);
+            _logger.LogError("[ContentDescriptorPublisher] Failed to unpublish {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Task.FromResult(new UnpublishResult(
                 Success: false,
                 ContentId: contentId,

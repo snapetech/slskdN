@@ -6,6 +6,7 @@ namespace slskd.Tests.Unit.DhtRendezvous.Security;
 using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.DhtRendezvous.Security;
+using slskd.Tests.Unit.TestHelpers;
 using Soulseek;
 using Xunit;
 
@@ -35,10 +36,11 @@ public class PeerVerificationServiceTests
         var client = new Mock<ISoulseekClient>();
         client
             .Setup(c => c.GetUserInfoAsync("alice", It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("sensitive detail"));
+            .ThrowsAsync(new InvalidOperationException("remote detail\r\nforged log"));
+        var logger = new CapturingLogger<PeerVerificationService>();
 
         var service = new PeerVerificationService(
-            Mock.Of<ILogger<PeerVerificationService>>(),
+            logger,
             client.Object);
 
         var result = await service.VerifyPeerAsync("alice", "challenge", CancellationToken.None);
@@ -46,6 +48,12 @@ public class PeerVerificationServiceTests
         Assert.False(result.IsVerified);
         Assert.False(result.IsPartial);
         Assert.Equal("Verification failed", result.FailureReason);
-        Assert.DoesNotContain("sensitive detail", result.FailureReason);
+        Assert.DoesNotContain("remote detail", result.FailureReason);
+
+        var entry = Assert.Single(logger.Entries);
+        Assert.Null(entry.Exception);
+        Assert.Contains("remote detail\\r\\nforged log", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
     }
 }

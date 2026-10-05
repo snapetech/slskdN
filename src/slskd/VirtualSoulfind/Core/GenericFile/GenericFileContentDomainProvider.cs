@@ -52,8 +52,9 @@ namespace slskd.VirtualSoulfind.Core.GenericFile
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create GenericFile item from local metadata: {Path}",
-                    LoggingSanitizer.SanitizeFilePath(fileMetadata.Id));
+                _logger.LogError("Failed to create GenericFile item from local metadata: {Path}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(fileMetadata.Id),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return Task.FromResult<GenericFileItem?>(null);
             }
         }
@@ -93,8 +94,10 @@ namespace slskd.VirtualSoulfind.Core.GenericFile
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create GenericFile item from hash/filename: {Hash}/{Filename}",
-                    LoggingSanitizer.SanitizeHash(primaryHash), LoggingSanitizer.SanitizeFilePath(filename));
+                _logger.LogError("Failed to create GenericFile item from hash/filename: {Hash}/{Filename}: {Exception}",
+                    LoggingSanitizer.SanitizeHash(primaryHash),
+                    LoggingSanitizer.SanitizeFilePath(filename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return Task.FromResult<GenericFileItem?>(null);
             }
         }

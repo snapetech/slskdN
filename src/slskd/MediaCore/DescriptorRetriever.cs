@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 
 namespace slskd.MediaCore;
@@ -110,7 +111,8 @@ public class DescriptorRetriever : IDescriptorRetriever
             catch (Exception ex)
             {
                 errorMessage = "Failed to retrieve descriptor from DHT";
-                _logger.LogWarning(ex, "[DescriptorRetriever] Failed to retrieve {ContentId} from DHT", contentId);
+                _logger.LogWarning("[DescriptorRetriever] Failed to retrieve {ContentId} from DHT: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             var verification = descriptor != null
@@ -137,7 +139,8 @@ public class DescriptorRetriever : IDescriptorRetriever
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Error retrieving {ContentId}", contentId);
+            _logger.LogError("[DescriptorRetriever] Error retrieving {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new DescriptorRetrievalResult(
                 Found: false,
                 Descriptor: null,
@@ -219,7 +222,7 @@ public class DescriptorRetriever : IDescriptorRetriever
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Error in batch retrieval");
+            _logger.LogError("[DescriptorRetriever] Error in batch retrieval: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         var duration = DateTimeOffset.UtcNow - startTime;
@@ -315,7 +318,8 @@ public class DescriptorRetriever : IDescriptorRetriever
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Error querying domain {Domain}", domain);
+            _logger.LogError("[DescriptorRetriever] Error querying domain {Domain}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(domain), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         var duration = DateTimeOffset.UtcNow - startTime;
@@ -392,7 +396,8 @@ public class DescriptorRetriever : IDescriptorRetriever
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Error verifying descriptor {ContentId}", descriptor.ContentId);
+            _logger.LogError("[DescriptorRetriever] Error verifying descriptor {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(descriptor.ContentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new DescriptorVerificationResult(
                 IsValid: false,
                 SignatureValid: false,
@@ -502,7 +507,8 @@ public class DescriptorRetriever : IDescriptorRetriever
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[DescriptorRetriever] Signature verification error for {ContentId}", descriptor.ContentId);
+            _logger.LogWarning("[DescriptorRetriever] Signature verification error for {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(descriptor.ContentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Task.FromResult(false);
         }
     }

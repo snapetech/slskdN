@@ -8,6 +8,7 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Bridge.Protocol;
 using System.IO;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using slskd.VirtualSoulfind.Bridge.Protocol;
 using Xunit;
 using Xunit.Abstractions;
@@ -86,6 +87,21 @@ public class SoulseekProtocolParserAdditionalTests
         // Act & Assert
         var message = await parser.ReadMessageAsync(stream);
         Assert.Null(message); // Should return null for invalid message
+    }
+
+    [Fact]
+    public async Task ReadMessageAsync_EscapesRemoteExceptionDetailsInLogs()
+    {
+        var logger = new CapturingLogger<SoulseekProtocolParser>();
+        var parser = new SoulseekProtocolParser(logger);
+        using var stream = new FailingReadStream();
+
+        var result = await parser.ReadMessageAsync(stream);
+
+        Assert.Null(result);
+        var logs = string.Join(Environment.NewLine, logger.Messages);
+        Assert.Contains("remote\\r\\nforged", logs);
+        Assert.DoesNotContain("remote\r\nforged", logs);
     }
 
     [Fact]
@@ -183,6 +199,31 @@ public class SoulseekProtocolParserAdditionalTests
         writer.Write(filenameBytes);
         writer.Write(token);
         return stream.ToArray();
+    }
+
+    private sealed class FailingReadStream : MemoryStream
+    {
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            => Task.FromException<int>(new IOException("remote\r\nforged"));
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => NullLogger.Instance.BeginScope(state);
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+            => Messages.Add(formatter(state, exception));
     }
 
     /// <summary>

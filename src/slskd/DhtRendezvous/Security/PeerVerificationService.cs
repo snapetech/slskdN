@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.DhtRendezvous;
 using Soulseek;
 
@@ -144,7 +145,10 @@ public sealed class PeerVerificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error verifying username {Username}", OverlayLogSanitizer.Username(claimedUsername));
+            _logger.LogError(
+                "Error verifying username {Username}: {Exception}",
+                OverlayLogSanitizer.Username(claimedUsername),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return VerificationResult.Failed("Verification failed");
         }
     }

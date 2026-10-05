@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace slskd.MediaCore.API.Controllers;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 /// <summary>
@@ -65,20 +66,20 @@ public class ContentDescriptorPublisherController : ControllerBase
             {
                 _logger.LogInformation(
                     "[ContentDescriptorPublisher] Published {ContentId} v{Version}",
-                    result.ContentId, result.Version);
+                    LoggingSanitizer.SanitizeExternalIdentifier(result.ContentId), result.Version);
                 return Ok(result);
             }
             else
             {
                 _logger.LogWarning(
                     "[ContentDescriptorPublisher] Failed to publish {ContentId}: {Error}",
-                    result.ContentId, result.ErrorMessage);
+                    LoggingSanitizer.SanitizeExternalIdentifier(result.ContentId), LoggingSanitizer.SanitizeExternalIdentifier(result.ErrorMessage));
                 return BadRequest(new { error = "Failed to publish descriptor" });
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to publish descriptor");
+            _logger.LogError("[ContentDescriptorPublisher] Failed to publish descriptor: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to publish descriptor" });
         }
     }
@@ -125,7 +126,7 @@ public class ContentDescriptorPublisherController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to publish batch");
+            _logger.LogError("[ContentDescriptorPublisher] Failed to publish batch: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to publish batch" });
         }
     }
@@ -160,20 +161,21 @@ public class ContentDescriptorPublisherController : ControllerBase
             {
                 _logger.LogInformation(
                     "[ContentDescriptorPublisher] Updated {ContentId} from v{Previous} to v{New}",
-                    contentId, result.PreviousVersion, result.NewVersion);
+                    LoggingSanitizer.SanitizeExternalIdentifier(contentId), result.PreviousVersion, result.NewVersion);
                 return Ok(result);
             }
             else
             {
                 _logger.LogWarning(
                     "[ContentDescriptorPublisher] Failed to update {ContentId}: {Error}",
-                    contentId, result.ErrorMessage);
+                    LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(result.ErrorMessage));
                 return BadRequest(new { error = "Failed to update descriptor" });
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to update descriptor {ContentId}", contentId);
+            _logger.LogError("[ContentDescriptorPublisher] Failed to update descriptor {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to update descriptor" });
         }
     }
@@ -211,7 +213,7 @@ public class ContentDescriptorPublisherController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to republish descriptors");
+            _logger.LogError("[ContentDescriptorPublisher] Failed to republish descriptors: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to republish descriptors" });
         }
     }
@@ -238,13 +240,14 @@ public class ContentDescriptorPublisherController : ControllerBase
 
             _logger.LogInformation(
                 "[ContentDescriptorPublisher] Unpublish {ContentId}: {Success}",
-                contentId, result.Success ? "successful" : "failed");
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), result.Success ? "successful" : "failed");
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to unpublish {ContentId}", contentId);
+            _logger.LogError("[ContentDescriptorPublisher] Failed to unpublish {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to unpublish descriptor" });
         }
     }
@@ -264,7 +267,7 @@ public class ContentDescriptorPublisherController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentDescriptorPublisher] Failed to get publishing stats");
+            _logger.LogError("[ContentDescriptorPublisher] Failed to get publishing stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get publishing statistics" });
         }
     }

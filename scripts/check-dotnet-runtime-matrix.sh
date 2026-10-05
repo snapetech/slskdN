@@ -11,6 +11,23 @@ if [ -z "$target_major" ]; then
   exit 1
 fi
 
+while IFS= read -r project; do
+  project_path="${project#"$repo_root"/}"
+  target_framework="$(sed -n 's/.*<TargetFramework>\([^<]*\)<\/TargetFramework>.*/\1/p' "$project" | head -n1)"
+  if [ "$target_framework" != "net${target_major}.0" ]; then
+    printf '%s targets %s; first-party projects under src/tests/tools must target net%s.0\n' \
+      "$project_path" "${target_framework:-no single target framework}" "$target_major" >&2
+    failed=1
+  fi
+done < <(find "$repo_root/src" "$repo_root/tests" "$repo_root/tools" -name '*.csproj' -print | sort)
+
+pinned_sdk_major="$(sed -n 's/.*"version": "\([0-9][0-9]*\)\..*/\1/p' "$repo_root/global.json" | head -n1)"
+if [ "$pinned_sdk_major" != "$target_major" ]; then
+  printf 'global.json pins .NET %s but the application targets .NET %s\n' \
+    "${pinned_sdk_major:-no SDK version}" "$target_major" >&2
+  failed=1
+fi
+
 expect_literal() {
   local file="$1"
   local literal="$2"
@@ -29,6 +46,7 @@ expect_literal packaging/flatpak/io.github.slskd.slskdn.yml "dotnet-runtime-${ta
 expect_literal packaging/flatpak/FLATHUB_SUBMISSION.md ".NET ${target_major}.0 runtime"
 expect_literal docs/FEATURES.md ".NET ${target_major}.0 or later"
 expect_literal docs/dev/e2e-testing-guide.md ".NET ${target_major}.0 SDK"
+expect_literal CONTRIBUTING.md ".NET ${target_major}.0 SDK"
 workflow=".github/workflows/e2e-tests.yml"
 if ! rg -q "^  DOTNET_VERSION: '${target_major}\.0\.[0-9]+'$" "$repo_root/$workflow"; then
   printf '%s must pin the application .NET %s.0 runtime version\n' "$workflow" "$target_major" >&2
@@ -40,7 +58,8 @@ if rg -n '\.NET 8\.0|\.NET 8|aspnetcore-runtime-8\.0|dotnet-runtime-8\.0|dotnet-
   "$repo_root/packaging/flatpak" \
   "$repo_root/packaging/proxmox-lxc" \
   "$repo_root/docs/FEATURES.md" \
-  "$repo_root/docs/dev/e2e-testing-guide.md" >&2; then
+  "$repo_root/docs/dev/e2e-testing-guide.md" \
+  "$repo_root/CONTRIBUTING.md" >&2; then
   printf 'Active package/docs runtime references must match net%s.0, not .NET 8.\n' "$target_major" >&2
   failed=1
 fi

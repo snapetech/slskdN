@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.VirtualSoulfind.ShadowIndex;
 
 namespace slskd.MediaCore;
@@ -51,14 +52,17 @@ public class ShadowIndexDescriptorSource : IContentDescriptorSource
             var descriptor = BuildDescriptor(contentId, result);
             if (descriptor == null)
             {
-                logger.LogDebug("[MediaCore] ShadowIndex returned no usable variant hints for {ContentId}", contentId);
+                logger.LogDebug("[MediaCore] ShadowIndex returned no usable variant hints for {ContentId}", LoggingSanitizer.SanitizeExternalIdentifier(contentId));
             }
 
             return descriptor;
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "[MediaCore] ShadowIndex lookup failed for {ContentId}", contentId);
+            logger.LogDebug(
+                "[MediaCore] ShadowIndex lookup failed for {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }

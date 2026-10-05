@@ -8,6 +8,7 @@ namespace slskd.Transfers.MultiSource.Metrics
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
+    using slskd.Common.Security;
     using slskd.HashDb;
 
     public interface ITrafficAccountingService
@@ -177,7 +178,10 @@ namespace slskd.Transfers.MultiSource.Metrics
                                 }
                             }
 
-                            logger.LogError(ex, "Failed to persist a batch of {Bytes} Soulseek download bytes", batchBytes);
+                            logger.LogError(
+                                "Failed to persist a batch of {Bytes} Soulseek download bytes: {Exception}",
+                                batchBytes,
+                                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                             if (++persistenceFailures < 3)
                             {
                                 continue;

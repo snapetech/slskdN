@@ -7,6 +7,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Mesh.Messages;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Channel handler for delivering signals over the Mesh overlay network.
@@ -58,7 +59,8 @@ public sealed class MeshSignalChannelHandler : ISignalChannelHandler
 
         if (!options.MeshChannel.Enabled)
         {
-            logger.LogWarning("Mesh channel is disabled, cannot send signal {SignalId}", signal.SignalId);
+            logger.LogWarning("Mesh channel is disabled, cannot send signal {SignalId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
             return;
         }
 
@@ -85,11 +87,15 @@ public sealed class MeshSignalChannelHandler : ISignalChannelHandler
             // Send via Mesh overlay
             await meshSender.SendToPeerAsync(signal.ToPeerId, envelope, cancellationToken);
 
-            logger.LogDebug("Signal {SignalId} sent via Mesh to peer {PeerId}", signal.SignalId, signal.ToPeerId);
+            logger.LogDebug("Signal {SignalId} sent via Mesh to peer {PeerId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.ToPeerId));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to send signal {SignalId} via Mesh", signal.SignalId);
+            logger.LogError("Failed to send signal {SignalId} via Mesh: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
@@ -161,7 +167,9 @@ public sealed class MeshSignalChannelHandler : ISignalChannelHandler
             if (signal.ToPeerId != localPeerId)
             {
                 logger.LogDebug("Ignoring signal {SignalId} not addressed to us (target: {ToPeerId}, local: {LocalPeerId})",
-                    signal.SignalId, signal.ToPeerId, localPeerId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(signal.ToPeerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(localPeerId));
                 return;
             }
 
@@ -169,7 +177,9 @@ public sealed class MeshSignalChannelHandler : ISignalChannelHandler
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error handling incoming Mesh signal {SignalId}", envelope.SignalId);
+            logger.LogError("Error handling incoming Mesh signal {SignalId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(envelope.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 }

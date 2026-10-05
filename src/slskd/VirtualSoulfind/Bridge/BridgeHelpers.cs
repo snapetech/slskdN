@@ -52,7 +52,9 @@ public class PeerIdAnonymizer : IPeerIdAnonymizer
         peerIdToUsername[peerId] = username;
         usernameToPeerId[username] = peerId;
 
-        logger.LogDebug("[VSF-BRIDGE] Anonymized {PeerId} → {Username}", peerId, username);
+        logger.LogDebug("[VSF-BRIDGE] Anonymized {PeerId} → {Username}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(username));
 
         return Task.FromResult(username);
     }
@@ -172,7 +174,8 @@ public class FilenameGenerator : IFilenameGenerator
 
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                logger.LogDebug("[VSF-BRIDGE] Generated filename: {Filename}", filename);
+                logger.LogDebug("[VSF-BRIDGE] Generated filename: {Filename}",
+                    slskd.Common.Security.LoggingSanitizer.SanitizeFilePath(filename));
             }
 
             return Task.FromResult(filename);
@@ -195,7 +198,8 @@ public class FilenameGenerator : IFilenameGenerator
             $"{artist} - {title} [{variant.Codec} {variant.BitrateKbps}kbps].{variant.Codec.ToLowerInvariant()}");
         if (logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug("[VSF-BRIDGE] Generated filename: {Filename}", filename);
+            logger.LogDebug("[VSF-BRIDGE] Generated filename: {Filename}",
+                slskd.Common.Security.LoggingSanitizer.SanitizeFilePath(filename));
         }
 
         return Task.FromResult(filename);

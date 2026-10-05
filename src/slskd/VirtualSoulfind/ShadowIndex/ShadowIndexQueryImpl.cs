@@ -5,6 +5,7 @@ namespace slskd.VirtualSoulfind.ShadowIndex;
 
 using slskd.VirtualSoulfind.Capture;
 using slskd.Mesh.Dht;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Interface for querying shadow index via DHT.
@@ -63,7 +64,7 @@ public class ShadowIndexQuery : IShadowIndexQuery
 
     public async Task<ShadowIndexQueryResult?> QueryAsync(string mbid, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-QUERY] Querying shadow index for {MBID}", mbid);
+        logger.LogDebug("[VSF-QUERY] Querying shadow index for {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(mbid));
 
         // Check cache first
         var cachedShard = await cache.GetAsync(mbid, ct);
@@ -77,7 +78,7 @@ public class ShadowIndexQuery : IShadowIndexQuery
 
         if (shardDataList.Count == 0)
         {
-            logger.LogDebug("[VSF-QUERY] No shards found for {MBID}", mbid);
+            logger.LogDebug("[VSF-QUERY] No shards found for {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(mbid));
             return null;
         }
 
@@ -89,7 +90,7 @@ public class ShadowIndexQuery : IShadowIndexQuery
 
         if (shards.Count == 0)
         {
-            logger.LogWarning("[VSF-QUERY] Failed to deserialize any shards for {MBID}", mbid);
+            logger.LogWarning("[VSF-QUERY] Failed to deserialize any shards for {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(mbid));
             return null;
         }
 
@@ -100,7 +101,9 @@ public class ShadowIndexQuery : IShadowIndexQuery
         await cache.SetAsync(mbid, mergedShard, TimeSpan.FromMinutes(10), ct);
 
         logger.LogInformation("[VSF-QUERY] Resolved {MBID}: {PeerCount} peers, {VariantCount} variants",
-            mbid, mergedShard.ApproximatePeerCount, mergedShard.CanonicalVariants.Count);
+            LoggingSanitizer.SanitizeExternalIdentifier(mbid),
+            mergedShard.ApproximatePeerCount,
+            mergedShard.CanonicalVariants.Count);
 
         return ConvertShardToResult(mbid, mergedShard);
     }

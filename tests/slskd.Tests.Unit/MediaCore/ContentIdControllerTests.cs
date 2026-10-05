@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.MediaCore;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.MediaCore;
@@ -25,6 +26,37 @@ public class ContentIdControllerTests
         Assert.IsType<OkObjectResult>(result);
         registry.Verify(
             x => x.RegisterAsync("mb:recording:12345", "content:mb:recording:12345", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Register_EscapesExternalIdAndExceptionTextInDiagnostics()
+    {
+        var externalId = "mb\r\nrecording:12345";
+        const string contentId = "content:mb:recording:12345";
+        var registry = new Mock<IContentIdRegistry>();
+        registry.Setup(x => x.RegisterAsync(externalId, contentId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("registry\r\nfailed"));
+        var logger = new Mock<ILogger<ContentIdController>>();
+        logger.Setup(entry => entry.IsEnabled(LogLevel.Error)).Returns(true);
+        var controller = new ContentIdController(logger.Object, registry.Object);
+
+        var result = await controller.Register(new ContentIdRegistrationRequest(externalId, contentId), CancellationToken.None);
+
+        var error = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, error.StatusCode);
+        registry.Verify(x => x.RegisterAsync(externalId, contentId, It.IsAny<CancellationToken>()), Times.Once);
+        logger.Verify(
+            entry => entry.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("mb\\r\\nrecording:12345") &&
+                    state.ToString()!.Contains("registry\\r\\nfailed") &&
+                    !state.ToString()!.Contains(externalId) &&
+                    !state.ToString()!.Contains("registry\r\nfailed")),
+                It.IsAny<System.Exception?>(),
+                It.IsAny<System.Func<It.IsAnyType, System.Exception?, string>>()),
             Times.Once);
     }
 

@@ -3,7 +3,9 @@
 // </copyright>
 namespace slskd.Tests.Unit.Swarm;
 
+using System.Collections.Generic;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Swarm;
@@ -26,6 +28,32 @@ public sealed class SwarmDownloadOrchestratorTests : IDisposable
         {
             System.IO.Directory.Delete(_tempDirectory, recursive: true);
         }
+    }
+
+    [Fact]
+    public async Task ProcessJob_EscapesRemoteJobFieldsBeforeLogging()
+    {
+        var messages = new List<string>();
+        using var orchestrator = new SwarmDownloadOrchestrator(
+            new CapturingLogger<SwarmDownloadOrchestrator>(messages),
+            Mock.Of<IVerificationEngine>(),
+            Mock.Of<IChunkScheduler>(),
+            Mock.Of<ISoulseekClient>(),
+            optionsMonitor: null,
+            tempRoot: _tempDirectory);
+        var job = new SwarmJob(
+            "job\r\ninjected",
+            new SwarmFile("content\r\ninjected", "hash", 1024, Filename: "remote\r\nfile.flac"),
+            Array.Empty<SwarmSource>());
+
+        await InvokeProcessJobAsync(orchestrator, job, CancellationToken.None);
+
+        var renderedMessages = string.Join("\n", messages);
+        Assert.Contains("job\\r\\ninjected", renderedMessages);
+        Assert.Contains("content\\r\\ninjected", renderedMessages);
+        Assert.DoesNotContain("\r\n", renderedMessages);
+        Assert.Equal("job\r\ninjected", job.JobId);
+        Assert.Equal("content\r\ninjected", job.File.ContentId);
     }
 
     [Fact]
@@ -586,5 +614,31 @@ public sealed class SwarmDownloadOrchestratorTests : IDisposable
         return (Task<ChunkResult>)method!.Invoke(
             orchestrator,
             new object[] { job, chunk, peerId, tempDirectory, cancellationToken })!;
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        private readonly ICollection<string> _messages;
+
+        public CapturingLogger(ICollection<string> messages)
+        {
+            _messages = messages;
+        }
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            _messages.Add(formatter(state, exception));
+        }
     }
 }

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Threading;
 using System.Threading.Tasks;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 public interface IDisasterModeRecovery : IDisposable
 {
@@ -131,7 +132,8 @@ public sealed class DisasterModeRecovery : IDisasterModeRecovery
     {
         _ = TaskObservation.Observe(HandleHealthChangedAsync(e), ex =>
         {
-            logger.LogError(ex, "[VSF-RECOVERY] Unhandled exception while processing health change");
+            logger.LogError("[VSF-RECOVERY] Unhandled exception while processing health change: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         });
     }
 
@@ -156,7 +158,8 @@ public sealed class DisasterModeRecovery : IDisasterModeRecovery
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-RECOVERY] Unhandled exception while processing health change");
+            logger.LogError("[VSF-RECOVERY] Unhandled exception while processing health change: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 }

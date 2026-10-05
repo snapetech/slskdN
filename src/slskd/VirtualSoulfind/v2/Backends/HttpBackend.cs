@@ -15,6 +15,7 @@ namespace slskd.VirtualSoulfind.v2.Backends
     using slskd.Common.Security;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.v2.Sources;
+    using ExternalLoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Backend for HTTP/HTTPS direct content downloads.
@@ -174,7 +175,10 @@ namespace slskd.VirtualSoulfind.v2.Backends
             }
             catch (HttpRequestException ex)
             {
-                _logger?.LogWarning(ex, "HTTP validation request failed for {CandidateId}", candidate.Id);
+                _logger?.LogWarning(
+                    "HTTP validation request failed for {CandidateId}: {Exception}",
+                    ExternalLoggingSanitizer.SanitizeExternalIdentifier(candidate.Id),
+                    ExternalLoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return SourceCandidateValidationResult.Invalid("HTTP validation failed");
             }
         }

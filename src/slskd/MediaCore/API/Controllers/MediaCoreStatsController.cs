@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace slskd.MediaCore.API.Controllers;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 /// <summary>
@@ -49,7 +50,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error getting dashboard");
+            _logger.LogError("[MediaCoreStats] Error getting dashboard: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get dashboard statistics" });
         }
     }
@@ -69,7 +70,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error getting registry stats");
+            _logger.LogError("[MediaCoreStats] Error getting registry stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get registry statistics" });
         }
     }
@@ -89,7 +90,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error getting descriptor stats");
+            _logger.LogError("[MediaCoreStats] Error getting descriptor stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get descriptor statistics" });
         }
     }
@@ -109,7 +110,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error getting fuzzy matching stats");
+            _logger.LogError("[MediaCoreStats] Error getting fuzzy matching stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get fuzzy matching statistics" });
         }
     }
@@ -129,7 +130,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error getting IPLD mapping stats");
+            _logger.LogError("[MediaCoreStats] Error getting IPLD mapping stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get IPLD mapping statistics" });
         }
     }
@@ -149,7 +150,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error getting perceptual hashing stats");
+            _logger.LogError("[MediaCoreStats] Error getting perceptual hashing stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get perceptual hashing statistics" });
         }
     }
@@ -169,7 +170,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error getting portability stats");
+            _logger.LogError("[MediaCoreStats] Error getting portability stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get portability statistics" });
         }
     }
@@ -189,7 +190,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error getting publishing stats");
+            _logger.LogError("[MediaCoreStats] Error getting publishing stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get publishing statistics" });
         }
     }
@@ -211,7 +212,7 @@ public class MediaCoreStatsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreStats] Error resetting stats");
+            _logger.LogError("[MediaCoreStats] Error resetting stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to reset statistics" });
         }
     }

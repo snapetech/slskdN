@@ -6,6 +6,7 @@ namespace slskd.Signals;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Channel handler for delivering signals over BitTorrent extension protocol.
@@ -56,7 +57,8 @@ public sealed class BtExtensionSignalChannelHandler : ISignalChannelHandler
 
         if (!options.BtExtensionChannel.Enabled)
         {
-            logger.LogWarning("BT extension channel is disabled, cannot send signal {SignalId}", signal.SignalId);
+            logger.LogWarning("BT extension channel is disabled, cannot send signal {SignalId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
             return;
         }
 
@@ -78,11 +80,15 @@ public sealed class BtExtensionSignalChannelHandler : ISignalChannelHandler
             // Send via BT extension
             await btExtensionSender.SendExtensionMessageAsync(signal.ToPeerId, extensionMessage, cancellationToken);
 
-            logger.LogDebug("Signal {SignalId} sent via BT extension to peer {PeerId}", signal.SignalId, signal.ToPeerId);
+            logger.LogDebug("Signal {SignalId} sent via BT extension to peer {PeerId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.ToPeerId));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to send signal {SignalId} via BT extension", signal.SignalId);
+            logger.LogError("Failed to send signal {SignalId} via BT extension: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
@@ -149,7 +155,9 @@ public sealed class BtExtensionSignalChannelHandler : ISignalChannelHandler
             if (signal.ToPeerId != localPeerId)
             {
                 logger.LogDebug("Ignoring signal {SignalId} not addressed to us (target: {ToPeerId}, local: {LocalPeerId})",
-                    signal.SignalId, signal.ToPeerId, localPeerId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(signal.ToPeerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(localPeerId));
                 return;
             }
 
@@ -157,7 +165,9 @@ public sealed class BtExtensionSignalChannelHandler : ISignalChannelHandler
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error handling incoming BT extension signal from peer {PeerId}", fromPeerId);
+            logger.LogError("Error handling incoming BT extension signal from peer {PeerId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(fromPeerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 }

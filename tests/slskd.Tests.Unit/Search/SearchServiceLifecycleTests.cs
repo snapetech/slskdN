@@ -22,6 +22,8 @@ using slskd.Search.API;
 using slskd.Search.Providers;
 using slskd.VirtualSoulfind.Capture;
 using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using Soulseek;
 using ProviderSearchRequest = slskd.Search.Providers.SearchRequest;
 using Xunit;
@@ -302,6 +304,7 @@ public class SearchServiceLifecycleTests
     public async Task NotifyTrafficObserverAsync_WhenOneResponseFails_Continues()
     {
         var observer = new Mock<ITrafficObserver>();
+        var query = "query\r\nforged";
         var responses = new[]
         {
             new SearchResponse("first", 1, true, 0, 0, Array.Empty<Soulseek.File>(), Array.Empty<Soulseek.File>()),
@@ -309,22 +312,30 @@ public class SearchServiceLifecycleTests
         };
 
         observer
-            .Setup(m => m.OnSearchResultsAsync("query", responses[0], It.IsAny<CancellationToken>()))
-            .Returns(Task.FromException(new InvalidOperationException("observer failed")));
+            .Setup(m => m.OnSearchResultsAsync(query, responses[0], It.IsAny<CancellationToken>()))
+            .Returns(Task.FromException(new InvalidOperationException("observer\r\nfailed")));
         observer
-            .Setup(m => m.OnSearchResultsAsync("query", responses[1], It.IsAny<CancellationToken>()))
+            .Setup(m => m.OnSearchResultsAsync(query, responses[1], It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        var sink = new CapturingSink();
         await SearchService.NotifyTrafficObserverAsync(
             observer.Object,
-            "query",
+            query,
             responses,
-            new LoggerConfiguration().CreateLogger(),
+            new LoggerConfiguration().MinimumLevel.Debug().WriteTo.Sink(sink).CreateLogger(),
             CancellationToken.None);
 
         observer.Verify(
-            m => m.OnSearchResultsAsync("query", It.IsAny<SearchResponse>(), It.IsAny<CancellationToken>()),
+            m => m.OnSearchResultsAsync(query, It.IsAny<SearchResponse>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2));
+
+        var logEvent = Assert.Single(sink.Events);
+        Assert.Null(logEvent.Exception);
+        Assert.Contains("query\\r\\nforged", logEvent.RenderMessage());
+        Assert.Contains("observer\\r\\nfailed", logEvent.RenderMessage());
+        Assert.DoesNotContain(query, logEvent.RenderMessage());
+        Assert.DoesNotContain("observer\r\nfailed", logEvent.RenderMessage());
     }
 
     [Fact]
@@ -1056,5 +1067,12 @@ public class SearchServiceLifecycleTests
             Commands.Add(command.CommandText);
             return ValueTask.FromResult(result);
         }
+    }
+
+    private sealed class CapturingSink : ILogEventSink
+    {
+        public List<LogEvent> Events { get; } = [];
+
+        public void Emit(LogEvent logEvent) => Events.Add(logEvent);
     }
 }

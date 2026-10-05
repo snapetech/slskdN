@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace slskd.MediaCore.API.Controllers;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 /// <summary>
@@ -83,7 +84,7 @@ public class PerceptualHashController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PerceptualHash] Failed to compute audio hash");
+            _logger.LogError("[PerceptualHash] Failed to compute audio hash: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to compute audio perceptual hash" }));
         }
     }
@@ -138,7 +139,7 @@ public class PerceptualHashController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PerceptualHash] Failed to compute image hash");
+            _logger.LogError("[PerceptualHash] Failed to compute image hash: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to compute image perceptual hash" }));
         }
     }
@@ -189,7 +190,7 @@ public class PerceptualHashController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PerceptualHash] Failed to compute hash similarity");
+            _logger.LogError("[PerceptualHash] Failed to compute hash similarity: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to compute hash similarity" });
         }
     }

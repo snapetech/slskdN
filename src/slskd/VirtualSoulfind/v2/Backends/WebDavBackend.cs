@@ -16,6 +16,7 @@ namespace slskd.VirtualSoulfind.v2.Backends
     using slskd.Common.Security;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.v2.Sources;
+    using ExternalLoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Backend for WebDAV (PROPFIND, GET) content sources.
@@ -162,7 +163,10 @@ namespace slskd.VirtualSoulfind.v2.Backends
             }
             catch (HttpRequestException ex)
             {
-                _logger?.LogWarning(ex, "WebDAV validation request failed for {CandidateId}", candidate.Id);
+                _logger?.LogWarning(
+                    "WebDAV validation request failed for {CandidateId}: {Exception}",
+                    ExternalLoggingSanitizer.SanitizeExternalIdentifier(candidate.Id),
+                    ExternalLoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return SourceCandidateValidationResult.Invalid("WebDAV validation failed");
             }
         }

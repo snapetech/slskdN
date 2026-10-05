@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace slskd.MediaCore.API.Controllers;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 /// <summary>
@@ -73,7 +74,7 @@ public class MetadataPortabilityController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MetadataPortability] Failed to export metadata");
+            _logger.LogError("[MetadataPortability] Failed to export metadata: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to export metadata" });
         }
     }
@@ -109,7 +110,7 @@ public class MetadataPortabilityController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MetadataPortability] Failed to import metadata");
+            _logger.LogError("[MetadataPortability] Failed to import metadata: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to import metadata" });
         }
     }
@@ -141,7 +142,7 @@ public class MetadataPortabilityController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MetadataPortability] Failed to analyze conflicts");
+            _logger.LogError("[MetadataPortability] Failed to analyze conflicts: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to analyze conflicts" });
         }
     }

@@ -11,6 +11,7 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Backends
     using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using Moq;
     using slskd.VirtualSoulfind.Core;
@@ -112,12 +113,13 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Backends
         [Fact]
         public async Task ValidateCandidate_WhenHttpClientThrows_ReturnsSanitizedError()
         {
-            var handler = new ThrowingHttpMessageHandler(new HttpRequestException("sensitive detail"));
-            var (backend, httpClient) = CreateBackend(handler: handler);
+            var handler = new ThrowingHttpMessageHandler(new HttpRequestException("sensitive\r\ndetail"));
+            var logger = new CapturingLogger<HttpBackend>();
+            var (backend, httpClient) = CreateBackend(handler: handler, logger: logger);
             using var _ = httpClient;
             var candidate = new SourceCandidate
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = "candidate\r\ninjected: true",
                 ItemId = ContentItemId.NewId(),
                 Backend = ContentBackendType.Http,
                 BackendRef = "https://allowed.com/file.flac",
@@ -129,10 +131,18 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Backends
 
             Assert.False(result.IsValid);
             Assert.Equal("HTTP validation failed", result.InvalidityReason);
-            Assert.DoesNotContain("sensitive detail", result.InvalidityReason);
+            Assert.DoesNotContain("sensitive", result.InvalidityReason);
+            var entry = Assert.Single(logger.Entries);
+            Assert.Contains("candidate\\r\\ninjected: true", entry.Message);
+            Assert.Contains("sensitive\\r\\ndetail", entry.Message);
+            Assert.Null(entry.Exception);
+            Assert.DoesNotContain("\r\n", entry.Message);
         }
 
-        private (HttpBackend Backend, HttpClient HttpClient) CreateBackend(HttpBackendOptions options = null, HttpMessageHandler handler = null)
+        private (HttpBackend Backend, HttpClient HttpClient) CreateBackend(
+            HttpBackendOptions options = null,
+            HttpMessageHandler handler = null,
+            ILogger<HttpBackend> logger = null)
         {
             options ??= new HttpBackendOptions
             {
@@ -151,7 +161,7 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Backends
 
             var registry = new InMemorySourceRegistry();
 
-            return (new HttpBackend(httpFactory, optionsMonitor.Object, registry), httpClient);
+            return (new HttpBackend(httpFactory, optionsMonitor.Object, registry, logger), httpClient);
         }
     }
 

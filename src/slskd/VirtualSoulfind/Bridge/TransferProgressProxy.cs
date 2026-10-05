@@ -5,6 +5,7 @@ namespace slskd.VirtualSoulfind.Bridge;
 
 using slskd.VirtualSoulfind.DisasterMode;
 using System.Collections.Concurrent;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Interface for proxying mesh transfer progress to legacy clients.
@@ -79,7 +80,8 @@ public class TransferProgressProxy : ITransferProgressProxy
         var proxyId = Ulid.NewUlid().ToString();
 
         logger.LogInformation("[VSF-BRIDGE-PROXY] Starting proxy {ProxyId} for mesh transfer {MeshId}",
-            proxyId, meshTransferId);
+            LoggingSanitizer.SanitizeExternalIdentifier(proxyId),
+            LoggingSanitizer.SanitizeExternalIdentifier(meshTransferId));
 
         var session = new ProxySession
         {
@@ -95,8 +97,11 @@ public class TransferProgressProxy : ITransferProgressProxy
         var subscription = meshTransfer.SubscribeToProgress(meshTransferId)
             .Subscribe(
                 update => OnMeshProgressUpdate(proxyId, update),
-                ex => logger.LogError(ex, "[VSF-BRIDGE-PROXY] Proxy {ProxyId} error", proxyId),
-                () => logger.LogDebug("[VSF-BRIDGE-PROXY] Proxy {ProxyId} completed", proxyId));
+                ex => logger.LogError("[VSF-BRIDGE-PROXY] Proxy {ProxyId} error: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(proxyId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())),
+                () => logger.LogDebug("[VSF-BRIDGE-PROXY] Proxy {ProxyId} completed",
+                    LoggingSanitizer.SanitizeExternalIdentifier(proxyId)));
 
         session.Subscription = subscription;
 
@@ -164,7 +169,8 @@ public class TransferProgressProxy : ITransferProgressProxy
     {
         if (activeSessions.TryRemove(proxyId, out var session))
         {
-            logger.LogInformation("[VSF-BRIDGE-PROXY] Stopping proxy {ProxyId}", proxyId);
+            logger.LogInformation("[VSF-BRIDGE-PROXY] Stopping proxy {ProxyId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(proxyId));
             session.Subscription?.Dispose();
         }
 
@@ -184,7 +190,7 @@ public class TransferProgressProxy : ITransferProgressProxy
             : 0;
 
         logger.LogDebug("[VSF-BRIDGE-PROXY] {ProxyId}: {Percent}% ({Bytes}/{Total}) @ {Rate} Bps",
-            proxyId,
+            LoggingSanitizer.SanitizeExternalIdentifier(proxyId),
             percent,
             update.BytesTransferred,
             session.LastProgress?.FileSize ?? 0,

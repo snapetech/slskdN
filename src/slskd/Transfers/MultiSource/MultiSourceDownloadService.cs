@@ -240,7 +240,9 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[MediaCore] Swarm intelligence failed, falling back to legacy selection");
+                _logger.LogWarning(
+                    "[MediaCore] Swarm intelligence failed, falling back to legacy selection: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -362,8 +364,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         {
             _logger.LogInformation(
                 "[SWARM] Skipping source discovery for {Filename}; blocked by global exclusion {Exclusion}",
-                filename,
-                targetExclusion);
+                LoggingSanitizer.SanitizeFilePath(filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(targetExclusion));
             return new ContentVerificationResult
             {
                 Filename = filename,
@@ -374,7 +376,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         // Extract just the filename for searching
         var searchTerm = IOPath.GetFileNameWithoutExtension(filename);
 
-        _logger.LogInformation("Searching for alternative sources: {SearchTerm}", searchTerm);
+        _logger.LogInformation("Searching for alternative sources: {SearchTerm}", LoggingSanitizer.SanitizeQueryText(searchTerm));
 
         // Use MediaCore to discover content variants if available
         ContentVariantsResult? contentVariants = null;
@@ -389,7 +391,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 {
                     _logger.LogInformation(
                         "[MediaCore] Discovered {VariantCount} content variants for {Filename}",
-                        contentVariants.Variants.Count, filename);
+                        contentVariants.Variants.Count, LoggingSanitizer.SanitizeFilePath(filename));
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -398,7 +400,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[MediaCore] Failed to discover content variants for {Filename}", filename);
+                _logger.LogWarning(
+                    "[MediaCore] Failed to discover content variants for {Filename}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(filename),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -413,7 +418,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         {
             if (_soulseekSafetyLimiter?.TryConsumeSearch("multisource-source-discovery") == false)
             {
-                _logger.LogWarning("Search skipped by Soulseek safety limiter: {SearchTerm}", searchTerm);
+                _logger.LogWarning("Search skipped by Soulseek safety limiter: {SearchTerm}", LoggingSanitizer.SanitizeQueryText(searchTerm));
                 return new ContentVerificationResult
                 {
                     Filename = filename,
@@ -433,7 +438,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Search failed: {Message}", ex.Message);
+            _logger.LogWarning("Search failed: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         // Find exact matches (same filename, same size)
@@ -472,7 +477,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                         candidates.Add(response.Username);
                         _logger.LogDebug(
                             "[MediaCore] Added candidate {Username} for {Filename} ({MatchType})",
-                            response.Username, responseFilename,
+                            LoggingSanitizer.SanitizeExternalIdentifier(response.Username),
+                            LoggingSanitizer.SanitizeFilePath(responseFilename),
                             isExactMatch ? "exact" : "variant");
                     }
                 }
@@ -520,8 +526,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             result.Error = $"Download blocked by global exclusion '{filenameExclusion}'";
             _logger.LogInformation(
                 "[SWARM] Blocked multi-source download of {Filename} by global exclusion {Exclusion}",
-                request.Filename,
-                filenameExclusion);
+                LoggingSanitizer.SanitizeFilePath(request.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(filenameExclusion));
             return result;
         }
 
@@ -534,7 +540,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             result.Error = "Download blocked because every source path matched a global exclusion";
             _logger.LogInformation(
                 "[SWARM] Blocked multi-source download of {Filename}; all {Count} source paths matched policy",
-                request.Filename,
+                LoggingSanitizer.SanitizeFilePath(request.Filename),
                 request.Sources.Count);
             return result;
         }
@@ -544,7 +550,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             _logger.LogInformation(
                 "[SWARM] Removed {BlockedCount} policy-blocked source(s) from multi-source download of {Filename}",
                 request.Sources.Count - allowedSources.Count,
-                request.Filename);
+                LoggingSanitizer.SanitizeFilePath(request.Filename));
             request = new MultiSourceDownloadRequest
             {
                 Id = request.Id,
@@ -570,7 +576,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
         Activity? activity = MultiSourceActivitySource.Source.StartActivity("swarm.download");
         activity?.SetTag("swarm.download.id", request.Id);
-        activity?.SetTag("swarm.download.filename", request.Filename);
+        activity?.SetTag("swarm.download.filename", LoggingSanitizer.SanitizeFilePath(request.Filename));
         activity?.SetTag("swarm.download.size", request.FileSize);
         activity?.SetTag("swarm.download.sources", request.Sources.Count);
 
@@ -641,7 +647,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
             _logger.LogInformation(
                 "SWARM DOWNLOAD: {Filename} ({Size} bytes) = {Chunks} chunks from {Sources} sources",
-                request.Filename,
+                LoggingSanitizer.SanitizeFilePath(request.Filename),
                 request.FileSize,
                 chunks.Count,
                 request.Sources.Count);
@@ -694,7 +700,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 var midPriorityCount = chunkInfos.Count(c => c.Priority == 5);
                 var lowPriorityCount = chunkInfos.Count(c => c.Priority == 1);
                 _logger.LogDebug("[SWARM] Chunk priorities for job {JobId}: High={High}, Mid={Mid}, Low={Low}",
-                    jobId, highPriorityCount, midPriorityCount, lowPriorityCount);
+                LoggingSanitizer.SanitizeExternalIdentifier(jobId), highPriorityCount, midPriorityCount, lowPriorityCount);
             }
 
             var completedChunks = new ConcurrentDictionary<int, ChunkResult>();
@@ -904,7 +910,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             _logger.LogInformation("[SWARM] SUCCESS! Chunk distribution:");
             foreach (var stat in sourceStats.OrderByDescending(s => s.Value))
             {
-                _logger.LogInformation("  {Username}: {Count} chunks", stat.Key, stat.Value);
+                _logger.LogInformation("  {Username}: {Count} chunks", LoggingSanitizer.SanitizeExternalIdentifier(stat.Key), stat.Value);
             }
 
             // Assemble chunks
@@ -934,8 +940,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             {
                 _logger.LogWarning(
                     "Final hash mismatch! Expected: {Expected}, Got: {Actual}",
-                    request.ExpectedHash,
-                    finalHash);
+                    LoggingSanitizer.SanitizeHash(request.ExpectedHash),
+                    LoggingSanitizer.SanitizeHash(finalHash));
                 result.Error = "Final hash verification failed";
                 result.Success = false;
                 status.State = MultiSourceDownloadState.Failed;
@@ -985,7 +991,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             SwarmDownloadsTotal.WithLabels("success").Inc();
             _logger.LogInformation(
                 "SWARM SUCCESS: {Filename} in {Time}ms ({Speed:F2} MB/s) from {Sources} sources",
-                request.Filename,
+                LoggingSanitizer.SanitizeFilePath(request.Filename),
                 result.TotalTimeMs,
                 (request.FileSize / 1024.0 / 1024.0) / (result.TotalTimeMs / 1000.0),
                 result.SourcesUsed);
@@ -1003,9 +1009,9 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         catch (Exception ex)
         {
             activity?.SetTag("swarm.download.success", false);
-            activity?.SetTag("swarm.download.error", ex.Message);
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            _logger.LogError(ex, "SWARM DOWNLOAD FAILED: {Message}", ex.Message);
+            activity?.SetTag("swarm.download.error", LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
+            activity?.SetStatus(ActivityStatusCode.Error, LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
+            _logger.LogError("SWARM DOWNLOAD FAILED: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             result.Error = "Multi-source download failed";
             result.Success = false;
             status.State = MultiSourceDownloadState.Failed;
@@ -1024,7 +1030,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to remove temporary chunks for multi-source download {DownloadId}", request.Id);
+                    _logger.LogWarning(
+                        "Failed to remove temporary chunks for multi-source download {DownloadId}: {Exception}",
+                        request.Id,
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -1107,7 +1116,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
             _logger.LogInformation(
                 "[FAILOVER] Attempting {Username} from offset {Offset} ({Remaining} bytes remaining)",
-                source.Username,
+                LoggingSanitizer.SanitizeExternalIdentifier(source.Username),
                 bytesReceived,
                 request.FileSize - bytesReceived);
 
@@ -1136,7 +1145,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                         {
                             _logger.LogWarning(
                                 "[FAILOVER] {Username} stalled at {Bps} bytes/s; switching peer (clean cancel)",
-                                source.Username,
+                                LoggingSanitizer.SanitizeExternalIdentifier(source.Username),
                                 deltaBps);
                             stalledForFailover = true;
                             attemptError = "Stalled";
@@ -1180,7 +1189,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 {
                     attemptError = ex.Message;
                     Telemetry.SwarmMetrics.SwarmSequentialFailoverTotal.WithLabels("errored").Inc();
-                    _logger.LogWarning(ex, "[FAILOVER] {Username} errored: {Message}", source.Username, ex.Message);
+                    _logger.LogWarning(
+                        "[FAILOVER] {Username} errored: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(source.Username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
             finally
@@ -1191,7 +1203,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to stop sequential speed monitor for {Username}", source.Username);
+                    _logger.LogWarning(
+                        "Failed to stop sequential speed monitor for {Username}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(source.Username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
 
                 try
@@ -1203,7 +1218,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Sequential speed monitor failed for {Username}", source.Username);
+                    _logger.LogWarning(
+                        "Sequential speed monitor failed for {Username}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(source.Username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -1218,15 +1236,15 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             {
                 _logger.LogInformation(
                     "[FAILOVER] {Username} produced {Bytes} bytes before failure ({Reason}); will try next source",
-                    source.Username,
+                    LoggingSanitizer.SanitizeExternalIdentifier(source.Username),
                     bytesReceived - attemptStartBytes,
-                    attemptError);
+                    LoggingSanitizer.SanitizeExternalIdentifier(attemptError));
             }
             else if (bytesReceived == attemptStartBytes)
             {
                 // Peer accepted the request but produced no data (queued / no slot). Move on.
                 Telemetry.SwarmMetrics.SwarmSequentialFailoverTotal.WithLabels("queue_too_deep").Inc();
-                _logger.LogInformation("[FAILOVER] {Username} produced no bytes; trying next source", source.Username);
+                _logger.LogInformation("[FAILOVER] {Username} produced no bytes; trying next source", LoggingSanitizer.SanitizeExternalIdentifier(source.Username));
             }
         }
 
@@ -1269,8 +1287,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         {
             _logger.LogWarning(
                 "[FAILOVER] Final hash mismatch! Expected: {Expected}, Got: {Actual}",
-                request.ExpectedHash,
-                finalHash);
+                LoggingSanitizer.SanitizeHash(request.ExpectedHash),
+                LoggingSanitizer.SanitizeHash(finalHash));
             result.Error = "Final hash verification failed";
             result.Success = false;
             status.State = MultiSourceDownloadState.Failed;
@@ -1370,7 +1388,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         const int maxConsecutiveFailures = 3;
 
         status.IncrementActiveWorkers();
-        _logger.LogInformation("[SWARM] Worker started: {Username}", username);
+        _logger.LogInformation("[SWARM] Worker started: {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
 
         try
         {
@@ -1385,7 +1403,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 // Check if this peer is in timeout (was too slow recently)
                 if (status.IsPeerInTimeout(username))
                 {
-                    _logger.LogDebug("[SWARM] {Username} is in timeout, waiting...", username);
+                    _logger.LogDebug("[SWARM] {Username} is in timeout, waiting...", LoggingSanitizer.SanitizeExternalIdentifier(username));
                     await Task.Delay(5000, cancellationToken); // Check again in 5s
                     continue;
                 }
@@ -1429,7 +1447,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                             EndOffset = incompleteChunkData.EndOffset,
                             Priority = priority,
                         };
-                        _logger.LogDebug("[SWARM] {Username} stealing chunk {Index} (speculative, priority {Priority})", username, chunk.Index, chunk.Priority);
+                        _logger.LogDebug("[SWARM] {Username} stealing chunk {Index} (speculative, priority {Priority})", LoggingSanitizer.SanitizeExternalIdentifier(username), chunk.Index, chunk.Priority);
                     }
                     else
                     {
@@ -1507,7 +1525,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                                 System.IO.File.Delete(workerTempPath);
                             }
 
-                            _logger.LogDebug("[SWARM] {Username} completed chunk {Index} but another worker won the race", username, chunk.Index);
+                            _logger.LogDebug("[SWARM] {Username} completed chunk {Index} but another worker won the race", LoggingSanitizer.SanitizeExternalIdentifier(username), chunk.Index);
                             continue;
                         }
 
@@ -1516,7 +1534,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
                         _logger.LogInformation(
                             "[SWARM] ✓ {Username} chunk {Index} @ {Speed:F0} KB/s [{Completed}/{Total}]",
-                            username,
+                            LoggingSanitizer.SanitizeExternalIdentifier(username),
                             chunk.Index,
                             result.SpeedBps / 1024.0,
                             completedChunks.Count,
@@ -1544,7 +1562,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                         // Immediately blacklist peers who reject - they won't support ANY chunks
                         if (isRejection)
                         {
-                            _logger.LogWarning("[SWARM] {Username} rejected partial download - blacklisting", username);
+                            _logger.LogWarning("[SWARM] {Username} rejected partial download - blacklisting", LoggingSanitizer.SanitizeExternalIdentifier(username));
                             failedUsers.TryAdd(username, true);
                             chunkQueue.Enqueue(chunk);
                             break; // Exit this worker immediately
@@ -1558,7 +1576,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                         }
 
                         _logger.LogWarning("[SWARM] ✗ {Username} chunk {Index}: {Error} (fail {Fails}/{Max})",
-                            username, chunk.Index, result.Error, consecutiveFailures, maxConsecutiveFailures);
+                            LoggingSanitizer.SanitizeExternalIdentifier(username), chunk.Index,
+                            LoggingSanitizer.SanitizeExternalIdentifier(result.Error), consecutiveFailures, maxConsecutiveFailures);
 
                         // Put chunk back for another worker
                         chunkQueue.Enqueue(chunk);
@@ -1566,7 +1585,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                         // Only exit if too many consecutive HARD failures
                         if (consecutiveFailures >= maxConsecutiveFailures)
                         {
-                            _logger.LogWarning("[SWARM] {Username} giving up after {Fails} consecutive failures", username, consecutiveFailures);
+                            _logger.LogWarning("[SWARM] {Username} giving up after {Fails} consecutive failures", LoggingSanitizer.SanitizeExternalIdentifier(username), consecutiveFailures);
                             failedUsers.TryAdd(username, true);
 
                             // T-1405: Trigger peer degradation for chunk reassignment (if using ChunkScheduler)
@@ -1591,21 +1610,22 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
                     // Otherwise it's likely a speed cancellation from within DownloadChunkAsync
                     // Back off and continue
-                    _logger.LogWarning("[SWARM] {Username} dropped chunk {Index} (cancellation) - backing off", username, chunk.Index);
+                    _logger.LogWarning("[SWARM] {Username} dropped chunk {Index} (cancellation) - backing off", LoggingSanitizer.SanitizeExternalIdentifier(username), chunk.Index);
                     await Task.Delay(2000, cancellationToken);
                     continue;
                 }
                 catch (Exception ex)
                 {
                     consecutiveFailures++;
-                    _logger.LogWarning("[SWARM] ✗ {Username} chunk {Index} exception: {Message} (fail {Fails}/{Max})",
-                        username, chunk.Index, ex.Message, consecutiveFailures, maxConsecutiveFailures);
+                    _logger.LogWarning("[SWARM] ✗ {Username} chunk {Index} exception: {Exception} (fail {Fails}/{Max})",
+                        LoggingSanitizer.SanitizeExternalIdentifier(username), chunk.Index,
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()), consecutiveFailures, maxConsecutiveFailures);
 
                     chunkQueue.Enqueue(chunk);
 
                     if (consecutiveFailures >= maxConsecutiveFailures)
                     {
-                        _logger.LogWarning("[SWARM] {Username} giving up after {Fails} consecutive failures", username, consecutiveFailures);
+                        _logger.LogWarning("[SWARM] {Username} giving up after {Fails} consecutive failures", LoggingSanitizer.SanitizeExternalIdentifier(username), consecutiveFailures);
                         failedUsers.TryAdd(username, true);
                         break;
                     }
@@ -1617,7 +1637,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         finally
         {
             status.DecrementActiveWorkers();
-            _logger.LogInformation("[SWARM] Worker finished: {Username} (Completed: {Count})", username, sourceStats.GetValueOrDefault(username, 0));
+            _logger.LogInformation("[SWARM] Worker finished: {Username} (Completed: {Count})", LoggingSanitizer.SanitizeExternalIdentifier(username), sourceStats.GetValueOrDefault(username, 0));
         }
     }
 
@@ -1690,7 +1710,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to optimize chunk size, using default: {DefaultSize}", DefaultChunkSize);
+            _logger.LogWarning(
+                "Failed to optimize chunk size, using default: {DefaultSize}: {Exception}",
+                DefaultChunkSize,
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return DefaultChunkSize;
         }
     }
@@ -1762,7 +1785,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
             _logger.LogDebug(
                 "Downloading chunk from {Username}: {Start}-{End} ({Size} bytes of {FileSize})",
-                username,
+                LoggingSanitizer.SanitizeExternalIdentifier(username),
                 startOffset,
                 endOffset,
                 chunkSize,
@@ -1815,7 +1838,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                     if (currentBytes > 0)
                     {
                         _logger.LogDebug("[SWARM] {Username} rate: {Speed:F1} KB/s (threshold: {Threshold:F1} KB/s)",
-                            username, speedBps / 1024.0, dynamicMinSpeed / 1024.0);
+                            LoggingSanitizer.SanitizeExternalIdentifier(username), speedBps / 1024.0, dynamicMinSpeed / 1024.0);
                     }
 
                     if (speedBps < dynamicMinSpeed && currentBytes > 0)
@@ -1829,7 +1852,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                             if (status.ActiveWorkers > 1)
                             {
                                 _logger.LogWarning("[SWARM] {Username} too slow ({Speed:F1} KB/s < {Threshold:F1} KB/s for {Duration:F0}s) - timeout {Timeout}s",
-                                    username, speedBps / 1024.0, dynamicMinSpeed / 1024.0, slowDuration / 1000.0, peerTimeoutSeconds);
+                                    LoggingSanitizer.SanitizeExternalIdentifier(username), speedBps / 1024.0, dynamicMinSpeed / 1024.0, slowDuration / 1000.0, peerTimeoutSeconds);
                                 result.Error = LowThroughputChunkError;
 
                                 // Set timeout instead of blacklist - peer can retry later
@@ -1840,7 +1863,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                             else
                             {
                                 _logger.LogWarning("[SWARM] {Username} is slow ({Speed:F1} KB/s) but is the LAST WORKER - keeping alive",
-                                    username, speedBps / 1024.0);
+                                    LoggingSanitizer.SanitizeExternalIdentifier(username), speedBps / 1024.0);
                                 slowSince = DateTime.UtcNow; // Reset timer to avoid log spam
                             }
                         }
@@ -1876,7 +1899,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 catch (OperationCanceledException) when (limitedStream.LimitReached)
                 {
                     // Expected - we cancelled after getting our chunk
-                    _logger.LogDebug("Chunk complete (cancelled remaining) from {Username}", username);
+                    _logger.LogDebug("Chunk complete (cancelled remaining) from {Username}", LoggingSanitizer.SanitizeExternalIdentifier(username));
                 }
                 catch (OperationCanceledException) when (string.Equals(result.Error, LowThroughputChunkError, StringComparison.Ordinal))
                 {
@@ -1892,7 +1915,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to cancel chunk speed monitor for {Username}", username);
+                    _logger.LogWarning(
+                        "Failed to cancel chunk speed monitor for {Username}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
 
                 try
@@ -1904,7 +1930,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Chunk speed monitor failed for {Username}", username);
+                    _logger.LogWarning(
+                        "Chunk speed monitor failed for {Username}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -1927,7 +1956,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
                 // Detailed timing log
                 _logger.LogInformation(
                     "[CHUNK] {Username}: {Size}KB in {Total}ms | TTFB:{TTFB}ms Transfer:{Transfer}ms | Overhead:{Overhead:F0}% | Speed:{Speed:F0}KB/s (raw:{RawSpeed:F0}KB/s)",
-                    username,
+                    LoggingSanitizer.SanitizeExternalIdentifier(username),
                     chunkSize / 1024,
                     totalMs,
                     ttfb,
@@ -1954,7 +1983,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             result.Error = "Chunk download failed";
             result.Success = false;
 
-            _logger.LogWarning(ex, "Chunk download failed from {Username}: {Message}", username, ex.Message);
+            _logger.LogWarning(
+                "Chunk download failed from {Username}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return result;
         }
         finally
@@ -1979,7 +2011,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             if (_hashDb != null)
             {
                 await _hashDb.StoreHashFromVerificationAsync(filename, fileSize, hash, cancellationToken: cancellationToken);
-                _logger.LogDebug("[HASHDB] Stored downloaded file hash: {Filename} -> {Hash}", filename, hash);
+                _logger.LogDebug("[HASHDB] Stored downloaded file hash: {Filename} -> {Hash}", LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeHash(hash));
             }
 
             // Publish to mesh for other slskdn clients
@@ -1987,12 +2019,15 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             {
                 var flacKey = HashDbEntry.GenerateFlacKey(filename, fileSize);
                 await _meshSync.PublishHashAsync(flacKey, hash, fileSize, cancellationToken: cancellationToken);
-                _logger.LogDebug("[MESH] Published hash to mesh: {Key} -> {Hash}", flacKey, hash);
+                _logger.LogDebug("[MESH] Published hash to mesh: {Key} -> {Hash}", LoggingSanitizer.SanitizeExternalIdentifier(flacKey), LoggingSanitizer.SanitizeHash(hash));
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[HASHDB] Error publishing hash for {Filename}", filename);
+            _logger.LogWarning(
+                "[HASHDB] Error publishing hash for {Filename}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -2140,7 +2175,10 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[AUTO-TAGGING] Final fingerprint verification failed for {File}", filePath);
+            _logger.LogWarning(
+                "[AUTO-TAGGING] Final fingerprint verification failed for {File}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(filePath),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new FingerprintVerificationResult(null, false, null);
         }
     }

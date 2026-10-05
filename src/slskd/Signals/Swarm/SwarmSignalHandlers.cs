@@ -7,15 +7,9 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using slskd.Signals;
 using slskd.Swarm;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 using SecurityPolicyContext = slskd.Security.SecurityContext;
 using SecurityPolicyEngine = slskd.Security.ISecurityPolicyEngine;
-
-public class StubBitTorrentBackend : IBitTorrentBackend
-{
-    public bool IsSupported() => false;
-    public Task<string?> FetchByInfoHashOrMagnetAsync(string backendRef, string destDirectory, CancellationToken ct = default) =>
-        Task.FromResult<string?>(null);
-}
 
 /// <summary>
 /// Signal handlers for Swarm control signals.
@@ -136,7 +130,9 @@ public class SwarmSignalHandlers
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error handling RequestBtFallback signal {SignalId}", signal.SignalId);
+            logger.LogError("Error handling RequestBtFallback signal {SignalId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             await SendBtFallbackAckAsync(signal, accepted: false, reason: "internal-error", cancellationToken, null);
         }
     }
@@ -161,7 +157,8 @@ public class SwarmSignalHandlers
 
             if (string.IsNullOrWhiteSpace(jobId) || string.IsNullOrWhiteSpace(variantId))
             {
-                logger.LogWarning("Received invalid RequestBtFallbackAck signal {SignalId}", signal.SignalId);
+                logger.LogWarning("Received invalid RequestBtFallbackAck signal {SignalId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
                 return Task.CompletedTask;
             }
 
@@ -172,18 +169,22 @@ public class SwarmSignalHandlers
             {
                 logger.LogWarning(
                     "Ignoring accepted BT fallback acknowledgement for job {JobId}, variant {VariantId}; sender lifecycle is unavailable",
-                    jobId,
-                    variantId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(jobId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(variantId));
             }
             else
             {
                 logger.LogInformation("BT fallback rejected for job {JobId}, variant {VariantId}, reason: {Reason}",
-                    jobId, variantId, reason);
+                    LoggingSanitizer.SanitizeExternalIdentifier(jobId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(variantId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(reason));
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error handling RequestBtFallbackAck signal {SignalId}", signal.SignalId);
+            logger.LogError("Error handling RequestBtFallbackAck signal {SignalId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return Task.CompletedTask;
@@ -201,18 +202,23 @@ public class SwarmSignalHandlers
 
             if (string.IsNullOrWhiteSpace(jobId))
             {
-                logger.LogWarning("Received invalid JobCancel signal {SignalId}", signal.SignalId);
+                logger.LogWarning("Received invalid JobCancel signal {SignalId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId));
                 return Task.CompletedTask;
             }
 
             // Deferred: Cancel the job in SwarmCore
             // See memory-bank/triage-todo-fixme.md (defer section) for details
             // Requires: ISwarmJobStore cancellation, ISwarmCore integration
-            logger.LogInformation("Job cancellation requested for job {JobId} from peer {PeerId}", jobId, signal.FromPeerId);
+            logger.LogInformation("Job cancellation requested for job {JobId} from peer {PeerId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(jobId),
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.FromPeerId));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error handling JobCancel signal {SignalId}", signal.SignalId);
+            logger.LogError("Error handling JobCancel signal {SignalId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(signal.SignalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return Task.CompletedTask;
@@ -265,7 +271,7 @@ public interface IBitTorrentBackend
     /// <summary>
     ///     Fetches content by infohash or magnet URI. Used by the VirtualSoulfind resolver for
     ///     ContentBackendType.Torrent. Returns the path to the fetched file when complete, or null
-    ///     if not supported (e.g. StubBitTorrentBackend) or when the fetch fails.
+    ///     if the backend is unavailable or the fetch fails.
     /// </summary>
     /// <param name="backendRef">Infohash (40 or 64 hex chars) or magnet URI.</param>
     /// <param name="destDirectory">Directory to write the first/only file into.</param>

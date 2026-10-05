@@ -34,7 +34,8 @@ public class MovieContentDomainProvider : IMovieContentDomainProvider
             return Task.FromResult<MovieWork?>(null);
         }
 
-        _logger.LogDebug("[MovieDomain] Resolving movie by IMDB ID: {ImdbId}", imdbId);
+        _logger.LogDebug("[MovieDomain] Resolving movie by IMDB ID: {ImdbId}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(imdbId));
         var normalized = imdbId.StartsWith("tt", StringComparison.OrdinalIgnoreCase) ? imdbId : $"tt{imdbId}";
         var work = new MovieWork(MovieDomainMapping.ImdbIdToContentWorkId(normalized), normalized, imdbId: normalized);
         return Task.FromResult<MovieWork?>(work);
@@ -48,7 +49,8 @@ public class MovieContentDomainProvider : IMovieContentDomainProvider
             return Task.FromResult<MovieWork?>(null);
         }
 
-        _logger.LogDebug("[MovieDomain] Resolving movie by title/year: {Title} ({Year})", title, year);
+        _logger.LogDebug("[MovieDomain] Resolving movie by title/year: {Title} ({Year})",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(title), year);
         var seed = $"tt{Math.Abs(StringComparer.OrdinalIgnoreCase.GetHashCode($"{title}:{year}"))}";
         var work = new MovieWork(MovieDomainMapping.ImdbIdToContentWorkId(seed), title.Trim(), year);
         return Task.FromResult<MovieWork?>(work);
@@ -64,7 +66,8 @@ public class MovieContentDomainProvider : IMovieContentDomainProvider
 
         var normalizedHash = hash.Trim();
         var normalizedFileName = filename.Trim();
-        _logger.LogDebug("[MovieDomain] Resolving movie item by hash: {Hash}", normalizedHash.Substring(0, Math.Min(16, normalizedHash.Length)));
+        _logger.LogDebug("[MovieDomain] Resolving movie item by hash: {Hash}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeHash(normalizedHash.Substring(0, Math.Min(16, normalizedHash.Length))));
         var work = ParseTitleYear(Path.GetFileNameWithoutExtension(normalizedFileName) ?? normalizedFileName);
         var workId = MovieDomainMapping.ImdbIdToContentWorkId($"tt{Math.Abs(StringComparer.OrdinalIgnoreCase.GetHashCode($"{work.Title}:{work.Year}"))}");
         var item = new MovieItem(
@@ -85,7 +88,8 @@ public class MovieContentDomainProvider : IMovieContentDomainProvider
             return Task.FromResult<MovieItem?>(null);
         }
 
-        _logger.LogDebug("[MovieDomain] Resolving movie item by local metadata: {Id}", fileMetadata.Id);
+        _logger.LogDebug("[MovieDomain] Resolving movie item by local metadata: {Id}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeFilePath(fileMetadata.Id));
         var hash = string.IsNullOrWhiteSpace(fileMetadata.PrimaryHash) ? fileMetadata.Id : fileMetadata.PrimaryHash;
         return TryGetItemByHashAsync(hash, fileMetadata.Id, fileMetadata.SizeBytes, cancellationToken);
     }

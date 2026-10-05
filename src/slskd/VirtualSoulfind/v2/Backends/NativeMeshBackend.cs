@@ -14,6 +14,7 @@ namespace slskd.VirtualSoulfind.v2.Backends
     using slskd.Mesh;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.v2.Sources;
+    using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Backend for native mesh overlay content (no Soulseek, no BitTorrent).
@@ -67,7 +68,8 @@ namespace slskd.VirtualSoulfind.v2.Backends
             var contentId = await ResolveContentIdAsync(itemId, cancellationToken);
             if (string.IsNullOrEmpty(contentId))
             {
-                _logger.LogDebug("[NativeMesh] No ContentId for item {ItemId}, skipping", itemId);
+                _logger.LogDebug("[NativeMesh] No ContentId for item {ItemId}, skipping",
+                    LoggingSanitizer.SanitizeExternalIdentifier(itemId.ToString()));
                 return Array.Empty<SourceCandidate>();
             }
 
@@ -78,7 +80,9 @@ namespace slskd.VirtualSoulfind.v2.Backends
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[NativeMesh] FindPeersByContentAsync failed for {ContentId}", contentId);
+                _logger.LogWarning("[NativeMesh] FindPeersByContentAsync failed for {ContentId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return Array.Empty<SourceCandidate>();
             }
 

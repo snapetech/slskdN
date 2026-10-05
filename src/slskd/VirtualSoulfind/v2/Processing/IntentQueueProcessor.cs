@@ -14,6 +14,7 @@ namespace slskd.VirtualSoulfind.v2.Processing
     using slskd.VirtualSoulfind.v2.Planning;
     using slskd.VirtualSoulfind.v2.Resolution;
     using slskd.VirtualSoulfind.v2.Execution;
+    using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
     /// <summary>
     ///     Production implementation of <see cref="IIntentQueueProcessor"/>.
@@ -78,7 +79,9 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to process intent {IntentId}: {Message}", intent.DesiredTrackId, ex.Message);
+                    _logger.LogError("Failed to process intent {IntentId}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(intent.DesiredTrackId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -89,13 +92,13 @@ namespace slskd.VirtualSoulfind.v2.Processing
         /// <inheritdoc/>
         public async Task<bool> ProcessIntentAsync(string desiredTrackId, CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Processing intent {IntentId}", desiredTrackId);
+            _logger.LogDebug("Processing intent {IntentId}", LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId));
 
             // Get the intent
             var intent = await _intentQueue.GetTrackIntentAsync(desiredTrackId, cancellationToken);
             if (intent == null)
             {
-                _logger.LogWarning("Intent {IntentId} not found", desiredTrackId);
+                _logger.LogWarning("Intent {IntentId} not found", LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId));
                 return false;
             }
 
@@ -109,7 +112,8 @@ namespace slskd.VirtualSoulfind.v2.Processing
             // Skip if already in progress or completed
             if (intent.Status != IntentStatus.Pending)
             {
-                _logger.LogDebug("Intent {IntentId} is not pending (status: {Status}), skipping", desiredTrackId, intent.Status);
+                _logger.LogDebug("Intent {IntentId} is not pending (status: {Status}), skipping",
+                    LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId), intent.Status);
                 return false;
             }
 
@@ -119,7 +123,7 @@ namespace slskd.VirtualSoulfind.v2.Processing
                     IntentStatus.InProgress,
                     cancellationToken))
             {
-                _logger.LogDebug("Intent {IntentId} is no longer pending, skipping", desiredTrackId);
+                _logger.LogDebug("Intent {IntentId} is no longer pending, skipping", LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId));
                 return false;
             }
 
@@ -128,7 +132,9 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 // Get track info from catalogue
                 if (!ContentItemId.TryParse(intent.TrackId, out var trackId))
                 {
-                    _logger.LogWarning("Intent {IntentId} has invalid TrackId '{TrackId}', skipping", desiredTrackId, intent.TrackId);
+                    _logger.LogWarning("Intent {IntentId} has invalid TrackId '{TrackId}', skipping",
+                        LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(intent.TrackId));
                     await _intentQueue.UpdateTrackStatusAsync(desiredTrackId, IntentStatus.Failed, cancellationToken);
                     Interlocked.Increment(ref _failureCount);
                     Interlocked.Increment(ref _totalProcessed);
@@ -139,7 +145,9 @@ namespace slskd.VirtualSoulfind.v2.Processing
 
                 if (track == null)
                 {
-                    _logger.LogWarning("Track {TrackId} not found in catalogue for intent {IntentId}", intent.TrackId, desiredTrackId);
+                    _logger.LogWarning("Track {TrackId} not found in catalogue for intent {IntentId}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(intent.TrackId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId));
                     await _intentQueue.UpdateTrackStatusAsync(desiredTrackId, IntentStatus.Failed, cancellationToken);
                     Interlocked.Increment(ref _failureCount);
                     Interlocked.Increment(ref _totalProcessed);
@@ -148,16 +156,18 @@ namespace slskd.VirtualSoulfind.v2.Processing
 
                 _logger.LogInformation(
                     "Processing intent {IntentId} for track: {Title}",
-                    desiredTrackId,
-                    track.Title ?? "Unknown");
+                    LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(track.Title ?? "Unknown"));
 
                 // Create acquisition plan
-                _logger.LogDebug("Creating acquisition plan for intent {IntentId}", desiredTrackId);
+                _logger.LogDebug("Creating acquisition plan for intent {IntentId}", LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId));
                 var plan = await _planner.CreatePlanAsync(intent, null, cancellationToken);
 
                 if (plan == null || !plan.Steps.Any())
                 {
-                    _logger.LogWarning("No viable plan created for track {TrackId}, intent {IntentId}", trackId, desiredTrackId);
+                    _logger.LogWarning("No viable plan created for track {TrackId}, intent {IntentId}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(trackId.ToString()),
+                        LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId));
                     await _intentQueue.UpdateTrackStatusAsync(desiredTrackId, IntentStatus.Failed, cancellationToken);
                     Interlocked.Increment(ref _failureCount);
                     Interlocked.Increment(ref _totalProcessed);
@@ -167,13 +177,13 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 _logger.LogInformation(
                     "Created plan with {StepCount} steps for track {TrackId}",
                     plan.Steps.Count,
-                    trackId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(trackId.ToString()));
 
                 // Store plan reference in intent
                 // (In a full implementation, we'd update DesiredTrack.PlannedSources here)
 
                 // Execute the plan
-                _logger.LogDebug("Executing plan for track {TrackId}", trackId);
+                _logger.LogDebug("Executing plan for track {TrackId}", LoggingSanitizer.SanitizeExternalIdentifier(trackId.ToString()));
                 var executionState = await _resolver.ExecutePlanAsync(plan, cancellationToken);
 
                 // Update intent based on execution result
@@ -181,8 +191,8 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 {
                     _logger.LogInformation(
                         "Successfully acquired track {TrackId} for intent {IntentId}",
-                        trackId,
-                        desiredTrackId);
+                        LoggingSanitizer.SanitizeExternalIdentifier(trackId.ToString()),
+                        LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId));
 
                     await _intentQueue.UpdateTrackStatusAsync(desiredTrackId, IntentStatus.Completed, cancellationToken);
                     Interlocked.Increment(ref _successCount);
@@ -193,10 +203,10 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 {
                     _logger.LogWarning(
                         "Failed to acquire track {TrackId} for intent {IntentId}: {Status} - {Error}",
-                        trackId,
-                        desiredTrackId,
+                        LoggingSanitizer.SanitizeExternalIdentifier(trackId.ToString()),
+                        LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId),
                         executionState.Status,
-                        executionState.ErrorMessage ?? "Unknown error");
+                        LoggingSanitizer.SanitizeExternalIdentifier(executionState.ErrorMessage ?? "Unknown error"));
 
                     await _intentQueue.UpdateTrackStatusAsync(desiredTrackId, IntentStatus.Failed, cancellationToken);
                     Interlocked.Increment(ref _failureCount);
@@ -206,7 +216,7 @@ namespace slskd.VirtualSoulfind.v2.Processing
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Processing of intent {IntentId} was cancelled", desiredTrackId);
+                _logger.LogInformation("Processing of intent {IntentId} was cancelled", LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId));
 
                 // Use CancellationToken.None: the original token is already cancelled so any
                 // awaitable using it would throw immediately, preventing the status reset.
@@ -215,7 +225,9 @@ namespace slskd.VirtualSoulfind.v2.Processing
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing intent {IntentId}: {Message}", desiredTrackId, ex.Message);
+                _logger.LogError("Error processing intent {IntentId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(desiredTrackId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 await _intentQueue.UpdateTrackStatusAsync(desiredTrackId, IntentStatus.Failed, cancellationToken);
                 Interlocked.Increment(ref _failureCount);
                 Interlocked.Increment(ref _totalProcessed);

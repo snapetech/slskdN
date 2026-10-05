@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 /// <summary>
 /// Local fuzzy matcher for advisory matching (not published to DHT).
@@ -420,7 +421,11 @@ public class FuzzyMatcher : IFuzzyMatcher
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FuzzyMatcher] Error computing perceptual similarity between {ContentIdA} and {ContentIdB}", contentIdA, contentIdB);
+            _logger.LogError(
+                "[FuzzyMatcher] Error computing perceptual similarity between {ContentIdA} and {ContentIdB}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentIdA),
+                LoggingSanitizer.SanitizeExternalIdentifier(contentIdB),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return 0.0;
         }
     }

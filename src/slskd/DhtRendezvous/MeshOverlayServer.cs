@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Common.CodeQuality;
+using slskd.Common.Security;
 using slskd.DhtRendezvous.Search;
 using slskd.DhtRendezvous.Security;
 using slskd.Mesh;
@@ -148,7 +149,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
             // Check blocklist
             if (_blocklist.IsBlocked(remoteIp))
             {
-                _logger.LogDebug("Rejected connection from blocked IP {Ip}", remoteIp);
+                _logger.LogDebug("Rejected connection from blocked IP {Ip}", LoggingSanitizer.SanitizeIpAddress(remoteIp));
                 Interlocked.Increment(ref _totalRejected);
                 tcpClient.Dispose();
                 return;
@@ -158,7 +159,10 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
             var rateResult = _rateLimiter.CheckConnection(remoteIp);
             if (!rateResult)
             {
-                _logger.LogDebug("Rejected connection from {Ip}: {Reason}", remoteIp, rateResult.Reason);
+                _logger.LogDebug(
+                    "Rejected connection from {Ip}: {Reason}",
+                    LoggingSanitizer.SanitizeIpAddress(remoteIp),
+                    LoggingSanitizer.SanitizeExternalIdentifier(rateResult.Reason));
                 Interlocked.Increment(ref _totalRejected);
                 tcpClient.Dispose();
                 return;
@@ -167,7 +171,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
             // Check if registry is full
             if (_registry.IsFull)
             {
-                _logger.LogDebug("Rejected connection from {Ip}: registry full", remoteIp);
+                _logger.LogDebug("Rejected connection from {Ip}: registry full", LoggingSanitizer.SanitizeIpAddress(remoteIp));
                 Interlocked.Increment(ref _totalRejected);
                 _rateLimiter.RecordDisconnection(remoteIp);
                 tcpClient.Dispose();
@@ -210,7 +214,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                             _logger.LogInformation(
                                 "TOFU: First connection from {Username}, pinning certificate {Thumbprint}",
                                 OverlayLogSanitizer.Username(hello.Username),
-                                connection.CertificateThumbprint?[..16] + "...");
+                                LoggingSanitizer.SanitizeExternalIdentifier(connection.CertificateThumbprint?[..16] + "..."));
                             _pinStore.SetPin(hello.Username, connection.CertificateThumbprint ?? string.Empty);
                             break;
 
@@ -244,26 +248,35 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                     "Accepted mesh connection from {Username}@{Endpoint} (features: {Features})",
                     OverlayLogSanitizer.Username(hello.Username),
                     OverlayLogSanitizer.Endpoint(remoteEndPoint),
-                    string.Join(", ", (IEnumerable<string>?)hello.Features ?? Array.Empty<string>()));
+                    LoggingSanitizer.SanitizeExternalIdentifier(string.Join(", ", (IEnumerable<string>?)hello.Features ?? Array.Empty<string>())));
 
                 TryStartReciprocalOutboundConnection(remoteEndPoint.Address, hello);
 
                 _ = TaskObservation.Observe(
                     HandleMessagesAsync(connection, cancellationToken),
-                    ex => _logger.LogWarning(ex, "Unhandled inbound overlay message loop failure for {Username}", OverlayLogSanitizer.Username(connection.Username)));
+                    ex => _logger.LogWarning(
+                        "Unhandled inbound overlay message loop failure for {Username}: {Exception}",
+                        OverlayLogSanitizer.Username(connection.Username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
                 connection = null;
             }
             catch (Exception ex)
             {
                 if (IsExpectedHandshakeNoise(ex))
                 {
-                    _logger.LogDebug("Ignoring non-overlay TLS noise from {Endpoint}: {Message}", OverlayLogSanitizer.Endpoint(remoteEndPoint), ex.Message);
+                    _logger.LogDebug(
+                        "Ignoring non-overlay TLS noise from {Endpoint}: {Message}",
+                        OverlayLogSanitizer.Endpoint(remoteEndPoint),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
                     Interlocked.Increment(ref _totalRejected);
                     _rateLimiter.RecordDisconnection(remoteIp);
                 }
                 else
                 {
-                    _logger.LogWarning(ex, "Handshake failed with {Endpoint}", OverlayLogSanitizer.Endpoint(remoteEndPoint));
+                    _logger.LogWarning(
+                        "Handshake failed with {Endpoint}: {Exception}",
+                        OverlayLogSanitizer.Endpoint(remoteEndPoint),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     Interlocked.Increment(ref _totalRejected);
                     _rateLimiter.RecordViolation(remoteIp);
                 }
@@ -279,11 +292,17 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         {
             if (IsExpectedHandshakeNoise(ex))
             {
-                _logger.LogDebug("Ignoring non-overlay TLS noise from {Endpoint}: {Message}", OverlayLogSanitizer.Endpoint(remoteEndPoint), ex.Message);
+                _logger.LogDebug(
+                    "Ignoring non-overlay TLS noise from {Endpoint}: {Message}",
+                    OverlayLogSanitizer.Endpoint(remoteEndPoint),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
             }
             else
             {
-                _logger.LogWarning(ex, "Error handling connection from {Endpoint}", OverlayLogSanitizer.Endpoint(remoteEndPoint));
+                _logger.LogWarning(
+                    "Error handling connection from {Endpoint}: {Exception}",
+                    OverlayLogSanitizer.Endpoint(remoteEndPoint),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             Interlocked.Increment(ref _totalRejected);
@@ -317,10 +336,18 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Reciprocal overlay connect to {Username}@{Endpoint} failed: {Message}", OverlayLogSanitizer.Username(hello.Username), OverlayLogSanitizer.Endpoint(endpoint), ex.Message);
+                    _logger.LogDebug(
+                        "Reciprocal overlay connect to {Username}@{Endpoint} failed: {Exception}",
+                        OverlayLogSanitizer.Username(hello.Username),
+                        OverlayLogSanitizer.Endpoint(endpoint),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }),
-            ex => _logger.LogDebug(ex, "Unobserved reciprocal connect failure for {Username}@{Endpoint}", OverlayLogSanitizer.Username(hello.Username), OverlayLogSanitizer.Endpoint(endpoint)));
+            ex => _logger.LogDebug(
+                "Unobserved reciprocal connect failure for {Username}@{Endpoint}: {Exception}",
+                OverlayLogSanitizer.Username(hello.Username),
+                OverlayLogSanitizer.Endpoint(endpoint),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
     }
 
     private async Task HandleMessagesAsync(MeshOverlayConnection connection, CancellationToken cancellationToken)
@@ -368,7 +395,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                         _logger.LogWarning(
                             "Message rate limit exceeded for {Username}: {Reason}",
                             OverlayLogSanitizer.Username(connection.Username),
-                            rateResult.Reason);
+                            LoggingSanitizer.SanitizeExternalIdentifier(rateResult.Reason));
                         _rateLimiter.RecordViolation(connection.RemoteAddress);
                         break;
                     }
@@ -384,7 +411,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                             var pingValidation = MessageValidator.ValidatePing(ping);
                             if (!pingValidation.IsValid)
                             {
-                                _logger.LogWarning("Invalid ping from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), pingValidation.Error);
+                                _logger.LogWarning("Invalid ping from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), LoggingSanitizer.SanitizeExternalIdentifier(pingValidation.Error));
                                 _rateLimiter.RecordViolation(connection.RemoteAddress);
                                 break;
                             }
@@ -401,12 +428,12 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                             var disconnectValidation = MessageValidator.ValidateDisconnect(disconnect);
                             if (!disconnectValidation.IsValid)
                             {
-                                _logger.LogWarning("Invalid disconnect from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), disconnectValidation.Error);
+                                _logger.LogWarning("Invalid disconnect from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), LoggingSanitizer.SanitizeExternalIdentifier(disconnectValidation.Error));
                             }
                             else
                             {
                                 disconnectReason = "peer-disconnect";
-                                _logger.LogDebug("Received disconnect from {Username}: {Reason}", OverlayLogSanitizer.Username(connection.Username), disconnect?.Reason ?? "no reason");
+                                _logger.LogDebug("Received disconnect from {Username}: {Reason}", OverlayLogSanitizer.Username(connection.Username), LoggingSanitizer.SanitizeExternalIdentifier(disconnect?.Reason ?? "no reason"));
                             }
 
                             goto cleanup;
@@ -416,7 +443,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                             var reqVal = MessageValidator.ValidateMeshSearchReq(meshSearchReq);
                             if (!reqVal.IsValid)
                             {
-                                _logger.LogWarning("Invalid mesh_search_req from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), reqVal.Error);
+                                _logger.LogWarning("Invalid mesh_search_req from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), LoggingSanitizer.SanitizeExternalIdentifier(reqVal.Error));
                                 _rateLimiter.RecordViolation(connection.RemoteAddress);
                                 break;
                             }
@@ -424,7 +451,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                             var meshRl = _rateLimiter.CheckMeshSearchRequest(connection.ConnectionId);
                             if (!meshRl)
                             {
-                                _logger.LogWarning("Mesh search rate limit exceeded for {Username}: {Reason}", OverlayLogSanitizer.Username(connection.Username), meshRl.Reason);
+                                _logger.LogWarning("Mesh search rate limit exceeded for {Username}: {Reason}", OverlayLogSanitizer.Username(connection.Username), LoggingSanitizer.SanitizeExternalIdentifier(meshRl.Reason));
                                 break;
                             }
 
@@ -483,7 +510,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                 catch (ProtocolViolationException ex)
                 {
                     disconnectReason = "protocol-violation";
-                    _logger.LogWarning("Protocol violation from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), ex.Message);
+                    _logger.LogWarning("Protocol violation from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
                     _rateLimiter.RecordViolation(connection.RemoteAddress);
                     break;
                 }
@@ -492,7 +519,10 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         catch (Exception ex)
         {
             disconnectReason = "message-loop-error";
-            _logger.LogWarning(ex, "Error in message loop for {Username}", OverlayLogSanitizer.Username(connection.Username));
+            _logger.LogWarning(
+                "Error in message loop for {Username}: {Exception}",
+                OverlayLogSanitizer.Username(connection.Username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
     cleanup:
@@ -501,7 +531,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
             OverlayLogSanitizer.Username(connection.Username),
             OverlayLogSanitizer.Endpoint(connection.RemoteEndPoint),
             Math.Max(0, (int)(DateTimeOffset.UtcNow - connection.ConnectedAt).TotalSeconds),
-            disconnectReason);
+            LoggingSanitizer.SanitizeExternalIdentifier(disconnectReason));
         await _registry.UnregisterAsync(connection);
         _requestRouter.RemoveConnection(connection);
         _rateLimiter.RecordDisconnection(connection.RemoteAddress);
@@ -529,11 +559,11 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
 
             if (meshMessage == null)
             {
-                _logger.LogDebug("Unknown message type {Type} from {Username}, ignoring", messageType, OverlayLogSanitizer.Username(connection.Username));
+                _logger.LogDebug("Unknown message type {Type} from {Username}, ignoring", LoggingSanitizer.SanitizeExternalIdentifier(messageType), OverlayLogSanitizer.Username(connection.Username));
                 return;
             }
 
-            _logger.LogDebug("Forwarding {Type} message from {Username} to MeshSyncService", messageType, OverlayLogSanitizer.Username(connection.Username));
+            _logger.LogDebug("Forwarding {Type} message from {Username} to MeshSyncService", LoggingSanitizer.SanitizeExternalIdentifier(messageType), OverlayLogSanitizer.Username(connection.Username));
 
             // Forward to mesh sync service
             var response = await _meshSyncService.HandleMessageAsync(connection.Username!, meshMessage, cancellationToken);
@@ -546,12 +576,15 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         }
         catch (ProtocolViolationException ex)
         {
-            _logger.LogWarning("Protocol violation parsing mesh message from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), ex.Message);
+            _logger.LogWarning("Protocol violation parsing mesh message from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), LoggingSanitizer.SanitizeExternalIdentifier(ex.Message));
             _rateLimiter.RecordViolation(connection.RemoteAddress);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error handling mesh message from {Username}", OverlayLogSanitizer.Username(connection.Username));
+            _logger.LogWarning(
+                "Error handling mesh message from {Username}: {Exception}",
+                OverlayLogSanitizer.Username(connection.Username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 

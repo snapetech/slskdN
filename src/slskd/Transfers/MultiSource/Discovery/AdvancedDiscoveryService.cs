@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Transfers.MultiSource.Metrics;
 using slskd.Transfers.MultiSource;
 
@@ -43,7 +44,8 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
         {
             _logger.LogInformation(
                 "[AdvancedDiscovery] Discovering peers for {Filename} ({Size} bytes, domain: {Domain})",
-                request.Filename, request.FileSize, request.Domain);
+                LoggingSanitizer.SanitizeFilePath(request.Filename), request.FileSize,
+                LoggingSanitizer.SanitizeExternalIdentifier(request.Domain));
 
             var discoveredPeers = new List<DiscoveredPeer>();
 
@@ -89,13 +91,16 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
 
             _logger.LogInformation(
                 "[AdvancedDiscovery] Discovered {Count} peers for {Filename}",
-                discoveredPeers.Count, request.Filename);
+                discoveredPeers.Count, LoggingSanitizer.SanitizeFilePath(request.Filename));
 
             return discoveredPeers;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[AdvancedDiscovery] Error discovering peers for {Filename}", request.Filename);
+            _logger.LogError(
+                "[AdvancedDiscovery] Error discovering peers for {Filename}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(request.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new List<DiscoveredPeer>();
         }
     }
@@ -162,7 +167,7 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[AdvancedDiscovery] Error ranking peers");
+            _logger.LogError("[AdvancedDiscovery] Error ranking peers: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return peers.Select(p => new RankedPeer
             {
                 PeerId = p.PeerId,
@@ -199,7 +204,7 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
         {
             _logger.LogDebug(
                 "[AdvancedDiscovery] Finding variants for {Filename} (recording: {RecordingId})",
-                filename, recordingId ?? "none");
+                LoggingSanitizer.SanitizeFilePath(filename), LoggingSanitizer.SanitizeExternalIdentifier(recordingId ?? "none"));
 
             var verificationResult = await _contentVerification.VerifySourcesAsync(
                 new ContentVerificationRequest
@@ -295,7 +300,10 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[AdvancedDiscovery] Error finding variants for {Filename}", filename);
+            _logger.LogError(
+                "[AdvancedDiscovery] Error finding variants for {Filename}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new List<ContentVariant>();
         }
     }

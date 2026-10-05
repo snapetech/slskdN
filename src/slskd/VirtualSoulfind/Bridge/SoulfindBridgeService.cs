@@ -9,6 +9,7 @@ using System.IO;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using slskd;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 using OptionsModel = slskd.Options;
 
 /// <summary>
@@ -162,7 +163,8 @@ public sealed class SoulfindBridgeService : ISoulfindBridgeService, IAsyncDispos
             catch (Exception ex)
             {
                 await StopProcessAsync().ConfigureAwait(false);
-                logger.LogError(ex, "[VSF-BRIDGE] Failed to start bridge: {Message}", ex.Message);
+                logger.LogError("[VSF-BRIDGE] Failed to start bridge: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 throw;
             }
         }
@@ -225,7 +227,8 @@ public sealed class SoulfindBridgeService : ISoulfindBridgeService, IAsyncDispos
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE] Error stopping bridge process: {Message}", ex.Message);
+            logger.LogError("[VSF-BRIDGE] Error stopping bridge process: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
         finally
         {

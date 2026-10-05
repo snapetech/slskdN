@@ -12,6 +12,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Mesh;
 using slskd.Transfers.MultiSource.Metrics;
 
@@ -229,17 +230,23 @@ public sealed class MeshStreamService : IMeshStreamService
         catch (OperationCanceledException ex)
         {
             failure = ex;
-            _logger.LogDebug("Mesh preview stream of {ContentId} was cancelled.", claims.ContentId);
+            _logger.LogDebug("Mesh preview stream of {ContentId} was cancelled.", LoggingSanitizer.SanitizeExternalIdentifier(claims.ContentId));
         }
         catch (Exception ex) when (IsExpectedMeshStreamFailure(ex))
         {
             failure = ex;
-            _logger.LogWarning("Mesh preview stream of {ContentId} ended because the mesh peer is unavailable: {Message}", claims.ContentId, ex.Message);
+            _logger.LogWarning(
+                "Mesh preview stream of {ContentId} ended because the mesh peer is unavailable: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(claims.ContentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
         catch (Exception ex)
         {
             failure = ex;
-            _logger.LogError(ex, "Mesh preview stream of {ContentId} failed: {Message}", claims.ContentId, ex.Message);
+            _logger.LogError(
+                "Mesh preview stream of {ContentId} failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(claims.ContentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
         finally
         {

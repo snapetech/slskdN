@@ -105,7 +105,7 @@ public class BridgeProxyServer : BackgroundService
                     var clientId = Guid.NewGuid().ToString("N");
 
                     logger.LogInformation("[VSF-BRIDGE-PROXY] New client connection: {ClientId} from {Endpoint}",
-                        clientId, client.Client.RemoteEndPoint);
+                        LoggingSanitizer.SanitizeExternalIdentifier(clientId), client.Client.RemoteEndPoint);
 
                     // Handle client in background task
                     _ = TaskObservation.Observe(
@@ -117,7 +117,9 @@ public class BridgeProxyServer : BackgroundService
                             }
                             catch (Exception ex)
                             {
-                                logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error handling client {ClientId}", clientId);
+                                logger.LogError("[VSF-BRIDGE-PROXY] Error handling client {ClientId}: {Exception}",
+                                    LoggingSanitizer.SanitizeExternalIdentifier(clientId),
+                                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                             }
                             finally
                             {
@@ -125,7 +127,9 @@ public class BridgeProxyServer : BackgroundService
                                 client?.Close();
                             }
                         }, CancellationToken.None),
-                        ex => logger.LogError(ex, "[VSF-BRIDGE-PROXY] Unobserved task failure while handling client {ClientId}", clientId));
+                        ex => logger.LogError("[VSF-BRIDGE-PROXY] Unobserved task failure while handling client {ClientId}: {Exception}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(clientId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
                 }
                 catch (ObjectDisposedException)
                 {
@@ -134,14 +138,16 @@ public class BridgeProxyServer : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error accepting client connection");
+                    logger.LogError("[VSF-BRIDGE-PROXY] Error accepting client connection: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
                 }
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE-PROXY] Failed to start proxy server: {Message}", ex.Message);
+            logger.LogError("[VSF-BRIDGE-PROXY] Failed to start proxy server: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
         finally
         {
@@ -176,7 +182,8 @@ public class BridgeProxyServer : BackgroundService
             var loginResult = await PerformLoginAsync(stream, session, ct);
             if (!loginResult)
             {
-                logger.LogWarning("[VSF-BRIDGE-PROXY] Client {ClientId} login failed", clientId);
+                logger.LogWarning("[VSF-BRIDGE-PROXY] Client {ClientId} login failed",
+                    LoggingSanitizer.SanitizeExternalIdentifier(clientId));
                 return;
             }
 
@@ -196,7 +203,8 @@ public class BridgeProxyServer : BackgroundService
                     // Route to appropriate handler
                     if (!TryConsumeRequestQuota(session, optionsMonitor.CurrentValue.VirtualSoulfind?.Bridge))
                     {
-                        logger.LogWarning("[VSF-BRIDGE-PROXY] Request quota exceeded for {ClientId}", session.ClientId);
+                        logger.LogWarning("[VSF-BRIDGE-PROXY] Request quota exceeded for {ClientId}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
                         await SendErrorResponseAsync(stream, "Request quota exceeded", ct);
                         break;
                     }
@@ -218,7 +226,7 @@ public class BridgeProxyServer : BackgroundService
 
                         default:
                             logger.LogWarning("[VSF-BRIDGE-PROXY] Unhandled message type: {Type} from {ClientId}",
-                                message.Type, session.ClientId);
+                                message.Type, LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
 
                             // Send error response for unknown message types
                             await SendErrorResponseAsync(stream, "Unknown message type", ct);
@@ -236,14 +244,16 @@ public class BridgeProxyServer : BackgroundService
                 {
                     // Client disconnected
                     logger.LogDebug("[VSF-BRIDGE-PROXY] Client {ClientId} disconnected: {Message}",
-                        clientId, ioEx.Message);
+                        LoggingSanitizer.SanitizeExternalIdentifier(clientId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ioEx.ToString()));
                     break;
                 }
                 catch (Exception ex)
                 {
                     // Log error but continue processing (graceful degradation)
-                    logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error handling message from {ClientId}: {Message}",
-                        clientId, ex.Message);
+                    logger.LogError("[VSF-BRIDGE-PROXY] Error handling message from {ClientId}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(clientId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                     // Try to send error response
                     try
@@ -260,8 +270,9 @@ public class BridgeProxyServer : BackgroundService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE-PROXY] Fatal error in client session {ClientId}: {Message}",
-                clientId, ex.Message);
+            logger.LogError("[VSF-BRIDGE-PROXY] Fatal error in client session {ClientId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(clientId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
         finally
         {
@@ -274,7 +285,9 @@ public class BridgeProxyServer : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "[VSF-BRIDGE-PROXY] Error stopping proxy for {ClientId}", clientId);
+                    logger.LogWarning("[VSF-BRIDGE-PROXY] Error stopping proxy for {ClientId}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(clientId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -288,7 +301,8 @@ public class BridgeProxyServer : BackgroundService
     {
         // Soulseek handshake: client sends version string
         // For now, we'll skip detailed handshake and proceed to login
-        logger.LogDebug("[VSF-BRIDGE-PROXY] Performing handshake for {ClientId}", session.ClientId);
+        logger.LogDebug("[VSF-BRIDGE-PROXY] Performing handshake for {ClientId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
         await Task.CompletedTask;
     }
 
@@ -332,7 +346,8 @@ public class BridgeProxyServer : BackgroundService
                 if (!FixedTimeEquals(loginRequest.Password, configuredPassword))
                 {
                     logger.LogWarning("[VSF-BRIDGE-PROXY] Authentication failed for {Username} from {ClientId}",
-                        loginRequest.Username, session.ClientId);
+                        LoggingSanitizer.SanitizeExternalIdentifier(loginRequest.Username),
+                        LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
                     var errorPayload = protocolParser.BuildLoginResponse(false, "Invalid username or password");
                     await protocolParser.WriteMessageAsync(
                         stream,
@@ -342,7 +357,8 @@ public class BridgeProxyServer : BackgroundService
                     return false;
                 }
 
-                logger.LogDebug("[VSF-BRIDGE-PROXY] Authentication successful for {Username}", loginRequest.Username);
+                logger.LogDebug("[VSF-BRIDGE-PROXY] Authentication successful for {Username}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(loginRequest.Username));
             }
 
             session.Username = loginRequest.Username;
@@ -358,13 +374,16 @@ public class BridgeProxyServer : BackgroundService
                 ct);
 
             logger.LogInformation("[VSF-BRIDGE-PROXY] Client {ClientId} logged in as {Username}",
-                session.ClientId, session.Username);
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                LoggingSanitizer.SanitizeExternalIdentifier(session.Username));
 
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error during login for {ClientId}", session.ClientId);
+            logger.LogError("[VSF-BRIDGE-PROXY] Error during login for {ClientId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }
@@ -378,12 +397,13 @@ public class BridgeProxyServer : BackgroundService
         var searchRequest = protocolParser.ParseSearchRequest(message.Payload);
         if (searchRequest == null)
         {
-            logger.LogWarning("[VSF-BRIDGE-PROXY] Failed to parse search request from {ClientId}", session.ClientId);
+            logger.LogWarning("[VSF-BRIDGE-PROXY] Failed to parse search request from {ClientId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
             return;
         }
 
-        logger.LogInformation("[VSF-BRIDGE-PROXY] Search request from {ClientId}: {QueryId} (token id {TokenId})",
-            session.ClientId,
+        logger.LogInformation("[VSF-BRIDGE-PROXY] Search request from {ClientId}: {Query} (token id {TokenId})",
+            LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
             LoggingSanitizer.SanitizeQueryText(searchRequest.Query),
             GetProtocolTokenLogId(searchRequest.Token));
         bridgeDashboard.RecordRequest(session.ClientId, "search");
@@ -419,11 +439,13 @@ public class BridgeProxyServer : BackgroundService
                 ct);
 
             logger.LogDebug("[VSF-BRIDGE-PROXY] Sent {Count} search results to {ClientId}",
-                searchFiles.Count, session.ClientId);
+                searchFiles.Count, LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error processing search request from {ClientId}", session.ClientId);
+            logger.LogError("[VSF-BRIDGE-PROXY] Error processing search request from {ClientId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -436,12 +458,13 @@ public class BridgeProxyServer : BackgroundService
         var downloadRequest = protocolParser.ParseDownloadRequest(message.Payload);
         if (downloadRequest == null)
         {
-            logger.LogWarning("[VSF-BRIDGE-PROXY] Failed to parse download request from {ClientId}", session.ClientId);
+            logger.LogWarning("[VSF-BRIDGE-PROXY] Failed to parse download request from {ClientId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
             return;
         }
 
         logger.LogInformation("[VSF-BRIDGE-PROXY] Download request from {ClientId}: {UserId}/{Filename} (token id {TokenId})",
-            session.ClientId,
+            LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
             LoggingSanitizer.SanitizeExternalIdentifier(downloadRequest.Username),
             LoggingSanitizer.SanitizeFilePath(downloadRequest.Filename),
             GetProtocolTokenLogId(downloadRequest.Token));
@@ -495,16 +518,22 @@ public class BridgeProxyServer : BackgroundService
                 ct);
 
             logger.LogInformation("[VSF-BRIDGE-PROXY] Started download {TransferId} (proxy {ProxyId}) for {ClientId}",
-                transferId, proxyId, session.ClientId);
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId),
+                LoggingSanitizer.SanitizeExternalIdentifier(proxyId),
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
 
             // Start background task to push progress updates (T-851.5)
             _ = TaskObservation.Observe(
                 Task.Run(() => PushProgressUpdatesAsync(session, CancellationToken.None), CancellationToken.None),
-                ex => logger.LogError(ex, "[VSF-BRIDGE-PROXY] Unobserved progress proxy task failure for {ClientId}", session.ClientId));
+                ex => logger.LogError("[VSF-BRIDGE-PROXY] Unobserved progress proxy task failure for {ClientId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error processing download request from {ClientId}", session.ClientId);
+            logger.LogError("[VSF-BRIDGE-PROXY] Error processing download request from {ClientId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Send error response
             try
@@ -526,7 +555,9 @@ public class BridgeProxyServer : BackgroundService
             }
             catch (Exception sendEx)
             {
-                logger.LogError(sendEx, "[VSF-BRIDGE-PROXY] Failed to send error response to {ClientId}", session.ClientId);
+                logger.LogError("[VSF-BRIDGE-PROXY] Failed to send error response to {ClientId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(sendEx.ToString()));
             }
         }
     }
@@ -537,7 +568,8 @@ public class BridgeProxyServer : BackgroundService
         ClientSession session,
         CancellationToken ct)
     {
-        logger.LogDebug("[VSF-BRIDGE-PROXY] Room list request from {ClientId}", session.ClientId);
+        logger.LogDebug("[VSF-BRIDGE-PROXY] Room list request from {ClientId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
         bridgeDashboard.RecordRequest(session.ClientId, "room");
 
         try
@@ -560,11 +592,14 @@ public class BridgeProxyServer : BackgroundService
                 responsePayload,
                 ct);
 
-            logger.LogDebug("[VSF-BRIDGE-PROXY] Sent {Count} rooms to {ClientId}", rooms.Count, session.ClientId);
+            logger.LogDebug("[VSF-BRIDGE-PROXY] Sent {Count} rooms to {ClientId}",
+                rooms.Count, LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error processing room list request from {ClientId}", session.ClientId);
+            logger.LogError("[VSF-BRIDGE-PROXY] Error processing room list request from {ClientId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -581,8 +616,10 @@ public class BridgeProxyServer : BackgroundService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-BRIDGE-PROXY] Error stopping proxy {ProxyId} for client {ClientId}",
-                    kvp.Value, kvp.Key);
+                logger.LogWarning("[VSF-BRIDGE-PROXY] Error stopping proxy {ProxyId} for client {ClientId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(kvp.Value),
+                    LoggingSanitizer.SanitizeExternalIdentifier(kvp.Key),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -602,7 +639,9 @@ public class BridgeProxyServer : BackgroundService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-BRIDGE-PROXY] Error closing client {ClientId}", session.ClientId);
+                logger.LogWarning("[VSF-BRIDGE-PROXY] Error closing client {ClientId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -661,12 +700,13 @@ public class BridgeProxyServer : BackgroundService
 
                         lastPercent = progress.PercentComplete;
                         logger.LogDebug("[VSF-BRIDGE-PROXY] Progress update for {ClientId}: {Percent}%",
-                            session.ClientId, progress.PercentComplete);
+                            LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId), progress.PercentComplete);
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning(ex, "[VSF-BRIDGE-PROXY] Error sending progress update to {ClientId}",
-                            session.ClientId);
+                        logger.LogWarning("[VSF-BRIDGE-PROXY] Error sending progress update to {ClientId}: {Exception}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                         break; // Client disconnected
                     }
                 }
@@ -683,7 +723,9 @@ public class BridgeProxyServer : BackgroundService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error in progress update loop for {ClientId}", session.ClientId);
+            logger.LogError("[VSF-BRIDGE-PROXY] Error in progress update loop for {ClientId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(session.ClientId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
         finally
         {
@@ -793,7 +835,9 @@ public class BridgeProxyServer : BackgroundService
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-BRIDGE-PROXY] Failed to send error response: {Message}", errorMessage);
+            logger.LogWarning("[VSF-BRIDGE-PROXY] Failed to send error response {Message}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(errorMessage),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 

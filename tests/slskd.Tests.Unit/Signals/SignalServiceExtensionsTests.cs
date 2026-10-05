@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Signals;
 
 using System.Threading.Tasks;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,11 +27,21 @@ public sealed class SignalServiceExtensionsTests
         services.AddSingleton(optionsMonitor.Object);
         services.AddSingleton<ISwarmJobStore, InMemorySwarmJobStore>();
         services.AddSingleton<slskd.Security.ISecurityPolicyEngine>(Mock.Of<slskd.Security.ISecurityPolicyEngine>());
-        services.AddSingleton<IBitTorrentBackend, StubBitTorrentBackend>();
+        services.AddSingleton<IBitTorrentBackend, UnsupportedBitTorrentBackend>();
         await using var provider = services.BuildServiceProvider();
 
         await provider.InitializeSignalSystemAsync("local-peer");
 
         Assert.NotNull(provider.GetRequiredService<ISignalBus>());
+    }
+
+    private sealed class UnsupportedBitTorrentBackend : IBitTorrentBackend
+    {
+        public bool IsSupported() => false;
+
+        public Task<string?> FetchByInfoHashOrMagnetAsync(
+            string backendRef,
+            string destDirectory,
+            CancellationToken ct = default) => Task.FromResult<string?>(null);
     }
 }

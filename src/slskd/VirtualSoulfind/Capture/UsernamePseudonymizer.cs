@@ -57,7 +57,8 @@ public class UsernamePseudonymizer : IUsernamePseudonymizer
         usernameToPeerId.TryAdd(soulseekUsername, peerId);
         peerIdToUsername.TryAdd(peerId, soulseekUsername);
 
-        logger.LogTrace("[VSF-PSEUDO] Pseudonymized {Username} -> {PeerId}", soulseekUsername, peerId);
+        logger.LogTrace("[VSF-PSEUDO] Pseudonymized Soulseek identity as {PeerId}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(peerId));
 
         return Task.FromResult(peerId);
     }

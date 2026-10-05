@@ -5,6 +5,7 @@ using System.Text;
 using MessagePack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 using slskd.Mesh.Dht;
 using slskd.VirtualSoulfind.ShadowIndex;
 
@@ -41,7 +42,7 @@ public class DescriptorPublisher : IDescriptorPublisher
     {
         if (!validator.Validate(descriptor, out var reason))
         {
-            logger.LogWarning("[MediaCore] Descriptor invalid: {Reason}", reason);
+            logger.LogWarning("[MediaCore] Descriptor invalid: {Reason}", LoggingSanitizer.SanitizeExternalIdentifier(reason));
             return false;
         }
 
@@ -53,12 +54,15 @@ public class DescriptorPublisher : IDescriptorPublisher
         try
         {
             await dht.PutAsync(key, descriptor, ttlSeconds, ct);
-            logger.LogInformation("[MediaCore] Published descriptor {ContentId} (ttl={Ttl}s)", descriptor.ContentId, ttlSeconds);
+            logger.LogInformation("[MediaCore] Published descriptor {ContentId} (ttl={Ttl}s)", LoggingSanitizer.SanitizeExternalIdentifier(descriptor.ContentId), ttlSeconds);
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[MediaCore] Failed to publish descriptor {ContentId}: {Message}", descriptor.ContentId, ex.Message);
+            logger.LogError(
+                "[MediaCore] Failed to publish descriptor {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(descriptor.ContentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
     }

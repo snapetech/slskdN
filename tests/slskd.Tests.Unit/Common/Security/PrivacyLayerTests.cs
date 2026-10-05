@@ -5,12 +5,44 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Common.Security;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 namespace slskd.Tests.Unit.Common.Security;
 
 public class PrivacyLayerTests
 {
+    [Fact]
+    public async Task TransformFailures_LogEscapedExceptionText_AndReturnOriginalMessage()
+    {
+        var logger = new CapturingLogger<PrivacyLayer>();
+        using var privacyLayer = new PrivacyLayer(
+            new PrivacyLayerOptions
+            {
+                Padding = new MessagePaddingOptions
+                {
+                    Enabled = true,
+                    BucketSizes = new List<int> { 4 },
+                },
+            },
+            logger,
+            NullLoggerFactory.Instance);
+        var outbound = new byte[] { 1, 2, 3, 4, 5 };
+        var inbound = new byte[] { 1, 2, 3 };
+
+        Assert.Same(outbound, await privacyLayer.TransformOutboundAsync(outbound));
+        Assert.Same(inbound, await privacyLayer.TransformInboundAsync(inbound));
+
+        Assert.Equal(2, logger.Entries.Count);
+        Assert.All(logger.Entries, entry =>
+        {
+            Assert.Null(entry.Exception);
+            Assert.DoesNotContain('\r', entry.Message);
+            Assert.DoesNotContain('\n', entry.Message);
+            Assert.Contains("Exception", entry.Message);
+        });
+    }
+
     [Fact]
     public async Task GetStatisticsAsync_AfterFlushingQueuedBatch_ReportsBatchCreated()
     {

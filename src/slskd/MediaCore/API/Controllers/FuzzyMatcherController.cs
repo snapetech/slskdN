@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace slskd.MediaCore.API.Controllers;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 /// <summary>
@@ -77,8 +78,9 @@ public class FuzzyMatcherController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FuzzyMatcher] Failed to compute perceptual similarity between {ContentIdA} and {ContentIdB}",
-                           contentIdA, contentIdB);
+            _logger.LogError("[FuzzyMatcher] Failed to compute perceptual similarity between {ContentIdA} and {ContentIdB}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentIdA), LoggingSanitizer.SanitizeExternalIdentifier(contentIdB),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to compute perceptual similarity" });
         }
     }
@@ -141,7 +143,8 @@ public class FuzzyMatcherController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FuzzyMatcher] Failed to find similar content for {ContentId}", contentId);
+            _logger.LogError("[FuzzyMatcher] Failed to find similar content for {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to find similar content" });
         }
     }
@@ -182,7 +185,7 @@ public class FuzzyMatcherController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FuzzyMatcher] Failed to compute text similarity");
+            _logger.LogError("[FuzzyMatcher] Failed to compute text similarity: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to compute text similarity" });
         }
     }

@@ -5,6 +5,7 @@ namespace slskd.VirtualSoulfind.ShadowIndex;
 
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Shard cache to reduce DHT queries.
@@ -47,7 +48,7 @@ public class ShardCache : IShardCache
             // Check if cached shard is expired
             if (!ShardEvictionPolicy.IsExpired(shard!))
             {
-                logger.LogDebug("[VSF-CACHE] Cache hit for {MBID}", mbid);
+                logger.LogDebug("[VSF-CACHE] Cache hit for {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(mbid));
                 return Task.FromResult<ShadowIndexShard?>(shard);
             }
 
@@ -56,13 +57,14 @@ public class ShardCache : IShardCache
             entries.TryRemove(mbid, out _);
         }
 
-        logger.LogDebug("[VSF-CACHE] Cache miss for {MBID}", mbid);
+        logger.LogDebug("[VSF-CACHE] Cache miss for {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(mbid));
         return Task.FromResult<ShadowIndexShard?>(null);
     }
 
     public Task SetAsync(string mbid, ShadowIndexShard shard, TimeSpan ttl, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-CACHE] Caching shard for {MBID} (TTL: {TTL})", mbid, ttl);
+        logger.LogDebug("[VSF-CACHE] Caching shard for {MBID} (TTL: {TTL})",
+            LoggingSanitizer.SanitizeExternalIdentifier(mbid), ttl);
 
         cache.Set(GetCacheKey(mbid), shard, new MemoryCacheEntryOptions
         {

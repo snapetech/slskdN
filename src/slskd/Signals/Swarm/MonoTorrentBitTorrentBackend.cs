@@ -15,6 +15,7 @@ using MonoTorrent;
 using MonoTorrent.Client;
 using slskd.Swarm;
 using slskd.VirtualSoulfind.v2.Backends;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 ///     MonoTorrent-based <see cref="IBitTorrentBackend"/> for private swarms and fetch-by-infohash (def-3).
@@ -140,7 +141,8 @@ public sealed class MonoTorrentBitTorrentBackend : IBitTorrentBackend, IDisposab
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "FetchByInfoHashOrMagnetAsync failed after validating the backend reference");
+            _logger.LogWarning("FetchByInfoHashOrMagnetAsync failed after validating the backend reference: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             if (manager != null)
                 await CleanupManagerAsync(manager, "FetchByInfoHashOrMagnetAsync");
 
@@ -283,7 +285,9 @@ public sealed class MonoTorrentBitTorrentBackend : IBitTorrentBackend, IDisposab
         }
         catch (Exception cleanupEx)
         {
-            _logger.LogDebug(cleanupEx, "Failed to stop manager during {Operation} cleanup", operation);
+            _logger.LogDebug("Failed to stop manager during {Operation} cleanup: {Exception}",
+                operation,
+                LoggingSanitizer.SanitizeExternalIdentifier(cleanupEx.ToString()));
         }
 
         if (manager.State == TorrentState.Stopped)
@@ -294,7 +298,9 @@ public sealed class MonoTorrentBitTorrentBackend : IBitTorrentBackend, IDisposab
             }
             catch (Exception cleanupEx)
             {
-                _logger.LogDebug(cleanupEx, "Failed to remove manager during {Operation} cleanup", operation);
+                _logger.LogDebug("Failed to remove manager during {Operation} cleanup: {Exception}",
+                    operation,
+                    LoggingSanitizer.SanitizeExternalIdentifier(cleanupEx.ToString()));
             }
         }
     }

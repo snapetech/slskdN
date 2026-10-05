@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 namespace slskd.MediaCore;
 
@@ -95,7 +96,8 @@ public class MetadataPortability : IMetadataPortability
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[MetadataPortability] Failed to export metadata for {ContentId}", contentId);
+                _logger.LogError("[MetadataPortability] Failed to export metadata for {ContentId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -202,7 +204,8 @@ public class MetadataPortability : IMetadataPortability
             {
                 var error = $"Failed to import {entry.ContentId}";
                 errors.Add(error);
-                _logger.LogError(ex, "[MetadataPortability] {Error}", error);
+                _logger.LogError("[MetadataPortability] {Error}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(error), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 

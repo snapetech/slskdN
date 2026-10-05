@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using slskd.VirtualSoulfind.ShadowIndex;
 using slskd.VirtualSoulfind.DisasterMode;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.VirtualSoulfind.Integration;
 
@@ -50,7 +51,7 @@ public class ShadowIndexJobIntegration : IShadowIndexJobIntegration
 
     public async Task<List<string>> GetPeerHintsAsync(string mbRecordingId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-INTEGRATION] Getting peer hints for recording {RecordingId}", mbRecordingId);
+        logger.LogDebug("[VSF-INTEGRATION] Getting peer hints for recording {RecordingId}", LoggingSanitizer.SanitizeExternalIdentifier(mbRecordingId));
 
         try
         {
@@ -63,14 +64,15 @@ public class ShadowIndexJobIntegration : IShadowIndexJobIntegration
                     .ToList();
 
                 logger.LogInformation("[VSF-INTEGRATION] Found {PeerCount} peers for recording {RecordingId}",
-                    peerHints.Count, mbRecordingId);
+                    peerHints.Count, LoggingSanitizer.SanitizeExternalIdentifier(mbRecordingId));
                 return peerHints;
             }
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-INTEGRATION] Failed to query shadow index for {RecordingId}",
-                mbRecordingId);
+            logger.LogWarning("[VSF-INTEGRATION] Failed to query shadow index for {RecordingId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(mbRecordingId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return new List<string>();

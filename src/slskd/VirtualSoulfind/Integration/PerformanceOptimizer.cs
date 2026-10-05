@@ -5,6 +5,7 @@ namespace slskd.VirtualSoulfind.Integration;
 
 using slskd.VirtualSoulfind.ShadowIndex;
 using Microsoft.Extensions.Caching.Memory;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Performance optimizations for Virtual Soulfind.
@@ -82,7 +83,9 @@ public class PerformanceOptimizer : IPerformanceOptimizer
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-PERF] Failed to prefetch {MBID}", mbid);
+                logger.LogWarning("[VSF-PERF] Failed to prefetch {MBID}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(mbid),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
             finally
             {

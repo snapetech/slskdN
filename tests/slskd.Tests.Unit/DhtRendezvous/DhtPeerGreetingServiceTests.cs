@@ -6,14 +6,42 @@ namespace slskd.Tests.Unit.DhtRendezvous;
 using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.DhtRendezvous;
+using slskd.Tests.Unit.TestHelpers;
 using Soulseek;
 using Xunit;
 
 public class DhtPeerGreetingServiceTests
 {
+    [Fact]
+    public async Task SendGreetingAsync_WhenRemoteSendFails_LogsEscapedExceptionText()
+    {
+        await using var registry = new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance);
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient.SetupGet(client => client.State).Returns(SoulseekClientStates.Connected);
+        soulseekClient
+            .Setup(client => client.SendPrivateMessageAsync("peer-1", It.IsAny<string>(), It.IsAny<CancellationToken?>()))
+            .ThrowsAsync(new InvalidOperationException("remote detail\r\nforged log"));
+        var logger = new CapturingLogger<DhtPeerGreetingService>();
+        var service = new DhtPeerGreetingService(logger, registry, soulseekClient.Object);
+        var sendMethod = typeof(DhtPeerGreetingService).GetMethod(
+            "SendGreetingAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("SendGreetingAsync was not found.");
+
+        await (Task)sendMethod.Invoke(service, ["peer-1", false])!;
+
+        var entry = logger.Entries.Find(entry => entry.Level == LogLevel.Warning);
+        Assert.NotNull(entry);
+        Assert.Null(entry.Exception);
+        Assert.Contains("remote detail\\r\\nforged log", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+    }
+
     [Fact]
     public async Task StartAsync_CalledTwice_DoesNotDuplicateNeighborSubscriptions()
     {

@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Transfers.MultiSource;
 
 using System.IO;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Common.Security;
@@ -181,6 +182,37 @@ public class MultiSourceDownloadServiceSanitizationTests
                 It.IsAny<SearchOptions>(),
                 It.IsAny<CancellationToken?>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task FindVerifiedSourcesAsync_EscapesLogBreakingSearchTextAndPreservesFilename()
+    {
+        var query = "alpha\r\nforged.flac";
+        var logger = new Mock<ILogger<MultiSourceDownloadService>>();
+        logger.Setup(entry => entry.IsEnabled(LogLevel.Information)).Returns(true);
+        var safetyLimiter = new Mock<ISoulseekSafetyLimiter>();
+        safetyLimiter
+            .Setup(limiter => limiter.TryConsumeSearch("multisource-source-discovery"))
+            .Returns(false);
+        var service = new MultiSourceDownloadService(
+            logger.Object,
+            Mock.Of<ISoulseekClient>(),
+            Mock.Of<IContentVerificationService>(),
+            soulseekSafetyLimiter: safetyLimiter.Object);
+
+        var result = await service.FindVerifiedSourcesAsync(query, 1234, cancellationToken: CancellationToken.None);
+
+        Assert.Equal(query, result.Filename);
+        logger.Verify(
+            entry => entry.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("alpha\\r\\nforged") &&
+                    !state.ToString()!.Contains(query)),
+                It.IsAny<System.Exception?>(),
+                It.IsAny<System.Func<It.IsAnyType, System.Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

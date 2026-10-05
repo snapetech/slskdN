@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.MediaCore;
 
 /// <summary>
@@ -74,7 +75,7 @@ public class MediaCoreChunkScheduler : IChunkScheduler
 
             _logger.LogDebug(
                 "[MediaCoreChunkScheduler] Assigned chunk {ChunkIndex} to {Peer} (score: {Score:F2})",
-                request.ChunkIndex, selectedPeer.Username, selectedPeer.Score);
+                request.ChunkIndex, LoggingSanitizer.SanitizeExternalIdentifier(selectedPeer.Username), selectedPeer.Score);
 
             // T-1405: Register assignment for tracking
             RegisterAssignment(request.ChunkIndex, selectedPeer.Username);
@@ -89,7 +90,10 @@ public class MediaCoreChunkScheduler : IChunkScheduler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreChunkScheduler] Error assigning chunk {ChunkIndex}", request.ChunkIndex);
+            _logger.LogError(
+                "[MediaCoreChunkScheduler] Error assigning chunk {ChunkIndex}: {Exception}",
+                request.ChunkIndex,
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Fallback to simple round-robin selection
             var fallbackPeer = availablePeers[request.ChunkIndex % availablePeers.Count];
@@ -176,7 +180,7 @@ public class MediaCoreChunkScheduler : IChunkScheduler
 
                 _logger.LogDebug(
                     "[MediaCoreChunkScheduler] Assigned chunk {ChunkIndex} to {Peer} (adjusted score: {Score:F2})",
-                    request.ChunkIndex, selectedPeer.Username, selectedPeer.Score);
+                    request.ChunkIndex, LoggingSanitizer.SanitizeExternalIdentifier(selectedPeer.Username), selectedPeer.Score);
             }
 
             _logger.LogInformation(
@@ -187,7 +191,9 @@ public class MediaCoreChunkScheduler : IChunkScheduler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MediaCoreChunkScheduler] Error in batch assignment, using fallback");
+            _logger.LogError(
+                "[MediaCoreChunkScheduler] Error in batch assignment, using fallback: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Fallback to simple round-robin distribution
             var assignments = new List<ChunkAssignment>();
@@ -256,7 +262,10 @@ public class MediaCoreChunkScheduler : IChunkScheduler
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[MediaCoreChunkScheduler] Error scoring peer {Peer} for chunk {Chunk}", peer, request.ChunkIndex);
+                _logger.LogWarning(
+                    "[MediaCoreChunkScheduler] Error scoring peer {Peer} for chunk {Chunk}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(peer), request.ChunkIndex,
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
                 // Assign minimum score for problematic peers
                 peerScores.Add(new PeerScore(
@@ -359,7 +368,10 @@ public class MediaCoreChunkScheduler : IChunkScheduler
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[MediaCoreChunkScheduler] Error analyzing content similarity for {Peer}", username);
+            _logger.LogWarning(
+                "[MediaCoreChunkScheduler] Error analyzing content similarity for {Peer}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return 0.5; // Neutral score on error
         }
     }
@@ -495,7 +507,8 @@ public class MediaCoreChunkScheduler : IChunkScheduler
     {
         _logger.LogInformation(
             "[MediaCoreChunkScheduler] Handling peer degradation: {PeerId}, Reason: {Reason}",
-            peerId, reason);
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(reason.ToString()));
 
         // T-1405: Find chunks assigned to this peer for reassignment
         var chunksToReassign = new List<int>();
@@ -511,7 +524,7 @@ public class MediaCoreChunkScheduler : IChunkScheduler
         {
             _logger.LogInformation(
                 "[MediaCoreChunkScheduler] Marking {Count} chunks for reassignment from degraded peer {PeerId}",
-                chunksToReassign.Count, peerId);
+                chunksToReassign.Count, LoggingSanitizer.SanitizeExternalIdentifier(peerId));
 
             // Unregister assignments
             foreach (var chunkIndex in chunksToReassign)

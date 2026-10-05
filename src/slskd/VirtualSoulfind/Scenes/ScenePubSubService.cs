@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using slskd.Common.CodeQuality;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.VirtualSoulfind.Scenes;
 
@@ -95,29 +96,29 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
 
     public Task SubscribeAsync(string sceneId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-PUBSUB] Subscribing to scene {SceneId}", sceneId);
+        logger.LogDebug("[VSF-PUBSUB] Subscribing to scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         // Phase 6C: T-816 - Track subscription (polling will check DHT for messages)
         subscriptions[sceneId] = DateTimeOffset.UtcNow;
 
-        logger.LogInformation("[VSF-PUBSUB] Subscribed to scene {SceneId}", sceneId);
+        logger.LogInformation("[VSF-PUBSUB] Subscribed to scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
         return Task.CompletedTask;
     }
 
     public Task UnsubscribeAsync(string sceneId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-PUBSUB] Unsubscribing from scene {SceneId}", sceneId);
+        logger.LogDebug("[VSF-PUBSUB] Unsubscribing from scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         subscriptions.TryRemove(sceneId, out _);
 
-        logger.LogInformation("[VSF-PUBSUB] Unsubscribed from scene {SceneId}", sceneId);
+        logger.LogInformation("[VSF-PUBSUB] Unsubscribed from scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
         return Task.CompletedTask;
     }
 
     public async Task PublishAsync(string sceneId, byte[] message, CancellationToken ct)
     {
         logger.LogDebug("[VSF-PUBSUB] Publishing message to scene {SceneId}: {Size} bytes",
-            sceneId, message.Length);
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId), message.Length);
 
         // Phase 6C: T-816 - Store message in DHT with stable scene topic key so subscribers can query it
         var key = VirtualSoulfind.ShadowIndex.DhtKeyDerivation.DeriveSceneKey($"scene:pubsub:{sceneId}");
@@ -127,7 +128,7 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
 
         RememberMessage(sceneId, message);
 
-        logger.LogInformation("[VSF-PUBSUB] Published message to scene {SceneId}", sceneId);
+        logger.LogInformation("[VSF-PUBSUB] Published message to scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
     }
 
     public void Dispose()
@@ -159,7 +160,8 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
             catch (AggregateException ex)
             {
                 stopped = true;
-                logger.LogWarning(ex.Flatten(), "[VSF-PUBSUB] Poll loop failed during disposal");
+                logger.LogWarning("[VSF-PUBSUB] Poll loop failed during disposal: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.Flatten().ToString()));
             }
 
             if (stopped)
@@ -177,7 +179,8 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
                         pollLoopCancellationTokenSource.Dispose();
                         if (completedTask.IsFaulted && completedTask.Exception is { } exception)
                         {
-                            logger.LogError(exception, "[VSF-PUBSUB] Poll loop failed after disposal timed out");
+                            logger.LogError("[VSF-PUBSUB] Poll loop failed after disposal timed out: {Exception}",
+                                LoggingSanitizer.SanitizeExternalIdentifier(exception.ToString()));
                         }
                     },
                     CancellationToken.None,
@@ -185,7 +188,8 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
                     TaskScheduler.Default);
                 _ = TaskObservation.Observe(
                     completionTask,
-                    exception => logger.LogError(exception, "[VSF-PUBSUB] Poll loop completion handler failed"));
+                    exception => logger.LogError("[VSF-PUBSUB] Poll loop completion handler failed: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(exception.ToString())));
             }
         }
     }
@@ -246,7 +250,9 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-PUBSUB] Failed to poll scene {SceneId}", sceneId);
+                logger.LogWarning("[VSF-PUBSUB] Failed to poll scene {SceneId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(sceneId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -266,7 +272,8 @@ public class ScenePubSubService : IScenePubSubService, IDisposable
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-PUBSUB] MessageReceived subscriber failed");
+                logger.LogWarning("[VSF-PUBSUB] MessageReceived subscriber failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }

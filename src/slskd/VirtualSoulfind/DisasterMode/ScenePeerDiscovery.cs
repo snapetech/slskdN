@@ -4,6 +4,7 @@
 namespace slskd.VirtualSoulfind.DisasterMode;
 
 using slskd.VirtualSoulfind.Scenes;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Interface for scene-based peer discovery.
@@ -62,8 +63,9 @@ public class ScenePeerDiscovery : IScenePeerDiscovery
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-SCENE-DISCOVERY] Failed to get members for scene {SceneId}",
-                    scene.SceneId);
+                logger.LogWarning("[VSF-SCENE-DISCOVERY] Failed to get members for scene {SceneId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(scene.SceneId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -79,7 +81,8 @@ public class ScenePeerDiscovery : IScenePeerDiscovery
         CancellationToken ct)
     {
         logger.LogDebug("[VSF-SCENE-DISCOVERY] Discovering peers for {ContentType}:{ContentId}",
-            contentType, contentId);
+            LoggingSanitizer.SanitizeExternalIdentifier(contentType),
+            LoggingSanitizer.SanitizeExternalIdentifier(contentId));
 
         // If content is a label, find label scenes
         if (contentType == "label")
@@ -93,7 +96,7 @@ public class ScenePeerDiscovery : IScenePeerDiscovery
                 var peers = members.Where(m => m.IsActive).Select(m => m.PeerId).ToList();
 
                 logger.LogInformation("[VSF-SCENE-DISCOVERY] Found {PeerCount} peers in label scene {SceneId}",
-                    peers.Count, sceneId);
+                    peers.Count, LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
                 return peers;
             }

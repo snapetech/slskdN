@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd;
+using slskd.Common.Security;
 using slskd.Events;
 using Soulseek;
 using OptionsModel = slskd.Options;
@@ -77,7 +78,8 @@ public class TrafficObserverIntegrationService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-INTEGRATION] Failed to process search responses event");
+            logger.LogError("[VSF-INTEGRATION] Failed to process search responses event: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -94,7 +96,8 @@ public class TrafficObserverIntegrationService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-INTEGRATION] Failed to process download complete event");
+            logger.LogError("[VSF-INTEGRATION] Failed to process download complete event: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 }

@@ -72,7 +72,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
 
     public bool Enqueue(SwarmJob job)
     {
-        logger.LogDebug("[SwarmOrchestrator] Enqueue {JobId} ({ContentId})", job.JobId, job.File.ContentId);
+        logger.LogDebug("[SwarmOrchestrator] Enqueue {JobId} ({ContentId})",
+            LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+            LoggingSanitizer.SanitizeExternalIdentifier(job.File.ContentId));
         return jobs.Writer.TryWrite(job);
     }
 
@@ -85,9 +87,12 @@ public class SwarmDownloadOrchestrator : BackgroundService
         {
             try
             {
-                logger.LogInformation("[SwarmOrchestrator] Start {JobId} ({ContentId})", job.JobId, job.File.ContentId);
+                logger.LogInformation("[SwarmOrchestrator] Start {JobId} ({ContentId})",
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.File.ContentId));
                 await ProcessJob(job, stoppingToken);
-                logger.LogInformation("[SwarmOrchestrator] Completed {JobId}", job.JobId);
+                logger.LogInformation("[SwarmOrchestrator] Completed {JobId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId));
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -95,7 +100,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[SwarmOrchestrator] Failed {JobId}: {Message}", job.JobId, ex.Message);
+                logger.LogError("[SwarmOrchestrator] Failed {JobId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -112,18 +119,22 @@ public class SwarmDownloadOrchestrator : BackgroundService
         {
             logger.LogInformation(
                 "[SwarmOrchestrator] Skipping job {JobId} for {Filename}; blocked by global exclusion {Exclusion}",
-                job.JobId,
-                remoteFilename,
-                policyExclusion);
+                LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                LoggingSanitizer.SanitizeFilePath(remoteFilename),
+                LoggingSanitizer.SanitizeExternalIdentifier(policyExclusion));
             return;
         }
 
         logger.LogInformation("[SwarmOrchestrator] Processing job {JobId}: {ContentId} ({Size} bytes) from {SourceCount} sources",
-            job.JobId, job.File.ContentId, job.File.SizeBytes, job.Sources.Count);
+            LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+            LoggingSanitizer.SanitizeExternalIdentifier(job.File.ContentId),
+            job.File.SizeBytes,
+            job.Sources.Count);
 
         if (job.Sources.Count == 0)
         {
-            logger.LogWarning("[SwarmOrchestrator] Job {JobId} has no sources", job.JobId);
+            logger.LogWarning("[SwarmOrchestrator] Job {JobId} has no sources",
+                LoggingSanitizer.SanitizeExternalIdentifier(job.JobId));
             return;
         }
 
@@ -151,7 +162,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
             status.TotalChunks = chunks.Count;
 
             logger.LogInformation("[SwarmOrchestrator] Job {JobId}: {ChunkCount} chunks of {ChunkSize} bytes each",
-                job.JobId, chunks.Count, chunkSize);
+                LoggingSanitizer.SanitizeExternalIdentifier(job.JobId), chunks.Count, chunkSize);
 
             // Create temp directory for chunks
             IODirectory.CreateDirectory(tempDir);
@@ -164,7 +175,8 @@ public class SwarmDownloadOrchestrator : BackgroundService
 
             if (availablePeers.Count == 0)
             {
-                logger.LogWarning("[SwarmOrchestrator] Job {JobId}: No Soulseek peers available", job.JobId);
+                logger.LogWarning("[SwarmOrchestrator] Job {JobId}: No Soulseek peers available",
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId));
                 status.State = SwarmJobState.Failed;
                 status.Error = "No Soulseek peers available";
                 return;
@@ -196,10 +208,10 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 failedChunks[failedChunk.Index] = reason;
                 logger.LogWarning(
                     "[SwarmOrchestrator] Job {JobId}: Chunk {ChunkIndex} exhausted {Attempts} attempts: {Reason}",
-                    job.JobId,
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
                     failedChunk.Index,
                     attempts,
-                    reason);
+                    LoggingSanitizer.SanitizeExternalIdentifier(reason));
             }
 
             // T-1405: Subscribe to peer degradation events for reassignment
@@ -224,7 +236,8 @@ public class SwarmDownloadOrchestrator : BackgroundService
                         {
                             logger.LogInformation(
                                 "[SwarmOrchestrator] Reassigning {Count} chunks from degraded peer {PeerId}",
-                                chunksToReassign.Count, degradedPeer);
+                                chunksToReassign.Count,
+                                LoggingSanitizer.SanitizeExternalIdentifier(degradedPeer));
 
                             // Cancel and re-queue chunks assigned to degraded peer
                             foreach (var chunkIndex in chunksToReassign)
@@ -295,12 +308,13 @@ public class SwarmDownloadOrchestrator : BackgroundService
                                         chunkScheduler.UnregisterAssignment(chunk.Index);
                                         var completed = Interlocked.Increment(ref status.CompletedChunks);
                                         logger.LogDebug("[SwarmOrchestrator] Job {JobId}: Chunk {ChunkIndex} completed and verified ({Completed}/{Total})",
-                                            job.JobId, chunk.Index, completed, status.TotalChunks);
+                                            LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                                            chunk.Index, completed, status.TotalChunks);
                                     }
                                     else
                                     {
                                         logger.LogWarning("[SwarmOrchestrator] Job {JobId}: Chunk {ChunkIndex} verification failed",
-                                            job.JobId, chunk.Index);
+                                            LoggingSanitizer.SanitizeExternalIdentifier(job.JobId), chunk.Index);
                                         chunkScheduler.UnregisterAssignment(chunk.Index);
 
                                         RetryOrFail(chunk, "Chunk verification failed");
@@ -309,7 +323,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
                                 else
                                 {
                                     logger.LogWarning("[SwarmOrchestrator] Job {JobId}: Chunk {ChunkIndex} download failed: {Error}",
-                                        job.JobId, chunk.Index, chunkResult.Error);
+                                        LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                                        chunk.Index,
+                                        LoggingSanitizer.SanitizeExternalIdentifier(chunkResult.Error));
                                     chunkScheduler.UnregisterAssignment(chunk.Index);
 
                                     RetryOrFail(chunk, chunkResult.Error ?? "Chunk download failed");
@@ -321,8 +337,10 @@ public class SwarmDownloadOrchestrator : BackgroundService
                             }
                             catch (Exception ex)
                             {
-                                logger.LogError(ex, "[SwarmOrchestrator] Job {JobId}: Error processing chunk {ChunkIndex}",
-                                    job.JobId, chunk.Index);
+                                logger.LogError("[SwarmOrchestrator] Job {JobId}: Error processing chunk {ChunkIndex}: {Exception}",
+                                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                                    chunk.Index,
+                                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                                 chunkScheduler.UnregisterAssignment(chunk.Index);
 
                                 RetryOrFail(chunk, "Chunk processing failed");
@@ -339,7 +357,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
                     else
                     {
                         logger.LogWarning("[SwarmOrchestrator] Job {JobId}: Failed to assign chunk {ChunkIndex}: {Reason}",
-                            job.JobId, chunk.Index, assignment.Reason);
+                            LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                            chunk.Index,
+                            LoggingSanitizer.SanitizeExternalIdentifier(assignment.Reason));
 
                         RetryOrFail(chunk, assignment.Reason ?? "Peer assignment failed");
                     }
@@ -368,7 +388,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
             if (completedChunks.Count < chunks.Count)
             {
                 logger.LogWarning("[SwarmOrchestrator] Job {JobId}: Incomplete - {Completed}/{Total} chunks",
-                    job.JobId, completedChunks.Count, chunks.Count);
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId), completedChunks.Count, chunks.Count);
                 status.State = SwarmJobState.Failed;
                 status.Error = $"Only {completedChunks.Count}/{chunks.Count} chunks completed after up to {maxAttemptsPerChunk} attempts per chunk";
                 return;
@@ -404,18 +424,23 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 }
                 catch (IOException ex)
                 {
-                    logger.LogWarning(ex, "[SwarmOrchestrator] Failed to remove partial output for job {JobId}", job.JobId);
+                    logger.LogWarning("[SwarmOrchestrator] Failed to remove partial output for job {JobId}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    logger.LogWarning(ex, "[SwarmOrchestrator] Failed to remove partial output for job {JobId}", job.JobId);
+                    logger.LogWarning("[SwarmOrchestrator] Failed to remove partial output for job {JobId}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
             status.State = SwarmJobState.Completed;
             status.OutputPath = outputPath;
             logger.LogInformation("[SwarmOrchestrator] Job {JobId}: Completed successfully - {OutputPath}",
-                job.JobId, LoggingSanitizer.SanitizeFilePath(outputPath));
+                LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                LoggingSanitizer.SanitizeFilePath(outputPath));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -423,7 +448,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[SwarmOrchestrator] Job {JobId}: Failed with exception", job.JobId);
+            logger.LogError("[SwarmOrchestrator] Job {JobId}: Failed with exception {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             status.State = SwarmJobState.Failed;
             status.Error = "Swarm download failed";
         }
@@ -439,7 +466,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[SwarmOrchestrator] Failed while draining chunks for job {JobId}", job.JobId);
+                logger.LogWarning("[SwarmOrchestrator] Failed while draining chunks for job {JobId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             try
@@ -451,7 +480,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[SwarmOrchestrator] Failed to remove temporary chunk directory for job {JobId}", job.JobId);
+                logger.LogWarning("[SwarmOrchestrator] Failed to remove temporary chunk directory for job {JobId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(job.JobId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             activeJobs.TryRemove(job.JobId, out _);
@@ -522,7 +553,11 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 }
 
                 logger.LogDebug("[SwarmOrchestrator] Downloading chunk {ChunkIndex} from {PeerId} (offset {Start}-{End}, size {Size})",
-                    chunk.Index, peerId, chunk.StartOffset, chunk.EndOffset, chunkSize);
+                    chunk.Index,
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                    chunk.StartOffset,
+                    chunk.EndOffset,
+                    chunkSize);
 
                 // Use LimitedWriteStream to download only the chunk range
                 // Soulseek doesn't support range requests, but we can start at the offset
@@ -553,7 +588,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
                     {
                         // Expected - we cancelled after getting our chunk
                         logger.LogDebug("[SwarmOrchestrator] Chunk {ChunkIndex} complete (cancelled remaining) from {PeerId}",
-                            chunk.Index, peerId);
+                            chunk.Index, LoggingSanitizer.SanitizeExternalIdentifier(peerId));
                     }
 
                     bytesDownloaded = limitedStream.BytesWritten;
@@ -566,7 +601,7 @@ public class SwarmDownloadOrchestrator : BackgroundService
                 if (success)
                 {
                     logger.LogInformation("[SwarmOrchestrator] ✓ Chunk {ChunkIndex} from {PeerId}: {Size}KB in {Time}ms @ {Speed:F0}KB/s",
-                        chunk.Index, peerId, chunkSize / 1024, stopwatch.ElapsedMilliseconds,
+                        chunk.Index, LoggingSanitizer.SanitizeExternalIdentifier(peerId), chunkSize / 1024, stopwatch.ElapsedMilliseconds,
                         (chunkSize * 1000.0 / stopwatch.ElapsedMilliseconds) / 1024.0);
 
                     // Read chunk data into memory for assembly
@@ -588,7 +623,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
                     }
                     catch (Exception ex)
                     {
-                        logger.LogDebug(ex, "[SwarmOrchestrator] Failed to delete partial chunk file {Path}", tempFile);
+                        logger.LogDebug("[SwarmOrchestrator] Failed to delete partial chunk file {Path}: {Exception}",
+                            LoggingSanitizer.SanitizeFilePath(tempFile),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     }
 
                     return new ChunkResult
@@ -628,8 +665,10 @@ public class SwarmDownloadOrchestrator : BackgroundService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            logger.LogError(ex, "[SwarmOrchestrator] Error downloading chunk {ChunkIndex} from {PeerId}",
-                chunk.Index, peerId);
+            logger.LogError("[SwarmOrchestrator] Error downloading chunk {ChunkIndex} from {PeerId}: {Exception}",
+                chunk.Index,
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Clean up on error
             try
@@ -641,7 +680,9 @@ public class SwarmDownloadOrchestrator : BackgroundService
             }
             catch (Exception cleanupEx)
             {
-                logger.LogDebug(cleanupEx, "[SwarmOrchestrator] Failed to cleanup chunk file {Path}", tempFile);
+                logger.LogDebug("[SwarmOrchestrator] Failed to cleanup chunk file {Path}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(tempFile),
+                    LoggingSanitizer.SanitizeExternalIdentifier(cleanupEx.ToString()));
             }
 
             return new ChunkResult

@@ -92,4 +92,37 @@ public class MeshContentFetcherTests
         Assert.False(result.SizeValid);
         Assert.False(result.HashValid);
     }
+
+    [Fact]
+    public async Task FetchAsync_EscapesRemoteIdentifiersAndExceptionTextInDiagnostics()
+    {
+        var peerId = "peer\r\nforged";
+        var contentId = "content:mb:recording:test\r\nforged";
+        var logger = new Mock<ILogger<MeshContentFetcher>>();
+        logger.Setup(entry => entry.IsEnabled(LogLevel.Debug)).Returns(true);
+        logger.Setup(entry => entry.IsEnabled(LogLevel.Error)).Returns(true);
+        var meshClient = new Mock<IMeshServiceClient>();
+        meshClient
+            .Setup(client => client.CallAsync(peerId, It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("remote\r\nfailure"));
+        var fetcher = new MeshContentFetcher(meshClient.Object, logger.Object);
+
+        var result = await fetcher.FetchAsync(peerId, contentId, cancellationToken: CancellationToken.None);
+
+        Assert.Equal("Mesh content fetch failed", result.Error);
+        meshClient.Verify(client => client.CallAsync(peerId, It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()), Times.Once);
+        logger.Verify(
+            entry => entry.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((state, _) =>
+                    state.ToString()!.Contains("peer\\r\\nforged") &&
+                    state.ToString()!.Contains("test\\r\\nforged") &&
+                    state.ToString()!.Contains("remote\\r\\nfailure") &&
+                    !state.ToString()!.Contains(peerId) &&
+                    !state.ToString()!.Contains("remote\r\nfailure")),
+                It.IsAny<System.Exception?>(),
+                It.IsAny<System.Func<It.IsAnyType, System.Exception?, string>>()),
+            Times.Once);
+    }
 }

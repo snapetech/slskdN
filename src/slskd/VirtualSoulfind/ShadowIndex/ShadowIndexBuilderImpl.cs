@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using slskd.Audio;
 using slskd.VirtualSoulfind.Capture;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.VirtualSoulfind.ShadowIndex;
 
@@ -36,7 +37,8 @@ public class ShadowIndexBuilder : IShadowIndexBuilder
         CancellationToken ct)
     {
         logger.LogDebug("[VSF-SHADOW] Adding variant observation for {RecordingId} from {Username}",
-            recordingId, username);
+            LoggingSanitizer.SanitizeExternalIdentifier(recordingId),
+            LoggingSanitizer.SanitizeExternalIdentifier(username));
 
         // Pseudonymize username
         var peerId = await pseudonymizer.GetPeerIdAsync(username, ct);
@@ -69,16 +71,17 @@ public class ShadowIndexBuilder : IShadowIndexBuilder
             });
 
         logger.LogInformation("[VSF-SHADOW] Recorded variant observation: {RecordingId} from {PeerId}",
-            recordingId, peerId);
+            LoggingSanitizer.SanitizeExternalIdentifier(recordingId),
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId));
     }
 
     public Task<ShadowIndexShard?> BuildShardAsync(string recordingId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-SHADOW] Building shard for {MBID}", recordingId);
+        logger.LogDebug("[VSF-SHADOW] Building shard for {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
 
         if (!observations.TryGetValue(recordingId, out var variantList))
         {
-            logger.LogDebug("[VSF-SHADOW] No observations for {MBID}", recordingId);
+            logger.LogDebug("[VSF-SHADOW] No observations for {MBID}", LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
             return Task.FromResult<ShadowIndexShard?>(null);
         }
 
@@ -134,7 +137,9 @@ public class ShadowIndexBuilder : IShadowIndexBuilder
         };
 
         logger.LogInformation("[VSF-SHADOW] Built shard for {MBID}: {PeerCount} peers, {VariantCount} variants",
-            recordingId, shard.ApproximatePeerCount, shard.CanonicalVariants.Count);
+            LoggingSanitizer.SanitizeExternalIdentifier(recordingId),
+            shard.ApproximatePeerCount,
+            shard.CanonicalVariants.Count);
 
         return Task.FromResult<ShadowIndexShard?>(shard);
     }

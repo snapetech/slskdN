@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Transfers.MultiSource.Metrics;
 
 /// <summary>
@@ -71,7 +72,7 @@ public class AdaptiveScheduler : IAdaptiveScheduler
             {
                 _logger.LogDebug(
                     "[AdaptiveScheduler] Peer {PeerId} has low recent performance ({Score:F2}), but assigned anyway",
-                    peerId, recentPerformanceScore);
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId), recentPerformanceScore);
             }
         }
 
@@ -135,7 +136,7 @@ public class AdaptiveScheduler : IAdaptiveScheduler
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[AdaptiveScheduler] Error recording chunk completion");
+            _logger.LogError("[AdaptiveScheduler] Error recording chunk completion: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -186,7 +187,7 @@ public class AdaptiveScheduler : IAdaptiveScheduler
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[AdaptiveScheduler] Error adapting weights");
+                _logger.LogError("[AdaptiveScheduler] Error adapting weights: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 

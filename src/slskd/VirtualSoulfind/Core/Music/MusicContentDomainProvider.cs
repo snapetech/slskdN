@@ -53,18 +53,23 @@ namespace slskd.VirtualSoulfind.Core.Music
                 var album = await _hashDb.GetAlbumTargetAsync(releaseId, cancellationToken);
                 if (album == null)
                 {
-                    _logger.LogDebug("No album found for MusicBrainz Release ID: {ReleaseId}", releaseId);
+                    _logger.LogDebug("No album found for MusicBrainz Release ID: {ReleaseId}",
+                        slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(releaseId));
                     return null;
                 }
 
                 // Convert to MusicWork
                 var work = MusicWork.FromAlbumEntry(album);
-                _logger.LogDebug("Resolved work {WorkId} for MusicBrainz Release ID: {ReleaseId}", work.Id, releaseId);
+                _logger.LogDebug("Resolved work {WorkId} for MusicBrainz Release ID: {ReleaseId}",
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(work.Id.ToString()),
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(releaseId));
                 return work;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to resolve work for MusicBrainz Release ID: {ReleaseId}", releaseId);
+                _logger.LogError("Failed to resolve work for MusicBrainz Release ID: {ReleaseId}: {Exception}",
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(releaseId),
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return null;
             }
         }
@@ -154,12 +159,16 @@ namespace slskd.VirtualSoulfind.Core.Music
                     return fallbackItem;
                 }
 
-                _logger.LogDebug("No exact metadata match found for local file: {Title} / {Artist}", tags.Title, tags.Artist);
+                _logger.LogDebug("No exact metadata match found for local file: {Title} / {Artist}",
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(tags.Title),
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(tags.Artist));
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to resolve item from local metadata: {SanitizedPath}", LoggingSanitizer.SanitizeFilePath(fileMetadata.Id));
+                _logger.LogError("Failed to resolve item from local metadata: {SanitizedPath}: {Exception}",
+                    LoggingSanitizer.SanitizeFilePath(fileMetadata.Id),
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return null;
             }
         }
@@ -178,7 +187,9 @@ namespace slskd.VirtualSoulfind.Core.Music
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to match track by fingerprint: {Fingerprint}", fingerprint);
+                _logger.LogError("Failed to match track by fingerprint: {Fingerprint}: {Exception}",
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(fingerprint),
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return Task.FromResult<MusicItem?>(null);
             }
         }
@@ -238,7 +249,10 @@ namespace slskd.VirtualSoulfind.Core.Music
 
                 if (match == null)
                 {
-                    _logger.LogDebug("No exact work match found for {Title} / {Artist} ({Year})", title, artist, year);
+                    _logger.LogDebug("No exact work match found for {Title} / {Artist} ({Year})",
+                        slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(title),
+                        slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(artist),
+                        year);
                     return null;
                 }
 
@@ -246,7 +260,10 @@ namespace slskd.VirtualSoulfind.Core.Music
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to resolve work by title/artist: {Title} / {Artist}", title, artist);
+                _logger.LogError("Failed to resolve work by title/artist: {Title} / {Artist}: {Exception}",
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(title),
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(artist),
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return null;
             }
         }
@@ -278,12 +295,15 @@ namespace slskd.VirtualSoulfind.Core.Music
                         isAdvertisable);
                 }
 
-                _logger.LogDebug("No track entry found for MusicBrainz Recording ID: {RecordingId}", recordingId);
+                _logger.LogDebug("No track entry found for MusicBrainz Recording ID: {RecordingId}",
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to resolve item for MusicBrainz Recording ID: {RecordingId}", recordingId);
+                _logger.LogError("Failed to resolve item for MusicBrainz Recording ID: {RecordingId}: {Exception}",
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(recordingId),
+                    slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return null;
             }
         }

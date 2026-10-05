@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using slskd.VirtualSoulfind.Core;
@@ -20,12 +21,13 @@ public class WebDavBackendTests
     [Fact]
     public async Task ValidateCandidate_WhenHttpClientThrows_ReturnsSanitizedError()
     {
-        var handler = new ThrowingHttpMessageHandler(new HttpRequestException("sensitive detail"));
-        var (backend, httpClient) = CreateBackend(handler: handler);
+        var handler = new ThrowingHttpMessageHandler(new HttpRequestException("sensitive\r\ndetail"));
+        var logger = new CapturingLogger<WebDavBackend>();
+        var (backend, httpClient) = CreateBackend(handler: handler, logger: logger);
         using var _ = httpClient;
         var candidate = new SourceCandidate
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = "candidate\r\ninjected: true",
             ItemId = ContentItemId.NewId(),
             Backend = ContentBackendType.WebDav,
             BackendRef = "https://allowed.com/file.flac",
@@ -37,10 +39,18 @@ public class WebDavBackendTests
 
         Assert.False(result.IsValid);
         Assert.Equal("WebDAV validation failed", result.InvalidityReason);
-        Assert.DoesNotContain("sensitive detail", result.InvalidityReason);
+        Assert.DoesNotContain("sensitive", result.InvalidityReason);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("candidate\\r\\ninjected: true", entry.Message);
+        Assert.Contains("sensitive\\r\\ndetail", entry.Message);
+        Assert.Null(entry.Exception);
+        Assert.DoesNotContain("\r\n", entry.Message);
     }
 
-    private static (WebDavBackend Backend, HttpClient HttpClient) CreateBackend(WebDavBackendOptions options = null, HttpMessageHandler handler = null)
+    private static (WebDavBackend Backend, HttpClient HttpClient) CreateBackend(
+        WebDavBackendOptions options = null,
+        HttpMessageHandler handler = null,
+        ILogger<WebDavBackend> logger = null)
     {
         options ??= new WebDavBackendOptions
         {
@@ -56,6 +66,6 @@ public class WebDavBackendTests
         var sourceRegistry = new Mock<ISourceRegistry>();
         optionsMonitor.Setup(o => o.CurrentValue).Returns(options);
 
-        return (new WebDavBackend(httpFactory, optionsMonitor.Object, sourceRegistry.Object), httpClient);
+        return (new WebDavBackend(httpFactory, optionsMonitor.Object, sourceRegistry.Object, logger), httpClient);
     }
 }

@@ -4,6 +4,7 @@
 namespace slskd.VirtualSoulfind.Scenes;
 
 using slskd.VirtualSoulfind.ShadowIndex;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Interface for scene DHT announcements.
@@ -54,7 +55,7 @@ public class SceneAnnouncementService : ISceneAnnouncementService
 
     public async Task AnnounceJoinAsync(string sceneId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-SCENE-DHT] Announcing join to scene {SceneId}", sceneId);
+        logger.LogDebug("[VSF-SCENE-DHT] Announcing join to scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         if (!await rateLimiter.TryAcquireAsync(ct))
         {
@@ -71,12 +72,12 @@ public class SceneAnnouncementService : ISceneAnnouncementService
         // Publish to DHT with 30 minute TTL (scenes are ephemeral)
         await dht.PutAsync(key, announcement, ttlSeconds: 1800, ct);
 
-        logger.LogInformation("[VSF-SCENE-DHT] Announced join to scene {SceneId}", sceneId);
+        logger.LogInformation("[VSF-SCENE-DHT] Announced join to scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
     }
 
     public async Task AnnounceLeaveAsync(string sceneId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-SCENE-DHT] Announcing leave from scene {SceneId}", sceneId);
+        logger.LogDebug("[VSF-SCENE-DHT] Announcing leave from scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         if (!await rateLimiter.TryAcquireAsync(ct))
         {
@@ -90,7 +91,7 @@ public class SceneAnnouncementService : ISceneAnnouncementService
         // Publish leave announcement with short TTL (5 minutes)
         await dht.PutAsync(key, announcement, ttlSeconds: 300, ct);
 
-        logger.LogInformation("[VSF-SCENE-DHT] Announced leave from scene {SceneId}", sceneId);
+        logger.LogInformation("[VSF-SCENE-DHT] Announced leave from scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
     }
 
     public async Task RefreshAnnouncementsAsync(CancellationToken ct)
@@ -115,7 +116,9 @@ public class SceneAnnouncementService : ISceneAnnouncementService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-SCENE-DHT] Failed to refresh announcement for scene {SceneId}", scene.SceneId);
+                logger.LogWarning("[VSF-SCENE-DHT] Failed to refresh announcement for scene {SceneId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(scene.SceneId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 

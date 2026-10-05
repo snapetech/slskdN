@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 /// <summary>
 /// Parser for Soulseek protocol messages (binary format).
@@ -109,7 +110,8 @@ public class SoulseekProtocolParser
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[SOULSEEK-PROTO] Error reading message");
+            logger.LogError("[SOULSEEK-PROTO] Error reading message: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }
@@ -167,7 +169,8 @@ public class SoulseekProtocolParser
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[SOULSEEK-PROTO] Error writing message");
+            logger.LogError("[SOULSEEK-PROTO] Error writing message: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
@@ -187,7 +190,8 @@ public class SoulseekProtocolParser
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[SOULSEEK-PROTO] Failed to parse login request");
+            logger.LogWarning("[SOULSEEK-PROTO] Failed to parse login request: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }
@@ -207,7 +211,8 @@ public class SoulseekProtocolParser
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[SOULSEEK-PROTO] Failed to parse search request");
+            logger.LogWarning("[SOULSEEK-PROTO] Failed to parse search request: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }
@@ -228,7 +233,8 @@ public class SoulseekProtocolParser
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[SOULSEEK-PROTO] Failed to parse download request");
+            logger.LogWarning("[SOULSEEK-PROTO] Failed to parse download request: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }

@@ -4,6 +4,7 @@
 namespace slskd.VirtualSoulfind.Integration;
 
 using slskd.VirtualSoulfind.Scenes;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Integrates scenes with label crate jobs.
@@ -41,7 +42,7 @@ public class SceneLabelCrateIntegration : ISceneLabelCrateIntegration
     {
         var sceneId = NormalizeLabelToSceneId(labelName);
 
-        logger.LogDebug("[VSF-INTEGRATION] Getting peers from label scene {SceneId}", sceneId);
+        logger.LogDebug("[VSF-INTEGRATION] Getting peers from label scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         try
         {
@@ -53,13 +54,15 @@ public class SceneLabelCrateIntegration : ISceneLabelCrateIntegration
                 .ToList();
 
             logger.LogInformation("[VSF-INTEGRATION] Found {PeerCount} peers in label scene {SceneId}",
-                peers.Count, sceneId);
+                peers.Count, LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
             return peers;
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-INTEGRATION] Failed to get peers from label scene {SceneId}", sceneId);
+            logger.LogWarning("[VSF-INTEGRATION] Failed to get peers from label scene {SceneId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(sceneId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new List<string>();
         }
     }

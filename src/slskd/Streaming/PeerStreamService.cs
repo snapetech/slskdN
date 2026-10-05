@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Common.Security;
 using slskd.Transfers.Downloads;
 
 /// <summary>
@@ -114,12 +115,20 @@ public sealed class PeerStreamService : IPeerStreamService
         }
         catch (Exception ex) when (IsExpectedPeerStreamFailure(ex))
         {
-            _logger.LogWarning("Peer preview stream of {Filename} from {Username} ended because the remote peer is unavailable: {Message}", claims.Filename, claims.Username, ex.Message);
+            _logger.LogWarning(
+                "Peer preview stream of {Filename} from {Username} ended because the remote peer is unavailable: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(claims.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(claims.Username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             await writer.CompleteAsync(ex).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Peer preview stream of {Filename} from {Username} failed: {Message}", claims.Filename, claims.Username, ex.Message);
+            _logger.LogError(
+                "Peer preview stream of {Filename} from {Username} failed: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(claims.Filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(claims.Username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             await writer.CompleteAsync(ex).ConfigureAwait(false);
         }
     }

@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace slskd.MediaCore.API.Controllers;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 /// <summary>
@@ -63,13 +64,18 @@ public class ContentIdController : ControllerBase
 
             _logger.LogInformation(
                 "[ContentID] Registered mapping: {ExternalId} -> {ContentId}",
-                externalId, contentId);
+                LoggingSanitizer.SanitizeExternalIdentifier(externalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId));
 
             return Ok(new { message = "ContentID mapping registered successfully" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentID] Failed to register mapping: {ExternalId} -> {ContentId}", externalId, contentId);
+            _logger.LogError(
+                "[ContentID] Failed to register mapping: {ExternalId} -> {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(externalId),
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to register ContentID mapping" });
         }
     }
@@ -102,7 +108,8 @@ public class ContentIdController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentID] Failed to resolve external ID: {ExternalId}", externalId);
+            _logger.LogError("[ContentID] Failed to resolve external ID: {ExternalId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(externalId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to resolve external ID" });
         }
     }
@@ -129,7 +136,8 @@ public class ContentIdController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentID] Failed to check existence of external ID: {ExternalId}", externalId);
+            _logger.LogError("[ContentID] Failed to check existence of external ID: {ExternalId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(externalId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to check external ID existence" });
         }
     }
@@ -156,7 +164,8 @@ public class ContentIdController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentID] Failed to get external IDs for ContentID: {ContentId}", contentId);
+            _logger.LogError("[ContentID] Failed to get external IDs for ContentID: {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get external IDs" });
         }
     }
@@ -176,7 +185,7 @@ public class ContentIdController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentID] Failed to get registry statistics");
+            _logger.LogError("[ContentID] Failed to get registry statistics: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get registry statistics" });
         }
     }
@@ -204,7 +213,8 @@ public class ContentIdController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentID] Failed to find ContentIDs by domain: {Domain}", domain);
+            _logger.LogError("[ContentID] Failed to find ContentIDs by domain: {Domain}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(domain), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to find ContentIDs by domain" });
         }
     }
@@ -240,7 +250,9 @@ public class ContentIdController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentID] Failed to find ContentIDs by domain and type: {Domain}/{Type}", domain, type);
+            _logger.LogError("[ContentID] Failed to find ContentIDs by domain and type: {Domain}/{Type}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(domain), LoggingSanitizer.SanitizeExternalIdentifier(type),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to find ContentIDs by domain and type" });
         }
     }
@@ -291,7 +303,8 @@ public class ContentIdController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ContentID] Failed to validate ContentID: {ContentId}", contentId);
+            _logger.LogError("[ContentID] Failed to validate ContentID: {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to validate ContentID" });
         }
     }

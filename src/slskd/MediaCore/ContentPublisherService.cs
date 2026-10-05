@@ -3,6 +3,7 @@
 // </copyright>
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 namespace slskd.MediaCore;
 
@@ -104,7 +105,7 @@ public class ContentPublisherService : BackgroundService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "[MediaCore] Failed to publish descriptors batch");
+            logger.LogWarning("[MediaCore] Failed to publish descriptors batch: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 }

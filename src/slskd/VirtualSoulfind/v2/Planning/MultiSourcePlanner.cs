@@ -269,7 +269,9 @@ namespace slskd.VirtualSoulfind.v2.Planning
                             : candidate.BackendRef[..peerIdLength];
                         if (!string.IsNullOrWhiteSpace(peerId))
                         {
-                            peerAllowedById ??= new Dictionary<string, bool>(StringComparer.Ordinal);
+                            peerAllowedById ??= new Dictionary<string, bool>(
+                                Math.Min(candidates.Count, MaxInitialCandidateCapacity),
+                                StringComparer.Ordinal);
                             if (!peerAllowedById.TryGetValue(peerId, out var isAllowed))
                             {
                                 isAllowed = await _peerReputationService.IsPeerAllowedForPlanningAsync(

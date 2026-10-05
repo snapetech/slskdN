@@ -6,6 +6,7 @@ namespace slskd.VirtualSoulfind.Scenes;
 using slskd.VirtualSoulfind.ShadowIndex;
 using System.Collections.Concurrent;
 using MessagePack;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Interface for scene membership tracking.
@@ -67,13 +68,13 @@ public class SceneMembershipTracker : ISceneMembershipTracker
 
             if (age < TimeSpan.FromMinutes(5))
             {
-                logger.LogDebug("[VSF-SCENE-TRACK] Metadata cache hit for {SceneId}", sceneId);
+                logger.LogDebug("[VSF-SCENE-TRACK] Metadata cache hit for {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
                 return cached;
             }
         }
 
         // Query DHT for scene metadata
-        logger.LogDebug("[VSF-SCENE-TRACK] Querying DHT for scene metadata: {SceneId}", sceneId);
+        logger.LogDebug("[VSF-SCENE-TRACK] Querying DHT for scene metadata: {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         var key = DhtKeyDerivation.DeriveSceneKey(sceneId);
         var data = await dht.GetAsync(key, ct);
@@ -90,14 +91,15 @@ public class SceneMembershipTracker : ISceneMembershipTracker
 
                 if (activeCount > 0)
                 {
-                    logger.LogDebug("[VSF-SCENE-TRACK] No DHT metadata for {SceneId}, synthesizing from local membership cache", sceneId);
+                    logger.LogDebug("[VSF-SCENE-TRACK] No DHT metadata for {SceneId}, synthesizing from local membership cache",
+                        LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
                     var synthesized = CreateFallbackMetadata(sceneId, activeCount);
                     metadataCache[sceneId] = synthesized;
                     return synthesized;
                 }
             }
 
-            logger.LogDebug("[VSF-SCENE-TRACK] No metadata found for scene {SceneId}", sceneId);
+            logger.LogDebug("[VSF-SCENE-TRACK] No metadata found for scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
             return null;
         }
 
@@ -113,7 +115,8 @@ public class SceneMembershipTracker : ISceneMembershipTracker
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-SCENE-TRACK] Failed to deserialize scene metadata, using defaults");
+            logger.LogWarning("[VSF-SCENE-TRACK] Failed to deserialize scene metadata, using defaults: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             // Fallback: create metadata from scene ID
             metadata = CreateFallbackMetadata(sceneId, 0);
@@ -134,7 +137,7 @@ public class SceneMembershipTracker : ISceneMembershipTracker
         // Check cache first
         if (memberCache.TryGetValue(sceneId, out var cached))
         {
-            logger.LogDebug("[VSF-SCENE-TRACK] Member cache hit for {SceneId}", sceneId);
+            logger.LogDebug("[VSF-SCENE-TRACK] Member cache hit for {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
             lock (cached)
             {
                 return cached
@@ -144,7 +147,7 @@ public class SceneMembershipTracker : ISceneMembershipTracker
         }
 
         // Query DHT for scene members
-        logger.LogDebug("[VSF-SCENE-TRACK] Querying DHT for scene members: {SceneId}", sceneId);
+        logger.LogDebug("[VSF-SCENE-TRACK] Querying DHT for scene members: {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         var key = DhtKeyDerivation.DeriveSceneMembersKey(sceneId);
         var memberDataList = await dht.GetMultipleAsync(key, ct);
@@ -175,14 +178,16 @@ public class SceneMembershipTracker : ISceneMembershipTracker
         }
 
         logger.LogInformation("[VSF-SCENE-TRACK] Found {Count} active members in scene {SceneId}",
-            normalizedMembers.Count, sceneId);
+            normalizedMembers.Count, LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         return normalizedMembers;
     }
 
     public Task TrackJoinAsync(string sceneId, string peerId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-SCENE-TRACK] Tracking join: {PeerId} → {SceneId}", peerId, sceneId);
+        logger.LogDebug("[VSF-SCENE-TRACK] Tracking join: {PeerId} → {SceneId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         var members = memberCache.GetOrAdd(sceneId, _ => new List<SceneMember>());
         lock (members)
@@ -213,7 +218,9 @@ public class SceneMembershipTracker : ISceneMembershipTracker
 
     public Task TrackLeaveAsync(string sceneId, string peerId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-SCENE-TRACK] Tracking leave: {PeerId} → {SceneId}", peerId, sceneId);
+        logger.LogDebug("[VSF-SCENE-TRACK] Tracking leave: {PeerId} → {SceneId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+            LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         if (memberCache.TryGetValue(sceneId, out var members))
         {

@@ -34,7 +34,8 @@ public class TvContentDomainProvider : ITvContentDomainProvider
             return Task.FromResult<TvWork?>(null);
         }
 
-        _logger.LogDebug("[TvDomain] Resolving TV series by TVDB ID: {TvdbId}", tvdbId);
+        _logger.LogDebug("[TvDomain] Resolving TV series by TVDB ID: {TvdbId}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(tvdbId));
         var work = new TvWork(TvDomainMapping.TvdbIdToContentWorkId(tvdbId), $"TVDB {tvdbId}", tvdbId: tvdbId);
         return Task.FromResult<TvWork?>(work);
     }
@@ -47,7 +48,8 @@ public class TvContentDomainProvider : ITvContentDomainProvider
             return Task.FromResult<TvWork?>(null);
         }
 
-        _logger.LogDebug("[TvDomain] Resolving TV series by title: {Title}", title);
+        _logger.LogDebug("[TvDomain] Resolving TV series by title: {Title}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(title));
         var tvdbSeed = Math.Abs(StringComparer.OrdinalIgnoreCase.GetHashCode(title)).ToString();
         var work = new TvWork(TvDomainMapping.TvdbIdToContentWorkId(tvdbSeed), title.Trim(), tvdbId: tvdbSeed);
         return Task.FromResult<TvWork?>(work);
@@ -65,7 +67,8 @@ public class TvContentDomainProvider : ITvContentDomainProvider
             return Task.FromResult<TvItem?>(null);
         }
 
-        _logger.LogDebug("[TvDomain] Resolving TV episode: Series {SeriesId}, S{Season}E{Episode}", seriesId, season, episode);
+        _logger.LogDebug("[TvDomain] Resolving TV episode: Series {SeriesId}, S{Season}E{Episode}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(seriesId), season, episode);
         var workId = TvDomainMapping.TvdbIdToContentWorkId(seriesId);
         var itemId = TvDomainMapping.EpisodeToContentItemId(seriesId, season, episode);
         var item = new TvItem(itemId, workId, seriesId, season, episode, $"{seriesId}.S{season:D2}E{episode:D2}", 0, tvdbId: seriesId);
@@ -82,7 +85,8 @@ public class TvContentDomainProvider : ITvContentDomainProvider
 
         var normalizedHash = hash.Trim();
         var normalizedFileName = filename.Trim();
-        _logger.LogDebug("[TvDomain] Resolving TV item by hash: {Hash}", normalizedHash.Substring(0, Math.Min(16, normalizedHash.Length)));
+        _logger.LogDebug("[TvDomain] Resolving TV item by hash: {Hash}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeHash(normalizedHash.Substring(0, Math.Min(16, normalizedHash.Length))));
         var parsed = ParseEpisode(Path.GetFileNameWithoutExtension(normalizedFileName) ?? normalizedFileName);
         if (parsed == null)
         {
@@ -111,7 +115,8 @@ public class TvContentDomainProvider : ITvContentDomainProvider
             return Task.FromResult<TvItem?>(null);
         }
 
-        _logger.LogDebug("[TvDomain] Resolving TV item by local metadata: {Id}", fileMetadata.Id);
+        _logger.LogDebug("[TvDomain] Resolving TV item by local metadata: {Id}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeFilePath(fileMetadata.Id));
         var hash = string.IsNullOrWhiteSpace(fileMetadata.PrimaryHash) ? fileMetadata.Id : fileMetadata.PrimaryHash;
         return TryGetItemByHashAsync(hash, fileMetadata.Id, fileMetadata.SizeBytes, cancellationToken);
     }

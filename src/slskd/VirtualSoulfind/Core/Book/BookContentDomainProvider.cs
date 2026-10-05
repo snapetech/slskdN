@@ -33,7 +33,8 @@ public class BookContentDomainProvider : IBookContentDomainProvider
             return Task.FromResult<BookWork?>(null);
         }
 
-        _logger.LogDebug("[BookDomain] Resolving book by ISBN: {Isbn}", isbn);
+        _logger.LogDebug("[BookDomain] Resolving book by ISBN: {Isbn}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(isbn));
         var work = new BookWork(BookDomainMapping.IsbnToContentWorkId(isbn), $"ISBN {isbn}", isbn: isbn);
         return Task.FromResult<BookWork?>(work);
     }
@@ -46,7 +47,9 @@ public class BookContentDomainProvider : IBookContentDomainProvider
             return Task.FromResult<BookWork?>(null);
         }
 
-        _logger.LogDebug("[BookDomain] Resolving book by title/author: {Title} by {Author}", title, author);
+        _logger.LogDebug("[BookDomain] Resolving book by title/author: {Title} by {Author}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(title),
+            slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(author));
         var isbnSeed = $"{title}:{author}".Trim();
         var work = new BookWork(BookDomainMapping.IsbnToContentWorkId(isbnSeed), title.Trim(), string.IsNullOrWhiteSpace(author) ? null : author.Trim());
         return Task.FromResult<BookWork?>(work);
@@ -62,7 +65,8 @@ public class BookContentDomainProvider : IBookContentDomainProvider
 
         var normalizedHash = hash.Trim();
         var normalizedFileName = filename.Trim();
-        _logger.LogDebug("[BookDomain] Resolving book item by hash: {Hash}", normalizedHash.Substring(0, Math.Min(16, normalizedHash.Length)));
+        _logger.LogDebug("[BookDomain] Resolving book item by hash: {Hash}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeHash(normalizedHash.Substring(0, Math.Min(16, normalizedHash.Length))));
         var workId = BookDomainMapping.IsbnToContentWorkId(Path.GetFileNameWithoutExtension(normalizedFileName) ?? normalizedFileName);
         var item = new BookItem(
             BookDomainMapping.HashToContentItemId(normalizedHash, sizeBytes, normalizedFileName),
@@ -83,7 +87,8 @@ public class BookContentDomainProvider : IBookContentDomainProvider
             return Task.FromResult<BookItem?>(null);
         }
 
-        _logger.LogDebug("[BookDomain] Resolving book item by local metadata: {Id}", fileMetadata.Id);
+        _logger.LogDebug("[BookDomain] Resolving book item by local metadata: {Id}",
+            slskd.Common.Security.LoggingSanitizer.SanitizeFilePath(fileMetadata.Id));
         var hash = string.IsNullOrWhiteSpace(fileMetadata.PrimaryHash) ? fileMetadata.Id : fileMetadata.PrimaryHash;
         return TryGetItemByHashAsync(hash, fileMetadata.Id, fileMetadata.SizeBytes, cancellationToken);
     }

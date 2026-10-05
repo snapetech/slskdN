@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.Telemetry;
 using slskd.Transfers.MultiSource.Metrics;
 using static slskd.Telemetry.PeerMetrics;
@@ -68,7 +69,7 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting performance metrics");
+            _logger.LogError("Error getting performance metrics: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return Task.FromResult(new SwarmPerformanceMetrics { TimeWindow = timeWindow.Value });
         }
     }
@@ -84,7 +85,7 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting peer rankings");
+            _logger.LogError("Error getting peer rankings: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new List<PeerPerformanceRanking>();
         }
     }
@@ -101,7 +102,7 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting efficiency metrics");
+            _logger.LogError("Error getting efficiency metrics: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new SwarmEfficiencyMetrics();
         }
     }
@@ -118,7 +119,7 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting trends");
+            _logger.LogError("Error getting trends: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new SwarmTrends();
         }
     }
@@ -137,7 +138,7 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting recommendations");
+            _logger.LogError("Error getting recommendations: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new List<SwarmRecommendation>();
         }
     }

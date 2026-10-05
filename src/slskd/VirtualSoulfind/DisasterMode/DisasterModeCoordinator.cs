@@ -7,6 +7,7 @@ using slskd.Common.CodeQuality;
 using System.Threading;
 using Microsoft.Extensions.Options;
 using slskd;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 using OptionsModel = slskd.Options;
 
 /// <summary>
@@ -144,7 +145,7 @@ public sealed class DisasterModeCoordinator : IDisasterModeCoordinator
 
         var previousLevel = CurrentLevel;
         logger.LogWarning("[VSF-DISASTER] Changing legacy fallback level from {Previous} to {New}: {Reason}",
-            previousLevel, level, reason);
+            previousLevel, level, LoggingSanitizer.SanitizeExternalIdentifier(reason));
 
         CurrentLevel = level;
 
@@ -178,7 +179,8 @@ public sealed class DisasterModeCoordinator : IDisasterModeCoordinator
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-DISASTER] Disaster mode subscriber failed");
+                logger.LogWarning("[VSF-DISASTER] Disaster mode subscriber failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -196,7 +198,8 @@ public sealed class DisasterModeCoordinator : IDisasterModeCoordinator
     {
         _ = TaskObservation.Observe(HandleHealthChangedAsync(e), ex =>
         {
-            logger.LogError(ex, "[VSF-DISASTER] Unhandled exception while processing health change");
+            logger.LogError("[VSF-DISASTER] Unhandled exception while processing health change: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         });
     }
 
@@ -280,7 +283,8 @@ public sealed class DisasterModeCoordinator : IDisasterModeCoordinator
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-DISASTER] Unhandled exception while processing health change");
+            logger.LogError("[VSF-DISASTER] Unhandled exception while processing health change: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 }

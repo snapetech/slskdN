@@ -3,6 +3,8 @@
 // </copyright>
 namespace slskd.VirtualSoulfind.DisasterMode;
 
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
+
 /// <summary>
 /// Disaster mode telemetry.
 /// </summary>
@@ -91,7 +93,8 @@ public class DisasterModeTelemetryService : IDisasterModeTelemetry
             TrimEvents();
         }
 
-        logger.LogInformation("[VSF-TELEMETRY] Disaster mode activation recorded: {Reason}", reason);
+        logger.LogInformation("[VSF-TELEMETRY] Disaster mode activation recorded: {Reason}",
+            LoggingSanitizer.SanitizeExternalIdentifier(reason));
     }
 
     public void RecordDeactivation()

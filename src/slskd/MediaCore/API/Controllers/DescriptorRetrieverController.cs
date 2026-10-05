@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace slskd.MediaCore.API.Controllers;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 /// <summary>
@@ -73,7 +74,8 @@ public class DescriptorRetrieverController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Failed to retrieve descriptor {ContentId}", contentId);
+            _logger.LogError("[DescriptorRetriever] Failed to retrieve descriptor {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(contentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to retrieve descriptor" });
         }
     }
@@ -111,7 +113,7 @@ public class DescriptorRetrieverController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Failed to retrieve batch");
+            _logger.LogError("[DescriptorRetriever] Failed to retrieve batch: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to retrieve batch" });
         }
     }
@@ -151,13 +153,14 @@ public class DescriptorRetrieverController : ControllerBase
 
             _logger.LogInformation(
                 "[DescriptorRetriever] Domain query {Domain}:{Type}: {Found} results in {Duration}ms",
-                domain, type ?? "all", result.TotalFound, result.QueryDuration.TotalMilliseconds);
+                LoggingSanitizer.SanitizeExternalIdentifier(domain), LoggingSanitizer.SanitizeExternalIdentifier(type ?? "all"), result.TotalFound, result.QueryDuration.TotalMilliseconds);
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Failed to query domain {Domain}", domain);
+            _logger.LogError("[DescriptorRetriever] Failed to query domain {Domain}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(domain), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to query domain" });
         }
     }
@@ -188,7 +191,8 @@ public class DescriptorRetrieverController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Failed to verify descriptor {ContentId}", request.Descriptor.ContentId);
+            _logger.LogError("[DescriptorRetriever] Failed to verify descriptor {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(request.Descriptor.ContentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to verify descriptor" });
         }
     }
@@ -208,7 +212,7 @@ public class DescriptorRetrieverController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Failed to get retrieval stats");
+            _logger.LogError("[DescriptorRetriever] Failed to get retrieval stats: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get retrieval statistics" });
         }
     }
@@ -234,7 +238,7 @@ public class DescriptorRetrieverController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[DescriptorRetriever] Failed to clear cache");
+            _logger.LogError("[DescriptorRetriever] Failed to clear cache: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to clear cache" });
         }
     }

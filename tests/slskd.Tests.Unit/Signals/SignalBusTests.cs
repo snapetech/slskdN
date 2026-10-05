@@ -307,6 +307,30 @@ public class SignalBusTests
     }
 
     [Fact]
+    public async Task OnSignalReceived_WhenSubscriberThrows_EscapesRemoteSignalAndExceptionText()
+    {
+        var messages = new List<string>();
+        using var signalBus = new SignalBus(new CapturingLogger<SignalBus>(messages), optionsMonitorMock.Object);
+        await signalBus.SubscribeAsync((_, _) => throw new InvalidOperationException("remote\r\nforged"));
+        var signal = new Signal(
+            signalId: "signal\r\ninjected",
+            fromPeerId: "peer-1",
+            toPeerId: "peer-2",
+            sentAt: DateTimeOffset.UtcNow,
+            type: "Test.Signal",
+            body: new Dictionary<string, object>(),
+            ttl: TimeSpan.FromMinutes(5),
+            preferredChannels: new[] { SignalChannel.Mesh });
+
+        await signalBus.OnSignalReceivedAsync(signal, CancellationToken.None);
+
+        var message = Assert.Single(messages, value => value.StartsWith("Signal subscriber failed", StringComparison.Ordinal));
+        Assert.Contains("signal\\r\\ninjected", message);
+        Assert.Contains("InvalidOperationException: remote\\r\\nforged", message);
+        Assert.DoesNotContain("\r\n", message);
+    }
+
+    [Fact]
     public void Dispose_DisposesRegisteredChannelHandlers()
     {
         var signalBus = new SignalBus(loggerMock.Object, optionsMonitorMock.Object);
@@ -416,5 +440,31 @@ public class SignalBusTests
             ttl: TimeSpan.FromMinutes(5),
             preferredChannels: channels.Length > 0 ? channels.ToList() : new List<SignalChannel> { SignalChannel.Mesh }
         );
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        private readonly ICollection<string> _messages;
+
+        public CapturingLogger(ICollection<string> messages)
+        {
+            _messages = messages;
+        }
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            _messages.Add(formatter(state, exception));
+        }
     }
 }

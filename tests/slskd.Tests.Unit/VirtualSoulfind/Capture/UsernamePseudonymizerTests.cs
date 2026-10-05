@@ -7,6 +7,7 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using slskd.VirtualSoulfind.Capture;
 using Xunit;
@@ -27,6 +28,21 @@ public class UsernamePseudonymizerTests
         Assert.Equal(first, second);
         Assert.Equal("Alice", reversed);
         Assert.Matches("^peer:vsf:[0-9a-f]{40}$", first);
+    }
+
+    [Fact]
+    public void GetPeerIdAsync_DoesNotWriteRawUsernameToLogs()
+    {
+        var logger = new CapturingLogger<UsernamePseudonymizer>();
+        var pseudonymizer = new UsernamePseudonymizer(logger);
+        const string username = "remote\r\nforged-user";
+
+        var peerId = pseudonymizer.GetPeerIdAsync(username, CancellationToken.None).GetAwaiter().GetResult();
+
+        var log = string.Join("\n", logger.Messages);
+        Assert.DoesNotContain(username, log, StringComparison.Ordinal);
+        Assert.DoesNotContain("\r\n", log, StringComparison.Ordinal);
+        Assert.Contains(peerId, log, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -94,5 +110,24 @@ public class UsernamePseudonymizerTests
         var input = Encoding.UTF8.GetBytes(
             username.ToLowerInvariant() + "slskdn-vsf-pseudonymization-salt-v1");
         return $"peer:vsf:{Convert.ToHexStringLower(SHA256.HashData(input).AsSpan(0, 20))}";
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => NullLogger.Instance.BeginScope(state);
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+            => Messages.Add(formatter(state, exception));
     }
 }

@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using slskd.Audio;
+using slskd.Common.Security;
 using slskd.Integrations.AcoustId;
 using slskd.Integrations.Chromaprint;
 using slskd.Integrations.MusicBrainz;
@@ -60,7 +61,8 @@ public class NormalizationPipeline : INormalizationPipeline
         if (string.IsNullOrWhiteSpace(obs.Artist) || string.IsNullOrWhiteSpace(obs.Title))
         {
             logger.LogDebug("[VSF-NORM] Insufficient metadata for search observation: Artist={Artist}, Title={Title}",
-                obs.Artist, obs.Title);
+                LoggingSanitizer.SanitizeExternalIdentifier(obs.Artist),
+                LoggingSanitizer.SanitizeExternalIdentifier(obs.Title));
             return;
         }
 
@@ -72,7 +74,9 @@ public class NormalizationPipeline : INormalizationPipeline
 
             if (mbResults.Count == 0)
             {
-                logger.LogDebug("[VSF-NORM] No MB matches for {Artist} - {Title}", obs.Artist, obs.Title);
+                logger.LogDebug("[VSF-NORM] No MB matches for {Artist} - {Title}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(obs.Artist),
+                    LoggingSanitizer.SanitizeExternalIdentifier(obs.Title));
                 return;
             }
 
@@ -109,11 +113,14 @@ public class NormalizationPipeline : INormalizationPipeline
                 ct);
 
             logger.LogInformation("[VSF-NORM] Processed search observation: {RecordingId} from {Username}",
-                recording.RecordingId, obs.SoulseekUsername);
+                LoggingSanitizer.SanitizeExternalIdentifier(recording.RecordingId),
+                LoggingSanitizer.SanitizeExternalIdentifier(obs.SoulseekUsername));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-NORM] Failed to process search observation: {ObservationId}", obs.ObservationId);
+            logger.LogError("[VSF-NORM] Failed to process search observation {ObservationId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(obs.ObservationId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -131,7 +138,8 @@ public class NormalizationPipeline : INormalizationPipeline
 
             if (string.IsNullOrWhiteSpace(fingerprint))
             {
-                logger.LogWarning("[VSF-NORM] Failed to fingerprint {Path}", obs.LocalPath);
+                logger.LogWarning("[VSF-NORM] Failed to fingerprint {Path}",
+                    LoggingSanitizer.SanitizeFilePath(obs.LocalPath));
                 return;
             }
 
@@ -150,7 +158,8 @@ public class NormalizationPipeline : INormalizationPipeline
 
             if (acoustIdResult?.Recordings == null || acoustIdResult.Recordings.Length == 0)
             {
-                logger.LogWarning("[VSF-NORM] No AcoustID match for {Path}", obs.LocalPath);
+                logger.LogWarning("[VSF-NORM] No AcoustID match for {Path}",
+                    LoggingSanitizer.SanitizeFilePath(obs.LocalPath));
                 return;
             }
 
@@ -196,11 +205,16 @@ public class NormalizationPipeline : INormalizationPipeline
                 ct);
 
             logger.LogInformation("[VSF-NORM] Processed transfer observation: {RecordingId} from {Username} (quality={Quality:F2}, transcode={Transcode})",
-                recordingId, obs.SoulseekUsername, variant.QualityScore, variant.TranscodeSuspect);
+                LoggingSanitizer.SanitizeExternalIdentifier(recordingId),
+                LoggingSanitizer.SanitizeExternalIdentifier(obs.SoulseekUsername),
+                variant.QualityScore,
+                variant.TranscodeSuspect);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-NORM] Failed to process transfer observation: {TransferId}", obs.TransferId);
+            logger.LogError("[VSF-NORM] Failed to process transfer observation {TransferId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(obs.TransferId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using slskd.DhtRendezvous.Messages;
 using slskd.Search;
 using slskd.Search.Providers;
@@ -68,6 +69,8 @@ public sealed class MeshOverlaySearchService : IMeshOverlaySearchService
             return Array.Empty<Response>();
         }
 
+        var safeSearchText = LoggingSanitizer.SanitizeQueryText(searchText);
+
         var connections = _registry.GetAllConnections()
             .Where(c =>
                 c.IsOutbound
@@ -78,11 +81,11 @@ public sealed class MeshOverlaySearchService : IMeshOverlaySearchService
 
         if (connections.Count == 0)
         {
-            _logger.LogDebug("[MeshSearch] No outbound mesh peers with MeshSearch feature; skipping overlay search for '{Query}'", searchText);
+            _logger.LogDebug("[MeshSearch] No outbound mesh peers with MeshSearch feature; skipping overlay search for '{Query}'", safeSearchText);
             return Array.Empty<Response>();
         }
 
-        _logger.LogDebug("[MeshSearch] Fanning out '{Query}' to {Count} mesh peer(s)", searchText, connections.Count);
+        _logger.LogDebug("[MeshSearch] Fanning out '{Query}' to {Count} mesh peer(s)", safeSearchText, connections.Count);
 
         var tasks = connections.Select(c => QueryPeerAsync(c, searchText, cancellationToken));
         var outcomes = await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -94,7 +97,7 @@ public sealed class MeshOverlaySearchService : IMeshOverlaySearchService
 
         _logger.LogInformation(
             "[MeshSearch] Search completed: query='{Query}' peers={Peers} peersWithResults={PeersWithResults} emptyPeers={EmptyPeers} failedPeers={FailedPeers} files={Files}",
-            searchText,
+            safeSearchText,
             connections.Count,
             nonEmpty.Count,
             emptyPeers,
@@ -131,7 +134,10 @@ public sealed class MeshOverlaySearchService : IMeshOverlaySearchService
 
             if (!string.IsNullOrEmpty(resp.Error))
             {
-                _logger.LogDebug("Mesh search error from {Username}: {Error}", OverlayLogSanitizer.Username(connection.Username), resp.Error);
+                _logger.LogDebug(
+                    "Mesh search error from {Username}: {Error}",
+                    OverlayLogSanitizer.Username(connection.Username),
+                    LoggingSanitizer.SanitizeExternalIdentifier(resp.Error));
                 return new PeerSearchOutcome(null, PeerSearchStatus.Failed);
             }
 
@@ -176,12 +182,18 @@ public sealed class MeshOverlaySearchService : IMeshOverlaySearchService
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogDebug(ex, "Mesh overlay search to {Username} timed out", OverlayLogSanitizer.Username(connection.Username));
+            _logger.LogDebug(
+                "Mesh overlay search to {Username} timed out: {Exception}",
+                OverlayLogSanitizer.Username(connection.Username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PeerSearchOutcome(null, PeerSearchStatus.Failed);
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Mesh overlay search to {Username} failed: {Message}", OverlayLogSanitizer.Username(connection.Username), ex.Message);
+            _logger.LogDebug(
+                "Mesh overlay search to {Username} failed: {Exception}",
+                OverlayLogSanitizer.Username(connection.Username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new PeerSearchOutcome(null, PeerSearchStatus.Failed);
         }
         finally

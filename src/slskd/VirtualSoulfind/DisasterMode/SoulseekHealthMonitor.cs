@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Soulseek;
 using slskd;
 using Serilog;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 public enum SoulseekHealth
 {
@@ -63,7 +64,9 @@ public sealed class SoulseekClientWrapper : ISoulseekClient
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "[VSF-DISCO] RoomMessageReceived subscriber failed");
+                Log.Warning(
+                    "[VSF-DISCO] RoomMessageReceived subscriber failed with exception {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -152,7 +155,8 @@ public sealed class SoulseekHealthMonitor : ISoulseekHealthMonitor, IHostedServi
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-HEALTH] HealthChanged subscriber failed");
+                logger.LogWarning("[VSF-HEALTH] HealthChanged subscriber failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -217,7 +221,8 @@ public sealed class SoulseekHealthMonitor : ISoulseekHealthMonitor, IHostedServi
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[VSF-HEALTH] Health check failed");
+                logger.LogError("[VSF-HEALTH] Health check failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 CurrentHealth = SoulseekHealth.Unavailable;
             }
 
@@ -267,7 +272,8 @@ public sealed class SoulseekHealthMonitor : ISoulseekHealthMonitor, IHostedServi
             }
             catch (Exception ex)
             {
-                logger.LogDebug(ex, "[VSF-HEALTH] Reconnect attempt failed");
+                logger.LogDebug("[VSF-HEALTH] Reconnect attempt failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             return SoulseekHealth.Unavailable;
@@ -298,7 +304,8 @@ public sealed class SoulseekHealthMonitor : ISoulseekHealthMonitor, IHostedServi
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-HEALTH] Health check operation failed");
+            logger.LogWarning("[VSF-HEALTH] Health check operation failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return SoulseekHealth.Degraded;
         }
     }

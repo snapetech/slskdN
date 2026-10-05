@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 namespace slskd.VirtualSoulfind.Scenes;
 
@@ -112,7 +113,7 @@ public class SceneService : ISceneService
         // sceneId from both passing a ContainsKey check, then both announcing to DHT.
         if (!joinedScenes.TryAdd(sceneId, new Scene { SceneId = sceneId, JoinedAt = DateTimeOffset.UtcNow }))
         {
-            logger.LogDebug("[VSF-SCENE] Already joined scene {SceneId}", sceneId);
+            logger.LogDebug("[VSF-SCENE] Already joined scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
             return;
         }
 
@@ -122,7 +123,7 @@ public class SceneService : ISceneService
             var metadata = await GetSceneMetadataAsync(sceneId, ct);
             if (metadata == null)
             {
-                logger.LogWarning("[VSF-SCENE] Scene {SceneId} not found", sceneId);
+                logger.LogWarning("[VSF-SCENE] Scene {SceneId} not found", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
                 throw new InvalidOperationException($"Scene not found: {sceneId}");
             }
 
@@ -141,7 +142,8 @@ public class SceneService : ISceneService
             };
 
             logger.LogInformation("[VSF-SCENE] Joined scene {SceneId} ({DisplayName})",
-                sceneId, metadata.DisplayName);
+                LoggingSanitizer.SanitizeExternalIdentifier(sceneId),
+                LoggingSanitizer.SanitizeExternalIdentifier(metadata.DisplayName));
         }
         catch
         {
@@ -155,19 +157,19 @@ public class SceneService : ISceneService
     {
         if (!joinedScenes.TryRemove(sceneId, out _))
         {
-            logger.LogDebug("[VSF-SCENE] Not a member of scene {SceneId}", sceneId);
+            logger.LogDebug("[VSF-SCENE] Not a member of scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
             return;
         }
 
         // Remove DHT announcement
         await announcements.AnnounceLeaveAsync(sceneId, ct);
 
-        logger.LogInformation("[VSF-SCENE] Left scene {SceneId}", sceneId);
+        logger.LogInformation("[VSF-SCENE] Left scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
     }
 
     public async Task<SceneMetadata?> GetSceneMetadataAsync(string sceneId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-SCENE] Getting metadata for scene {SceneId}", sceneId);
+        logger.LogDebug("[VSF-SCENE] Getting metadata for scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         // Query DHT for scene metadata
         var metadata = await membershipTracker.GetSceneMetadataAsync(sceneId, ct);
@@ -175,7 +177,7 @@ public class SceneService : ISceneService
         if (metadata != null)
         {
             logger.LogInformation("[VSF-SCENE] Retrieved metadata for {SceneId}: {MemberCount} members",
-                sceneId, metadata.ApproximateMemberCount);
+                LoggingSanitizer.SanitizeExternalIdentifier(sceneId), metadata.ApproximateMemberCount);
             return metadata;
         }
 
@@ -198,12 +200,12 @@ public class SceneService : ISceneService
 
     public async Task<List<SceneMember>> GetSceneMembersAsync(string sceneId, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-SCENE] Getting members for scene {SceneId}", sceneId);
+        logger.LogDebug("[VSF-SCENE] Getting members for scene {SceneId}", LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         var members = await membershipTracker.GetMembersAsync(sceneId, ct);
 
         logger.LogInformation("[VSF-SCENE] Retrieved {Count} members for scene {SceneId}",
-            members.Count, sceneId);
+            members.Count, LoggingSanitizer.SanitizeExternalIdentifier(sceneId));
 
         return members;
     }
@@ -216,7 +218,7 @@ public class SceneService : ISceneService
         }
 
         query = query.Trim();
-        logger.LogDebug("[VSF-SCENE] Searching scenes: {Query}", query);
+        logger.LogDebug("[VSF-SCENE] Searching scenes: {Query}", LoggingSanitizer.SanitizeQueryText(query));
 
         // Phase 6C: T-813 - DHT-based scene search
         // Search for scenes by querying DHT with scene key patterns
@@ -243,7 +245,9 @@ public class SceneService : ISceneService
             }
             catch (Exception ex)
             {
-                logger.LogDebug(ex, "[VSF-SCENE] Failed to get metadata for scene {SceneId}", sceneId);
+                logger.LogDebug("[VSF-SCENE] Failed to get metadata for scene {SceneId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(sceneId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -252,7 +256,8 @@ public class SceneService : ISceneService
             .Select(group => group.First())
             .ToList();
 
-        logger.LogInformation("[VSF-SCENE] Scene search '{Query}' returned {Count} results", query, deduped.Count);
+        logger.LogInformation("[VSF-SCENE] Scene search '{Query}' returned {Count} results",
+            LoggingSanitizer.SanitizeQueryText(query), deduped.Count);
         return deduped;
     }
 }

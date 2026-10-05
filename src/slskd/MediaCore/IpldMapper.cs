@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 
 namespace slskd.MediaCore;
 
@@ -280,7 +281,7 @@ public class IpldMapper : IIpldMapper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IPLD] Error during link validation");
+            _logger.LogError("[IPLD] Error during link validation: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         var isValid = brokenLinks.Count == 0 && orphanedLinks.Count == 0;
@@ -343,7 +344,8 @@ public class IpldMapper : IIpldMapper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IPLD] Error traversing from {ContentId}", currentContentId);
+            _logger.LogError("[IPLD] Error traversing from {ContentId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(currentContentId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return false;
         }
 

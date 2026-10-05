@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using slskd.Common.Security;
 using Soulseek;
 
 /// <summary>
@@ -163,7 +164,10 @@ public sealed class DhtPeerGreetingService : BackgroundService
         catch (Exception ex)
         {
             _greetedPeers.TryRemove(username, out _);
-            _logger.LogWarning(ex, "Failed to send greeting to {Username}", OverlayLogSanitizer.Username(username));
+            _logger.LogWarning(
+                "Failed to send greeting to {Username}: {Exception}",
+                OverlayLogSanitizer.Username(username),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 

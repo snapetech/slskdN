@@ -5,6 +5,7 @@ namespace slskd.VirtualSoulfind.Bridge;
 
 using System.Collections.Concurrent;
 using System.Threading;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Interface for bridge dashboard data.
@@ -195,7 +196,8 @@ public class BridgeDashboard : IBridgeDashboard
         }
 
         logger.LogDebug("[VSF-BRIDGE-DASHBOARD] Recorded {RequestType} from {ClientId}",
-            requestType, clientId);
+            LoggingSanitizer.SanitizeExternalIdentifier(requestType),
+            LoggingSanitizer.SanitizeExternalIdentifier(clientId));
     }
 
     public void RecordConnection(string clientId, string ipAddress)
