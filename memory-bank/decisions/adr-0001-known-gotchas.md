@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1624. Distinguish Health-Check Timeout From Caller Cancellation (2026-10-05)
+
+**What went wrong:** `MeshHealthCheck` converted request cancellation into a
+degraded health result, even though its own five-second timeout is the case
+that should be represented as degraded.
+
+**Why:** The filter excluded caller cancellation from the timeout handler, but
+the following broad exception handler also caught and translated it.
+
+**Prevention:** Rethrow `OperationCanceledException` when the health-check
+caller token is canceled before returning a degraded result for the internal
+timeout. Test the canceled caller and internal-timeout paths separately.
+
 ### 0z1623. Qualify System.IO Types In Soulseek Test Namespaces (2026-10-05)
 
 **What went wrong:** A mesh test imported `Soulseek` and then added unqualified
