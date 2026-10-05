@@ -38386,3 +38386,19 @@ test interpreted an empty capture as a missing log call.
 **Prevention:** Set `MinimumLevel.Debug()` when a regression asserts debug
 diagnostics. Keep the captured sink focused on the target event before
 asserting its escaped structured message and exception state.
+
+### 0z1590. Sanitize Multi-Source Transfer Diagnostics (2026-10-05)
+
+**What went wrong:** Multi-source search and transfer logs emitted remote
+usernames, filenames, search terms, hashes, error messages, and exception
+objects without escaping control characters across discovery, failover, chunk,
+and cleanup paths.
+
+**Why:** The transfer lifecycle crosses several nested workers and catches, so
+fixing the top-level download log did not cover source discovery, per-peer
+workers, sequential retry, or deferred cleanup diagnostics.
+
+**Prevention:** Audit all log calls in the full transfer owner, including
+worker and `finally` blocks. Escape external identifiers, search text, paths,
+hashes, and full exception text only at the diagnostic boundary. Keep values
+unchanged for requests, transfer state, and filesystem operations.
