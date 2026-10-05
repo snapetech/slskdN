@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100505-slskdn.340] — 2026-10-05
+
 ### Security and diagnostics
 
 - Limit startup service-worker cleanup to slskdN's exact worker scope and
@@ -54,9 +56,6 @@ For dev or build tags, use the same logical version string embedded in the tag.
   intent diagnostics, including exceptions raised by remote-message
   subscribers. Scene chat bodies and original Soulseek usernames are omitted
   from logs.
-- Require the .NET 10 SDK in contribution, Homebrew source-build, and Synology
-  source-build instructions. Homebrew users installing the self-contained
-  release do not need a separate .NET runtime or SDK.
 - Escape signal IDs, peer IDs, remote signal types/reasons, and exception
   details in the shared signal bus, Mesh and BitTorrent signal channels, and
   swarm control handlers. Original signal values remain unchanged for routing
@@ -82,6 +81,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Escape remote Soulseek and protocol exception details in peer verification,
   mesh greeting, and privacy-transform diagnostics while preserving their
   existing fallback behavior.
+
+### Developer setup
+
+- Require the .NET 10 SDK in contribution, Homebrew source-build, and Synology
+  source-build instructions. Homebrew users installing the self-contained
+  release do not need a separate .NET runtime or SDK.
 
 ### Performance
 
