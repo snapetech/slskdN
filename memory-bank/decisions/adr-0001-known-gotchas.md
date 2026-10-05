@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1635. Qualify The DHT Peer Descriptor In Publisher Tests (2026-10-05)
+
+**What went wrong:** A publisher regression imported both mesh and DHT
+namespaces, which each define `MeshPeerDescriptor`, making the mocked generic
+lookup type ambiguous.
+
+**Why:** Similar protocol and domain type names are intentionally present in
+separate namespaces.
+
+**Prevention:** Use the fully qualified DHT descriptor type or a named alias
+in tests that import both namespaces, and compile the focused test after
+adding generic Moq setups.
+
 ### 0z1634. Preserve Cancellation In Peer Relay Descriptor Updates (2026-10-05)
 
 **What went wrong:** `MarkPeerRequiresRelayAsync` caught cancellation from its
