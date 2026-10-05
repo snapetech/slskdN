@@ -38429,3 +38429,18 @@ its static type against the sanitizer signature.
 **Prevention:** Convert typed enums and value objects with `ToString()` only in
 the logger argument, then sanitize that string. Build the owning project after
 each diagnostic batch so type mismatches are caught before more edits accrue.
+
+### 0z1593. Escape Preview Stream Identities And Failures (2026-10-05)
+
+**What went wrong:** Manual mesh and Soulseek preview streams logged ContentIDs,
+remote filenames, usernames, and exception objects directly from ticket claims
+and peer failures.
+
+**Why:** Preview streams do not create normal transfer records, so their
+independent producer tasks have separate diagnostic catches that are easy to
+miss during a transfer-service audit.
+
+**Prevention:** Audit background stream producers as well as controllers.
+Escape ticket-derived IDs and paths in logs, and log escaped full exception
+text instead of attaching a raw exception object. Keep the original claim
+values for content lookup and transfer calls.
