@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1673. Assert Raw Exception Text Separately From Escaped Log Text (2026-10-05)
+
+**What went wrong:** The MeshMessageSigner regression expected literal
+backslash-r/backslash-n in `Exception.Message`, although exception behavior
+must remain unchanged and only the captured log field is escaped.
+
+**Why:** The test used one escaped-string expectation for both the original
+exception and its sanitized diagnostic copy.
+
+**Prevention:** Assert original exception text with actual control characters,
+then separately assert escaped sequences and absence of raw controls in the
+captured log entry.
+
 ### 0z1672. Import The Overlay Namespace For Mesh Signer Test Keys (2026-10-05)
 
 **What went wrong:** The new MeshMessageSigner regression referenced
