@@ -38416,3 +38416,16 @@ arguments, and the edit matched by value rather than by the enclosing call.
 **Prevention:** Apply sanitization only to arguments inside logger calls or
 telemetry tags. Review each hunk in context and verify request, peer-routing,
 and filesystem arguments still receive their original values.
+
+### 0z1592. Convert Typed Transfer Reasons At The Log Boundary (2026-10-05)
+
+**What went wrong:** A diagnostic edit passed the `DegradationReason` enum to
+`LoggingSanitizer.SanitizeExternalIdentifier`, which accepts nullable strings
+and stopped the application build.
+
+**Why:** The code review followed the log argument's origin but did not check
+its static type against the sanitizer signature.
+
+**Prevention:** Convert typed enums and value objects with `ToString()` only in
+the logger argument, then sanitize that string. Build the owning project after
+each diagnostic batch so type mismatches are caught before more edits accrue.
