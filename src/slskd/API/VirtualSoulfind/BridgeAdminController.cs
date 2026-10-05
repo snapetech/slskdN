@@ -8,6 +8,7 @@ using slskd.Core.Security;
 
 using Microsoft.AspNetCore.Mvc;
 using slskd.VirtualSoulfind.Bridge;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Bridge configuration and dashboard API.
@@ -93,7 +94,8 @@ public class BridgeAdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to get bridge dashboard");
+            logger.LogError("Failed to get bridge dashboard: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get bridge dashboard" });
         }
     }
@@ -114,7 +116,8 @@ public class BridgeAdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to get bridge clients");
+            logger.LogError("Failed to get bridge clients: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get bridge clients" });
         }
     }
@@ -135,7 +138,8 @@ public class BridgeAdminController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to get bridge stats");
+            logger.LogError("Failed to get bridge stats: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get bridge stats" });
         }
     }

@@ -1,3 +1,33 @@
+## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:50 UTC
+
+Stable `.339` remains the latest release. The current VirtualSoulfind batch
+sanitizes caller queries, MBIDs, peer IDs, filenames, hashes, paths, and full
+exception details in bridge, capture, shadow-index, mesh-search, transfer, and
+API diagnostic logs. Sanitization is log-only, with regressions confirming
+that original MBIDs and hashes still reach query/transfer state. Homebrew and
+Synology source-build docs now require the pinned .NET 10 SDK; Homebrew release
+installs correctly state that the self-contained archive needs no .NET setup.
+
+Focused coverage passes 14/14. Full Release tests pass 5,924 (74 application,
+5,561 unit, 289 integration); `./bin/lint`, active-backlog, local-identity,
+and whitespace checks pass. The implementation, tests, changelog, release
+fragments, packaging docs, task/progress update, and backlog refresh are
+validated but not yet committed or pushed.
+
+Every first-party project under `src`, `tests`, and `tools` targets
+`net10.0`. MonoTorrent `3.9.0-alpha.unstable.rev0000` supplies its compatible
+`lib/net8.0` asset. The old `.NET 6` reference describes the package asset used
+before the dependency upgrade; no active `.NET 6` project TFM or selected
+MonoTorrent asset remains.
+
+Next: continue the broad VirtualSoulfind logging review, then take the next
+code-backed whole-product items. T-908 cross-peer sender/job activation,
+cancellation and manager cleanup; global Party ID ownership across disjoint
+DHT views; true background-tab timer throttling; WebKit/Orca and physical
+assistive-technology speech; representative WAN/resource evidence; the
+original frontend `ERR_NETWORK_CHANGED` cause; and broad discovery queues
+remain open. Do not cut `.340` until the continuing remediation is ready.
+
 ## Current state — Continue whole-product remediation; prepare `.340` — 2026-10-05 02:27 UTC
 
 Stable `.339` remains the latest published release. The transfer diagnostics

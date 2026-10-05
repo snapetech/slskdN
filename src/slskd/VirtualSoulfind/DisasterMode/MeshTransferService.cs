@@ -151,7 +151,9 @@ public sealed class MeshTransferService : IMeshTransferService
         var transferId = Ulid.NewUlid().ToString();
 
         logger.LogInformation("[VSF-MESH-TRANSFER] Starting mesh transfer {TransferId}: {FileHash} ({Size} bytes)",
-            transferId, fileHash, fileSize);
+            LoggingSanitizer.SanitizeExternalIdentifier(transferId),
+            LoggingSanitizer.SanitizeHash(fileHash),
+            fileSize);
 
         var status = new MeshTransferStatus
         {
@@ -188,7 +190,8 @@ public sealed class MeshTransferService : IMeshTransferService
 
         if (activeTransfers.TryGetValue(transferId, out var status))
         {
-            logger.LogInformation("[VSF-MESH-TRANSFER] Cancelling transfer {TransferId}", transferId);
+            logger.LogInformation("[VSF-MESH-TRANSFER] Cancelling transfer {TransferId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId));
             status.State = MeshTransferState.Cancelled;
             PublishProgress(transferId, status);
         }
@@ -278,7 +281,7 @@ public sealed class MeshTransferService : IMeshTransferService
 
             var peers = await DiscoverPeersAsync(status.FileHash, status.FileSize, ct);
             logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: Discovered {PeerCount} peers",
-                transferId, peers.Count);
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId), peers.Count);
 
             if (peers.Count == 0)
             {
@@ -323,11 +326,13 @@ public sealed class MeshTransferService : IMeshTransferService
             PublishProgress(transferId, status);
 
             logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: Transfer completed in {Duration}s",
-                transferId, (status.CompletedAt.Value - status.StartedAt).TotalSeconds);
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId),
+                (status.CompletedAt.Value - status.StartedAt).TotalSeconds);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: Transfer cancelled", transferId);
+            logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: Transfer cancelled",
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId));
 
             status.State = MeshTransferState.Cancelled;
             status.CompletedAt = DateTimeOffset.UtcNow;
@@ -336,8 +341,9 @@ public sealed class MeshTransferService : IMeshTransferService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-MESH-TRANSFER] {TransferId}: Transfer failed: {Message}",
-                transferId, ex.Message);
+            logger.LogError("[VSF-MESH-TRANSFER] {TransferId}: Transfer failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             status.ErrorMessage = "Mesh transfer failed";
             status.CompletedAt = DateTimeOffset.UtcNow;
@@ -358,7 +364,8 @@ public sealed class MeshTransferService : IMeshTransferService
 
     private async Task<List<string>> DiscoverPeersAsync(string fileHash, long fileSize, CancellationToken ct)
     {
-        logger.LogDebug("[VSF-MESH-TRANSFER] Discovering peers for file hash: {Hash}", fileHash);
+        logger.LogDebug("[VSF-MESH-TRANSFER] Discovering peers for file hash: {Hash}",
+            LoggingSanitizer.SanitizeHash(fileHash));
 
         var discoveredPeers = new HashSet<string>();
 
@@ -381,7 +388,9 @@ public sealed class MeshTransferService : IMeshTransferService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-MESH-TRANSFER] Shadow index query failed for recording {RecordingId}", recordingId);
+                logger.LogWarning("[VSF-MESH-TRANSFER] Shadow index query failed for recording {RecordingId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(recordingId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -399,12 +408,13 @@ public sealed class MeshTransferService : IMeshTransferService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-MESH-TRANSFER] Scene peer discovery failed");
+                logger.LogWarning("[VSF-MESH-TRANSFER] Scene peer discovery failed: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
         logger.LogInformation("[VSF-MESH-TRANSFER] Discovered {Count} peers for file hash: {Hash}",
-            discoveredPeers.Count, fileHash);
+            discoveredPeers.Count, LoggingSanitizer.SanitizeHash(fileHash));
 
         return discoveredPeers.ToList();
     }
@@ -437,7 +447,9 @@ public sealed class MeshTransferService : IMeshTransferService
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-MESH-TRANSFER] HashDb recording lookup failed for file hash {Hash}", fileHash);
+            logger.LogWarning("[VSF-MESH-TRANSFER] HashDb recording lookup failed for file hash {Hash}: {Exception}",
+                LoggingSanitizer.SanitizeHash(fileHash),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return recordingIds.ToList();
@@ -460,7 +472,7 @@ public sealed class MeshTransferService : IMeshTransferService
         var totalChunks = (int)Math.Ceiling((double)status.FileSize / chunkSize);
 
         logger.LogDebug("[VSF-MESH-TRANSFER] {TransferId}: Transferring {ChunkCount} chunks",
-            transferId, totalChunks);
+            LoggingSanitizer.SanitizeExternalIdentifier(transferId), totalChunks);
 
         var startTime = DateTimeOffset.UtcNow;
 
@@ -492,7 +504,7 @@ public sealed class MeshTransferService : IMeshTransferService
         }
 
         logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: Transfer complete, writing to disk",
-            transferId);
+            LoggingSanitizer.SanitizeExternalIdentifier(transferId));
 
         // Materialize the simulated transfer so integrity verification can succeed.
         await Task.Delay(200, ct);
@@ -505,7 +517,7 @@ public sealed class MeshTransferService : IMeshTransferService
     {
         // Phase 6D: T-824 - Real hash verification
         logger.LogDebug("[VSF-MESH-TRANSFER] {TransferId}: Verifying file integrity",
-            status.TransferId);
+            LoggingSanitizer.SanitizeExternalIdentifier(status.TransferId));
 
         if (!System.IO.File.Exists(filePath))
         {
@@ -532,7 +544,8 @@ public sealed class MeshTransferService : IMeshTransferService
         }
 
         logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: File integrity verified (hash: {Hash})",
-            status.TransferId, computedHashHex);
+            LoggingSanitizer.SanitizeExternalIdentifier(status.TransferId),
+            LoggingSanitizer.SanitizeHash(computedHashHex));
     }
 
     private void PublishProgress(string transferId, MeshTransferStatus status)

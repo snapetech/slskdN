@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Soulseek;
 using slskd;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 using OptionsModel = slskd.Options;
 
 public interface ITrafficObserver
@@ -81,7 +82,9 @@ public class TrafficObserver : ITrafficObserver
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-CAPTURE] Failed to process search results for query: {Query}", query);
+            logger.LogError("[VSF-CAPTURE] Failed to process search results for query {Query}: {Exception}",
+                LoggingSanitizer.SanitizeQueryText(query),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -110,7 +113,8 @@ public class TrafficObserver : ITrafficObserver
 
             if (!System.IO.File.Exists(localPath))
             {
-                logger.LogDebug("[VSF-CAPTURE] Transfer completed but file not found: {Path}", localPath);
+                logger.LogDebug("[VSF-CAPTURE] Transfer completed but file not found: {Path}",
+                    LoggingSanitizer.SanitizeFilePath(localPath));
                 return;
             }
 
@@ -149,7 +153,9 @@ public class TrafficObserver : ITrafficObserver
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-CAPTURE] Failed to process transfer completion for {TransferId}", transfer.Id);
+            logger.LogError("[VSF-CAPTURE] Failed to process transfer completion for {TransferId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(transfer.Id.ToString()),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 

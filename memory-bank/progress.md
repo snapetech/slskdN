@@ -1,3 +1,22 @@
+## Update 2026-10-05 02:50 UTC — Align .NET 10 packaging docs and escape VirtualSoulfind diagnostics
+
+Escaped caller queries, MBIDs, peer identifiers, filenames, hashes, paths, and
+full exception details in VirtualSoulfind bridge, capture, shadow-index,
+mesh-search, transfer, and API logs. Sanitization changes only the diagnostic
+copy; MBIDs and hashes remain unchanged in the query service and transfer
+state. Added regressions for escaped MBID/hash/exception text and preserved
+inputs. Corrected Homebrew and Synology source-build docs to use the pinned
+.NET 10 SDK; Homebrew's self-contained release install no longer claims to
+need a separately installed .NET SDK.
+
+Focused tests pass 14/14; full Release tests pass 5,924 (74 application,
+5,561 unit, 289 integration). `./bin/lint`, active-backlog, local-identity,
+and whitespace checks pass. Current discovery queues are 210 callback/event,
+462 remote-text, 12,237 red-team, and 823 public mutable-ownership candidates.
+The release notes and changelog are prepared; this batch is not yet committed
+or pushed. Stable `.340` remains deferred until the continuing remediation is
+ready.
+
 ## Update 2026-10-04 08:08 UTC — Fail closed on verification budget and cancellation
 
 The persisted Soulseek probe budget now allows a network probe only after its

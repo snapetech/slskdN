@@ -113,7 +113,7 @@ public class BridgeApi : IBridgeApi
     /// </summary>
     public async Task<BridgeSearchResult> SearchAsync(string query, CancellationToken ct = default)
     {
-        logger.LogInformation("[VSF-BRIDGE] Search: {Query}", query);
+        logger.LogInformation("[VSF-BRIDGE] Search: {Query}", LoggingSanitizer.SanitizeQueryText(query));
 
         var result = new BridgeSearchResult { Query = query };
         var userMap = new Dictionary<string, BridgeUser>();
@@ -125,7 +125,9 @@ public class BridgeApi : IBridgeApi
 
             if (mbids.Count > 0)
             {
-                logger.LogDebug("[VSF-BRIDGE] Resolved {Count} MBIDs for query: {Query}", mbids.Count, query);
+                logger.LogDebug("[VSF-BRIDGE] Resolved {Count} MBIDs for query: {Query}",
+                    mbids.Count,
+                    LoggingSanitizer.SanitizeQueryText(query));
 
                 // Query shadow index for each MBID
                 foreach (var mbid in mbids)
@@ -229,7 +231,8 @@ public class BridgeApi : IBridgeApi
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE] Search failed: {Message}", ex.Message);
+            logger.LogError("[VSF-BRIDGE] Search failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return result; // Return empty results on error
         }
     }
@@ -246,12 +249,14 @@ public class BridgeApi : IBridgeApi
         {
             logger.LogInformation(
                 "[VSF-BRIDGE] Blocked download of {Filename} by global exclusion {Exclusion}",
-                filename,
-                policyExclusion);
+                LoggingSanitizer.SanitizeFilePath(filename),
+                LoggingSanitizer.SanitizeExternalIdentifier(policyExclusion));
             throw new DownloadBlockedByPolicyException(filename, policyExclusion);
         }
 
-        logger.LogInformation("[VSF-BRIDGE] Download: {Username}/{Filename}", username, filename);
+        logger.LogInformation("[VSF-BRIDGE] Download: {Username}/{Filename}",
+            LoggingSanitizer.SanitizeExternalIdentifier(username),
+            LoggingSanitizer.SanitizeFilePath(filename));
 
         try
         {
@@ -295,12 +300,14 @@ public class BridgeApi : IBridgeApi
                 SizeBytes = fileSize,
             };
 
-            logger.LogInformation("[VSF-BRIDGE] Download started: transfer {TransferId}", transferId);
+            logger.LogInformation("[VSF-BRIDGE] Download started: transfer {TransferId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId));
             return transferId; // Return transfer ID (could also return proxy ID)
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE] Download failed: {Message}", ex.Message);
+            logger.LogError("[VSF-BRIDGE] Download failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw;
         }
     }
@@ -355,7 +362,9 @@ public class BridgeApi : IBridgeApi
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-BRIDGE] Failed to load transfer progress for {TransferId}", transferId);
+            logger.LogWarning("[VSF-BRIDGE] Failed to load transfer progress for {TransferId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(transferId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return transferMetadata.TryGetValue(transferId, out var metadata)
                 ? metadata.LastProgress
                 : null;
@@ -397,7 +406,8 @@ public class BridgeApi : IBridgeApi
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-BRIDGE] Get rooms failed: {Message}", ex.Message);
+            logger.LogError("[VSF-BRIDGE] Get rooms failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new List<BridgeRoom>();
         }
     }
@@ -418,7 +428,9 @@ public class BridgeApi : IBridgeApi
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[VSF-BRIDGE] Failed to resolve query to MBIDs: {Query}", query);
+            logger.LogWarning("[VSF-BRIDGE] Failed to resolve query to MBIDs: {Query}; {Exception}",
+                LoggingSanitizer.SanitizeQueryText(query),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return new List<string>();
         }
     }

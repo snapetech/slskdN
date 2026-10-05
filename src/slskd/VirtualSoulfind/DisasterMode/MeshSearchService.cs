@@ -121,8 +121,9 @@ public class MeshSearchService : IMeshSearchService
                     }
                     catch (Exception ex)
                     {
-                        logger.LogDebug(ex, "[VSF-MESH-SEARCH] Failed to query peer {Peer}",
-                            LoggingSanitizer.SanitizeExternalIdentifier(peer.Username));
+                        logger.LogDebug("[VSF-MESH-SEARCH] Failed to query peer {Peer}: {Exception}",
+                            LoggingSanitizer.SanitizeExternalIdentifier(peer.Username),
+                            LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                         return null;
                     }
                 });
@@ -187,8 +188,9 @@ public class MeshSearchService : IMeshSearchService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-MESH-SEARCH] Search failed for query: {Query}",
-                LoggingSanitizer.SanitizeQueryText(query));
+            logger.LogError("[VSF-MESH-SEARCH] Search failed for query {Query}: {Exception}",
+                LoggingSanitizer.SanitizeQueryText(query),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             result.SearchDuration = stopwatch.Elapsed;
             return result;
         }
@@ -253,8 +255,9 @@ public class MeshSearchService : IMeshSearchService
                 }
                 catch (Exception ex)
                 {
-                    logger.LogDebug(ex, "[VSF-MESH-SEARCH] Failed to get content from peer {Peer}",
-                        LoggingSanitizer.SanitizeExternalIdentifier(peer.PeerId));
+                    logger.LogDebug("[VSF-MESH-SEARCH] Failed to get content from peer {Peer}: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(peer.PeerId),
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -272,8 +275,9 @@ public class MeshSearchService : IMeshSearchService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[VSF-MESH-SEARCH] MBID search failed: {Mbid}",
-                LoggingSanitizer.SanitizeExternalIdentifier(mbid));
+            logger.LogError("[VSF-MESH-SEARCH] MBID search failed for {Mbid}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(mbid),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             result.SearchDuration = stopwatch.Elapsed;
             return result;
         }

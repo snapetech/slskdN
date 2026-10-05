@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.VirtualSoulfind.DisasterMode;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
@@ -67,6 +68,39 @@ public class MeshTransferServiceTests : IDisposable
         Assert.Equal(MeshTransferState.Completed, status!.State);
         Assert.True(File.Exists(targetPath));
         Assert.Equal(1024, new FileInfo(targetPath).Length);
+    }
+
+    [Fact]
+    public async Task StartTransferAsync_EscapesHashInLogsAndRetainsOriginalHash()
+    {
+        var messages = new ConcurrentQueue<string>();
+        using var service = new MeshTransferService(
+            new CallbackLogger<MeshTransferService>((_, message) => messages.Enqueue(message)),
+            new global::slskd.Tests.Unit.TestOptionsMonitor<global::slskd.Options>(new global::slskd.Options
+            {
+                Directories = new global::slskd.Options.DirectoriesOptions
+                {
+                    Downloads = _tempRoot
+                }
+            }),
+            _shadowIndex.Object,
+            _scenePeerDiscovery.Object,
+            _hashDb.Object);
+        const string fileHash = "hash\r\nforged";
+
+        var transferId = await service.StartTransferAsync(
+            peerId: "peer-a",
+            fileHash,
+            fileSize: 1024,
+            targetPath: Path.Combine(_tempRoot, "escaped-hash.bin"),
+            ct: CancellationToken.None);
+        var status = await WaitForTerminalStatusAsync(service, transferId);
+
+        Assert.NotNull(status);
+        Assert.Equal(fileHash, status!.FileHash);
+        var logs = string.Join(Environment.NewLine, messages);
+        Assert.Contains("hash\\r\\nforged", logs);
+        Assert.DoesNotContain(fileHash, logs);
     }
 
     [Fact]
@@ -169,21 +203,37 @@ public class MeshTransferServiceTests : IDisposable
     {
         _scenePeerDiscovery
             .Setup(d => d.DiscoverPeersAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("sensitive detail"));
+            .ThrowsAsync(new InvalidOperationException("sensitive detail\r\nforged"));
 
-        var transferId = await _service.StartTransferAsync(
+        var messages = new ConcurrentQueue<string>();
+        using var service = new MeshTransferService(
+            new CallbackLogger<MeshTransferService>((_, message) => messages.Enqueue(message)),
+            new global::slskd.Tests.Unit.TestOptionsMonitor<global::slskd.Options>(new global::slskd.Options
+            {
+                Directories = new global::slskd.Options.DirectoriesOptions
+                {
+                    Downloads = _tempRoot
+                }
+            }),
+            _shadowIndex.Object,
+            _scenePeerDiscovery.Object,
+            _hashDb.Object);
+        var transferId = await service.StartTransferAsync(
             peerId: "peer-a",
             fileHash: string.Empty,
             fileSize: 1024,
             targetPath: Path.Combine(_tempRoot, "failure.bin"),
             ct: CancellationToken.None);
 
-        var status = await WaitForTerminalStatusAsync(transferId);
+        var status = await WaitForTerminalStatusAsync(service, transferId);
 
         Assert.NotNull(status);
         Assert.Equal(MeshTransferState.Failed, status!.State);
         Assert.Equal("Mesh transfer failed", status.ErrorMessage);
         Assert.DoesNotContain("sensitive detail", status.ErrorMessage ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        var logs = string.Join(Environment.NewLine, messages);
+        Assert.Contains("sensitive detail\\r\\nforged", logs);
+        Assert.DoesNotContain("sensitive detail\r\nforged", logs);
     }
 
     [Fact]

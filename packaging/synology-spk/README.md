@@ -219,7 +219,7 @@ cp -r /var/packages/slskdn/shares/slskdn/config /volume1/backup/
 ### Prerequisites
 
 - Linux system with Synology toolkit
-- .NET 6.0 SDK
+- .NET 10 SDK, as pinned in the repository's `global.json`
 - SPK packaging tools
 
 ### Build Process

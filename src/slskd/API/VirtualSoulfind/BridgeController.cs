@@ -63,7 +63,8 @@ public class BridgeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Bridge search failed");
+            logger.LogError("Bridge search failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Bridge search failed" });
         }
     }
@@ -118,7 +119,8 @@ public class BridgeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Bridge download failed");
+            logger.LogError("Bridge download failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Bridge download failed" });
         }
     }
@@ -139,7 +141,8 @@ public class BridgeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Bridge get rooms failed");
+            logger.LogError("Bridge get rooms failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Bridge get rooms failed" });
         }
     }
@@ -162,7 +165,8 @@ public class BridgeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Bridge get status failed");
+            logger.LogError("Bridge get status failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Bridge get status failed" });
         }
     }
@@ -184,7 +188,8 @@ public class BridgeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Bridge start failed");
+            logger.LogError("Bridge start failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Bridge start failed" });
         }
     }
@@ -206,7 +211,8 @@ public class BridgeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Bridge stop failed");
+            logger.LogError("Bridge stop failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Bridge stop failed" });
         }
     }
@@ -224,7 +230,8 @@ public class BridgeController : ControllerBase
             return BadRequest(new { error = "TransferId is required" });
         }
 
-        logger.LogDebug("Bridge transfer progress: {TransferId}", transferId);
+        logger.LogDebug("Bridge transfer progress: {TransferId}",
+            LoggingSanitizer.SanitizeExternalIdentifier(transferId));
 
         try
         {
@@ -239,7 +246,8 @@ public class BridgeController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Bridge transfer progress failed");
+            logger.LogError("Bridge transfer progress failed: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Bridge transfer progress failed" });
         }
     }

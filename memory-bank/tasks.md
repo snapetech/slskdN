@@ -150,9 +150,18 @@
   Full Release tests pass 5,923 (74 application, 5,560 unit, 289 integration);
   `./bin/lint`, active-backlog, identity, and whitespace checks pass. Gotcha
   `0z1578` records the cross-layer signer/storage boundary.
+- [x] Escape caller queries, MBIDs, peer identifiers, filenames, hashes,
+  paths, and full exception text in VirtualSoulfind bridge, capture,
+  shadow-index, mesh-search, transfer, and API diagnostics — 2026-10-05.
+  Sanitization is log-only; search and transfer inputs remain unchanged.
+  Focused coverage passes 14/14; full Release tests pass 5,924 (74
+  application, 5,561 unit, 289 integration). `./bin/lint`, active-backlog,
+  local-identity, and whitespace checks pass. The Homebrew and Synology
+  source-build docs now specify .NET 10; Homebrew release installs no longer
+  claim to require an SDK.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Discovery queues remain open at 210 callback/event,
-  461 remote-text, 12,236 red-team, and 823 mutable-ownership candidates;
+  462 remote-text, 12,237 red-team, and 823 mutable-ownership candidates;
   T-908 fallback lifecycle and distributed evidence requirements also remain
   open.
 

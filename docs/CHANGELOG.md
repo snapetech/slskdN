@@ -42,6 +42,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
   and full exception details in Pod membership, signing/routing, SQLite message
   storage/search, and chat bridge logs; message, query, and routing inputs
   remain unchanged.
+- Escape caller queries, MBIDs, peer identifiers, filenames, hashes, paths, and
+  exception details in VirtualSoulfind bridge, capture, shadow-index, mesh
+  search, and transfer diagnostics while preserving the original operation
+  inputs.
+- Update Homebrew and Synology source-build instructions to require .NET 10;
+  Homebrew users installing the self-contained release do not need a separate
+  .NET runtime or SDK.
 
 ## [2026100423-slskdn.339] — 2026-10-04
 

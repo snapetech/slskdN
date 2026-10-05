@@ -8,6 +8,7 @@ using slskd.Core.Security;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Provides canonical variant selection API.
@@ -45,7 +46,8 @@ public class CanonicalController : ControllerBase
             return BadRequest(new { error = "MBID is required" });
         }
 
-        logger.LogDebug("Canonical variant requested for MBID: {Mbid}", mbid);
+        logger.LogDebug("Canonical variant requested for MBID: {Mbid}",
+            LoggingSanitizer.SanitizeExternalIdentifier(mbid));
 
         try
         {
@@ -79,7 +81,9 @@ public class CanonicalController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to select canonical variant for MBID: {Mbid}", mbid);
+            logger.LogError("Failed to select canonical variant for MBID {Mbid}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(mbid),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to select canonical variant" });
         }
     }

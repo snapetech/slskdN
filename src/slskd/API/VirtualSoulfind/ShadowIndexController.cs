@@ -9,6 +9,7 @@ using slskd.VirtualSoulfind.ShadowIndex;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Provides shadow index API for cross-codec deduplication.
@@ -46,7 +47,8 @@ public class ShadowIndexController : ControllerBase
             return BadRequest(new { error = "MBID is required" });
         }
 
-        logger.LogDebug("Shadow index requested for MBID: {Mbid}", mbid);
+        logger.LogDebug("Shadow index requested for MBID: {Mbid}",
+            LoggingSanitizer.SanitizeExternalIdentifier(mbid));
 
         try
         {
@@ -70,7 +72,9 @@ public class ShadowIndexController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to query shadow index for MBID: {Mbid}", mbid);
+            logger.LogError("Failed to query shadow index for MBID {Mbid}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(mbid),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to query shadow index" });
         }
     }

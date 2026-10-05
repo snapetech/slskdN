@@ -8,7 +8,9 @@ Install slskdN (Decentralized Mesh Community Service - Next Generation) on macOS
 
 - macOS 10.15 or later
 - [Homebrew](https://brew.sh/) package manager
-- [.NET 6.0 SDK](https://dotnet.microsoft.com/download) (installed automatically by Homebrew)
+
+The published Homebrew formula uses a self-contained release archive, so you do
+not need to install the .NET SDK or runtime to run slskdN.
 
 ### Install slskdN
 
@@ -277,10 +279,13 @@ rm -rf $(brew --prefix)/var/slskdn
 
 ### Building from Source
 
+Install the [.NET 10 SDK](https://dotnet.microsoft.com/download) specified by
+the repository's `global.json` before building.
+
 ```bash
 # Clone repository
-git clone https://github.com/slskd/slskd.git
-cd slskd
+git clone https://github.com/snapetech/slskdn.git
+cd slskdn
 
 # Build for macOS
 dotnet publish src/slskd/slskd.csproj \

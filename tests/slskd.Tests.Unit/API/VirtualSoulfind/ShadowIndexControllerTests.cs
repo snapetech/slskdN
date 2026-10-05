@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.API.VirtualSoulfind;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.API.VirtualSoulfind;
@@ -47,19 +48,28 @@ public class ShadowIndexControllerTests
         var query = new Mock<IShadowIndexQuery>();
         query
             .Setup(service => service.QueryAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("sensitive detail"));
+            .ThrowsAsync(new InvalidOperationException("sensitive detail\r\nforged"));
+        var logger = new CapturingLogger<ShadowIndexController>();
 
         var controller = new ShadowIndexController(
-            NullLogger<ShadowIndexController>.Instance,
+            logger,
             query.Object);
 
-        var result = await controller.GetShadowIndex("mbid-1", CancellationToken.None);
+        const string mbid = "mbid-1\r\nforged";
+        var result = await controller.GetShadowIndex(mbid, CancellationToken.None);
 
         var error = Assert.IsType<ObjectResult>(result);
         Assert.Equal(500, error.StatusCode);
         Assert.Contains("Failed to query shadow index", error.Value?.ToString() ?? string.Empty);
         Assert.DoesNotContain("mbid-1", error.Value?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("sensitive detail", error.Value?.ToString() ?? string.Empty);
+        query.Verify(service => service.QueryAsync(mbid, It.IsAny<CancellationToken>()), Times.Once);
+
+        var logs = string.Join(Environment.NewLine, logger.Messages);
+        Assert.Contains("mbid-1\\r\\nforged", logs);
+        Assert.Contains("sensitive detail\\r\\nforged", logs);
+        Assert.DoesNotContain(mbid, logs);
+        Assert.DoesNotContain("sensitive detail\r\nforged", logs);
     }
 
     [Fact]
@@ -79,5 +89,24 @@ public class ShadowIndexControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.DoesNotContain("mbid-1", ok.Value?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("variants", ok.Value?.ToString() ?? string.Empty);
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => NullLogger.Instance.BeginScope(state);
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+            => Messages.Add(formatter(state, exception));
     }
 }
