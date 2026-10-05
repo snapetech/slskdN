@@ -25,7 +25,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ### Fixed
 
 - Launchpad PPA publication checks now verify exact package versions locally,
-  avoiding false timeouts for binaries already published to the archive.
+  avoiding long waits or false timeouts when Launchpad's exact-match query lags
+  a published binary.
 
 ## [2026100514-slskdn.342] — 2026-10-05
 

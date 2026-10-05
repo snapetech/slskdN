@@ -6879,3 +6879,6 @@ resource completion.
 - [x] Add and validate an Unreleased operator note for the release automation
   correction. The immutable `.342` workflow run was still in progress at the
   time of this record because its tag contains the pre-fix waiter.
+- [x] Confirm final hosted run `37326116677` completed successfully with all
+  18 jobs green; verify the exact Jammy binary in the Launchpad API and public
+  apt index.

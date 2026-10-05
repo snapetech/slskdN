@@ -8,13 +8,14 @@
 
 **What went wrong:** The PPA publication waiter queried Launchpad
 `getPublishedBinaries` with `exact_match=true`. For the full `.342` Debian
-version, that query returned no entries even after the binary was published,
-leaving the release job polling. The same query without `exact_match` returned
-the exact published package; the public Jammy package index also contained it.
+version, that query returned no entries after the package was in the public
+Jammy index. The same query without `exact_match` returned the exact published
+package. Launchpad's exact-match query eventually caught up, and the original
+release job succeeded after a long delay.
 
-**Why:** Launchpad's `exact_match` filter can disagree with the published
-binary version returned by its archive API, even though the API's ordinary
-version filter returns that version.
+**Why:** Launchpad's exact-match result lagged its ordinary version-filtered
+result and the public package index, so the wait script kept polling a binary
+that was already available to users.
 
 **Prevention:** Omit `exact_match` on `getPublishedBinaries` and enforce exact
 version equality locally before accepting `Published` status. Keep checking

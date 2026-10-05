@@ -1,4 +1,4 @@
-## Current state — Publish and verify stable `.342` — 2026-10-05 17:23 UTC
+## Current state — Publish and verify stable `.342` — 2026-10-05 17:28 UTC
 
 Stable `.342` is published at
 https://github.com/snapetech/slskdN/releases/tag/2026100514-slskdn.342 from
@@ -19,12 +19,13 @@ Launchpad binary record and public apt index show the exact version.
 
 The tagged workflow's PPA wait is a false negative: Launchpad's
 `getPublishedBinaries` returns the exact published package when filtered by
-version, but returns no records with `exact_match=true`. Gotcha `0z1659` was
-committed before fixing `scripts/wait-for-launchpad-ppa-publication.sh` to
-perform the exact-version comparison locally. The corrected waiter passes
-against the published `.342` package. The fix and an Unreleased operational
-note are pushed to `main`; the already-running immutable tag job still uses
-the old waiter.
+version, while the `exact_match=true` query lagged the public apt index. Gotcha
+`0z1659` was committed before fixing
+`scripts/wait-for-launchpad-ppa-publication.sh` to perform the exact-version
+comparison locally. The corrected waiter passes against the published `.342`
+package. The fix and an Unreleased operational note are pushed to `main`. The
+immutable tag run later completed successfully after Launchpad's exact-match
+query caught up; all hosted jobs are green.
 
 T-908 remains fail-closed: the backend fetches but does not seed, the BitTorrent
 path does not authenticate allowed peers, and the prototype orchestrator is
@@ -34,9 +35,9 @@ exist. Other evidence-dependent follow-ups remain tracked.
 
 ## Next steps
 
-Record the terminal state of the immutable `.342` workflow run. Continue the
-whole-product remediation from tracked work; do not claim T-908 or external
-evidence tasks complete without their required implementation and proof.
+Continue the whole-product remediation from tracked work; do not claim T-908
+or external evidence tasks complete without their required implementation and
+proof.
  — 2026-10-05 12:57 UTC
 
 Stable `.341` is complete. Build tag

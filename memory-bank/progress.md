@@ -18166,3 +18166,15 @@ active-council check, release-note preview, local identity check, and artifact
 verification passed. First-party projects target `net10.0`; MonoTorrent's
 `net8.0` asset is compatible. T-908 and other evidence-dependent items remain
 open.
+
+
+## 2026-10-05 17:28 UTC — Confirm all stable `.342` publishers completed
+
+GitHub Actions run `37326116677` completed successfully; all 18 release and
+publisher jobs passed, including the original tagged PPA waiter. Launchpad's
+exact `getPublishedBinaries` query now returns
+`2026100514.slskdn.342-1ppa202610051459~jammy` as `Published` for Jammy amd64,
+and the public apt index contains the same version. The earlier exact-match
+query lagged the package index, then caught up before the workflow timeout.
+The corrected waiter has already passed locally and is pushed to `main` for
+future tags.
