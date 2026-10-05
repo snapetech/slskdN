@@ -10,7 +10,7 @@ actions propagate caller cancellation.
 The full Release `dotnet test -c Release --no-restore` suite passes 6,043 tests
 (74 application, 289 integration, 5,680 unit). `./bin/lint`, the .NET runtime
 matrix, and `git diff --check` pass. The active council inventory is refreshed
-to 214 callback/event, 427 remote-text, 12,318 red-team, and 826 mutable-state
+to 214 callback/event, 427 remote-text, 12,321 red-team, and 826 mutable-state
 candidates. Nine release-note fragments and the versioned `.342` changelog section cover
 the batch; the range preview, final release gate, push, and `.342` release
 remain.
