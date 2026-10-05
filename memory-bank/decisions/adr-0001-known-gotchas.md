@@ -38487,3 +38487,18 @@ namespace's existing core helper.
 **Prevention:** Inspect imports and nearby sanitizer usage before adding calls.
 Use a fully qualified type or explicit alias when the project has same-named
 helpers in different namespaces, then compile the owning project.
+
+### 0z1597. Scope Service Worker Cleanup To The App (2026-10-05)
+
+**What went wrong:** Frontend startup enumerated every service-worker
+registration and Cache Storage entry for the origin, then unregistered and
+deleted them all. A slskdN mount could therefore disrupt another application
+sharing the same origin.
+
+**Why:** The browser APIs expose origin-wide collections, but the cleanup was
+written as though those collections belonged exclusively to this app.
+
+**Prevention:** Match the registration's exact app scope and script URL before
+unregistering it. Remove only cache names owned by the app, or leave caches
+alone when no app-specific cache is defined. Cover sibling-scope registrations
+and cache entries with regression tests.
