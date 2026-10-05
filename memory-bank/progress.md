@@ -18549,3 +18549,32 @@ locally. The HTTP code, regression, guard, release fragment, changelog and
 inventory/memory updates still need the `.344`-range preview, product commit,
 push, and post-push baseline. The exact `.344` Jammy AMD64 Launchpad build
 remains `Needs building`.
+
+
+## 2026-10-05 23:49 UTC — Push HTTP middleware diagnostic hardening
+
+The full release-note preview from stable `.344` includes the DHT, HTTP, and
+Pod diagnostics changes. The refreshed active backlog count is 12,395; all
+candidate queues pass their durable-count gate. Committed/pushed gotchas
+`0z1700`/`0z1701`, HTTP exception/CSRF log escaping, release note, guard, and
+inventory/task state at `8111d5f04`. The full post-push remediation baseline
+passes. The `.344` Launchpad AMD64 build remains `Needs building`.
+
+
+## 2026-10-05 23:58 UTC — Sanitize startup diagnostic paths and endpoints
+
+Startup logs now escape configured paths, instance names, warning text and
+filesystem exception details. The Loki diagnostic redacts credentials and
+URL details while retaining the origin. Added regressions for CR/LF startup
+paths, filesystem-copy failures, and a credentialed Loki URL; added
+`check-startup-diagnostic-safety.sh` to the remediation baseline. Focused
+startup logging tests pass 3/3, the full Release solution passes 6,106 tests
+(74 application, 5,743 unit, 289 integration), and `./bin/lint` passes. The
+`.344` to `HEAD` release-note preview passes with the new security fragment.
+
+The latest council report has 215 callback/event, 426 remote-text, 12,408
+red-team, and 828 mutable-ownership candidates; these are review queues, not
+confirmed defects. Gotcha `0z1702` and the startup product commit are local;
+the current count, task handoff and progress/context update need committing,
+then push and run the complete post-push baseline. The `.344` Jammy AMD64
+build remains `Needs building`.

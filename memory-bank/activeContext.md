@@ -1,4 +1,4 @@
-## Current state — Harden HTTP middleware diagnostics — 2026-10-05 23:48 UTC
+## Current state — Sanitize startup diagnostics — 2026-10-05 23:58 UTC
 
 The .NET 10 audit is complete: every first-party app, test, and build-tool
 project under `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent's
@@ -7,29 +7,28 @@ consumer supports. No active first-party `.NET 6` target was found. The
 vendored slskNet.Runtime projects remain at their pinned upstream `net8.0`
 targets under the repository's source-sync contract.
 
-The post-`.344` DHT/mesh logging batch replaces raw exception metadata with
-escaped exception text and escapes remote peer, endpoint, descriptor, hash,
-and reason values only at the logging boundary. Regressions cover every retry
-log from malformed UDP input and a malformed remote descriptor. The new
-`check-dht-remote-log-safety.sh` guard is registered in the remediation
-baseline. Focused tests pass 17/17, the full Release solution passes 6,103
-tests (74 application, 5,740 unit, 289 integration), and `./bin/lint` passes.
-The `.344` to `HEAD` release-note preview includes the DHT security fragment.
+The .NET 10 audit is complete: every first-party app, test, and build-tool
+project under `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent's
+upstream project and selected package asset target `net8.0`, which the .NET 10
+consumer supports. No active first-party `.NET 6` target was found. The
+vendored slskNet.Runtime projects remain at their pinned upstream `net8.0`
+targets under the repository's source-sync contract.
 
-The DHT/mesh diagnostic batch and inventory update are pushed at `de3710d3b`,
-and its post-push remediation baseline passes. A follow-up source review found
-raw exception metadata in the global HTTP exception handler and both CSRF
-middleware catches. Those three sites now log escaped exception text and
-request methods; a sanitizer regression and baseline source guard are added.
-The full Release solution passes 6,104 tests (74 application, 5,741 unit, 289
-integration), and `./bin/lint` passes. Gotchas `0z1700` and `0z1701` are
-committed locally; the HTTP fix and its release documentation are not yet
-committed/pushed.
+The DHT/mesh and HTTP middleware diagnostic fixes, gotchas `0z1697`–`0z1701`,
+release notes, and inventory/task handoff are pushed through `8111d5f04`; the
+post-push remediation baseline passes. The next review found raw operator-
+configured paths and exception text in startup diagnostics, plus a Loki URL
+logged with possible credentials. Startup path/error values are now escaped,
+Loki details are redacted, and tests cover paths, filesystem errors and URL
+credentials. Focused startup logging tests pass 3/3, the full Release suite
+passes 6,106 tests (74 application, 5,743 unit, 289 integration), `./bin/lint`
+passes, and the `.344` to `HEAD` release-note preview includes the new startup
+security fragment. Gotcha `0z1702` and the product change are local.
 
-The latest council report has 215 callback/event, 426 remote-text, 12,395
+The latest council report has 215 callback/event, 426 remote-text, 12,408
 red-team, and 828 mutable-ownership candidates. These are review queues, not
-confirmed bug counts. Refresh and push the active inventory, then rerun the
-full baseline.
+confirmed bugs. Refresh the durable active count, commit/push startup work and
+handoff, then run the full post-push remediation baseline.
 
 Stable `.344` is immutable and its six platform archives/support assets pass
 checksum and version verification. The exact Launchpad source is Published,

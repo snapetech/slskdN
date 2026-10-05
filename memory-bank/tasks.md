@@ -63,9 +63,23 @@
   bugs. The complete post-push remediation baseline passes.
 - [x] Refresh the current active red-team candidate count to 12,395. The ten
   additional lines are source-review candidates, not confirmed defects.
-- [ ] Preview the full `.344` to next-release-note range, commit/push gotchas
-  `0z1700`/`0z1701`, the HTTP middleware fix, release fragment, and refreshed
-  inventory/memory notes, then pass the full post-push remediation baseline.
+- [x] Preview the full `.344` to next-release-note range, commit and push
+  gotchas `0z1700`/`0z1701`, the HTTP middleware fix, release fragment, and
+  refreshed inventory/memory notes at `8111d5f04`; the full post-push
+  remediation baseline passes.
+- [x] Escape operator-configured startup paths, instance names, warning text,
+  and filesystem exceptions before logging; redact credentials and URL details
+  from the Loki endpoint diagnostic while retaining its origin.
+- [x] Add startup log regressions for CR/LF path values, filesystem failures,
+  and credentialed Loki URLs; register `check-startup-diagnostic-safety.sh`.
+- [x] Pass focused startup logging tests (3/3), the full Release solution
+  (74 application, 5,743 unit, 289 integration tests), `./bin/lint`, and the
+  startup diagnostic source guard.
+- [x] Preview `.344` through the startup diagnostic release note.
+- [x] Refresh the active red-team candidate count to 12,408; these candidates
+  are not confirmed bugs.
+- [ ] Commit/push gotcha `0z1702`, startup diagnostics changes and release
+  fragment, updated inventory/memory notes, then pass the post-push baseline.
 - [ ] Complete `.344` publisher verification. The Launchpad source is
   Published, but the Jammy AMD64 build is still `Needs building`; create
   stable `.345` only after that binary is published.
