@@ -38473,3 +38473,17 @@ made the diagnostic log look internal even though it includes remote input.
 **Prevention:** Sanitize candidate IDs and full exception text only at the
 logger boundary. Preserve the original candidate and backend reference for
 validation and fetch operations; cover failures with captured-log regressions.
+
+### 0z1596. Disambiguate Logging Sanitizers In VirtualSoulfind Backends (2026-10-05)
+
+**What went wrong:** The HTTP and WebDAV backends import both
+`slskd.Common.Security.LoggingSanitizer` and
+`slskd.VirtualSoulfind.Core.LoggingSanitizer`, so unqualified sanitizer calls
+failed compilation.
+
+**Why:** A namespace import was treated as unique without checking the same
+namespace's existing core helper.
+
+**Prevention:** Inspect imports and nearby sanitizer usage before adding calls.
+Use a fully qualified type or explicit alias when the project has same-named
+helpers in different namespaces, then compile the owning project.
