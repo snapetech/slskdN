@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1651. Sanitize Remote Mesh Values At Every Diagnostic Boundary (2026-10-05)
+
+**What went wrong:** Rate-limit, control-envelope, neighbor, and consensus
+diagnostics wrote caller-controlled bucket keys, peer IDs, message fields,
+usernames, filenames, or hashes directly to logs.
+
+**Why:** Mesh values often look like trusted internal identifiers after they
+cross a service boundary, but remote peers or callers can choose their
+contents. Escaping only at one shared logger leaves independent subsystem
+loggers exposed.
+
+**Prevention:** Sanitize each dynamic value at the logger that emits it while
+preserving original values for routing, accounting, and consensus. Add captured
+log regressions with CR/LF-bearing values at each owning boundary.
+
 ### 0z1638. Stop Anonymity Transport Failover On Caller Cancellation (2026-10-05)
 
 **What went wrong:** `AnonymityTransportSelector.SelectAndConnectAsync` caught
