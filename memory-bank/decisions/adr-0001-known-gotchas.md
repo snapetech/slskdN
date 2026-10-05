@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1581. Escape Exceptions From Remote Event Subscribers Before Logging (2026-10-05)
+
+**What went wrong:** The VirtualSoulfind room-message event wrapper logged a
+subscriber exception as a raw structured exception. A subscriber failure can
+include peer-controlled room-message text, allowing CR/LF injection into the
+operator log.
+
+**Why:** The cross-feature diagnostic sweep hardened owned service logs but
+missed an event wrapper that catches failures raised by downstream handlers.
+
+**Prevention:** Treat caught exceptions from callbacks that process remote
+events as untrusted diagnostic text. Escape the full `Exception.ToString()` at
+the log boundary while retaining type and stack context, and cover the wrapper
+with a captured-log regression.
+
 ### 0z1566. Disambiguate Existing Logging Sanitizers (2026-10-04)
 
 **What went wrong:** `LibraryItemsController` already imported the mesh
