@@ -4,6 +4,8 @@
 
 import { urlBase } from './config';
 
+const APP_CACHE_NAME_PREFIX = 'slskdn-shell-';
+
 const getServiceWorkerUrl = () => {
   const normalizedBase = urlBase && urlBase !== '/' ? urlBase : '';
   return `${normalizedBase}/service-worker.js`;
@@ -14,7 +16,19 @@ const getServiceWorkerScope = () => {
   return normalizedBase ? `${normalizedBase}/` : '/';
 };
 
-export const registerServiceWorker = () => {
+const isAppServiceWorkerRegistration = (registration) => {
+  const expectedScope = new URL(getServiceWorkerScope(), window.location.href).href;
+  const expectedScriptUrl = new URL(getServiceWorkerUrl(), window.location.href).href;
+  const scriptUrls = [
+    registration.installing?.scriptURL,
+    registration.waiting?.scriptURL,
+    registration.active?.scriptURL,
+  ];
+
+  return registration.scope === expectedScope && scriptUrls.includes(expectedScriptUrl);
+};
+
+export const cleanUpServiceWorker = () => {
   if (
     typeof window === 'undefined' ||
     typeof navigator === 'undefined' ||
@@ -23,30 +37,31 @@ export const registerServiceWorker = () => {
     return;
   }
 
-  const register = async () => {
+  const cleanUp = async () => {
     try {
       const registrations = await navigator.serviceWorker.getRegistrations?.();
       await Promise.all(
-        (registrations || []).map((registration) => registration.unregister()),
+        (registrations || [])
+          .filter(isAppServiceWorkerRegistration)
+          .map((registration) => registration.unregister()),
       );
-      await globalThis.caches?.keys?.().then((keys) =>
-        Promise.all(keys.map((key) => globalThis.caches.delete(key))),
+      const cacheNames = await globalThis.caches?.keys?.();
+      await Promise.all(
+        (cacheNames || [])
+          .filter((name) => name.startsWith(APP_CACHE_NAME_PREFIX))
+          .map((name) => globalThis.caches.delete(name)),
       );
-      const registration = await navigator.serviceWorker.register(getServiceWorkerUrl(), {
-        scope: getServiceWorkerScope(),
-      });
-      await registration.unregister();
     } catch (error) {
-      console.debug('Service worker registration failed:', error);
+      console.debug('Service worker cleanup failed:', error);
     }
   };
 
   if (document.readyState === 'complete') {
-    register();
-    return;
+    return cleanUp();
   }
 
-  window.addEventListener('load', register, { once: true });
+  window.addEventListener('load', cleanUp, { once: true });
+  return undefined;
 };
 
-export { getServiceWorkerScope, getServiceWorkerUrl };
+export { getServiceWorkerScope, getServiceWorkerUrl, APP_CACHE_NAME_PREFIX };

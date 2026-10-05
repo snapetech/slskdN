@@ -24,6 +24,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Security and diagnostics
 
+- Limit startup service-worker cleanup to slskdN's exact worker scope and
+  script, and clear only its `slskdn-shell-*` cache entries so other apps on a
+  shared origin keep their offline state.
 - Escape external filenames, transfer paths, peer identifiers, and decoder
   diagnostics before logging them, preserving visible text without allowing
   control characters to break log records.

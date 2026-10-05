@@ -1,7 +1,7 @@
 import 'semantic-ui-less/semantic.less';
 import App from './components/App';
 import { urlBase } from './config';
-import { registerServiceWorker } from './registerServiceWorker';
+import { cleanUpServiceWorker } from './registerServiceWorker';
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { createRoot } from 'react-dom/client';
@@ -22,4 +22,4 @@ createRoot(document.querySelector('#root')).render(
   </Router>,
 );
 
-registerServiceWorker();
+cleanUpServiceWorker();

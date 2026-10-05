@@ -15,7 +15,11 @@ const loadServiceWorker = () => {
     URL,
     caches: {
       delete: vi.fn().mockResolvedValue(true),
-      keys: vi.fn().mockResolvedValue(['slskdn-shell-v1']),
+      keys: vi.fn().mockResolvedValue([
+        'slskdn-shell-v1',
+        'slskdn-shell-retired-v3',
+        'other-app-cache',
+      ]),
       match: vi.fn().mockResolvedValue(undefined),
       open: vi.fn().mockResolvedValue(cache),
     },
@@ -57,7 +61,7 @@ describe('service worker caching', () => {
     expect(context.self.skipWaiting).toHaveBeenCalled();
   });
 
-  it('clears old caches and unregisters on activation', async () => {
+  it('clears only app-owned caches and unregisters on activation', async () => {
     const { context, listeners } = loadServiceWorker();
     context.self.registration = {
       unregister: vi.fn().mockResolvedValue(true),
@@ -74,6 +78,8 @@ describe('service worker caching', () => {
 
     expect(context.caches.keys).toHaveBeenCalled();
     expect(context.caches.delete).toHaveBeenCalledWith('slskdn-shell-v1');
+    expect(context.caches.delete).toHaveBeenCalledWith('slskdn-shell-retired-v3');
+    expect(context.caches.delete).not.toHaveBeenCalledWith('other-app-cache');
     expect(context.self.registration.unregister).toHaveBeenCalled();
     expect(context.self.clients.claim).toHaveBeenCalled();
   });
