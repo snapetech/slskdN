@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1609. Regenerate the Route Inventory After Controller Edits (2026-10-05)
+
+**What went wrong:** A logging-only edit in `PodVerificationController`
+shifted source lines used by the generated route inventory. The remediation
+baseline failed because `docs/system-surfaces-current.md` still listed the old
+controller line numbers.
+
+**Why:** The route inventory records source locations as well as HTTP paths,
+so non-routing edits can make the generated document stale.
+
+**Prevention:** After changing a controller, run
+`scripts/generate-route-inventory.sh docs/system-surfaces-current.md` and
+include the generated output in the diff before rerunning the remediation
+baseline.
+
 ### 0z1608. Sanitize Mesh Sync, Verification, and Security Diagnostics (2026-10-05)
 
 **What went wrong:** The diagnostic sweep left remote peer names, mesh keys,
