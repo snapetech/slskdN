@@ -63,6 +63,21 @@ identifier, path, reason, and full exception text at the log boundary. Keep the
 original job, peer, and path values for transfer and filesystem operations;
 add a captured-log regression with remote control characters.
 
+### 0z1585. Escape Search And Overlay Exceptions At Their Owning Loggers (2026-10-05)
+
+**What went wrong:** Search lifecycle code and mesh overlay search logs emitted
+raw exception objects, exception messages, remote error text, or caller query
+text after nearby scalar query and peer fields had been sanitized.
+
+**Why:** Search work crosses the core lifecycle, background finalization,
+observer callbacks, and network overlay boundaries; each owner can log the same
+remote input or an exception that includes it.
+
+**Prevention:** Sweep the full search lifecycle and overlay transport together.
+Escape the full exception text, response error strings, and query values at
+each log call, preserve the original values for search/mesh behavior, and cover
+captured log output for remote CR/LF input.
+
 ### 0z1566. Disambiguate Existing Logging Sanitizers (2026-10-04)
 
 **What went wrong:** `LibraryItemsController` already imported the mesh
