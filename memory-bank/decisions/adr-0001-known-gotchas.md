@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1658. Regenerate Route Inventory After Controller Line Movement (2026-10-05)
+
+**What went wrong:** Adding cancellation handling above route attributes shifted
+their source line numbers, leaving `docs/system-surfaces-current.md` stale and
+blocking the release remediation baseline.
+
+**Why:** The generated API route inventory records source locations as well as
+route shapes, so controller edits can invalidate it even when the endpoint
+contract is unchanged.
+
+**Prevention:** After moving or inserting lines in controller files, run
+`scripts/generate-route-inventory.sh docs/system-surfaces-current.md` and
+include the refreshed inventory before running the remediation baseline.
+
 ### 0z1657. Sanitize Pod Membership API Diagnostics (2026-10-05)
 
 **What went wrong:** Membership endpoints logged caller-supplied pod and peer
