@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1659. Avoid Launchpad `exact_match` For Published Binary Queries (2026-10-05)
+
+**What went wrong:** The PPA publication waiter queried Launchpad
+`getPublishedBinaries` with `exact_match=true`. For the full `.342` Debian
+version, that query returned no entries even after the binary was published,
+leaving the release job polling. The same query without `exact_match` returned
+the exact published package; the public Jammy package index also contained it.
+
+**Why:** Launchpad's `exact_match` filter can disagree with the published
+binary version returned by its archive API, even though the API's ordinary
+version filter returns that version.
+
+**Prevention:** Omit `exact_match` on `getPublishedBinaries` and enforce exact
+version equality locally before accepting `Published` status. Keep checking
+the package name and Ubuntu series as well.
+
 ### 0z1658. Regenerate Route Inventory After Controller Line Movement (2026-10-05)
 
 **What went wrong:** Adding cancellation handling above route attributes shifted
