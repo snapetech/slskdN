@@ -60,8 +60,8 @@
 - [x] Pass the focused handler suite (14/14) and add
   `check-mesh-search-safety.sh` to the remediation baseline.
 - [x] Add the validated security fragment and `.343` changelog entry. The active
-  discovery inventory now records 215 callback/event, 425 remote-text, 12,324
-  red-team, and 827 mutable-ownership candidates; these remain review queues.
+  discovery inventory now records 215 callback/event, 426 remote-text, 12,328
+  red-team, and 828 mutable-ownership candidates; these remain review queues.
 - [x] Apply the five-second linked deadline across I2P SAM connect, HELLO write,
   flush, and response read; a loopback stalled-bridge regression passes, and
   `check-i2p-probe-deadline.sh` pins the full probe boundary.
@@ -397,8 +397,8 @@
   The isolated regression and subsequent full unit suite pass. Gotcha `0z1616`
   records the collection requirement.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings. Latest discovery queues: 215 callback/event, 425
-  remote-text, 12,324 red-team, and 827 mutable-ownership candidates. T-908
+  code-backed findings. Latest discovery queues: 215 callback/event, 426
+  remote-text, 12,328 red-team, and 828 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.

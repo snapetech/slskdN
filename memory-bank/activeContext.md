@@ -39,8 +39,8 @@ The Unreleased notes are now grouped under the `.343` changelog heading.
 Commits, push, the guarded release gate, tag build, and artifact verification
 remain pending; broader candidate queues and evidence-dependent work stay open.
 
-Current discovery counts are 215 callback/event, 425 remote-text, 12,324
-red-team, and 827 mutable-ownership candidates. These are review queues, not
+Current discovery counts are 215 callback/event, 426 remote-text, 12,328
+red-team, and 828 mutable-ownership candidates. These are review queues, not
 confirmed bug counts. T-908, global Party ID authority, device and browser
 accessibility, WAN/resource measurements, hidden-tab throttling, and the
 original startup network-change cause remain gated on their documented
