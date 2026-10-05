@@ -223,9 +223,20 @@
   10/10 across the handler suite; full Release .NET tests pass 5,955 (74
   application, 5,592 unit, 289 integration), and `./bin/lint` passes. ADR-0001
   gotcha `0z1614` records the transport boundary.
+- [x] Propagate cancellation from Mesh and BitTorrent signal receive callbacks
+  — 2026-10-05. Subscriber cancellation now escapes both event adapters without
+  being logged as a malformed or failed message. Handler tests pass 12/12; the
+  full Release .NET suite passes 5,957 (74 application, 5,594 unit, 289
+  integration), and `./bin/lint` passes. Gotcha `0z1615` records the receive
+  boundary.
+- [x] Serialize the strict release-ID allocation regression — 2026-10-05.
+  `MusicDomainMappingTests` now uses `AllocationTestCollection`, preventing its
+  1 KiB current-thread allocation ceiling from racing other allocation tests.
+  The isolated regression and subsequent full unit suite pass. Gotcha `0z1616`
+  records the collection requirement.
 - [ ] Continue the active whole-product remediation and classify remaining
   code-backed findings. Latest discovery queues: 211 callback/event, 431
-  remote-text, 12,263 red-team, and 827 mutable-ownership candidates. T-908
+  remote-text, 12,265 red-team, and 827 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.

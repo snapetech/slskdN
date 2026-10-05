@@ -17935,3 +17935,26 @@ coverage passes 10/10. The full Release .NET suite passes 5,955 (74
 application, 5,592 unit, 289 integration), and `./bin/lint` passes. The
 SignalBus cancellation regression passes 18/18. ADR-0001 gotcha `0z1614` was
 committed before the code change.
+
+## 2026-10-05 08:23 UTC — Propagate signal receive cancellation and serialize allocation checks
+
+Mesh and BitTorrent-extension signal receivers now propagate cancellation from
+their subscriber callbacks instead of logging it as a message-processing
+failure. Regression coverage confirms cancellation reaches the event publisher
+for both transports without an error record. The focused handler suite passes
+12/12.
+
+The full Release run first exposed an unrelated allocation-test instability:
+`ReleaseIdToContentWorkId_RepeatedTypicalIdBoundsAllocation` passed alone but
+measured 98,352 bytes against a 1 KiB limit while the unit suite ran. Its class
+was missing the established non-parallel `AllocationTestCollection`. After
+adding the collection attribute, the full Release suite passed 5,957 tests
+(74 application, 5,594 unit, 289 integration); `./bin/lint` also passes.
+ADR-0001 gotchas `0z1615` and `0z1616` were committed before their respective
+implementation/test changes.
+
+The receive-handler implementation, two regressions, release fragment,
+changelogs, task/progress updates, and allocation-test isolation are validated
+and ready to commit. Stable `.340` is fully published. T-908 end-to-end swarm
+lifecycle, global Party ID authority, and environment-dependent browser/device/
+WAN evidence remain open for continued remediation.

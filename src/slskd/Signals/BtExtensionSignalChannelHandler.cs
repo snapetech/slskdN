@@ -167,6 +167,10 @@ public sealed class BtExtensionSignalChannelHandler : ISignalChannelHandler
 
             await onSignalReceived(signal, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError("Error handling incoming BT extension signal from peer {PeerId}: {Exception}",

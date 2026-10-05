@@ -18483,3 +18483,30 @@ in this session, so no new operating-system throttling evidence was produced.
 Next: commit this adapter fix and inspect the next confirmed code issue. Push
 and cut the authorized next stable release after remaining work and the final
 release gate.
+
+## Current state — Continue whole-product remediation after signal lifecycle fixes — 2026-10-05 08:23 UTC
+
+Mesh and BitTorrent signal receive handlers now propagate caller cancellation
+from subscriber callbacks without logging it as a processing error. Focused
+handler tests pass 12/12. The full Release .NET suite passes 5,957 (74
+application, 5,594 unit, 289 integration), and `./bin/lint` passes. The full
+run initially exposed a 1 KiB allocation measurement racing because
+`MusicDomainMappingTests` was outside the disabled-parallelism allocation
+test collection. It passed alone; after adding the established collection
+attribute the full unit suite passed. Gotchas `0z1615` and `0z1616` were
+committed before implementation changes.
+
+Signal cancellation changes include focused tests, release fragments, and
+root/docs changelogs. The .NET 10 status remains confirmed: first-party app,
+test and build-tool projects target `net10.0`; MonoTorrent selects a compatible
+`net8.0` asset. Stable `.340`'s hosted workflow completed, including Launchpad.
+
+Continue the code-backed whole-product remediation. T-908 sender/job
+lifecycle, globally atomic Party ID ownership, actual hidden-tab throttling,
+WebKit/physical assistive-technology speech, representative WAN/resource
+behavior, the original frontend `ERR_NETWORK_CHANGED` cause, and discovery
+queues remain open. The isolated desktop/browser tool family is unavailable
+in this session, so no new operating-system throttling evidence was produced.
+Next: commit the receive fix, then continue reviewing remaining confirmed
+cancellation/event boundaries. Push and cut the authorized next stable release
+after remaining work and the final release gate.

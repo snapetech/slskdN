@@ -44,6 +44,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   failed channel and trying another transport.
 - Mesh and BitTorrent signal senders now propagate caller cancellation without
   logging it as a transport failure.
+- Mesh and BitTorrent signal receivers now propagate callback cancellation
+  without logging it as a message-processing failure.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

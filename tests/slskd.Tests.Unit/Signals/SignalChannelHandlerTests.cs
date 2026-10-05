@@ -126,6 +126,36 @@ public class SignalChannelHandlerTests
     }
 
     [Fact]
+    public async Task MeshSignalChannelHandler_IncomingCallbackCancellationPropagatesWithoutErrorLog()
+    {
+        var messages = new List<string>();
+        var sender = new TestMeshMessageSender();
+        using var handler = new MeshSignalChannelHandler(
+            new CapturingLogger<MeshSignalChannelHandler>(messages),
+            CreateOptions(),
+            sender,
+            "local-peer");
+        await handler.StartReceivingAsync((_, token) => Task.FromCanceled(token), CancellationToken.None);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+        var envelope = new SlskdnSignalMessage
+        {
+            SignalId = "signal-mesh-receive-cancel",
+            FromPeerId = "remote-peer",
+            ToPeerId = "local-peer",
+            Type = "test",
+            Body = "{}",
+            SentAt = DateTimeOffset.UtcNow,
+            Ttl = TimeSpan.FromMinutes(1),
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => sender.RaiseAsync(envelope, cancellationTokenSource.Token));
+
+        Assert.DoesNotContain(messages, message => message.StartsWith("Error handling incoming Mesh signal", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task MeshSignalChannelHandler_ConcurrentStartReceiving_DoesNotDuplicateDelivery()
     {
         var sender = new TestMeshMessageSender();
@@ -280,6 +310,40 @@ public class SignalChannelHandlerTests
         Assert.Contains("signal\\r\\ninjected", message);
         Assert.Contains("wrong\\r\\ntarget", message);
         Assert.DoesNotContain("\r\n", message);
+    }
+
+    [Fact]
+    public async Task BtExtensionSignalChannelHandler_IncomingCallbackCancellationPropagatesWithoutErrorLog()
+    {
+        var messages = new List<string>();
+        var sender = new TestBtExtensionSender();
+        using var handler = new BtExtensionSignalChannelHandler(
+            new CapturingLogger<BtExtensionSignalChannelHandler>(messages),
+            CreateOptions(),
+            sender,
+            "local-peer");
+        await handler.StartReceivingAsync((_, token) => Task.FromCanceled(token), CancellationToken.None);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+        var signal = new Signal(
+            "signal-bt-receive-cancel",
+            "remote-peer",
+            "local-peer",
+            DateTimeOffset.UtcNow,
+            "test",
+            new Dictionary<string, object>(),
+            TimeSpan.FromMinutes(1),
+            new[] { SignalChannel.BtExtension });
+        var message = new SlskdnExtensionMessage
+        {
+            Kind = SlskdnSignalKind.SignalEnvelope,
+            Payload = JsonSerializer.Serialize(signal),
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => sender.RaiseAsync(message, "remote-peer", cancellationTokenSource.Token));
+
+        Assert.DoesNotContain(messages, value => value.StartsWith("Error handling incoming BT extension signal", StringComparison.Ordinal));
     }
 
     [Fact]
