@@ -39945,3 +39945,15 @@ canceled before generic failure mapping. Roll back active transactions with an
 independent token, and keep post-commit publishing outside the storage
 transaction catch so its cancellation cannot be mistaken for a rollbackable
 database failure.
+
+### 0z1690. Check Repeated Async Catch Indentation After Log Rewrites (2026-10-05)
+
+**What went wrong:** A repeated log rewrite left the `catch` block and closing
+lambda braces four spaces too deep at three SQLite Pod publish sites. Behavior
+tests passed, but repository formatting lint rejected the source.
+
+**Why:** The same textual replacement was applied at multiple nesting depths
+without checking each enclosing async lambda.
+
+**Prevention:** Inspect every rewritten `try`/`catch` in its local nesting
+context and run formatting lint before considering a repeated log edit done.
