@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1623. Qualify System.IO Types In Soulseek Test Namespaces (2026-10-05)
+
+**What went wrong:** A mesh test imported `Soulseek` and then added unqualified
+`File` and `Directory` calls for a cancellation regression. Those names are
+also defined by Soulseek, so the test project no longer compiled.
+
+**Why:** The namespace import is needed for protocol types and makes common
+filesystem names ambiguous in the same source file.
+
+**Prevention:** Use `System.IO.File` and `System.IO.Directory` explicitly in
+test files that import `Soulseek`; compile the focused test before running the
+larger suite.
+
 ### 0z1622. Do Not Convert Inbound Mesh Read Cancellation Into A Peer Miss (2026-10-05)
 
 **What went wrong:** `HandleReqChunkAsync` caught caller cancellation from the
