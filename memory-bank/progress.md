@@ -17835,3 +17835,44 @@ Continue the remote-input audit and remaining code-backed fixes before pushing
 the complete tree and preparing the next stable release.
 
 ## Update 2026-10-05 06:22 UTC — Escape capability discovery diagnostics
+
+## 2026-10-05 07:06 UTC — Escape mesh and security diagnostics
+
+Hardened `MeshSyncService`, `PodVerificationController`, `ViolationTracker`, and
+`MetadataFacade` logs. Mesh sync now uses the injected `ILogger`; remote peer
+identifiers, keys, validation details, ban reasons, metadata queries, and caught
+exception text are escaped. Complete inbound mesh payloads are omitted, and
+payload text is redacted from mesh exception strings. Requests, protocol
+routing, database updates, MusicBrainz queries, and stored ban values keep
+their original inputs. Five captured-log regressions verify the boundaries.
+
+Commit `a0ad7b060` contains the implementation, tests, changelog, release
+fragment, task update, and active-backlog refresh. ADR gotchas `0z1608` and
+`0z1609` were committed separately. The controller route inventory was
+regenerated after its source line numbers shifted. Focused tests pass 61/61;
+the full Release .NET suite passes 5,951 (74 application, 5,588 unit, 289
+integration). `./bin/lint`, the .NET runtime matrix, active-backlog,
+local-identity, and whitespace checks pass. The `.340`-to-HEAD preview includes
+three validated security fragments.
+
+The full remediation baseline completed every static check but stops at its
+final release-branch sync guard because this tree is intentionally ahead of
+`origin/main`; all remaining local work is to be pushed after remediation is
+complete. The local branch was rebased onto the release automation's
+`2026100505-slskdn.340` stable-metadata commit. Stable `.340`'s Launchpad PPA
+publisher is still waiting for publication (last checked at 07:05 UTC; its
+publication wait began at 06:13 UTC). No new tag has been created.
+
+The app, tests, and build tools target `net10.0`. MonoTorrent 3.9.0 resolves
+its compatible `net8.0` package asset; `net6.0` remains only in historical
+notes about the previous dependency version. Vendored slskNet.Runtime source
+remains multi-targeted to .NET Standard, while its standalone compatibility
+tests/examples target .NET 8 and sit outside the slskd solution.
+
+Continue with the confirmed remote diagnostic gaps and the remaining
+code-backed whole-product work. T-908 sender/job lifecycle, global DHT Party
+ID ownership, real background-tab throttling, WebKit/physical assistive-
+technology evidence, WAN/resource evidence, the original frontend
+`ERR_NETWORK_CHANGED` cause, and broad discovery queues remain open. Push the
+complete tree and cut the next stable release only after those tasks and the
+final release gate are complete.

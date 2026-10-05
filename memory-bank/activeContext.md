@@ -18351,3 +18351,37 @@ and release gates are complete, push the full branch and cut the next stable
 release; do not retag immutable `.340`.
 
 ## Current state — Continue remediation after `.340`; capability diagnostics complete — 2026-10-05 06:22 UTC
+
+## Current state — Continue whole-product remediation after `.340`; mesh and security diagnostics complete — 2026-10-05 07:06 UTC
+
+Commit `a0ad7b060` sanitizes mesh sync, Pod verification, ban tracking, and
+metadata search diagnostics; five regressions cover escaped log output and
+unchanged behavior inputs. Separate gotchas `0z1608` and `0z1609` document the
+cross-boundary log review and generated route-inventory update. Full Release
+.NET tests pass 5,951 (74 application, 5,588 unit, 289 integration); focused
+coverage passes 61/61. `./bin/lint`, .NET runtime matrix, active backlog,
+local-identity, and whitespace checks pass. The `.340` to HEAD release-note
+preview contains three validated security fragments.
+
+The route inventory is current. The remediation baseline passes all local
+static checks and intentionally stops at its final branch-sync guard: local
+`main` is 13 commits ahead of `origin/main`, including `.340` release metadata
+integration and unpushed remediation commits. Rebase completed without dropped
+changes. Do not push until the user's broader remediation work is complete.
+
+Stable `.340` artifacts and Docker Main are verified. Its Launchpad PPA job is
+still waiting on publication (last checked 07:05 UTC). Do not create the next
+tag yet. First-party projects under `src`, `tests`, and `tools` target
+`net10.0`; the app resolves MonoTorrent's compatible `net8.0` asset. The
+remaining `net6.0` mention describes the older, already-upgraded dependency.
+Vendored slskNet.Runtime source retains .NET Standard targets for compatibility;
+its separate tests/examples target .NET 8 and are not part of the slskd
+solution.
+
+Next: continue the confirmed diagnostic sweep, then the code-backed product
+work. T-908 fallback job lifecycle, cross-node Party ID ownership, actual
+timer throttling in hidden tabs, WebKit and physical assistive-technology
+evidence, representative WAN/resource evidence, the original frontend
+`ERR_NETWORK_CHANGED` cause, and broad discovery queues remain open. Push all
+local commits and dirty/unrelated work, rerun the branch-sync release gate,
+then cut and verify the next stable release when implementation is complete.
