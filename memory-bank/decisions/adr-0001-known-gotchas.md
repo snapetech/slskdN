@@ -39790,3 +39790,17 @@ intermediates and reference assemblies across invocations in the checkout.
 **Prevention:** Run build and test commands sequentially when they share a
 checkout's `bin` and `obj` directories. Parallelize only commands with disjoint
 output roots.
+
+### 0z1684. Avoid Ambiguous Security Type Imports Across Layers (2026-10-05)
+
+**What went wrong:** Adding `using slskd.Common.Security` to federation files
+made `LoggingSanitizer` ambiguous with the VirtualSoulfind sanitizer and made
+`SecurityUtils` ambiguous with the Mesh transport helper. The application
+project stopped compiling.
+
+**Why:** Multiple application layers define common security type names, and a
+namespace import exposes all same-named types to the source file.
+
+**Prevention:** When a source file already imports another security layer,
+prefer a specific type alias or a fully qualified type name for the intended
+sanitizer. Compile the application after introducing new imports.
