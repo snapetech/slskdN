@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Mesh;
-
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 namespace slskd.Mesh.Dht;
 
 /// <summary>
@@ -100,7 +100,7 @@ public class PeerDescriptorRefreshService : BackgroundService
                 try
                 {
                     await publisher.PublishSelfAsync(stoppingToken);
-                    logger.LogDebug("[MeshDHT] Refreshed peer descriptor (reason: {Reason})", reason);
+                    logger.LogDebug("[MeshDHT] Refreshed peer descriptor (reason: {Reason})", LoggingSanitizer.SanitizeExternalIdentifier(reason));
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -108,7 +108,7 @@ public class PeerDescriptorRefreshService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "[MeshDHT] Peer descriptor refresh failed (reason: {Reason})", reason);
+                    logger.LogWarning("[MeshDHT] Peer descriptor refresh failed (reason: {Reason}); exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(reason), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -161,7 +161,7 @@ public class PeerDescriptorRefreshService : BackgroundService
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[MeshDHT] Failed to enumerate network interfaces for IP change detection");
+            logger.LogWarning("[MeshDHT] Failed to enumerate network interfaces for IP change detection; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return endpoints;

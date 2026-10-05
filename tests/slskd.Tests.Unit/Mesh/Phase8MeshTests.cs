@@ -17,6 +17,7 @@ using slskd.Mesh.Dht;
 using slskd.Mesh.Health;
 using slskd.Mesh.Nat;
 using slskd.VirtualSoulfind.ShadowIndex;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 namespace slskd.Tests.Unit.Mesh;
@@ -586,6 +587,31 @@ public class Phase8MeshTests
                 Assert.Equal("2001:db8::42", peer.Address);
                 Assert.Equal(6000, peer.Port);
             });
+    }
+
+    [Fact]
+    public async Task MeshDirectory_WhenRemoteDescriptorIsMalformed_EscapesPeerAndExceptionInLog()
+    {
+        const string peerId = "peer-1\r\nforged";
+        var logger = new CapturingLogger<MeshDirectory>();
+        var dhtClient = new Mock<IMeshDhtClient>();
+        dhtClient
+            .Setup(dht => dht.GetRawAsync($"mesh:peer:{peerId}", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new byte[] { 0xc1 });
+        var directory = new MeshDirectory(
+            logger,
+            dhtClient.Object,
+            Mock.Of<slskd.MediaCore.IDescriptorValidator>());
+
+        var descriptor = await directory.FindPeerByIdAsync(peerId);
+
+        Assert.Null(descriptor);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("peer-1\\r\\nforged", entry.Message);
+        Assert.DoesNotContain('\r', entry.Message);
+        Assert.DoesNotContain('\n', entry.Message);
+        Assert.Contains("exception:", entry.Message, StringComparison.Ordinal);
+        Assert.Null(entry.Exception);
     }
 
     [Fact]

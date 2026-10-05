@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 using slskd.MediaCore;
 using slskd.Mesh;
 using slskd.Mesh.Transport;
-
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 namespace slskd.Mesh.Dht;
 
 /// <summary>
@@ -58,7 +58,7 @@ public class MeshDirectory : IMeshDirectory
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[MeshDirectory] Failed to decode peer descriptor for {PeerId}", peerId);
+            logger.LogWarning("[MeshDirectory] Failed to decode peer descriptor for {PeerId}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(peerId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return null;
         }
     }
@@ -98,7 +98,7 @@ public class MeshDirectory : IMeshDirectory
             if (contentDescriptor == null) continue;
             if (!descriptorValidator.Validate(contentDescriptor, out var reason))
             {
-                logger.LogWarning("[MeshDirectory] Invalid content descriptor for {ContentId}: {Reason}", cid, reason);
+                logger.LogWarning("[MeshDirectory] Invalid content descriptor for {ContentId}: {Reason}", LoggingSanitizer.SanitizeExternalIdentifier(cid), LoggingSanitizer.SanitizeExternalIdentifier(reason));
                 continue;
             }
 

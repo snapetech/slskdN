@@ -36,6 +36,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Security
 
+- DHT and mesh-directory diagnostics now escape malformed peer values and
+  exception details at log boundaries without attaching raw exception
+  objects to log events.
 - PodCore API and background-service diagnostics now escape exception details
   and caller- or peer-controlled identifiers without attaching raw exception
   objects to log events.

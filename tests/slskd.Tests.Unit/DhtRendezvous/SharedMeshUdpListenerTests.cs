@@ -226,7 +226,17 @@ public class SharedMeshUdpListenerTests
             entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal));
         Assert.Contains("Dropped malformed overlay datagram", information.Message, StringComparison.Ordinal);
         Assert.Null(information.Exception);
-        Assert.Contains(logEntries, entry => entry.Level == LogLevel.Debug && entry.Exception is not null);
+        var debugEntries = logEntries
+            .Where(entry => entry.Level == LogLevel.Debug && entry.Message.Contains("Failed to decode malformed overlay datagram", StringComparison.Ordinal))
+            .ToArray();
+        Assert.NotEmpty(debugEntries);
+        foreach (var debug in debugEntries)
+        {
+            Assert.Contains("exception:", debug.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain('\r', debug.Message);
+            Assert.DoesNotContain('\n', debug.Message);
+            Assert.Null(debug.Exception);
+        }
     }
 
     private static async Task WaitUntilAsync(Func<Task<bool>> predicate, TimeSpan timeout, int pollIntervalMs = 25)

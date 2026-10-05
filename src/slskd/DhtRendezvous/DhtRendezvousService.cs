@@ -25,6 +25,7 @@ using slskd.Integrations.VPN;
 using slskd.Mesh;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Transport;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Service for discovering and connecting to mesh peers via BitTorrent DHT rendezvous.
@@ -244,7 +245,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize DHT rendezvous service in background");
+            _logger.LogError("Failed to initialize DHT rendezvous service in background; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -306,7 +307,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error during DHT shutdown");
+            _logger.LogWarning("Error during DHT shutdown; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         if (shouldStopBackgroundService)
@@ -412,7 +413,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error in DHT rendezvous loop");
+                _logger.LogWarning("Error in DHT rendezvous loop; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
@@ -514,7 +515,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to load saved DHT state");
+                    _logger.LogWarning("Failed to load saved DHT state; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -685,7 +686,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                 // Parse IP and port from URI (format: ipv4://192.168.1.1:port or ipv6://[::1]:port)
                 if (!IPAddress.TryParse(uri.Host, out var ip))
                 {
-                    _logger.LogDebug("Could not parse IP from peer URI: {Uri}", uri);
+                    _logger.LogDebug("Could not parse IP from peer URI: {Uri}", LoggingSanitizer.SanitizeExternalIdentifier(uri.ToString()));
                     continue;
                 }
 
@@ -725,7 +726,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to parse peer info: {Peer}", peerInfo);
+                _logger.LogWarning("Failed to parse peer info: {Peer}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(peerInfo.ToString()), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -818,7 +819,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         {
             _peerManager.RecordConnectionFailure(peerId);
             RecordPeerConnectionFailure(peerId);
-            _logger.LogDebug(ex, "Failed to connect to discovered peer {Endpoint}", OverlayLogSanitizer.Endpoint(endpoint));
+            _logger.LogDebug("Failed to connect to discovered peer {Endpoint}; exception: {Exception}", OverlayLogSanitizer.Endpoint(endpoint), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
         finally
         {
@@ -1020,11 +1021,11 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             {
                 if (dhtEngine.Disposed)
                 {
-                    _logger.LogDebug(ex, "DHT peer discovery stopped because the engine was disposed");
+                    _logger.LogDebug("DHT peer discovery stopped because the engine was disposed; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     return;
                 }
 
-                _logger.LogWarning(ex, "DHT peer discovery failed for rendezvous infohash {Hash}", infoHashes[index]);
+                _logger.LogWarning("DHT peer discovery failed for rendezvous infohash {Hash}; exception: {Exception}", LoggingSanitizer.SanitizeHash(infoHashes[index].ToString()), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -1042,7 +1043,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "DHT re-announce failed after VPN forwarded-port change");
+            _logger.LogWarning("DHT re-announce failed after VPN forwarded-port change; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -1239,10 +1240,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(
-                    ex,
-                    "Could not start overlay server on port {Port}; this node will connect to beacons but will not announce itself",
-                    _options.OverlayPort);
+                _logger.LogWarning("Could not start overlay server on port {Port}; this node will connect to beacons but will not announce itself; exception: {Exception}", _options.OverlayPort, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 return false;
             }
         }

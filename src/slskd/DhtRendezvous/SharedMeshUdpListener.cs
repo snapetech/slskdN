@@ -15,6 +15,7 @@ using ReusableTasks;
 using slskd.Mesh;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Transport;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Shares the public mesh UDP socket between DHT rendezvous, UDP overlay control, and QUIC.
@@ -245,7 +246,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[DHT] Shared UDP listener receive loop error");
+                _logger.LogWarning("[DHT] Shared UDP listener receive loop error; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }
@@ -303,10 +304,10 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
         }
 
         _logger.LogDebug(
-            exception,
-            "[Overlay] Failed to decode malformed overlay datagram from {Endpoint} size={Size}",
+            "[Overlay] Failed to decode malformed overlay datagram from {Endpoint} size={Size}; exception: {Exception}",
             OverlayLogSanitizer.Endpoint(remoteEndPoint),
-            size);
+            size,
+            LoggingSanitizer.SanitizeExternalIdentifier(exception.ToString()));
     }
 
     /// <summary>
@@ -483,7 +484,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "[DHT] QUIC UDP proxy session for {Endpoint} stopped", _remoteEndPoint);
+                    _logger.LogDebug("[DHT] QUIC UDP proxy session for {Endpoint} stopped; exception: {Exception}", OverlayLogSanitizer.Endpoint(_remoteEndPoint), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     break;
                 }
             }

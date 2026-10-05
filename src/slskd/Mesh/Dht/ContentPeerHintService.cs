@@ -4,7 +4,7 @@
 using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 namespace slskd.Mesh.Dht;
 
 /// <summary>
@@ -90,7 +90,7 @@ public class ContentPeerHintService : BackgroundService, IContentPeerHintService
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[MeshContent] Failed to publish peer hint batch of {Count}: {Message}", contentIds.Count, ex.Message);
+                logger.LogWarning("[MeshContent] Failed to publish peer hint batch of {Count}: {Message}; exception: {Exception}", contentIds.Count, LoggingSanitizer.SanitizeExternalIdentifier(ex.Message), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
             finally
             {

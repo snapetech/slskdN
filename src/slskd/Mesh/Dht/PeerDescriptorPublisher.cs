@@ -83,13 +83,13 @@ public class PeerDescriptorPublisher : IPeerDescriptorPublisher
 
                 logger.LogInformation(
                     "[MeshDHT] Marked peer {PeerId} as requiring relay due to hole punching failures",
-                    peerId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId));
             }
             else
             {
                 logger.LogWarning(
                     "[MeshDHT] Cannot mark peer {PeerId} as requiring relay - descriptor not found",
-                    peerId);
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId));
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -98,7 +98,7 @@ public class PeerDescriptorPublisher : IPeerDescriptorPublisher
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[MeshDHT] Failed to mark peer {PeerId} as requiring relay", peerId);
+            logger.LogError("[MeshDHT] Failed to mark peer {PeerId} as requiring relay; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(peerId), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -153,7 +153,7 @@ public class PeerDescriptorPublisher : IPeerDescriptorPublisher
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[MeshDHT] Failed to get valid private key from KeyStore - cannot publish peer descriptor securely");
+            logger.LogError("[MeshDHT] Failed to get valid private key from KeyStore - cannot publish peer descriptor securely; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw new InvalidOperationException("Mesh identity keys are required for secure peer publishing", ex);
         }
 
@@ -165,7 +165,7 @@ public class PeerDescriptorPublisher : IPeerDescriptorPublisher
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[MeshDHT] Failed to sign descriptor with real key");
+            logger.LogError("[MeshDHT] Failed to sign descriptor with real key; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             throw new InvalidOperationException("Failed to sign peer descriptor with configured key", ex);
         }
 
@@ -342,7 +342,7 @@ public class PeerDescriptorPublisher : IPeerDescriptorPublisher
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[MeshDHT] Failed to detect network endpoints");
+            logger.LogWarning("[MeshDHT] Failed to detect network endpoints; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
 
         return hosts.Distinct();

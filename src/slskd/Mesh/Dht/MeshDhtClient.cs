@@ -10,7 +10,7 @@ using slskd.Mesh.Transport;
 using slskd.VirtualSoulfind.ShadowIndex;
 using System.Security.Cryptography;
 using System.Text;
-
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 namespace slskd.Mesh.Dht;
 
 /// <summary>
@@ -59,7 +59,7 @@ public class MeshDhtClient : IMeshDhtClient
         var payload = value as byte[] ?? MessagePackSerializer.Serialize(value, cancellationToken: ct);
         var ttl = Math.Min(Math.Max(ttlSeconds, 60), 3600); // clamp 1m..1h
         await PutAsync(DeriveKey(key), payload, ttl, ct);
-        logger.LogDebug("[MeshDHT] Put {Key} ttl={Ttl}s size={Size}", key, ttl, payload.Length);
+        logger.LogDebug("[MeshDHT] Put {Key} ttl={Ttl}s size={Size}", LoggingSanitizer.SanitizeExternalIdentifier(key), ttl, payload.Length);
     }
 
     public async Task PutAsync(byte[] key, byte[] value, int ttlSeconds, CancellationToken ct = default)
@@ -119,7 +119,7 @@ public class MeshDhtClient : IMeshDhtClient
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "[MeshDHT] Failed to decode payload for {Key}", key);
+            logger.LogWarning("[MeshDHT] Failed to decode payload for {Key}; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(key), LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return default;
         }
     }

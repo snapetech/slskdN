@@ -11,6 +11,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Registry of active mesh overlay connections.
@@ -360,7 +361,7 @@ public sealed class MeshNeighborRegistry : IAsyncDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Mesh neighbor subscriber failed for {EventName}", eventName);
+                _logger.LogWarning("Mesh neighbor subscriber failed for {EventName}; exception: {Exception}", eventName, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
     }

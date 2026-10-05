@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using slskd.SoulseekRuntime;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Owns the public Soulseek peer-listen TCP socket whenever DHT rendezvous is enabled (see
@@ -125,11 +126,7 @@ internal sealed class SharedMeshTcpListener : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "[SharedMeshTcpListener] Failed to bind shared TCP port {Address}:{Port}; Soulseek peer connections and the mesh TCP overlay will both be unavailable. Set dht.enabled: false to disable DHT rendezvous if this port cannot be used.",
-                listenAddress,
-                listenPort);
+            _logger.LogError("[SharedMeshTcpListener] Failed to bind shared TCP port {Address}:{Port}; Soulseek peer connections and the mesh TCP overlay will both be unavailable. Set dht.enabled: false to disable DHT rendezvous if this port cannot be used. Exception: {Exception}", LoggingSanitizer.SanitizeIpAddress(listenAddress), listenPort, LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return;
         }
 
@@ -157,7 +154,7 @@ internal sealed class SharedMeshTcpListener : BackgroundService
                 }
                 catch (SocketException ex)
                 {
-                    _logger.LogWarning(ex, "[SharedMeshTcpListener] Error accepting connection");
+                    _logger.LogWarning("[SharedMeshTcpListener] Error accepting connection; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                     continue;
                 }
 
@@ -194,7 +191,7 @@ internal sealed class SharedMeshTcpListener : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "[SharedMeshTcpListener] Error routing an accepted connection");
+            _logger.LogDebug("[SharedMeshTcpListener] Error routing an accepted connection; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             client.Dispose();
         }
     }

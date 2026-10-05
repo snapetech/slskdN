@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 ///     Periodically reminds operators that enabling DHT rendezvous publishes their node's
@@ -67,7 +68,7 @@ public sealed class DhtExposureWarningService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "[DHT] DhtExposureWarningService tick failed (non-fatal)");
+                _logger.LogDebug("[DHT] DhtExposureWarningService tick failed (non-fatal); exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
 
             try

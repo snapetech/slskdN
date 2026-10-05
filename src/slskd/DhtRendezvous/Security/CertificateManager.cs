@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
 using slskd.DhtRendezvous;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Manages TLS certificates for the overlay protocol.
@@ -77,7 +78,7 @@ public sealed class CertificateManager
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to load existing certificate, generating new one");
+                    _logger.LogWarning("Failed to load existing certificate, generating new one; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -179,7 +180,7 @@ public sealed class CertificateManager
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not set certificate file permissions");
+                _logger.LogWarning("Could not set certificate file permissions; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             }
         }
 
@@ -208,7 +209,7 @@ public sealed class CertificateManager
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Could not set certificate file permissions");
+                    _logger.LogWarning("Could not set certificate file permissions; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -251,9 +252,7 @@ public sealed class CertificateManager
         }
         catch (CryptographicException ex) when (File.Exists(_legacyPasswordPath))
         {
-            _logger.LogWarning(
-                ex,
-                "Overlay certificate uses a legacy cleartext password file; deleting legacy credentials and regenerating certificate");
+            _logger.LogWarning("Overlay certificate uses a legacy cleartext password file; deleting legacy credentials and regenerating certificate; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             DeleteLegacyPasswordFile();
             throw;
         }
@@ -276,7 +275,7 @@ public sealed class CertificateManager
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not remove legacy overlay certificate password file");
+            _logger.LogWarning("Could not remove legacy overlay certificate password file; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 }
@@ -451,7 +450,7 @@ public sealed class CertificatePinStore
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load certificate pins");
+            _logger.LogWarning("Failed to load certificate pins; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 
@@ -482,7 +481,7 @@ public sealed class CertificatePinStore
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Could not set pin store file permissions");
+                    _logger.LogDebug("Could not set pin store file permissions; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 }
             }
 
@@ -490,7 +489,7 @@ public sealed class CertificatePinStore
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to save certificate pins");
+            _logger.LogWarning("Failed to save certificate pins; exception: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
 
             try
             {

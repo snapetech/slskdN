@@ -45,6 +45,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - PodCore API and background-service logs now escape request and peer
   identifiers plus exception details before emitting them, preventing
   control-character log forging without changing operation results.
+- DHT and mesh-directory diagnostics now escape remote peer fields and
+  exception details while leaving packet handling and discovery results
+  unchanged.
 - Mesh overlay readers now dispatch the numeric mesh message types emitted by
   the message DTOs, so valid mesh sync requests reach the sync service in both
   connection directions.
