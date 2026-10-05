@@ -4,6 +4,18 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1622. Do Not Convert Inbound Mesh Read Cancellation Into A Peer Miss (2026-10-05)
+
+**What went wrong:** `HandleReqChunkAsync` caught caller cancellation from the
+cancellation-aware file read and returned a normal unsuccessful chunk response.
+
+**Why:** The broad catch intended to turn local file errors into a peer
+failure response also swallowed the request owner's cancellation signal.
+
+**Prevention:** Rethrow cancellation when the request token is canceled before
+handling ordinary I/O errors. Exercise the public message handler with a
+canceled request and a readable in-root file.
+
 ### 0z1621. Preserve Cancellation When Mesh Sync Waits For Its Lock (2026-10-05)
 
 **What went wrong:** `TrySyncWithPeerAsync` caught cancellation from
