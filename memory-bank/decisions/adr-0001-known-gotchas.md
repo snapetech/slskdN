@@ -62,6 +62,21 @@ format instead of the domain type's established behavior.
 type's actual query text or use its existing parser contract. Do not infer term
 tokenization from whitespace in an HTTP request.
 
+### 0z1570. Sanitize Soulseek Event And Transfer Diagnostics (2026-10-05)
+
+**What went wrong:** Central application event handlers and incoming transfer
+callbacks logged peer-controlled usernames, filenames, denial messages, room
+names, and pod identifiers directly. Those values arrive through protocol
+events or remote requests and can contain log-breaking control characters.
+
+**Why:** The earlier logging passes fixed the owning feature services and
+request controllers, but the application's event wiring and protocol
+callbacks form a separate logging boundary.
+
+**Prevention:** Sanitize fields at every application-level event and incoming
+request log call. Sweep event subscriptions and callback handlers together,
+and cover the emitted structured log state for representative CR/LF input.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
