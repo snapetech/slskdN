@@ -164,6 +164,20 @@ including deferred callbacks and catch blocks. Sanitize only diagnostic
 arguments; preserve the original message, routing identifiers, and bridge
 payload used by the operation.
 
+### 0z1577. Include Pod Membership Signing Failures In The Log Sweep (2026-10-05)
+
+**What went wrong:** A follow-up scan of the same `PodServices.cs` file found
+that membership join/ban paths still logged peer and pod IDs and raw signing
+exceptions, even though adjacent message paths were being hardened.
+
+**Why:** The class contains several distinct service implementations, so a
+focused message-routing audit can miss membership lifecycle logs in the same
+file.
+
+**Prevention:** Search every logger call in a multi-service source file, then
+trace fields to their source. Escape peer and pod IDs and full exception text
+in membership and signing diagnostics while preserving join/ban behavior.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
