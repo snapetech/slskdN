@@ -1,4 +1,27 @@
-# Update 2026-10-05 21:29 UTC — Preserve cancellation across Pod APIs
+# Update 2026-10-05 21:46 UTC — Preserve content-link cancellation and sanitize provider logs
+
+Pod content-ID validation, metadata lookup, and recording search now propagate
+caller cancellation while retaining their ordinary best-effort fallback for
+provider failures. Content IDs, unsupported search domains, and provider
+exception details are escaped at log boundaries; raw exceptions are no longer
+attached to these service logs. Focused tests pass 9/9, including cancellation
+and captured-log cases. The full Release suite passes 6,092 tests (74
+application, 5,729 unit, 289 integration), and `./bin/lint` and the focused
+source guard pass. Its first run encountered a full `/tmp`; rerunning with an
+isolated `/dev/shm` temp directory passed without removing existing temp data.
+
+The `.344` Release Gate and six platform archive builds succeeded. GitHub
+created stable release metadata commit `b06e83be1`; Homebrew, AUR, and
+Chocolatey publication succeeded, while Docker and PPA were still running at
+the last check. Local gotcha and fix commits are rebased on the generated
+metadata commit and await push and the post-push remediation baseline.
+
+The current discovery queues are 215 callback/event, 426 remote-text, 12,356
+red-team, and 828 mutable-ownership candidates. These remain review queues,
+not confirmed bug counts. The `.344` tag predates both the Pod API and content
+lookup fixes, which are prepared for the next stable release.
+
+## Update 2026-10-05 21:29 UTC — Preserve cancellation across Pod APIs
 
 Pod management and membership actions, Pod content validation/metadata/search
 and creation, and shadow-index lookup now rethrow caller cancellation before

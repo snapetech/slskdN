@@ -26,6 +26,27 @@
 
 ## Active Development
 
+### Post-.344 MusicBrainz content-link resilience — 2026-10-05
+
+- [x] Preserve caller cancellation through content-ID validation, metadata
+  lookup, and recording search while keeping non-caller provider failures on
+  their existing best-effort fallback paths.
+- [x] Escape content IDs, unsupported search domains, and provider exception
+  details at log boundaries; no raw exception objects remain in this service.
+- [x] Add cancellation and captured-log regressions plus
+  `check-content-link-service-safety.sh` to the remediation baseline.
+- [x] Pass focused ContentLinkService tests (9/9), full Release tests (74
+  application, 5,729 unit, 289 integration), `./bin/lint`, and the source
+  guard. The full suite used an isolated temp directory after `/tmp` filled.
+- [x] Refresh the discovery inventory: 215 callback/event, 426 remote-text,
+  12,356 red-team, and 828 mutable-ownership candidates; these are review
+  queues, not confirmed bug counts.
+- [ ] Push the validated commits and rerun the complete remediation baseline.
+  The `.344` release workflow's stable-metadata commit was preserved and the
+  local gotcha commit rebased on top of it.
+- [ ] Continue confirmed code-backed remediation; evidence-gated work remains
+  open, and this fix is intended for the next stable release after `.344`.
+
 ### Post-.344 Pod API request cancellation — 2026-10-05
 
 - [x] Preserve caller cancellation across all 13 native Pod actions, four Pod
