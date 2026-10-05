@@ -17959,6 +17959,27 @@ and ready to commit. Stable `.340` is fully published. T-908 end-to-end swarm
 lifecycle, global Party ID authority, and environment-dependent browser/device/
 WAN evidence remain open for continued remediation.
 
+## 2026-10-05 17:53 UTC — Preserve mesh-search cancellation and safe diagnostics
+
+Inbound `MeshSearchRpcHandler` now honors caller cancellation before work,
+while awaiting an asynchronous search result, and during result ordering and
+content mapping. Caller cancellation propagates instead of becoming a normal
+search failure. Request IDs, local filenames, and exception details are
+escaped at the logging boundary without rewriting response IDs or file names.
+The local repository search currently runs synchronously; this change observes
+cancellation around that call and does not claim to interrupt SQLite while it
+is executing.
+
+The focused `MeshSearchRpcHandlerTests` suite passes 14/14. Added
+`check-mesh-search-safety.sh` to the remediation baseline and validated the
+script registry. The release fragment and Unreleased changelog entry are
+present. The active candidate inventory is refreshed: 214 callback/event,
+427 remote-text, 12,322 red-team, and 826 mutable-ownership candidates. Full
+lint/remediation/release gates and commit/push/release remain pending while
+code-backed remediation continues. Stable `.342` remains the latest published
+release; T-908 and environment-dependent evidence items remain gated.
+
+
 ## 2026-10-05 08:33 UTC — Propagate cancellation from SignalBus subscribers
 
 `SignalBus.InvokeSubscriberAsync` now distinguishes caller-requested
@@ -18178,3 +18199,104 @@ and the public apt index contains the same version. The earlier exact-match
 query lagged the package index, then caught up before the workflow timeout.
 The corrected waiter has already passed locally and is pushed to `main` for
 future tags.
+
+
+## 2026-10-05 18:09 UTC — Preserve mesh, I2P, and rescue diagnostic boundaries
+
+Mesh search now propagates caller cancellation through waiting and result
+processing, and escapes request IDs, file names, and exceptions at the log
+boundary. I2P availability deadlines now include the SAM HELLO write, flush,
+and response read; a stalled loopback peer is reported unavailable. Rescue
+service and guardrail logs escape filenames and transfer IDs, and exception
+details are recorded as escaped strings without raw exception metadata.
+
+Focused tests pass for mesh search (14/14), the I2P stalled bridge (1/1), and
+rescue logging (1/1). Three safety scripts are registered in the remediation
+baseline; release-note fragments and Unreleased changelog entries are prepared.
+The broader release gates, inventory review, commit/push, and stable release
+remain outstanding.
+
+
+## 2026-10-05 18:17 UTC — Escape startup logger failure fallback
+
+When the startup logger's event callback fails, the fallback now escapes both
+the callback exception message and rendered log text before writing to stderr.
+A regression forces a CR/LF-bearing callback failure and remote message, then
+asserts the fallback output remains single-line. Its safety script is registered
+in the remediation baseline, and the security fragment and Unreleased changelog
+entry are prepared.
+
+
+## 2026-10-05 18:19 UTC — Preserve Pod routing cancellation and diagnostics
+
+PodCore routing now escapes caller/peer message IDs, pod IDs, router failure
+text, and full exception details in its log calls. It no longer attaches raw
+exceptions to those events. The four asynchronous actions that accept caller
+cancellation tokens now rethrow caller cancellation before ordinary error
+mapping. Captured-log and cancellation coverage passes 12/12; the source check
+is registered in the remediation baseline, and the security fragment and
+Unreleased changelog entry are added.
+
+
+## 2026-10-05 18:41 UTC — Escape blocked usernames in service logs
+
+UserBlockService now escapes usernames in both block and unblock diagnostics,
+without rewriting what it stores or returns. A captured-log regression verifies
+the persisted username retains its original control characters while the log
+contains only escaped sequences. The focused user-block suite passes 3/3; its
+safety check is registered in the remediation baseline, and the release
+fragment and Unreleased changelog entry are added.
+
+
+## 2026-10-05 18:54 UTC — Preserve NAT probe cancellation and diagnostics
+
+STUN and public-IP HTTP probing now propagate caller cancellation before
+falling through to another endpoint. Exception details from NAT mapping,
+device, STUN, and HTTP failures are logged as escaped fields instead of raw
+exception objects. Mocked HTTP regressions pass 2/2 for exception escaping and
+cancellation propagation; the safety script is registered in the remediation
+baseline, and the release fragment and Unreleased changelog entry are added.
+
+
+## 2026-10-05 18:47 UTC — Escape cover-traffic send failures
+
+The cover-traffic worker, disposal path, and delayed cleanup continuation now
+record escaped exception text without attaching raw exception metadata or
+changing worker control flow. Captured-log regressions cover send failure,
+disposal failure, and a task that faults after the stop timeout; the focused
+cover-traffic tests pass 30/30. The safety check scans every log level and is
+registered in the remediation baseline. Gotchas `0z1679` and `0z1680` record
+the overlooked lifecycle calls and ripgrep status handling. Its release
+fragment and `.343` changelog entry describe all three boundaries.
+
+
+## 2026-10-05 18:40 UTC — Escape mesh signature failure diagnostics
+
+Mesh signing and verification failures now preserve their existing throw/return
+behavior while logging full exception details as escaped strings instead of
+raw exception metadata. Captured-log regressions pass for malformed peer
+public keys and key-store failure. `check-mesh-signature-safety.sh` is
+registered in the remediation baseline; the security fragment and Unreleased
+changelog entry are added.
+
+
+## 2026-10-05 18:33 UTC — Preserve Pod backfill cancellation and peer diagnostics
+
+Pod backfill now rethrows caller cancellation from sync, incoming request, and
+response-processing boundaries instead of converting it into a failure
+result. Its peer-related exceptions are logged as escaped text, with no raw
+exception metadata attached. Four focused tests pass, including a captured
+peer exception and cancellation from the three operations. The new safety
+check is registered in the remediation baseline; its release fragment and
+Unreleased changelog entry are added.
+
+
+## 2026-10-05 18:24 UTC — Escape remote Kademlia RPC diagnostics
+
+Kademlia FIND_NODE, FIND_VALUE, PING, and STORE now escape remote peer
+addresses, RPC failure messages, and full exception text at each log boundary.
+Caller cancellation still escapes its dedicated catch path. A parameterized
+regression covers rejected replies and thrown peer calls across all four
+operations; the focused suite passes 19/19. A durable source check is
+registered in the remediation baseline, and the security fragment and
+Unreleased changelog entry are added.

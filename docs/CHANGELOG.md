@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100519-slskdn.343] — 2026-10-05
+
 ### Fixed
 
 - Launchpad PPA publication checks now verify exact package versions locally,

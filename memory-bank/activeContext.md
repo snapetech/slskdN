@@ -1,3 +1,58 @@
+## Current state — Prepare stable `.343` release — 2026-10-05 19:12 UTC
+
+Stable `.342` remains published. Framework alignment is already complete:
+first-party projects under `src`, `tests`, and `tools` target `net10.0`, and
+MonoTorrent resolves its compatible `net8.0` package asset. The `.NET 6`
+reference is historical; no relevant active project or selected MonoTorrent
+asset needs a target-framework upgrade.
+
+The next confirmed mesh-search defect is implemented locally. Inbound mesh
+search now preserves caller cancellation before work, while awaiting the
+search task, and during result ordering/content mapping. Mesh request IDs,
+local filenames, and exception details are escaped at diagnostic boundaries;
+wire correlation values remain unchanged. The focused handler suite passes
+14/14, and `scripts/check-mesh-search-safety.sh` is registered in the
+remediation baseline. I2P SAM's five-second deadline now covers connect and
+the full HELLO write/flush/read sequence; the stalled-bridge regression passes.
+Rescue service and guardrail logs now escape caller filenames and IDs, and
+exception text is written as escaped fields rather than attached exception
+objects; its CR/LF regression passes. These three fixes have Unreleased
+fragments and changelog entries. Startup logger callback failures now escape
+both rendered log text and exception messages before writing stderr; its
+callback-failure regression passes. Pod routing now escapes router IDs/errors
+and exception text, and its four asynchronous actions rethrow caller
+cancellation; captured-log and cancellation regressions pass (12/12 focused
+suite). Kademlia FIND_NODE, FIND_VALUE, PING, and STORE diagnostics now escape
+remote addresses, error replies, and exceptions; the focused suite passes
+19/19. The initial fixes cover mesh search, I2P probe timeouts, rescue logs,
+startup log fallback, Pod routing, Kademlia RPCs, Pod backfill, mesh signature
+failures, user-block usernames, cover-traffic failures, and NAT probes. Focused
+test suites pass 14, 1, 1, 1, 12, 19, 4, 2, 3, 30, and 2 tests respectively.
+Each fix has a release-note fragment and Unreleased changelog entry.
+NAT detection now rethrows caller cancellation through STUN and HTTP probes,
+and writes network exceptions as escaped strings; mocked regressions pass.
+The full Release suite passes 6,075 tests (74 application, 289 integration,
+5,712 unit), and `./bin/lint` passes. Active backlog and council sweep checks
+pass. The remediation baseline passed every substantive check and stopped only
+at its final branch-sync guard because these changes have not been pushed yet.
+The Unreleased notes are now grouped under the `.343` changelog heading.
+Commits, push, the guarded release gate, tag build, and artifact verification
+remain pending; broader candidate queues and evidence-dependent work stay open.
+
+Current discovery counts are 215 callback/event, 425 remote-text, 12,324
+red-team, and 827 mutable-ownership candidates. These are review queues, not
+confirmed bug counts. T-908, global Party ID authority, device and browser
+accessibility, WAN/resource measurements, hidden-tab throttling, and the
+original startup network-change cause remain gated on their documented
+implementation or external evidence.
+
+## Next steps
+
+Commit the validated fixes and release notes, verify the GitHub target, push
+all repository changes, run the guarded `.343` release helper, and verify the
+published release artifacts and required platform publication jobs. Continue
+the broader discovery queues and evidence-dependent work after release.
+
 ## Current state — Publish and verify stable `.342` — 2026-10-05 17:28 UTC
 
 Stable `.342` is published at

@@ -49,6 +49,73 @@
 - [ ] Continue code-backed remediation; T-908's protocol/trust requirements
   and other external/evidence-dependent work remain open below.
 
+### Post-.342 mesh search cancellation and diagnostic safety — 2026-10-05
+
+- [x] Preserve caller cancellation in inbound mesh search before starting,
+  while awaiting search, and during result ordering/content mapping. Caller
+  cancellation no longer becomes an ordinary search failure.
+- [x] Escape mesh request IDs, local filenames, and exception details at both
+  diagnostic boundaries while retaining original response correlation and
+  file values.
+- [x] Pass the focused handler suite (14/14) and add
+  `check-mesh-search-safety.sh` to the remediation baseline.
+- [x] Add the validated security fragment and `.343` changelog entry. The active
+  discovery inventory now records 215 callback/event, 425 remote-text, 12,324
+  red-team, and 827 mutable-ownership candidates; these remain review queues.
+- [x] Apply the five-second linked deadline across I2P SAM connect, HELLO write,
+  flush, and response read; a loopback stalled-bridge regression passes, and
+  `check-i2p-probe-deadline.sh` pins the full probe boundary.
+- [x] Add a validated security fragment and `.343` changelog entry for the I2P
+  availability timeout fix.
+- [x] Escape RescueService and guardrail filenames, transfer identifiers, and
+  exception details at diagnostic boundaries. Captured-log coverage verifies
+  control characters are escaped and raw exception objects are not attached;
+  `check-rescue-logging-safety.sh` pins the boundary.
+- [x] Add the validated rescue logging fragment and `.343` changelog entry.
+- [x] Escape rendered log records and callback exception messages in the
+  startup logger stderr fallback. The callback-failure regression verifies the
+  fallback stays single-line, and `check-startup-log-fallback-safety.sh` pins
+  the boundary.
+- [x] Add the validated startup fallback fragment and `.343` changelog
+  entry.
+- [x] Escape PodCore routing identifiers, router errors, and exception details
+  in logs; propagate cancellation from all asynchronous routing, statistics,
+  and cleanup actions. The focused controller suite passes 12/12, and
+  `check-pod-routing-safety.sh` pins the log and cancellation boundaries.
+- [x] Add the Pod routing security fragment and `.343` changelog entry.
+- [x] Escape remote addresses, reply errors, and exception details in
+  Kademlia FIND_NODE, FIND_VALUE, PING, and STORE diagnostics. The focused
+  Kademlia suite passes 19/19, and `check-kademlia-rpc-safety.sh` pins all four
+  RPC boundaries.
+- [x] Add the Kademlia logging fragment and `.343` changelog entry.
+- [x] Escape mesh signing and peer-verification exception text without
+  attaching raw exception metadata. Both captured-log regressions pass, and
+  `check-mesh-signature-safety.sh` pins both paths.
+- [x] Add the mesh-signature security fragment and `.343` changelog entry.
+- [x] Escape blocked/unblocked usernames at UserBlockService log calls while
+  preserving stored values. Its focused service suite passes 3/3, and
+  `check-user-block-log-safety.sh` pins the behavior.
+- [x] Add the user-block logging fragment and `.343` changelog entry.
+- [x] Escape cover-traffic send, disposal, and delayed cleanup exceptions at
+  their log boundaries without changing worker retry or shutdown behavior.
+  The focused cover-traffic suite passes 30/30, and
+  `check-cover-traffic-log-safety.sh` pins the boundary.
+- [x] Add the cover-traffic security fragment and `.343` changelog entry.
+- [x] Preserve caller cancellation through STUN and public-IP HTTP probes, and
+  escape network exception details before logging. Mocked regressions pass 2/2;
+  `check-nat-probe-safety.sh` pins cancellation and diagnostics.
+- [x] Add the NAT detection security fragment and `.343` changelog entry.
+- [x] Preserve caller cancellation in Pod backfill sync, request, and response
+  processing, and escape caught exception details before logging. Focused
+  coverage passes 4/4, and `check-pod-backfill-safety.sh` pins these paths.
+- [x] Add the Pod backfill security fragment and `.343` changelog entry.
+- [x] Pass `dotnet test -c Release`: 6,075 tests (74 application, 289
+  integration, 5,712 unit) and `./bin/lint`. The substantive remediation,
+  active-backlog, and sweep-count checks pass; branch-sync validation remains
+  pending the authorized push.
+- [ ] Continue the whole-product remediation and classify/fix the next
+  confirmed code-backed findings. Evidence-dependent work stays open below.
+
 ### Stable `.341` and post-.340 reliability audit — 2026-10-05
 
 - [x] Confirm framework alignment: every first-party project under `src`,
@@ -330,8 +397,8 @@
   The isolated regression and subsequent full unit suite pass. Gotcha `0z1616`
   records the collection requirement.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings. Latest discovery queues: 214 callback/event, 427
-  remote-text, 12,321 red-team, and 826 mutable-ownership candidates. T-908
+  code-backed findings. Latest discovery queues: 215 callback/event, 425
+  remote-text, 12,324 red-team, and 827 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.
