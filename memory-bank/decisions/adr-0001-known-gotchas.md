@@ -173,6 +173,19 @@ different responsibilities.
 **Prevention:** Use the fully qualified `Soulseek.ISoulseekClient` type (and
 its `SoulseekClientStates`) in tests for `SoulseekHealthMonitor`.
 
+### 0z1650. Preserve Request-Abort Cancellation In Multi-Source Endpoints (2026-10-05)
+
+**What went wrong:** Multi-source controller search actions caught an aborted
+Soulseek search as a generic exception and returned HTTP 500.
+
+**Why:** The action used `HttpContext.RequestAborted` for the network call, but
+the generic failure mapping did not distinguish client disconnect from search
+failure.
+
+**Prevention:** Rethrow `OperationCanceledException` when the request-abort
+token is canceled before mapping ordinary search failures to HTTP 500. Test a
+canceled request and verify that the cancellation reaches the action caller.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
