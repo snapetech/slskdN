@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1613. Propagate Caller Cancellation Before Signal Channel Fallback (2026-10-05)
+
+**What went wrong:** SignalBus treated an OperationCanceledException from a
+channel send as an ordinary channel failure, then tried the next configured
+transport with the caller's already-canceled token.
+
+**Why:** The broad channel-fallback catch grouped transport failure and caller
+cancellation together.
+
+**Prevention:** Rethrow OperationCanceledException when the caller's token is
+canceled before logging a channel failure or trying another channel. Test that
+the fallback channel is not invoked after caller cancellation.
+
 ### 0z1612. Use Lowercase Slugs For Release Fragment Areas (2026-10-05)
 
 **What went wrong:** The mesh overlay release fragment used `mesh sync` as
