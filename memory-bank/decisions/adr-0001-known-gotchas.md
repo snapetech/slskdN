@@ -281,6 +281,21 @@ already declared that alias.
 the existing declaration in place and verify there is only one declaration
 before rebuilding.
 
+### 0z1585. Do Not Log Usernames In The Pseudonymization Trace (2026-10-04)
+
+**What went wrong:** The VirtualSoulfind username pseudonymizer logged both a
+raw Soulseek username and its generated peer ID. The trace defeated the
+privacy benefit of pseudonymization even though the derived identifier was
+safe to retain.
+
+**Why:** The diagnostic described the transformation and reused the source
+value, without accounting for the fact that this log is itself a disclosure
+boundary.
+
+**Prevention:** When pseudonymizing identities, omit the original identity
+from logs. If diagnosis needs correlation, log only the sanitized derived ID
+and verify that structured log state does not retain the source value.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
