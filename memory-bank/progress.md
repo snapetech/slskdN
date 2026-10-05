@@ -18137,3 +18137,32 @@ ownership discovery queues remain open for further classification.
 The post-`.341` batch closes ten confirmed findings: DHT node-ID mutation, remote-controlled mesh diagnostics, mutable peer-manager state, and cancellation/logging defects in Pod membership verification and HTTP actions. Added defensive snapshots, log-boundary escaping, cancellation propagation through the verifier and all thirteen controller actions, and focused regression coverage. T-908 remains fail-closed until the BitTorrent path has serving, peer authorization, and a production job owner.
 
 Full Release `dotnet test -c Release --no-restore` passes 6,043 tests (74 application, 289 integration, 5,680 unit). `./bin/lint`, the .NET runtime/package matrix, active-council backlog check, and `git diff --check` pass. The backlog now records 214 callback/event, 427 remote-text, 12,321 red-team, and 826 mutable-ownership candidates. Nine release-note fragments and the versioned `.342` changelog section are prepared; commit, push, release gate, and published-artifact verification remain.
+
+
+## 2026-10-05 17:23 UTC — Publish stable `.342` and repair the Launchpad waiter
+
+Published release `2026100514-slskdn.342` from tag
+`build-main-2026100514-slskdn.342`. The release artifact verifier passed all
+six platform archives, SHA256 checksums, required support files, the Linux
+binary version, VPN helper, and Web marker. The Docker Hub and GHCR versioned
+images share an OCI index with linux/amd64 and linux/arm64; the GHCR omnibus
+image is also published for linux/amd64. All other package publisher jobs
+succeeded, and Launchpad's Jammy package `2026100514.slskdn.342-1ppa202610051459~jammy`
+is present as `Published` in both the API and the public apt index.
+
+The tagged workflow's PPA waiter remained active after publication because
+Launchpad returned zero binaries for a version query with `exact_match=true`,
+while the same version query without that flag returned the exact published
+binary. Recorded gotcha `0z1659` immediately in commit `87db44893`. Removed the
+Launchpad API flag and retained strict local version equality in
+`scripts/wait-for-launchpad-ppa-publication.sh`; the corrected script verifies
+the published `.342` package locally. Added a validated Unreleased release
+automation fragment and pushed commit `e26380bbd`. The original immutable tag
+run still uses the old waiter and was in progress at this entry.
+
+The full Release .NET suite passes 6,043 tests (74 application, 289
+integration, 5,680 unit); `./bin/lint`, the .NET runtime/package matrix,
+active-council check, release-note preview, local identity check, and artifact
+verification passed. First-party projects target `net10.0`; MonoTorrent's
+`net8.0` asset is compatible. T-908 and other evidence-dependent items remain
+open.

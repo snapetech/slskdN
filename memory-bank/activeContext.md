@@ -1,31 +1,42 @@
-## Current state — Complete post-`.341` mesh and Pod fixes — 2026-10-05 14:20 UTC
+## Current state — Publish and verify stable `.342` — 2026-10-05 17:23 UTC
 
-Stable `.341` is published and verified. The post-release batch now fixes ten
-confirmed mesh integrity, mutable-state, remote-log, and Pod cancellation
-findings. `KNode.NodeId` and mesh peer-manager data are isolated with defensive
-copies; remote-controlled mesh and Pod diagnostic values are escaped only at
-log boundaries; Pod verification and all thirteen membership/verification HTTP
-actions propagate caller cancellation.
+Stable `.342` is published at
+https://github.com/snapetech/slskdN/releases/tag/2026100514-slskdn.342 from
+tag `build-main-2026100514-slskdn.342`. The ten mesh and Pod findings are
+committed and pushed. Full Release tests pass 6,043 (74 application, 289
+integration, 5,680 unit); `./bin/lint`, the .NET runtime/package matrix,
+active-council check, and local identity check pass. All first-party projects
+under `src`, `tests`, and `tools` target `net10.0`; MonoTorrent contributes a
+compatible `net8.0` package asset, with no active .NET 6 target.
 
-The full Release `dotnet test -c Release --no-restore` suite passes 6,043 tests
-(74 application, 289 integration, 5,680 unit). `./bin/lint`, the .NET runtime
-matrix, and `git diff --check` pass. The active council inventory is refreshed
-to 214 callback/event, 427 remote-text, 12,321 red-team, and 826 mutable-state
-candidates. Nine release-note fragments and the versioned `.342` changelog section cover
-the batch; the range preview, final release gate, push, and `.342` release
-remain.
+The release gate, six platform archive checks, SHA256 manifest, required
+support files, Linux binary version, VPN helper, Web marker, package metadata,
+and container publication were verified. Docker Hub and GHCR expose the same
+multi-architecture image index; GHCR's versioned omnibus image is published
+for linux/amd64. Launchpad's Jammy amd64 package
+`2026100514.slskdn.342-1ppa202610051459~jammy` is built and published; both its
+Launchpad binary record and public apt index show the exact version.
 
-T-908 remains fail-closed: its backend fetches but does not seed, the
-BitTorrent path does not authenticate allowed peers, and the prototype
-orchestrator is not the production transfer owner. Keep activation deferred
-until the protocol, peer authorization, lifecycle owner, and two-peer end-to-end
-proof exist. Other external/evidence-dependent backlog items remain open.
+The tagged workflow's PPA wait is a false negative: Launchpad's
+`getPublishedBinaries` returns the exact published package when filtered by
+version, but returns no records with `exact_match=true`. Gotcha `0z1659` was
+committed before fixing `scripts/wait-for-launchpad-ppa-publication.sh` to
+perform the exact-version comparison locally. The corrected waiter passes
+against the published `.342` package. The fix and an Unreleased operational
+note are pushed to `main`; the already-running immutable tag job still uses
+the old waiter.
+
+T-908 remains fail-closed: the backend fetches but does not seed, the BitTorrent
+path does not authenticate allowed peers, and the prototype orchestrator is
+not the production transfer owner. Keep activation deferred until the
+protocol, peer authorization, production lifecycle owner, and two-peer proof
+exist. Other evidence-dependent follow-ups remain tracked.
 
 ## Next steps
 
-Finish the issue ledger and memory records, validate the release-note range,
-commit the completed fixes, verify and push to `snapetech/slskdN`, run the
-release gate, then create and verify stable `.342` artifacts.
+Record the terminal state of the immutable `.342` workflow run. Continue the
+whole-product remediation from tracked work; do not claim T-908 or external
+evidence tasks complete without their required implementation and proof.
  — 2026-10-05 12:57 UTC
 
 Stable `.341` is complete. Build tag

@@ -6858,3 +6858,24 @@ resource completion.
   - Notes: merged both dependency PR heads into the validated candidate and
     switched the package alias to the patched Fomantic UI React 3 beta.5
     implementation. Full Web tests, lint, build, and .NET tests pass.
+
+
+### Stable release `.342` — 2026-10-05
+
+- [x] Complete and validate the ten-finding mesh and Pod reliability batch;
+  pass the full Release .NET suite (6,043 tests), lint, runtime/package matrix,
+  active-council check, and release gate.
+- [x] Push all remediation, documentation, and workflow metadata commits to
+  `snapetech/slskdN`; create tag `build-main-2026100514-slskdn.342` and publish
+  release `2026100514-slskdn.342`.
+- [x] Verify all six platform archives and required assets with
+  `scripts/verify-release-artifacts.sh`; confirm the multi-architecture Docker
+  image and the linux/amd64 omnibus image are published.
+- [x] Verify the exact Jammy PPA binary
+  `2026100514.slskdn.342-1ppa202610051459~jammy` in Launchpad and the public apt
+  index. Fix the false-negative `exact_match=true` filter in the publication
+  waiter; `0z1659` records the failure mode and the corrected waiter passes
+  locally against the published version.
+- [x] Add and validate an Unreleased operator note for the release automation
+  correction. The immutable `.342` workflow run was still in progress at the
+  time of this record because its tag contains the pre-fix waiter.
