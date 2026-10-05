@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1680. Preserve Cancellation And Escape Content-Link Failures (2026-10-05)
+
+**What went wrong:** Content-link lookup catches exceptions from MusicBrainz
+operations, logs raw caller content IDs and exception objects, and converts
+caller cancellation into an invalid result, null metadata, or empty search.
+
+**Why:** The best-effort fallback treated every failure as an ordinary
+provider error; it did not distinguish request cancellation or the untrusted
+text that can appear in query values and remote exception details.
+
+**Prevention:** Rethrow `OperationCanceledException` when the caller token is
+canceled before applying provider fallbacks. Escape query/content-ID and
+exception text only at log boundaries, and capture both cancellation and
+CR/LF-bearing provider failures while preserving ordinary fallback results.
+
 ### 0z1679. Preserve Cancellation In Pod Content And Shadow Index Actions (2026-10-05)
 
 **What went wrong:** Pod message, content-search, and shadow-index controller
