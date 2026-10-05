@@ -65,6 +65,8 @@ public class HttpTunnelTransport : IAnonymityTransport, IDisposable
     /// <returns>True if HTTP tunnel is available, false otherwise.</returns>
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             // Test connectivity with a simple HEAD request
@@ -92,6 +94,10 @@ public class HttpTunnelTransport : IAnonymityTransport, IDisposable
 
             _logger.LogDebug("HTTP tunnel transport is available at {Url}", _options.ProxyUrl);
             return _status.IsAvailable;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

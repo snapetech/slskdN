@@ -16,6 +16,22 @@ using Xunit;
 public class PodsMeshServiceTests
 {
     [Fact]
+    public async Task HandleCallAsync_List_WhenCallerCancels_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var pods = new Mock<IPodService>();
+        pods.Setup(service => service.ListAsync(cancellation.Token))
+            .Returns(Task.FromCanceled<IReadOnlyList<Pod>>(cancellation.Token));
+        var service = CreateService(pods: pods.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.HandleCallAsync(
+            Call("List", new { }),
+            new MeshServiceContext { RemotePeerId = "peer-1" },
+            cancellation.Token));
+    }
+
+    [Fact]
     public async Task ApplyListenAlong_RequiresAuthenticatedSenderAndActiveMembership()
     {
         var message = new PodMessage

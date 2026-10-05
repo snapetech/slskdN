@@ -671,6 +671,8 @@ namespace slskd.Mesh
                 return null;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // First check local DB
             var local = await hashDb.LookupHashAsync(flacKey, cancellationToken);
             if (local != null)
@@ -750,6 +752,10 @@ namespace slskd.Mesh
                             MetaFlags = foundEntry.MetaFlags,
                         }, cancellationToken);
                         _logger.LogDebug("[MESH] Cached mesh query result for {Key}", SafeLogValue(flacKey));
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
                     }
                     catch (Exception ex)
                     {

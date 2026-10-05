@@ -268,6 +268,168 @@ public class AnonymityTransportSelectionTests : IDisposable
     }
 
     [Fact]
+    public async Task SelectAndConnectAsync_WhenPrimaryConnectIsCanceled_DoesNotStartFallbackTransport()
+    {
+        // Arrange
+        using var cancellation = new CancellationTokenSource();
+        var primary = CreateAvailableTransport(AnonymityTransportType.WebSocket);
+        primary
+            .Setup(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, int _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<Stream>(token);
+            });
+
+        var fallback = CreateAvailableTransport(AnonymityTransportType.Tor);
+        using var selector = CreateSelectorWithTransports(primary, fallback);
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            selector.SelectAndConnectAsync("peer", null, "example.com", 443, null, cancellation.Token));
+
+        fallback.Verify(transport => transport.IsAvailableAsync(It.IsAny<CancellationToken>()), Times.Never);
+        fallback.Verify(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SelectAndConnectAsync_WhenFallbackConnectIsCanceled_PropagatesCancellationInsteadOfAggregateFailure()
+    {
+        // Arrange
+        using var cancellation = new CancellationTokenSource();
+        var primary = CreateAvailableTransport(AnonymityTransportType.WebSocket);
+        primary
+            .Setup(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromException<Stream>(new IOException("Primary transport unavailable")));
+
+        var fallback = CreateAvailableTransport(AnonymityTransportType.Tor);
+        fallback
+            .Setup(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, int _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<Stream>(token);
+            });
+
+        using var selector = CreateSelectorWithTransports(primary, fallback);
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            selector.SelectAndConnectAsync("peer", null, "example.com", 443, null, cancellation.Token));
+
+        fallback.Verify(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SelectAndConnectAsync_WhenAvailabilityProbeCancelsCaller_DoesNotProbeFallback()
+    {
+        // Arrange
+        using var cancellation = new CancellationTokenSource();
+        var primary = CreateAvailableTransport(AnonymityTransportType.WebSocket);
+        primary
+            .Setup(transport => transport.IsAvailableAsync(It.IsAny<CancellationToken>()))
+            .Returns((CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<bool>(token);
+            });
+
+        var fallback = CreateAvailableTransport(AnonymityTransportType.Tor);
+        using var selector = CreateSelectorWithTransports(primary, fallback);
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            selector.SelectAndConnectAsync("peer", null, "example.com", 443, null, cancellation.Token));
+
+        fallback.Verify(transport => transport.IsAvailableAsync(It.IsAny<CancellationToken>()), Times.Never);
+        fallback.Verify(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SelectAndConnectAsync_WhenAvailabilityCompletesAfterCancellation_DoesNotConnect()
+    {
+        // Arrange
+        using var cancellation = new CancellationTokenSource();
+        var primary = CreateAvailableTransport(AnonymityTransportType.WebSocket);
+        primary
+            .Setup(transport => transport.IsAvailableAsync(It.IsAny<CancellationToken>()))
+            .Returns((CancellationToken _) =>
+            {
+                cancellation.Cancel();
+                return Task.FromResult(true);
+            });
+
+        var fallback = CreateAvailableTransport(AnonymityTransportType.Tor);
+        using var selector = CreateSelectorWithTransports(primary, fallback);
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            selector.SelectAndConnectAsync("peer", null, "example.com", 443, null, cancellation.Token));
+
+        primary.Verify(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        fallback.Verify(transport => transport.IsAvailableAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BuiltInAvailabilityProbes_WhenCallerIsAlreadyCanceled_PropagateCancellation()
+    {
+        // Arrange
+        using var loggerFactory = LoggerFactory.Create(_ => { });
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        IAnonymityTransport[] transports =
+        {
+            new TorSocksTransport(new TorOptions(), loggerFactory.CreateLogger<TorSocksTransport>()),
+            new I2PTransport(new I2POptions(), loggerFactory.CreateLogger<I2PTransport>()),
+            new WebSocketTransport(new WebSocketTransportOptions(), loggerFactory.CreateLogger<WebSocketTransport>()),
+            new HttpTunnelTransport(new HttpTunnelTransportOptions(), loggerFactory.CreateLogger<HttpTunnelTransport>()),
+            new Obfs4Transport(new Obfs4TransportOptions(), loggerFactory.CreateLogger<Obfs4Transport>()),
+            new MeekTransport(new MeekTransportOptions { FrontDomain = "example.com" }, loggerFactory.CreateLogger<MeekTransport>())
+        };
+
+        // Act & Assert
+        foreach (var transport in transports)
+        {
+            try
+            {
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => transport.IsAvailableAsync(cancellation.Token));
+            }
+            finally
+            {
+                (transport as IDisposable)?.Dispose();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SelectAndConnectAsync_WhenPrimaryTransportFails_ConnectsFallbackTransport()
+    {
+        // Arrange
+        var primary = CreateAvailableTransport(AnonymityTransportType.WebSocket);
+        primary
+            .Setup(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromException<Stream>(new IOException("Primary transport unavailable")));
+
+        var fallback = CreateAvailableTransport(AnonymityTransportType.Tor);
+        var fallbackStream = new MemoryStream();
+        fallback
+            .Setup(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fallbackStream);
+
+        using var selector = CreateSelectorWithTransports(primary, fallback);
+
+        // Act
+        var result = await selector.SelectAndConnectAsync("peer", null, "example.com", 443, null, CancellationToken.None);
+
+        // Assert
+        Assert.Same(fallback.Object, result.Transport);
+        Assert.Same(fallbackStream, result.Stream);
+        fallback.Verify(transport => transport.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        result.Stream.Dispose();
+    }
+
+    [Fact]
     public async Task SelectAndConnectAsync_WithPeerPolicy_UsesPolicyAwareSelection()
     {
         // Arrange
@@ -357,6 +519,33 @@ public class AnonymityTransportSelectionTests : IDisposable
 
         // Act & Assert - Should complete without throwing
         await selector.TestConnectivityAsync();
+    }
+
+    private AnonymityTransportSelector CreateSelectorWithTransports(
+        Mock<IAnonymityTransport> primary,
+        Mock<IAnonymityTransport> fallback)
+    {
+        _adversarialOptions.AnonymityLayer.Mode = AnonymityMode.Tor;
+        _adversarialOptions.ObfuscatedTransports.Enabled = true;
+        _adversarialOptions.ObfuscatedTransports.Mode = ObfuscatedTransportMode.WebSocket;
+        _adversarialOptions.ObfuscatedTransports.WebSocket.Enabled = true;
+
+        var selector = new AnonymityTransportSelector(_adversarialOptions, _policyManager, _selectorLoggerMock.Object, _loggerFactory);
+        var transportsField = typeof(AnonymityTransportSelector).GetField(
+            "_transports",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var transports = (Dictionary<AnonymityTransportType, IAnonymityTransport>)transportsField.GetValue(selector);
+        transports[primary.Object.TransportType] = primary.Object;
+        transports[fallback.Object.TransportType] = fallback.Object;
+        return selector;
+    }
+
+    private static Mock<IAnonymityTransport> CreateAvailableTransport(AnonymityTransportType transportType)
+    {
+        var transport = new Mock<IAnonymityTransport>();
+        transport.SetupGet(value => value.TransportType).Returns(transportType);
+        transport.Setup(value => value.IsAvailableAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        return transport;
     }
 
     [Fact]

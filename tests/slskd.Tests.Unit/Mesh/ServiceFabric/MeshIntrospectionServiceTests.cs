@@ -16,6 +16,36 @@ using Xunit;
 public class MeshIntrospectionServiceTests
 {
     [Fact]
+    public async Task HandleCallAsync_GetServices_WhenCallerCancels_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var router = new MeshServiceRouter(
+            Mock.Of<ILogger<MeshServiceRouter>>(),
+            Options.Create(new MeshServiceFabricOptions()));
+        router.RegisterService(new TestMeshService("pods"));
+        var directory = new Mock<IMeshServiceDirectory>();
+        directory
+            .Setup(serviceDirectory => serviceDirectory.FindByNameAsync("pods", cancellation.Token))
+            .Returns(Task.FromCanceled<IReadOnlyList<MeshServiceDescriptor>>(cancellation.Token));
+        var service = new MeshIntrospectionService(
+            Mock.Of<ILogger<MeshIntrospectionService>>(),
+            router,
+            directory.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.HandleCallAsync(
+            new ServiceCall
+            {
+                ServiceName = "mesh-introspect",
+                Method = "GetServices",
+                CorrelationId = Guid.NewGuid().ToString(),
+                Payload = Array.Empty<byte>(),
+            },
+            new MeshServiceContext { RemotePeerId = "peer-1" },
+            cancellation.Token));
+    }
+
+    [Fact]
     public async Task HandleCallAsync_UnknownMethod_ReturnsSanitizedMethodNotFound()
     {
         var router = new MeshServiceRouter(

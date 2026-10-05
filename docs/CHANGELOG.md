@@ -56,6 +56,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
   and serving peer chunk reads.
 - Mesh health checks and service publication now propagate caller cancellation
   instead of returning degraded status or logging it as a publish failure.
+- Mesh service handlers, service discovery, Kademlia operations, peer
+  descriptor maintenance, and mesh hash caching now propagate caller or
+  shutdown cancellation instead of returning ordinary failure results.
+- Anonymity and obfuscated-transport probes and connections now preserve caller
+  cancellation; canceled private routes stop without opening another transport
+  or falling back to standard mesh routing.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

@@ -73,6 +73,19 @@ public class DhtMeshServiceDirectoryTests
     }
 
     [Fact]
+    public async Task FindByNameAsync_WhenCallerCancels_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        _dhtClientMock
+            .Setup(d => d.GetRawAsync("svc:test-service", cancellation.Token))
+            .Returns(Task.FromCanceled<byte[]?>(cancellation.Token));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _directory.FindByNameAsync("test-service", cancellation.Token));
+    }
+
+    [Fact]
     public async Task FindByNameAsync_WithOversizedDhtValue_ReturnsEmpty()
     {
         // Arrange
@@ -259,6 +272,20 @@ public class DhtMeshServiceDirectoryTests
         Assert.Single(result);
         Assert.Equal(descriptor.ServiceId, result[0].ServiceId);
         Assert.Equal("peer-by-id", result[0].OwnerPeerId);
+    }
+
+    [Fact]
+    public async Task FindByIdAsync_WhenCallerCancels_PropagatesCancellation()
+    {
+        const string serviceId = "service-1";
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        _dhtClientMock
+            .Setup(d => d.GetRawAsync($"svcid:{serviceId}", cancellation.Token))
+            .Returns(Task.FromCanceled<byte[]?>(cancellation.Token));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _directory.FindByIdAsync(serviceId, cancellation.Token));
     }
 
     [Fact]

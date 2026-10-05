@@ -57,6 +57,10 @@ public class MeshIntrospectionService : IMeshService
                 }
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[MeshIntrospect] Error handling call: {Method}", call.Method);

@@ -67,6 +67,7 @@ public sealed class KademliaRpcClient : IDisposable
         if (targetId.Length != 20)
             throw new ArgumentException("Target ID must be 20 bytes", nameof(targetId));
 
+        cancellationToken.ThrowIfCancellationRequested();
         await BootstrapConnectedNeighborsAsync(cancellationToken);
 
         // Track contacted peers.
@@ -127,6 +128,8 @@ public sealed class KademliaRpcClient : IDisposable
     {
         if (key.Length != 20)
             throw new ArgumentException("Key must be 20 bytes", nameof(key));
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         // First try to find the value locally
         var localValues = await _dhtClient.GetMultipleAsync(key, cancellationToken);
@@ -205,6 +208,8 @@ public sealed class KademliaRpcClient : IDisposable
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Find the k closest nodes to the key
             var closestNodes = await FindNodeAsync(signedMessage.Key, cancellationToken);
             if (!closestNodes.Any())
@@ -226,6 +231,10 @@ public sealed class KademliaRpcClient : IDisposable
 
             return success;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[Kademlia] Error in StoreAsync for key {KeyHex}", Convert.ToHexString(signedMessage.Key));
@@ -240,6 +249,7 @@ public sealed class KademliaRpcClient : IDisposable
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var request = new PingRequest
             {
                 RequesterId = _routingTable.GetSelfId()
@@ -265,6 +275,10 @@ public sealed class KademliaRpcClient : IDisposable
                 _logger.LogDebug("[Kademlia] PING to {Address} failed: {Error}", node.Address, reply.ErrorMessage);
                 return false;
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -318,6 +332,7 @@ public sealed class KademliaRpcClient : IDisposable
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var request = new FindNodeRequest
             {
                 TargetId = targetId,
@@ -358,6 +373,10 @@ public sealed class KademliaRpcClient : IDisposable
                     address, reply.ErrorMessage);
             }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "[Kademlia] FIND_NODE query to {Address} threw exception", address);
@@ -373,6 +392,7 @@ public sealed class KademliaRpcClient : IDisposable
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var request = new FindValueRequest
             {
                 Key = key,
@@ -394,6 +414,10 @@ public sealed class KademliaRpcClient : IDisposable
                 node.Address,
                 reply.ErrorMessage);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "[Kademlia] FIND_VALUE query to {Address} threw exception", node.Address);
@@ -406,6 +430,7 @@ public sealed class KademliaRpcClient : IDisposable
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var request = new StoreRequest
             {
                 Key = signedMessage.Key,
@@ -438,6 +463,10 @@ public sealed class KademliaRpcClient : IDisposable
                     node.Address, reply.ErrorMessage);
                 return false;
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

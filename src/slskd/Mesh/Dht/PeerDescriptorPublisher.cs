@@ -92,6 +92,10 @@ public class PeerDescriptorPublisher : IPeerDescriptorPublisher
                     peerId);
             }
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "[MeshDHT] Failed to mark peer {PeerId} as requiring relay", peerId);

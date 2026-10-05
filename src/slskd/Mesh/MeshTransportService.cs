@@ -85,6 +85,10 @@ public class MeshTransportService : IMeshTransportService
                     anonymityTransport = null;
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 logger.LogWarning(

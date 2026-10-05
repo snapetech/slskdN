@@ -5,11 +5,40 @@ namespace slskd.Tests.Unit.Mesh;
 
 using System.Net;
 using System.Reflection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Moq;
+using slskd.Mesh;
 using slskd.Mesh.Dht;
+using slskd.Mesh.Nat;
+using slskd.Mesh.Overlay;
+using slskd.Mesh.Transport;
 using Xunit;
 
 public class PeerDescriptorPublisherTests
 {
+    [Fact]
+    public async Task MarkPeerRequiresRelayAsync_WhenCallerCancels_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var dht = new Mock<IMeshDhtClient>();
+        dht
+            .Setup(client => client.GetAsync<slskd.Mesh.Dht.MeshPeerDescriptor>("mesh:peer:peer-1", cancellation.Token))
+            .Returns(Task.FromCanceled<slskd.Mesh.Dht.MeshPeerDescriptor?>(cancellation.Token));
+        var publisher = new PeerDescriptorPublisher(
+            NullLogger<PeerDescriptorPublisher>.Instance,
+            dht.Object,
+            Options.Create(new MeshOptions()),
+            Mock.Of<INatDetector>(),
+            Options.Create(new MeshTransportOptions()),
+            Options.Create(new OverlayOptions()),
+            new DescriptorSigningService(NullLogger<DescriptorSigningService>.Instance));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            publisher.MarkPeerRequiresRelayAsync("peer-1", cancellation.Token));
+    }
+
     [Theory]
     [InlineData("203.0.113.10:50400", "203.0.113.10", 50400)]
     [InlineData("example.com:443", "example.com", 443)]

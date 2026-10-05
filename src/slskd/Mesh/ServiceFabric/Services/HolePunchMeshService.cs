@@ -78,6 +78,10 @@ public class HolePunchMeshService : IMeshService
                 }
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[HolePunch] Error handling call {Method}", call.Method);
@@ -189,6 +193,11 @@ public class HolePunchMeshService : IMeshService
                     };
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _activeSessions.TryRemove(sessionId, out _);
+                throw;
+            }
             catch (Exception ex)
             {
                 _activeSessions.TryRemove(sessionId, out _);
@@ -201,6 +210,10 @@ public class HolePunchMeshService : IMeshService
                     Payload = Array.Empty<byte>()
                 };
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -260,7 +273,15 @@ public class HolePunchMeshService : IMeshService
             session.Status = HolePunchStatus.Ready;
 
             // Perform hole punching from our side
-            await PerformHolePunchingAsync(session, cancellationToken);
+            try
+            {
+                await PerformHolePunchingAsync(session, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _activeSessions.TryRemove(request.SessionId, out _);
+                throw;
+            }
 
             var response = new HolePunchResponse
             {
@@ -282,6 +303,10 @@ public class HolePunchMeshService : IMeshService
                 StatusCode = ServiceStatusCodes.OK,
                 Payload = payload
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -379,6 +404,11 @@ public class HolePunchMeshService : IMeshService
             }
 
             session.Status = HolePunchStatus.Completed;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            session.Status = HolePunchStatus.Cancelled;
+            throw;
         }
         catch (Exception ex)
         {

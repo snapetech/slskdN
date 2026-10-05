@@ -98,6 +98,33 @@ public class Obfs4TransportTests : IDisposable
     }
 
     [Fact]
+    public async Task IsAvailableAsync_WhenVersionCheckIsCanceled_PropagatesCallerCancellation()
+    {
+        var proxyPath = Path.GetTempFileName();
+        try
+        {
+            using var cancellation = new CancellationTokenSource();
+            var versionChecker = new Mock<IObfs4VersionChecker>();
+            versionChecker
+                .Setup(checker => checker.RunVersionCheckAsync(proxyPath, It.IsAny<CancellationToken>()))
+                .Returns((string _, CancellationToken token) =>
+                {
+                    cancellation.Cancel();
+                    return Task.FromCanceled<int>(token);
+                });
+
+            var options = new Obfs4TransportOptions { Obfs4ProxyPath = proxyPath };
+            var transport = new Obfs4Transport(options, _loggerMock.Object, versionChecker.Object);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => transport.IsAvailableAsync(cancellation.Token));
+        }
+        finally
+        {
+            File.Delete(proxyPath);
+        }
+    }
+
+    [Fact]
     public async Task ConnectAsync_WithoutBridges_ThrowsException()
     {
         // Arrange

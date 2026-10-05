@@ -51,6 +51,8 @@ public sealed class TorSocksTransport : IAnonymityTransport, IDisposable
     /// <returns>True if Tor is available, false otherwise.</returns>
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             var (socksHost, socksPort) = ParseSocksAddress(_options.SocksAddress);
@@ -96,6 +98,10 @@ public sealed class TorSocksTransport : IAnonymityTransport, IDisposable
 
             _logger.LogWarning("Tor SOCKS proxy handshake failed at {Address}", _options.SocksAddress);
             return false;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

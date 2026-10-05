@@ -15,6 +15,46 @@ using Xunit;
 
 public class MeshContentMeshServiceTests
 {
+    [Fact]
+    public async Task HandleCallAsync_GetByContentId_WhenCallerCancels_PropagatesCancellation()
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllBytesAsync(tempFile, new byte[] { 1, 2, 3, 4 });
+            var repo = new Mock<IShareRepository>();
+            repo.Setup(repository => repository.FindContentItem("content:audio:track:test"))
+                .Returns((Domain: "audio", WorkId: "work-1", MaskedFilename: "masked.flac", IsAdvertisable: true, ModerationReason: string.Empty, CheckedAt: DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
+            repo.Setup(repository => repository.FindFileInfo("masked.flac"))
+                .Returns((Filename: tempFile, Size: 4L));
+            var shares = new Mock<IShareService>();
+            shares.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+            SetupResolvedLocalFile(shares, "masked.flac", tempFile, 4L);
+            var service = new MeshContentMeshService(Mock.Of<ILogger<MeshContentMeshService>>(), shares.Object);
+            using var cancellation = new CancellationTokenSource();
+            await cancellation.CancelAsync();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.HandleCallAsync(
+                new ServiceCall
+                {
+                    ServiceName = "MeshContent",
+                    Method = "GetByContentId",
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    Payload = JsonSerializer.SerializeToUtf8Bytes(new
+                    {
+                        contentId = "content:audio:track:test",
+                        range = new { offset = 0, length = 4 },
+                    }),
+                },
+                new MeshServiceContext { RemotePeerId = "peer-1" },
+                cancellation.Token));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
     [Theory]
     [InlineData(4L, true)]
     [InlineData(5L, false)]

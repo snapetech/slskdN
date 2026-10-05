@@ -15,6 +15,32 @@ using Xunit;
 public class VirtualSoulfindMeshServiceTests
 {
     [Fact]
+    public async Task HandleCallAsync_QueryByMbid_WhenCallerCancels_PropagatesCancellation()
+    {
+        const string mbid = "12345678-1234-1234-1234-123456789012";
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var shadowIndexQuery = new Mock<IShadowIndexQuery>();
+        shadowIndexQuery
+            .Setup(query => query.QueryAsync(mbid, cancellation.Token))
+            .Returns(Task.FromCanceled<ShadowIndexQueryResult?>(cancellation.Token));
+        var service = new VirtualSoulfindMeshService(
+            Mock.Of<ILogger<VirtualSoulfindMeshService>>(),
+            shadowIndexQuery.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.HandleCallAsync(
+            new ServiceCall
+            {
+                ServiceName = "shadow-index",
+                Method = "QueryByMbid",
+                CorrelationId = Guid.NewGuid().ToString(),
+                Payload = JsonSerializer.SerializeToUtf8Bytes(new { MBID = mbid }),
+            },
+            new MeshServiceContext { RemotePeerId = "peer-1" },
+            cancellation.Token));
+    }
+
+    [Fact]
     public async Task HandleStreamAsync_QueryByMbidRequest_SendsSafeResultAndCloses()
     {
         var shadowIndexQuery = new Mock<IShadowIndexQuery>();

@@ -63,6 +63,8 @@ public class MeekTransport : IAnonymityTransport, IDisposable
     /// <returns>True if meek is available, false otherwise.</returns>
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             // Test domain fronting capability
@@ -95,6 +97,10 @@ public class MeekTransport : IAnonymityTransport, IDisposable
             _logger.LogDebug("Meek transport is available via {Url} fronting as {Domain}",
                 _options.BridgeUrl, _options.FrontDomain);
             return _status.IsAvailable;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

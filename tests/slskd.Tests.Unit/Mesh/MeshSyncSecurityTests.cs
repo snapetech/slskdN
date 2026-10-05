@@ -989,6 +989,58 @@ namespace slskd.Tests.Unit.Mesh
         }
 
         [Fact]
+        public async Task LookupHashAsync_CallerCancellationPropagatesFromConsensusCacheWrite()
+        {
+            var options = Options.Create(new MeshSyncSecurityOptions { ConsensusMinPeers = 1, ConsensusMinAgreements = 1 });
+            using var cancellation = new CancellationTokenSource();
+            var hashDb = new Mock<IHashDbService>();
+            hashDb.Setup(database => database.CurrentSeqId).Returns(100);
+            hashDb.Setup(database => database.GetStats()).Returns(new slskd.HashDb.HashDbStats { TotalHashEntries = 1000 });
+            hashDb.Setup(database => database.GetEntriesSinceSeqAsync(It.IsAny<long>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<HashDbEntry>());
+            hashDb.Setup(database => database.MergeEntriesFromMeshAsync(It.IsAny<IEnumerable<HashDbEntry>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IEnumerable<HashDbEntry> entries, CancellationToken _) => entries.Count());
+            hashDb.Setup(database => database.LookupHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((HashDbEntry)null);
+            hashDb.Setup(database => database.StoreHashAsync(It.IsAny<HashDbEntry>(), It.IsAny<CancellationToken>()))
+                .Returns((HashDbEntry _, CancellationToken token) =>
+                {
+                    cancellation.Cancel();
+                    return Task.FromCanceled(token);
+                });
+            hashDb.Setup(database => database.UpdatePeerLastSeqSeenAsync(It.IsAny<string>(), It.IsAny<long>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            var capabilities = new Mock<ICapabilityService>();
+            capabilities.Setup(service => service.VersionString).Returns("1.0.0-test");
+            capabilities.Setup(service => service.GetPeerCapabilities(It.IsAny<string>()))
+                .Returns(new PeerCapabilities { Flags = PeerCapabilityFlags.SupportsMeshSync });
+            var signer = new Mock<IMeshMessageSigner>();
+            signer.Setup(service => service.VerifyMessage(It.IsAny<MeshMessage>())).Returns(true);
+            var service = new TestableMeshSyncService(
+                hashDb.Object,
+                capabilities.Object,
+                Mock.Of<ISoulseekClient>(),
+                signer.Object,
+                new PeerReputation(Mock.Of<ILogger<PeerReputation>>()),
+                appState: null,
+                options,
+                pathResolver: null,
+                proofOfPossession: null);
+            SeedPeers(service, "mesh-peer");
+            service.QueryPeer = (_, _) => Task.FromResult<MeshHashEntry?>(new MeshHashEntry
+            {
+                FlacKey = "0123456789abcdef",
+                ByteHash = "ab".PadRight(64, '0'),
+                Size = 100,
+                SeqId = 1,
+            });
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                service.LookupHashAsync("0123456789abcdef", cancellation.Token));
+        }
+
+        [Fact]
         public async Task LookupHashAsync_ConsensusOptions_WhenMinAgreementsNotMet_ReturnsNull()
         {
             var flacKey = "0123456789abcdef";

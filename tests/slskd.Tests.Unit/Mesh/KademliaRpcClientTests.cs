@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Generic;
 using Moq;
 using slskd.Mesh;
 using slskd.Mesh.ServiceFabric;
@@ -21,6 +22,133 @@ namespace slskd.Tests.Unit.Mesh;
 
 public class KademliaRpcClientTests
 {
+    [Fact]
+    public async Task FindNode_WhenPeerCallIsCanceled_PropagatesCallerCancellation()
+    {
+        var self = Enumerable.Repeat((byte)1, 20).ToArray();
+        var remote = Enumerable.Repeat((byte)2, 20).ToArray();
+        using var cancellation = new CancellationTokenSource();
+        var routing = new KademliaRoutingTable(self);
+        await routing.TouchAsync(remote, "peer-1");
+        var transport = new Mock<IMeshServiceClient>();
+        transport
+            .Setup(client => client.CallAsync("peer-1", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, ServiceCall _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<ServiceReply>(token);
+            });
+        using var client = new KademliaRpcClient(
+            NullLogger<KademliaRpcClient>.Instance,
+            transport.Object,
+            routing,
+            Mock.Of<IDhtClient>());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.FindNodeAsync(self, cancellation.Token));
+    }
+
+    [Fact]
+    public async Task FindValue_WhenPeerCallIsCanceled_PropagatesCallerCancellation()
+    {
+        var self = Enumerable.Repeat((byte)1, 20).ToArray();
+        var remote = Enumerable.Repeat((byte)2, 20).ToArray();
+        using var cancellation = new CancellationTokenSource();
+        var routing = new KademliaRoutingTable(self);
+        await routing.TouchAsync(remote, "peer-1");
+        var dht = new Mock<IDhtClient>();
+        dht.Setup(store => store.GetMultipleAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<byte[]>());
+        var transport = new Mock<IMeshServiceClient>();
+        transport
+            .Setup(client => client.CallAsync("peer-1", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, ServiceCall _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<ServiceReply>(token);
+            });
+        using var client = new KademliaRpcClient(
+            NullLogger<KademliaRpcClient>.Instance,
+            transport.Object,
+            routing,
+            dht.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.FindValueAsync(self, cancellation.Token));
+    }
+
+    [Fact]
+    public async Task Ping_WhenCallerCancelsMeshCall_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var transport = new Mock<IMeshServiceClient>();
+        transport
+            .Setup(client => client.CallAsync("peer-1", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, ServiceCall _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<ServiceReply>(token);
+            });
+        using var client = new KademliaRpcClient(
+            NullLogger<KademliaRpcClient>.Instance,
+            transport.Object,
+            new KademliaRoutingTable(Enumerable.Repeat((byte)1, 20).ToArray()),
+            Mock.Of<IDhtClient>());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.PingAsync(new KNode(Enumerable.Repeat((byte)2, 20).ToArray(), "peer-1", DateTimeOffset.UtcNow), cancellation.Token));
+    }
+
+    [Fact]
+    public async Task Store_WhenPeerWriteIsCanceled_PropagatesCallerCancellation()
+    {
+        var self = Enumerable.Repeat((byte)1, 20).ToArray();
+        var remote = Enumerable.Repeat((byte)2, 20).ToArray();
+        using var cancellation = new CancellationTokenSource();
+        var routing = new KademliaRoutingTable(self);
+        await routing.TouchAsync(remote, "peer-1");
+        var transport = new Mock<IMeshServiceClient>();
+        transport
+            .Setup(client => client.CallAsync("peer-1", It.IsAny<ServiceCall>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, ServiceCall call, CancellationToken token) =>
+            {
+                if (call.Method == "FindNode")
+                {
+                    return Task.FromResult(new ServiceReply
+                    {
+                        StatusCode = ServiceStatusCodes.OK,
+                        Payload = JsonSerializer.SerializeToUtf8Bytes(new FindNodeResponse
+                        {
+                            TargetId = self,
+                            ResponderId = remote,
+                            Nodes = Array.Empty<DhtNodeInfo>(),
+                        }),
+                    });
+                }
+
+                cancellation.Cancel();
+                return Task.FromCanceled<ServiceReply>(token);
+            });
+        using var client = new KademliaRpcClient(
+            NullLogger<KademliaRpcClient>.Instance,
+            transport.Object,
+            routing,
+            Mock.Of<IDhtClient>());
+        var message = new DhtStoreMessage
+        {
+            Key = self,
+            Value = new byte[] { 1 },
+            RequesterId = self,
+            TtlSeconds = 60,
+            PublicKeyBase64 = "public-key",
+            SignatureBase64 = "signature",
+            TimestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.StoreAsync(message, cancellation.Token));
+    }
+
     [Fact]
     public async Task FindNode_RetainsKnownContactAndLearnsResponderIdentity()
     {

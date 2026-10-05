@@ -86,6 +86,10 @@ public class PodsMeshService : IMeshService
                 }
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[PodsMeshService] Error handling call: {Method}", call.Method);

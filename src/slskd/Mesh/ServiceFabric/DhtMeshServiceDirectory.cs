@@ -158,6 +158,10 @@ public class DhtMeshServiceDirectory : IMeshServiceDirectory
 
             return validated;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ServiceDirectory] Error finding service by name: {ServiceName}", normalizedServiceName);
@@ -245,6 +249,10 @@ public class DhtMeshServiceDirectory : IMeshServiceDirectory
             }
 
             return new[] { descriptor };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

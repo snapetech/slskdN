@@ -24,6 +24,37 @@ using Microsoft.Extensions.Logging.Abstractions;
 public class DhtMeshServiceTests
 {
     [Fact]
+    public async Task HandleCallAsync_FindValue_WhenCallerCancels_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var dhtClient = new Mock<IDhtClient>();
+        dhtClient
+            .Setup(client => client.GetAsync(It.IsAny<byte[]>(), cancellation.Token))
+            .Returns(Task.FromCanceled<byte[]?>(cancellation.Token));
+        var service = new DhtMeshService(
+            Mock.Of<ILogger<DhtMeshService>>(),
+            new KademliaRoutingTable(CreateNodeId(0x01)),
+            dhtClient.Object,
+            Mock.Of<IMeshMessageSigner>());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.HandleCallAsync(
+            new ServiceCall
+            {
+                ServiceName = "dht",
+                Method = "FindValue",
+                CorrelationId = Guid.NewGuid().ToString(),
+                Payload = JsonSerializer.SerializeToUtf8Bytes(new FindValueRequest
+                {
+                    Key = CreateNodeId(0x03),
+                    RequesterId = CreateNodeId(0x02),
+                }),
+            },
+            new MeshServiceContext { RemotePeerId = "peer-1" },
+            cancellation.Token));
+    }
+
+    [Fact]
     public async Task HandleCallAsync_Store_EnforcesAuthenticatedPublisherAndNamespaceQuota()
     {
         var keyPair = Ed25519KeyPair.Generate();

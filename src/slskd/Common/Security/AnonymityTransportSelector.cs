@@ -135,6 +135,10 @@ public class AnonymityTransportSelector : IAnonymityTransportSelector, IDisposab
 
             return (transport, stream);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to connect using {TransportType}, attempting failover", transport.TransportType);
@@ -154,6 +158,10 @@ public class AnonymityTransportSelector : IAnonymityTransportSelector, IDisposab
                     _logger.LogInformation("Failover successful: {FailedTransport} → {SuccessTransport}",
                         transport.TransportType, fallbackTransport.TransportType);
                     return (fallbackTransport, fallbackStream);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception fallbackEx)
                 {
@@ -381,6 +389,8 @@ public class AnonymityTransportSelector : IAnonymityTransportSelector, IDisposab
         CancellationToken cancellationToken,
         AnonymityTransportType? excludeType = null)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Get applicable transport policy
         TransportPolicy? policy = null;
         if (!string.IsNullOrEmpty(peerId))
@@ -393,6 +403,8 @@ public class AnonymityTransportSelector : IAnonymityTransportSelector, IDisposab
 
         foreach (var transportType in priorityOrder)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (excludeType.HasValue && transportType == excludeType.Value)
                 continue;
 
@@ -413,6 +425,8 @@ public class AnonymityTransportSelector : IAnonymityTransportSelector, IDisposab
                 }
 
                 var isAvailable = await transport.IsAvailableAsync(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (isAvailable)
                 {
                     _logger.LogDebug("Selected anonymity transport {TransportType} for peer {PeerId}, pod {PodId}",

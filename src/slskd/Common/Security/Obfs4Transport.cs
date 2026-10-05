@@ -53,6 +53,8 @@ public class Obfs4Transport : IAnonymityTransport
     /// <returns>True if obfs4 is available, false otherwise.</returns>
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             // Check if obfs4proxy binary exists
@@ -82,6 +84,10 @@ public class Obfs4Transport : IAnonymityTransport
 
             _logger.LogDebug("Obfs4 transport is available (obfs4proxy at {Path})", _options.Obfs4ProxyPath);
             return isAvailable;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

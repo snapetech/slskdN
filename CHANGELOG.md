@@ -46,9 +46,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - SignalBus now propagates caller cancellation from subscriber callbacks
   instead of swallowing it as a subscriber failure.
 - Mesh hash-consensus lookups now propagate caller cancellation instead of
-  treating it as a failed peer query.
+  treating it as a failed peer query or returning before a canceled cache write.
 - Mesh service routing now propagates caller cancellation instead of converting
   it into a service failure response.
+- Mesh DHT, Pods, VirtualSoulfind, content, introspection, and hole-punch
+  requests now propagate caller cancellation instead of returning an ordinary
+  service error. DHT discovery no longer reports cancellation as a missing
+  service, and canceled hole-punch sessions are removed before retry.
+- Peer descriptor refresh now stops cleanly when host shutdown cancels an
+  in-flight publish instead of logging it as a refresh failure. Peer
+  relay-descriptor updates also propagate caller cancellation instead of
+  logging it as an update failure.
+- Kademlia node and value lookups, peer pings, and DHT stores now propagate
+  caller cancellation instead of returning incomplete results or peer misses.
+- Canceled anonymity or obfuscated-transport selection now propagates instead
+  of falling back to standard mesh routing. Canceled privacy transport
+  availability checks and connections also stop without starting a fallback
+  route.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
 - Mesh health checks and service publication now propagate caller cancellation

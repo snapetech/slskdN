@@ -102,6 +102,10 @@ public class PeerDescriptorRefreshService : BackgroundService
                     await publisher.PublishSelfAsync(stoppingToken);
                     logger.LogDebug("[MeshDHT] Refreshed peer descriptor (reason: {Reason})", reason);
                 }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
                 catch (Exception ex)
                 {
                     logger.LogWarning(ex, "[MeshDHT] Peer descriptor refresh failed (reason: {Reason})", reason);

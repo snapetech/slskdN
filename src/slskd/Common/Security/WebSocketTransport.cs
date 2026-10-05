@@ -54,6 +54,8 @@ public sealed class WebSocketTransport : IAnonymityTransport, IDisposable
     /// <returns>True if WebSocket transport is available, false otherwise.</returns>
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             if (!TryGetServerUri(out var uri, out var validationError))
@@ -85,6 +87,10 @@ public sealed class WebSocketTransport : IAnonymityTransport, IDisposable
 
             _logger.LogDebug("WebSocket transport is available at {Url}", _options.ServerUrl);
             return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

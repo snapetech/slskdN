@@ -85,6 +85,10 @@ public class DhtMeshService : IMeshService
                 }
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DHT] Error handling call {Method}", call.Method);
@@ -152,6 +156,10 @@ public class DhtMeshService : IMeshService
                 StatusCode = ServiceStatusCodes.OK,
                 Payload = payload
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -246,6 +254,10 @@ public class DhtMeshService : IMeshService
                 StatusCode = ServiceStatusCodes.OK,
                 Payload = payload
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -349,6 +361,10 @@ public class DhtMeshService : IMeshService
                 StatusCode = ServiceStatusCodes.OK,
                 Payload = payload
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

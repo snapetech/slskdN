@@ -39,6 +39,8 @@ public class I2PTransport : IAnonymityTransport
     /// <returns>True if I2P is available, false otherwise.</returns>
     public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             using var client = new TcpClient();
@@ -94,6 +96,10 @@ public class I2PTransport : IAnonymityTransport
 
             _logger.LogWarning("I2P SAM bridge not available at {Address}", _options.SamAddress);
             return false;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -85,6 +85,10 @@ public sealed class MeshContentMeshService : IMeshService
                 },
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[MeshContent] Error {Method}", call.Method);

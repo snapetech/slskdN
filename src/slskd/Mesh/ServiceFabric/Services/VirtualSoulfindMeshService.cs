@@ -61,6 +61,10 @@ public class VirtualSoulfindMeshService : IMeshService
                 }
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[VirtualSoulfind] Error handling call: {Method}", call.Method);

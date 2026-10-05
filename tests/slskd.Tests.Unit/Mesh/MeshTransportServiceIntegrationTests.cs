@@ -134,6 +134,31 @@ public class MeshTransportServiceIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task ChooseTransportAsync_WhenPrivacySelectionIsCanceled_PropagatesCancellation()
+    {
+        var options = new Mock<IOptions<MeshOptions>>();
+        options.Setup(value => value.Value).Returns(_meshOptions);
+        var adversarialOptions = new Mock<IOptions<AdversarialOptions>>();
+        adversarialOptions.Setup(value => value.Value).Returns(_adversarialOptions);
+        using var cancellation = new CancellationTokenSource();
+        _anonymitySelectorMock
+            .Setup(selector => selector.SelectTransportTypeAsync("peer123", null, cancellation.Token))
+            .Returns((string? _, string? _, CancellationToken token) =>
+            {
+                cancellation.Cancel();
+                return Task.FromCanceled<AnonymityTransportType?>(token);
+            });
+        var service = new MeshTransportService(
+            _loggerMock.Object,
+            options.Object,
+            _anonymitySelectorMock.Object,
+            adversarialOptions.Object);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.ChooseTransportAsync("peer123", null, "content123", cancellation.Token));
+    }
+
+    [Fact]
     public async Task ChooseTransportAsync_WithPodContext_UsesPodInSelection()
     {
         // Arrange
