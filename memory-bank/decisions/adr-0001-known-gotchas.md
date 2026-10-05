@@ -33,6 +33,21 @@ text at the log boundary. Sanitize hash values with `SanitizeHash` and IDs with
 `SanitizeExternalIdentifier`; inspect every dynamic field in neighboring merge
 and recovery diagnostics when changing a logging boundary.
 
+### 0z1568. Sanitize Nested Search Objects In Logs (2026-10-04)
+
+**What went wrong:** Search lifecycle logs emitted a sanitized query property
+alongside the full `Search` record, which retained the original query text.
+Structured logging therefore still exposed raw request text through a nested
+object.
+
+**Why:** The first pass sanitized scalar query arguments but treated object
+properties as safe because they were not interpolated directly in the message.
+
+**Prevention:** Inspect the complete structured payload of each log call,
+including nested objects and records. For log-only snapshots, replace
+user-controlled text with its sanitized form while preserving the original
+record for application behavior and API responses.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
