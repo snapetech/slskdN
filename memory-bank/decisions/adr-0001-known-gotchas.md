@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1696. Refresh The Active Candidate Count After Source Changes (2026-10-05)
+
+**What went wrong:** The post-push remediation baseline found that the active
+red-team candidate inventory had grown from 12,362 to 12,368 after source
+changes, while the documented count still reflected the previous scan.
+
+**Why:** The active abuse-lens inventory is a source-derived review queue; its
+heuristic candidates shift with code edits and do not represent confirmed
+defects.
+
+**Prevention:** Rerun `scripts/run-council-active-bughunt.sh` after source
+remediation, refresh the matching count in
+`docs/dev/bug-council-active-backlog.md`, and preserve the distinction between
+candidate counts and validated bugs.
+
 ### 0z1695. Refresh The Generated Route Inventory After Source-Line Shifts (2026-10-05)
 
 **What went wrong:** The remediation baseline rejected the API route inventory
