@@ -72,7 +72,12 @@ public class StubWebApplicationFactory : WebApplicationFactory<ProgramStub>
         var baseDir = AppContext.BaseDirectory;
         var solutionRoot = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", ".."));
         var testContentRoot = Path.Combine(solutionRoot, "slskd.Tests.Integration");
+        var testTempRoot = Path.Combine(Path.GetTempPath(), "slskdn-test");
+        var testDownloadsRoot = Path.Combine(testTempRoot, "downloads");
+        var testIncompleteRoot = Path.Combine(testTempRoot, "incomplete");
         System.IO.Directory.CreateDirectory(testContentRoot);
+        System.IO.Directory.CreateDirectory(testDownloadsRoot);
+        System.IO.Directory.CreateDirectory(testIncompleteRoot);
 
         // Manually create host builder to avoid default path inference issues
         return new HostBuilder()
@@ -201,8 +206,8 @@ public class StubWebApplicationFactory : WebApplicationFactory<ProgramStub>
                         },
                         Directories = new OptionsModel.DirectoriesOptions
                         {
-                            Downloads = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "slskdn-test", "downloads"),
-                            Incomplete = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "slskdn-test", "incomplete")
+                            Downloads = testDownloadsRoot,
+                            Incomplete = testIncompleteRoot
                         }
                     }))
                         .AddSingleton<IDiscographyJobService>(discographyService)
