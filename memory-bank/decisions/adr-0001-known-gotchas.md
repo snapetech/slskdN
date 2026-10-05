@@ -38516,3 +38516,15 @@ from the environment that executes the URL resolution.
 **Prevention:** Build mocked registration scopes and script URLs from
 `window.location.origin` (or the app URL helper) so browser ports and base
 paths stay aligned with production URL resolution.
+
+### 0z1599. Preserve Catch-Block Indentation When Rewriting Logs (2026-10-05)
+
+**What went wrong:** A log-only edit replaced a `catch` body in
+`MultiSourceDownloadService` but left the new logger call one indentation level
+too shallow, so repository formatting lint failed.
+
+**Why:** The change review checked the sanitized arguments and operation inputs
+but not the surrounding block formatting.
+
+**Prevention:** Review rewritten logger calls together with their enclosing
+`try`/`catch` braces, then run the repository formatting gate before moving on.
