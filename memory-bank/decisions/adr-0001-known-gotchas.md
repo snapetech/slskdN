@@ -48,6 +48,20 @@ including nested objects and records. For log-only snapshots, replace
 user-controlled text with its sanitized form while preserving the original
 record for application behavior and API responses.
 
+### 0z1569. Assert Search Text With The Domain's Actual Query Shape (2026-10-04)
+
+**What went wrong:** A compatibility-controller regression assumed the search
+domain splits `SearchQuery.FromText` on line breaks into separate terms. The
+controller correctly preserved the original request text, but the test failed
+because it asserted an undocumented parser shape.
+
+**Why:** The new test encoded an expectation from the input string's visual
+format instead of the domain type's established behavior.
+
+**Prevention:** When adding controller-preservation tests, assert the domain
+type's actual query text or use its existing parser contract. Do not infer term
+tokenization from whitespace in an HTTP request.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
