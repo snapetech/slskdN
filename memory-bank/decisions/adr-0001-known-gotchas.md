@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1632. Keep Caller Cancellation Out Of Kademlia Peer Misses (2026-10-05)
+
+**What went wrong:** Kademlia RPC methods caught cancellation from mesh calls
+and returned `false` or `null`, so canceled FIND_NODE, FIND_VALUE, PING, and
+STORE operations could be reported as ordinary peer misses.
+
+**Why:** Per-peer exception isolation was intended to continue through
+unresponsive peers, but it also swallowed cancellation requested for the whole
+lookup or store.
+
+**Prevention:** Rethrow `OperationCanceledException` when the public caller's
+token is canceled at both peer and aggregate catch boundaries. Test a
+mid-flight cancellation through the public lookup/store methods.
+
 ### 0z1631. Stop Peer Descriptor Refresh Without Logging Cancellation As Failure (2026-10-05)
 
 **What went wrong:** `PeerDescriptorRefreshService` caught its stopping-token
