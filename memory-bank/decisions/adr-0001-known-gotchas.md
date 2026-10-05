@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1614. Keep Caller Cancellation Out Of Signal Transport Error Logs (2026-10-05)
+
+**What went wrong:** Mesh and BitTorrent-extension signal senders caught caller
+cancellation in their broad exception handlers and logged it as a transport
+error before rethrowing it.
+
+**Why:** The handlers distinguished cancellation from transport failure at the
+bus fallback boundary, but not at the individual transport logging boundary.
+
+**Prevention:** In each signal sender, rethrow OperationCanceledException when
+the caller's token is canceled before logging a send failure. Add regressions
+that assert cancellation propagates without emitting an error log.
+
 ### 0z1613. Propagate Caller Cancellation Before Signal Channel Fallback (2026-10-05)
 
 **What went wrong:** SignalBus treated an OperationCanceledException from a
