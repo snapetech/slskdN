@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1652. Isolate Mutable Peer State At Manager Boundaries (2026-10-05)
+
+**What went wrong:** `MeshPeerManager` retained a caller's mutable `MeshPeer`
+and returned the retained object from peer lookups. Callers could change
+trust, onion-routing capability, freshness, or latency values used by circuit
+selection without going through the manager.
+
+**Why:** Cloning the nested endpoint collection protected address ownership,
+but the mutable peer object and its selection attributes still crossed the
+manager boundary by reference.
+
+**Prevention:** Copy peer state on insertion and return independent snapshots
+from lookups. Regressions should mutate both the submitted object and returned
+snapshots, then verify the stored peer and circuit eligibility remain intact.
+
 ### 0z1651. Sanitize Remote Mesh Values At Every Diagnostic Boundary (2026-10-05)
 
 **What went wrong:** Rate-limit, control-envelope, neighbor, and consensus
