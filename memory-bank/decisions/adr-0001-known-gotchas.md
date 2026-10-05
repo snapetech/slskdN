@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1638. Stop Anonymity Transport Failover On Caller Cancellation (2026-10-05)
+
+**What went wrong:** `AnonymityTransportSelector.SelectAndConnectAsync` caught
+cancellation from the chosen transport and attempted a second transport before
+surfacing the failure.
+
+**Why:** Its failover catch treated a canceled connection like an unavailable
+transport, even though cancellation means the caller wants the connection
+attempt to stop.
+
+**Prevention:** Rethrow when the connection token is canceled before entering
+the failover path. Test that a canceled first transport does not start another
+connection.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
