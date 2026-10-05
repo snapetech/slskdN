@@ -39286,3 +39286,20 @@ assumed both wire formats had the same discriminator representation.
 message DTOs whenever adding or reviewing overlay dispatch. Cover both inbound
 directions with a message serialized by the real DTO and ensure it reaches the
 sync handler.
+
+### 0z1605. Keep DHT Node Identifiers Immutable After Insertion (2026-10-05)
+
+**What went wrong:** `KNode` copied the caller's node identifier on
+construction, but its public `byte[] NodeId` getter returned the stored array.
+Callers receiving nodes from the routing table could mutate an identifier that
+the table uses for bucket placement, removal, and XOR-distance ordering.
+
+**Why:** Defensive copying at the constructor boundary was mistaken for full
+ownership isolation. Returning a mutable array exposes the same storage to
+every consumer, including consumers that only receive a read-only list of
+nodes.
+
+**Prevention:** Clone mutable identifier data at both ingress and egress, or
+expose an immutable view while keeping byte-array compatibility where needed.
+Add a regression that mutates a returned identifier and proves the stored
+routing-table node is unchanged.
