@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1626. Keep Caller Cancellation Out Of Mesh RPC Error Replies (2026-10-05)
+
+**What went wrong:** Mesh RPC handlers caught `OperationCanceledException`
+from cancellation-aware dependencies and returned an ordinary service error.
+Nested method catches could consume cancellation before the service-level
+handler saw it.
+
+**Why:** These broad catches intentionally translate dependency failures into
+safe RPC replies, but caller cancellation is control flow and must reach the
+router so it can stop the request without charging service health.
+
+**Prevention:** At every catch layer inside a mesh handler, rethrow when the
+corresponding caller token is canceled before creating a failure reply. Cover
+the public service call, not only the dependency or private helper.
+
 ### 0z1625. Preserve Cancellation Across Both Mesh Publisher Catch Layers (2026-10-05)
 
 **What went wrong:** Mesh service publication caught cancellation from DHT
