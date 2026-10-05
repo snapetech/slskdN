@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1636. Preserve Cancellation While Caching Mesh Consensus Results (2026-10-05)
+
+**What went wrong:** `LookupHashAsync` caught cancellation from the local
+`StoreHashAsync` cache write and returned the agreed remote hash as a normal
+successful lookup.
+
+**Why:** Cache failure was intentionally best-effort, but the broad catch also
+treated cancellation of the caller's lookup as a cache-only failure.
+
+**Prevention:** Rethrow when the lookup token is canceled before isolating
+ordinary cache-write failures. Test cancellation after remote consensus but
+while the local cache write is in flight.
+
 ### 0z1635. Qualify The DHT Peer Descriptor In Publisher Tests (2026-10-05)
 
 **What went wrong:** A publisher regression imported both mesh and DHT
