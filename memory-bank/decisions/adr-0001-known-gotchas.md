@@ -4,6 +4,22 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1694. Escape PodCore API And Service Exceptions At Log Boundaries (2026-10-05)
+
+**What went wrong:** PodCore API controllers, discovery, membership, DHT,
+opinion, and join/leave services attached raw exception objects to 94 log
+events. Many of the same events also include caller- or peer-controlled IDs,
+names, tags, or DHT keys.
+
+**Why:** Those paths treated exception metadata and formatted string values as
+trusted diagnostics, although operation failures can contain remote text,
+caller values, or line breaks that alter log output.
+
+**Prevention:** Remove exception objects from PodCore log events. Preserve
+their diagnostic text as an escaped structured field, and escape dynamic string
+arguments at the logging boundary. Keep operation results and cancellation
+behavior unchanged, and add a source guard against raw exception logger calls.
+
 ### 0z1682. Escape SQLite Pod Service Exceptions At Log Boundaries (2026-10-05)
 
 **What went wrong:** SQLite Pod create, update, read, delete, and join
