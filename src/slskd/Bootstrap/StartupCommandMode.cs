@@ -6,6 +6,7 @@ namespace slskd.Bootstrap;
 
 using System;
 using Serilog;
+using slskd.Common.Security;
 using slskd.Cryptography;
 
 public sealed record StartupCommandModeOptions(
@@ -65,7 +66,7 @@ public static class StartupCommandMode
                 $"{appName}.pfx",
                 log);
 
-            log.Information("Certificate exported to {Filename}", filename);
+            log.Information("Certificate exported to {Filename}", LoggingSanitizer.SanitizeFilePath(filename));
             Console.WriteLine($"Password: {password}");
             return true;
         }

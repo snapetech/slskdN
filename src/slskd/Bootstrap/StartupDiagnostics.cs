@@ -6,6 +6,7 @@ namespace slskd.Bootstrap;
 
 using System;
 using Serilog;
+using slskd.Common.Security;
 using slskd.Configuration;
 
 public sealed record StartupDiagnosticsContext(
@@ -50,11 +51,11 @@ public static class StartupDiagnostics
 
         log.Information("System: .NET {DotNet}, {OS}, {BitNess} bit, {ProcessorCount} processors", Environment.Version, Environment.OSVersion, Environment.Is64BitOperatingSystem ? 64 : 32, Environment.ProcessorCount);
         log.Information("Process ID: {ProcessId} ({BitNess} bit)", context.ProcessId, Environment.Is64BitProcess ? 64 : 32);
-        log.Information("Executable path: {ExecutablePath}", context.ExecutablePath);
-        log.Information("Base directory: {BaseDirectory}", context.BaseDirectory);
+        log.Information("Executable path: {ExecutablePath}", LoggingSanitizer.SanitizeFilePath(context.ExecutablePath));
+        log.Information("Base directory: {BaseDirectory}", LoggingSanitizer.SanitizeFilePath(context.BaseDirectory));
 
         log.Information("Invocation ID: {InvocationId}", context.InvocationId);
-        log.Information("Instance Name: {InstanceName}", optionsAtStartup.InstanceName);
+        log.Information("Instance Name: {InstanceName}", LoggingSanitizer.SanitizeExternalIdentifier(optionsAtStartup.InstanceName));
 
         log.Information("Configuring application...");
     }
@@ -65,12 +66,12 @@ public static class StartupDiagnostics
         string appName,
         ILogger log)
     {
-        log.Information("Using application directory {AppDirectory}", context.AppDirectory);
-        log.Information("Using configuration file {ConfigurationFile}", context.ConfigurationFile);
+        log.Information("Using application directory {AppDirectory}", LoggingSanitizer.SanitizeFilePath(context.AppDirectory));
+        log.Information("Using configuration file {ConfigurationFile}", LoggingSanitizer.SanitizeFilePath(context.ConfigurationFile));
 
         foreach (var warning in ConfigurationCompatibilityWarnings.GetWarnings(context.ConfigurationFile, optionsAtStartup))
         {
-            log.Warning("{Warning}", warning);
+            log.Warning("{Warning}", LoggingSanitizer.SanitizeExternalIdentifier(warning));
         }
 
         if (optionsAtStartup.Flags.NoConfigWatch)
@@ -78,18 +79,20 @@ public static class StartupDiagnostics
             log.Warning("Configuration watch DISABLED; all configuration changes will require a restart to take effect");
         }
 
-        log.Information("Storing application data in {DataDirectory}", context.DataDirectory);
+        log.Information("Storing application data in {DataDirectory}", LoggingSanitizer.SanitizeFilePath(context.DataDirectory));
 
         if (optionsAtStartup.Logger.Disk)
         {
-            log.Information("Saving application logs to {LogDirectory}", context.LogDirectory);
+            log.Information("Saving application logs to {LogDirectory}", LoggingSanitizer.SanitizeFilePath(context.LogDirectory));
         }
 
         StartupFileSystem.RecreateConfigurationFileIfMissing(context.ConfigurationFile, appName, context.BaseDirectory, log);
 
         if (!string.IsNullOrEmpty(optionsAtStartup.Logger.Loki))
         {
-            log.Information("Forwarding logs to Grafana Loki instance at {LoggerLokiUrl}", optionsAtStartup.Logger.Loki);
+            log.Information(
+                "Forwarding logs to Grafana Loki instance at {LoggerLokiUrl}",
+                LoggingSanitizer.SanitizeExternalIdentifierOrUrl(optionsAtStartup.Logger.Loki));
         }
     }
 }

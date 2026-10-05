@@ -36,6 +36,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Security
 
+- Startup diagnostics now escape configured paths and filesystem errors, and
+  redact credentials and URL details from Loki endpoints before logging.
 - HTTP exception and CSRF token middleware now escape request and exception
   details before logging, preventing request-triggered control characters from
   forging log entries without changing responses or token handling.

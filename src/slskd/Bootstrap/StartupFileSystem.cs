@@ -10,6 +10,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.FileProviders.Physical;
 using System.Security.Cryptography.X509Certificates;
 using Serilog;
+using slskd.Common.Security;
 using slskd.Common.IO;
 using slskd.Cryptography;
 
@@ -65,13 +66,18 @@ public static class StartupFileSystem
 
         try
         {
-            log.Warning("Configuration file {ConfigurationFile} does not exist; creating from example", configurationFile);
+            log.Warning(
+                "Configuration file {ConfigurationFile} does not exist; creating from example",
+                LoggingSanitizer.SanitizeFilePath(configurationFile));
             var source = Path.Combine(baseDirectory, "config", $"{appName}.example.yml");
             File.Copy(source, configurationFile);
         }
         catch (Exception ex)
         {
-            log.Error("Failed to create configuration file {ConfigurationFile}: {Message}", configurationFile, ex.Message);
+            log.Error(
+                "Failed to create configuration file {ConfigurationFile}: {Exception}",
+                LoggingSanitizer.SanitizeFilePath(configurationFile),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
         }
     }
 

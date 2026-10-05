@@ -7,6 +7,7 @@ namespace slskd.Bootstrap;
 using System.IO;
 using System.Threading;
 using Serilog;
+using slskd.Common.Security;
 
 public sealed record StartupApplicationDirectories(
     string AppDirectory,
@@ -70,7 +71,10 @@ public static class StartupApplicationDirectoryResolver
 
             if (!mutex.WaitOne(millisecondsTimeout: 0, exitContext: false))
             {
-                log.Fatal($"An instance of {appName} is already running in app directory: {directories.AppDirectory}");
+                log.Fatal(
+                    "An instance of {AppName} is already running in app directory: {AppDirectory}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(appName),
+                    LoggingSanitizer.SanitizeFilePath(directories.AppDirectory));
                 return null;
             }
 
@@ -80,7 +84,9 @@ public static class StartupApplicationDirectoryResolver
             }
             catch (Exception ex)
             {
-                log.Information($"Filesystem exception: {ex.Message}");
+                log.Information(
+                    "Filesystem exception: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
                 exit(1);
                 return null;
             }
