@@ -4,6 +4,24 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1608. Sanitize Mesh Sync, Verification, and Security Diagnostics (2026-10-05)
+
+**What went wrong:** The diagnostic sweep left remote peer names, mesh keys,
+validation messages, request identifiers, user-supplied ban reasons, metadata
+queries, and caught exception objects in several adjacent loggers. Mesh sync
+also logged an invalid message's full payload.
+
+**Why:** The boundaries are split between a Serilog-based mesh service, ASP.NET
+controllers, a security tracker, and a metadata adapter. Reviewing only the
+larger transport and Pod log owners left these smaller diagnostic paths outside
+the same audit.
+
+**Prevention:** Sweep each boundary's complete log surface. Escape external
+identifiers, keys, queries, validation details, and full exception text at the
+log call, but omit remote message bodies. Preserve raw values for protocol,
+security, and metadata behavior, and add captured-log regressions proving both
+safe logs and unchanged inputs.
+
 ### 0z1604. Check Captured Log Records Before Joining Them (2026-10-05)
 
 **What went wrong:** A captured-log regression joined multiple formatted log
