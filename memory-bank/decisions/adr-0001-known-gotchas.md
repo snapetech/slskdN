@@ -38528,3 +38528,18 @@ but not the surrounding block formatting.
 
 **Prevention:** Review rewritten logger calls together with their enclosing
 `try`/`catch` braces, then run the repository formatting gate before moving on.
+
+### 0z1600. Escape Peer And Protocol Exception Details At The Log Boundary (2026-10-05)
+
+**What went wrong:** Peer verification and mesh greeting failures attached raw
+exception objects to logs while handling remote Soulseek operations. Privacy
+transformation failures also attached raw exceptions while parsing protocol
+bytes. Exception messages can include attacker-controlled text and line breaks.
+
+**Why:** Escaping the peer username or returning a generic failure does not
+sanitize the exception metadata that logging providers render separately.
+
+**Prevention:** Log `LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())`
+as a structured string field instead of passing the exception object. Keep the
+original exception and protocol behavior intact, and add captured-log tests
+that assert the full detail is escaped and no raw exception object is attached.
