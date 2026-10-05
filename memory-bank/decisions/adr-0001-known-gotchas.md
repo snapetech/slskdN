@@ -208,6 +208,19 @@ through each VirtualSoulfind entry point and deferred catch. Sanitize only the
 log representation and keep request, file-system, and peer-routing values
 unchanged.
 
+### 0z1580. Use Supported Release-Note Audience Values (2026-10-05)
+
+**What went wrong:** A new release-note fragment used `developers` as its
+audience. The release-note validator rejected the fragment because its
+audience schema only accepts `users`, `operators`, or both.
+
+**Why:** The frontmatter vocabulary was inferred from the intended readers
+instead of being checked against the repository's release-note validator.
+
+**Prevention:** Use only the audience values accepted by
+`scripts/release_notes.py`, then run the release-note preview after writing a
+fragment and before considering the docs change validated.
+
 ### 0z1560. Do Not Log Raw HTTP Request Targets (2026-10-04)
 
 **What went wrong:** Static-file diagnostics logged `IHttpRequestFeature.RawTarget`,
