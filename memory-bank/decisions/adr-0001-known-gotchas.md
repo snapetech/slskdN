@@ -32,6 +32,18 @@ caller from a failed remote endpoint.
 is canceled before updating failure status or returning unavailable. Test
 that canceling the selected transport's availability probe stops selection.
 
+### 0z1640. Configure Meek Host Header In Transport Tests (2026-10-05)
+
+**What went wrong:** A cancellation regression constructed `MeekTransport`
+with its default options, whose empty `FrontDomain` is rejected by the HTTP
+header parser during construction.
+
+**Why:** The transport sets `FrontDomain` as the outbound `Host` header in its
+constructor, so an options object with defaults is not constructible.
+
+**Prevention:** Supply a valid non-empty `FrontDomain` whenever tests
+instantiate `MeekTransport`, including tests that only exercise cancellation.
+
 ### 0z1637. Do Not Fall Back To Direct Routing When Privacy Selection Is Canceled (2026-10-05)
 
 **What went wrong:** `MeshTransportService` caught cancellation from
