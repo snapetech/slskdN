@@ -43,8 +43,12 @@
   `./bin/lint`, and the PodCore log-safety guard.
 - [x] Preview the post-`.344` release-note range; it includes the PodCore
   diagnostic security fragment.
-- [ ] Push the gotcha, product fix, and current memory update, then pass the
-  complete remediation baseline against `origin/main`.
+- [x] Push the gotcha, product fix, route inventory refresh, and current memory
+  update to `origin/main` at `ae1bc9d84`.
+- [ ] Refresh the active red-team candidate count to 12,368, push gotcha
+  `0z1696` and the inventory correction, then pass the full baseline. The
+  first post-push run found and corrected stale route line numbers under
+  gotcha `0z1695`; its next run stopped only on this stale candidate count.
 - [ ] Complete `.344` publisher verification. The Launchpad source is
   Published, but the Jammy AMD64 build is still `Needs building`; create
   stable `.345` only after that binary is published.

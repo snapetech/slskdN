@@ -18467,3 +18467,20 @@ has Published the `.344` source, but its Jammy AMD64 build is still marked
 `Needs building`; stable `.345` remains gated on publication of that exact
 binary. Confirmed code-backed remediation continues; the T-908 serving and
 authorization lifecycle and other evidence-gated items remain open.
+
+
+## 2026-10-05 23:13 UTC — Refresh post-PodCore remediation records
+
+Pushed the .NET framework audit, 94 PodCore log-boundary fixes, regression,
+release note, and gotchas `0z1694`/`0z1695` at `ae1bc9d84`. The post-push
+baseline found and required regeneration of the controller route source-line
+inventory; that corrected inventory is now pushed. The next baseline passed
+its route, cancellation, security, runtime, package, identity, registration,
+and branch-sync checks, then found a stale active red-team candidate count of
+12,362 versus the current scan's 12,368. Those six additional lines are
+review candidates, not confirmed defects. Gotcha `0z1696` records the refresh
+rule; update the durable count and rerun the full baseline.
+
+The full solution test run remains green at 6,102 tests, and lint passes. The
+`.344` Launchpad source is Published, but its Jammy AMD64 build remains
+`Needs building`, so no newer stable PPA source has been submitted.

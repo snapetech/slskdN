@@ -1,4 +1,4 @@
-## Current state — Harden PodCore diagnostic log boundaries — 2026-10-05 23:09 UTC
+## Current state — Refresh the post-PodCore active inventory — 2026-10-05 23:13 UTC
 
 The .NET 10 audit is complete: all first-party app, test, and build-tool
 projects target `net10.0`, and no active `.NET 6` project or selected
@@ -16,12 +16,15 @@ application, 5,739 unit, 289 integration), and `./bin/lint` and the focused
 source guard pass. The post-`.344` release-note preview includes the new
 PodCore diagnostics fragment.
 
-Gotcha `0z1694` was committed as `59465bfcc`; the PodCore fix was committed as
-`c49379fd3`. These, plus this memory update, still need to be pushed, followed
-by the full remediation baseline. The pushed tree before these commits passes
-that baseline and contains the refreshed 12,362-candidate red-team inventory;
-the 215 callback/event, 426 remote-text, 12,362 red-team, and 828
-mutable-ownership values are review queues, not confirmed bug counts.
+Gotchas `0z1694` and `0z1695`, the PodCore fix, its release fragment, and the
+route inventory refresh are pushed at `ae1bc9d84`. The post-push baseline
+passes route, cancellation, security, runtime, package, identity, registry,
+and branch-sync checks. Its first run required refreshing the route line
+inventory; the next run reports the red-team discovery count is now 12,368,
+not 12,362. Gotcha `0z1696` is committed locally. Refresh and push the active
+backlog count, then rerun the complete baseline. Counts of 215 callback/event,
+426 remote-text, 12,368 red-team, and 828 mutable-ownership candidates are
+review queues, not confirmed bug counts.
 
 Stable `.344` is immutable and its six platform archives and support assets
 pass local checksum/version verification. Its Launchpad source is Published,
