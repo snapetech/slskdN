@@ -77,6 +77,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Single descriptor retrieval and verification now propagate cancellation
   instead of returning a failed lookup or invalid result; descriptor batch
   retrieval keeps completed results when the caller cancels.
+- Music metadata lookups now propagate caller cancellation instead of returning
+  “not found” for canceled HashDb operations.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

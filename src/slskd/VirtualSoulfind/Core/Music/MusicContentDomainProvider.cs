@@ -65,6 +65,10 @@ namespace slskd.VirtualSoulfind.Core.Music
                     slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(releaseId));
                 return work;
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError("Failed to resolve work for MusicBrainz Release ID: {ReleaseId}: {Exception}",
@@ -164,6 +168,10 @@ namespace slskd.VirtualSoulfind.Core.Music
                     slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(tags.Artist));
                 return null;
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError("Failed to resolve item from local metadata: {SanitizedPath}: {Exception}",
@@ -258,6 +266,10 @@ namespace slskd.VirtualSoulfind.Core.Music
 
                 return MusicWork.FromAlbumEntry(match);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError("Failed to resolve work by title/artist: {Title} / {Artist}: {Exception}",
@@ -298,6 +310,10 @@ namespace slskd.VirtualSoulfind.Core.Music
                 _logger.LogDebug("No track entry found for MusicBrainz Recording ID: {RecordingId}",
                     slskd.Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(recordingId));
                 return null;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {

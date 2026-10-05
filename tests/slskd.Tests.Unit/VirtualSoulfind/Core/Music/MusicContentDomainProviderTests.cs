@@ -320,5 +320,65 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
             Assert.NotNull(result);
             Assert.Equal("Fingerprint Track", result.Title);
         }
+
+        [Fact]
+        public async Task TryGetWorkByReleaseIdAsync_PropagatesHashDbCancellation()
+        {
+            const string releaseId = "12345678-1234-1234-1234-123456789abc";
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            _hashDbMock
+                .Setup(hashDb => hashDb.GetAlbumTargetAsync(releaseId, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromCanceled<AlbumTargetEntry?>(cancellation.Token));
+            var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => provider.TryGetWorkByReleaseIdAsync(releaseId, cancellation.Token));
+        }
+
+        [Fact]
+        public async Task TryGetWorkByTitleArtistAsync_PropagatesHashDbCancellation()
+        {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            _hashDbMock
+                .Setup(hashDb => hashDb.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.FromCanceled<IEnumerable<AlbumTargetEntry>>(cancellation.Token));
+            var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => provider.TryGetWorkByTitleArtistAsync("Track", "Artist", cancellationToken: cancellation.Token));
+        }
+
+        [Fact]
+        public async Task TryGetItemByRecordingIdAsync_PropagatesHashDbCancellation()
+        {
+            const string recordingId = "12345678-1234-1234-1234-123456789abc";
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            _hashDbMock
+                .Setup(hashDb => hashDb.LookupHashesByRecordingIdAsync(recordingId, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromCanceled<IEnumerable<HashDbEntry>>(cancellation.Token));
+            var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => provider.TryGetItemByRecordingIdAsync(recordingId, cancellation.Token));
+        }
+
+        [Fact]
+        public async Task TryGetItemByLocalMetadataAsync_PropagatesHashDbCancellation()
+        {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            _hashDbMock
+                .Setup(hashDb => hashDb.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.FromCanceled<IEnumerable<AlbumTargetEntry>>(cancellation.Token));
+            var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
+            var fileMetadata = new LocalFileMetadata { Id = "track.flac", SizeBytes = 1024 };
+            var tags = new AudioTags("Track", "Artist", "Album", null, null, null, null, null, null, null, null, null, null, null);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => provider.TryGetItemByLocalMetadataAsync(fileMetadata, tags, cancellation.Token));
+        }
     }
 }

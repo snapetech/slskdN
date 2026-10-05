@@ -78,6 +78,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Single descriptor retrieval and verification now propagate cancellation
   instead of returning a failed lookup or invalid result; descriptor batch
   retrieval keeps completed results when the caller cancels.
+- Music metadata lookups now propagate caller cancellation instead of returning
+  “not found” for canceled HashDb operations.
 - Mesh sync now preserves caller cancellation while waiting for synchronization
   and serving peer chunk reads.
 - Mesh health checks and service publication now propagate caller cancellation
