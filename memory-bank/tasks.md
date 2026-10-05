@@ -35,11 +35,14 @@
 - [x] Pass focused Release controller suites: 41/41 tests; cancellation source
   guard passes.
 - [x] Pass full Release tests: 74 application, 5,725 unit, and 289 integration;
-  `./bin/lint` and all substantive remediation-baseline checks pass. The
-  baseline stops only at branch sync until this local batch is pushed.
-- [ ] Preview release notes, complete branch sync, and push the validated
-  batch. Stable `.344` has cleared runner assignment and its hosted Release
-  Gate is now running.
+  `./bin/lint` and the complete remediation baseline pass.
+- [x] Refresh the current discovery inventory: 215 callback/event, 426
+  remote-text, 12,355 red-team, and 828 mutable-ownership candidates. These are
+  open review queues, not confirmed bug counts.
+- [x] Preview release notes, verify `snapetech/slskdN`, pass branch sync, and
+  push the validated batch with separate gotcha, fix, and documentation commits.
+- [ ] Verify stable `.344` artifacts and publishers. Its immutable tag points
+  to the pre-Pod-cancellation tree; the Pod fix will ship in a later release.
 - [ ] Continue classifying and fixing confirmed code-backed candidates. T-908,
   global Party ID authority, accessibility, WAN/resource measurements,
   hidden-tab throttling, frontend network-change root cause, and broad
