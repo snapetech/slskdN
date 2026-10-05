@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1604. Check Captured Log Records Before Joining Them (2026-10-05)
+
+**What went wrong:** A captured-log regression joined multiple formatted log
+entries with `Environment.NewLine`, then asserted the combined text contained
+no line-feed characters. The separator made the assertion fail even though
+each log record had escaped its remote input.
+
+**Why:** The test treated record boundaries as part of the message payload and
+could not distinguish safe multi-line output from a forged line inside one
+record.
+
+**Prevention:** Assert that each captured message individually contains no raw
+CR/LF characters. Join records only for positive checks that expected escaped
+sequences are present.
+
 ### 0z1603. Escape Remote Capability Metadata Before Logging (2026-10-05)
 
 **What went wrong:** Capability discovery logged remote usernames, downloaded
