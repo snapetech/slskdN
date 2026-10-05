@@ -10,10 +10,52 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.PodCore;
 using slskd.PodCore.API.Controllers;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class PodMessageSigningControllerTests
 {
+    [Fact]
+    public async Task SignMessage_RedactsPrivateKeyAndEscapesExceptionOnlyInLogs()
+    {
+        const string privateKey = "private-key-secret";
+        const string body = "body-secret\r\nbody-line";
+        var signer = new Mock<IMessageSigner>();
+        signer
+            .Setup(service => service.SignMessageAsync(It.IsAny<PodMessage>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException($"signing failed for {privateKey} and {body}\r\nforged exception line"));
+        var logger = new CapturingLogger<PodMessageSigningController>();
+        var controller = PodControllerTestContext.AsAdministrator(new PodMessageSigningController(
+            logger,
+            signer.Object,
+            Mock.Of<IPodService>()), "peer-1");
+
+        var result = await controller.SignMessage(
+            new MessageSigningRequest(
+                new PodMessage
+                {
+                    MessageId = "message-1",
+                    PodId = "pod-1",
+                    ChannelId = "general",
+                    SenderPeerId = "peer-1",
+                    Body = body,
+                },
+                privateKey),
+            CancellationToken.None);
+
+        var response = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, response.StatusCode);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("[redacted-private-key]", entry.Message);
+        Assert.Contains("[redacted-message-body]", entry.Message);
+        Assert.Contains("forged exception line", entry.Message);
+        Assert.DoesNotContain(privateKey, entry.Message);
+        Assert.DoesNotContain("body-secret", entry.Message);
+        Assert.DoesNotContain("\r", entry.Message);
+        Assert.DoesNotContain("\n", entry.Message);
+        Assert.Null(entry.Exception);
+    }
+
     [Fact]
     public async Task SignMessage_WhenSenderDoesNotMatchAuthenticatedMember_ReturnsForbiddenWithoutSigning()
     {

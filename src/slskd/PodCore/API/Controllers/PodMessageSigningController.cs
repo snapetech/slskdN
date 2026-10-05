@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using slskd.Common.Security;
 
 namespace slskd.PodCore.API.Controllers;
 
@@ -85,7 +86,19 @@ public class PodMessageSigningController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageSigning] Error signing message");
+            var exceptionText = ex.ToString();
+            if (!string.IsNullOrEmpty(normalizedRequest.PrivateKey))
+            {
+                exceptionText = exceptionText.Replace(normalizedRequest.PrivateKey, "[redacted-private-key]", StringComparison.Ordinal);
+            }
+
+            if (!string.IsNullOrEmpty(normalizedRequest.Message.Body))
+            {
+                exceptionText = exceptionText.Replace(normalizedRequest.Message.Body, "[redacted-message-body]", StringComparison.Ordinal);
+            }
+
+            _logger.LogError("[PodMessageSigning] Error signing message: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
             return StatusCode(500, new { error = "Failed to sign message" });
         }
     }
@@ -120,7 +133,12 @@ public class PodMessageSigningController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageSigning] Error verifying message {MessageId}", normalizedMessage?.MessageId);
+            var exceptionText = string.IsNullOrEmpty(normalizedMessage.Body)
+                ? ex.ToString()
+                : ex.ToString().Replace(normalizedMessage.Body, "[redacted-message-body]", StringComparison.Ordinal);
+            _logger.LogError("[PodMessageSigning] Error verifying message {MessageId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(normalizedMessage.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
             return StatusCode(500, new { error = "Failed to verify message" });
         }
     }
@@ -142,7 +160,8 @@ public class PodMessageSigningController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageSigning] Error generating key pair");
+            _logger.LogError("[PodMessageSigning] Error generating key pair: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to generate key pair" });
         }
     }
@@ -163,7 +182,8 @@ public class PodMessageSigningController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageSigning] Error getting signing stats");
+            _logger.LogError("[PodMessageSigning] Error getting signing stats: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get signing statistics" });
         }
     }

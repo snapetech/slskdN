@@ -13,6 +13,7 @@ using System.Linq;
 using System.Security.Claims;
 using Xunit;
 using slskd.API.Native;
+using slskd.Tests.Unit.TestHelpers;
 
 namespace slskd.Tests.Unit.PodCore;
 
@@ -359,6 +360,42 @@ public class PodsControllerTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         var returnedMessages = Assert.IsAssignableFrom<IReadOnlyList<PodMessage>>(okResult.Value);
         Assert.Equal(2, returnedMessages.Count);
+    }
+
+    [Fact]
+    public async Task GetMessages_EscapesRemoteRouteValuesAndExceptionOnlyInLogs()
+    {
+        const string podId = "pod-1\r\nforged pod";
+        const string channelId = "general\r\nforged channel";
+        var logger = new CapturingLogger<PodsController>();
+        _podServiceMock.Setup(service => service.GetPodAsync(podId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Pod?)null);
+        _podMessagingMock.Setup(service => service.GetMessagesAsync(podId, channelId, null, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("storage failure\r\nforged exception line"));
+        var controller = new PodsController(
+            _podServiceMock.Object,
+            _podMessagingMock.Object,
+            _chatBridgeMock.Object,
+            logger,
+            _conversationServiceMock.Object,
+            Mock.Of<IOptionsMonitor<MeshOptions>>())
+        {
+            ControllerContext = _controller.ControllerContext,
+        };
+
+        var result = await controller.GetMessages(podId, channelId, ct: CancellationToken.None);
+
+        var response = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, response.StatusCode);
+        _podServiceMock.Verify(service => service.GetPodAsync(podId, It.IsAny<CancellationToken>()), Times.Once);
+        _podMessagingMock.Verify(service => service.GetMessagesAsync(podId, channelId, null, It.IsAny<CancellationToken>()), Times.Once);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("pod-1\\r\\nforged pod", entry.Message);
+        Assert.Contains("general\\r\\nforged channel", entry.Message);
+        Assert.Contains("forged exception line", entry.Message);
+        Assert.DoesNotContain("\r", entry.Message);
+        Assert.DoesNotContain("\n", entry.Message);
+        Assert.Null(entry.Exception);
     }
 
     [Fact]

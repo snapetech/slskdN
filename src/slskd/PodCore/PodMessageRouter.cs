@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Privacy;
 using slskd.Mesh.ServiceFabric;
+using LoggingSanitizer = slskd.Common.Security.LoggingSanitizer;
 
 /// <summary>
 /// Service for routing pod messages through the decentralized overlay network.
@@ -170,7 +171,12 @@ public class PodMessageRouter : IPodMessageRouter
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[PodMessageRouter] Failed to route listen-along message {MessageId}", message.MessageId);
+            var exceptionText = string.IsNullOrEmpty(message.Body)
+                ? ex.ToString()
+                : ex.ToString().Replace(message.Body, "[redacted-message-body]", StringComparison.Ordinal);
+            _logger.LogWarning("[PodMessageRouter] Failed to route listen-along message {MessageId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
             return new PodMessageRoutingResult(
                 false, message.MessageId, podId, 0, 0, 0,
                 DateTimeOffset.UtcNow - startedAt,
@@ -203,7 +209,10 @@ public class PodMessageRouter : IPodMessageRouter
 
                 _logger.LogDebug(
                     "[PodMessageRouter] Peer {PeerId} rejected listen-along message {MessageId} with status {StatusCode}: {ErrorMessage}",
-                    peerId, message.MessageId, reply.StatusCode, reply.ErrorMessage);
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                    reply.StatusCode,
+                    LoggingSanitizer.SanitizeExternalIdentifier(reply.ErrorMessage));
                 return false;
             }
             finally
@@ -215,7 +224,8 @@ public class PodMessageRouter : IPodMessageRouter
         {
             _logger.LogDebug(
                 "[PodMessageRouter] Timed out routing listen-along message {MessageId} to peer {PeerId}",
-                message.MessageId, peerId);
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId));
             return false;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -224,9 +234,14 @@ public class PodMessageRouter : IPodMessageRouter
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex,
-                "[PodMessageRouter] Could not route listen-along message {MessageId} to peer {PeerId}",
-                message.MessageId, peerId);
+            var exceptionText = string.IsNullOrEmpty(message.Body)
+                ? ex.ToString()
+                : ex.ToString().Replace(message.Body, "[redacted-message-body]", StringComparison.Ordinal);
+            _logger.LogDebug(
+                "[PodMessageRouter] Could not route listen-along message {MessageId} to peer {PeerId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
             return false;
         }
     }
@@ -241,7 +256,9 @@ public class PodMessageRouter : IPodMessageRouter
             var podId = message.PodId?.Trim() ?? string.Empty;
             var channelId = message.ChannelId?.Trim() ?? string.Empty;
 
-            _logger.LogDebug("[PodMessageRouter] Routing message {MessageId} to pod {PodId}", message.MessageId, podId);
+            _logger.LogDebug("[PodMessageRouter] Routing message {MessageId} to pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
 
             if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(channelId))
             {
@@ -260,7 +277,9 @@ public class PodMessageRouter : IPodMessageRouter
             var channel = await _podService.GetChannelAsync(podId, channelId, cancellationToken);
             if (channel == null)
             {
-                _logger.LogWarning("[PodMessageRouter] Attempted to route message to non-existent channel {ChannelId} in pod {PodId}", channelId, podId);
+                _logger.LogWarning("[PodMessageRouter] Attempted to route message to non-existent channel {ChannelId} in pod {PodId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return new PodMessageRoutingResult(
                     Success: false,
                     MessageId: message.MessageId,
@@ -275,7 +294,9 @@ public class PodMessageRouter : IPodMessageRouter
             // Check for duplicate routing using Bloom filter
             if (IsMessageSeen(message.MessageId, podId))
             {
-                _logger.LogDebug("[PodMessageRouter] Skipping duplicate message {MessageId} for pod {PodId}", message.MessageId, podId);
+                _logger.LogDebug("[PodMessageRouter] Skipping duplicate message {MessageId} for pod {PodId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return new PodMessageRoutingResult(
                     Success: true,
                     MessageId: message.MessageId,
@@ -297,7 +318,9 @@ public class PodMessageRouter : IPodMessageRouter
             if (!targetPeerIds.Any())
             {
                 RegisterMessageSeen(message.MessageId, podId);
-                _logger.LogDebug("[PodMessageRouter] No target peers for message {MessageId} in pod {PodId}", message.MessageId, podId);
+                _logger.LogDebug("[PodMessageRouter] No target peers for message {MessageId} in pod {PodId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(podId));
                 return new PodMessageRoutingResult(
                     Success: true,
                     MessageId: message.MessageId,
@@ -327,7 +350,11 @@ public class PodMessageRouter : IPodMessageRouter
 
             _logger.LogDebug(
                 "[PodMessageRouter] Routed message {MessageId} to {Success}/{Total} peers in pod {PodId} ({Duration}ms)",
-                message.MessageId, routingResult.SuccessfullyRoutedCount, targetPeerIds.Count, podId, duration.TotalMilliseconds);
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                routingResult.SuccessfullyRoutedCount,
+                targetPeerIds.Count,
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                duration.TotalMilliseconds);
 
             return routingResult with
             {
@@ -340,7 +367,12 @@ public class PodMessageRouter : IPodMessageRouter
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageRouter] Error routing message {MessageId}", message.MessageId);
+            var exceptionText = string.IsNullOrEmpty(message.Body)
+                ? ex.ToString()
+                : ex.ToString().Replace(message.Body, "[redacted-message-body]", StringComparison.Ordinal);
+            _logger.LogError("[PodMessageRouter] Error routing message {MessageId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
             return new PodMessageRoutingResult(
                 Success: false,
                 MessageId: message.MessageId,
@@ -369,7 +401,9 @@ public class PodMessageRouter : IPodMessageRouter
         // Use the canonical message pod identity for context.
         var podId = message.PodId?.Trim() ?? string.Empty;
 
-        _logger.LogDebug("[PodMessageRouter] Routing message {MessageId} to {Count} specific peers", message.MessageId, targetList.Count);
+        _logger.LogDebug("[PodMessageRouter] Routing message {MessageId} to {Count} specific peers",
+            LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+            targetList.Count);
 
         // Route message to each target peer via overlay
         var routingTasks = targetList.Select(async peerId =>
@@ -396,7 +430,13 @@ public class PodMessageRouter : IPodMessageRouter
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[PodMessageRouter] Failed to route message {MessageId} to peer {PeerId}", message.MessageId, peerId);
+                var exceptionText = string.IsNullOrEmpty(message.Body)
+                    ? ex.ToString()
+                    : ex.ToString().Replace(message.Body, "[redacted-message-body]", StringComparison.Ordinal);
+                _logger.LogWarning("[PodMessageRouter] Failed to route message {MessageId} to peer {PeerId}: {Exception}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
                 Interlocked.Increment(ref failureCount);
                 lock (failedPeers)
                 {
@@ -454,7 +494,9 @@ public class PodMessageRouter : IPodMessageRouter
 
         if (wasAdded)
         {
-            _logger.LogTrace("[PodMessageRouter] Registered message {MessageId} as seen for pod {PodId}", messageId, podId);
+            _logger.LogTrace("[PodMessageRouter] Registered message {MessageId} as seen for pod {PodId}",
+                LoggingSanitizer.SanitizeExternalIdentifier(messageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(podId));
         }
 
         return wasAdded;
@@ -509,11 +551,13 @@ public class PodMessageRouter : IPodMessageRouter
                 if (payload.Length == 0)
                 {
                     // Message was queued for batching, not ready to send yet
-                    _logger.LogTrace("[PodMessageRouter] Message {MessageId} queued for privacy batching, not sent yet", message.MessageId);
+                    _logger.LogTrace("[PodMessageRouter] Message {MessageId} queued for privacy batching, not sent yet",
+                        LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
                     return false;
                 }
 
-                _logger.LogTrace("[PodMessageRouter] Applied outbound privacy transforms to message {MessageId}", message.MessageId);
+                _logger.LogTrace("[PodMessageRouter] Applied outbound privacy transforms to message {MessageId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
             }
 
             var envelope = new ControlEnvelope
@@ -527,23 +571,31 @@ public class PodMessageRouter : IPodMessageRouter
             var endpoint = await _peerResolution.ResolvePeerIdToEndpointAsync(peerId, cancellationToken);
             if (endpoint == null)
             {
-                _logger.LogWarning("[PodMessageRouter] No endpoint for peer {PeerId}, cannot route message {MessageId}", peerId, message.MessageId);
+                _logger.LogWarning("[PodMessageRouter] No endpoint for peer {PeerId}, cannot route message {MessageId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId));
                 return false;
             }
 
             _logger.LogInformation("[PodMessageRouter] Attempting to route message {MessageId} to peer {PeerId} at {Endpoint}",
-                message.MessageId, peerId, endpoint);
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                endpoint);
 
             var sendResult = await _overlayClient.SendAsync(envelope, endpoint, cancellationToken);
 
             if (sendResult)
             {
-                _logger.LogTrace("[PodMessageRouter] Successfully routed message {MessageId} to peer {PeerId}", message.MessageId, peerId);
+                _logger.LogTrace("[PodMessageRouter] Successfully routed message {MessageId} to peer {PeerId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId));
                 return true;
             }
             else
             {
-                _logger.LogWarning("[PodMessageRouter] Failed to route message {MessageId} to peer {PeerId}", message.MessageId, peerId);
+                _logger.LogWarning("[PodMessageRouter] Failed to route message {MessageId} to peer {PeerId}",
+                    LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                    LoggingSanitizer.SanitizeExternalIdentifier(peerId));
                 return false;
             }
         }
@@ -553,7 +605,13 @@ public class PodMessageRouter : IPodMessageRouter
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[PodMessageRouter] Error routing message {MessageId} to peer {PeerId}", message.MessageId, peerId);
+            var exceptionText = string.IsNullOrEmpty(message.Body)
+                ? ex.ToString()
+                : ex.ToString().Replace(message.Body, "[redacted-message-body]", StringComparison.Ordinal);
+            _logger.LogError("[PodMessageRouter] Error routing message {MessageId} to peer {PeerId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(message.MessageId),
+                LoggingSanitizer.SanitizeExternalIdentifier(peerId),
+                LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
             return false;
         }
     }

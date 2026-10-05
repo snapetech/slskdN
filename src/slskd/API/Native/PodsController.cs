@@ -4,6 +4,7 @@
 namespace slskd.API.Native;
 
 using Asp.Versioning;
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 using Microsoft.AspNetCore.Authorization;
@@ -79,7 +80,7 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to list pods");
+            logger.LogError("Failed to list pods: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to list pods" });
         }
     }
@@ -114,7 +115,9 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to get pod {PodId}", podId);
+            logger.LogError("Failed to get pod {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get pod" });
         }
     }
@@ -145,7 +148,9 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to delete pod {PodId}", podId);
+            logger.LogError("Failed to delete pod {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to delete pod" });
         }
     }
@@ -208,12 +213,12 @@ public class PodsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            logger.LogWarning(ex, "Invalid pod create request");
+            logger.LogWarning("Invalid pod create request: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest(new { error = "Invalid pod request" });
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to create pod");
+            logger.LogError("Failed to create pod: {Exception}", LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to create pod" });
         }
     }
@@ -305,12 +310,16 @@ public class PodsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            logger.LogWarning(ex, "Invalid pod update request for {PodId}", podId);
+            logger.LogWarning("Invalid pod update request for {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return BadRequest(new { error = "Invalid pod request" });
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to update pod {PodId}", podId);
+            logger.LogError("Failed to update pod {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to update pod" });
         }
     }
@@ -364,7 +373,9 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to get pod members for {PodId}", podId);
+            logger.LogError("Failed to get pod members for {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get pod members" });
         }
     }
@@ -424,7 +435,9 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to join pod {PodId}", podId);
+            logger.LogError("Failed to join pod {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to join pod" });
         }
     }
@@ -471,7 +484,9 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to leave pod {PodId}", podId);
+            logger.LogError("Failed to leave pod {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to leave pod" });
         }
     }
@@ -518,7 +533,9 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to ban member from pod {PodId}", podId);
+            logger.LogError("Failed to ban member from pod {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to ban member" });
         }
     }
@@ -576,7 +593,10 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to get messages for pod {PodId} channel {ChannelId}", podId, channelId);
+            logger.LogError("Failed to get messages for pod {PodId} channel {ChannelId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to get messages" });
         }
     }
@@ -652,7 +672,13 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to send message to pod {PodId} channel {ChannelId}", podId, channelId);
+            var exceptionText = string.IsNullOrWhiteSpace(request?.Body)
+                ? ex.ToString()
+                : ex.ToString().Replace(request.Body.Trim(), "[redacted-message-body]", StringComparison.Ordinal);
+            logger.LogError("Failed to send message to pod {PodId} channel {ChannelId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
             return StatusCode(500, new { error = "Failed to send message" });
         }
     }
@@ -716,7 +742,10 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to bind pod {PodId} channel {ChannelId} to room", podId, channelId);
+            logger.LogError("Failed to bind pod {PodId} channel {ChannelId} to room: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to bind room" });
         }
     }
@@ -756,7 +785,10 @@ public class PodsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to unbind pod {PodId} channel {ChannelId}", podId, channelId);
+            logger.LogError("Failed to unbind pod {PodId} channel {ChannelId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, new { error = "Failed to unbind room" });
         }
     }

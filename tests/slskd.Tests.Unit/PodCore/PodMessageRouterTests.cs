@@ -12,6 +12,7 @@ using slskd.Mesh.Overlay;
 using slskd.Mesh.Privacy;
 using slskd.Mesh.ServiceFabric;
 using slskd.PodCore;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 namespace slskd.Tests.Unit.PodCore;
@@ -21,6 +22,56 @@ namespace slskd.Tests.Unit.PodCore;
 /// </summary>
 public class PodMessageRouterTests
 {
+    [Fact]
+    public async Task RouteMessageAsync_EscapesRemoteFieldsAndExceptionWithoutChangingInputs()
+    {
+        const string podId = "pod-1\r\nforged pod";
+        const string channelId = "general\r\nforged channel";
+        const string messageId = "message-1\r\nforged id";
+        const string body = "private message body";
+        var logger = new CapturingLogger<PodMessageRouter>();
+        var podService = new Mock<IPodService>();
+        podService
+            .Setup(service => service.GetChannelAsync(podId, channelId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException($"failure for {body}\r\nforged exception line and {channelId}"));
+        var router = new PodMessageRouter(
+            logger,
+            podService.Object,
+            Mock.Of<IOverlayClient>(),
+            Mock.Of<IControlSigner>(),
+            Mock.Of<IPeerResolutionService>());
+
+        var message = new PodMessage
+        {
+            MessageId = messageId,
+            PodId = podId,
+            ChannelId = channelId,
+            SenderPeerId = "peer-sender",
+            Body = body,
+            TimestampUnixMs = 1,
+        };
+        var result = await router.RouteMessageAsync(message);
+
+        Assert.False(result.Success);
+        Assert.Equal(podId, result.PodId);
+        Assert.Equal(messageId, result.MessageId);
+        podService.Verify(service => service.GetChannelAsync(podId, channelId, It.IsAny<CancellationToken>()), Times.Once);
+
+        Assert.Equal(2, logger.Entries.Count);
+        var messages = string.Join(" | ", logger.Entries.Select(entry => entry.Message));
+        Assert.Contains("message-1\\r\\nforged id", messages);
+        Assert.Contains("pod-1\\r\\nforged pod", messages);
+        Assert.Contains("general\\r\\nforged channel", messages);
+        Assert.Contains("forged exception line", messages);
+        Assert.DoesNotContain(body, messages);
+        Assert.All(logger.Entries, entry =>
+        {
+            Assert.DoesNotContain("\r", entry.Message);
+            Assert.DoesNotContain("\n", entry.Message);
+            Assert.Null(entry.Exception);
+        });
+    }
+
     [Fact]
     public async Task RouteListenAlongMessageAsync_UsesAuthenticatedPodsServiceAndSkipsSenderAndBannedMembers()
     {

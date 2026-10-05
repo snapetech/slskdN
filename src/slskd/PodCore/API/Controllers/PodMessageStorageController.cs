@@ -4,6 +4,7 @@
 namespace slskd.PodCore.API.Controllers;
 
 using Asp.Versioning;
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 using System;
@@ -96,7 +97,12 @@ public class PodMessageStorageController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error searching messages in pod {PodId}", podId);
+            var exceptionText = query.Length == 0
+                ? ex.ToString()
+                : ex.ToString().Replace(query, "[redacted-search-query]", StringComparison.Ordinal);
+            logger.LogError("Error searching messages in pod {PodId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(exceptionText));
             return StatusCode(500, "An error occurred while searching messages");
         }
     }
@@ -121,7 +127,8 @@ public class PodMessageStorageController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting message storage statistics");
+            logger.LogError("Error getting message storage statistics: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting storage statistics");
         }
     }
@@ -156,7 +163,9 @@ public class PodMessageStorageController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error cleaning up messages older than {Timestamp}", olderThan);
+            logger.LogError("Error cleaning up messages older than {Timestamp}: {Exception}",
+                olderThan,
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while cleaning up messages");
         }
     }
@@ -213,8 +222,11 @@ public class PodMessageStorageController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error cleaning up messages in pod {PodId} channel {ChannelId} older than {Timestamp}",
-                podId, channelId, olderThan);
+            logger.LogError("Error cleaning up messages in pod {PodId} channel {ChannelId} older than {Timestamp}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                olderThan,
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while cleaning up channel messages");
         }
     }
@@ -263,7 +275,10 @@ public class PodMessageStorageController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting message count for pod {PodId} channel {ChannelId}", podId, channelId);
+            logger.LogError("Error getting message count for pod {PodId} channel {ChannelId}: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(podId),
+                LoggingSanitizer.SanitizeExternalIdentifier(channelId),
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while getting message count");
         }
     }
@@ -288,7 +303,8 @@ public class PodMessageStorageController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error rebuilding search index");
+            logger.LogError("Error rebuilding search index: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while rebuilding search index");
         }
     }
@@ -313,7 +329,8 @@ public class PodMessageStorageController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error vacuuming database");
+            logger.LogError("Error vacuuming database: {Exception}",
+                LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString()));
             return StatusCode(500, "An error occurred while vacuuming database");
         }
     }

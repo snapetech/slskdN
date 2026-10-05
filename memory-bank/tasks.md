@@ -183,9 +183,17 @@
   289 integration). `./bin/lint`, active-backlog, local-identity, and
   whitespace checks pass. ADR-0001 gotchas `0z1603` and `0z1604` record the
   remote boundary and log-record assertion pattern.
+- [x] Escape remote identifiers and exception details in Pod native APIs,
+  message storage, signing, and routing diagnostics — 2026-10-05. Search text,
+  message bodies, and private keys are redacted when they appear in exception
+  text; request and routing inputs remain unchanged. Focused Pod controller and
+  router tests pass 52/52; the full Release .NET suite passes 5,946 (74
+  application, 5,583 unit, 289 integration). `./bin/lint`, active-backlog,
+  local-identity, and whitespace checks pass. ADR-0001 gotchas `0z1605` and
+  `0z1606` record the subsystem sweep and sanitizer namespace alias rule.
 - [ ] Continue the active whole-product remediation and classify remaining
-  code-backed findings. Latest discovery queues: 211 callback/event, 435
-  remote-text, 12,257 red-team, and 826 mutable-ownership candidates. T-908
+  code-backed findings. Latest discovery queues: 211 callback/event, 434
+  remote-text, 12,260 red-team, and 826 mutable-ownership candidates. T-908
   fallback lifecycle, distributed Party ID ownership, accessibility, WAN and
   resource evidence, hidden-tab throttling, and the frontend network-change
   root cause remain open.

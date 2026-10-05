@@ -27,6 +27,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Escape peer usernames, capability-file metadata, and full exception details
   before writing capability-discovery logs. Capability requests and cached
   peer metadata retain their original values.
+- Escape Pod, channel, message, and peer identifiers before writing native,
+  storage, signing, and routing diagnostics. Exception logs retain escaped
+  stack details while redacting message bodies, search queries, and private
+  keys when those values appear in exception text.
 
 ## [2026100505-slskdn.340] — 2026-10-05
 

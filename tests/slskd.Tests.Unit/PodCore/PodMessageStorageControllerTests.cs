@@ -10,10 +10,45 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.PodCore;
 using slskd.PodCore.API.Controllers;
+using slskd.Tests.Unit.TestHelpers;
 using Xunit;
 
 public class PodMessageStorageControllerTests
 {
+    [Fact]
+    public async Task SearchMessages_EscapesSearchTextAndExceptionOnlyInLogs()
+    {
+        const string query = "artist\r\nforged query";
+        string? capturedQuery = null;
+        var storage = new Mock<IPodMessageStorage>();
+        storage
+            .Setup(service => service.SearchMessagesAsync(
+                "pod-1",
+                It.IsAny<string>(),
+                "general",
+                50,
+                It.IsAny<CancellationToken>()))
+            .Callback<string, string, string?, int, CancellationToken>((_, value, _, _, _) => capturedQuery = value)
+            .ThrowsAsync(new InvalidOperationException($"Search failed for '{query}'\r\nforged exception line"));
+        var logger = new CapturingLogger<PodMessageStorageController>();
+        var controller = PodControllerTestContext.AsAdministrator(new PodMessageStorageController(
+            storage.Object,
+            Mock.Of<IPodService>(),
+            logger));
+
+        var result = await controller.SearchMessages("pod-1", query, "general", cancellationToken: CancellationToken.None);
+
+        var response = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, response.StatusCode);
+        Assert.Equal(query, capturedQuery);
+        var entry = Assert.Single(logger.Entries);
+        Assert.Contains("\\r\\nforged exception line", entry.Message);
+        Assert.DoesNotContain(query, entry.Message);
+        Assert.DoesNotContain("\r", entry.Message);
+        Assert.DoesNotContain("\n", entry.Message);
+        Assert.Null(entry.Exception);
+    }
+
     [Fact]
     public async Task SearchMessages_WhenCallerIsNotMember_ReturnsForbiddenWithoutSearching()
     {
