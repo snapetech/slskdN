@@ -26,6 +26,25 @@
 
 ## Active Development
 
+### Post-.344 Pod API request cancellation — 2026-10-05
+
+- [x] Preserve caller cancellation across all 13 native Pod actions, four Pod
+  content-linking actions, and shadow-index lookup before generic error mapping.
+- [x] Add public-action cancellation regressions for each controller family and
+  register a source guard covering all 18 broad exception handlers.
+- [x] Pass focused Release controller suites: 41/41 tests; cancellation source
+  guard passes.
+- [x] Pass full Release tests: 74 application, 5,725 unit, and 289 integration;
+  `./bin/lint` and all substantive remediation-baseline checks pass. The
+  baseline stops only at branch sync until this local batch is pushed.
+- [ ] Preview release notes, complete branch sync, and push the validated
+  batch. Stable `.344` has cleared runner assignment and its hosted Release
+  Gate is now running.
+- [ ] Continue classifying and fixing confirmed code-backed candidates. T-908,
+  global Party ID authority, accessibility, WAN/resource measurements,
+  hidden-tab throttling, frontend network-change root cause, and broad
+  discovery queues remain open or evidence-gated.
+
 ### Post-.343 mDNS and federation diagnostic hardening — 2026-10-05
 
 - [x] Escape discovered mDNS names and exception details at the diagnostic

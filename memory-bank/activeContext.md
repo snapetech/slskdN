@@ -1,3 +1,37 @@
+## Current state — Preserve cancellation across Pod APIs — 2026-10-05 21:26 UTC
+
+The .NET 10 review is complete: first-party `src`, `tests`, and `tools`
+projects target `net10.0`; the application selects MonoTorrent's compatible
+`lib/net8.0` package asset. Existing `.NET 6` references belong to compatible
+transitive dependency assets or historical notes. Retargeting the vendored
+slskNet.Runtime tree is rejected by its upstream-sync baseline and was fully
+reverted; no relevant TFM change remains.
+
+Preserved caller cancellation across all 13 native Pod actions, four Pod
+content-linking actions, and shadow-index lookup. Added three controller
+regressions and `check-pod-controller-cancellation.sh`; the focused Release
+controller suites pass 41/41 and the source guard passes. The full Release
+suite passes 6,088 tests (74 application, 5,725 unit, 289 integration), and
+`./bin/lint` passes. All substantive remediation checks pass; the final
+branch-sync check awaits pushing this batch. Release-note preview remains
+before commit.
+
+Stable `.344` tag `build-main-2026100520-slskdn.344` points to the pushed
+`main` commit. After hosted-runner assignment delays, tag parsing succeeded
+and its hosted Release Gate is running; no artifacts or release publication
+are available yet. Continue validating code-backed fixes while the build
+runs, then verify `.344` artifacts and all required publishers.
+
+## Next steps
+
+Finish full backend and lint validation, pass the release-note and remediation
+gates, commit and push the Pod cancellation batch, and keep classifying
+confirmed source candidates. Once `.344` completes, verify every required
+publisher and the release artifacts. T-908 lifecycle, global Party ID
+authority, accessibility, WAN/resource measurements, hidden-tab throttling,
+frontend network-change root cause, and broad discovery queues remain open or
+evidence-gated.
+
 ## Current state — Prepare stable `.343` release — 2026-10-05 19:12 UTC
 
 Stable `.342` remains published. Framework alignment is already complete:

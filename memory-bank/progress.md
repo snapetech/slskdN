@@ -1,3 +1,19 @@
+# Update 2026-10-05 21:26 UTC — Preserve cancellation across Pod APIs
+
+Pod management and membership actions, Pod content validation/metadata/search
+and creation, and shadow-index lookup now rethrow caller cancellation before
+their existing generic error mapping. Added public-controller regressions for
+the native Pod, content-linking, and shadow-index boundaries, plus a source
+guard that checks all 18 broad catches. The focused Release suites pass 41/41,
+and the source guard passes. The full Release suite passes 6,088 tests (74
+application, 5,725 unit, 289 integration); `./bin/lint` passes. All substantive
+remediation checks pass; its final branch-sync check awaits pushing this local
+batch.
+
+Stable `.344` is tagged and pushed. After hosted-runner assignment delays, tag
+parsing succeeded and the Release Gate is now running; no build artifacts or
+release publication have completed yet.
+
 ## Update 2026-10-05 02:50 UTC — Align .NET 10 packaging docs and escape VirtualSoulfind diagnostics
 
 Escaped caller queries, MBIDs, peer identifiers, filenames, hashes, paths, and
