@@ -40266,6 +40266,19 @@ current result schema. Test the visible status and explanation, and label
 local report generation as review or preview rather than implying external
 actions occurred.
 
+### 0z1696. Match Remote Path Maps At Path Boundaries (2026-10-06)
+
+**What went wrong:** Remote path mapping used a raw string-prefix check, so a
+mapping from `/downloads` also matched sibling paths such as
+`/downloads-old/album.flac` and produced a corrupted destination.
+
+**Why:** Filesystem paths are hierarchical values, but `startsWith` treats
+them as arbitrary strings.
+
+**Prevention:** Match either the complete source path or the source path
+followed by a separator. Add a sibling-prefix regression case whenever path
+mapping rules change.
+
 ### 0z1695. Associate Semantic Form Labels With Their Controls (2026-10-06)
 
 **What went wrong:** New Semantic UI form controls displayed labels visually,
