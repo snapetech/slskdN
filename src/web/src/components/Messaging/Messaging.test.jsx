@@ -4,6 +4,7 @@ import Messaging from './Messaging';
 import * as pods from '../../lib/pods';
 import React from 'react';
 import * as rooms from '../../lib/rooms';
+import * as slskdn from '../../lib/slskdn';
 import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,6 +41,10 @@ vi.mock('../../lib/rooms', () => ({
   sendMessage: vi.fn(),
 }));
 
+vi.mock('../../lib/slskdn', () => ({
+  getCapabilities: vi.fn(),
+}));
+
 const renderMessaging = (props = {}) =>
   render(
     <MemoryRouter>
@@ -70,6 +75,7 @@ describe('Messaging', () => {
     rooms.join.mockResolvedValue({});
     rooms.leave.mockResolvedValue({});
     rooms.sendMessage.mockResolvedValue({});
+    slskdn.getCapabilities.mockResolvedValue({ featureGates: {} });
   });
 
   afterEach(() => {
