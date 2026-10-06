@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1732. Do Not Use Icons As Action Controls (2026-10-06)
+
+**What went wrong:** Several clickable Semantic UI Icons handled tab closure,
+conversation deletion, room departure, refresh, and search actions without
+native button semantics, accessible action names, or explanatory hover help.
+
+**Why:** The icons looked like compact links, so the visual affordance was
+treated as sufficient even though click handlers do not create keyboard or
+screen-reader button behavior.
+
+**Prevention:** Render icon actions with the shared `TooltipButton` or another
+native button, provide an action-specific accessible name and Popup copy, and
+verify hover alone does not invoke the action.
+
 ### 0z1731. Use Native Buttons For Directory Tree Actions (2026-10-06)
 
 **What went wrong:** Directory selection used a focusable span with
