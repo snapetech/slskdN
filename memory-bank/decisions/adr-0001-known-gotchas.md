@@ -69,6 +69,19 @@ other controls lower in the component.
 removing UI imports, then run focused frontend lint and test checks after the
 replacement.
 
+### 0z1710. Avoid Nested Popup Wrappers (2026-10-06)
+
+**What went wrong:** Replacing every `Button` in a component with
+`TooltipButton` also wrapped buttons already inside Semantic UI `Popup`
+triggers, creating nested popups for existing result actions.
+
+**Why:** A component-wide alias was applied even though only its previously
+unwrapped toolbar buttons needed tooltip guidance.
+
+**Prevention:** Keep existing Popup-backed buttons on Semantic UI `Button`.
+Use `TooltipButton` only for controls that do not already have a Popup, or wrap
+each missing control explicitly.
+
 ### 0z1704. Alias Types When Test Namespaces Shadow Imports (2026-10-06)
 
 **What went wrong:** A new policy-collection regression used an unqualified
