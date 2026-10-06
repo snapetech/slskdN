@@ -1,7 +1,7 @@
 ---
 category: fixed
 audience: users
-area: mediacore-pod-and-contentid-actions
+area: mediacore-actions
 action: none
 breaking: false
 ---
