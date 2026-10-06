@@ -40249,3 +40249,19 @@ concisely.
 **Prevention:** Keep each fragment body within the validator's 30–400
 character range and describe user impact in concise sentences. Run the exact
 base-to-head preview before treating release documentation as complete.
+
+### 0z1694. Keep Media-Server Diagnostic Views Aligned With Their Builders (2026-10-06)
+
+**What went wrong:** The media-server panel rendered a path-diagnostic result
+as a list of server paths even though its local builder returns only a status
+and explanation. Its contract action also showed an execution label while
+calling a report builder without the adapter-readiness preview it needs.
+
+**Why:** The panel retained stale rendering and action wording after its
+browser-local diagnostic builders changed shape and stopped representing live
+server operations.
+
+**Prevention:** Keep diagnostic views and calls aligned with the builder's
+current result schema. Test the visible status and explanation, and label
+local report generation as review or preview rather than implying external
+actions occurred.
