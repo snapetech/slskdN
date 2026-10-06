@@ -40318,3 +40318,16 @@ searching the full, append-heavy decision record for existing occurrences.
 **Prevention:** Search all `### 0zNNNN` headings in this file before choosing
 an identifier, then verify the new identifier occurs exactly once before
 committing.
+
+### 0z1713. Explain Collection Actions Before They Run (2026-10-06)
+
+**What went wrong:** Collection creation, deletion, item addition, and sharing
+actions had no mouseover guidance, even though some change or remove shared
+data.
+
+**Why:** The component used raw Semantic UI buttons for standalone actions and
+reserved explanatory popups for only a subset of the controls.
+
+**Prevention:** Use `TooltipButton` for standalone actions while preserving
+existing `Popup` triggers. Cover every visible action with tooltip tests and
+verify hovering does not invoke mutations.
