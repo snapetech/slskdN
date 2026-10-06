@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1735. Check Shared Wrapper Bindings Before Reusing Prop Names (2026-10-06)
+
+**What went wrong:** Adding the Semantic UI `content` prop to
+`TooltipButton`'s destructured props collided with an existing local binding
+also named `content`, preventing Vite from transforming the module and loading
+both focused test suites.
+
+**Why:** The wrapper already derives a separate Popup content value. The edit
+reused that identifier without checking the full component scope.
+
+**Prevention:** Inspect the complete wrapper before adding a prop, name the
+button label and Popup copy separately, and run a focused test immediately
+after changing shared component bindings.
+
 ### 0z1734. Preserve Semantic Button Content As Its Accessible Name (2026-10-06)
 
 **What went wrong:** `TooltipButton` forwarded Semantic UI's `content` prop to
