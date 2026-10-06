@@ -18808,3 +18808,12 @@ operator-facing release-note fragment. Application lifecycle tests pass
 19/19; the full .NET Release suite passes 6,111 tests (74 application, 5,748
 unit, 289 integration), and `./bin/lint` passes. Push this batch, then rerun
 the release-note preview and full remediation baseline.
+
+## 2026-10-06 03:46 UTC — Validate the callback fixes on the pushed branch
+
+Pushed the options-update task observation fix, regression, source guard,
+changelog, release fragment, and gotcha commit. The release-note range preview
+validates. The complete post-push remediation baseline passes with 25
+async-void, 0 silent-catch, 216 callback/event, 429 remote-text, 12,448
+red-team, and 834 mutable-ownership candidates. No count change was left
+unclassified.

@@ -19160,3 +19160,18 @@ unit, 289 integration); repository lint passes. Gotcha `0z1739` is committed
 locally before the fix. The changelog and operator release fragment are
 prepared. Commit and push this batch, rerun the release preview and full
 remediation baseline, then continue remaining evidence-gated work.
+
+## Current state — Callback fixes validated on pushed branch — 2026-10-06 03:46 UTC
+
+The SignalR log-broadcast task and the async-void options-change callback are
+now observed through `TaskObservation`, with failure-injection regressions and
+permanent source guards. Both release fragments are in the validated `.344`
+to `HEAD` preview. The full .NET Release suite passes 6,111 tests (74
+application, 5,748 unit, 289 integration), `./bin/lint` passes, and the
+post-push remediation baseline passes with 216 callback/event, 429 remote-text,
+12,448 red-team, 834 mutable-ownership, 25 async-void, and 0 silent-catch
+candidates. Continue only confirmed code-actionable remediation; T-908's
+sender/authentication design, a shared cross-node Party ID authority, live
+device/assistive-tech checks, WAN/background-tab measurements, and the
+original bootstrap network-change cause remain explicitly gated. Then prepare
+the `.345` changelog section, run the release gate, tag, and verify publishers.
