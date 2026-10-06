@@ -88,7 +88,7 @@
   defects.
 - [x] Rerun the complete post-push remediation baseline after updating the
   active backlog; all checks pass with counts 25 async-void, 0 silent-catch,
-  215 callback/event, 429 remote-text, 12,442 red-team, and 834 mutable
+  215 callback/event, 429 remote-text, 12,448 red-team, and 834 mutable
   ownership candidates.
 - [x] Verify every first-party application, test, and build-tool project under
   `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
@@ -97,6 +97,11 @@
   .NET Standard assets); NuGet selects it as compatible with `net10.0`. There
   is no first-party `net6.0` target to retarget. Keep the provenance-checked
   slskNet.Runtime mirror unchanged.
+- [x] Observe the SignalR task started by `Program.LogEmitted`; add a
+  failure-injection regression and a remediation guard so asynchronous log
+  delivery faults are reported. Application lifecycle tests pass 18/18, and
+  the full .NET Release suite passes 6,110 tests (74 application, 5,747 unit,
+  289 integration). `./bin/lint` passes.
 - [x] Replace all 94 raw PodCore exception logger calls with escaped exception
   text and escaped dynamic string fields while preserving structured event
   values and operation results.

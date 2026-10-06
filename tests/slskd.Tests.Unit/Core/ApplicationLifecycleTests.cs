@@ -79,6 +79,72 @@ public class ApplicationLifecycleTests
     }
 
     [Fact]
+    public void ProgramLogEmitted_ObservesSignalRSendFailure()
+    {
+        var sink = new CapturingLogSink();
+        var originalLogger = Log.Logger;
+        using var logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+        Log.Logger = logger;
+
+        var logClient = new Mock<IClientProxy>();
+        logClient
+            .Setup(client => client.SendCoreAsync(
+                It.IsAny<string>(),
+                It.IsAny<object?[]>(),
+                It.IsAny<System.Threading.CancellationToken>()))
+            .Returns(Task.FromException(new InvalidOperationException("send failed")));
+        var logHubClients = new Mock<IHubClients>();
+        logHubClients.SetupGet(clients => clients.All).Returns(logClient.Object);
+        var logsHubContext = new Mock<IHubContext<LogsHub>>();
+        logsHubContext.SetupGet(context => context.Clients).Returns(logHubClients.Object);
+
+        Application? application = null;
+        try
+        {
+            application = CreateApplication(
+                new OptionsAtStartup(),
+                new TestOptionsMonitor<Options>(new Options()),
+                new ManagedState<State>(),
+                new ManagedState<ShareState>(),
+                new ManagedState<RelayState>(),
+                out _,
+                out _,
+                out _,
+                logsHubContext: logsHubContext);
+
+            var raiseMethod = typeof(Program).GetMethod(
+                "RaiseLogEmitted",
+                BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Program.RaiseLogEmitted method was not found.");
+            raiseMethod.Invoke(null, [new LogRecord
+            {
+                Context = "test",
+                Message = "test",
+                Timestamp = DateTime.UtcNow,
+            }]);
+
+            var failure = Assert.Single(
+                sink.Events,
+                logEvent => logEvent.RenderMessage().StartsWith("Failed to emit log record to connected clients:", StringComparison.Ordinal));
+            Assert.Contains("send failed", failure.RenderMessage(), StringComparison.Ordinal);
+            logClient.Verify(
+                client => client.SendCoreAsync(
+                    LogHubMethods.Log,
+                    It.IsAny<object?[]>(),
+                    It.IsAny<System.Threading.CancellationToken>()),
+                Times.Once);
+        }
+        finally
+        {
+            application?.Dispose();
+            Log.Logger = originalLogger;
+        }
+    }
+
+    [Fact]
     public void CreateStartupSoulseekClientOptionsPatch_ConfiguresIncomingConnectionOptions()
     {
         var patch = Application.CreateStartupSoulseekClientOptionsPatch(
@@ -511,7 +577,8 @@ public class ApplicationLifecycleTests
         out Mock<IClientProxy> applicationHub,
         out Mock<ISoulseekClient> soulseekClient,
         out Mock<ISearchService> searchService,
-        Mock<slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService>? trafficAccounting = null)
+        Mock<slskd.Transfers.MultiSource.Metrics.ITrafficAccountingService>? trafficAccounting = null,
+        Mock<IHubContext<LogsHub>>? logsHubContext = null)
     {
         applicationHub = new Mock<IClientProxy>();
         soulseekClient = new Mock<ISoulseekClient>();
@@ -590,7 +657,7 @@ public class ApplicationLifecycleTests
             Mock.Of<INotificationService>(),
             relayService.Object,
             appHubContext.Object,
-            Mock.Of<IHubContext<LogsHub>>(),
+            logsHubContext?.Object ?? Mock.Of<IHubContext<LogsHub>>(),
             transfersHub.Object,
             new EventBus(eventService),
             eventService,

@@ -42,6 +42,7 @@ namespace slskd
     using Microsoft.Extensions.Hosting;
     using Serilog;
     using Serilog.Events;
+    using slskd.Common.CodeQuality;
     using slskd.Common.Security;
     using slskd.Configuration;
     using slskd.Core.API;
@@ -220,7 +221,14 @@ namespace slskd
 
             LogHub = logHub;
             TransfersHub = transfersHub;
-            _programLogEmittedHandler = (_, log) => LogHub.EmitLogAsync(log);
+            _programLogEmittedHandler = (sender, log) =>
+            {
+                _ = TaskObservation.Observe(
+                    LogHub.EmitLogAsync(log),
+                    ex => Log.Error(
+                        "Failed to emit log record to connected clients: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
+            };
             Program.LogEmitted += _programLogEmittedHandler;
 
             EventBus = eventBus;

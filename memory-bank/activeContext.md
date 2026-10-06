@@ -19133,3 +19133,16 @@ open source-review queue, not a confirmed defect count. Run the full baseline
 again after this inventory update, then continue confirmed code-backed
 remediation. Do not create `.345` until the complete remediation/release gate
 passes and all current release notes validate.
+
+## Current state — Observe log broadcast failures — 2026-10-06 03:29 UTC
+
+The callback-boundary review found a concrete defect: `Application` discarded
+the `Task` from SignalR log broadcasts invoked by `Program.LogEmitted`.
+Failures now go through `TaskObservation` and are reported with sanitized
+exception text. Added a failed-send regression, a source guard, changelog text,
+and an operator-facing release-note fragment. Gotchas `0z1737` and `0z1738`
+have their required separate local documentation commits. Application
+lifecycle tests pass 18/18, and the .NET Release solution passes 6,110 tests
+(74 application, 5,747 unit, 289 integration). `./bin/lint` passes. Commit the
+fix, push, and rerun release-note and full remediation gates before continuing
+the remaining evidence-gated audit.

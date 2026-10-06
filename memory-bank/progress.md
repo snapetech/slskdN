@@ -18776,3 +18776,14 @@ inventory stale at 12,442. Refreshed the report: six new matches are false
 positives from test `sessionRef` identifiers, local filename fixtures, and
 accurate private-key tooltip guidance. The current red-team candidate count is
 12,448; this remains a review queue, not a count of confirmed defects.
+
+## 2026-10-06 03:29 UTC — Observe asynchronous log broadcasts
+
+`Program.LogEmitted` used a synchronous event handler that called the
+Task-returning SignalR broadcast API without observing its task. A failed send
+therefore bypassed `RaiseLogEmitted`'s synchronous exception handling. The
+handler now observes the send task and logs sanitized failure text. Added a
+rejected-SignalR-send regression and extended the async-side-effect source
+guard. The focused Application lifecycle suite passes 18/18, and the full
+.NET Release suite passes 6,110 tests (74 application, 5,747 unit, 289
+integration). `./bin/lint` passes.
