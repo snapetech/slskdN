@@ -176,6 +176,10 @@
 - [x] Verify `.344`'s exact Jammy AMD64 binary in Launchpad's Published
   Binaries API and the public apt index:
   `2026100520.slskdn.344-1ppa202610052137~jammy`; `.344` remains immutable.
+- [x] Prepare the `.345` changelog section and validate the `.344`-to-`HEAD`
+  preview. Generated stable release notes validate with 41 bullets from 18
+  curated fragments; the candidate tag is
+  `build-main-2026100521-slskdn.345`.
 - [ ] Finish remediation and the stable release gate, then create `.345` and
   verify all hosted artifacts before reporting the release complete.
 - [ ] Continue the code-backed whole-product remediation. T-908 lifecycle,

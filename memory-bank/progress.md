@@ -18817,3 +18817,11 @@ validates. The complete post-push remediation baseline passes with 25
 async-void, 0 silent-catch, 216 callback/event, 429 remote-text, 12,448
 red-team, and 834 mutable-ownership candidates. No count change was left
 unclassified.
+
+## 2026-10-06 03:48 UTC — Prepare stable `.345` release notes
+
+Moved the shipped `.344`-to-`HEAD` changelog entries into
+`2026100521-slskdn.345` and left `Unreleased` empty. The complete release-note
+range preview passes; generated notes validate with 41 bullets from 18
+curated fragments. Identity and GitHub target checks pass. The guarded release
+gate and hosted publisher/artifact verification remain.

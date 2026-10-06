@@ -19175,3 +19175,14 @@ sender/authentication design, a shared cross-node Party ID authority, live
 device/assistive-tech checks, WAN/background-tab measurements, and the
 original bootstrap network-change cause remain explicitly gated. Then prepare
 the `.345` changelog section, run the release gate, tag, and verify publishers.
+
+## Current state — Stable `.345` notes prepared — 2026-10-06 03:48 UTC
+
+The `.345` changelog section is prepared at
+`2026100521-slskdn.345`; `Unreleased` is empty. The `.344`-to-`HEAD` preview
+passes and the generated stable notes validate with 41 bullets from 18
+curated fragments. The full .NET Release suite (6,111 tests), repository lint,
+and post-push remediation baseline pass. Remaining release steps are to push
+this changelog-preparation commit, run the guarded release gate, create the
+authorized `build-main-2026100521-slskdn.345` tag, and verify the hosted release
+artifacts and publishers. Design/evidence-gated follow-ups remain tracked.
