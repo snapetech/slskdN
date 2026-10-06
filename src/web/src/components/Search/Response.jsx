@@ -16,6 +16,7 @@ import { getDirectoryContents } from '../../lib/users';
 import { formatBytes, getDirectoryName, getFileName } from '../../lib/util';
 import DiscoveryGraphModal from './DiscoveryGraphModal';
 import FileList from '../Shared/FileList';
+import TooltipButton from '../Shared/TooltipButton';
 import UserCard from '../Shared/UserCard';
 import UserNoteModal from '../Users/UserNoteModal';
 import React, { Component } from 'react';
@@ -510,14 +511,19 @@ class Response extends Component {
           position="top center"
           trigger={
             <Button
+              aria-label="Copy download action preview"
               icon="copy"
               onClick={() => this.copyPreview(preview)}
             />
           }
         />
-        <Button onClick={() => this.setState({ previewOpen: false })}>
+        <TooltipButton
+          onClick={() => this.setState({ previewOpen: false })}
+          tooltip="Close this preview and return to the selected files without starting a transfer."
+          type="button"
+        >
           Close
-        </Button>
+        </TooltipButton>
       </Modal.Actions>
     </Modal>
   );
@@ -554,12 +560,16 @@ class Response extends Component {
       files: selectedFiles,
       response,
     });
+    const downloadTooltip = noSelection
+      ? 'Select one or more files before starting a peer download.'
+      : `Queue the ${selectedFiles.length} selected file${selectedFiles.length === 1 ? '' : 's'} from ${response.username} for download; this starts Soulseek peer transfers.`;
 
     return (
       <Card.Content extra>
         <span>
           {!noSelection && this.renderActionPreview(preview, selectedSize)}
-          <Button
+          <TooltipButton
+            aria-label="Download selected files"
             basic={noSelection}
             color={noSelection ? 'grey' : 'green'}
             content="Download"
@@ -584,6 +594,7 @@ class Response extends Component {
             onClick={() =>
               this.download(this.props.response.username, selectedFiles)
             }
+            tooltip={downloadTooltip}
           />
           <Popup
             content="Preview the selected download action, route, files, size, and warnings without starting a transfer."
@@ -704,12 +715,19 @@ class Response extends Component {
           <Card.Content>
           <Card.Header className="result-card-header">
             <div className="result-card-identity">
-              <Icon
+              <TooltipButton
+                aria-label={`${isFolded ? 'Expand' : 'Collapse'} result from ${response.username}`}
+                basic
                 className="result-card-fold"
-                link
-                name={isFolded ? 'chevron right' : 'chevron down'}
+                compact
+                icon
                 onClick={this.handleToggleFolded}
-              />
+                tooltip={isFolded
+                  ? `Show ${response.username}'s files and result details.`
+                  : `Hide ${response.username}'s files and result details while keeping the peer in the search results.`}
+              >
+                <Icon name={isFolded ? 'chevron right' : 'chevron down'} />
+              </TooltipButton>
               <span
                 className={`result-card-presence ${free ? 'free' : 'queued'}`}
                 title={free ? 'Free upload slot available' : 'No free upload slot'}
@@ -886,13 +904,16 @@ class Response extends Component {
                 <UserNoteModal
                   onClose={onNoteUpdate}
                   trigger={
-                    <Icon
-                      color="grey"
-                      link
-                      name="pencil alternate"
+                    <TooltipButton
+                      aria-label={`Edit user note for ${response.username}`}
+                      basic
+                      compact
+                      icon
                       size="small"
-                      title="Edit User Note"
-                    />
+                      tooltip={`Open your local note and color rating for ${response.username}.`}
+                    >
+                      <Icon color="grey" name="pencil alternate" />
+                    </TooltipButton>
                   }
                   username={response.username}
                 />
@@ -903,36 +924,48 @@ class Response extends Component {
                 content="Open a Discovery Graph centered on this result so you can branch into adjacent identity and context instead of treating search as a flat list."
                 position="top center"
                 trigger={
-                  <Icon
+                  <Button
+                    aria-label={`Open Discovery Graph for ${response.username}`}
+                    basic
+                    compact
+                    icon
                     color="blue"
-                    link
-                    name="share alternate"
                     onClick={() => this.openDiscoveryGraph(this.buildFallbackGraphRequest())}
-                  />
+                  >
+                    <Icon name="share alternate" />
+                  </Button>
                 }
               />
               <Popup
                 content="Open the same result in atlas mode and browse a wider neighborhood with semantic zoom controls."
                 position="top center"
                 trigger={
-                  <Icon
+                  <Button
+                    aria-label={`Open Discovery Graph atlas for ${response.username}`}
+                    basic
+                    compact
+                    icon
                     color="teal"
-                    link
-                    name="crosshairs"
                     onClick={() => this.openDiscoveryGraph(this.buildFallbackGraphRequest())}
-                  />
+                  >
+                    <Icon name="crosshairs" />
+                  </Button>
                 }
               />
               <Popup
                 content="Add a local caution signal for this peer/result. This only affects your browser-side review context and does not publish a global reputation report."
                 position="top center"
                 trigger={
-                  <Icon
+                  <Button
+                    aria-label={`Report suspicious result from ${response.username}`}
+                    basic
+                    compact
+                    icon
                     color="orange"
-                    link
-                    name="exclamation triangle"
                     onClick={this.reportSuspiciousCandidate}
-                  />
+                  >
+                    <Icon name="exclamation triangle" />
+                  </Button>
                 }
               />
               <Popup
@@ -943,21 +976,29 @@ class Response extends Component {
                 }
                 position="top center"
                 trigger={
-                  <Icon
+                  <Button
+                    aria-label={`${isBlocked ? 'Unblock' : 'Block'} ${response.username}`}
+                    basic
+                    compact
+                    icon
                     color={isBlocked ? 'orange' : 'grey'}
-                    link
-                    name={isBlocked ? 'ban' : 'user cancel'}
                     onClick={isBlocked ? onUnblock : onBlock}
-                  />
+                  >
+                    <Icon name={isBlocked ? 'ban' : 'user cancel'} />
+                  </Button>
                 }
               />
-              <Icon
+              <TooltipButton
+                aria-label={`Hide ${response.username} from these search results`}
+                basic
                 className="close-button"
-                color="red"
-                link
-                name="close"
+                compact
+                icon
                 onClick={() => this.props.onHide()}
-              />
+                tooltip={`Hide ${response.username}'s result from this search view without blocking the user or changing the saved search.`}
+              >
+                <Icon color="red" name="close" />
+              </TooltipButton>
             </div>
           </Card.Header>
           <Card.Meta className="result-meta">

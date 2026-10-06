@@ -5,7 +5,7 @@ import * as searches from '../../../lib/searches';
 import SearchActionIcon from './SearchActionIcon';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Checkbox, Icon, Label, Popup, Table } from 'semantic-ui-react';
+import { Button, Checkbox, Icon, Label, Popup, Table } from 'semantic-ui-react';
 import { toast } from 'react-toastify';
 
 const sourceColors = {
@@ -193,13 +193,17 @@ const SearchListRow = ({
             content="Open a Discovery Graph for this search phrase so the query history becomes a browsable neighborhood."
             position="top center"
             trigger={
-              <Icon
+              <Button
+                aria-label={`Open Discovery Graph for ${search.searchText || search.id}`}
+                basic
+                compact
+                icon
                 color="blue"
-                link
-                name="crosshairs"
                 onClick={handleOpenGraph}
                 style={{ marginLeft: '0.5em' }}
-              />
+              >
+                <Icon name="crosshairs" />
+              </Button>
             }
           />
         </Table.Cell>

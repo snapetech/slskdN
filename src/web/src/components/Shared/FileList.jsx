@@ -5,6 +5,7 @@ import {
   getFileName,
 } from '../../lib/util';
 import React, { useMemo, useState } from 'react';
+import TooltipButton from './TooltipButton';
 import { Checkbox, Header, Icon, List, Table } from 'semantic-ui-react';
 
 const FileList = ({
@@ -55,22 +56,41 @@ const FileList = ({
         size="small"
       >
         <div className="filelist-title">
-          <Icon
-            link={!locked}
-            name={locked ? 'lock' : folded ? 'folder' : 'folder open'}
-            onClick={() => !locked && setFolded(!folded)}
-            size="large"
-          />
+          <TooltipButton
+            aria-label={locked
+              ? `${directoryName} is locked`
+              : `${folded ? 'Expand' : 'Collapse'} ${directoryName}`}
+            basic
+            className="filelist-action-button"
+            compact
+            disabled={locked}
+            icon
+            onClick={() => setFolded(!folded)}
+            tooltip={locked
+              ? `${directoryName} is locked by the peer and cannot be expanded.`
+              : folded
+                ? `Show the files inside ${directoryName}.`
+                : `Hide the files inside ${directoryName} while keeping this result open.`}
+          >
+            <Icon
+              name={locked ? 'lock' : folded ? 'folder' : 'folder open'}
+              size="large"
+            />
+          </TooltipButton>
           {directoryName}
 
           {Boolean(onClose) && (
-            <Icon
+            <TooltipButton
+              aria-label={`Close ${directoryName} file list`}
+              basic
               className="close-button"
-              color="red"
-              link
-              name="close"
+              compact
+              icon
               onClick={() => onClose()}
-            />
+              tooltip={`Close the ${directoryName} file list and return to the surrounding search results.`}
+            >
+              <Icon color="red" name="close" />
+            </TooltipButton>
           )}
         </div>
       </Header>

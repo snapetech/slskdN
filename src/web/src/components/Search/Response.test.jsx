@@ -2,8 +2,12 @@
 // Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 
-import { buildSearchItemActionPath } from './Response';
+import Response, { buildSearchItemActionPath } from './Response';
 import { buildPeerStreamUrl } from '../../lib/streaming';
+import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 
 describe('Search Response action routes', () => {
   it('encodes search and item identifiers per route segment', () => {
@@ -31,5 +35,32 @@ describe('Peer stream URLs', () => {
     expect(buildPeerStreamUrl('/api/v0/peer-streams/ticket-1')).toContain(
       '/api/v0/peer-streams/ticket-1',
     );
+  });
+});
+
+describe('Search Response actions', () => {
+  it('explains why download is disabled before files are selected', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <Response
+          response={{
+            files: [],
+            hasFreeUploadSlot: true,
+            lockedFiles: [],
+            username: 'alice',
+          }}
+          searchId="search-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const download = screen.getByRole('button', { name: 'Download selected files' });
+    expect(download).toBeDisabled();
+    await user.hover(download.parentElement);
+
+    expect(await screen.findByText(
+      'Select one or more files before starting a peer download.',
+    )).toBeInTheDocument();
   });
 });

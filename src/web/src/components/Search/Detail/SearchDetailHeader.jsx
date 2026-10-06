@@ -15,6 +15,7 @@ const RefreshButton = ({
 }) =>
   loaded && (
     <Button
+      aria-label="Run this search again"
       disabled={disabled || working}
       icon={isSmallScreen && !isTinyScreen}
       loading={creating}
@@ -29,13 +30,13 @@ const StopOrDeleteButton = ({
   isComplete,
   isSmallScreen,
   isTinyScreen,
-  loaded,
   removing,
   stopOrRemove,
   stopping,
   working,
 }) => (
   <Button
+    aria-label={isComplete ? 'Delete completed search' : 'Stop this search'}
     disabled={working}
     floated={isTinyScreen ? 'right' : undefined}
     icon={isSmallScreen && !isTinyScreen}
@@ -44,8 +45,7 @@ const StopOrDeleteButton = ({
     onClick={stopOrRemove}
   >
     <Icon name={isComplete ? 'trash alternate' : 'stop circle'} />
-    {(!isSmallScreen || isTinyScreen) &&
-      (loaded && isComplete ? 'Delete' : 'Stop')}
+    {(!isSmallScreen || isTinyScreen) && (isComplete ? 'Delete' : 'Stop')}
   </Button>
 );
 
@@ -92,7 +92,7 @@ const SearchDetailHeader = ({
         {!isTinyScreen && (
           <div className="search-detail-header-buttons">
             <Popup
-              content="Run the same search again and refresh the result pool."
+              content="Run the same query against Soulseek peers again to refresh the result pool."
               position="top center"
               trigger={
                 <span>
@@ -115,6 +115,7 @@ const SearchDetailHeader = ({
               trigger={
                 <span>
                   <Button
+                    aria-label="Open Discovery Graph for this search"
                     disabled={!loaded}
                     icon={isSmallScreen && !isTinyScreen}
                     onClick={onOpenGraph}
@@ -135,7 +136,6 @@ const SearchDetailHeader = ({
                     isComplete={isComplete}
                     isSmallScreen={isSmallScreen}
                     isTinyScreen={isTinyScreen}
-                    loaded={loaded}
                     removing={removing}
                     stopOrRemove={stopOrRemove}
                     stopping={stopping}
@@ -150,7 +150,7 @@ const SearchDetailHeader = ({
       {isTinyScreen && (
         <Segment>
           <Popup
-            content="Run the same search again and refresh the result pool."
+            content="Run the same query against Soulseek peers again to refresh the result pool."
             position="top center"
             trigger={
               <span>
@@ -170,31 +170,34 @@ const SearchDetailHeader = ({
           <Popup
             content="Open a Discovery Graph around this search phrase so the result set becomes a navigable neighborhood."
             position="top center"
-            trigger={
-              <span>
-                <Button disabled={!loaded} onClick={onOpenGraph}>
+              trigger={
+                <span>
+                  <Button
+                    aria-label="Open Discovery Graph for this search"
+                    disabled={!loaded}
+                    onClick={onOpenGraph}
+                  >
                   <Icon name="crosshairs" />
                   Discovery Graph
-                </Button>
-              </span>
-            }
+                  </Button>
+                </span>
+              }
           />
           <Popup
             content={isComplete ? 'Delete this finished search.' : 'Stop this in-progress search.'}
             position="top center"
-            trigger={
-              <span>
-                <StopOrDeleteButton
-                  isComplete={isComplete}
-                  isSmallScreen={isSmallScreen}
-                  isTinyScreen={isTinyScreen}
-                  loaded={loaded}
-                  removing={removing}
+              trigger={
+                <span>
+                  <StopOrDeleteButton
+                    isComplete={isComplete}
+                    isSmallScreen={isSmallScreen}
+                    isTinyScreen={isTinyScreen}
+                    removing={removing}
                   stopOrRemove={stopOrRemove}
                   stopping={stopping}
                   working={working}
-                />
-              </span>
+                  />
+                </span>
             }
           />
         </Segment>

@@ -47,6 +47,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   effects and identify their targets. Message tabs have separate
   keyboard-accessible close buttons, and room sorting matches its announced
   direction.
+- Search results identify stop, delete, fold, and visibility effects; shared
+  file listings explain folder selection and item actions.
 - Pod management, content-linking, and shadow-index endpoints now propagate
   caller cancellation instead of reporting canceled requests as HTTP 500 errors.
 - Pod content lookup propagates caller cancellation and escapes MusicBrainz
