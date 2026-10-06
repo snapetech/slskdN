@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1729. Re-hover After Dynamic Tooltip Content Changes (2026-10-06)
+
+**What went wrong:** A UI regression hovered a toggle, clicked it to change its
+state, then expected a new tooltip while the pointer stayed over the same
+trigger. The test failed because no second pointer-enter event occurred.
+
+**Why:** The control updates its popup content when its state changes, but a
+click does not guarantee that the tooltip reopens or receives another hover
+event. The test was asserting a new hover without moving the pointer away.
+
+**Prevention:** After an action changes the content shown by a tooltip, unhover
+the trigger and hover it again before asserting the updated guidance. Keep the
+separate action assertion so hover-only checks do not conceal a state change.
+
 ### 0z1705. Keep Bulk Transfer Actions As Discoverable As Row Actions (2026-10-06)
 
 **What went wrong:** The transfer table wrapped each row action in a Semantic
