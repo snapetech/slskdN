@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1737. Observe Tasks Started From Synchronous Event Handlers (2026-10-06)
+
+**What went wrong:** The `Program.LogEmitted` event handler called the
+SignalR `EmitLogAsync` method from an `EventHandler` lambda and discarded its
+returned task. `RaiseLogEmitted` could catch a synchronous subscriber throw,
+but could not see an asynchronous send failure after the handler returned.
+
+**Why:** An expression-bodied lambda converted to `EventHandler` can invoke a
+task-returning method while silently discarding its result.
+
+**Prevention:** When a synchronous event must start asynchronous work, attach
+`TaskObservation` or await it through an observed background-task helper. Add
+a failure-injection regression so a rejected task is logged and cannot become
+an unobserved exception.
+
 ### 0z1736. Keep Release-Note Area Slugs Within The Validator Limit (2026-10-06)
 
 **What went wrong:** The MediaCore release-note fragment used an area slug
