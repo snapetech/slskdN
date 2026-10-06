@@ -1069,6 +1069,7 @@ const PlayerDiscoveryShelfModal = ({ onClose, open }) => {
                 content="Preview the shelf action. This does not move, delete, share, download, or publish anything."
                 trigger={
                   <Button
+                    aria-label={`Preview ${item.title || item.artist || 'discovery shelf item'}`}
                     data-testid={`player-shelf-preview-${item.key}`}
                     icon
                     onClick={() => previewAction(item)}
@@ -1083,6 +1084,7 @@ const PlayerDiscoveryShelfModal = ({ onClose, open }) => {
                 content="Remove this local review item from the browser-only shelf."
                 trigger={
                   <Button
+                    aria-label={`Remove ${item.title || item.artist || 'discovery shelf item'} from the discovery shelf`}
                     data-testid={`player-shelf-remove-${item.key}`}
                     icon
                     onClick={() => removeItem(item.key)}
@@ -1861,6 +1863,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem, onPlayNext }) => {
                             content="Play this collection item in the browser player."
                             trigger={
                               <Button
+                                aria-label={`Play ${item.title || item.fileName || item.contentId || 'track'} from this collection`}
                                 data-testid={`player-play-collection-item-${item.contentId}`}
                                 icon
                                 onClick={() => playAndClose(item)}

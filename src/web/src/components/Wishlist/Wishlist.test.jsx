@@ -142,6 +142,24 @@ describe('Wishlist', () => {
     expect(screen.queryByText('Edit Wishlist Item')).not.toBeInTheDocument();
   });
 
+  it('names linked search history actions for assistive technology', async () => {
+    wishlistAPI.getSearches.mockResolvedValue([{
+      id: 'search-1',
+      responseCount: 4,
+      searchText: 'rare album',
+      startedAt: '2026-10-05T18:00:00Z',
+    }]);
+    renderWishlist();
+
+    await screen.findByText('rare album');
+    fireEvent.click(screen.getByRole('button', { name: 'Show rare album search history' }));
+
+    expect(await screen.findByRole('button', { name: 'Open the full search for rare album' }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show rare album results inline' }))
+      .toBeInTheDocument();
+  });
+
   it('shows one delete confirmation with guidance in table and card views', async () => {
     wishlistAPI.getAll.mockResolvedValue([
       {

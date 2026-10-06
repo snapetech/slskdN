@@ -1,6 +1,6 @@
 import ShrinkableButton from './ShrinkableButton';
 import React from 'react';
-import { Button, Dropdown } from 'semantic-ui-react';
+import { Button, Dropdown, Popup } from 'semantic-ui-react';
 
 const ShrinkableDropdownButton = ({
   children,
@@ -9,14 +9,28 @@ const ShrinkableDropdownButton = ({
   hidden,
   icon,
   loading,
+  menuLabel,
   mediaQuery,
   onChange,
   onClick,
   options,
+  tooltip,
 }) => {
   if (hidden) {
     return null;
   }
+
+  const menu = (
+    <Dropdown
+      aria-label={menuLabel || (typeof children === 'string' ? `${children} options` : undefined)}
+      className="button icon"
+      disabled={disabled}
+      onChange={onChange}
+      options={options}
+      title={tooltip}
+      trigger={null}
+    />
+  );
 
   return (
     <Button.Group color={color}>
@@ -26,16 +40,16 @@ const ShrinkableDropdownButton = ({
         loading={loading}
         mediaQuery={mediaQuery}
         onClick={onClick}
+        tooltip={tooltip}
       >
         {children}
       </ShrinkableButton>
-      <Dropdown
-        className="button icon"
-        disabled={disabled}
-        onChange={onChange}
-        options={options}
-        trigger={null}
-      />
+      {tooltip ? (
+        <Popup
+          content={tooltip}
+          trigger={disabled ? <span>{menu}</span> : menu}
+        />
+      ) : menu}
     </Button.Group>
   );
 };

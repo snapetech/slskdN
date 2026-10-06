@@ -12,6 +12,7 @@ const PlayCollectionItemButton = ({ item, size = 'small' }) => {
       content="Play this item through the local stream endpoint and update your now-playing status."
       trigger={
         <Button
+          aria-label={`Play ${item.title || item.fileName || item.contentId || 'track'} in the browser player`}
           data-testid="player-play-item"
           icon
           onClick={() => playItem(item, { replaceQueue: true })}

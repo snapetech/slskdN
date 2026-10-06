@@ -164,12 +164,20 @@ const TrafficTicker = () => {
 
         {hasMore && (
           <div className="traffic-ticker-toggle">
-            <button
-              className="traffic-ticker-toggle-button"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? 'Show Less' : `Show ${activities.length - 10} More`}
-            </button>
+            <Popup
+              content={expanded
+                ? 'Collapse the activity list to its 10 most recent transfer events.'
+                : `Show ${activities.length - 10} older transfer events so you can review recent network activity.`}
+              trigger={(
+                <button
+                  className="traffic-ticker-toggle-button"
+                  onClick={() => setExpanded(!expanded)}
+                  type="button"
+                >
+                  {expanded ? 'Show Less' : `Show ${activities.length - 10} More`}
+                </button>
+              )}
+            />
           </div>
         )}
       </div>

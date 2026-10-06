@@ -1194,6 +1194,9 @@ describe('PlayerBar', () => {
     ).toBeInTheDocument();
     fireEvent.click(await screen.findByTestId('player-collection-row-collection-1'));
     expect(await screen.findByText('Collection stream.ogg')).toBeInTheDocument();
+    expect(screen.getByRole('button', {
+      name: 'Play Collection stream.ogg from this collection',
+    })).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByText('Close')[0]);
     fireEvent.click(screen.getByTestId('player-open-file-browser'));
@@ -1464,6 +1467,11 @@ describe('PlayerBar', () => {
     expect(screen.getByTestId('player-shelf-row-content:sha256:test')).toHaveTextContent(
       'Promote preview',
     );
+    expect(screen.getByRole('button', { name: 'Preview Local stream' }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('button', {
+      name: 'Remove Local stream from the discovery shelf',
+    })).toBeInTheDocument();
     expect(screen.getByTestId('player-shelf-policy-preview')).toHaveTextContent(
       '1 promote',
     );

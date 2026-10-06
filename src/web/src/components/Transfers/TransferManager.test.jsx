@@ -6,6 +6,7 @@ import '@testing-library/jest-dom';
 import TransferManager from './TransferManager';
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -178,6 +179,33 @@ describe('TransferManager reconciliation', () => {
       await Promise.resolve();
     });
 
+    expect(screen.getByTestId('transfer-table')).toHaveTextContent('1');
+  });
+
+  it('explains the transfer status filters without changing the queue on hover', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mocks.getChanges.mockResolvedValue({
+      counts: { download: 1, upload: 0 },
+      cursor: 100,
+      transfers: [
+        {
+          direction: 'Download',
+          filename: 'Music\\queued.flac',
+          id: 'queued-1',
+          state: 'Queued',
+          username: 'listener',
+        },
+      ],
+    });
+
+    render(<TransferManager direction="download" />);
+    await flush();
+    expect(mocks.getChanges).toHaveBeenCalledTimes(1);
+    const filter = screen.getByRole('button', { name: 'Queued (1)' });
+    await user.hover(filter);
+
+    expect(await screen.findByText(/Show only queued transfers/)).toBeInTheDocument();
+    expect(mocks.getChanges).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('transfer-table')).toHaveTextContent('1');
   });
 

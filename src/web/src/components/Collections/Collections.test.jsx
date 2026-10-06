@@ -170,4 +170,21 @@ describe('Collections', () => {
     )).toBeInTheDocument();
     expect(collectionsAPI.createCollection).not.toHaveBeenCalled();
   });
+
+  it('names collection pagination controls for assistive technology', async () => {
+    collectionsAPI.getCollections.mockResolvedValue({
+      data: Array.from({ length: 101 }, (_, index) => ({
+        id: `collection-${index}`,
+        itemCount: 0,
+        title: `Collection ${index}`,
+        type: 'Playlist',
+      })),
+    });
+    render(<Collections />);
+
+    expect(await screen.findByRole('button', { name: 'Previous collections page' }))
+      .toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next collections page' }))
+      .toBeEnabled();
+  });
 });

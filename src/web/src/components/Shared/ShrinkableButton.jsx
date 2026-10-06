@@ -8,62 +8,33 @@ const ShrinkableButton = ({
   loading,
   mediaQuery,
   tooltip,
+  'aria-label': ariaLabel,
   ...rest
 }) => {
   const shouldShrink = useMediaQuery({ query: mediaQuery });
-  const description = tooltip || children;
-
-  if (tooltip) {
-    const button = (
-      <Button
-        aria-label={shouldShrink ? tooltip : rest['aria-label']}
-        icon={shouldShrink}
-        title={tooltip}
-        {...rest}
-      >
-        <Icon
-          loading={loading}
-          name={icon}
-        />
-        {!shouldShrink && children}
-      </Button>
-    );
-
-    return (
-      <Popup
-        content={tooltip}
-        trigger={rest.disabled ? <span>{button}</span> : button}
-      />
-    );
-  }
-
-  if (!shouldShrink) {
-    return (
-      <Button {...rest}>
-        <Icon
-          loading={loading}
-          name={icon}
-        />
-        {children}
-      </Button>
-    );
-  }
-
+  const textLabel = typeof children === 'string' ? children.trim() : undefined;
+  const accessibleLabel = ariaLabel || textLabel ||
+    (typeof tooltip === 'string' ? tooltip : undefined);
   const button = (
     <Button
-      icon
+      aria-label={accessibleLabel}
+      icon={shouldShrink || undefined}
+      title={tooltip}
       {...rest}
     >
       <Icon
         loading={loading}
         name={icon}
       />
+      {!shouldShrink && children}
     </Button>
   );
 
+  if (!tooltip) return button;
+
   return (
     <Popup
-      content={description}
+      content={tooltip}
       trigger={rest.disabled ? <span>{button}</span> : button}
     />
   );

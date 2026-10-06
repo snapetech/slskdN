@@ -209,11 +209,13 @@ const TransfersHeader = ({
           mediaQuery="(max-width: 715px)"
           onChange={(_, data) => setRetryOption(data.value)}
           onClick={() => onRetryAll(retryableFiles)}
+          menuLabel="Choose downloads to retry"
           options={[
             { key: 'errored', text: 'Errored', value: 'Errored' },
             { key: 'cancelled', text: 'Cancelled', value: 'Cancelled' },
             { key: 'all', text: 'All', value: 'All' },
           ]}
+          tooltip="Retry every eligible download in the chosen status group. This sends new requests to Soulseek peers; use the arrow menu to choose Errored, Cancelled, or All."
         >
           {`Retry ${retryOption === 'All' ? retryOption : `All ${retryOption}`}`}
         </ShrinkableDropdownButton>
@@ -228,11 +230,13 @@ const TransfersHeader = ({
           onClick={() =>
             onCancelAll(cancellableFiles)
           }
+          menuLabel="Choose transfers to cancel"
           options={[
             { key: 'all', text: 'All', value: 'All' },
             { key: 'queued', text: 'Queued', value: 'Queued' },
             { key: 'inProgress', text: 'In Progress', value: 'In Progress' },
           ]}
+          tooltip="Cancel transfers in the chosen state group to stop queued or active peer traffic. Use the arrow menu to choose All, Queued, or In Progress."
         >
           {`Cancel ${cancelOption === 'All' ? cancelOption : `All ${cancelOption}`}`}
         </ShrinkableDropdownButton>
@@ -250,12 +254,14 @@ const TransfersHeader = ({
               { useBulkClear },
             )
           }
+          menuLabel="Choose transfer rows to remove"
           options={[
             { key: 'succeeded', text: 'Succeeded', value: 'Succeeded' },
             { key: 'errored', text: 'Errored', value: 'Errored' },
             { key: 'cancelled', text: 'Cancelled', value: 'Cancelled' },
             { key: 'completed', text: 'Complete', value: 'Completed' },
           ]}
+          tooltip="Remove matching transfer rows from this list; completed files remain on disk. Use the arrow menu to choose which result group to remove."
         >
           {`Remove All ${removeOption === 'Completed' ? 'Complete' : removeOption}`}
         </ShrinkableDropdownButton>

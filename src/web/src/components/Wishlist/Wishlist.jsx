@@ -253,6 +253,7 @@ const WishlistItemRow = ({
                 position="top center"
                 trigger={
                   <Button
+                    aria-label={`View latest search results for ${item.searchText}`}
                     compact
                     icon="search"
                     size="tiny"
@@ -267,9 +268,10 @@ const WishlistItemRow = ({
               content="Clear this item's new-results badge without opening its search history."
               position="top center"
               trigger={
-                <Button
-                  compact
-                  icon="check"
+                  <Button
+                    aria-label={`Mark ${item.searchText} results as viewed`}
+                    compact
+                    icon="check"
                   onClick={handleMarkViewedClick}
                   size="tiny"
                   title="Mark viewed"
@@ -401,6 +403,7 @@ const WishlistItemRow = ({
                               position="top center"
                               trigger={
                                 <Button
+                                  aria-label={`Open the full search for ${item.searchText}`}
                                   compact
                                   icon="external"
                                   size="mini"
@@ -413,6 +416,9 @@ const WishlistItemRow = ({
                             position="top center"
                             trigger={
                               <Button
+                                aria-label={expandedSearchId === s.id
+                                  ? `Hide ${item.searchText} results inline`
+                                  : `Show ${item.searchText} results inline`}
                                 compact
                                 icon={expandedSearchId === s.id ? 'angle up' : 'angle down'}
                                 loading={loadingResults && expandedSearchId === s.id}
@@ -695,6 +701,7 @@ const WishlistItemCard = ({
                 position="top center"
                 trigger={
                   <Button
+                    aria-label={`Mark ${item.searchText} results as viewed`}
                     compact
                     icon="check"
                     onClick={handleMarkViewedClick}
@@ -803,6 +810,7 @@ const WishlistItemCard = ({
                               position="top center"
                               trigger={
                                 <Button
+                                  aria-label={`Open the full search for ${item.searchText}`}
                                   compact
                                   icon="external"
                                   size="mini"
@@ -815,6 +823,9 @@ const WishlistItemCard = ({
                             position="top center"
                             trigger={
                               <Button
+                                aria-label={expandedSearchId === s.id
+                                  ? `Hide ${item.searchText} results inline`
+                                  : `Show ${item.searchText} results inline`}
                                 compact
                                 icon={expandedSearchId === s.id ? 'angle up' : 'angle down'}
                                 loading={loadingResults && expandedSearchId === s.id}
@@ -1149,6 +1160,7 @@ const WishlistModal = ({ item, onClose, onSave }) => {
                             content="Allow this peer folder to appear again in future runs of this wishlist item."
                             trigger={
                               <Button
+                                aria-label={`Restore ${rule.username} ${rule.directory} to wishlist results`}
                                 compact
                                 icon="undo"
                                 onClick={() => restoreIgnoredResult(rule)}
@@ -1981,6 +1993,7 @@ const Wishlist = () => {
                 content="Enable the selected wishlist searches so scheduled runs can check them again."
                 trigger={
                   <Button
+                    aria-label="Enable selected wishlist searches"
                     compact
                     icon="play"
                     onClick={handleBulkEnable}
@@ -1992,6 +2005,7 @@ const Wishlist = () => {
                 content="Pause scheduled runs for all selected wishlist searches."
                 trigger={
                   <Button
+                    aria-label="Pause selected wishlist searches"
                     compact
                     icon="pause"
                     onClick={handleBulkDisable}
@@ -2003,6 +2017,7 @@ const Wishlist = () => {
                 content="Delete selected wishlist searches after confirmation when they are no longer needed."
                 trigger={
                   <Button
+                    aria-label="Delete selected wishlist searches"
                     compact
                     color="red"
                     icon="trash"

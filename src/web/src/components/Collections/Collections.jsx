@@ -497,6 +497,7 @@ export default class Collections extends Component {
                 content="Show the previous page of collections without reloading the route."
                 trigger={
                   <Button
+                    aria-label="Previous collections page"
                     disabled={currentCollectionPage <= 1}
                     icon="chevron left"
                     onClick={() => this.setState({ collectionPage: currentCollectionPage - 1 })}
@@ -508,6 +509,7 @@ export default class Collections extends Component {
                 content="Show the next page of collections without rendering the entire list at once."
                 trigger={
                   <Button
+                    aria-label="Next collections page"
                     disabled={currentCollectionPage >= collectionPages}
                     icon="chevron right"
                     onClick={() => this.setState({ collectionPage: currentCollectionPage + 1 })}
@@ -635,6 +637,7 @@ export default class Collections extends Component {
                       content="Show the previous page of collection items."
                       trigger={
                         <Button
+                          aria-label="Previous collection items page"
                           disabled={currentItemPage <= 1}
                           icon="chevron left"
                           onClick={() => this.setState({ collectionItemPage: currentItemPage - 1 })}
@@ -646,6 +649,7 @@ export default class Collections extends Component {
                       content="Show the next page of collection items without rendering the entire collection at once."
                       trigger={
                         <Button
+                          aria-label="Next collection items page"
                           disabled={currentItemPage >= itemPages}
                           icon="chevron right"
                           onClick={() => this.setState({ collectionItemPage: currentItemPage + 1 })}

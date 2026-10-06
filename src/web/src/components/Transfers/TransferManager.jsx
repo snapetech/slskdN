@@ -791,16 +791,23 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
         <div className="transfer-filter-bar">
           <div className="transfer-filter-chips">
             {STATUS_FILTERS.map((filter) => (
-              <button
-                className={`transfer-chip${
-                  statusFilter === filter.key ? ' is-active' : ''
-                }`}
+              <Popup
+                content={filter.key === 'all'
+                  ? 'Show transfers in every status.'
+                  : `Show only ${filter.label.toLowerCase()} transfers so you can focus on that part of the queue.`}
                 key={filter.key}
-                onClick={() => updateViewState({ statusFilter: filter.key })}
-                type="button"
-              >
-                {`${filter.label} (${statusCounts[filter.key] ?? 0})`}
-              </button>
+                trigger={(
+                  <button
+                    className={`transfer-chip${
+                      statusFilter === filter.key ? ' is-active' : ''
+                    }`}
+                    onClick={() => updateViewState({ statusFilter: filter.key })}
+                    type="button"
+                  >
+                    {`${filter.label} (${statusCounts[filter.key] ?? 0})`}
+                  </button>
+                )}
+              />
             ))}
           </div>
           <Input
