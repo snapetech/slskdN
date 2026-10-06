@@ -31,6 +31,19 @@ requirement was not applied consistently.
 disabled controls. Wrap disabled buttons so their help remains hoverable, and
 pin each action's guidance in a component regression.
 
+### 0z1707. Remount TooltipButton When Disabled State Changes (2026-10-06)
+
+**What went wrong:** A tooltip button used a `<span>` trigger while disabled and
+the button itself while enabled. When async loading finished, Semantic UI's
+`Popup` retained the old disabled trigger and rendered a second live button.
+
+**Why:** The Popup trigger element changed type during a state update, but the
+Popup instance stayed mounted and retained part of its previous trigger.
+
+**Prevention:** Give the Popup a key that changes with its disabled-trigger
+mode, or otherwise keep one stable trigger tree. Test transitions from disabled
+to enabled and assert the old control is removed, not just each state alone.
+
 ### 0z1704. Alias Types When Test Namespaces Shadow Imports (2026-10-06)
 
 **What went wrong:** A new policy-collection regression used an unqualified
