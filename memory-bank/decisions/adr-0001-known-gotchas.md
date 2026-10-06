@@ -19,6 +19,20 @@ task-returning method while silently discarding its result.
 a failure-injection regression so a rejected task is logged and cannot become
 an unobserved exception.
 
+### 0z1738. Assert Stable Log Prefixes Separately From Exception Formatting (2026-10-06)
+
+**What went wrong:** A log regression expected an exception message to follow
+the log prefix immediately, but the sanitizer preserved the exception type
+between the prefix and the message.
+
+**Why:** The test coupled its assertion to the exact formatting of
+`Exception.ToString()` instead of checking the stable event text and exception
+detail as separate parts.
+
+**Prevention:** Assert the stable log prefix and the required sanitized
+exception content independently; do not assume the exception message omits its
+type or stack formatting.
+
 ### 0z1736. Keep Release-Note Area Slugs Within The Validator Limit (2026-10-06)
 
 **What went wrong:** The MediaCore release-note fragment used an area slug
