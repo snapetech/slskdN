@@ -40331,3 +40331,16 @@ reserved explanatory popups for only a subset of the controls.
 **Prevention:** Use `TooltipButton` for standalone actions while preserving
 existing `Popup` triggers. Cover every visible action with tooltip tests and
 verify hovering does not invoke mutations.
+
+### 0z1714. Make Wishlist Side Effects Clear Before Activation (2026-10-06)
+
+**What went wrong:** Wishlist search, edit, delete, bulk-filter, and modal
+actions relied on short native titles or had no hover guidance. The manual
+search action also contacts Soulseek peers without explaining that impact.
+
+**Why:** Visible button labels and browser title attributes were treated as
+equivalent to the shared explanatory popup pattern.
+
+**Prevention:** Give each standalone Wishlist action a `TooltipButton` with
+its effect and purpose. State network and data-removal impacts, preserve
+existing explanatory Popup triggers, and verify hover never starts an action.
