@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1733. Keep String Sort Direction Aligned With The Selected Order (2026-10-06)
+
+**What went wrong:** Room-name sorting used opposite string-comparison
+directions for the `asc` and `desc` branches, so the visible order disagreed
+with the selected sort direction. Numeric sorting used the expected direction.
+
+**Why:** The string branch reversed the `localeCompare` operands separately
+instead of computing one comparison and applying the requested direction.
+
+**Prevention:** Compute one ascending string comparison and invert its sign
+only for descending order. Pin both string directions and a numeric direction
+with list-order regressions.
+
 ### 0z1732. Do Not Use Icons As Action Controls (2026-10-06)
 
 **What went wrong:** Several clickable Semantic UI Icons handled tab closure,
