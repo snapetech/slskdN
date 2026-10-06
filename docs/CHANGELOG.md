@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026100521-slskdn.345] — 2026-10-05
+
 ### Fixed
 
 - Advanced search presets and modal actions, Soulseek Native Discovery
