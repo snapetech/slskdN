@@ -28,11 +28,16 @@
 
 ### Post-.344 HTTP, DHT, and Pod diagnostic-boundary hardening; .NET 10 audit — 2026-10-05
 
+- [x] Add Semantic UI explanations to selected-transfer Retry, Cancel, and
+  Remove controls and request-details modal actions, verify the guidance in
+  component tests, and record the user-facing change in the release notes.
 - [x] Verify every first-party application, test, and build-tool project under
   `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
   project and selected NuGet asset target `net8.0`, which the .NET 10 app can
-  consume; there is no active first-party or selected `net6.0` target to
-  retarget. Keep the provenance-checked slskNet.Runtime mirror unchanged.
+  consume. MonoTorrent's Mono.Nat dependency supplies a `net6.0` asset (plus
+  .NET Standard assets); NuGet selects it as compatible with `net10.0`. There
+  is no first-party `net6.0` target to retarget. Keep the provenance-checked
+  slskNet.Runtime mirror unchanged.
 - [x] Replace all 94 raw PodCore exception logger calls with escaped exception
   text and escaped dynamic string fields while preserving structured event
   values and operation results.

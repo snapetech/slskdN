@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Header, Icon, Input, Label, Modal, Table } from 'semantic-ui-react';
+import { Header, Icon, Input, Label, Modal, Table } from 'semantic-ui-react';
 import { toast } from 'react-toastify';
 import * as downloadRequests from '../../lib/downloadRequests';
+import TooltipButton from '../Shared/TooltipButton';
 
 const formatTime = (value) => {
   if (!value) return '—';
@@ -90,15 +91,16 @@ const RequestDetailModal = ({ open, requestId, onClose }) => {
                 placeholder="Display label"
                 value={nameDraft}
               />
-              <Button
+              <TooltipButton
                 disabled={!nameDraft.trim() || nameDraft.trim() === request.name}
                 loading={renaming}
                 onClick={handleRename}
                 primary
                 size="small"
+                tooltip="Save the changed display label for this request."
               >
                 Save
-              </Button>
+              </TooltipButton>
             </div>
 
             <Header as="h5" style={{ marginBottom: '0.25em' }}>Status</Header>
@@ -148,11 +150,20 @@ const RequestDetailModal = ({ open, requestId, onClose }) => {
       </Modal.Content>
       <Modal.Actions>
         {request && request.state !== 'Completed' && request.state !== 'Cancelled' && (
-          <Button color="red" onClick={handleCancel}>
+          <TooltipButton
+            color="red"
+            onClick={handleCancel}
+            tooltip="Cancel the current attempt and mark this request cancelled."
+          >
             Cancel request
-          </Button>
+          </TooltipButton>
         )}
-        <Button onClick={onClose}>Close</Button>
+        <TooltipButton
+          onClick={onClose}
+          tooltip="Close these request details and return to transfers."
+        >
+          Close
+        </TooltipButton>
       </Modal.Actions>
     </Modal>
   );

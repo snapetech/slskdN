@@ -509,9 +509,21 @@ const TransferTable = ({
         <div className="transfer-bulk-bar">
           <span>{`${selectedFiles.length} selected`}</span>
           <Button.Group size="small">
-            <Button color="green" content="Retry" icon="redo" onClick={onRetrySelected} />
-            <Button color="red" content="Cancel" icon="x" onClick={onCancelSelected} />
-            <Button content="Remove" icon="trash alternate" onClick={onRemoveSelected} />
+            <Popup
+              content={`Retry all ${selectedFiles.length} selected transfers.`}
+              position="top center"
+              trigger={<Button color="green" content="Retry" icon="redo" onClick={onRetrySelected} />}
+            />
+            <Popup
+              content={`Cancel all ${selectedFiles.length} selected transfers.`}
+              position="top center"
+              trigger={<Button color="red" content="Cancel" icon="x" onClick={onCancelSelected} />}
+            />
+            <Popup
+              content={`Remove all ${selectedFiles.length} selected transfers from the list.`}
+              position="top center"
+              trigger={<Button content="Remove" icon="trash alternate" onClick={onRemoveSelected} />}
+            />
           </Button.Group>
         </div>
       )}

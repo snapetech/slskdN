@@ -27,7 +27,7 @@ describe('TransferTable', () => {
     vi.unstubAllGlobals();
   });
 
-  const renderTable = (transfers = []) => render(
+  const renderTable = (transfers = [], selectedFiles = []) => render(
     <MemoryRouter>
       <TransferTable
         direction="download"
@@ -40,7 +40,7 @@ describe('TransferTable', () => {
         onRetrySelected={vi.fn()}
         onSelectAll={vi.fn()}
         onSelectionChange={vi.fn()}
-        selectedFiles={[]}
+        selectedFiles={selectedFiles}
         selectedKeys={new Set()}
         transfers={transfers}
       />
@@ -53,6 +53,21 @@ describe('TransferTable', () => {
     expect(
       screen.getByRole('button', { name: 'Choose transfer table columns' }),
     ).toBeInTheDocument();
+  });
+
+  it('explains the scope of each selected-transfer action', async () => {
+    renderTable([], [{ id: 'transfer-1' }, { id: 'transfer-2' }]);
+
+    for (const [label, tooltip] of [
+      ['Retry', 'Retry all 2 selected transfers.'],
+      ['Cancel', 'Cancel all 2 selected transfers.'],
+      ['Remove', 'Remove all 2 selected transfers from the list.'],
+    ]) {
+      const button = screen.getByRole('button', { name: label });
+      fireEvent.mouseEnter(button);
+
+      expect(await screen.findByText(tooltip)).toBeInTheDocument();
+    }
   });
 
   it('applies each resize movement from the drag-start width', () => {

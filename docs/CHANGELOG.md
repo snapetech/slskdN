@@ -24,6 +24,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Fixed
 
+- Selected transfer actions and request details modal controls now explain
+  what they do before you use them.
 - Pod management, content-linking, and shadow-index endpoints now propagate
   caller cancellation instead of reporting canceled requests as HTTP 500 errors.
 - Pod content lookup propagates caller cancellation and escapes MusicBrainz

@@ -1,4 +1,32 @@
-## Current state — Freeze shared policy collections — 2026-10-06 00:22 UTC
+## Current state — Explain selected transfer actions — 2026-10-06 00:30 UTC
+
+The .NET 10 audit remains complete: all first-party app, test, and build-tool
+projects under `src`, `tests`, and `tools` target `net10.0`. MonoTorrent's
+upstream project/package asset is `net8.0`, which the app can consume. Its
+Mono.Nat 3.0.4 dependency has `net6.0` and .NET Standard assets; the `net10.0`
+restore selects its compatible `net6.0` asset. This does not change the app's
+target. The vendored slskNet.Runtime mirror remains at its pinned upstream
+target under its source-sync contract.
+
+TransferTable's selected Retry, Cancel, and Remove actions now have Semantic UI
+popups describing their effect and selection scope. The request-details modal
+Save, Cancel request, and Close controls now use tooltip-backed buttons,
+including hover help while Save is disabled. The focused tests pass 6/6; the
+full web suite and lint/build must be rerun after the modal update. The release
+fragment is updated; commit, push, and repository gates remain pending.
+
+The shared policy collection fix and prior diagnostic hardening are pushed and
+the post-push baseline passed. Stable `.344` is immutable and its six platform
+archives/support assets pass checksum and version verification. Its exact
+Launchpad source is Published, but Jammy AMD64 remains `Needs building`; do not
+submit `.345` until that exact binary is built and published. Then run the
+guarded stable release gate and verify hosted publishers/artifacts. Continue
+classifying confirmed code-backed findings; broad scanner counts remain review
+queues, while T-908 lifecycle, global Party ID authority, accessibility,
+WAN/resource measurements, hidden-tab throttling, and the original frontend
+network-change cause remain evidence-gated.
+
+## Prior state — Freeze shared policy collections — 2026-10-06 00:22 UTC
 
 The .NET 10 audit is complete: every first-party app, test, and build-tool
 project under `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent's

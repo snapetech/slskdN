@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Selected transfer actions and request details modal controls now explain
+  what they do before you use them.
 - Shared path, file, privacy, capability, and VPN ingress policies now use
   read-only collections, so callers cannot alter later validation or access
   decisions by mutating exposed arrays.

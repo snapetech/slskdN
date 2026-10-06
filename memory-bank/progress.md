@@ -18592,6 +18592,16 @@ The full Release test run passes 6,106 tests (74 application, 5,743 unit,
 artifact-verified; Launchpad still marks its exact Jammy AMD64 build `Needs
 building`, so `.345` remains held until the binary is published.
 
+## 2026-10-06 00:36 UTC — Explain transfer actions
+
+Added Semantic UI popups to the selected-transfer Retry, Cancel, and Remove
+buttons. The request-details modal's Save, Cancel request, and Close actions
+now use tooltip-backed buttons, including hover help for disabled Save. Focused
+component tests pass 6/6. Added the user-facing release fragment and changelog
+entries. The full web suite and repository lint need rerunning after the modal
+change; commit, push, full remediation baseline, and `.344` PPA publication
+check remain.
+
 ## 2026-10-06 00:22 UTC — Protect shared policy decisions from mutation
 
 Replaced 13 exposed mutable static policy collections with read-only wrappers
