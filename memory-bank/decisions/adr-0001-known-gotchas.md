@@ -40426,3 +40426,18 @@ and kept its own direct Popup wiring.
 while leaving the actual button disabled. Add a rendered regression that
 hovers the wrapper and verifies the guidance appears without invoking the
 action.
+
+### 0z1721. Give MediaCore Pod Buttons Purposeful Tooltip Copy (2026-10-06)
+
+**What went wrong:** MediaCore Pod actions used a custom wrapper that
+automatically copied each visible button label into its Popup. This made
+tooltips visible but did not explain why to run the action or what data,
+membership, or network state it changes.
+
+**Why:** The wrapper treated a repeated button label as sufficient guidance,
+even for advanced DHT and membership operations.
+
+**Prevention:** Pass action-specific tooltip text to the wrapper. Explain
+read-only lookups and local cleanup separately from DHT publication, peer
+messaging, membership changes, and key handling; mention network-visible data
+and purpose before mutation.
