@@ -18767,3 +18767,12 @@ through the guarded helper, and verify hosted artifacts. Physical/assistive
 technology evidence, WAN and resource measurements, actual background-tab
 throttling, T-908 sender lifecycle, cross-node Party ID authority, and the
 original frontend network-change cause remain open or evidence-gated.
+
+## 2026-10-06 03:13 UTC — Refresh the active review inventory
+
+Pushed the validated UI and .NET target audit batch to `snapetech/slskdN` at
+`17e9cea89`. The first post-push remediation baseline found the active red-team
+inventory stale at 12,442. Refreshed the report: six new matches are false
+positives from test `sessionRef` identifiers, local filename fixtures, and
+accurate private-key tooltip guidance. The current red-team candidate count is
+12,448; this remains a review queue, not a count of confirmed defects.

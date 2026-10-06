@@ -22,7 +22,7 @@ The media-server fixes are pushed in `ec8c0b7f2`; the refreshed active backlog
 and memory handoff are pushed in `46ed981b9`. The `.344`-to-`HEAD` release-note
 preview, local identity scan, target verification, and complete remediation
 baseline pass. Current candidate counts are 25 async-void, 0 silent-catch,
-215 callback/event, 429 remote-text, 12,442 red-team, and 834 mutable-ownership.
+215 callback/event, 429 remote-text, 12,448 red-team, and 834 mutable-ownership.
 
 Collections now explains standalone create, delete, add, and share actions.
 Wishlist table and card controls explain manual peer searches, search history,
@@ -19121,3 +19121,15 @@ Physical-device and assistive-technology evidence, WAN/resource measurement,
 actual hidden-tab throttling, T-908 sender lifecycle, cross-node Party ID
 authority, the original frontend network-change cause, and broad untriaged
 scanner queues remain open or evidence-gated.
+
+## Current state — Post-push backlog inventory refresh — 2026-10-06 03:13 UTC
+
+The validated UI batch, release fragments, and .NET target audit have been
+pushed to `snapetech/slskdN` at `17e9cea89`. A post-push remediation baseline
+found the active red-team candidate count stale. The refreshed count is
+12,448; six new matches are false positives from test `sessionRef` names,
+local filename fixtures, and private-key tooltip copy. The remainder is an
+open source-review queue, not a confirmed defect count. Run the full baseline
+again after this inventory update, then continue confirmed code-backed
+remediation. Do not create `.345` until the complete remediation/release gate
+passes and all current release notes validate.

@@ -80,9 +80,12 @@
   production build, Release .NET solution tests (6,109 tests: 74 app, 5,746
   unit, 289 integration), `./bin/lint`, package metadata validation, release
   note validator tests, and `git diff --check`.
-- [x] Refresh active-council counts to 429 remote-text and 12,442 red-team
+- [x] Refresh active-council counts to 429 remote-text and 12,448 red-team
   candidates after the post-push baseline found the prior inventory stale.
-  These scanner matches remain review queues, not confirmed defects.
+  The six new red-team matches are `sessionRef` test identifiers, local
+  filename fixtures, and accurate private-key tooltip copy; these are false
+  positives. The remaining scanner matches stay review queues, not confirmed
+  defects.
 - [x] Rerun the complete post-push remediation baseline after updating the
   active backlog; all checks pass with counts 25 async-void, 0 silent-catch,
   215 callback/event, 429 remote-text, 12,442 red-team, and 834 mutable
