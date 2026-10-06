@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1734. Preserve Semantic Button Content As Its Accessible Name (2026-10-06)
+
+**What went wrong:** `TooltipButton` forwarded Semantic UI's `content` prop to
+render the visible label, but inferred the button's `aria-label` without
+considering that prop. When a longer tooltip was also supplied, the tooltip
+text became the button's accessible name instead of its concise action label.
+
+**Why:** The shared wrapper considered child text and title but omitted the
+button content value from its accessible-name inference.
+
+**Prevention:** Infer the accessible name from explicit `aria-label`, title,
+visible children, then string content before using tooltip copy as a fallback.
+Test the role/name and tooltip independently for controls that use Semantic
+UI's `content` prop.
+
 ### 0z1733. Keep String Sort Direction Aligned With The Selected Order (2026-10-06)
 
 **What went wrong:** Room-name sorting used opposite string-comparison
