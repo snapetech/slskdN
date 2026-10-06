@@ -14,10 +14,6 @@ elif ! command -v rg >/dev/null 2>&1; then
 fi
 
 remote_name="${1:-origin}"
-remote_url="${2:-}"
-expected_origin="git@github.com:snapetech/slskdN.git"
-sync_local_sha=""
-sync_remote_sha=""
 
 PAT='github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|glpat-[A-Za-z0-9_-]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|(^|[^A-Za-z0-9])sk-(proj-)?[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|ya29\.[0-9A-Za-z_-]+|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|X-Plex-Token=[A-Za-z0-9._-]{20,}'
 ALLOW='REDACTED|EXAMPLE|example|xxxxxxxx|your[_ -]?token|<token>|sk-\.\.\.|ghp_\.\.\.'
@@ -49,12 +45,6 @@ declare -A seen_warn_path=()
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   [[ -z "${local_ref:-}" ]] && continue
-
-  if [[ "$remote_name" == "origin" && "$remote_url" == "$expected_origin" && \
-        "$local_ref" == "refs/heads/main" && "$remote_ref" == "refs/heads/main" ]]; then
-    sync_local_sha="$local_sha"
-    sync_remote_sha="$remote_sha"
-  fi
 
   if [[ "$scan_secrets" -eq 0 ]]; then
     continue
@@ -138,23 +128,6 @@ fi
 if [[ "$warned" -eq 1 ]]; then
   echo "pre-push secret scan: warning, suspicious paths in pushed commits (no secret pattern match):" >&2
   awk '/^warn:path:/ { sub(/^warn:path:/, "", $0); printf("- %s\n", $0) }' "$report_file" >&2
-fi
-
-if [[ -n "$sync_local_sha" && "$sync_local_sha" != "$zero40" ]]; then
-  package_prefix="packaging/yunohost/slskdn_ynh"
-  package_changed=1
-
-  if [[ "$sync_remote_sha" != "$zero40" ]] &&
-     git cat-file -e "$sync_remote_sha^{commit}" 2>/dev/null &&
-     git diff --quiet "$sync_remote_sha" "$sync_local_sha" -- "$package_prefix"; then
-    package_changed=0
-  fi
-
-  if [[ "$package_changed" -eq 1 ]] &&
-     ! "$(git rev-parse --show-toplevel)/scripts/sync-yunohost-package.sh" "$sync_local_sha"; then
-    echo "pre-push: YunoHost package sync failed; retry with ./scripts/sync-yunohost-package.sh" >&2
-    exit 1
-  fi
 fi
 
 exit 0

@@ -18858,3 +18858,11 @@ fast-forwarded into local `main`. Current whole-product follow-ups require the
 T-908 trust/serving design or external accessibility, WAN, resource,
 throttling, and network-change evidence; unreviewed scanner queues remain
 candidates, not confirmed defects.
+# 2026-10-06 — Retire YunoHost package publishing
+
+Removed YunoHost package synchronization from the pre-push hook and removed its
+sync script. The hook's independent secret scan remains active. Updated current
+operator and developer documentation, kept the package source and historical
+records, and closed the pending catalog-promotion task at maintainer direction.
+Release-note fragment added; checks and push status are recorded with the
+change's commit.

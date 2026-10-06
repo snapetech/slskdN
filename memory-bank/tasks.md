@@ -26,6 +26,15 @@
 
 ## Active Development
 
+### YunoHost publishing retirement — 2026-10-06
+
+- [x] Remove YunoHost package sync automation while retaining package source as
+  legacy reference material.
+  - Status: completed on 2026-10-06 at maintainer direction.
+  - Notes: removed the pre-push package sync while retaining its secret scan,
+    updated current documentation, and recorded that package promotion and
+    future updates are no longer pursued.
+
 ### Post-.344 HTTP, DHT, and Pod diagnostic-boundary hardening; .NET 10 audit — 2026-10-05
 
 - [x] Add Semantic UI explanations to selected-transfer Retry, Cancel, and
@@ -1333,13 +1342,11 @@
     phony and must remain unmerged. Its level-0 statuses are expected for that
     unmerged test PR and do not establish lifecycle test failures or success.
 
-- [ ] Review YunoHost package CI case results before promoting the catalog app
-  from `inprogress` or changing its branch.
-  - Status: catalog remains `testing`/`inprogress`; CI case details from the
-    unmerged gauge PR are not yet available for review.
-  - Priority: P2
-  - Notes: Do not merge the gauge PR or infer a package lifecycle result from
-    its expected level-0 status.
+- [x] Close the YunoHost package promotion follow-up after publishing was
+  retired on 2026-10-06.
+  - Status: no further catalog promotion or package publication is planned.
+  - Notes: preserve the shipped package source and historical validation record;
+    future package updates are outside the project's maintenance scope.
 
 - [x] Make the released VPN agent understandable and runnable across platforms.
   - Status: completed, validated, and merged to `main` (2026-09-25).

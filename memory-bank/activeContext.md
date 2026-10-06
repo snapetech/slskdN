@@ -19213,3 +19213,10 @@ complete. Keep T-908's sender trust and serving lifecycle, cross-node Party ID
 authority, real assistive-tech and device validation, WAN/resource and
 hidden-tab measurements, the original frontend network-change cause, and
 unconfirmed scanner candidates in the evidence/design-gated follow-up list.
+# Current task — YunoHost publishing retired — 2026-10-06
+
+The maintainer directed the project to stop publishing to the YunoHost
+ecosystem. Removed YunoHost synchronization from `.githooks/pre-push` and
+updated current docs and task records. The pre-push secret scan and checked-in
+package source remain. See the newest entry in `memory-bank/progress.md` for
+the task record. No YunoHost catalog promotion or package release is planned.

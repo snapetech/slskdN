@@ -13,7 +13,7 @@ completed workstream notes, and incident reports live under
 - [Configuration](config.md) - Complete configuration reference
 - [Building from Source](build.md) - Build instructions
 - [Docker Deployment](docker.md) - Container setup
-- [YunoHost Packaging](../packaging/yunohost/README.md) - YunoHost app package and catalog submission process
+- [Legacy YunoHost package](../packaging/yunohost/README.md) - archived package source and operator reference; no longer updated by the project
 - [Docker Download Permissions](docker-download-permissions.md) - UID/GID and bind-mount setup for writable download destinations
 - [Reverse Proxy Setup](reverse_proxy.md) - Running behind a proxy
 - [Known Issues](known_issues.md) - Current known problems
