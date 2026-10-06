@@ -1,4 +1,4 @@
-## Current state — Repair media-server readiness review and continue UI audit — 2026-10-06 01:24 UTC
+## Current state — Continue UI audit after clean remediation baseline — 2026-10-06 01:29 UTC
 
 The .NET 10 audit is complete. Every first-party application, test, and
 build-tool project under `src`, `tests`, and `tools` targets `net10.0`.
@@ -18,11 +18,15 @@ suite passes 41/41, the complete web suite passes 1,245 tests across 190 files,
 web lint/build pass, `dotnet test slskd.sln -c Release --no-restore` passes
 6,109 tests, and `./bin/lint` passes.
 
-This batch's release fragment and Unreleased changelog entry are ready. The
-product commit, release-note range preview, target verification, push, and
-post-push remediation baseline remain. Continue the code-backed UI audit;
-tooltip-scan counts are candidate queues because composed buttons can already
-receive tooltips from their callers.
+The release fragment, Unreleased changelog, product code, tests, and prior
+memory notes are committed and pushed in `ec8c0b7f2`. The `.344`-to-`HEAD`
+release-note preview, local identity scan, target verification, and push
+passed. The active backlog now records 429 remote-text and 12,442 red-team
+candidates; the complete post-push remediation baseline passes with all counts
+current (25 async-void, 0 silent-catch, 215 callback/event, 429 remote-text,
+12,442 red-team, 834 mutable ownership). The refreshed inventory and memory
+handoff still need their own commit and push. Continue the code-backed UI
+audit.
 
 Stable `.344` remains immutable and its six platform artifacts are verified.
 Its Jammy AMD64 PPA build is still the release gate for `.345`; do not create

@@ -18645,3 +18645,24 @@ AMD64 build is still `Needs building`. Committed and pushed as `08b080cd1`
 after the `.344` to `HEAD` preview passed; the complete post-push remediation
 baseline passes, including package/runtime checks, all diagnostic and policy
 guards, identity checks, and clean branch sync.
+
+## 2026-10-06 01:29 UTC — Repair media-server readiness review and button guidance
+
+Rebuilt the media-server readiness panel so operators can enter page-only URL,
+token-presence, path, remote mapping, and safety values. Path diagnostics now
+show status, guidance, and translated paths; the sync preview receives those
+values; contract review receives the sync readiness result; and the button is
+named `Review Contract` because it creates a report and performs no server
+action. Remote path mappings now match directory boundaries, so `/downloads`
+does not match `/downloads-old`. Added action tooltips for private messages,
+user notes, and Lidarr wanted sync. Gotchas `0z1694`–`0z1696` document the
+diagnostic result shape, accessible form names, and path-prefix boundary.
+
+Focused changed-component tests pass 41/41. The full Web suite passes 1,245
+tests across 190 files; Web lint/build, full Release .NET tests (6,109), and
+`./bin/lint` pass. Release-note preview, identity scan, GitHub target check, and
+push pass at `ec8c0b7f2`. The first post-push baseline found stale active
+inventory counts. Refreshed them to 429 remote-text and 12,442 red-team review
+candidates; the complete remediation baseline now passes. The refreshed
+inventory and memory handoff still need a commit and push. Stable `.344` remains
+immutable; wait for its exact Jammy AMD64 PPA binary before creating `.345`.

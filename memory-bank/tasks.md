@@ -46,6 +46,13 @@
   wanted-sync actions. Focused changed-component tests pass 41/41; the full
   web suite passes 1,245 tests across 190 files, web lint/build pass, the full
   .NET Release suite passes 6,109 tests, and `./bin/lint` passes.
+- [x] Refresh active-council counts to 429 remote-text and 12,442 red-team
+  candidates after the post-push baseline found the prior inventory stale.
+  These scanner matches remain review queues, not confirmed defects.
+- [x] Rerun the complete post-push remediation baseline after updating the
+  active backlog; all checks pass with counts 25 async-void, 0 silent-catch,
+  215 callback/event, 429 remote-text, 12,442 red-team, and 834 mutable
+  ownership candidates.
 - [x] Verify every first-party application, test, and build-tool project under
   `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
   project and selected NuGet asset target `net8.0`, which the .NET 10 app can
