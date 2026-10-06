@@ -1,8 +1,8 @@
 import Footer from './Shared/Footer';
+import TooltipButton from './Shared/TooltipButton';
 import brandLogo from '../assets/brand/slskdn-logo-lockup.png';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Button,
   Checkbox,
   Form,
   Grid,
@@ -118,7 +118,7 @@ const LoginForm = ({ error, loading, onLoginAttempt }) => {
                 onChange={() => handleChange('rememberMe', !rememberMe)}
               />
             </Segment>
-            <Button
+            <TooltipButton
               className="login-button"
               data-testid="login-submit"
               disabled={!ready || loading}
@@ -127,10 +127,12 @@ const LoginForm = ({ error, loading, onLoginAttempt }) => {
               onClick={() => onLoginAttempt(username, password, rememberMe)}
               primary
               size="large"
+              tooltip="Sign in with these credentials to open your authenticated dashboard."
+              type="button"
             >
               <Icon name="sign in" />
               Login
-            </Button>
+            </TooltipButton>
             {error && (
               <Message
                 className="login-failure"

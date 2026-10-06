@@ -37,6 +37,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Collection and Wishlist actions now explain what they change. Manual
   wishlist searches state that they contact Soulseek peers, and confirmation,
   bulk-selection, and paging controls make their scope clearer.
+- Pod workspace, VPN gateway, and port forwarding actions now explain their
+  effects; icon-only controls have accessible names, and forwarding guidance
+  states that its listener is limited to localhost.
+- MediaCore Pod and ContentID actions now explain their purpose and scope,
+  including DHT reads and writes, batch traffic, membership changes, and
+  private-key handling.
+- Browse, Chat, Rooms, Contacts, and Messages controls now explain their
+  effects and identify their targets. Message tabs have separate
+  keyboard-accessible close buttons, and room sorting matches its announced
+  direction.
 - Pod management, content-linking, and shadow-index endpoints now propagate
   caller cancellation instead of reporting canceled requests as HTTP 500 errors.
 - Pod content lookup propagates caller cancellation and escapes MusicBrainz

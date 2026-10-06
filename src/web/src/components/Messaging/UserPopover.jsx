@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Popup } from 'semantic-ui-react';
 
 const POPOVER_OFFSET = 6;
 const POPOVER_MARGIN = 8;
@@ -65,33 +66,48 @@ const UserPopover = ({ anchor, onBrowse, onClose, onMessage, onProfile, open, us
       <header className="msgv2-userpop-header">
         <span className="msgv2-userpop-name">{username}</span>
       </header>
-      <button
-        className="msgv2-userpop-action"
-        onClick={() => onProfile(username)}
-        role="menuitem"
-        type="button"
-      >
-        <span className="msgv2-userpop-glyph">i</span>
-        Open profile
-      </button>
-      <button
-        className="msgv2-userpop-action"
-        onClick={() => onBrowse(username)}
-        role="menuitem"
-        type="button"
-      >
-        <span className="msgv2-userpop-glyph">⤓</span>
-        Browse shares
-      </button>
-      <button
-        className="msgv2-userpop-action"
-        onClick={() => onMessage(username)}
-        role="menuitem"
-        type="button"
-      >
-        <span className="msgv2-userpop-glyph">@</span>
-        Send DM
-      </button>
+      <Popup
+        content={`Open ${username}'s profile to view available user details.`}
+        trigger={(
+          <button
+            className="msgv2-userpop-action"
+            onClick={() => onProfile(username)}
+            role="menuitem"
+            type="button"
+          >
+            <span className="msgv2-userpop-glyph">i</span>
+            Open profile
+          </button>
+        )}
+      />
+      <Popup
+        content={`Request ${username}'s shared file list from Soulseek so you can browse their files.`}
+        trigger={(
+          <button
+            className="msgv2-userpop-action"
+            onClick={() => onBrowse(username)}
+            role="menuitem"
+            type="button"
+          >
+            <span className="msgv2-userpop-glyph">⤓</span>
+            Browse shares
+          </button>
+        )}
+      />
+      <Popup
+        content={`Open a direct-message tab with ${username} to send a private message.`}
+        trigger={(
+          <button
+            className="msgv2-userpop-action"
+            onClick={() => onMessage(username)}
+            role="menuitem"
+            type="button"
+          >
+            <span className="msgv2-userpop-glyph">@</span>
+            Send DM
+          </button>
+        )}
+      />
     </div>
   );
 };

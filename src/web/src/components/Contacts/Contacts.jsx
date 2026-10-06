@@ -357,6 +357,7 @@ class Contacts extends Component {
                   data-testid="contacts-create-invite-empty"
                   onClick={this.handleCreateInvite}
                   primary
+                  tooltip="Generate a 24-hour invite link and QR code so a friend can add you."
                 >
                   Create Invite
                 </Button>
@@ -402,6 +403,7 @@ class Contacts extends Component {
                             content="Open a private chat with this contact."
                             trigger={
                               <Button
+                                aria-label={`Chat with ${contact.nickname || contact.peerId}`}
                                 icon="chat"
                                 onClick={() => this.openChat(contact)}
                               />
@@ -411,6 +413,7 @@ class Contacts extends Component {
                             content="Browse this contact's shared files."
                             trigger={
                               <Button
+                                aria-label={`Browse files shared by ${contact.nickname || contact.peerId}`}
                                 icon="folder open"
                                 onClick={() => this.browseContact(contact)}
                               />
@@ -420,6 +423,7 @@ class Contacts extends Component {
                             content="Remove this saved contact."
                             trigger={
                               <Button
+                                aria-label={`Remove ${contact.nickname || contact.peerId} as a contact`}
                                 icon="trash"
                                 negative
                                 onClick={() =>
@@ -484,7 +488,12 @@ class Contacts extends Component {
                   No nearby peers found
                 </Header>
                 <p>Make sure you're on the same network and mDNS is working.</p>
-                <Button onClick={this.loadNearby}>Refresh</Button>
+                <Button
+                  onClick={this.loadNearby}
+                  tooltip="Query local-network discovery again to refresh the nearby peers list."
+                >
+                  Refresh
+                </Button>
               </Segment>
             ) : (
               <List
@@ -564,6 +573,7 @@ class Contacts extends Component {
               data-testid="contacts-create-invite"
               onClick={this.handleCreateInvite}
               primary
+              tooltip="Generate a 24-hour invite link and QR code so a friend can add you."
             >
               <Icon name="plus" />
               Create Invite
@@ -572,11 +582,15 @@ class Contacts extends Component {
               as="button"
               data-testid="contacts-add-friend"
               onClick={() => this.setState({ addFriendModalOpen: true })}
+              tooltip="Open the form to add a contact from an invite link or QR code."
             >
               <Icon name="user plus" />
               Add Friend
             </Button>
-            <Button onClick={this.loadNearby}>
+            <Button
+              onClick={this.loadNearby}
+              tooltip="Query local-network discovery again to refresh the nearby peers list."
+            >
               <Icon name="refresh" />
               Refresh Nearby
             </Button>
@@ -714,6 +728,7 @@ class Contacts extends Component {
             <Modal.Actions>
               <Button
                 onClick={() => this.setState({ createInviteModalOpen: false })}
+                tooltip="Close the invite and return to your contacts list."
               >
                 Close
               </Button>
@@ -833,6 +848,7 @@ class AddFriendForm extends Component {
           data-testid="contacts-add-invite-submit"
           primary
           type="submit"
+          tooltip="Validate the invite link and save this peer to your contacts."
         >
           Add Contact
         </Button>

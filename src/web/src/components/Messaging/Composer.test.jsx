@@ -72,6 +72,25 @@ describe('Composer', () => {
     expect(input.value).toBe('/me ');
   });
 
+  it('explains command suggestions and why Send is disabled without sending', async () => {
+    const user = userEvent.setup();
+    const adapter = buildAdapter();
+    render(<ControlledComposer adapter={adapter} commands={COMMANDS} />);
+
+    const send = screen.getByRole('button', { name: 'Send' });
+    expect(send).toBeDisabled();
+    await user.hover(send.parentElement);
+    expect(await screen.findByText(/Enter a message in the active conversation/))
+      .toBeInTheDocument();
+
+    const input = screen.getByLabelText('Message composer');
+    fireEvent.change(input, { target: { value: '/me' } });
+    await user.hover(screen.getByRole('option', { name: /\/me <action>/ }));
+    expect(await screen.findByText(/Select to insert \/me <action> in the composer/))
+      .toBeInTheDocument();
+    expect(adapter.send).not.toHaveBeenCalled();
+  });
+
   it('routes /help to the onCommand handler instead of sending', async () => {
     const adapter = buildAdapter();
     const onCommand = vi.fn(({ name }) => name === 'help');

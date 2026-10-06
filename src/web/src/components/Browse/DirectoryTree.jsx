@@ -54,10 +54,29 @@ const DirectoryRow = memo(
         <List.Content>
           <div style={{ alignItems: 'center', display: 'flex', gap: '4px' }}>
             {hasChildren ? (
-              <Icon
-                name={isExpanded ? 'caret down' : 'caret right'}
-                onClick={() => onToggleExpand(directory.name)}
-                style={{ cursor: 'pointer', width: '16px' }}
+              <Popup
+                content={`${isExpanded ? 'Collapse' : 'Expand'} ${folderName} to ${isExpanded ? 'hide' : 'show'} its subfolders.`}
+                trigger={(
+                  <button
+                    aria-expanded={isExpanded}
+                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${folderName}`}
+                    onClick={() => onToggleExpand(directory.name)}
+                    style={{
+                      alignItems: 'center',
+                      background: 'transparent',
+                      border: 0,
+                      color: 'inherit',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      justifyContent: 'center',
+                      padding: 0,
+                      width: '16px',
+                    }}
+                    type="button"
+                  >
+                    <Icon name={isExpanded ? 'caret down' : 'caret right'} />
+                  </button>
+                )}
               />
             ) : (
               <span style={{ width: '16px' }} />
@@ -71,24 +90,29 @@ const DirectoryRow = memo(
               style={{ opacity: directory.locked ? 0.5 : 1 }}
             />
 
-            <span
-              onClick={() => onSelect(directory)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  onSelect(directory);
-                }
-              }}
-              role="button"
-              style={{
-                color: isActive ? '#2185d0' : 'inherit',
-                cursor: 'pointer',
-                fontWeight: isActive ? 'bold' : 'normal',
-                opacity: directory.locked ? 0.5 : 1,
-              }}
-              tabIndex={0}
-            >
-              {folderName}
-            </span>
+            <Popup
+              content={`Select folder ${folderName} to view its contents in the share browser.`}
+              trigger={(
+                <button
+                  onClick={() => onSelect(directory)}
+                  style={{
+                    background: 'transparent',
+                    border: 0,
+                    color: isActive ? '#2185d0' : 'inherit',
+                    cursor: 'pointer',
+                    font: 'inherit',
+                    fontWeight: isActive ? 'bold' : 'normal',
+                    margin: 0,
+                    opacity: directory.locked ? 0.5 : 1,
+                    padding: 0,
+                    textAlign: 'left',
+                  }}
+                  type="button"
+                >
+                  {folderName}
+                </button>
+              )}
+            />
 
             {level > 0 && (
               <Popup

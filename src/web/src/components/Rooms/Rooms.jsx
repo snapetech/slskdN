@@ -5,6 +5,7 @@ import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import RoomCreateModal from './RoomCreateModal';
 import RoomJoinModal from './RoomJoinModal';
 import RoomSession from './RoomSession';
+import TooltipButton from '../Shared/TooltipButton';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -325,14 +326,22 @@ const Rooms = () => {
         <Icon name={tab.roomName ? 'comments' : 'search'} />
         {tab.label}
         {tabs.length > 1 && (
-          <Icon
-            name="close"
+          <TooltipButton
+            aria-label={`Close ${tab.label} room tab`}
+            basic
+            className="room-tab-close"
+            compact
+            icon
             onClick={(event) => {
               event.stopPropagation();
               closeTabRef.current?.(tab.key);
             }}
+            size="mini"
             style={{ marginLeft: '8px', opacity: 0.7 }}
-          />
+            tooltip={`Close the ${tab.label} room tab without leaving the Soulseek room.`}
+          >
+            <Icon name="close" />
+          </TooltipButton>
         )}
       </Menu.Item>
     ),

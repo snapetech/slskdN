@@ -1,6 +1,7 @@
 import ChatSession from './ChatSession';
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as chat from '../../lib/chat';
 
@@ -85,6 +86,26 @@ describe('ChatSession', () => {
     expect(screen.getByText('alice')).toBeInTheDocument();
     expect(chat.get).not.toHaveBeenCalled();
     expect(chat.acknowledge).not.toHaveBeenCalled();
+  });
+
+  it('explains saved conversation deletion before removing the thread', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatSession
+        active={false}
+        onDelete={vi.fn()}
+        user={{ username: 'me' }}
+        username="alice"
+      />,
+    );
+
+    const remove = screen.getByRole('button', {
+      name: 'Delete saved conversation with alice',
+    });
+    await user.hover(remove);
+    expect(await screen.findByText(/Delete the saved direct-message conversation with alice/))
+      .toBeInTheDocument();
+    expect(chat.remove).not.toHaveBeenCalled();
   });
 
   it('uses an overlapping ISO timestamp cursor and merges message deltas', async () => {

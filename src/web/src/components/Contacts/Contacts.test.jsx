@@ -225,4 +225,75 @@ describe('Contacts', () => {
     expect(detect).toHaveBeenCalled();
     expect(close).toHaveBeenCalled();
   });
+
+  it('explains contact creation and discovery actions without activating them on hover', async () => {
+    const user = userEvent.setup();
+    const inviteTooltip = 'Generate a 24-hour invite link and QR code so a friend can add you.';
+    const nearbyTooltip = 'Query local-network discovery again to refresh the nearby peers list.';
+    renderContacts();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: 'Create Invite' })).toHaveLength(2);
+    });
+    for (const button of screen.getAllByRole('button', { name: 'Create Invite' })) {
+      await user.hover(button);
+      expect(await screen.findByText(inviteTooltip)).toBeInTheDocument();
+      await user.unhover(button);
+    }
+    expect(identityAPI.createInvite).not.toHaveBeenCalled();
+
+    const addFriend = screen.getByRole('button', { name: 'Add Friend' });
+    await user.hover(addFriend);
+    expect(await screen.findByText(
+      'Open the form to add a contact from an invite link or QR code.',
+    )).toBeInTheDocument();
+    expect(screen.queryByTestId('contacts-add-invite-input')).not.toBeInTheDocument();
+
+    await waitFor(() => expect(identityAPI.getNearby).toHaveBeenCalledTimes(1));
+    await user.hover(screen.getByRole('button', { name: 'Refresh Nearby' }));
+    expect(await screen.findByText(nearbyTooltip)).toBeInTheDocument();
+    expect(identityAPI.getNearby).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains invite modal actions without submitting or closing on hover', async () => {
+    const user = userEvent.setup();
+    renderContacts();
+
+    await user.click(await screen.findByRole('button', { name: 'Create Invite' }));
+    expect(await screen.findByTestId('contacts-invite-output')).toHaveValue(
+      'slskdn://invite/test-invite',
+    );
+
+    const close = screen.getByRole('button', { name: 'Close' });
+    await user.hover(close);
+    expect(await screen.findByText('Close the invite and return to your contacts list.'))
+      .toBeInTheDocument();
+    expect(screen.getByTestId('contacts-invite-output')).toBeInTheDocument();
+
+    await user.click(close);
+    await user.click(screen.getByRole('button', { name: 'Add Friend' }));
+    const submit = screen.getByRole('button', { name: 'Add Contact' });
+    await user.hover(submit);
+    expect(await screen.findByText('Validate the invite link and save this peer to your contacts.'))
+      .toBeInTheDocument();
+    expect(identityAPI.addContactFromInvite).not.toHaveBeenCalled();
+  });
+
+  it('names contact icon actions for assistive technology', async () => {
+    const user = userEvent.setup();
+    identityAPI.getContacts.mockResolvedValue({
+      data: [{ id: 'contact-1', nickname: 'Alice', peerId: 'alice-peer' }],
+    });
+    renderContacts();
+
+    const chat = await screen.findByRole('button', { name: 'Chat with Alice' });
+    expect(screen.getByRole('button', { name: 'Browse files shared by Alice' }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove Alice as a contact' }))
+      .toBeInTheDocument();
+
+    await user.hover(chat);
+    expect(await screen.findByText('Open a private chat with this contact.'))
+      .toBeInTheDocument();
+  });
 });

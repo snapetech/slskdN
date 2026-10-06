@@ -1,4 +1,5 @@
 import './Rooms.css';
+import TooltipButton from '../Shared/TooltipButton';
 import React, { useState } from 'react';
 import {
   Button,
@@ -159,21 +160,25 @@ const RoomCreateModal = ({ onCreateRoom, ...modalOptions }) => {
           </div>
         </Modal.Content>
         <Modal.Actions>
-          <Button
+          <TooltipButton
             disabled={loading}
             onClick={close}
+            tooltip="Close this dialog without creating or joining a room."
+            type="button"
           >
             Cancel
-          </Button>
-          <Button
+          </TooltipButton>
+          <TooltipButton
             disabled={!roomName.trim() || loading}
             loading={loading}
             onClick={handleCreate}
             positive
+            tooltip="Create a public Soulseek room with this name and join it. Other users can see the room and its participants."
+            type="button"
           >
             <Icon name="plus" />
             Create Room
-          </Button>
+          </TooltipButton>
         </Modal.Actions>
       </Modal>
     </>

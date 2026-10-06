@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Popup } from 'semantic-ui-react';
 
 const ME_PREFIX = '/me ';
 
@@ -142,26 +143,31 @@ const Composer = ({
           role="listbox"
         >
           {suggestions.map((command, index) => (
-            <button
-              aria-selected={index === cursor}
-              className={`msgv2-composer-suggestion ${index === cursor ? 'is-active' : ''}`}
+            <Popup
+              content={`${command.description} Select to insert ${command.syntax || `/${command.name}`} in the composer.`}
               key={command.name}
-              onClick={() => {
-                setCursor(index);
-                setValue(`/${command.name} `);
-                ref.current?.focus();
-              }}
-              onMouseEnter={() => setCursor(index)}
-              role="option"
-              type="button"
-            >
-              <span className="msgv2-composer-suggestion-syntax">
-                {command.syntax || `/${command.name}`}
-              </span>
-              <span className="msgv2-composer-suggestion-desc">
-                {command.description}
-              </span>
-            </button>
+              trigger={(
+                <button
+                  aria-selected={index === cursor}
+                  className={`msgv2-composer-suggestion ${index === cursor ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setCursor(index);
+                    setValue(`/${command.name} `);
+                    ref.current?.focus();
+                  }}
+                  onMouseEnter={() => setCursor(index)}
+                  role="option"
+                  type="button"
+                >
+                  <span className="msgv2-composer-suggestion-syntax">
+                    {command.syntax || `/${command.name}`}
+                  </span>
+                  <span className="msgv2-composer-suggestion-desc">
+                    {command.description}
+                  </span>
+                </button>
+              )}
+            />
           ))}
         </div>
       )}
@@ -181,16 +187,25 @@ const Composer = ({
           rows={1}
           value={draft}
         />
-        <button
-          aria-label="Send"
-          className="msgv2-composer-send"
-          disabled={isDisabled || draft.trim().length === 0 || busy}
-          onClick={submit}
-          title="Send (Enter)"
-          type="button"
-        >
-          {busy ? '…' : '▶'}
-        </button>
+        <Popup
+          content={isDisabled || draft.trim().length === 0 || busy
+            ? 'Enter a message in the active conversation before sending.'
+            : 'Send this message to the active conversation. Press Enter to send; Shift+Enter adds a line break.'}
+          trigger={(
+            <span>
+              <button
+                aria-label="Send"
+                className="msgv2-composer-send"
+                disabled={isDisabled || draft.trim().length === 0 || busy}
+                onClick={submit}
+                title="Send (Enter)"
+                type="button"
+              >
+                {busy ? '…' : '▶'}
+              </button>
+            </span>
+          )}
+        />
       </div>
       {sendError && (
         <div

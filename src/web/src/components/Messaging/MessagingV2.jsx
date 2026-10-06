@@ -1250,51 +1250,71 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       style={gridStyle}
     >
       <aside className="msgv2-rail">
-        <button
-          aria-label="All networks"
-          className={`msgv2-rail-pill ${networkFilter === 'all' ? 'is-active' : ''}`}
-          onClick={() => setNetworkFilter('all')}
-          title="All networks"
-          type="button"
-        >
-          ⌂
-        </button>
-        <button
-          aria-label="Soulseek only"
-          className={`msgv2-rail-pill msgv2-rail-slsk ${networkFilter === 'soulseek' ? 'is-active' : ''}`}
-          data-accent="slsk"
-          onClick={() => setNetworkFilter('soulseek')}
-          title="Soulseek only"
-          type="button"
-        >
-          S
-          {totalUnread > 0 && <span className="msgv2-rail-badge">{formatUnread(totalUnread)}</span>}
-        </button>
+        <Popup
+          content="Show direct messages and rooms from all messaging networks."
+          trigger={(
+            <button
+              aria-label="All networks"
+              className={`msgv2-rail-pill ${networkFilter === 'all' ? 'is-active' : ''}`}
+              onClick={() => setNetworkFilter('all')}
+              title="All networks"
+              type="button"
+            >
+              ⌂
+            </button>
+          )}
+        />
+        <Popup
+          content="Show only Soulseek direct messages and rooms."
+          trigger={(
+            <button
+              aria-label="Soulseek only"
+              className={`msgv2-rail-pill msgv2-rail-slsk ${networkFilter === 'soulseek' ? 'is-active' : ''}`}
+              data-accent="slsk"
+              onClick={() => setNetworkFilter('soulseek')}
+              title="Soulseek only"
+              type="button"
+            >
+              S
+              {totalUnread > 0 && <span className="msgv2-rail-badge">{formatUnread(totalUnread)}</span>}
+            </button>
+          )}
+        />
         {podsFeatureEnabled && (
-          <button
-            aria-label="Mesh only"
-            className={`msgv2-rail-pill msgv2-rail-mesh ${networkFilter === 'mesh' ? 'is-active' : ''}`}
-            data-accent="mesh"
-            onClick={() => setNetworkFilter('mesh')}
-            title="Mesh only"
-            type="button"
-          >
-            M
-          </button>
+          <Popup
+            content="Show only mesh pod conversations."
+            trigger={(
+              <button
+                aria-label="Mesh only"
+                className={`msgv2-rail-pill msgv2-rail-mesh ${networkFilter === 'mesh' ? 'is-active' : ''}`}
+                data-accent="mesh"
+                onClick={() => setNetworkFilter('mesh')}
+                title="Mesh only"
+                type="button"
+              >
+                M
+              </button>
+            )}
+          />
         )}
         <div className="msgv2-rail-spacer" />
-        <button
-          aria-label="Refresh"
-          className="msgv2-rail-pill msgv2-rail-icon"
-          onClick={() => {
-            void hydrate();
-            if (roomAddOpen) loadAvailableRooms();
-          }}
-          title="Refresh"
-          type="button"
-        >
-          ↻
-        </button>
+        <Popup
+          content="Refresh conversations and, while the room picker is open, reload the available room list."
+          trigger={(
+            <button
+              aria-label="Refresh"
+              className="msgv2-rail-pill msgv2-rail-icon"
+              onClick={() => {
+                void hydrate();
+                if (roomAddOpen) loadAvailableRooms();
+              }}
+              title="Refresh"
+              type="button"
+            >
+              ↻
+            </button>
+          )}
+        />
       </aside>
 
       <nav
@@ -1556,67 +1576,94 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               visibleWorkspaceTabs.map((tab) => {
                 const isActive = tab.id === workspace.activeTabId;
                 return (
-                  <button
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`msgv2-tab ${isActive ? 'is-active' : ''}`}
+                  <div
+                    className={`msgv2-tab-entry ${isActive ? 'is-active' : ''}`}
                     data-accent={tabAccent(tab)}
                     key={tab.id}
-                    onAuxClick={(event) => {
-                      if (event.button === 1) {
-                        event.preventDefault();
-                        closeTab(tab.id);
-                      }
-                    }}
-                    onClick={() => activateTab(tab.id)}
-                    title={tabSubtitle(tab)}
-                    type="button"
                   >
-                    <span className="msgv2-tab-label">{tabLabel(tab)}</span>
-                    <span
-                      aria-label={`Close ${tabLabel(tab)}`}
-                      className="msgv2-tab-close"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        closeTab(tab.id);
-                      }}
-                      role="button"
-                      tabIndex={-1}
-                    >
-                      ×
-                    </span>
-                  </button>
+                    <Popup
+                      content={`Open ${tabLabel(tab)} (${tabSubtitle(tab)}) in the message workspace. Middle-click the tab to close it.`}
+                      trigger={(
+                      <button
+                        aria-current={isActive ? 'page' : undefined}
+                        className="msgv2-tab"
+                        onAuxClick={(event) => {
+                          if (event.button === 1) {
+                            event.preventDefault();
+                            closeTab(tab.id);
+                          }
+                        }}
+                        onClick={() => activateTab(tab.id)}
+                        title={tabSubtitle(tab)}
+                        type="button"
+                      >
+                        <span className="msgv2-tab-label">{tabLabel(tab)}</span>
+                      </button>
+                      )}
+                    />
+                    <Popup
+                      content={`Close ${tabLabel(tab)} without closing the other message tabs.`}
+                      trigger={(
+                        <button
+                          aria-label={`Close ${tabLabel(tab)}`}
+                          className="msgv2-tab-close"
+                          onClick={() => closeTab(tab.id)}
+                          type="button"
+                        >
+                          ×
+                        </button>
+                      )}
+                    />
+                  </div>
                 );
               })
             )}
           </div>
           <div className="msgv2-tabs-actions">
-            <button
-              aria-label="Private-message auto response"
-              aria-pressed={humanCheckAutoResponseEnabled}
-              className={`msgv2-icon-button ${humanCheckAutoResponseEnabled ? 'is-on' : ''} ${humanCheckError ? 'is-warning' : ''}`}
-              disabled={humanCheckSaving}
-              onClick={() =>
-                setHumanCheckAutoResponse(!humanCheckAutoResponseEnabled)
-              }
-              title={
-                canApplyHumanCheck
-                  ? 'Automatically answer private messages that look like human-check or share-gate prompts.'
-                  : 'Saved locally. Enable remote configuration to apply this to daemon-side replies.'
-              }
-              type="button"
-            >
-              H
-            </button>
+            <Popup
+              content={humanCheckSaving
+                ? 'Wait for the current setting update to finish.'
+                : canApplyHumanCheck
+                  ? 'Toggle automatic replies to private messages that look like human-check or share-gate prompts.'
+                  : 'Toggle this saved local preference. Enable remote configuration to apply it to daemon-side replies.'}
+              trigger={(
+                <span className="msgv2-icon-button-trigger">
+                  <button
+                    aria-label="Private-message auto response"
+                    aria-pressed={humanCheckAutoResponseEnabled}
+                    className={`msgv2-icon-button ${humanCheckAutoResponseEnabled ? 'is-on' : ''} ${humanCheckError ? 'is-warning' : ''}`}
+                    disabled={humanCheckSaving}
+                    onClick={() =>
+                      setHumanCheckAutoResponse(!humanCheckAutoResponseEnabled)
+                    }
+                    title={canApplyHumanCheck
+                      ? 'Automatically answer private messages that look like human-check or share-gate prompts.'
+                      : 'Saved locally. Enable remote configuration to apply this to daemon-side replies.'}
+                    type="button"
+                  >
+                    H
+                  </button>
+                </span>
+              )}
+            />
             {activeTab && activeTab.type !== 'chat' && (
-              <button
-                aria-pressed={memberRailOpen}
-                className={`msgv2-icon-button ${memberRailOpen ? 'is-on' : ''}`}
-                onClick={() => setMemberRailOpen((open) => !open)}
-                title={memberRailOpen ? 'Hide members' : 'Show members'}
-                type="button"
-              >
-                ☰
-              </button>
+              <Popup
+                content={memberRailOpen
+                  ? 'Hide the current room or pod member list.'
+                  : 'Show the current room or pod member list.'}
+                trigger={(
+                  <button
+                    aria-label={memberRailOpen ? 'Hide members' : 'Show members'}
+                    aria-pressed={memberRailOpen}
+                    className={`msgv2-icon-button ${memberRailOpen ? 'is-on' : ''}`}
+                    onClick={() => setMemberRailOpen((open) => !open)}
+                    title={memberRailOpen ? 'Hide members' : 'Show members'}
+                    type="button"
+                  >
+                    ☰
+                  </button>
+                )}
+              />
             )}
             <DensityToggle
               onAdjust={adjustZoom}
@@ -1766,14 +1813,19 @@ const MemberRail = React.memo(({ members, onSelect }) => (
               className="msgv2-members-item"
               key={memberKey(member) || display}
             >
-              <button
-                className="msgv2-members-name"
-                onClick={(event) => onSelect?.(display, event)}
-                title={display}
-                type="button"
-              >
-                {display}
-              </button>
+              <Popup
+                content={`Open the available messaging actions for ${display}.`}
+                trigger={(
+                  <button
+                    className="msgv2-members-name"
+                    onClick={(event) => onSelect?.(display, event)}
+                    title={display}
+                    type="button"
+                  >
+                    {display}
+                  </button>
+                )}
+              />
               {role && <span className="msgv2-members-role">{role}</span>}
             </li>
           );
@@ -1800,27 +1852,39 @@ const TreeSection = ({
     data-accent={accent}
   >
     <div className="msgv2-tree-section-head-row">
-      <button
-        aria-expanded={!collapsed}
-        className="msgv2-tree-section-head"
-        onClick={onToggle}
-        type="button"
-      >
-        <span className="msgv2-tree-caret">{collapsed ? '▸' : '▾'}</span>
-        <span className="msgv2-tree-section-title">{title}</span>
-        <span className="msgv2-tree-section-count">{count}</span>
-      </button>
+      <Popup
+        content={`${collapsed ? 'Expand' : 'Collapse'} ${title} to ${collapsed ? 'show' : 'hide'} its conversations.`}
+        trigger={(
+          <button
+            aria-expanded={!collapsed}
+            className="msgv2-tree-section-head"
+            onClick={onToggle}
+            type="button"
+          >
+            <span className="msgv2-tree-caret">{collapsed ? '▸' : '▾'}</span>
+            <span className="msgv2-tree-section-title">{title}</span>
+            <span className="msgv2-tree-section-count">{count}</span>
+          </button>
+        )}
+      />
       {onAddToggle && (
-        <button
-          aria-label={addLabel}
-          aria-pressed={showAdd}
-          className={`msgv2-tree-section-add ${showAdd ? 'is-on' : ''}`}
-          onClick={onAddToggle}
-          title={addLabel}
-          type="button"
-        >
-          {showAdd ? '×' : '+'}
-        </button>
+        <Popup
+          content={showAdd
+            ? `Close the form to ${addLabel.toLowerCase()} in ${title}.`
+            : `Open a form to ${addLabel.toLowerCase()} in ${title}.`}
+          trigger={(
+            <button
+              aria-label={addLabel}
+              aria-pressed={showAdd}
+              className={`msgv2-tree-section-add ${showAdd ? 'is-on' : ''}`}
+              onClick={onAddToggle}
+              title={addLabel}
+              type="button"
+            >
+              {showAdd ? '×' : '+'}
+            </button>
+          )}
+        />
       )}
     </div>
     {!collapsed && showAdd && addPanel && (
@@ -1844,33 +1908,43 @@ const TreeRow = ({
     className={`msgv2-tree-row-wrap ${isActive ? 'is-active' : ''}`}
     data-accent={accent}
   >
-    <button
-      className={`msgv2-tree-row ${isActive ? 'is-active' : ''}`}
-      data-accent={accent}
-      onClick={onActivate}
-      title={`${prefix}${target}`}
-      type="button"
-    >
-      <span className="msgv2-tree-row-prefix">{prefix}</span>
-      <span className="msgv2-tree-row-name">{target}</span>
-      {unread > 0 && (
-        <span className="msgv2-tree-row-unread">{formatUnread(unread)}</span>
+    <Popup
+      content={`Open ${prefix}${target} in the message workspace.`}
+      trigger={(
+        <button
+          className={`msgv2-tree-row ${isActive ? 'is-active' : ''}`}
+          data-accent={accent}
+          onClick={onActivate}
+          title={`${prefix}${target}`}
+          type="button"
+        >
+          <span className="msgv2-tree-row-prefix">{prefix}</span>
+          <span className="msgv2-tree-row-name">{target}</span>
+          {unread > 0 && (
+            <span className="msgv2-tree-row-unread">{formatUnread(unread)}</span>
+          )}
+        </button>
       )}
-    </button>
+    />
     {onAction && (
-      <button
-        aria-label={actionLabel}
-        className="msgv2-tree-row-action"
-        onClick={(event) => {
-          event.stopPropagation();
-          onAction();
-        }}
-        tabIndex={-1}
-        title={actionLabel}
-        type="button"
-      >
-        ×
-      </button>
+      <Popup
+        content={actionLabel}
+        trigger={(
+          <button
+            aria-label={actionLabel}
+            className="msgv2-tree-row-action"
+            onClick={(event) => {
+              event.stopPropagation();
+              onAction();
+            }}
+            tabIndex={-1}
+            title={actionLabel}
+            type="button"
+          >
+            ×
+          </button>
+        )}
+      />
     )}
   </div>
 );
@@ -1959,16 +2033,25 @@ const RoomJoinSearch = ({
           type="text"
           value={value}
         />
-        <button
-          aria-label="Join/Create room"
-          className="msgv2-tree-add-go"
-          disabled={!canSubmit}
-          onClick={submit}
-          title="Join a matching Soulseek room, or create it if it does not exist"
-          type="button"
-        >
-          {submitLabel}
-        </button>
+        <Popup
+          content={canSubmit
+            ? `Join the matching Soulseek room, or create ${query} if it does not exist.`
+            : 'Enter a room name to search the directory and enable joining or creating a Soulseek room.'}
+          trigger={(
+            <span>
+              <button
+                aria-label="Join/Create room"
+                className="msgv2-tree-add-go"
+                disabled={!canSubmit}
+                onClick={submit}
+                title="Join a matching Soulseek room, or create it if it does not exist"
+                type="button"
+              >
+                {submitLabel}
+              </button>
+            </span>
+          )}
+        />
       </div>
       {!query ? (
         <div className="msgv2-room-search-hint">
@@ -1991,32 +2074,44 @@ const RoomJoinSearch = ({
               className="msgv2-room-search-results"
             >
               {matches.map(({ roomName, status }) => (
-                <button
-                  aria-label={`${status === 'joined' ? 'Open' : 'Join'} ${roomName}`}
-                  className="msgv2-room-search-result"
+                <Popup
+                  content={status === 'joined'
+                    ? `Open the existing ${roomName} conversation.`
+                    : `Join the Soulseek room ${roomName} and add it to your workspace.`}
                   key={roomName}
-                  onClick={() => onJoinRoom(roomName)}
-                  title={`${status === 'joined' ? 'Open' : 'Join'} ${roomName}`}
-                  type="button"
-                >
-                  <span className="msgv2-tree-row-prefix">#</span>
-                  <span className="msgv2-tree-row-name">{roomName}</span>
-                  <span className="msgv2-room-search-result-meta">
-                    {status === 'joined' ? 'Open' : 'Join'}
-                  </span>
-                </button>
+                  trigger={(
+                    <button
+                      aria-label={`${status === 'joined' ? 'Open' : 'Join'} ${roomName}`}
+                      className="msgv2-room-search-result"
+                      onClick={() => onJoinRoom(roomName)}
+                      title={`${status === 'joined' ? 'Open' : 'Join'} ${roomName}`}
+                      type="button"
+                    >
+                      <span className="msgv2-tree-row-prefix">#</span>
+                      <span className="msgv2-tree-row-name">{roomName}</span>
+                      <span className="msgv2-room-search-result-meta">
+                        {status === 'joined' ? 'Open' : 'Join'}
+                      </span>
+                    </button>
+                  )}
+                />
               ))}
             </div>
           )}
           {!exactAvailable && !exactJoined && (
-            <button
-              className="msgv2-room-search-create"
-              onClick={submit}
-              title={`Join or create ${query}`}
-              type="button"
-            >
-              Join/Create #{query}
-            </button>
+            <Popup
+              content={`Join the Soulseek room ${query}, or create it if it does not exist.`}
+              trigger={(
+                <button
+                  className="msgv2-room-search-create"
+                  onClick={submit}
+                  title={`Join or create ${query}`}
+                  type="button"
+                >
+                  Join/Create #{query}
+                </button>
+              )}
+            />
           )}
           {exactJoined && (
             <div className="msgv2-room-search-hint">Already joined. Press Enter to open.</div>
@@ -2037,6 +2132,9 @@ const InlineAddForm = ({
   value,
 }) => {
   const inputRef = useRef(null);
+  const actionDescription = buttonLabel === 'DM'
+    ? 'Start a direct-message conversation with the entered username.'
+    : 'Create a channel in this pod with the entered name.';
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -2059,14 +2157,23 @@ const InlineAddForm = ({
         type="text"
         value={value}
       />
-      <button
-        className="msgv2-tree-add-go"
-        disabled={value.trim().length === 0}
-        onClick={onSubmit}
-        type="button"
-      >
-        {buttonLabel}
-      </button>
+      <Popup
+        content={value.trim().length === 0
+          ? `Enter a name to enable this action. ${actionDescription}`
+          : actionDescription}
+        trigger={(
+          <span>
+            <button
+              className="msgv2-tree-add-go"
+              disabled={value.trim().length === 0}
+              onClick={onSubmit}
+              type="button"
+            >
+              {buttonLabel}
+            </button>
+          </span>
+        )}
+      />
     </div>
   );
 };
@@ -2076,45 +2183,68 @@ const DensityToggle = ({ onAdjust, onChange, value }) => (
     aria-label="Messages UI size"
     className="msgv2-density"
   >
-    <button
-      aria-label="Make Messages UI smaller"
-      className="msgv2-density-step"
-      disabled={zoomIndex(value) === 0}
-      onClick={() => onAdjust(-1)}
-      title="Make the entire Messages UI smaller"
-      type="button"
-    >
-      −
-    </button>
+    <Popup
+      content={zoomIndex(value) === 0
+        ? 'Messages UI is already at its smallest size.'
+        : 'Make the entire Messages UI smaller to fit more messages on screen.'}
+      trigger={(
+        <span className="msgv2-density-step-trigger">
+          <button
+            aria-label="Make Messages UI smaller"
+            className="msgv2-density-step"
+            disabled={zoomIndex(value) === 0}
+            onClick={() => onAdjust(-1)}
+            title="Make the entire Messages UI smaller"
+            type="button"
+          >
+            −
+          </button>
+        </span>
+      )}
+    />
     <div
       aria-label="Messages UI size presets"
       className="msgv2-density-presets"
       role="radiogroup"
     >
       {ZOOM_LEVELS.map((level) => (
-        <button
-          aria-checked={value === level}
-          className={`msgv2-density-pip ${value === level ? 'is-active' : ''}`}
+        <Popup
+          content={`Set the Messages UI size to ${level.toUpperCase()} to match your screen and reading preference.`}
           key={level}
-          onClick={() => onChange(level)}
-          role="radio"
-          title={`Messages UI size ${level.toUpperCase()}`}
-          type="button"
-        >
-          {level.toUpperCase()}
-        </button>
+          trigger={(
+            <button
+              aria-checked={value === level}
+              className={`msgv2-density-pip ${value === level ? 'is-active' : ''}`}
+              onClick={() => onChange(level)}
+              role="radio"
+              title={`Messages UI size ${level.toUpperCase()}`}
+              type="button"
+            >
+              {level.toUpperCase()}
+            </button>
+          )}
+        />
       ))}
     </div>
-    <button
-      aria-label="Make Messages UI larger"
-      className="msgv2-density-step"
-      disabled={zoomIndex(value) === ZOOM_LEVELS.length - 1}
-      onClick={() => onAdjust(1)}
-      title="Make the entire Messages UI larger"
-      type="button"
-    >
-      +
-    </button>
+    <Popup
+      content={zoomIndex(value) === ZOOM_LEVELS.length - 1
+        ? 'Messages UI is already at its largest size.'
+        : 'Make the entire Messages UI larger for easier reading.'}
+      trigger={(
+        <span className="msgv2-density-step-trigger">
+          <button
+            aria-label="Make Messages UI larger"
+            className="msgv2-density-step"
+            disabled={zoomIndex(value) === ZOOM_LEVELS.length - 1}
+            onClick={() => onAdjust(1)}
+            title="Make the entire Messages UI larger"
+            type="button"
+          >
+            +
+          </button>
+        </span>
+      )}
+    />
   </div>
 );
 

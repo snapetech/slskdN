@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import UserPopover from './UserPopover';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -35,6 +36,17 @@ describe('UserPopover', () => {
 
     fireEvent.click(screen.getByRole('menuitem', { name: /send dm/i }));
     expect(props.onMessage).toHaveBeenCalledWith('alice');
+  });
+
+  it('explains share browsing before making the peer request', async () => {
+    const user = userEvent.setup();
+    const props = baseProps();
+    render(<UserPopover {...props} />);
+
+    await user.hover(screen.getByRole('menuitem', { name: /browse shares/i }));
+    expect(await screen.findByText(/Request alice's shared file list from Soulseek/))
+      .toBeInTheDocument();
+    expect(props.onBrowse).not.toHaveBeenCalled();
   });
 
   it('closes on Escape', () => {

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Popup } from 'semantic-ui-react';
 
 const CommandHelp = ({ commands, onClose, open }) => {
   useEffect(() => {
@@ -28,14 +29,19 @@ const CommandHelp = ({ commands, onClose, open }) => {
       >
         <header className="msgv2-help-header">
           <span className="msgv2-help-title">Commands</span>
-          <button
-            aria-label="Close"
-            className="msgv2-help-close"
-            onClick={onClose}
-            type="button"
-          >
-            ×
-          </button>
+          <Popup
+            content="Close the command reference and return to the message workspace."
+            trigger={(
+              <button
+                aria-label="Close"
+                className="msgv2-help-close"
+                onClick={onClose}
+                type="button"
+              >
+                ×
+              </button>
+            )}
+          />
         </header>
         <ul className="msgv2-help-list">
           {commands.map((command) => (

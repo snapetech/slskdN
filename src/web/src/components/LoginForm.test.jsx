@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import LoginForm, { getHttpsHintUrl } from './LoginForm';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
 vi.mock('./Shared/Footer', () => ({ default: () => <div>Footer</div> }));
@@ -34,5 +34,21 @@ describe('LoginForm', () => {
     const link = screen.getByRole('link', { name: 'https://localhost:5031' });
     expect(link).toHaveAttribute('href', 'https://localhost:5031');
     expect(screen.getByText('HTTPS Option')).toBeInTheDocument();
+  });
+
+  it('explains why sign-in is unavailable before credentials are entered', async () => {
+    const onLoginAttempt = vi.fn();
+    render(<LoginForm loading={false} onLoginAttempt={onLoginAttempt} />);
+
+    const submit = screen.getByRole('button', { name: 'Login' });
+    expect(submit).toBeDisabled();
+    fireEvent.mouseEnter(submit.parentElement);
+
+    await waitFor(() => {
+      expect(screen.getByText(
+        'Sign in with these credentials to open your authenticated dashboard.',
+      )).toBeInTheDocument();
+    });
+    expect(onLoginAttempt).not.toHaveBeenCalled();
   });
 });

@@ -13,6 +13,7 @@ import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import DownloadDestinationSelector from '../Shared/DownloadDestinationSelector';
 import UserCard from '../Shared/UserCard';
 import UserNoteModal from '../Users/UserNoteModal';
+import TooltipButton from '../Shared/TooltipButton';
 import Directory from './Directory';
 import DirectoryTree from './DirectoryTree';
 import * as lzString from 'lz-string';
@@ -716,23 +717,31 @@ class BrowseSession extends Component {
                           <UserNoteModal
                             onClose={() => this.fetchUserNote(username)}
                             trigger={
-                              <Icon
-                                color="grey"
-                                link
-                                name="pencil alternate"
+                              <TooltipButton
+                                aria-label={`Edit user note for ${username}`}
+                                basic
+                                compact
+                                icon
                                 size="small"
                                 style={{ marginLeft: '4px', opacity: 0.5 }}
-                              />
+                                tooltip={`Open your local note and color rating for ${username}.`}
+                              >
+                                <Icon color="grey" name="pencil alternate" />
+                              </TooltipButton>
                             }
                             username={username}
                           />
                         </span>
-                        <Icon
-                          link
-                          name="refresh"
+                        <TooltipButton
+                          aria-label={`Refresh ${username}'s shared files`}
+                          basic
+                          compact
+                          icon
                           onClick={this.handleRefresh}
-                          title="Refresh user's file list"
-                        />
+                          tooltip={`Request ${username}'s current shared file list from Soulseek and refresh this browse view.`}
+                        >
+                          <Icon name="refresh" />
+                        </TooltipButton>
                       </Card.Header>
                       <Card.Meta className="browse-meta">
                         {`${info.directories} directories, ${info.files} files`}

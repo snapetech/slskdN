@@ -2,6 +2,7 @@ import * as rooms from '../../lib/rooms';
 import RoomSession from './RoomSession';
 import { act, render, screen } from '@testing-library/react';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../lib/rooms', () => ({
@@ -46,6 +47,24 @@ describe('RoomSession', () => {
     expect(screen.getByText('slskdn')).toBeInTheDocument();
     expect(rooms.getMessages).not.toHaveBeenCalled();
     expect(rooms.getUsers).not.toHaveBeenCalled();
+  });
+
+  it('explains the server leave action before sending it', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onLeaveRoom = vi.fn();
+    render(
+      <RoomSession
+        active={false}
+        onLeaveRoom={onLeaveRoom}
+        roomName="slskdn"
+      />,
+    );
+
+    const leave = screen.getByRole('button', { name: 'Leave slskdn' });
+    await user.hover(leave);
+    expect(await screen.findByText(/Send a leave request for slskdn to the Soulseek server/))
+      .toBeInTheDocument();
+    expect(onLeaveRoom).not.toHaveBeenCalled();
   });
 
   it('polls messages and users on separate cadences', async () => {

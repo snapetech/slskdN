@@ -2,6 +2,7 @@ import * as users from '../../lib/users';
 import BrowseSession from './BrowseSession';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 
 vi.mock('../../lib/users', () => ({
   browse: vi.fn(),
@@ -70,6 +71,34 @@ describe('BrowseSession', () => {
     ).toBeInTheDocument();
 
     await waitFor(() => expect(users.browse).toHaveBeenCalledWith({ username: 'alice' }));
+  });
+
+  it('explains peer-list refresh without sending another browse request on hover', async () => {
+    const user = userEvent.setup();
+    const sessionRef = React.createRef();
+    render(<BrowseSession ref={sessionRef} />);
+    await act(async () => {
+      sessionRef.current.setState({
+        browseState: 'complete',
+        info: {
+          directories: 1,
+          files: 1,
+          lockedDirectories: 0,
+          lockedFiles: 0,
+        },
+        tree: [{ children: [], fileCount: 1, locked: false, name: 'Shared' }],
+        username: 'alice',
+      });
+    });
+
+    const refresh = await screen.findByRole('button', {
+      name: "Refresh alice's shared files",
+    });
+    await user.hover(refresh);
+
+    expect(await screen.findByText(/Request alice's current shared file list from Soulseek/))
+      .toBeInTheDocument();
+    expect(users.browse).not.toHaveBeenCalled();
   });
 
   it('polls once per second, rejects overlap, and catches up after visibility resumes', async () => {

@@ -8,6 +8,7 @@ import {
   setLocalStorageItem,
 } from '../../lib/storage';
 import ChatSession from './ChatSession';
+import TooltipButton from '../Shared/TooltipButton';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
@@ -251,14 +252,22 @@ const Chat = ({ state }) => {
         <Icon name={tab.username ? 'comment' : 'search'} />
         {tab.label}
         {tabs.length > 1 && (
-          <Icon
-            name="close"
+          <TooltipButton
+            aria-label={`Close ${tab.label} chat tab`}
+            basic
+            className="chat-tab-close"
+            compact
+            icon
             onClick={(event) => {
               event.stopPropagation();
               closeTabRef.current?.(tab.key);
             }}
+            size="mini"
             style={{ marginLeft: '8px', opacity: 0.7 }}
-          />
+            tooltip={`Close the ${tab.label} tab. Its saved conversation remains available in the chat list.`}
+          >
+            <Icon name="close" />
+          </TooltipButton>
         )}
       </Menu.Item>
     ),

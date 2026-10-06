@@ -2,6 +2,7 @@ import './Chat.css';
 import * as chat from '../../lib/chat';
 import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import UserCard from '../Shared/UserCard';
+import TooltipButton from '../Shared/TooltipButton';
 import React, { Component, createRef } from 'react';
 import {
   Card,
@@ -312,13 +313,17 @@ class ChatSession extends Component {
                 name="comment"
               />
               {username}
-              <Icon
+              <TooltipButton
+                aria-label={`Delete saved conversation with ${username}`}
+                basic
                 className="close-button"
-                color="red"
-                link
-                name="close"
+                compact
+                icon
                 onClick={this.deleteConversation}
-              />
+                tooltip={`Delete the saved direct-message conversation with ${username} and remove it from your chat list.`}
+              >
+                <Icon color="red" name="close" />
+              </TooltipButton>
             </Card.Header>
           </Card.Content>
         </Card>
@@ -337,13 +342,17 @@ class ChatSession extends Component {
               name="circle"
             />
             <UserCard username={username}>{username}</UserCard>
-            <Icon
-              className="close-button"
-              color="red"
-              link
-              name="close"
-              onClick={this.deleteConversation}
-            />
+              <TooltipButton
+                aria-label={`Delete saved conversation with ${username}`}
+                basic
+                className="close-button"
+                compact
+                icon
+                onClick={this.deleteConversation}
+                tooltip={`Delete the saved direct-message conversation with ${username} and remove it from your chat list.`}
+              >
+                <Icon color="red" name="close" />
+              </TooltipButton>
           </Card.Header>
           <div className="chat">
             {loading ? (

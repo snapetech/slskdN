@@ -2,6 +2,7 @@ import '@testing-library/jest-dom';
 import CommandHelp from './CommandHelp';
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 const COMMANDS = [
@@ -40,6 +41,23 @@ describe('CommandHelp', () => {
     );
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('explains the close control without closing on hover', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <CommandHelp
+        commands={COMMANDS}
+        onClose={onClose}
+        open
+      />,
+    );
+
+    await user.hover(screen.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText(/Close the command reference/))
+      .toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('calls onClose on backdrop click but not modal click', () => {

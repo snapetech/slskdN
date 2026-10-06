@@ -2,6 +2,7 @@ import * as chat from '../../lib/chat';
 import Chat from './Chat';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../lib/chat', () => ({
@@ -99,5 +100,33 @@ describe('Chat', () => {
 
     expect((await screen.findAllByText('alice')).length).toBeGreaterThan(0);
     expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
+  });
+
+  it('explains closing a chat tab and keeps the saved conversation', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('slskd-chat-tabs', JSON.stringify({
+      activeIndex: 0,
+      tabCounter: 2,
+      tabs: [
+        { key: 'chat-tab-1', label: 'alice', username: 'alice' },
+        { key: 'chat-tab-2', label: 'bob', username: 'bob' },
+      ],
+    }));
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Chat />
+      </MemoryRouter>,
+    );
+
+    const close = screen.getByRole('button', { name: 'Close alice chat tab' });
+    await user.hover(close);
+    expect(await screen.findByText(/Its saved conversation remains available/))
+      .toBeInTheDocument();
+    expect(chat.remove).not.toHaveBeenCalled();
+
+    await user.click(close);
+    expect(screen.queryByRole('button', { name: 'Close alice chat tab' }))
+      .not.toBeInTheDocument();
+    expect(chat.remove).not.toHaveBeenCalled();
   });
 });

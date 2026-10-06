@@ -6,7 +6,7 @@ import * as slskdn from '../../lib/slskdn';
 import MessagingV2 from './MessagingV2';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -144,6 +144,47 @@ describe('MessagingV2 hydration', () => {
     expect(pods.list).toHaveBeenCalledTimes(1);
     expect(pods.discoverAll).toHaveBeenCalledTimes(1);
     expect(pods.get).not.toHaveBeenCalled();
+  });
+
+  it('explains network filters and disabled conversation actions on hover', async () => {
+    const user = userEvent.setup();
+    renderMessaging();
+
+    const allNetworks = screen.getByRole('button', { name: 'All networks' });
+    await user.hover(allNetworks);
+    expect(await screen.findByText(/Show direct messages and rooms from all messaging networks/))
+      .toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Start a direct message' }));
+    const startDm = screen.getByRole('button', { name: 'DM' });
+    expect(startDm).toBeDisabled();
+    await user.hover(startDm.parentElement);
+    expect(await screen.findByText(/Enter a name to enable this action/))
+      .toBeInTheDocument();
+    expect(chat.remove).not.toHaveBeenCalled();
+  });
+
+  it('keeps the tab close action separate, keyboard reachable, and scoped to the tab', async () => {
+    const user = userEvent.setup();
+    rooms.getJoined.mockResolvedValue(['ambient']);
+    const { container } = renderMessaging();
+
+    await user.click(await screen.findByRole('button', { name: '#ambient' }));
+    const tabStrip = container.querySelector('.msgv2-tabs-strip');
+    const tabs = within(tabStrip);
+    const close = tabs.getByRole('button', { name: 'Close #ambient' });
+    expect(close).toBeEnabled();
+    expect(close).not.toHaveAttribute('tabindex', '-1');
+
+    await user.hover(close);
+    expect(await screen.findByText(/Close #ambient without closing the other message tabs/))
+      .toBeInTheDocument();
+    expect(tabs.getByRole('button', { name: '#ambient' })).toBeInTheDocument();
+    expect(rooms.leave).not.toHaveBeenCalled();
+
+    await user.click(close);
+    expect(tabs.queryByRole('button', { name: '#ambient' })).not.toBeInTheDocument();
+    expect(rooms.leave).not.toHaveBeenCalled();
   });
 
   it('keeps pod routes available with a clear state and skips pod APIs when the server gate is disabled', async () => {

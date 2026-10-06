@@ -1,6 +1,7 @@
 import Browse from './Browse';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('./BrowseSession', () => ({
@@ -67,5 +68,33 @@ describe('Browse', () => {
     );
 
     expect(screen.getByText('New Tab')).toBeInTheDocument();
+  });
+
+  it('explains browse tab closure without changing tabs on hover', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('slskd-browse-tabs', JSON.stringify({
+      activeIndex: 0,
+      tabCounter: 2,
+      tabs: [
+        { key: 'tab-1', label: 'alice', username: 'alice' },
+        { key: 'tab-2', label: 'bob', username: 'bob' },
+      ],
+    }));
+    render(
+      <MemoryRouter initialEntries={['/browse']}>
+        <Browse />
+      </MemoryRouter>,
+    );
+
+    const close = screen.getByRole('button', { name: 'Close alice browse tab' });
+    await user.hover(close);
+    expect(await screen.findByText(/Close the alice browse tab without changing/))
+      .toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close alice browse tab' }))
+      .toBeInTheDocument();
+
+    await user.click(close);
+    expect(screen.queryByRole('button', { name: 'Close alice browse tab' }))
+      .not.toBeInTheDocument();
   });
 });

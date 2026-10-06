@@ -1,6 +1,7 @@
 import * as rooms from '../../lib/rooms';
 import React, { Component, createRef } from 'react';
 import UserCard from '../Shared/UserCard';
+import TooltipButton from '../Shared/TooltipButton';
 import {
   Button,
   Card,
@@ -443,13 +444,17 @@ class RoomSession extends Component {
                   name="comments"
                 />
                 {roomName}
-                <Icon
+                <TooltipButton
+                  aria-label={`Leave ${roomName}`}
+                  basic
                   className="close-button"
-                  color="red"
-                  link
-                  name="close"
+                  compact
+                  icon
                   onClick={() => onLeaveRoom && onLeaveRoom(roomName)}
-                />
+                  tooltip={`Send a leave request for ${roomName} to the Soulseek server and close this room view.`}
+                >
+                  <Icon color="red" name="close" />
+                </TooltipButton>
               </Card.Header>
             </Card.Content>
           </Card>
@@ -470,13 +475,17 @@ class RoomSession extends Component {
                 name="circle"
               />
               {roomName}
-              <Icon
+              <TooltipButton
+                aria-label={`Leave ${roomName}`}
+                basic
                 className="close-button"
-                color="red"
-                link
-                name="close"
+                compact
+                icon
                 onClick={() => onLeaveRoom && onLeaveRoom(roomName)}
-              />
+                tooltip={`Send a leave request for ${roomName} to the Soulseek server and close this room view.`}
+              >
+                <Icon color="red" name="close" />
+              </TooltipButton>
             </Card.Header>
             <div className="room">
               {loading ? (

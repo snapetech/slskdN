@@ -3,6 +3,7 @@ import Rooms from './Rooms';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../lib/rooms', () => ({
@@ -97,6 +98,34 @@ describe('Rooms', () => {
 
     expect((await screen.findAllByText('chill')).length).toBeGreaterThan(0);
     expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
+  });
+
+  it('explains closing a room tab without leaving the server room', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('slskd-room-tabs', JSON.stringify({
+      activeIndex: 0,
+      tabCounter: 2,
+      tabs: [
+        { key: 'room-tab-1', label: 'ambient', roomName: 'ambient' },
+        { key: 'room-tab-2', label: 'jazz', roomName: 'jazz' },
+      ],
+    }));
+    render(
+      <MemoryRouter initialEntries={['/rooms']}>
+        <Rooms />
+      </MemoryRouter>,
+    );
+
+    const close = screen.getByRole('button', { name: 'Close ambient room tab' });
+    await user.hover(close);
+    expect(await screen.findByText(/without leaving the Soulseek room/))
+      .toBeInTheDocument();
+    expect(rooms.leave).not.toHaveBeenCalled();
+
+    await user.click(close);
+    expect(screen.queryByRole('button', { name: 'Close ambient room tab' }))
+      .not.toBeInTheDocument();
+    expect(rooms.leave).not.toHaveBeenCalled();
   });
 
   it('shows the explicit join room button and joins a selected available room', async () => {

@@ -1,5 +1,6 @@
 import BrowseSession from './BrowseSession';
 import { getLocalStorageItem, setLocalStorageItem } from '../../lib/storage';
+import TooltipButton from '../Shared/TooltipButton';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon, Menu, Tab } from 'semantic-ui-react';
@@ -179,14 +180,22 @@ const Browse = () => {
         <Icon name={tab.username ? 'folder open' : 'search'} />
         {tab.label}
         {tabs.length > 1 && (
-          <Icon
-            name="close"
+          <TooltipButton
+            aria-label={`Close ${tab.label} browse tab`}
+            basic
+            className="browse-tab-close"
+            compact
+            icon
             onClick={(event) => {
               event.stopPropagation();
               closeTabRef.current?.(tab.key);
             }}
+            size="mini"
             style={{ marginLeft: '8px', opacity: 0.7 }}
-          />
+            tooltip={`Close the ${tab.label} browse tab without changing the user's shared files.`}
+          >
+            <Icon name="close" />
+          </TooltipButton>
         )}
       </Menu.Item>
     ),
