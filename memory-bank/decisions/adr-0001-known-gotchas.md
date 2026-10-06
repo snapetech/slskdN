@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1705. Keep Bulk Transfer Actions As Discoverable As Row Actions (2026-10-06)
+
+**What went wrong:** The transfer table wrapped each row action in a Semantic
+UI `Popup`, but its selected-transfer Retry, Cancel, and Remove buttons had no
+hover explanation or selected-scope hint.
+
+**Why:** The bulk controls were added in a separate toolbar, outside the row
+action markup where the tooltip pattern was already used.
+
+**Prevention:** When adding or changing bulk actions, give each control its
+own `Popup` with the action and its selected scope. Pin the popup content in a
+component regression so a grouped button cannot silently lose its explanation.
+
 ### 0z1704. Alias Types When Test Namespaces Shadow Imports (2026-10-06)
 
 **What went wrong:** A new policy-collection regression used an unqualified
