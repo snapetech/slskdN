@@ -40412,3 +40412,17 @@ of checking the rendered DOM contract.
 **Prevention:** Query Semantic UI modal titles by their rendered text unless
 the component is explicitly given heading semantics; reserve role queries
 for roles present in the actual DOM.
+
+### 0z1720. Keep MediaCore Pod Guidance Reachable While Actions Are Disabled (2026-10-06)
+
+**What went wrong:** The MediaCore Pod button wrapper gave actions Popup text
+but used the disabled native button as the Popup trigger, so users could not
+reliably discover why an incomplete action was unavailable.
+
+**Why:** The custom wrapper predated the shared disabled-button trigger fix
+and kept its own direct Popup wiring.
+
+**Prevention:** Wrap disabled MediaCore buttons with a neutral hover target
+while leaving the actual button disabled. Add a rendered regression that
+hovers the wrapper and verifies the guidance appears without invoking the
+action.
