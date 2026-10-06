@@ -40344,3 +40344,15 @@ equivalent to the shared explanatory popup pattern.
 **Prevention:** Give each standalone Wishlist action a `TooltipButton` with
 its effect and purpose. State network and data-removal impacts, preserve
 existing explanatory Popup triggers, and verify hover never starts an action.
+
+### 0z1715. Render One Wishlist Deletion Confirmation (2026-10-06)
+
+**What went wrong:** `WishlistItemRow` renders two identical `Confirm` dialogs
+for deletion, both driven by the same `confirmDelete` state. Clicking Delete
+opens both dialogs for one action.
+
+**Why:** Confirmation markup was left both beside the row action and after the
+row's expanded-search content.
+
+**Prevention:** Keep one confirmation dialog per destructive action and test
+the open state for exactly one accessible dialog.
